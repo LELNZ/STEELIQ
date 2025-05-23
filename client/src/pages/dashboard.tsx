@@ -120,7 +120,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-muted-foreground text-sm font-medium">Material Efficiency</p>
                 <p className="text-3xl font-bold text-foreground mt-1">
-                  {stats?.avgEfficiency?.toFixed(1) ?? '0.0'}%
+                  {stats?.avgEfficiency ? Number(stats.avgEfficiency).toFixed(1) : '0.0'}%
                 </p>
               </div>
               <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
