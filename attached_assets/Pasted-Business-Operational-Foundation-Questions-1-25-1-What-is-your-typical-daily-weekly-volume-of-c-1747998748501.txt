@@ -1,0 +1,494 @@
+Business & Operational Foundation (Questions 1-25)
+1.	What is your typical daily/weekly volume of cutting jobs? – we cut between 1-5 tons of steel each week.
+2.	What types of steel materials do you work with most frequently? (beams, plates, tubes, angles, channels, etc.) 
+1.	Please see attached steel catalogue pdf – this is not an exhaustive list, I need the ability to upload more and or export. I also need to upload a purlin list. Categorise and material and allow for all standard lengths and coatings. 
+3.	What are your standard material dimensions and thickness ranges?
+1.	 The length ranges and lengths are within the steel catalogue
+4.	Do you work primarily with metric or imperial measurements, or both? 
+1.	METRIC
+5.	What cutting methods do you use? (plasma, laser, saw, torch, waterjet, etc.)-  
+1.	Band Saw, please allow functionality for future automated cutting processes.
+6.	Do you need to account for kerf width in your cutting calculations?
+1.	Yes, 2.4mm
+2.	Also account for 0.5mm of user error in manual cutting operation i.e non cnc application.
+7.	What is your typical material waste percentage target?
+1.	5%
+8.	Do you have multiple cutting stations or machines?
+1.	At this time only the one bandsaw
+2.	Allow for future machines
+9.	Do you work with nested cutting patterns or primarily linear cuts?
+1.	Linear cuts
+2.	Allow for future nesting operations
+10.	Do you need to track material costs and cutting time estimates?
+1.	Yes material costs – please allow for a $/m,$/kg
+2.	Yes cutting time estimates – allow for standard 90degree cut of 10min, angle cut i.e 45degree cuts of 12mins and allow for user time entry
+3.	All $ are in NZD
+11.	What is your average job size in terms of material value?
+1.	$1 - $45000 NZD
+12.	Do you handle both custom fabrication and standard products?
+1.	Yes we handle both custom fabrication and standard
+13.	What is your typical project timeline from quote to completion?
+1.	We aim for 2-4 weeks depending on size of project
+2.	We have a team of 3 people at the moment – allow for growth upto 300 employees
+14.	Do you work with subcontractors who need access to cutting plans?
+1.	Yes this would be advantageous
+15.	What are your peak business hours and seasons?
+1.	24/7
+16.	What industries do you primarily serve? (construction, mining, agriculture, etc.)
+1.	Residential structural steel
+2.	Metalworks i.e handrails, stairs, 
+3.	Repairs and renovation steel work
+4.	Bollard and protection barriers in steel – we design in fusion360 then build
+17.	Do you have specific quality certifications required for your work?
+1.	Yes SFC fabricator scheme and all associated as/nz standards within
+18.	What is your current annual material consumption volume?
+1.	Not sure – 50-200tons
+19.	Do you operate multiple shifts or just standard business hours?
+1.	Standard business hours
+2.	When busy will have overtime available
+3.	Allow for future multiple shifts and business growth
+20.	What is your typical crew size for cutting operations?
+1.	1 person
+2.	Allow for multiple people and business growth
+21.	Do you handle emergency or rush orders?
+1.	Yes we try to accommodate
+2.	These have a small premium – please advise a realistic premium to add for these jobs
+22.	What percentage of your work is repeat business vs. new clients?
+1.	70% repeat business
+2.	We are continually looking for new clients
+23.	Do you offer on-site cutting services?
+1.	Yes – these are manual cutting – grinder, hand held plasma, hand held oxy/acetylene 
+24.	What is your geographical service area?
+1.	East Tamaki, Auckland, New Zealand
+25.	Do you have seasonal variations in material types or volumes?
+1.	No
+
+Client Management & Communication (Questions 26-50)
+26.	How do you currently receive job specifications from clients?
+1.	Via emai confirmation
+2.	Occasional walk in customers will have an idea or sketch and we work from there
+27.	Do you need integration with any existing ERP or accounting systems?
+1.	Yes Xero
+2.	Allow for future integration with a JMS
+3.	Ideally I would like to create a JMS and Estimation app for our business if this app works out
+28.	Do you require job costing and profitability analysis features?
+1.	Yes – basic break down
+2.	Allow for full costing and profitability analysis option/report
+29.	Do you need to generate cutting lists for operators?
+1.	Yes for every job 
+2.	Future integration from JMS would be advantageous
+3.	Ability to take standard CAD files in 3D or 2D and create cut lists would be advantageous i.e .step file, .dwg, .dxf,
+30.	Do you require barcode or QR code generation for material tracking?
+1.	Yes 
+31.	Do you need to track job progress and completion status?
+1.	Yes in the workshop and office and field the cross platform app is needed for this
+32.	Do you require customer approval workflows for cutting plans?
+1.	no
+33.	Do you need to generate reports for clients showing material usage?
+1.	Not at this time
+34.	Do you work with recurring jobs or templates?
+1.	Yes both
+35.	Do you need to track remnant materials for future use?
+1.	Yes 
+2.	Ideally all materials received from suppliers will be input into this app for stock management and have associated heat/batch numbers for tracabilities
+3.	When the information is added into the stock generate a lable 
+4.	This lable is to be printed and stuck on the full length and remnant 
+5.	Or for a person write it in paint pen on the stock material and remnant 
+6.	allow for a check box to show the task has been carried out with photo upload.
+36.	Do you require quote generation based on optimized cutting plans?
+1.	No quote generation
+2.	A purchase order option for required materials generated from the job with manual edit and entry would be advantageous
+3.	Allow for future integration with JMS
+37.	Do you need client portal access for job status updates?
+1.	no
+38.	Do you require photo documentation of completed cuts?
+1.	No
+2.	But yes to competed stages of a cut sequence
+39.	Do you need to track delivery schedules and logistics?
+1.	Only from within the company departments i.e inward goods (received material into stock) to cutting bay, to fabricator, to welder, to inhouse coatings or outward for coatings then when ready for collection from coatings vendor and delivery to site. 
+40.	Do you require invoice generation linked to material usage?
+1.	please come back to this question with a greater description of what it means.
+41.	Do you need to manage change orders during projects?
+1.	please come back to this question with a greater description of what it means.
+42.	Do you require compliance documentation for specific industries?
+1.	Not at this time
+2.	 but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+43.	Do you need to track warranty information for completed work?
+1.	Yes full traceability of materials
+44.	Do you require integration with project management tools?
+1.	Yes allow for integration
+2.	Allow for a future application I would like to create the encompasses a full systems solution
+45.	Do you need automated notifications for job milestones?
+1.	no but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+46.	Do you need to manage client-specific pricing structures?
+1.	no but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+47.	Do you require credit limit monitoring for clients?
+1.	no but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+48.	Do you need to track client payment history?
+1.	no but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+49.	Do you require automated follow-up reminders?
+1.	no but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+50.	Do you need to manage client contracts and agreements?
+1.	no but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+Material Library & Procurement (Questions 51-80)
+51.	What specific material properties do you need to track? (grade, yield strength, dimensions, weight, etc.)
+1.	Yes  all of these based on each specific job 
+52.	Do you need supplier information linked to materials?
+1.	Yes mill certificate for all incoming materials to meet traceability requirements
+53.	Do you require material certification tracking?
+1.	no
+54.	What format are your current material databases in?
+1.	.pdf from various suppliers, sometimes a photocopy or photo
+55.	Do you need real-time inventory tracking?
+1.	yes
+56.	Do you require material procurement suggestions based on job requirements?
+1.	yes
+57.	Do you need to track material location in your facility?
+1.	Not at the moment
+2.	Allow for future functionality 
+58.	Do you require expiration date tracking for certain materials?
+1.	No 
+59.	Do you need to import material data from supplier catalogs?
+1.	yes
+60.	Do you require material cost tracking and pricing updates?
+1.	Yes 
+2.	Allow for prompt at time of entry (update price now?  yes/no with user entry)
+61.	Do you need to track material defects or quality issues?
+1.	No
+2.	Allow for future functionality
+62.	Do you require batch/lot number tracking?
+1.	Yes on every piece of material received for jobs
+63.	Do you need to manage material reservations for specific jobs?
+1.	No
+2.	Allow for future functionality 
+64.	Do you require minimum stock level alerts?
+1.	No
+2.	Allow for future functionality
+65.	Do you need to track material handling equipment requirements?
+1.	No, but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+66.	Do you require environmental storage condition tracking?
+1.	No
+2.	Allow for future functionality
+67.	Do you need to manage material lending/borrowing with other companies?
+1.	no
+68.	Do you require scrap material tracking and recycling management?
+1.	No
+2.	Allow for future functionality 
+69.	Do you need to track material inspection schedules?
+1.	No
+2.	Allow for future functionality
+70.	Do you require integration with supplier ordering systems?
+1.	No
+71.	Do you need to track material origin and chain of custody?
+1.	Yes mill certs and heat numbers as stated above
+72.	Do you require material testing result documentation?
+1.	Yes mill certs
+73.	Do you need to manage material warranties from suppliers?
+1.	No
+2.	Allow for future functionality
+74.	Do you require tracking of material storage costs?
+1.	No
+2.	Allow for future functionality
+75.	Do you need to monitor material price trends and forecasting?
+1.	no
+76.	Do you require automated reorder point calculations?
+1.	no
+77.	Do you need to track material transportation costs?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+78.	Do you require vendor performance tracking?
+1.	no
+79.	Do you need to manage material safety data sheets (MSDS)?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+80.	Do you require tracking of special handling requirements?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+
+Cutting Optimization & Engineering (Questions 81-110)
+81.	Do you need 1D linear optimization, 2D nesting, or both?
+1.	both
+82.	Do you require grain direction considerations for cutting?
+1.	no
+83.	Do you need to account for material defects or unusable areas?
+1.	no
+84.	Do you require multiple optimization algorithms (minimize waste vs. minimize cuts)?
+1.	yes
+85.	Do you need to set minimum remnant sizes for reuse?
+1.	yes
+86.	Do you require cutting sequence optimization?
+1.	YES
+87.	Do you need to account for machine setup times between cuts?
+1.	yes
+88.	Do you require support for multi-material jobs?
+1.	yes
+89.	Do you need constraint-based cutting (specific pieces from specific materials)?
+1.	yes
+90.	Do you require stress analysis considerations for cutting plans?
+1.	No
+2.	Allow for future functionality 
+91.	Do you need to optimize for specific machine capabilities?
+1.	yes
+92.	Do you require priority-based cutting (rush jobs first)?
+1.	yes
+93.	Do you need to account for material handling time between cuts?
+1.	yes
+94.	Do you require simulation of cutting processes before execution?
+1.	yes
+95.	Do you need to optimize for energy consumption?
+1.	No
+2.	Allow for future functionality
+96.	Do you require cutting pattern libraries for common shapes?
+1.	No
+2.	Allow for future functionality
+97.	Do you need to account for material expansion/contraction?
+1.	no
+98.	Do you require cutting tolerance specifications?
+1.	yes
+99.	Do you need to optimize for operator skill levels?
+1.	No 
+100.	Do you require integration with CNC programming software?
+1.	yes
+101.	Do you need to calculate heat-affected zones for thermal cutting?
+1.	No
+2.	Allow for future functionality 
+102.	Do you require cutting speed optimization based on material thickness?
+1.	yes
+103.	Do you need to account for blade wear and replacement schedules?
+1.	yes
+104.	Do you require optimization for multiple cutting machines simultaneously?
+1.	yes
+105.	Do you need to track cutting quality metrics?
+1.	No
+2.	Allow for future functionality
+106.	Do you require integration with CAM software?
+1.	No
+2.	Allow for future functionality
+107.	Do you need to optimize cutting paths for minimal material movement?
+1.	No
+2.	Allow for future functionality
+108.	Do you require support for angular cuts and bevels?
+1.	Yes both
+109.	Do you need to account for fixturing and clamping requirements?
+1.	No
+2.	Allow for future functionality 
+110.	Do you require optimization for specific gas consumption in plasma cutting?
+1.	No
+2.	Allow for future functionality
+
+Quality Control & Compliance (Questions 111-130)
+111.	Do you require dimensional inspection tracking?
+1.	yes
+112.	Do you need to document quality control checkpoints?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+113.	Do you require non-conformance reporting and tracking?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+114.	Do you need to track calibration schedules for measuring equipment?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+115.	Do you require statistical process control (SPC) charts?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+116.	Do you need to manage customer quality requirements?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+117.	Do you require tracking of rework and repair operations?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+118.	Do you need to document operator certifications?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+119.	Do you require integration with quality management systems?
+1.	yes but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+120.	Do you need to track customer complaints and resolutions?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+121.	Do you require environmental compliance tracking?
+1.	no
+122.	Do you need to manage safety incident reporting?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+123.	Do you require tracking of training records?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+124.	Do you need to document process improvements?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+125.	Do you require audit trail capabilities?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+126.	Do you need to track equipment maintenance schedules?
+1.	yes
+127.	Do you require documentation of process parameters?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+128.	Do you need to manage corrective action plans?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+129.	Do you require tracking of material traceability?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+130.	Do you need to document customer approvals and sign-offs?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+
+Technology Infrastructure & Integration (Questions 131-155)
+131.	How many users will need access to the system simultaneously?
+1.	1-5 immediately 
+2.	Allow for future employee base of 300 users
+132.	Do you need different user roles and permissions?
+1.	yes
+133.	Do you require offline functionality for field work?
+1.	Yes
+134.	Do you need mobile-specific features (camera integration, GPS, etc.)?
+1.	yes
+135.	Do you require multi-language support?
+1.	yes
+136.	Do you need accessibility features for users with disabilities?
+1.	no
+137.	Do you require customizable dashboards for different user types?
+1.	no
+138.	Do you need integration with CAD software for importing drawings?
+1.	yes
+139.	Do you require 3D visualization of cutting plans?
+1.	yes
+140.	Do you need touch-screen optimization for workshop tablets?
+1.	yes
+141.	Do you require voice command functionality?
+1.	yes
+142.	Do you need augmented reality features for material identification?
+1.	no
+143.	Do you require print-friendly layouts for cutting instructions?
+1.	yes
+144.	Do you need keyboard shortcuts for power users?
+1.	yes
+145.	Do you require customizable notification preferences?
+1.	yes
+146.	Do you need integration with existing business systems?
+1.	Yes 
+147.	Do you require API access for third-party integrations?
+1.	yes
+148.	Do you need cloud synchronization between devices?
+1.	yes
+149.	Do you require data migration from existing systems?
+1.	yes
+150.	Do you need integration with weighing scales or measuring devices?
+1.	no
+151.	Do you require barcode scanning capabilities?
+1.	No
+2.	Allow for future functionality
+152.	Do you need integration with time tracking systems?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+153.	Do you require support for multiple currencies?
+1.	no
+154.	Do you need integration with shipping and logistics systems?
+1.	no
+155.	Do you require support for electronic document management?
+1.	Yes
+
+Security & Data Protection (Questions 156-170)
+156.	Do you have any specific data security or compliance requirements?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+157.	Do you require backup and disaster recovery features?
+1.	yes
+158.	Do you need audit trails for all system changes?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+159.	Do you require data encryption for sensitive information?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+160.	Do you need single sign-on (SSO) integration?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+161.	Do you require specific uptime guarantees?
+1.	Always available
+162.	Do you need data export capabilities for analytics?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+163.	Do you require automated data backups to external storage?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+164.	Do you require compliance with industry standards (ISO, AS/NZS)?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+165.	Do you need geo-redundant data storage?
+1.	no
+166.	Do you require performance monitoring and alerting?
+1.	no
+167.	Do you need role-based access control for sensitive data?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+168.	Do you require data anonymization for reporting?
+1.	no
+169.	Do you need to comply with privacy regulations?
+1.	no
+170.	Do you require secure file transfer capabilities?
+1.	Yes
+
+Reporting & Analytics (Questions 171-190)
+171.	What types of reports do you need for management?
+1.	Please recommend reporting for my line of work
+172.	Do you require real-time dashboards?
+1.	yes
+173.	Do you need trend analysis for material usage?
+1.	no
+174.	Do you require profitability analysis by job or material type?
+1.	yes
+175.	Do you need efficiency reporting for cutting operations?
+1.	yes
+176.	Do you require waste analysis and reporting?
+1.	yes
+177.	Do you need customer performance reports?
+1.	no
+178.	Do you require supplier performance analytics?
+1.	no
+179.	Do you need equipment utilization reports?
+1.	yes
+180.	Do you require cost analysis reporting?
+1.	yes
+181.	Do you need productivity tracking by operator?
+1.	yes
+182.	Do you require inventory turnover analysis?
+1.	yes
+183.	Do you need energy consumption reporting?
+1.	No
+2.	Allow for future functionality 
+184.	Do you require quality metrics reporting?
+1.	No
+2.	Allow for future functionality
+185.	Do you need financial reporting integration?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+186.	Do you require custom report building capabilities?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+187.	Do you need automated report scheduling and distribution?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+188.	Do you require data visualization tools?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+189.	Do you need comparative analysis features?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+190.	Do you require export capabilities for external analysis?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+
+Future Growth & Scalability (Questions 191-210)
+191.	What is your expected growth rate over the next 5 years?
+1.	Grow from 3 employees to 12 employees
+192.	Do you plan to expand to multiple locations?
+1.	Not at this time
+2.	Allow for future functionality 
+193.	Do you need the system to handle seasonal volume spikes?
+1.	No
+2.	Allow for future functionality
+194.	Do you require real-time processing or is batch processing acceptable?
+1.	both
+195.	Do you need the system to scale automatically based on demand?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+196.	Do you require specific response time guarantees?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+197.	Do you need to support concurrent optimization calculations?
+1.	Not sure what this is
+198.	Do you require load balancing for high availability?
+1.	no
+199.	Do you need the system to handle large file uploads efficiently?
+1.	yes
+200.	Do you require caching mechanisms for frequently accessed data?
+1.	yes
+201.	Do you plan to add new cutting technologies in the future?
+1.	yes
+202.	Do you need support for industry 4.0 and IoT integration?
+1.	No
+2.	Allow for future functionality
+203.	Do you require machine learning capabilities for optimization improvement?
+1.	No
+2.	Allow for future functionality
+204.	Do you need support for virtual reality training modules?
+1.	no
+205.	Do you require blockchain integration for material traceability?
+1.	No
+2.	Allow for future functionality
+206.	Do you need support for drone integration for inventory management?
+1.	no
+207.	Do you require artificial intelligence for predictive maintenance?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+208.	Do you need support for automated material handling systems?
+1.	No but this will be a part of the JMS, Estimation & Compliance application I would like to create after this application for a complete systems solution
+209.	Do you require integration with robotic cutting systems?
+1.	yes
+210.	Do you need support for digital twin technology for your operations?
+1.	No sure what this is.
+

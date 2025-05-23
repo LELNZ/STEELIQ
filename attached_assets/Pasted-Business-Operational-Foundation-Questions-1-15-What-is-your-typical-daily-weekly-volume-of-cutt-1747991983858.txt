@@ -1,0 +1,122 @@
+Business & Operational Foundation (Questions 1-15)
+What is your typical daily/weekly volume of cutting jobs?
+What types of steel materials do you work with most frequently? (beams, plates, tubes, angles, channels, etc.)
+What are your standard material dimensions and thickness ranges?
+Do you work primarily with metric or imperial measurements, or both?
+What cutting methods do you use? (plasma, laser, saw, torch, waterjet, etc.)
+Do you need to account for kerf width in your cutting calculations?
+What is your typical material waste percentage target?
+Do you have multiple cutting stations or machines?
+Do you work with nested cutting patterns or primarily linear cuts?
+Do you need to track material costs and cutting time estimates?
+What is your average job size in terms of material value?
+Do you handle both custom fabrication and standard products?
+What is your typical project timeline from quote to completion?
+Do you work with subcontractors who need access to cutting plans?
+What are your peak business hours and seasons?
+Job Management & Client Workflow (Questions 16-35)
+How do you currently receive job specifications from clients?
+Do you need integration with any existing ERP or accounting systems?
+Do you require job costing and profitability analysis features?
+Do you need to generate cutting lists for operators?
+Do you require barcode or QR code generation for material tracking?
+Do you need to track job progress and completion status?
+Do you require customer approval workflows for cutting plans?
+Do you need to generate reports for clients showing material usage?
+Do you work with recurring jobs or templates?
+Do you need to track remnant materials for future use?
+Do you require quote generation based on optimized cutting plans?
+Do you need client portal access for job status updates?
+Do you require photo documentation of completed cuts?
+Do you need to track delivery schedules and logistics?
+Do you require invoice generation linked to material usage?
+Do you need to manage change orders during projects?
+Do you require compliance documentation for specific industries?
+Do you need to track warranty information for completed work?
+Do you require integration with project management tools?
+Do you need automated notifications for job milestones?
+Material Library & Inventory Management (Questions 36-55)
+What specific material properties do you need to track? (grade, yield strength, dimensions, weight, etc.)
+Do you need supplier information linked to materials?
+Do you require material certification tracking?
+What format are your current material databases in?
+Do you need real-time inventory tracking?
+Do you require material procurement suggestions based on job requirements?
+Do you need to track material location in your facility?
+Do you require expiration date tracking for certain materials?
+Do you need to import material data from supplier catalogs?
+Do you require material cost tracking and pricing updates?
+Do you need to track material defects or quality issues?
+Do you require batch/lot number tracking?
+Do you need to manage material reservations for specific jobs?
+Do you require minimum stock level alerts?
+Do you need to track material handling equipment requirements?
+Do you require environmental storage condition tracking?
+Do you need to manage material lending/borrowing with other companies?
+Do you require scrap material tracking and recycling management?
+Do you need to track material inspection schedules?
+Do you require integration with supplier ordering systems?
+Cutting Optimization & Technical Features (Questions 56-75)
+Do you need 1D linear optimization, 2D nesting, or both?
+Do you require grain direction considerations for cutting?
+Do you need to account for material defects or unusable areas?
+Do you require multiple optimization algorithms (minimize waste vs. minimize cuts)?
+Do you need to set minimum remnant sizes for reuse?
+Do you require cutting sequence optimization?
+Do you need to account for machine setup times between cuts?
+Do you require support for multi-material jobs?
+Do you need constraint-based cutting (specific pieces from specific materials)?
+Do you require stress analysis considerations for cutting plans?
+Do you need to optimize for specific machine capabilities?
+Do you require priority-based cutting (rush jobs first)?
+Do you need to account for material handling time between cuts?
+Do you require simulation of cutting processes before execution?
+Do you need to optimize for energy consumption?
+Do you require cutting pattern libraries for common shapes?
+Do you need to account for material expansion/contraction?
+Do you require cutting tolerance specifications?
+Do you need to optimize for operator skill levels?
+Do you require integration with CNC programming software?
+User Interface & Device Compatibility (Questions 76-90)
+How many users will need access to the system simultaneously?
+Do you need different user roles and permissions?
+Do you require offline functionality for field work?
+Do you need mobile-specific features (camera integration, GPS, etc.)?
+Do you require multi-language support?
+Do you need accessibility features for users with disabilities?
+Do you require customizable dashboards for different user types?
+Do you need integration with CAD software for importing drawings?
+Do you require 3D visualization of cutting plans?
+Do you need touch-screen optimization for workshop tablets?
+Do you require voice command functionality?
+Do you need augmented reality features for material identification?
+Do you require print-friendly layouts for cutting instructions?
+Do you need keyboard shortcuts for power users?
+Do you require customizable notification preferences?
+Technical Infrastructure & Security (Questions 91-105)
+Do you have any specific data security or compliance requirements?
+Do you need cloud synchronization between devices?
+Do you require backup and disaster recovery features?
+Do you need API access for third-party integrations?
+Do you require custom reporting capabilities?
+Do you need audit trails for all system changes?
+Do you require data encryption for sensitive information?
+Do you need single sign-on (SSO) integration?
+Do you require specific uptime guarantees?
+Do you need data export capabilities for analytics?
+Do you require integration with accounting software (Xero, QuickBooks, etc.)?
+Do you need automated data backups to external storage?
+Do you require compliance with industry standards (ISO, AS/NZS)?
+Do you need geo-redundant data storage?
+Do you require performance monitoring and alerting?
+Performance & Scalability (Questions 106-115)
+What is your expected growth rate over the next 5 years?
+Do you plan to expand to multiple locations?
+Do you need the system to handle seasonal volume spikes?
+Do you require real-time processing or is batch processing acceptable?
+Do you need the system to scale automatically based on demand?
+Do you require specific response time guarantees?
+Do you need to support concurrent optimization calculations?
+Do you require load balancing for high availability?
+Do you need the system to handle large file uploads efficiently?
+Do you require caching mechanisms for frequently accessed data?
