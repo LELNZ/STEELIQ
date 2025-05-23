@@ -277,6 +277,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download steel catalog route
+  app.get("/download/steel-catalog", (req, res) => {
+    const path = require('path');
+    const filePath = path.join(process.cwd(), 'steel_catalog_materials.csv');
+    res.download(filePath, 'steel_catalog_materials.csv', (err) => {
+      if (err) {
+        console.error('Error downloading file:', err);
+        res.status(404).send('File not found');
+      }
+    });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
