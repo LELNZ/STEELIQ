@@ -1,0 +1,327 @@
+import { 
+  users, materials, materialCategories, inventory, jobs, jobMaterials, 
+  cuttingPlans, cutSequences, remnants,
+  type User, type InsertUser, type Material, type InsertMaterial,
+  type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
+  type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
+  type CuttingPlan, type InsertCuttingPlan, type CutSequence, type InsertCutSequence,
+  type Remnant, type InsertRemnant
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, asc, like, and, or, sql } from "drizzle-orm";
+
+export interface IStorage {
+  // Users
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+
+  // Material Categories
+  getMaterialCategories(): Promise<MaterialCategory[]>;
+  createMaterialCategory(category: InsertMaterialCategory): Promise<MaterialCategory>;
+
+  // Materials
+  getMaterials(): Promise<Material[]>;
+  getMaterial(id: number): Promise<Material | undefined>;
+  getMaterialByCode(code: string): Promise<Material | undefined>;
+  createMaterial(material: InsertMaterial): Promise<Material>;
+  updateMaterial(id: number, material: Partial<InsertMaterial>): Promise<Material>;
+  searchMaterials(query: string): Promise<Material[]>;
+
+  // Inventory
+  getInventory(): Promise<Inventory[]>;
+  getInventoryByMaterial(materialId: number): Promise<Inventory[]>;
+  getInventoryItem(id: number): Promise<Inventory | undefined>;
+  createInventoryItem(item: InsertInventory): Promise<Inventory>;
+  updateInventoryItem(id: number, item: Partial<InsertInventory>): Promise<Inventory>;
+  getLowStockItems(threshold?: number): Promise<Inventory[]>;
+
+  // Jobs
+  getJobs(): Promise<Job[]>;
+  getJob(id: number): Promise<Job | undefined>;
+  getJobByNumber(jobNumber: string): Promise<Job | undefined>;
+  createJob(job: InsertJob): Promise<Job>;
+  updateJob(id: number, job: Partial<InsertJob>): Promise<Job>;
+  getJobsWithMaterials(): Promise<(Job & { materials: JobMaterial[] })[]>;
+  getActiveJobs(): Promise<Job[]>;
+
+  // Job Materials
+  getJobMaterials(jobId: number): Promise<JobMaterial[]>;
+  createJobMaterial(jobMaterial: InsertJobMaterial): Promise<JobMaterial>;
+  updateJobMaterial(id: number, jobMaterial: Partial<InsertJobMaterial>): Promise<JobMaterial>;
+
+  // Cutting Plans
+  getCuttingPlans(jobId: number): Promise<CuttingPlan[]>;
+  createCuttingPlan(plan: InsertCuttingPlan): Promise<CuttingPlan>;
+  updateCuttingPlan(id: number, plan: Partial<InsertCuttingPlan>): Promise<CuttingPlan>;
+
+  // Cut Sequences
+  getCutSequences(cuttingPlanId: number): Promise<CutSequence[]>;
+  createCutSequence(sequence: InsertCutSequence): Promise<CutSequence>;
+  updateCutSequence(id: number, sequence: Partial<InsertCutSequence>): Promise<CutSequence>;
+
+  // Remnants
+  getRemnants(): Promise<Remnant[]>;
+  createRemnant(remnant: InsertRemnant): Promise<Remnant>;
+  updateRemnant(id: number, remnant: Partial<InsertRemnant>): Promise<Remnant>;
+
+  // Analytics
+  getJobStats(): Promise<{
+    activeJobs: number;
+    completedJobs: number;
+    totalValue: number;
+    avgEfficiency: number;
+    weeklyVolume: number;
+  }>;
+}
+
+export class DatabaseStorage implements IStorage {
+  // Users
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  // Material Categories
+  async getMaterialCategories(): Promise<MaterialCategory[]> {
+    return await db.select().from(materialCategories).orderBy(asc(materialCategories.name));
+  }
+
+  async createMaterialCategory(category: InsertMaterialCategory): Promise<MaterialCategory> {
+    const [newCategory] = await db.insert(materialCategories).values(category).returning();
+    return newCategory;
+  }
+
+  // Materials
+  async getMaterials(): Promise<Material[]> {
+    return await db.select().from(materials).where(eq(materials.isActive, true)).orderBy(asc(materials.code));
+  }
+
+  async getMaterial(id: number): Promise<Material | undefined> {
+    const [material] = await db.select().from(materials).where(eq(materials.id, id));
+    return material || undefined;
+  }
+
+  async getMaterialByCode(code: string): Promise<Material | undefined> {
+    const [material] = await db.select().from(materials).where(eq(materials.code, code));
+    return material || undefined;
+  }
+
+  async createMaterial(material: InsertMaterial): Promise<Material> {
+    const [newMaterial] = await db.insert(materials).values(material).returning();
+    return newMaterial;
+  }
+
+  async updateMaterial(id: number, material: Partial<InsertMaterial>): Promise<Material> {
+    const [updatedMaterial] = await db.update(materials).set(material).where(eq(materials.id, id)).returning();
+    return updatedMaterial;
+  }
+
+  async searchMaterials(query: string): Promise<Material[]> {
+    return await db.select().from(materials).where(
+      and(
+        eq(materials.isActive, true),
+        or(
+          like(materials.code, `%${query}%`),
+          like(materials.name, `%${query}%`)
+        )
+      )
+    ).orderBy(asc(materials.code));
+  }
+
+  // Inventory
+  async getInventory(): Promise<Inventory[]> {
+    return await db.select().from(inventory).orderBy(desc(inventory.createdAt));
+  }
+
+  async getInventoryByMaterial(materialId: number): Promise<Inventory[]> {
+    return await db.select().from(inventory).where(eq(inventory.materialId, materialId));
+  }
+
+  async getInventoryItem(id: number): Promise<Inventory | undefined> {
+    const [item] = await db.select().from(inventory).where(eq(inventory.id, id));
+    return item || undefined;
+  }
+
+  async createInventoryItem(item: InsertInventory): Promise<Inventory> {
+    const [newItem] = await db.insert(inventory).values(item).returning();
+    return newItem;
+  }
+
+  async updateInventoryItem(id: number, item: Partial<InsertInventory>): Promise<Inventory> {
+    const [updatedItem] = await db.update(inventory).set(item).where(eq(inventory.id, id)).returning();
+    return updatedItem;
+  }
+
+  async getLowStockItems(threshold: number = 5): Promise<Inventory[]> {
+    return await db.select().from(inventory).where(
+      sql`${inventory.quantityInStock} < ${threshold}`
+    ).orderBy(asc(inventory.quantityInStock));
+  }
+
+  // Jobs
+  async getJobs(): Promise<Job[]> {
+    return await db.select().from(jobs).orderBy(desc(jobs.createdAt));
+  }
+
+  async getJob(id: number): Promise<Job | undefined> {
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, id));
+    return job || undefined;
+  }
+
+  async getJobByNumber(jobNumber: string): Promise<Job | undefined> {
+    const [job] = await db.select().from(jobs).where(eq(jobs.jobNumber, jobNumber));
+    return job || undefined;
+  }
+
+  async createJob(job: InsertJob): Promise<Job> {
+    const [newJob] = await db.insert(jobs).values(job).returning();
+    return newJob;
+  }
+
+  async updateJob(id: number, job: Partial<InsertJob>): Promise<Job> {
+    const [updatedJob] = await db.update(jobs).set(job).where(eq(jobs.id, id)).returning();
+    return updatedJob;
+  }
+
+  async getJobsWithMaterials(): Promise<(Job & { materials: JobMaterial[] })[]> {
+    const jobsData = await db.select().from(jobs).orderBy(desc(jobs.createdAt));
+    const jobsWithMaterials = await Promise.all(
+      jobsData.map(async (job) => {
+        const materials = await this.getJobMaterials(job.id);
+        return { ...job, materials };
+      })
+    );
+    return jobsWithMaterials;
+  }
+
+  async getActiveJobs(): Promise<Job[]> {
+    return await db.select().from(jobs).where(
+      or(
+        eq(jobs.status, "pending"),
+        eq(jobs.status, "in_progress")
+      )
+    ).orderBy(desc(jobs.createdAt));
+  }
+
+  // Job Materials
+  async getJobMaterials(jobId: number): Promise<JobMaterial[]> {
+    return await db.select().from(jobMaterials).where(eq(jobMaterials.jobId, jobId));
+  }
+
+  async createJobMaterial(jobMaterial: InsertJobMaterial): Promise<JobMaterial> {
+    const [newJobMaterial] = await db.insert(jobMaterials).values(jobMaterial).returning();
+    return newJobMaterial;
+  }
+
+  async updateJobMaterial(id: number, jobMaterial: Partial<InsertJobMaterial>): Promise<JobMaterial> {
+    const [updatedJobMaterial] = await db.update(jobMaterials).set(jobMaterial).where(eq(jobMaterials.id, id)).returning();
+    return updatedJobMaterial;
+  }
+
+  // Cutting Plans
+  async getCuttingPlans(jobId: number): Promise<CuttingPlan[]> {
+    return await db.select().from(cuttingPlans).where(eq(cuttingPlans.jobId, jobId));
+  }
+
+  async createCuttingPlan(plan: InsertCuttingPlan): Promise<CuttingPlan> {
+    const [newPlan] = await db.insert(cuttingPlans).values(plan).returning();
+    return newPlan;
+  }
+
+  async updateCuttingPlan(id: number, plan: Partial<InsertCuttingPlan>): Promise<CuttingPlan> {
+    const [updatedPlan] = await db.update(cuttingPlans).set(plan).where(eq(cuttingPlans.id, id)).returning();
+    return updatedPlan;
+  }
+
+  // Cut Sequences
+  async getCutSequences(cuttingPlanId: number): Promise<CutSequence[]> {
+    return await db.select().from(cutSequences).where(eq(cutSequences.cuttingPlanId, cuttingPlanId));
+  }
+
+  async createCutSequence(sequence: InsertCutSequence): Promise<CutSequence> {
+    const [newSequence] = await db.insert(cutSequences).values(sequence).returning();
+    return newSequence;
+  }
+
+  async updateCutSequence(id: number, sequence: Partial<InsertCutSequence>): Promise<CutSequence> {
+    const [updatedSequence] = await db.update(cutSequences).set(sequence).where(eq(cutSequences.id, id)).returning();
+    return updatedSequence;
+  }
+
+  // Remnants
+  async getRemnants(): Promise<Remnant[]> {
+    return await db.select().from(remnants).orderBy(desc(remnants.createdAt));
+  }
+
+  async createRemnant(remnant: InsertRemnant): Promise<Remnant> {
+    const [newRemnant] = await db.insert(remnants).values(remnant).returning();
+    return newRemnant;
+  }
+
+  async updateRemnant(id: number, remnant: Partial<InsertRemnant>): Promise<Remnant> {
+    const [updatedRemnant] = await db.update(remnants).set(remnant).where(eq(remnants.id, id)).returning();
+    return updatedRemnant;
+  }
+
+  // Analytics
+  async getJobStats(): Promise<{
+    activeJobs: number;
+    completedJobs: number;
+    totalValue: number;
+    avgEfficiency: number;
+    weeklyVolume: number;
+  }> {
+    const [activeJobsResult] = await db.select({
+      count: sql<number>`count(*)`
+    }).from(jobs).where(
+      or(
+        eq(jobs.status, "pending"),
+        eq(jobs.status, "in_progress")
+      )
+    );
+
+    const [completedJobsResult] = await db.select({
+      count: sql<number>`count(*)`
+    }).from(jobs).where(eq(jobs.status, "completed"));
+
+    const [totalValueResult] = await db.select({
+      total: sql<number>`coalesce(sum(estimated_value), 0)`
+    }).from(jobs).where(eq(jobs.status, "completed"));
+
+    // Calculate average efficiency from cutting plans
+    const [avgEfficiencyResult] = await db.select({
+      avg: sql<number>`coalesce(avg(efficiency), 0)`
+    }).from(cuttingPlans);
+
+    // Calculate weekly volume (simplified)
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - 7);
+    
+    const [weeklyVolumeResult] = await db.select({
+      count: sql<number>`count(*)`
+    }).from(jobs).where(
+      sql`created_at >= ${weekStart}`
+    );
+
+    return {
+      activeJobs: activeJobsResult.count,
+      completedJobs: completedJobsResult.count,
+      totalValue: totalValueResult.total,
+      avgEfficiency: avgEfficiencyResult.avg,
+      weeklyVolume: weeklyVolumeResult.count,
+    };
+  }
+}
+
+export const storage = new DatabaseStorage();

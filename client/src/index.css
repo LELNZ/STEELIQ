@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 220 14% 96%; /* #F5F7FA */
+  --foreground: 220 14% 11%; /* #1B1F23 */
+  --muted: 220 14% 96%; /* #F5F7FA */
+  --muted-foreground: 220 9% 46%; /* #6B7280 */
+  --popover: 0 0% 100%; /* #FFFFFF */
+  --popover-foreground: 220 14% 11%; /* #1B1F23 */
+  --card: 0 0% 100%; /* #FFFFFF */
+  --card-foreground: 220 14% 11%; /* #1B1F23 */
+  --border: 220 13% 91%; /* #E5E7EB */
+  --input: 220 13% 91%; /* #E5E7EB */
+  --primary: 212 84% 37%; /* #1B365D */
+  --primary-foreground: 0 0% 98%; /* #FAFAFA */
+  --secondary: 213 94% 68%; /* #3B82F6 */
+  --secondary-foreground: 0 0% 98%; /* #FAFAFA */
+  --accent: 142 76% 36%; /* #10B981 */
+  --accent-foreground: 0 0% 98%; /* #FAFAFA */
+  --destructive: 0 84% 60%; /* #EF4444 */
+  --destructive-foreground: 0 0% 98%; /* #FAFAFA */
+  --warning: 38 92% 50%; /* #F59E0B */
+  --warning-foreground: 0 0% 98%; /* #FAFAFA */
+  --ring: 212 84% 37%; /* #1B365D */
+  --radius: 0.5rem;
+  
+  /* Sidebar colors */
+  --sidebar-background: 212 84% 37%; /* #1B365D */
+  --sidebar-foreground: 213 27% 84%; /* #C7D2FE */
+  --sidebar-primary: 142 76% 36%; /* #10B981 */
+  --sidebar-primary-foreground: 0 0% 98%; /* #FAFAFA */
+  --sidebar-accent: 213 50% 58%; /* #6366F1 */
+  --sidebar-accent-foreground: 0 0% 98%; /* #FAFAFA */
+  --sidebar-border: 213 50% 48%; /* #4F46E5 */
+  --sidebar-ring: 213 50% 58%; /* #6366F1 */
+}
+
+.dark {
+  --background: 220 14% 4%; /* #0A0B0D */
+  --foreground: 0 0% 98%; /* #FAFAFA */
+  --muted: 220 14% 10%; /* #1A1B1E */
+  --muted-foreground: 220 9% 54%; /* #9CA3AF */
+  --popover: 220 14% 4%; /* #0A0B0D */
+  --popover-foreground: 0 0% 98%; /* #FAFAFA */
+  --card: 220 14% 10%; /* #1A1B1E */
+  --card-foreground: 0 0% 98%; /* #FAFAFA */
+  --border: 220 13% 20%; /* #374151 */
+  --input: 220 13% 20%; /* #374151 */
+  --primary: 212 84% 37%; /* #1B365D */
+  --primary-foreground: 0 0% 98%; /* #FAFAFA */
+  --secondary: 213 94% 68%; /* #3B82F6 */
+  --secondary-foreground: 0 0% 98%; /* #FAFAFA */
+  --accent: 142 76% 36%; /* #10B981 */
+  --accent-foreground: 0 0% 98%; /* #FAFAFA */
+  --destructive: 0 84% 60%; /* #EF4444 */
+  --destructive-foreground: 0 0% 98%; /* #FAFAFA */
+  --warning: 38 92% 50%; /* #F59E0B */
+  --warning-foreground: 0 0% 98%; /* #FAFAFA */
+  --ring: 212 84% 37%; /* #1B365D */
+  
+  /* Sidebar colors for dark mode */
+  --sidebar-background: 220 14% 4%; /* #0A0B0D */
+  --sidebar-foreground: 220 9% 54%; /* #9CA3AF */
+  --sidebar-primary: 142 76% 36%; /* #10B981 */
+  --sidebar-primary-foreground: 0 0% 98%; /* #FAFAFA */
+  --sidebar-accent: 213 50% 58%; /* #6366F1 */
+  --sidebar-accent-foreground: 0 0% 98%; /* #FAFAFA */
+  --sidebar-border: 220 13% 20%; /* #374151 */
+  --sidebar-ring: 213 50% 58%; /* #6366F1 */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground;
+  }
+}
+
+@layer components {
+  /* Status badges */
+  .status-pending {
+    @apply bg-yellow-50 text-yellow-700 border border-yellow-200;
+  }
+  
+  .status-in_progress {
+    @apply bg-blue-50 text-blue-700 border border-blue-200;
+  }
+  
+  .status-completed {
+    @apply bg-green-50 text-green-700 border border-green-200;
+  }
+  
+  .status-cancelled {
+    @apply bg-red-50 text-red-700 border border-red-200;
+  }
+
+  /* Priority badges */
+  .priority-standard {
+    @apply bg-muted text-muted-foreground;
+  }
+  
+  .priority-high {
+    @apply bg-warning/10 text-warning;
+  }
+  
+  .priority-rush {
+    @apply bg-destructive/10 text-destructive;
+  }
+
+  /* Animation classes */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(10px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* Loading shimmer effect */
+  .shimmer {
+    background: linear-gradient(90deg, 
+      hsl(var(--muted)) 25%, 
+      hsl(var(--muted-foreground) / 0.1) 50%, 
+      hsl(var(--muted)) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    @apply text-black bg-white;
+  }
+  
+  .print-break {
+    page-break-before: always;
+  }
+}
