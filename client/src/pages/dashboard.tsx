@@ -25,12 +25,22 @@ import {
 import { JobStats, ActivityItem } from "@/types";
 
 export default function Dashboard() {
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
+
   const { data: stats, isLoading: statsLoading } = useQuery<JobStats>({
     queryKey: ["/api/analytics/stats"],
   });
 
   const { data: jobs, isLoading: jobsLoading } = useQuery({
     queryKey: ["/api/jobs"],
+  });
+
+  const { data: materials } = useQuery<any[]>({
+    queryKey: ["/api/materials"],
+  });
+
+  const { data: inventory } = useQuery<any[]>({
+    queryKey: ["/api/inventory"],
   });
 
   // Mock activity data - in real app this would come from API
@@ -88,6 +98,17 @@ export default function Dashboard() {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
+        </div>
+        <div className="flex items-center space-x-2">
+          {(materials?.length || 0) === 0 && (
+            <Button 
+              onClick={() => setShowSetupWizard(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Play className="w-4 h-4 mr-2" />
+              Setup Wizard
+            </Button>
+          )}
         </div>
       </div>
 
@@ -246,6 +267,12 @@ export default function Dashboard() {
           <InventoryAlerts />
         </div>
       </div>
+
+      {/* Setup Wizard */}
+      <SetupWizard 
+        open={showSetupWizard} 
+        onOpenChange={setShowSetupWizard} 
+      />
     </div>
   );
 }
