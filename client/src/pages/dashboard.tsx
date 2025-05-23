@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import JobList from "@/components/jobs/job-list";
 import InventoryAlerts from "@/components/inventory/inventory-alerts";
+import SetupWizard from "@/components/setup/setup-wizard";
 import { 
   Briefcase, 
   Leaf, 
@@ -20,7 +22,8 @@ import {
   Check,
   Clock,
   User,
-  Calendar
+  Calendar,
+  Play
 } from "lucide-react";
 import { JobStats, ActivityItem } from "@/types";
 
