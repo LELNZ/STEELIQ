@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import MaterialUpload from "@/components/materials/material-upload";
-import { Plus, Upload, Download, Search, Package, Edit, Trash2 } from "lucide-react";
+import BulkCatalogueImport from "@/components/materials/bulk-catalogue-import";
+import { Plus, Upload, Download, Search, Package, Edit, Trash2, Database } from "lucide-react";
 import { Material } from "@shared/schema";
 
 export default function Materials() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   const { data: materials, isLoading } = useQuery<Material[]>({
     queryKey: ["/api/materials", searchQuery],
@@ -49,6 +51,14 @@ export default function Materials() {
           <Button className="bg-secondary hover:bg-secondary/90">
             <Plus className="w-4 h-4 mr-2" />
             Add Material
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => setShowBulkImport(true)}
+            className="bg-blue-50 hover:bg-blue-100 border-blue-200"
+          >
+            <Database className="w-4 h-4 mr-2" />
+            Import Steel Catalogue
           </Button>
           <Button 
             variant="outline"
@@ -186,6 +196,12 @@ export default function Materials() {
       <MaterialUpload 
         open={showUploadModal} 
         onOpenChange={setShowUploadModal} 
+      />
+
+      {/* Bulk Catalogue Import Modal */}
+      <BulkCatalogueImport 
+        open={showBulkImport} 
+        onOpenChange={setShowBulkImport} 
       />
     </div>
   );
