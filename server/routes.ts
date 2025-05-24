@@ -303,7 +303,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         for (const materialData of batch) {
           try {
-            const validatedData = insertMaterialSchema.parse(materialData);
+            // Clean and prepare data before validation
+            const cleanedData = {
+              ...materialData,
+              // Convert empty strings to null for optional numeric fields
+              width: materialData.width === '' || materialData.width === undefined ? null : materialData.width,
+              thickness: materialData.thickness === '' || materialData.thickness === undefined ? null : materialData.thickness,
+              diameter: materialData.diameter === '' || materialData.diameter === undefined ? null : materialData.diameter,
+              depth: materialData.depth === '' || materialData.depth === undefined ? null : materialData.depth,
+              flangeTf: materialData.flangeTf === '' || materialData.flangeTf === undefined ? null : materialData.flangeTf,
+              webTw: materialData.webTw === '' || materialData.webTw === undefined ? null : materialData.webTw,
+              weightPerMeter: materialData.weightPerMeter === '' || materialData.weightPerMeter === undefined ? null : materialData.weightPerMeter,
+              pricePerKg: materialData.pricePerKg === '' || materialData.pricePerKg === undefined ? null : materialData.pricePerKg,
+              pricePerMeter: materialData.pricePerMeter === '' || materialData.pricePerMeter === undefined ? null : materialData.pricePerMeter,
+              // Ensure required fields are present
+              code: materialData.code || '',
+              name: materialData.name || '',
+            };
+
+            const validatedData = insertMaterialSchema.parse(cleanedData);
             const existingMaterial = await storage.getMaterialByCode(validatedData.code);
             
             if (existingMaterial) {
@@ -314,7 +332,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               results.created++;
             }
           } catch (error: any) {
-            results.errors.push(`${materialData.code}: ${error.message || 'Unknown error'}`);
+            const errorMsg = error.message || 'Unknown error';
+            results.errors.push(`${materialData.code || 'Unknown'}: ${errorMsg}`);
           }
         }
       }

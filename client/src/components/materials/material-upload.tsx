@@ -81,8 +81,8 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
         isActive: true,
       }));
 
-      // Process in chunks of 100 materials at a time to avoid payload size issues
-      const chunkSize = 100;
+      // Process in chunks of 50 materials at a time for optimal performance with large datasets
+      const chunkSize = 50;
       const totalResults = {
         updated: 0,
         created: 0,
