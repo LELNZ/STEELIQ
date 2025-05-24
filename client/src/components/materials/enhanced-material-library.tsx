@@ -58,6 +58,10 @@ const CATEGORY_STRUCTURE = {
       "Galvanised Pipe"
     ],
     description: "Pipe products"
+  },
+  "Purlins": {
+    subcategories: ["C Purlins", "Z Purlins", "Sigma Purlins"],
+    description: "Structural purlins for roofing and cladding"
   }
 };
 
@@ -249,7 +253,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
           <CardTitle className="text-lg font-semibold">Steel Catalogue Categories</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* All Categories Button */}
+          {/* All Category and Main Category Quick-Click Buttons - Horizontal Layout */}
           <div className="flex flex-wrap gap-2">
             <Button
               variant={selectedCategory === "all" ? "default" : "outline"}
@@ -265,10 +269,6 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
             >
               All Categories
             </Button>
-          </div>
-
-          {/* Main Category Quick-Click Buttons - Horizontal Layout */}
-          <div className="flex flex-wrap gap-2">
             {Object.entries(CATEGORY_STRUCTURE).map(([category, info]) => (
               <Button
                 key={category}
