@@ -226,15 +226,17 @@ export default function CuttingOptimizerComponent() {
                         variant="outline"
                         role="combobox"
                         aria-expanded={openMaterialSearch}
-                        className="w-full justify-between"
+                        className="w-full justify-between text-left"
                       >
-                        {newCut.materialType
-                          ? searchableMaterials.find((material) => material.value === newCut.materialType)?.label
-                          : "Search materials..."}
+                        <span className="truncate">
+                          {newCut.materialType
+                            ? searchableMaterials.find((material) => material.value === newCut.materialType)?.label
+                            : "Search materials..."}
+                        </span>
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
+                    <PopoverContent className="w-80 p-0" align="start">
                       <Command>
                         <CommandInput placeholder="Type to search materials..." />
                         <CommandEmpty>No material found.</CommandEmpty>
@@ -243,35 +245,36 @@ export default function CuttingOptimizerComponent() {
                             <CommandItem
                               key={material.value}
                               value={material.label}
-                              onSelect={() => {
+                              onSelect={(currentValue) => {
                                 setNewCut({ ...newCut, materialType: material.value });
                                 setOpenMaterialSearch(false);
                               }}
-                              className="flex items-center justify-between"
+                              className="flex items-center justify-between cursor-pointer"
                             >
-                              <div className="flex items-center">
+                              <div className="flex items-center min-w-0 flex-1">
                                 <Check
-                                  className={`mr-2 h-4 w-4 ${
+                                  className={`mr-2 h-4 w-4 flex-shrink-0 ${
                                     newCut.materialType === material.value ? "opacity-100" : "opacity-0"
                                   }`}
                                 />
-                                <div className="flex-1">
+                                <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2">
-                                    <div className="font-medium">{material.material.code}</div>
+                                    <div className="font-medium truncate">{material.material.code}</div>
                                     {material.isFavorite && (
-                                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
                                     )}
                                   </div>
-                                  <div className="text-sm text-muted-foreground">{material.material.name}</div>
-                                  <div className="text-xs text-muted-foreground">{material.category}</div>
+                                  <div className="text-sm text-muted-foreground truncate">{material.material.name}</div>
+                                  <div className="text-xs text-muted-foreground truncate">{material.category}</div>
                                 </div>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="p-1 h-auto"
+                                className="p-1 h-auto flex-shrink-0 ml-2"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  e.preventDefault();
                                   toggleFavorite(material.value);
                                 }}
                               >
@@ -385,15 +388,17 @@ export default function CuttingOptimizerComponent() {
                         variant="outline"
                         role="combobox"
                         aria-expanded={openStockMaterialSearch}
-                        className="w-full justify-between"
+                        className="w-full justify-between text-left"
                       >
-                        {newStock.materialType
-                          ? searchableMaterials.find((material) => material.value === newStock.materialType)?.label
-                          : "Search materials..."}
+                        <span className="truncate">
+                          {newStock.materialType
+                            ? searchableMaterials.find((material) => material.value === newStock.materialType)?.label
+                            : "Search materials..."}
+                        </span>
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
+                    <PopoverContent className="w-80 p-0" align="start">
                       <Command>
                         <CommandInput placeholder="Type to search materials..." />
                         <CommandEmpty>No material found.</CommandEmpty>
@@ -402,35 +407,36 @@ export default function CuttingOptimizerComponent() {
                             <CommandItem
                               key={material.value}
                               value={material.label}
-                              onSelect={() => {
+                              onSelect={(currentValue) => {
                                 setNewStock({ ...newStock, materialType: material.value });
                                 setOpenStockMaterialSearch(false);
                               }}
-                              className="flex items-center justify-between"
+                              className="flex items-center justify-between cursor-pointer"
                             >
-                              <div className="flex items-center">
+                              <div className="flex items-center min-w-0 flex-1">
                                 <Check
-                                  className={`mr-2 h-4 w-4 ${
+                                  className={`mr-2 h-4 w-4 flex-shrink-0 ${
                                     newStock.materialType === material.value ? "opacity-100" : "opacity-0"
                                   }`}
                                 />
-                                <div className="flex-1">
+                                <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2">
-                                    <div className="font-medium">{material.material.code}</div>
+                                    <div className="font-medium truncate">{material.material.code}</div>
                                     {material.isFavorite && (
-                                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
                                     )}
                                   </div>
-                                  <div className="text-sm text-muted-foreground">{material.material.name}</div>
-                                  <div className="text-xs text-muted-foreground">{material.category}</div>
+                                  <div className="text-sm text-muted-foreground truncate">{material.material.name}</div>
+                                  <div className="text-xs text-muted-foreground truncate">{material.category}</div>
                                 </div>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="p-1 h-auto"
+                                className="p-1 h-auto flex-shrink-0 ml-2"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  e.preventDefault();
                                   toggleFavorite(material.value);
                                 }}
                               >
