@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { LoadingSpinner, LoadingOverlay, LoadingState } from "@/components/ui/loading-spinner";
 import { MaterialTypeIndicator, MaterialIcon } from "./material-icons";
 import { Material } from "@shared/schema";
@@ -75,6 +77,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
   const [selectAll, setSelectAll] = useState(false);
   const [viewFormat, setViewFormat] = useState<"card" | "list">("card");
   const [cardSize, setCardSize] = useState<"normal" | "small" | "tiny">("normal");
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -195,6 +198,36 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
       toast({
         title: "Error",
         description: "Failed to delete selected materials",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Edit material mutation
+  const editMaterialMutation = useMutation({
+    mutationFn: async (data: { id: number; material: Partial<Material> }) => {
+      const response = await fetch(`/api/materials/${data.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data.material),
+      });
+      if (!response.ok) throw new Error('Failed to update material');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      setEditingMaterial(null);
+      toast({
+        title: "Success",
+        description: "Material updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update material",
         variant: "destructive",
       });
     },
@@ -516,13 +549,22 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                     </div>
                     {cardSize !== "tiny" && (
                       <div className="flex space-x-1">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setEditingMaterial(material)}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="sm" 
                           className="text-red-500 hover:text-red-700"
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete ${material.name}?`)) {
+                              deleteSelectedMutation.mutate([material.id]);
+                            }
+                          }}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -665,13 +707,22 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                       </div>
                     </div>
                     <div className="flex space-x-1 ml-4">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setEditingMaterial(material)}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         className="text-red-500 hover:text-red-700"
+                        onClick={() => {
+                          if (confirm(`Are you sure you want to delete ${material.name}?`)) {
+                            deleteSelectedMutation.mutate([material.id]);
+                          }
+                        }}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
