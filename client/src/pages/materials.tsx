@@ -5,18 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import MaterialUpload from "@/components/materials/material-upload";
-import BulkCatalogueImport from "@/components/materials/bulk-catalogue-import";
-import { Plus, Upload, Download, Search, Package, Edit, Trash2, Database } from "lucide-react";
+import OrganizedMaterialLibrary from "@/components/materials/organized-material-library";
+import { Plus, Upload, Download, Search, Package, Edit, Trash2 } from "lucide-react";
 import { Material } from "@shared/schema";
 
 export default function Materials() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showBulkImport, setShowBulkImport] = useState(false);
-
-  const { data: materials, isLoading } = useQuery<Material[]>({
-    queryKey: ["/api/materials", searchQuery],
-  });
 
   const handleExport = async () => {
     try {
@@ -191,11 +186,7 @@ export default function Materials() {
         onOpenChange={setShowUploadModal} 
       />
 
-      {/* Bulk Catalogue Import Modal */}
-      <BulkCatalogueImport 
-        open={showBulkImport} 
-        onOpenChange={setShowBulkImport} 
-      />
+
     </div>
   );
 }
