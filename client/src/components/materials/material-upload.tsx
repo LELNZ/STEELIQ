@@ -199,13 +199,7 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
                 else material.errors.push('Invalid thickness value');
               }
               break;
-            case 'length':
-              if (value) {
-                const num = parseFloat(value);
-                if (!isNaN(num)) material.length = num;
-                else material.errors.push('Invalid length value');
-              }
-              break;
+
             case 'category':
               material.category = value;
               break;
@@ -250,9 +244,9 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
                 else material.errors.push('Invalid weight per meter value');
               }
               break;
-            case 'length options':
-            case 'length options m':
-            case 'standard_lengths':
+            case 'lengthoptions':
+            case 'lengthoptionsm':
+            case 'standardlengths':
               material.lengthOptions = value;
               break;
             case 'grade':
@@ -278,9 +272,7 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
                 else material.errors.push('Invalid price per kg value');
               }
               break;
-            case 'supplier':
-              material.supplier = value;
-              break;
+
           }
         });
 
@@ -306,10 +298,10 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
 
   const downloadTemplate = () => {
     const template = [
-      "code,name,width,thickness,length,weightPerMeter,grade,pricePerM,pricePerKg,supplier",
-      "SF05010,50x10mm Flat Bar,50,10,6000,3.93,AS/NZS 3679.1-300,8.50,2.16,Asmuss",
-      "SA07508,75x8mm Equal Angle,75,8,6000,8.73,AS/NZS 3679.1-300,18.90,2.16,Asmuss",
-      "SR01200,12mm Round Bar,12,,6000,0.89,AS/NZS 3679.1-300,1.92,2.16,Asmuss"
+      "Category,Code,Name,Width (mm),Thickness (mm),Diameter (mm),Depth (mm),Flange TF (mm),Web TW (mm),Weight (kg/m),Length Options (m),Grade,Standard",
+      "SHS,SHS050050030,Square Hollow Section 50x50x3mm,50,3,,,50,,,4.30,6.1,C350LO,AS/NZS 1163",
+      "RHS,RHS100050040,Rectangular Hollow Section 100x50x4mm,100,4,,50,,,6.82,6.1,C350LO,AS/NZS 1163",
+      "Merchant Bar,FL05010,Flat Bar 50x10mm,50,10,,,,,,3.93,6.0,AS/NZS 3679.1-300,"
     ].join('\n');
 
     const blob = new Blob([template], { type: 'text/csv' });
@@ -508,9 +500,9 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
                                   {material.grade}
                                 </span>
                               )}
-                              {material.supplier && (
+                              {material.standard && (
                                 <span className="bg-muted px-2 py-1 rounded">
-                                  {material.supplier}
+                                  {material.standard}
                                 </span>
                               )}
                             </div>
