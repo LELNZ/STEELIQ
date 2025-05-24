@@ -11,7 +11,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap } from "lucide-react";
+import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star } from "lucide-react";
 import { 
   CuttingOptimizer, 
   CutRequest, 
@@ -29,6 +29,10 @@ export default function CuttingOptimizerComponent() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [openMaterialSearch, setOpenMaterialSearch] = useState(false);
   const [openStockMaterialSearch, setOpenStockMaterialSearch] = useState(false);
+  const [favoriteMaterials, setFavoriteMaterials] = useState<string[]>(() => {
+    const saved = localStorage.getItem('favorite-materials');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   // New cut request form
   const [newCut, setNewCut] = useState({
@@ -60,13 +64,29 @@ export default function CuttingOptimizerComponent() {
     return types;
   }, [] as string[]) || [];
 
+  // Functions for managing favorites
+  const toggleFavorite = (materialValue: string) => {
+    const newFavorites = favoriteMaterials.includes(materialValue)
+      ? favoriteMaterials.filter(fav => fav !== materialValue)
+      : [...favoriteMaterials, materialValue];
+    
+    setFavoriteMaterials(newFavorites);
+    localStorage.setItem('favorite-materials', JSON.stringify(newFavorites));
+  };
+
   // Create searchable material list with code, name, and category
   const searchableMaterials = materials?.map(material => ({
     value: material.code || material.name,
     label: `${material.code} - ${material.name}`,
     category: material.category || "Other",
-    material
-  })) || [];
+    material,
+    isFavorite: favoriteMaterials.includes(material.code || material.name)
+  })).sort((a, b) => {
+    // Sort favorites first, then alphabetically
+    if (a.isFavorite && !b.isFavorite) return -1;
+    if (!a.isFavorite && b.isFavorite) return 1;
+    return a.label.localeCompare(b.label);
+  }) || [];
 
   const addCutRequest = () => {
     if (!newCut.length || !newCut.materialType) return;
@@ -227,17 +247,42 @@ export default function CuttingOptimizerComponent() {
                                 setNewCut({ ...newCut, materialType: material.value });
                                 setOpenMaterialSearch(false);
                               }}
+                              className="flex items-center justify-between"
                             >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${
-                                  newCut.materialType === material.value ? "opacity-100" : "opacity-0"
-                                }`}
-                              />
-                              <div>
-                                <div className="font-medium">{material.material.code}</div>
-                                <div className="text-sm text-muted-foreground">{material.material.name}</div>
-                                <div className="text-xs text-muted-foreground">{material.category}</div>
+                              <div className="flex items-center">
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    newCut.materialType === material.value ? "opacity-100" : "opacity-0"
+                                  }`}
+                                />
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <div className="font-medium">{material.material.code}</div>
+                                    {material.isFavorite && (
+                                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">{material.material.name}</div>
+                                  <div className="text-xs text-muted-foreground">{material.category}</div>
+                                </div>
                               </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="p-1 h-auto"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFavorite(material.value);
+                                }}
+                              >
+                                <Star
+                                  className={`h-4 w-4 ${
+                                    material.isFavorite 
+                                      ? "fill-yellow-400 text-yellow-400" 
+                                      : "text-muted-foreground hover:text-yellow-400"
+                                  }`}
+                                />
+                              </Button>
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -361,17 +406,42 @@ export default function CuttingOptimizerComponent() {
                                 setNewStock({ ...newStock, materialType: material.value });
                                 setOpenStockMaterialSearch(false);
                               }}
+                              className="flex items-center justify-between"
                             >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${
-                                  newStock.materialType === material.value ? "opacity-100" : "opacity-0"
-                                }`}
-                              />
-                              <div>
-                                <div className="font-medium">{material.material.code}</div>
-                                <div className="text-sm text-muted-foreground">{material.material.name}</div>
-                                <div className="text-xs text-muted-foreground">{material.category}</div>
+                              <div className="flex items-center">
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    newStock.materialType === material.value ? "opacity-100" : "opacity-0"
+                                  }`}
+                                />
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <div className="font-medium">{material.material.code}</div>
+                                    {material.isFavorite && (
+                                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">{material.material.name}</div>
+                                  <div className="text-xs text-muted-foreground">{material.category}</div>
+                                </div>
                               </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="p-1 h-auto"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFavorite(material.value);
+                                }}
+                              >
+                                <Star
+                                  className={`h-4 w-4 ${
+                                    material.isFavorite 
+                                      ? "fill-yellow-400 text-yellow-400" 
+                                      : "text-muted-foreground hover:text-yellow-400"
+                                  }`}
+                                />
+                              </Button>
                             </CommandItem>
                           ))}
                         </CommandGroup>
