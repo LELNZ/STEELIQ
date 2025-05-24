@@ -9,7 +9,7 @@ import InstantMaterialSearch from "@/components/materials/instant-material-searc
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star } from "lucide-react";
+import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star, Download, FileText, Table, QrCode } from "lucide-react";
 import { 
   CuttingOptimizer, 
   CutRequest, 
@@ -62,7 +62,7 @@ export default function CuttingOptimizerComponent() {
     if (!newCut.length || !newCut.materialType) return;
 
     const request: CutRequest = {
-      id: `cut_${Date.now()}`,
+      id: `cut_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       length: parseFloat(newCut.length),
       quantity: parseInt(newCut.quantity),
       materialType: newCut.materialType,
@@ -78,7 +78,7 @@ export default function CuttingOptimizerComponent() {
     if (!newStock.length || !newStock.materialType) return;
 
     const stock: StockItem = {
-      id: `stock_${Date.now()}`,
+      id: `stock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       length: parseFloat(newStock.length),
       available: parseInt(newStock.available),
       materialType: newStock.materialType,
@@ -95,6 +95,119 @@ export default function CuttingOptimizerComponent() {
 
   const removeStockItem = (id: string) => {
     setStockItems(stockItems.filter(stock => stock.id !== id));
+  };
+
+  // Export functions
+  const exportToPDF = () => {
+    if (!optimizationResult) return;
+    
+    const jobId = `JOB-${Date.now()}`;
+    const timestamp = new Date().toLocaleString();
+    
+    // Create PDF content
+    const pdfContent = `
+LATERAL ENGINEERING - CUTTING OPTIMIZATION REPORT
+Job ID: ${jobId}
+Generated: ${timestamp}
+
+OPTIMIZATION SUMMARY:
+- Algorithm: ${optimizationResult.summary.algorithm}
+- Total Waste: ${optimizationResult.summary.totalWaste.toFixed(1)}mm (${optimizationResult.summary.totalWastePercentage.toFixed(1)}%)
+- Average Efficiency: ${optimizationResult.summary.avgEfficiency.toFixed(1)}%
+- Total Cuts: ${optimizationResult.summary.totalCuts}
+- Estimated Cutting Time: ${optimizationResult.summary.totalCuttingTime} minutes
+
+CUTTING PLANS:
+${optimizationResult.plans.map((plan, i) => `
+Plan ${i + 1}: ${plan.stockLength}mm stock
+- Material: ${plan.cuts[0]?.requestId || 'N/A'}
+- Cuts: ${plan.totalCuts}
+- Efficiency: ${plan.efficiency.toFixed(1)}%
+- Waste: ${plan.wasteLength.toFixed(1)}mm
+${plan.cuts.map(cut => `  • ${cut.length}mm x${cut.quantity} at ${cut.position}mm`).join('\n')}
+`).join('\n')}
+
+REMNANTS (>500mm):
+${optimizationResult.remnants.map(remnant => `- ${remnant.length}mm ${remnant.materialType}`).join('\n')}
+    `;
+
+    // Create and download PDF
+    const blob = new Blob([pdfContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cutting-optimization-${jobId}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportToExcel = () => {
+    if (!optimizationResult) return;
+    
+    const jobId = `JOB-${Date.now()}`;
+    
+    // Create CSV content for Excel compatibility
+    let csvContent = "Cutting Optimization Report\n\n";
+    csvContent += `Job ID,${jobId}\n`;
+    csvContent += `Generated,${new Date().toLocaleString()}\n\n`;
+    
+    csvContent += "Summary\n";
+    csvContent += `Algorithm,${optimizationResult.summary.algorithm}\n`;
+    csvContent += `Total Waste,${optimizationResult.summary.totalWaste.toFixed(1)}mm\n`;
+    csvContent += `Waste Percentage,${optimizationResult.summary.totalWastePercentage.toFixed(1)}%\n`;
+    csvContent += `Average Efficiency,${optimizationResult.summary.avgEfficiency.toFixed(1)}%\n`;
+    csvContent += `Total Cuts,${optimizationResult.summary.totalCuts}\n`;
+    csvContent += `Cutting Time,${optimizationResult.summary.totalCuttingTime} minutes\n\n`;
+    
+    csvContent += "Cutting Plans\n";
+    csvContent += "Plan,Stock Length,Material,Cuts,Efficiency,Waste,Cut Details\n";
+    optimizationResult.plans.forEach((plan, i) => {
+      const cutDetails = plan.cuts.map(cut => `${cut.length}mm x${cut.quantity}`).join('; ');
+      csvContent += `${i + 1},${plan.stockLength}mm,${plan.cuts[0]?.requestId || 'N/A'},${plan.totalCuts},${plan.efficiency.toFixed(1)}%,${plan.wasteLength.toFixed(1)}mm,"${cutDetails}"\n`;
+    });
+    
+    csvContent += "\nRemnants\n";
+    csvContent += "Length,Material,Reusable\n";
+    optimizationResult.remnants.forEach(remnant => {
+      csvContent += `${remnant.length}mm,${remnant.materialType},${remnant.isReusable ? 'Yes' : 'No'}\n`;
+    });
+
+    // Create and download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cutting-optimization-${jobId}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const generateQRCode = () => {
+    if (!optimizationResult) return;
+    
+    const jobId = `JOB-${Date.now()}`;
+    const qrData = {
+      jobId,
+      timestamp: new Date().toISOString(),
+      summary: {
+        totalWaste: optimizationResult.summary.totalWaste,
+        wastePercentage: optimizationResult.summary.totalWastePercentage,
+        efficiency: optimizationResult.summary.avgEfficiency,
+        totalCuts: optimizationResult.summary.totalCuts,
+        cuttingTime: optimizationResult.summary.totalCuttingTime
+      },
+      plans: optimizationResult.plans.length
+    };
+    
+    // For now, generate a simple QR code URL (will be integrated with JMS later)
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(JSON.stringify(qrData))}`;
+    
+    // Open QR code in new window
+    window.open(qrCodeUrl, '_blank');
   };
 
   const runOptimization = async () => {
@@ -397,10 +510,26 @@ export default function CuttingOptimizerComponent() {
               {/* Summary */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Optimization Results
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Optimization Results
+                    </CardTitle>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={exportToPDF}>
+                        <FileText className="h-4 w-4 mr-1" />
+                        PDF
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={exportToExcel}>
+                        <Table className="h-4 w-4 mr-1" />
+                        Excel
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={generateQRCode}>
+                        <QrCode className="h-4 w-4 mr-1" />
+                        QR Code
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
