@@ -87,6 +87,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
   const categorizeeMaterial = (material: Material): string[] => {
     const name = material.name.toLowerCase();
     const code = material.code.toLowerCase();
+    const category = material.category || "";
     const categories: string[] = [];
 
     // Merchant Bar
