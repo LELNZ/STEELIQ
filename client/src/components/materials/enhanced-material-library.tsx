@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2 } from "lucide-react";
+import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus } from "lucide-react";
 import { Material } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -16,23 +16,37 @@ interface EnhancedMaterialLibraryProps {
   setSearchQuery: (query: string) => void;
 }
 
-// Structured category system for Lateral Engineering
+// Structured category system for Lateral Engineering (ordered as requested)
 const CATEGORY_STRUCTURE = {
   "Merchant Bar": {
     subcategories: ["Flats", "Equal Angles", "Unequal Angles", "Rounds", "Squares"],
     description: "Standard merchant bar sections"
   },
-  "Pregal Sections": {
-    subcategories: ["Pregal Angles", "Pregal Flats", "Pregal Channels"],
-    description: "Pre-galvanized steel sections"
-  },
-  "Reinforcing": {
-    subcategories: ["Rebar", "Mesh", "Deformed Bar"],
-    description: "Reinforcing steel products"
+  "SHS/RHS": {
+    subcategories: ["SHS", "RHS", "Cattle Rail Hollow Section"],
+    description: "Square and rectangular hollow sections"
   },
   "Structural Sections": {
     subcategories: ["Mild Steel Channel", "Cold Formed Channel", "Universal Beam", "Universal Column"],
     description: "Structural steel sections"
+  },
+  "Pregal": {
+    subcategories: ["Pregal Angles", "Pregal Flats", "Pregal Channels"],
+    description: "Pre-galvanized steel sections"
+  },
+  "Purlins": {
+    subcategories: ["C Purlins", "Z Purlins", "Sigma Purlins"],
+    description: "Structural purlins for roofing and cladding"
+  },
+  "Pipe": {
+    subcategories: [
+      "Seamless Line Pipe", 
+      "ERW Line Pipe", 
+      "Black Pipe", 
+      "Primed Pipe", 
+      "Galvanised Pipe"
+    ],
+    description: "Pipe products"
   },
   "Sheet Metal": {
     subcategories: [
@@ -45,23 +59,9 @@ const CATEGORY_STRUCTURE = {
     ],
     description: "Sheet metal products"
   },
-  "SHS/RHS": {
-    subcategories: ["SHS", "RHS", "Cattle Rail Hollow Section"],
-    description: "Square and rectangular hollow sections"
-  },
-  "Pipe": {
-    subcategories: [
-      "Seamless Line Pipe", 
-      "ERW Line Pipe", 
-      "Black Pipe", 
-      "Primed Pipe", 
-      "Galvanised Pipe"
-    ],
-    description: "Pipe products"
-  },
-  "Purlins": {
-    subcategories: ["C Purlins", "Z Purlins", "Sigma Purlins"],
-    description: "Structural purlins for roofing and cladding"
+  "Reinforcing": {
+    subcategories: ["Rebar", "Mesh", "Deformed Bar"],
+    description: "Reinforcing steel products"
   }
 };
 
@@ -71,6 +71,8 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [selectedMaterials, setSelectedMaterials] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
+  const [viewFormat, setViewFormat] = useState<"card" | "list">("card");
+  const [cardSize, setCardSize] = useState<"normal" | "small" | "tiny">("normal");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -339,9 +341,60 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
               />
             </div>
 
-            {/* Selection Controls */}
+            {/* View Controls and Selection */}
             <div className="flex items-center gap-4">
+              {/* View Format Toggle */}
               <div className="flex items-center space-x-2">
+                <Button
+                  variant={viewFormat === "card" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewFormat("card")}
+                  className="h-8 px-3"
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewFormat === "list" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewFormat("list")}
+                  className="h-8 px-3"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Card Size Controls (only show in card view) */}
+              {viewFormat === "card" && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-muted-foreground">Size:</span>
+                  <Button
+                    variant={cardSize === "tiny" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCardSize("tiny")}
+                    className="h-8 px-2 text-xs"
+                  >
+                    25%
+                  </Button>
+                  <Button
+                    variant={cardSize === "small" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCardSize("small")}
+                    className="h-8 px-2 text-xs"
+                  >
+                    50%
+                  </Button>
+                  <Button
+                    variant={cardSize === "normal" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCardSize("normal")}
+                    className="h-8 px-2 text-xs"
+                  >
+                    100%
+                  </Button>
+                </div>
+              )}
+
+              <div className="border-l pl-4 flex items-center space-x-2">
                 <Checkbox
                   id="select-all"
                   checked={selectAll}
@@ -404,89 +457,170 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
           </div>
         </div>
       ) : filteredMaterials.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredMaterials.map((material: Material) => (
-            <Card 
-              key={material.id} 
-              className={`hover:shadow-md transition-all ${
-                selectedMaterials.has(material.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''
-              }`}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3 flex-1">
-                    <Checkbox
-                      checked={selectedMaterials.has(material.id)}
-                      onCheckedChange={() => handleMaterialSelect(material.id)}
-                    />
-                    <div className="flex-1">
-                      <CardTitle className="text-lg font-semibold text-foreground">
-                        {material.name}
-                      </CardTitle>
-                      <Badge variant="outline" className="mt-1">
-                        {material.code}
-                      </Badge>
+        viewFormat === "card" ? (
+          // Card View with Size Options
+          <div className={`grid gap-4 ${
+            cardSize === "tiny" 
+              ? "grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8" 
+              : cardSize === "small" 
+              ? "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6" 
+              : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+          }`}>
+            {filteredMaterials.map((material: Material) => (
+              <Card 
+                key={material.id} 
+                className={`hover:shadow-md transition-all ${
+                  selectedMaterials.has(material.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                } ${cardSize === "tiny" ? "text-xs" : cardSize === "small" ? "text-sm" : ""}`}
+              >
+                <CardHeader className={cardSize === "tiny" ? "pb-2 px-3 pt-3" : cardSize === "small" ? "pb-2" : "pb-3"}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-2 flex-1">
+                      <Checkbox
+                        checked={selectedMaterials.has(material.id)}
+                        onCheckedChange={() => handleMaterialSelect(material.id)}
+                        className={cardSize === "tiny" ? "h-3 w-3" : ""}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className={`font-semibold text-foreground leading-tight ${
+                          cardSize === "tiny" ? "text-xs" : cardSize === "small" ? "text-sm" : "text-lg"
+                        }`}>
+                          <span className="line-clamp-2">{material.name}</span>
+                        </CardTitle>
+                        <Badge variant="outline" className={`mt-1 ${
+                          cardSize === "tiny" ? "text-xs px-1 py-0" : cardSize === "small" ? "text-xs" : ""
+                        }`}>
+                          {material.code}
+                        </Badge>
+                      </div>
+                    </div>
+                    {cardSize !== "tiny" && (
+                      <div className="flex space-x-1">
+                        <Button variant="ghost" size="sm">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                
+                <CardContent className={`space-y-2 ${
+                  cardSize === "tiny" ? "px-3 pb-3" : cardSize === "small" ? "space-y-3" : "space-y-4"
+                }`}>
+                  {cardSize !== "tiny" && (
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Width</p>
+                        <p className="font-medium">{material.width || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Thickness</p>
+                        <p className="font-medium">{material.thickness || 'N/A'}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={`flex items-center ${cardSize === "tiny" ? "justify-center" : "justify-between"}`}>
+                    {cardSize !== "tiny" && (
+                      <div>
+                        <p className="text-muted-foreground">Grade</p>
+                        <p className="font-medium">{material.grade || 'Standard'}</p>
+                      </div>
+                    )}
+                    <div className="text-right">
+                      <p className="text-muted-foreground">Weight</p>
+                      <p className="font-medium">{material.weightPerMeter || 0} kg/m</p>
                     </div>
                   </div>
-                  <div className="flex space-x-1">
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Width</p>
-                    <p className="font-medium">{material.width || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Thickness</p>
-                    <p className="font-medium">{material.thickness || 'N/A'}</p>
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Grade</p>
-                    <p className="font-medium">{material.grade || 'Standard'}</p>
+                  {cardSize !== "tiny" && (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-muted-foreground">Price</p>
+                        <p className="font-medium">
+                          {material.pricePerMeter 
+                            ? `$${material.pricePerMeter}/m`
+                            : material.pricePerKg
+                            ? `$${material.pricePerKg}/kg`
+                            : 'N/A'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          // List View
+          <div className="space-y-2">
+            {filteredMaterials.map((material: Material) => (
+              <Card 
+                key={material.id} 
+                className={`hover:shadow-sm transition-all ${
+                  selectedMaterials.has(material.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                }`}
+              >
+                <CardContent className="py-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4 flex-1">
+                      <Checkbox
+                        checked={selectedMaterials.has(material.id)}
+                        onCheckedChange={() => handleMaterialSelect(material.id)}
+                      />
+                      <div className="flex-1 grid grid-cols-6 gap-4 items-center">
+                        <div className="col-span-2">
+                          <p className="font-semibold">{material.name}</p>
+                          <p className="text-sm text-muted-foreground">{material.code}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm">W: {material.width || 'N/A'}</p>
+                          <p className="text-sm">T: {material.thickness || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{material.weightPerMeter || 0} kg/m</p>
+                        </div>
+                        <div>
+                          <p className="text-sm">{material.grade || 'Standard'}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">
+                            {material.pricePerMeter 
+                              ? `$${material.pricePerMeter}/m`
+                              : material.pricePerKg
+                              ? `$${material.pricePerKg}/kg`
+                              : 'N/A'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex space-x-1 ml-4">
+                      <Button variant="ghost" size="sm">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Weight</p>
-                    <p className="font-medium">{material.weightPerMeter || 0} kg/m</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Price</p>
-                    <p className="font-medium">
-                      {material.pricePerMeter 
-                        ? `$${material.pricePerMeter}/m`
-                        : material.pricePerKg
-                        ? `$${material.pricePerKg}/kg`
-                        : 'N/A'
-                      }
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Category</p>
-                    <p className="text-xs font-medium">General</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )
       ) : (
         <Card>
           <CardContent className="p-12 text-center">
