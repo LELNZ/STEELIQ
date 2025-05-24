@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
@@ -24,6 +27,8 @@ export default function CuttingOptimizerComponent() {
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("multi");
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [openMaterialSearch, setOpenMaterialSearch] = useState(false);
+  const [openStockMaterialSearch, setOpenStockMaterialSearch] = useState(false);
 
   // New cut request form
   const [newCut, setNewCut] = useState({
@@ -54,6 +59,14 @@ export default function CuttingOptimizerComponent() {
     }
     return types;
   }, [] as string[]) || [];
+
+  // Create searchable material list with code, name, and category
+  const searchableMaterials = materials?.map(material => ({
+    value: material.code || material.name,
+    label: `${material.code} - ${material.name}`,
+    category: material.category || "Other",
+    material
+  })) || [];
 
   const addCutRequest = () => {
     if (!newCut.length || !newCut.materialType) return;
@@ -187,19 +200,50 @@ export default function CuttingOptimizerComponent() {
                 </div>
                 <div>
                   <Label htmlFor="cut-material">Material</Label>
-                  <Select 
-                    value={newCut.materialType} 
-                    onValueChange={(value) => setNewCut({ ...newCut, materialType: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {materialTypes.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openMaterialSearch} onOpenChange={setOpenMaterialSearch}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openMaterialSearch}
+                        className="w-full justify-between"
+                      >
+                        {newCut.materialType
+                          ? searchableMaterials.find((material) => material.value === newCut.materialType)?.label
+                          : "Search materials..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Type to search materials..." />
+                        <CommandEmpty>No material found.</CommandEmpty>
+                        <CommandGroup className="max-h-60 overflow-y-auto">
+                          {searchableMaterials.map((material) => (
+                            <CommandItem
+                              key={material.value}
+                              value={material.label}
+                              onSelect={() => {
+                                setNewCut({ ...newCut, materialType: material.value });
+                                setOpenMaterialSearch(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  newCut.materialType === material.value ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              <div>
+                                <div className="font-medium">{material.material.code}</div>
+                                <div className="text-sm text-muted-foreground">{material.material.name}</div>
+                                <div className="text-xs text-muted-foreground">{material.category}</div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="flex items-end">
                   <Button onClick={addCutRequest} size="sm" className="w-full">
@@ -290,19 +334,50 @@ export default function CuttingOptimizerComponent() {
                 </div>
                 <div>
                   <Label htmlFor="stock-material">Material</Label>
-                  <Select 
-                    value={newStock.materialType} 
-                    onValueChange={(value) => setNewStock({ ...newStock, materialType: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {materialTypes.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openStockMaterialSearch} onOpenChange={setOpenStockMaterialSearch}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openStockMaterialSearch}
+                        className="w-full justify-between"
+                      >
+                        {newStock.materialType
+                          ? searchableMaterials.find((material) => material.value === newStock.materialType)?.label
+                          : "Search materials..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Type to search materials..." />
+                        <CommandEmpty>No material found.</CommandEmpty>
+                        <CommandGroup className="max-h-60 overflow-y-auto">
+                          {searchableMaterials.map((material) => (
+                            <CommandItem
+                              key={material.value}
+                              value={material.label}
+                              onSelect={() => {
+                                setNewStock({ ...newStock, materialType: material.value });
+                                setOpenStockMaterialSearch(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  newStock.materialType === material.value ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              <div>
+                                <div className="font-medium">{material.material.code}</div>
+                                <div className="text-sm text-muted-foreground">{material.material.name}</div>
+                                <div className="text-xs text-muted-foreground">{material.category}</div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="flex items-end">
                   <Button onClick={addStockItem} size="sm" className="w-full">
