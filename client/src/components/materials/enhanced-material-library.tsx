@@ -386,23 +386,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
       {/* Quick-Click Category Navigation */}
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Steel Catalogue Categories</CardTitle>
-            
-            {/* Dimensional reference image positioned at top right */}
-            {selectedSubcategory !== "all" && expandedCategory && DIMENSION_IMAGES[expandedCategory as keyof typeof DIMENSION_IMAGES]?.[selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]] && (
-              <div className="flex-shrink-0 bg-white p-3 rounded-md border shadow-sm">
-                <div className="text-xs text-muted-foreground mb-2 text-center font-medium">
-                  Dimensional Reference
-                </div>
-                <img 
-                  src={DIMENSION_IMAGES[expandedCategory as keyof typeof DIMENSION_IMAGES][selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]]} 
-                  alt={`${selectedSubcategory} dimensions`}
-                  className="w-24 h-24 object-contain"
-                />
-              </div>
-            )}
-          </div>
+          <CardTitle className="text-lg font-semibold">Steel Catalogue Categories</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* All Category and Main Category Quick-Click Buttons - Horizontal Layout */}

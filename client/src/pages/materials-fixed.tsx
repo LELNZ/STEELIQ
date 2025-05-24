@@ -1,13 +1,80 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import MaterialUpload from "@/components/materials/material-upload";
 import EnhancedMaterialLibrary from "@/components/materials/enhanced-material-library";
 import { Plus, Upload, Download } from "lucide-react";
 
+// Import dimensional reference images
+import anglesImg from "@assets/Angles.png";
+import cattleRailImg from "@assets/Cattle Rail.png";
+import channelImg from "@assets/Channel.png";
+import flatImg from "@assets/Flstd.png";
+import meshImg from "@assets/Mesh.png";
+import pipeImg from "@assets/Pipe.png";
+import rebarImg from "@assets/Reinforcing bar.png";
+import rhsImg from "@assets/RHS.png";
+import roundImg from "@assets/Round.png";
+import sheetMetalImg from "@assets/Sheet metal.png";
+import shsImg from "@assets/SHS.png";
+import squareBarImg from "@assets/Square Bar.png";
+
+const DIMENSION_IMAGES = {
+  "Merchant Bar": {
+    "Flats": flatImg,
+    "Equal Angles": anglesImg,
+    "Unequal Angles": anglesImg,
+    "Rounds": roundImg,
+    "Squares": squareBarImg
+  },
+  "SHS/RHS": {
+    "SHS": shsImg,
+    "RHS": rhsImg,
+    "Cattle Rail Hollow Section": cattleRailImg
+  },
+  "Structural Sections": {
+    "Mild Steel Channel": channelImg,
+    "Cold Formed Channel": channelImg,
+    "Universal Beam": channelImg,
+    "Universal Column": channelImg
+  },
+  "Pregal": {
+    "Pregal Angles": anglesImg,
+    "Pregal Flats": flatImg,
+    "Pregal Channels": channelImg
+  },
+  "Purlins": {
+    "C Purlins": channelImg,
+    "Z Purlins": channelImg,
+    "Sigma Purlins": channelImg
+  },
+  "Pipe": {
+    "Seamless Line Pipe": pipeImg,
+    "ERW Line Pipe": pipeImg,
+    "Black Pipe": pipeImg,
+    "Primed Pipe": pipeImg,
+    "Galvanised Pipe": pipeImg
+  },
+  "Sheet Metal": {
+    "Mild Steel Plate": sheetMetalImg,
+    "Mild Steel Chequer Plate": sheetMetalImg,
+    "Weather Resistant Plate": sheetMetalImg,
+    "Cold Rolled": sheetMetalImg,
+    "Electrogalvanised Sheet": sheetMetalImg,
+    "Galvanised Sheet": sheetMetalImg
+  },
+  "Reinforcing": {
+    "Rebar": rebarImg,
+    "Mesh": meshImg,
+    "Deformed Bar": rebarImg
+  }
+} as const;
+
 export default function Materials() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
 
   const handleExport = async () => {
     try {
@@ -35,6 +102,11 @@ export default function Materials() {
           <p className="text-muted-foreground">
             Manage your steel catalogue with organized categories and pricing
           </p>
+        </div>
+        
+        {/* Dimensional reference image will be passed from child component */}
+        <div id="dimensional-reference-container" className="flex-shrink-0">
+          {/* This will be populated by the EnhancedMaterialLibrary component */}
         </div>
       </div>
 
