@@ -120,14 +120,22 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
     }
     if (name.includes('sheet') || category.toLowerCase().includes('sheet')) {
       if (name.includes('cold rolled')) categories.push('Cold Rolled');
-      else if (name.includes('electrogalvanised') || name.includes('electro galvanised')) categories.push('Electrogalvanised Sheet');
-      else if (name.includes('galvanised')) categories.push('Galvanised Sheet');
+      else if (name.includes('electrogalvanised') || name.includes('electrogalvanized') || category.toLowerCase().includes('electrogalvanized')) categories.push('Electrogalvanised Sheet');
+      else if (name.includes('galvanised') || name.includes('galvanized') || category.toLowerCase().includes('galvanized')) categories.push('Galvanised Sheet');
       else categories.push('Galvanised Sheet'); // Default for general sheets
     }
     
     // Handle materials with "Plates" category from CSV
     if (category.toLowerCase() === 'plates') {
       categories.push('Mild Steel Plate');
+    }
+    
+    // Handle specific sheet categories from your imported data
+    if (category.toLowerCase() === 'galvanized sheets') {
+      categories.push('Galvanised Sheet');
+    }
+    if (category.toLowerCase() === 'electrogalvanized sheets') {
+      categories.push('Electrogalvanised Sheet');
     }
 
     // SHS/RHS
