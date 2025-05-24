@@ -111,16 +111,22 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
     if (name.includes('universal beam') || name.includes('ub') || code.includes('ub')) categories.push('Universal Beam');
     if (name.includes('universal column') || name.includes('uc') || code.includes('uc')) categories.push('Universal Column');
 
-    // Sheet Metal
-    if (name.includes('plate')) {
+    // Sheet Metal - Enhanced to include all plate and sheet materials
+    if (name.includes('plate') || category.toLowerCase().includes('plate')) {
       if (name.includes('chequer') || name.includes('checker')) categories.push('Mild Steel Chequer Plate');
       else if (name.includes('weather resistant')) categories.push('Weather Resistant Plate');
       else categories.push('Mild Steel Plate');
     }
-    if (name.includes('sheet')) {
+    if (name.includes('sheet') || category.toLowerCase().includes('sheet')) {
       if (name.includes('cold rolled')) categories.push('Cold Rolled');
       else if (name.includes('electrogalvanised') || name.includes('electro galvanised')) categories.push('Electrogalvanised Sheet');
       else if (name.includes('galvanised')) categories.push('Galvanised Sheet');
+      else categories.push('Galvanised Sheet'); // Default for general sheets
+    }
+    
+    // Handle materials with "Plates" category from CSV
+    if (category.toLowerCase() === 'plates') {
+      categories.push('Mild Steel Plate');
     }
 
     // SHS/RHS
