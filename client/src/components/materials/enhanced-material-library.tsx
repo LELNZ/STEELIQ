@@ -552,15 +552,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => {
-                            const newPrice = prompt(`Edit price for ${material.name}:`, material.pricePerMeter?.toString() || "");
-                            if (newPrice !== null && !isNaN(parseFloat(newPrice))) {
-                              editMaterialMutation.mutate({
-                                id: material.id,
-                                material: { pricePerMeter: parseFloat(newPrice) }
-                              });
-                            }
-                          }}
+                          onClick={() => setEditingMaterial(material)}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -718,15 +710,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => {
-                          const newPrice = prompt(`Edit price for ${material.name}:`, material.pricePerMeter?.toString() || "");
-                          if (newPrice !== null && !isNaN(parseFloat(newPrice))) {
-                            editMaterialMutation.mutate({
-                              id: material.id,
-                              material: { pricePerMeter: parseFloat(newPrice) }
-                            });
-                          }
-                        }}
+                        onClick={() => setEditingMaterial(material)}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -856,6 +840,208 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Professional Edit Material Modal */}
+      {editingMaterial && (
+        <Dialog open={!!editingMaterial} onOpenChange={() => setEditingMaterial(null)}>
+          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit className="h-5 w-5" />
+                Edit Material Details
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Update material specifications and pricing for your steel catalogue
+              </p>
+            </DialogHeader>
+            
+            <div className="grid gap-6 py-4">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-foreground border-b pb-2">Basic Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-name">Material Name</Label>
+                    <Input
+                      id="edit-name"
+                      value={editingMaterial.name}
+                      onChange={(e) => setEditingMaterial({...editingMaterial, name: e.target.value})}
+                      placeholder="Enter material name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-code">Material Code</Label>
+                    <Input
+                      id="edit-code"
+                      value={editingMaterial.code}
+                      onChange={(e) => setEditingMaterial({...editingMaterial, code: e.target.value})}
+                      placeholder="Enter material code"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Dimensions */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-foreground border-b pb-2">Dimensions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-width">Width (mm)</Label>
+                    <Input
+                      id="edit-width"
+                      type="number"
+                      value={editingMaterial.width || ""}
+                      onChange={(e) => setEditingMaterial({...editingMaterial, width: parseFloat(e.target.value) || undefined})}
+                      placeholder="Width"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-thickness">Thickness (mm)</Label>
+                    <Input
+                      id="edit-thickness"
+                      type="number"
+                      value={editingMaterial.thickness || ""}
+                      onChange={(e) => setEditingMaterial({...editingMaterial, thickness: parseFloat(e.target.value) || undefined})}
+                      placeholder="Thickness"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-length">Length (mm)</Label>
+                    <Input
+                      id="edit-length"
+                      type="number"
+                      value={editingMaterial.length || ""}
+                      onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
+                      placeholder="Length"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Specifications */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-foreground border-b pb-2">Specifications</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-grade">Steel Grade</Label>
+                    <Input
+                      id="edit-grade"
+                      value={editingMaterial.grade || ""}
+                      onChange={(e) => setEditingMaterial({...editingMaterial, grade: e.target.value})}
+                      placeholder="e.g., 300, 350, 450"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-standard">Standard</Label>
+                    <Input
+                      id="edit-standard"
+                      value={editingMaterial.standard || ""}
+                      onChange={(e) => setEditingMaterial({...editingMaterial, standard: e.target.value})}
+                      placeholder="e.g., AS/NZS 3679.1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-weight">Weight per Meter (kg/m)</Label>
+                  <Input
+                    id="edit-weight"
+                    type="number"
+                    step="0.01"
+                    value={editingMaterial.weightPerMeter || ""}
+                    onChange={(e) => setEditingMaterial({...editingMaterial, weightPerMeter: parseFloat(e.target.value) || undefined})}
+                    placeholder="Weight per meter"
+                  />
+                </div>
+              </div>
+
+              {/* Pricing */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-foreground border-b pb-2">Pricing</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-price-meter">Price per Meter (NZD)</Label>
+                    <Input
+                      id="edit-price-meter"
+                      type="number"
+                      step="0.01"
+                      value={editingMaterial.pricePerMeter || ""}
+                      onChange={(e) => setEditingMaterial({...editingMaterial, pricePerMeter: parseFloat(e.target.value) || undefined})}
+                      placeholder="Price per meter"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-price-kg">Price per Kg (NZD)</Label>
+                    <Input
+                      id="edit-price-kg"
+                      type="number"
+                      step="0.01"
+                      value={editingMaterial.pricePerKg || ""}
+                      onChange={(e) => setEditingMaterial({...editingMaterial, pricePerKg: parseFloat(e.target.value) || undefined})}
+                      placeholder="Price per kg"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Available Lengths */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-foreground border-b pb-2">Available Lengths</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-lengths">Length Options (semicolon separated)</Label>
+                  <Input
+                    id="edit-lengths"
+                    value={editingMaterial.lengthOptions || ""}
+                    onChange={(e) => setEditingMaterial({...editingMaterial, lengthOptions: e.target.value})}
+                    placeholder="e.g., 6.0;9.0;12.0 or 3.0x1.5;6.0x2.0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    For linear materials use "6.0;9.0;12.0", for sheets use "3.0x1.5;6.0x2.0"
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <Button variant="outline" onClick={() => setEditingMaterial(null)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  editMaterialMutation.mutate({
+                    id: editingMaterial.id,
+                    material: {
+                      name: editingMaterial.name,
+                      code: editingMaterial.code,
+                      width: editingMaterial.width,
+                      thickness: editingMaterial.thickness,
+                      length: editingMaterial.length,
+                      grade: editingMaterial.grade,
+                      standard: editingMaterial.standard,
+                      weightPerMeter: editingMaterial.weightPerMeter,
+                      pricePerMeter: editingMaterial.pricePerMeter,
+                      pricePerKg: editingMaterial.pricePerKg,
+                      lengthOptions: editingMaterial.lengthOptions
+                    }
+                  });
+                }}
+                disabled={editMaterialMutation.isPending}
+              >
+                {editMaterialMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
