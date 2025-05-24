@@ -26,11 +26,18 @@ export const materials = pgTable("materials", {
   code: text("code").notNull().unique(),
   name: text("name").notNull(),
   categoryId: integer("category_id").references(() => materialCategories.id),
-  width: decimal("width", { precision: 10, scale: 2 }),
-  thickness: decimal("thickness", { precision: 10, scale: 2 }),
+  category: text("category"), // Direct category from CSV
+  width: decimal("width", { precision: 10, scale: 2 }), // Width (mm)
+  thickness: decimal("thickness", { precision: 10, scale: 2 }), // Thickness (mm)
+  diameter: decimal("diameter", { precision: 10, scale: 2 }), // Diameter (mm)
+  depth: decimal("depth", { precision: 10, scale: 2 }), // Depth (mm)
+  flangeTf: decimal("flange_tf", { precision: 10, scale: 2 }), // Flange TF (mm)
+  webTw: decimal("web_tw", { precision: 10, scale: 2 }), // Web TW (mm)
   length: decimal("length", { precision: 10, scale: 2 }),
-  weightPerMeter: decimal("weight_per_meter", { precision: 10, scale: 3 }),
+  weightPerMeter: decimal("weight_per_meter", { precision: 10, scale: 3 }), // Weight (kg/m)
+  lengthOptions: text("length_options"), // Length Options (m) - stored as text for multiple values
   grade: text("grade"),
+  standard: text("standard"), // Standard (e.g., AS/NZS 1163)
   coating: text("coating"),
   pricePerKg: decimal("price_per_kg", { precision: 10, scale: 2 }),
   pricePerMeter: decimal("price_per_meter", { precision: 10, scale: 2 }),

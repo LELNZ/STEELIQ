@@ -67,15 +67,19 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
           apiRequest("POST", "/api/materials", {
             code: material.code,
             name: material.name,
+            category: material.category,
             width: material.width,
             thickness: material.thickness,
-            length: material.length,
+            diameter: material.diameter,
+            depth: material.depth,
+            flangeTf: material.flangeTF,
+            webTw: material.webTW,
             weightPerMeter: material.weightPerMeter,
+            lengthOptions: material.lengthOptions,
             grade: material.grade,
-            coating: material.coating,
+            standard: material.standard,
             pricePerKg: material.pricePerKg,
             pricePerMeter: material.pricePerMeter,
-            supplier: material.supplier,
             isActive: true,
           })
         )
@@ -155,8 +159,8 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
         throw new Error("CSV file must contain at least a header and one data row");
       }
 
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      const expectedHeaders = ['code', 'name', 'width', 'thickness', 'length', 'weightpermeter', 'grade', 'priceperm', 'priceperkg', 'supplier'];
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[()]/g, '').replace(/\s+/g, ''));
+      const expectedHeaders = ['category', 'code', 'name', 'width', 'thickness', 'diameter', 'depth', 'flangetf', 'webtw', 'weight', 'lengthoptions', 'grade', 'standard'];
       
       const materials: ParsedMaterial[] = [];
       
@@ -221,26 +225,25 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
                 else material.errors.push('Invalid depth value');
               }
               break;
-            case 'flange tf':
-            case 'flange tf mm':
+            case 'flangetf':
+            case 'flangetfmm':
               if (value) {
                 const num = parseFloat(value);
                 if (!isNaN(num)) material.flangeTF = num;
                 else material.errors.push('Invalid flange TF value');
               }
               break;
-            case 'web tw':
-            case 'web tw mm':
+            case 'webtw':
+            case 'webtwmm':
               if (value) {
                 const num = parseFloat(value);
                 if (!isNaN(num)) material.webTW = num;
                 else material.errors.push('Invalid web TW value');
               }
               break;
-            case 'weightpermeter':
-            case 'weight_per_meter':
             case 'weight':
-            case 'weight kg/m':
+            case 'weightkgm':
+            case 'weightpermeter':
               if (value) {
                 const num = parseFloat(value);
                 if (!isNaN(num)) material.weightPerMeter = num;
