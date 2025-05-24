@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle } from "lucide-react";
+import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2 } from "lucide-react";
 import { Material } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -187,6 +187,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
       setSelectedMaterials(new Set());
       setSelectAll(false);
     } else {
+      // Select all materials from the current view (filtered or all)
       const allIds = new Set(filteredMaterials.map((m: Material) => m.id));
       setSelectedMaterials(allIds);
       setSelectAll(true);
@@ -358,8 +359,17 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                   onClick={handleDeleteSelected}
                   disabled={deleteSelectedMutation.isPending}
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Selected ({selectedMaterials.size})
+                  {deleteSelectedMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Selected ({selectedMaterials.size})
+                    </>
+                  )}
                 </Button>
               )}
             </div>
@@ -369,21 +379,29 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
 
       {/* Materials Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 rounded"></div>
-                  <div className="h-3 bg-gray-200 rounded"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-4">
+          <div className="flex items-center justify-center py-8">
+            <div className="flex items-center space-x-3">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <span className="text-sm font-medium text-gray-600">Loading materials...</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardHeader>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       ) : filteredMaterials.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -493,14 +511,25 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
 
       {/* Selection Summary */}
       {selectedMaterials.size > 0 && (
-        <Card className="bg-yellow-50 border-yellow-200">
+        <Card className={`${deleteSelectedMutation.isPending ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                <span className="font-medium text-yellow-800">
-                  {selectedMaterials.size} materials selected
-                </span>
+                {deleteSelectedMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-5 w-5 text-red-600 animate-spin" />
+                    <span className="font-medium text-red-800">
+                      Deleting {selectedMaterials.size} materials...
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                    <span className="font-medium text-yellow-800">
+                      {selectedMaterials.size} materials selected
+                    </span>
+                  </>
+                )}
               </div>
               <div className="flex space-x-2">
                 <Button 
@@ -510,6 +539,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                     setSelectedMaterials(new Set());
                     setSelectAll(false);
                   }}
+                  disabled={deleteSelectedMutation.isPending}
                 >
                   Clear Selection
                 </Button>
@@ -519,13 +549,51 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                   onClick={handleDeleteSelected}
                   disabled={deleteSelectedMutation.isPending}
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Selected
+                  {deleteSelectedMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Selected
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
+            
+            {/* Progress indicator during bulk operations */}
+            {deleteSelectedMutation.isPending && (
+              <div className="mt-3 pt-3 border-t border-red-200">
+                <div className="flex items-center space-x-2 text-sm text-red-700">
+                  <div className="w-full bg-red-200 rounded-full h-2">
+                    <div className="bg-red-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                  </div>
+                  <span className="whitespace-nowrap">Processing...</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Loading Overlay for Bulk Operations */}
+      {deleteSelectedMutation.isPending && (
+        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
+          <Card className="p-6 min-w-[300px]">
+            <CardContent className="flex items-center space-x-4">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <div>
+                <h3 className="font-semibold text-gray-900">Processing Request</h3>
+                <p className="text-sm text-gray-600">
+                  Deleting {selectedMaterials.size} materials from your catalogue...
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
