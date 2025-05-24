@@ -542,18 +542,38 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                   </div>
 
                   {cardSize !== "tiny" && (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-muted-foreground">Price</p>
-                        <p className="font-medium">
-                          {material.pricePerMeter 
-                            ? `$${material.pricePerMeter}/m`
-                            : material.pricePerKg
-                            ? `$${material.pricePerKg}/kg`
-                            : 'N/A'
-                          }
-                        </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-muted-foreground">Price</p>
+                          <p className="font-medium">
+                            {material.pricePerMeter 
+                              ? `$${material.pricePerMeter}/m`
+                              : material.pricePerKg
+                              ? `$${material.pricePerKg}/kg`
+                              : 'N/A'
+                            }
+                          </p>
+                        </div>
                       </div>
+                      
+                      {/* Available Lengths */}
+                      {material.lengthOptions && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">Available Lengths</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {material.lengthOptions.split(';').map((length, index) => (
+                              <Badge 
+                                key={index} 
+                                variant="secondary" 
+                                className="text-xs px-1 py-0"
+                              >
+                                {length.trim()}m
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -581,6 +601,20 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                         <div className="col-span-2">
                           <p className="font-semibold">{material.name}</p>
                           <p className="text-sm text-muted-foreground">{material.code}</p>
+                          {/* Available Lengths for List View */}
+                          {material.lengthOptions && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {material.lengthOptions.split(';').map((length, index) => (
+                                <Badge 
+                                  key={index} 
+                                  variant="outline" 
+                                  className="text-xs px-1 py-0"
+                                >
+                                  {length.trim()}m
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <div>
                           <p className="text-sm">W: {material.width || 'N/A'}</p>
