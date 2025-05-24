@@ -223,9 +223,18 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
         throw new Error(`Failed to update material: ${response.status}`);
       }
       
-      const result = await response.json();
-      console.log('Update successful:', result);
-      return result;
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+      
+      try {
+        const result = JSON.parse(responseText);
+        console.log('Update successful:', result);
+        return result;
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        console.error('Response was:', responseText);
+        throw new Error('Server returned invalid JSON response');
+      }
     },
     onSuccess: (data) => {
       console.log('Material update mutation successful:', data);
