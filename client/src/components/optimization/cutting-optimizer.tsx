@@ -244,9 +244,9 @@ export default function CuttingOptimizerComponent() {
                           {searchableMaterials.map((material) => (
                             <CommandItem
                               key={material.value}
-                              value={material.label}
-                              onSelect={(currentValue) => {
-                                setNewCut({ ...newCut, materialType: material.value });
+                              value={material.value}
+                              onSelect={(value) => {
+                                setNewCut({ ...newCut, materialType: value });
                                 setOpenMaterialSearch(false);
                               }}
                               className="flex items-center justify-between cursor-pointer"
@@ -294,7 +294,7 @@ export default function CuttingOptimizerComponent() {
                   </Popover>
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={addCutRequest} size="sm" className="w-full">
+                  <Button onClick={addCutRequest} size="sm" className="px-3 py-2">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -406,9 +406,9 @@ export default function CuttingOptimizerComponent() {
                           {searchableMaterials.map((material) => (
                             <CommandItem
                               key={material.value}
-                              value={material.label}
-                              onSelect={(currentValue) => {
-                                setNewStock({ ...newStock, materialType: material.value });
+                              value={material.value}
+                              onSelect={(value) => {
+                                setNewStock({ ...newStock, materialType: value });
                                 setOpenStockMaterialSearch(false);
                               }}
                               className="flex items-center justify-between cursor-pointer"
@@ -456,7 +456,7 @@ export default function CuttingOptimizerComponent() {
                   </Popover>
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={addStockItem} size="sm" className="w-full">
+                  <Button onClick={addStockItem} size="sm" className="px-3 py-2">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
