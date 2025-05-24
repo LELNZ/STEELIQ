@@ -1026,14 +1026,14 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                     material: {
                       name: editingMaterial.name,
                       code: editingMaterial.code,
-                      width: editingMaterial.width,
-                      thickness: editingMaterial.thickness,
-                      length: editingMaterial.length,
+                      width: editingMaterial.width ? Number(editingMaterial.width) : undefined,
+                      thickness: editingMaterial.thickness ? Number(editingMaterial.thickness) : undefined,
+                      length: editingMaterial.length ? Number(editingMaterial.length) : undefined,
                       grade: editingMaterial.grade,
                       standard: editingMaterial.standard,
-                      weightPerMeter: editingMaterial.weightPerMeter,
-                      pricePerMeter: editingMaterial.pricePerMeter,
-                      pricePerKg: editingMaterial.pricePerKg,
+                      weightPerMeter: editingMaterial.weightPerMeter ? Number(editingMaterial.weightPerMeter) : undefined,
+                      pricePerMeter: editingMaterial.pricePerMeter ? Number(editingMaterial.pricePerMeter) : undefined,
+                      pricePerKg: editingMaterial.pricePerKg ? Number(editingMaterial.pricePerKg) : undefined,
                       lengthOptions: editingMaterial.lengthOptions
                     }
                   });
