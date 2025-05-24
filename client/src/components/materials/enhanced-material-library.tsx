@@ -75,6 +75,67 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
     queryKey: ["/api/materials"],
   });
 
+  // Enhanced material categorization logic
+  const categorizeeMaterial = (material: Material): string[] => {
+    const name = material.name.toLowerCase();
+    const code = material.code.toLowerCase();
+    const categories: string[] = [];
+
+    // Merchant Bar
+    if (name.includes('flat') || code.includes('flat')) categories.push('Flats');
+    if (name.includes('equal angle') || name.includes('ea ') || code.includes('ea')) categories.push('Equal Angles');
+    if (name.includes('unequal angle') || name.includes('ua ') || code.includes('ua')) categories.push('Unequal Angles');
+    if (name.includes('round') || name.includes('rod') || code.includes('rd')) categories.push('Rounds');
+    if (name.includes('square bar') || name.includes('sq ') || code.includes('sq')) categories.push('Squares');
+
+    // Pregal Sections
+    if (name.includes('duragal') || name.includes('pregal') || code.includes('dga')) {
+      if (name.includes('angle')) categories.push('Pregal Angles');
+      if (name.includes('flat')) categories.push('Pregal Flats');
+      if (name.includes('channel')) categories.push('Pregal Channels');
+    }
+
+    // Structural Sections
+    if (name.includes('channel') && !name.includes('duragal')) {
+      if (name.includes('cold formed') || name.includes('cf')) categories.push('Cold Formed Channel');
+      else categories.push('Mild Steel Channel');
+    }
+    if (name.includes('universal beam') || name.includes('ub') || code.includes('ub')) categories.push('Universal Beam');
+    if (name.includes('universal column') || name.includes('uc') || code.includes('uc')) categories.push('Universal Column');
+
+    // Sheet Metal
+    if (name.includes('plate')) {
+      if (name.includes('chequer') || name.includes('checker')) categories.push('Mild Steel Chequer Plate');
+      else if (name.includes('weather resistant')) categories.push('Weather Resistant Plate');
+      else categories.push('Mild Steel Plate');
+    }
+    if (name.includes('sheet')) {
+      if (name.includes('cold rolled')) categories.push('Cold Rolled');
+      else if (name.includes('electrogalvanised') || name.includes('electro galvanised')) categories.push('Electrogalvanised Sheet');
+      else if (name.includes('galvanised')) categories.push('Galvanised Sheet');
+    }
+
+    // SHS/RHS
+    if (name.includes('shs') || name.includes('square hollow')) categories.push('SHS');
+    if (name.includes('rhs') || name.includes('rectangular hollow')) categories.push('RHS');
+    if (name.includes('cattle rail') || name.includes('oval rail')) categories.push('Cattle Rail Hollow Section');
+
+    // Pipe
+    if (name.includes('pipe')) {
+      if (name.includes('seamless')) categories.push('Seamless Line Pipe');
+      else if (name.includes('erw')) categories.push('ERW Line Pipe');
+      else if (name.includes('black')) categories.push('Black Pipe');
+      else if (name.includes('primed')) categories.push('Primed Pipe');
+      else if (name.includes('galvanised')) categories.push('Galvanised Pipe');
+    }
+
+    // Reinforcing
+    if (name.includes('rebar') || name.includes('reinforcing') || name.includes('deformed bar')) categories.push('Rebar');
+    if (name.includes('mesh')) categories.push('Mesh');
+
+    return categories;
+  };
+
   // Filter materials based on category, subcategory, and search
   const filteredMaterials = (materials as Material[]).filter((material: Material) => {
     const matchesSearch = !searchQuery || 
@@ -84,17 +145,14 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
 
     if (selectedCategory === "all") return matchesSearch;
 
+    const materialCategories = categorizeeMaterial(material);
     const categorySubcategories = CATEGORY_STRUCTURE[selectedCategory as keyof typeof CATEGORY_STRUCTURE]?.subcategories || [];
     
     if (selectedSubcategory === "all") {
-      return matchesSearch && categorySubcategories.some(sub => 
-        material.name.toLowerCase().includes(sub.toLowerCase())
-      );
+      return matchesSearch && materialCategories.some(cat => categorySubcategories.includes(cat));
     }
 
-    return matchesSearch && (
-      material.name.toLowerCase().includes(selectedSubcategory.toLowerCase())
-    );
+    return matchesSearch && materialCategories.includes(selectedSubcategory);
   });
 
   // Delete selected materials mutation
@@ -208,51 +266,47 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
             </Button>
           </div>
 
-          {/* Main Category Quick-Click Buttons */}
-          <div className="space-y-3">
+          {/* Main Category Quick-Click Buttons - Horizontal Layout */}
+          <div className="flex flex-wrap gap-2">
             {Object.entries(CATEGORY_STRUCTURE).map(([category, info]) => (
-              <div key={category} className="space-y-2">
-                {/* Main Category Button */}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedCategory === category ? "default" : "outline"}
-                    size="sm"
-                    className="rounded-full text-xs px-4 py-1 h-auto font-medium"
-                    onClick={() => handleCategoryChange(category)}
-                  >
-                    {category}
-                    {selectedCategory === category && expandedCategory === category && " ▼"}
-                    {selectedCategory === category && expandedCategory !== category && " ▶"}
-                  </Button>
-                </div>
-
-                {/* Subcategory Buttons (Expandable) */}
-                {expandedCategory === category && (
-                  <div className="ml-4 flex flex-wrap gap-2 animate-in slide-in-from-top-2 duration-200">
-                    <Button
-                      variant={selectedSubcategory === "all" ? "secondary" : "ghost"}
-                      size="sm"
-                      className="rounded-full text-xs px-3 py-1 h-auto"
-                      onClick={() => handleSubcategoryChange("all")}
-                    >
-                      All {category}
-                    </Button>
-                    {info.subcategories.map((subcategory) => (
-                      <Button
-                        key={subcategory}
-                        variant={selectedSubcategory === subcategory ? "secondary" : "ghost"}
-                        size="sm"
-                        className="rounded-full text-xs px-3 py-1 h-auto"
-                        onClick={() => handleSubcategoryChange(subcategory)}
-                      >
-                        {subcategory}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <Button
+                key={category}
+                variant={selectedCategory === category ? "default" : "outline"}
+                size="sm"
+                className="rounded-full text-xs px-4 py-1 h-auto font-medium"
+                onClick={() => handleCategoryChange(category)}
+              >
+                {category}
+                {selectedCategory === category && expandedCategory === category && " ▼"}
+                {selectedCategory === category && expandedCategory !== category && " ▶"}
+              </Button>
             ))}
           </div>
+
+          {/* Subcategory Buttons (Expandable Row) */}
+          {expandedCategory && (
+            <div className="flex flex-wrap gap-2 animate-in slide-in-from-top-2 duration-200 bg-gray-50 p-3 rounded-lg border">
+              <Button
+                variant={selectedSubcategory === "all" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-full text-xs px-3 py-1 h-auto"
+                onClick={() => handleSubcategoryChange("all")}
+              >
+                All {expandedCategory}
+              </Button>
+              {CATEGORY_STRUCTURE[expandedCategory as keyof typeof CATEGORY_STRUCTURE]?.subcategories.map((subcategory) => (
+                <Button
+                  key={subcategory}
+                  variant={selectedSubcategory === subcategory ? "secondary" : "ghost"}
+                  size="sm"
+                  className="rounded-full text-xs px-3 py-1 h-auto"
+                  onClick={() => handleSubcategoryChange(subcategory)}
+                >
+                  {subcategory}
+                </Button>
+              ))}
+            </div>
+          )}
 
           {/* Category Description */}
           {selectedCategory !== "all" && (
