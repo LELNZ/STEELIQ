@@ -90,12 +90,12 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
     const category = material.category || "";
     const categories: string[] = [];
 
-    // Merchant Bar
-    if (name.includes('flat') || code.includes('flat')) categories.push('Flats');
-    if (name.includes('equal angle') || name.includes('ea ') || code.includes('ea')) categories.push('Equal Angles');
-    if (name.includes('unequal angle') || name.includes('ua ') || code.includes('ua')) categories.push('Unequal Angles');
-    if (name.includes('round') || name.includes('rod') || code.includes('rd')) categories.push('Rounds');
-    if (name.includes('square bar') || name.includes('sq ') || code.includes('sq')) categories.push('Squares');
+    // Merchant Bar - Exclude Duragal/Pregal materials
+    if ((name.includes('flat') || code.includes('flat')) && !name.includes('duragal') && !code.includes('dga') && !code.includes('dgfl')) categories.push('Flats');
+    if ((name.includes('equal angle') || name.includes('ea ') || code.includes('ea')) && !name.includes('duragal') && !code.includes('dga')) categories.push('Equal Angles');
+    if ((name.includes('unequal angle') || name.includes('ua ') || code.includes('ua')) && !name.includes('duragal') && !code.includes('dga')) categories.push('Unequal Angles');
+    if ((name.includes('round') || name.includes('rod') || code.includes('rd')) && !name.includes('duragal') && !code.includes('dga')) categories.push('Rounds');
+    if ((name.includes('square bar') || name.includes('sq ') || code.includes('sq')) && !name.includes('duragal') && !code.includes('dga')) categories.push('Squares');
 
     // Pregal Sections
     if (name.includes('duragal') || name.includes('pregal') || code.includes('dga') || code.includes('dgfl') || category.toLowerCase().includes('duragal')) {
