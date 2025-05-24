@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,59 +83,49 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
     queryKey: ["/api/materials"],
   });
 
-  // Enhanced material categorization logic
+  // Streamlined material categorization logic
   const categorizeeMaterial = (material: Material): string[] => {
     const name = material.name.toLowerCase();
     const code = material.code.toLowerCase();
-    const category = material.category || "";
+    const category = (material.category || "").toLowerCase();
     const categories: string[] = [];
+    
+    // Helper to check if material is Duragal/Pregal
+    const isDuragal = name.includes('duragal') || name.includes('pregal') || code.includes('dga') || code.includes('dgfl') || category.includes('duragal');
 
-    // Merchant Bar - Exclude Duragal/Pregal materials
-    if ((name.includes('flat') || code.includes('flat')) && !name.includes('duragal') && !code.includes('dga') && !code.includes('dgfl')) categories.push('Flats');
-    if ((name.includes('equal angle') || name.includes('ea ') || code.includes('ea')) && !name.includes('duragal') && !code.includes('dga')) categories.push('Equal Angles');
-    if ((name.includes('unequal angle') || name.includes('ua ') || code.includes('ua')) && !name.includes('duragal') && !code.includes('dga')) categories.push('Unequal Angles');
-    if ((name.includes('round') || name.includes('rod') || code.includes('rd')) && !name.includes('duragal') && !code.includes('dga')) categories.push('Rounds');
-    if ((name.includes('square bar') || name.includes('sq ') || code.includes('sq')) && !name.includes('duragal') && !code.includes('dga')) categories.push('Squares');
-
-    // Pregal Sections
-    if (name.includes('duragal') || name.includes('pregal') || code.includes('dga') || code.includes('dgfl') || category.toLowerCase().includes('duragal')) {
+    // Pregal Sections (Priority - handle first to avoid duplicates)
+    if (isDuragal) {
       if (name.includes('angle')) categories.push('Pregal Angles');
-      if (name.includes('flat') || code.includes('dgfl') || category.toLowerCase().includes('duragal flats')) categories.push('Pregal Flats');
-      if (name.includes('channel')) categories.push('Pregal Channels');
+      else if (name.includes('flat') || code.includes('dgfl') || category.includes('duragal flats')) categories.push('Pregal Flats');
+      else if (name.includes('channel')) categories.push('Pregal Channels');
+      return categories; // Return early to prevent other categorizations
     }
 
+    // Merchant Bar (only non-Duragal materials)
+    if (name.includes('flat') || code.includes('flat')) categories.push('Flats');
+    if (name.includes('equal angle') || name.includes('ea ') || code.includes('ea')) categories.push('Equal Angles');
+    if (name.includes('unequal angle') || name.includes('ua ') || code.includes('ua')) categories.push('Unequal Angles');
+    if (name.includes('round') || name.includes('rod') || code.includes('rd')) categories.push('Rounds');
+    if (name.includes('square bar') || name.includes('sq ') || code.includes('sq')) categories.push('Squares');
+
     // Structural Sections
-    if (name.includes('channel') && !name.includes('duragal')) {
+    if (name.includes('channel')) {
       if (name.includes('cold formed') || name.includes('cf')) categories.push('Cold Formed Channel');
       else categories.push('Mild Steel Channel');
     }
     if (name.includes('universal beam') || name.includes('ub') || code.includes('ub')) categories.push('Universal Beam');
     if (name.includes('universal column') || name.includes('uc') || code.includes('uc')) categories.push('Universal Column');
 
-    // Sheet Metal - Enhanced to include all plate and sheet materials
-    if (name.includes('plate') || category.toLowerCase().includes('plate')) {
+    // Sheet Metal (consolidated logic)
+    if (name.includes('plate') || category.includes('plate')) {
       if (name.includes('chequer') || name.includes('checker') || code.includes('plcq')) categories.push('Mild Steel Chequer Plate');
       else if (name.includes('weather resistant') || code.includes('plwr')) categories.push('Weather Resistant Plate');
       else categories.push('Mild Steel Plate');
     }
-    if (name.includes('sheet') || category.toLowerCase().includes('sheet')) {
+    if (name.includes('sheet') || category.includes('sheet')) {
       if (name.includes('cold rolled')) categories.push('Cold Rolled');
-      else if (name.includes('electrogalvanised') || name.includes('electrogalvanized') || category.toLowerCase().includes('electrogalvanized')) categories.push('Electrogalvanised Sheet');
-      else if (name.includes('galvanised') || name.includes('galvanized') || category.toLowerCase().includes('galvanized')) categories.push('Galvanised Sheet');
-      else categories.push('Galvanised Sheet'); // Default for general sheets
-    }
-    
-    // Handle materials with "Plates" category from CSV
-    if (category.toLowerCase() === 'plates') {
-      categories.push('Mild Steel Plate');
-    }
-    
-    // Handle specific sheet categories from your imported data
-    if (category.toLowerCase() === 'galvanized sheets') {
-      categories.push('Galvanised Sheet');
-    }
-    if (category.toLowerCase() === 'electrogalvanized sheets') {
-      categories.push('Electrogalvanised Sheet');
+      else if (name.includes('electrogalvanised') || name.includes('electrogalvanized') || category.includes('electrogalvanized')) categories.push('Electrogalvanised Sheet');
+      else categories.push('Galvanised Sheet');
     }
 
     // SHS/RHS
@@ -149,7 +139,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
       else if (name.includes('erw')) categories.push('ERW Line Pipe');
       else if (name.includes('black')) categories.push('Black Pipe');
       else if (name.includes('primed')) categories.push('Primed Pipe');
-      else if (name.includes('galvanised')) categories.push('Galvanised Pipe');
+      else categories.push('Galvanised Pipe');
     }
 
     // Reinforcing
@@ -159,23 +149,26 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
     return categories;
   };
 
-  // Filter materials based on category, subcategory, and search
+  // Optimized material filtering
   const filteredMaterials = (materials as Material[]).filter((material: Material) => {
+    // Search filter
+    const searchLower = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery || 
-      material.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      material.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (material.grade && material.grade.toLowerCase().includes(searchQuery.toLowerCase()));
+      material.name.toLowerCase().includes(searchLower) ||
+      material.code.toLowerCase().includes(searchLower) ||
+      (material.grade && material.grade.toLowerCase().includes(searchLower));
 
-    if (selectedCategory === "all") return matchesSearch;
+    if (!matchesSearch) return false;
+    if (selectedCategory === "all") return true;
 
     const materialCategories = categorizeeMaterial(material);
     const categorySubcategories = CATEGORY_STRUCTURE[selectedCategory as keyof typeof CATEGORY_STRUCTURE]?.subcategories || [];
     
     if (selectedSubcategory === "all") {
-      return matchesSearch && materialCategories.some(cat => categorySubcategories.includes(cat));
+      return materialCategories.some(cat => categorySubcategories.includes(cat));
     }
 
-    return matchesSearch && materialCategories.includes(selectedSubcategory);
+    return materialCategories.includes(selectedSubcategory);
   });
 
   // Delete selected materials mutation
