@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus } from "lucide-react";
 import { LoadingSpinner, LoadingOverlay, LoadingState } from "@/components/ui/loading-spinner";
+import { MaterialTypeIndicator, MaterialIcon } from "./material-icons";
 import { Material } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -482,6 +483,13 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                         onCheckedChange={() => handleMaterialSelect(material.id)}
                         className={cardSize === "tiny" ? "h-3 w-3" : ""}
                       />
+                      {/* Material Type Icon */}
+                      <MaterialTypeIndicator 
+                        category={material.category || ""} 
+                        name={material.name}
+                        size={cardSize === "tiny" ? "sm" : "md"}
+                        className="flex-shrink-0"
+                      />
                       <div className="flex-1 min-w-0">
                         <CardTitle className={`font-semibold text-foreground leading-tight ${
                           cardSize === "tiny" ? "text-xs" : cardSize === "small" ? "text-sm" : "text-lg"
@@ -596,6 +604,13 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                       <Checkbox
                         checked={selectedMaterials.has(material.id)}
                         onCheckedChange={() => handleMaterialSelect(material.id)}
+                      />
+                      {/* Material Type Icon for List View */}
+                      <MaterialTypeIndicator 
+                        category={material.category || ""} 
+                        name={material.name}
+                        size="sm"
+                        className="flex-shrink-0"
                       />
                       <div className="flex-1 grid grid-cols-6 gap-4 items-center">
                         <div className="col-span-2">
