@@ -386,7 +386,23 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
       {/* Quick-Click Category Navigation */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold">Steel Catalogue Categories</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold">Steel Catalogue Categories</CardTitle>
+            
+            {/* Dimensional reference image positioned at top right */}
+            {selectedSubcategory !== "all" && expandedCategory && DIMENSION_IMAGES[expandedCategory as keyof typeof DIMENSION_IMAGES]?.[selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]] && (
+              <div className="flex-shrink-0 bg-white p-3 rounded-md border shadow-sm">
+                <div className="text-xs text-muted-foreground mb-2 text-center font-medium">
+                  Dimensional Reference
+                </div>
+                <img 
+                  src={DIMENSION_IMAGES[expandedCategory as keyof typeof DIMENSION_IMAGES][selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]]} 
+                  alt={`${selectedSubcategory} dimensions`}
+                  className="w-24 h-24 object-contain"
+                />
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* All Category and Main Category Quick-Click Buttons - Horizontal Layout */}
@@ -422,43 +438,26 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
 
           {/* Subcategory Buttons (Expandable Row) */}
           {expandedCategory && (
-            <div className="flex gap-4 animate-in slide-in-from-top-2 duration-200 bg-gray-50 p-4 rounded-lg border">
-              {/* Subcategory buttons on the left */}
-              <div className="flex flex-wrap gap-2 flex-1">
+            <div className="flex flex-wrap gap-2 animate-in slide-in-from-top-2 duration-200 bg-gray-50 p-3 rounded-lg border">
+              <Button
+                variant={selectedSubcategory === "all" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-full text-xs px-3 py-1 h-auto"
+                onClick={() => handleSubcategoryChange("all")}
+              >
+                All {expandedCategory}
+              </Button>
+              {CATEGORY_STRUCTURE[expandedCategory as keyof typeof CATEGORY_STRUCTURE]?.subcategories.map((subcategory) => (
                 <Button
-                  variant={selectedSubcategory === "all" ? "secondary" : "ghost"}
+                  key={subcategory}
+                  variant={selectedSubcategory === subcategory ? "secondary" : "ghost"}
                   size="sm"
                   className="rounded-full text-xs px-3 py-1 h-auto"
-                  onClick={() => handleSubcategoryChange("all")}
+                  onClick={() => handleSubcategoryChange(subcategory)}
                 >
-                  All {expandedCategory}
+                  {subcategory}
                 </Button>
-                {CATEGORY_STRUCTURE[expandedCategory as keyof typeof CATEGORY_STRUCTURE]?.subcategories.map((subcategory) => (
-                  <Button
-                    key={subcategory}
-                    variant={selectedSubcategory === subcategory ? "secondary" : "ghost"}
-                    size="sm"
-                    className="rounded-full text-xs px-3 py-1 h-auto"
-                    onClick={() => handleSubcategoryChange(subcategory)}
-                  >
-                    {subcategory}
-                  </Button>
-                ))}
-              </div>
-              
-              {/* Dimensional reference image on the right */}
-              {selectedSubcategory !== "all" && DIMENSION_IMAGES[expandedCategory as keyof typeof DIMENSION_IMAGES]?.[selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]] && (
-                <div className="flex-shrink-0 bg-white p-3 rounded-md border shadow-sm">
-                  <div className="text-xs text-muted-foreground mb-2 text-center font-medium">
-                    Dimensional Reference
-                  </div>
-                  <img 
-                    src={DIMENSION_IMAGES[expandedCategory as keyof typeof DIMENSION_IMAGES][selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]]} 
-                    alt={`${selectedSubcategory} dimensions`}
-                    className="w-20 h-20 object-contain"
-                  />
-                </div>
-              )}
+              ))}
             </div>
           )}
 
