@@ -142,9 +142,12 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
       else categories.push('Galvanised Pipe');
     }
 
-    // Reinforcing
+    // Reinforcing (check early to prevent duplicates)
+    if (name.includes('mesh')) {
+      categories.push('Mesh');
+      return categories; // Exit early to prevent mesh appearing in other categories
+    }
     if (name.includes('rebar') || name.includes('reinforcing') || name.includes('deformed bar')) categories.push('Rebar');
-    if (name.includes('mesh')) categories.push('Mesh');
 
     return categories;
   };
