@@ -1035,14 +1035,14 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                     material: {
                       name: editingMaterial.name,
                       code: editingMaterial.code,
-                      width: editingMaterial.width ? Number(editingMaterial.width) : undefined,
-                      thickness: editingMaterial.thickness ? Number(editingMaterial.thickness) : undefined,
-                      length: editingMaterial.length ? Number(editingMaterial.length) : undefined,
+                      width: editingMaterial.width ? String(editingMaterial.width) : undefined,
+                      thickness: editingMaterial.thickness ? String(editingMaterial.thickness) : undefined,
+                      length: editingMaterial.length ? String(editingMaterial.length) : undefined,
                       grade: editingMaterial.grade,
                       standard: editingMaterial.standard,
-                      weightPerMeter: editingMaterial.weightPerMeter ? Number(editingMaterial.weightPerMeter) : undefined,
-                      pricePerMeter: editingMaterial.pricePerMeter ? Number(editingMaterial.pricePerMeter) : undefined,
-                      pricePerKg: editingMaterial.pricePerKg ? Number(editingMaterial.pricePerKg) : undefined,
+                      weightPerMeter: editingMaterial.weightPerMeter ? String(editingMaterial.weightPerMeter) : undefined,
+                      pricePerMeter: editingMaterial.pricePerMeter ? String(editingMaterial.pricePerMeter) : undefined,
+                      pricePerKg: editingMaterial.pricePerKg ? String(editingMaterial.pricePerKg) : undefined,
                       lengthOptions: editingMaterial.lengthOptions
                     }
                   });
