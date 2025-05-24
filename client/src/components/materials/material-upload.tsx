@@ -177,8 +177,8 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
         throw new Error("CSV file must contain at least a header and one data row");
       }
 
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[()]/g, '').replace(/\s+/g, ''));
-      const expectedHeaders = ['category', 'code', 'name', 'width', 'thickness', 'diameter', 'depth', 'flangetf', 'webtw', 'weight', 'lengthoptions', 'grade', 'standard'];
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      console.log('CSV Headers found:', headers);
       
       const materials: ParsedMaterial[] = [];
       
@@ -190,7 +190,7 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
           errors: []
         };
 
-        // Map CSV columns to material properties
+        // Map CSV columns to material properties with exact header matching
         headers.forEach((header, index) => {
           const value = values[index] || '';
           
@@ -203,68 +203,59 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
               material.name = value;
               if (!value) material.errors.push('Name is required');
               break;
-            case 'width':
-              if (value) {
+            case 'category':
+              material.category = value;
+              break;
+            case 'width (mm)':
+              if (value && value !== '') {
                 const num = parseFloat(value);
                 if (!isNaN(num)) material.width = num;
                 else material.errors.push('Invalid width value');
               }
               break;
-            case 'thickness':
-              if (value) {
+            case 'thickness (mm)':
+              if (value && value !== '') {
                 const num = parseFloat(value);
                 if (!isNaN(num)) material.thickness = num;
                 else material.errors.push('Invalid thickness value');
               }
               break;
-
-            case 'category':
-              material.category = value;
-              break;
-            case 'diameter':
-            case 'diameter mm':
-              if (value) {
+            case 'diameter (mm)':
+              if (value && value !== '') {
                 const num = parseFloat(value);
                 if (!isNaN(num)) material.diameter = num;
                 else material.errors.push('Invalid diameter value');
               }
               break;
-            case 'depth':
-            case 'depth mm':
-              if (value) {
+            case 'depth (mm)':
+              if (value && value !== '') {
                 const num = parseFloat(value);
                 if (!isNaN(num)) material.depth = num;
                 else material.errors.push('Invalid depth value');
               }
               break;
-            case 'flangetf':
-            case 'flangetfmm':
-              if (value) {
+            case 'flange tf (mm)':
+              if (value && value !== '') {
                 const num = parseFloat(value);
                 if (!isNaN(num)) material.flangeTF = num;
                 else material.errors.push('Invalid flange TF value');
               }
               break;
-            case 'webtw':
-            case 'webtwmm':
-              if (value) {
+            case 'web tw (mm)':
+              if (value && value !== '') {
                 const num = parseFloat(value);
                 if (!isNaN(num)) material.webTW = num;
                 else material.errors.push('Invalid web TW value');
               }
               break;
-            case 'weight':
-            case 'weightkgm':
-            case 'weightpermeter':
-              if (value) {
+            case 'weight (kg/m)':
+              if (value && value !== '') {
                 const num = parseFloat(value);
                 if (!isNaN(num)) material.weightPerMeter = num;
-                else material.errors.push('Invalid weight per meter value');
+                else material.errors.push('Invalid weight value');
               }
               break;
-            case 'lengthoptions':
-            case 'lengthoptionsm':
-            case 'standardlengths':
+            case 'length options (m)':
               material.lengthOptions = value;
               break;
             case 'grade':
@@ -273,24 +264,9 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
             case 'standard':
               material.standard = value;
               break;
-            case 'priceperm':
-            case 'price_per_m':
-            case 'pricepermeter':
-              if (value) {
-                const num = parseFloat(value);
-                if (!isNaN(num)) material.pricePerMeter = num;
-                else material.errors.push('Invalid price per meter value');
-              }
+            default:
+              // Handle any other headers that might exist
               break;
-            case 'priceperkg':
-            case 'price_per_kg':
-              if (value) {
-                const num = parseFloat(value);
-                if (!isNaN(num)) material.pricePerKg = num;
-                else material.errors.push('Invalid price per kg value');
-              }
-              break;
-
           }
         });
 
