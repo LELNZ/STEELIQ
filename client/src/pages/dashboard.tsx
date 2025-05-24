@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { LoadingState } from "@/components/ui/loading-spinner";
 import JobList from "@/components/jobs/job-list";
 import InventoryAlerts from "@/components/inventory/inventory-alerts";
 import SetupWizard from "@/components/setup/setup-wizard";
@@ -70,17 +71,11 @@ export default function Dashboard() {
 
   if (statsLoading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-20 bg-muted rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+      <LoadingState 
+        message="Loading dashboard statistics..." 
+        size="xl" 
+        className="min-h-[400px]" 
+      />
     );
   }
 
