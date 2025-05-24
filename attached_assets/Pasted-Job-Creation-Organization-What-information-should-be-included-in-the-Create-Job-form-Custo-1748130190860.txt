@@ -1,0 +1,36 @@
+Job Creation & Organization:
+
+What information should be included in the "Create Job" form? (Customer details, job name, due date, priority, etc.) The create Job form will be used in conjunction with the JMS so All relevant information required for a professional JMS to intergrate to the rest of the app.
+
+
+How do you want job numbers formatted? (e.g., JOB-2025-001, LAT-240125-01, or another pattern?)Please use the recommend standard industry numbering from earlier in our plan.
+
+
+Should the job inherit all the cut requirements and stock from the optimization, or allow editing? Both
+
+
+When a job is created, should it automatically appear in the Jobs & Cutting tab with a status like "Planned" or "Ready to Cut"? Yes automatically apprea in the jobs & cutting tab with status Draft i want the jobs page to be in a drag-and-drop style card with top status headings that the user can move the job car to as is appropriate for workflow ( please recommend stauts headings for our business from Draft - Completion with one heading for Backcosting)
+
+
+Simulation vs Job Labeling:
+5. Should there be a toggle/button to mark results as "Create Job" vs "Keep as Simulation"? yes
+
+Do you want simulations to auto-expire after a certain time, or keep them indefinitely? expire after 7 days, with simple description of what the simulation is for reference, and allow ability to turn that simulation into a job if recalled and required within that 7 day period. 
+
+
+Export Improvements:
+7. For the PDF - what specific layout do you prefer? Should it include diagrams, cut sequences, material costs, or company branding? All relevant information and simple diagrams for workshop floor user - no costing
+
+For Excel - would you prefer separate sheets for Summary, Cut Plans, and Remnants? Or a single formatted sheet? a single formatted sheet
+
+
+Cut Sequence Optimization:
+9. When showing "repeat this cut sequence 2x" - should it combine identical plans automatically, or let you choose which ones to group? have a toggle button to combine identical plans or leave it in long form.
+
+Should the system suggest using the same stock material for identical cuts to reduce setup time? yes
+
+
+Jobs & Cutting Tab Integration:
+11. What job statuses do you use? (Planning, In Progress, Cut Complete, etc.) See above answer - this all needs to be incorporated into the JMS portion of this app. allow for answers from questions 1 - 4. 
+
+Should the optimization results link back to the original job for tracking and updates? yes

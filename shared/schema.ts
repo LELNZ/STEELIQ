@@ -70,11 +70,19 @@ export const jobs = pgTable("jobs", {
   id: serial("id").primaryKey(),
   jobNumber: text("job_number").notNull().unique(),
   clientName: text("client_name").notNull(),
+  clientContact: text("client_contact"),
+  clientPhone: text("client_phone"),
+  clientEmail: text("client_email"),
+  clientAddress: text("client_address"),
   projectDescription: text("project_description"),
-  status: text("status").notNull().default("pending"), // pending, in_progress, completed, cancelled
-  priority: text("priority").notNull().default("standard"), // standard, high, rush
+  status: text("status").notNull().default("draft"), // draft, planning, ready_to_cut, cutting, cut_complete, fabrication, quality_check, completed, on_hold, backcosting
+  priority: text("priority").notNull().default("standard"), // standard, high, rush, urgent
   estimatedValue: decimal("estimated_value", { precision: 10, scale: 2 }),
   actualCost: decimal("actual_cost", { precision: 10, scale: 2 }),
+  materialCost: decimal("material_cost", { precision: 10, scale: 2 }),
+  laborCost: decimal("labor_cost", { precision: 10, scale: 2 }),
+  overheadCost: decimal("overhead_cost", { precision: 10, scale: 2 }),
+  profitMargin: decimal("profit_margin", { precision: 5, scale: 2 }),
   estimatedTime: integer("estimated_time_minutes"),
   actualTime: integer("actual_time_minutes"),
   dueDate: timestamp("due_date"),
@@ -85,6 +93,10 @@ export const jobs = pgTable("jobs", {
   isRushOrder: boolean("is_rush_order").default(false),
   rushPremium: decimal("rush_premium", { precision: 5, scale: 2 }),
   notes: text("notes"),
+  internalNotes: text("internal_notes"),
+  deliveryInstructions: text("delivery_instructions"),
+  specialRequirements: text("special_requirements"),
+  optimizationId: text("optimization_id"), // Link to optimization result
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -141,6 +153,21 @@ export const remnants = pgTable("remnants", {
   remnantLength: decimal("remnant_length", { precision: 10, scale: 2 }).notNull(),
   isLabeled: boolean("is_labeled").default(false),
   photoUploaded: boolean("photo_uploaded").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Optimization simulations tracking
+export const optimizationSimulations = pgTable("optimization_simulations", {
+  id: serial("id").primaryKey(),
+  simulationId: text("simulation_id").notNull().unique(),
+  description: text("description"),
+  optimizationData: text("optimization_data").notNull(), // JSON string of optimization result
+  cutRequests: text("cut_requests").notNull(), // JSON string of cut requests
+  stockItems: text("stock_items").notNull(), // JSON string of stock items
+  summary: text("summary").notNull(), // JSON string of optimization summary
+  isConverted: boolean("is_converted").default(false),
+  convertedJobId: integer("converted_job_id").references(() => jobs.id),
+  expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -282,6 +309,11 @@ export const insertRemnantSchema = createInsertSchema(remnants).omit({
   createdAt: true,
 });
 
+export const insertOptimizationSimulationSchema = createInsertSchema(optimizationSimulations).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -309,3 +341,6 @@ export type InsertCutSequence = z.infer<typeof insertCutSequenceSchema>;
 
 export type Remnant = typeof remnants.$inferSelect;
 export type InsertRemnant = z.infer<typeof insertRemnantSchema>;
+
+export type OptimizationSimulation = typeof optimizationSimulations.$inferSelect;
+export type InsertOptimizationSimulation = z.infer<typeof insertOptimizationSimulationSchema>;
