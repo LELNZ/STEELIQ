@@ -379,17 +379,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
             </div>
           )}
 
-          {/* Category Description */}
-          {selectedCategory !== "all" && (
-            <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-md mt-4">
-              <strong>{selectedCategory}:</strong> {CATEGORY_STRUCTURE[selectedCategory as keyof typeof CATEGORY_STRUCTURE]?.description}
-              {selectedSubcategory !== "all" && (
-                <span className="block mt-1 text-blue-700 font-medium">
-                  Filtered by: {selectedSubcategory}
-                </span>
-              )}
-            </div>
-          )}
+
         </CardContent>
       </Card>
 
