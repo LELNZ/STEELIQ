@@ -15,12 +15,78 @@ import { Material } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+// Import dimensional reference images
+import anglesImg from "@assets/Angles.png";
+import cattleRailImg from "@assets/Cattle Rail.png";
+import channelImg from "@assets/Channel.png";
+import flatImg from "@assets/Flstd.png";
+import meshImg from "@assets/Mesh.png";
+import pipeImg from "@assets/Pipe.png";
+import rebarImg from "@assets/Reinforcing bar.png";
+import rhsImg from "@assets/RHS.png";
+import roundImg from "@assets/Round.png";
+import sheetMetalImg from "@assets/Sheet metal.png";
+import shsImg from "@assets/SHS.png";
+import squareBarImg from "@assets/Square Bar.png";
+
 interface EnhancedMaterialLibraryProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 }
 
 // Structured category system for Lateral Engineering (ordered as requested)
+// Dimensional reference image mapping
+const DIMENSION_IMAGES = {
+  "Merchant Bar": {
+    "Flats": flatImg,
+    "Equal Angles": anglesImg,
+    "Unequal Angles": anglesImg,
+    "Rounds": roundImg,
+    "Squares": squareBarImg
+  },
+  "SHS/RHS": {
+    "SHS": shsImg,
+    "RHS": rhsImg,
+    "Cattle Rail Hollow Section": cattleRailImg
+  },
+  "Structural Sections": {
+    "Mild Steel Channel": channelImg,
+    "Cold Formed Channel": channelImg,
+    "Universal Beam": channelImg,
+    "Universal Column": channelImg
+  },
+  "Pregal": {
+    "Pregal Angles": anglesImg,
+    "Pregal Flats": flatImg,
+    "Pregal Channels": channelImg
+  },
+  "Purlins": {
+    "C Purlins": channelImg,
+    "Z Purlins": channelImg,
+    "Sigma Purlins": channelImg
+  },
+  "Pipe": {
+    "Seamless Line Pipe": pipeImg,
+    "ERW Line Pipe": pipeImg,
+    "Black Pipe": pipeImg,
+    "Primed Pipe": pipeImg,
+    "Galvanised Pipe": pipeImg
+  },
+  "Sheet Metal": {
+    "Mild Steel Plate": sheetMetalImg,
+    "Mild Steel Chequer Plate": sheetMetalImg,
+    "Weather Resistant Plate": sheetMetalImg,
+    "Cold Rolled": sheetMetalImg,
+    "Electrogalvanised Sheet": sheetMetalImg,
+    "Galvanised Sheet": sheetMetalImg
+  },
+  "Reinforcing": {
+    "Rebar": rebarImg,
+    "Mesh": meshImg,
+    "Deformed Bar": rebarImg
+  }
+} as const;
+
 const CATEGORY_STRUCTURE = {
   "Merchant Bar": {
     subcategories: ["Flats", "Equal Angles", "Unequal Angles", "Rounds", "Squares"],
@@ -356,26 +422,43 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
 
           {/* Subcategory Buttons (Expandable Row) */}
           {expandedCategory && (
-            <div className="flex flex-wrap gap-2 animate-in slide-in-from-top-2 duration-200 bg-gray-50 p-3 rounded-lg border">
-              <Button
-                variant={selectedSubcategory === "all" ? "secondary" : "ghost"}
-                size="sm"
-                className="rounded-full text-xs px-3 py-1 h-auto"
-                onClick={() => handleSubcategoryChange("all")}
-              >
-                All {expandedCategory}
-              </Button>
-              {CATEGORY_STRUCTURE[expandedCategory as keyof typeof CATEGORY_STRUCTURE]?.subcategories.map((subcategory) => (
+            <div className="flex gap-4 animate-in slide-in-from-top-2 duration-200 bg-gray-50 p-4 rounded-lg border">
+              {/* Subcategory buttons on the left */}
+              <div className="flex flex-wrap gap-2 flex-1">
                 <Button
-                  key={subcategory}
-                  variant={selectedSubcategory === subcategory ? "secondary" : "ghost"}
+                  variant={selectedSubcategory === "all" ? "secondary" : "ghost"}
                   size="sm"
                   className="rounded-full text-xs px-3 py-1 h-auto"
-                  onClick={() => handleSubcategoryChange(subcategory)}
+                  onClick={() => handleSubcategoryChange("all")}
                 >
-                  {subcategory}
+                  All {expandedCategory}
                 </Button>
-              ))}
+                {CATEGORY_STRUCTURE[expandedCategory as keyof typeof CATEGORY_STRUCTURE]?.subcategories.map((subcategory) => (
+                  <Button
+                    key={subcategory}
+                    variant={selectedSubcategory === subcategory ? "secondary" : "ghost"}
+                    size="sm"
+                    className="rounded-full text-xs px-3 py-1 h-auto"
+                    onClick={() => handleSubcategoryChange(subcategory)}
+                  >
+                    {subcategory}
+                  </Button>
+                ))}
+              </div>
+              
+              {/* Dimensional reference image on the right */}
+              {selectedSubcategory !== "all" && DIMENSION_IMAGES[expandedCategory as keyof typeof DIMENSION_IMAGES]?.[selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]] && (
+                <div className="flex-shrink-0 bg-white p-3 rounded-md border shadow-sm">
+                  <div className="text-xs text-muted-foreground mb-2 text-center font-medium">
+                    Dimensional Reference
+                  </div>
+                  <img 
+                    src={DIMENSION_IMAGES[expandedCategory as keyof typeof DIMENSION_IMAGES][selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]]} 
+                    alt={`${selectedSubcategory} dimensions`}
+                    className="w-20 h-20 object-contain"
+                  />
+                </div>
+              )}
             </div>
           )}
 
