@@ -303,19 +303,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         for (const materialData of batch) {
           try {
-            // Bypass validation temporarily and create materials directly
+            // Clean and properly format all steel specifications
             const cleanData = {
               code: materialData.code,
               name: materialData.name,
               category: materialData.category || null,
-              width: materialData.width && materialData.width !== '' ? materialData.width : null,
-              thickness: materialData.thickness && materialData.thickness !== '' ? materialData.thickness : null,
-              diameter: materialData.diameter && materialData.diameter !== '' ? materialData.diameter : null,
-              depth: materialData.depth && materialData.depth !== '' ? materialData.depth : null,
-              flangeTf: materialData.flangeTf && materialData.flangeTf !== '' ? materialData.flangeTf : null,
-              webTw: materialData.webTw && materialData.webTw !== '' ? materialData.webTw : null,
-              weightPerMeter: materialData.weightPerMeter && materialData.weightPerMeter !== '' ? materialData.weightPerMeter : null,
-              lengthOptions: materialData.lengthOptions || null,
+              width: materialData.width && materialData.width !== '' ? String(materialData.width) : null,
+              thickness: materialData.thickness && materialData.thickness !== '' ? String(materialData.thickness) : null,
+              diameter: materialData.diameter && materialData.diameter !== '' ? String(materialData.diameter) : null,
+              depth: materialData.depth && materialData.depth !== '' ? String(materialData.depth) : null,
+              flangeTf: materialData.flangeTf && materialData.flangeTf !== '' ? String(materialData.flangeTf) : null,
+              webTw: materialData.webTw && materialData.webTw !== '' ? String(materialData.webTw) : null,
+              weightPerMeter: materialData.weightPerMeter && materialData.weightPerMeter !== '' ? String(materialData.weightPerMeter) : null,
+              lengthOptions: materialData.lengthOptions || null, // Keep as string to preserve semicolon-separated values
               grade: materialData.grade || null,
               standard: materialData.standard || null,
               isActive: true
