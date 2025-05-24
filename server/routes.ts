@@ -119,6 +119,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/materials/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const materialData = insertMaterialSchema.partial().parse(req.body);
+      
+      const material = await storage.getMaterial(id);
+      if (!material) {
+        return res.status(404).json({ error: "Material not found" });
+      }
+      
+      const updatedMaterial = await storage.updateMaterial(id, materialData);
+      console.log(`Successfully updated material ${id}: ${updatedMaterial.name}`);
+      res.json(updatedMaterial);
+    } catch (error) {
+      console.error("Error updating material:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid material data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update material" });
+    }
+  });
+
   app.delete("/api/materials/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
