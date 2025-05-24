@@ -436,6 +436,12 @@ export default function CuttingOptimizerComponent() {
                       <span className="font-medium">{optimizationResult.summary.totalCuts}</span>
                     </div>
                     <div className="flex justify-between text-sm">
+                      <span>Total Cutting Time:</span>
+                      <span className="font-medium">
+                        {Math.floor(optimizationResult.summary.totalCuttingTime / 60)}h {optimizationResult.summary.totalCuttingTime % 60}m
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
                       <span>Total Waste:</span>
                       <span className="font-medium">{optimizationResult.summary.totalWaste.toFixed(0)}mm</span>
                     </div>

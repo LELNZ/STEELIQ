@@ -352,11 +352,22 @@ export class CuttingOptimizer {
     const avgEfficiency = plans.length > 0 ? 
       plans.reduce((sum, plan) => sum + plan.efficiency, 0) / plans.length : 0;
 
+    // Calculate total cutting time based on angle cuts
+    const totalCuttingTime = plans.reduce((totalTime, plan) => {
+      const planTime = plan.cuts.reduce((cutTime, cut) => {
+        const isAngleCut = cut.angle && cut.angle !== 90;
+        const cutTimeMinutes = isAngleCut ? 12 : 10; // 12 min for angle cuts, 10 min for standard cuts
+        return cutTime + cutTimeMinutes;
+      }, 0);
+      return totalTime + planTime;
+    }, 0);
+
     return {
       totalWaste,
       totalWastePercentage: totalStockLength > 0 ? (totalWaste / totalStockLength) * 100 : 0,
       avgEfficiency,
       totalCuts,
+      totalCuttingTime,
       algorithm,
       executionTime
     };
