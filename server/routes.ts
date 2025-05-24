@@ -119,6 +119,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Temporary workaround: Use POST for updates due to Vite routing conflicts
+  app.post("/api/materials/:id/update", async (req, res) => {
+    try {
+      console.log(`POST update request for material ${req.params.id} with data:`, req.body);
+      const id = parseInt(req.params.id);
+      const materialData = insertMaterialSchema.partial().parse(req.body);
+      
+      const material = await storage.getMaterial(id);
+      if (!material) {
+        console.log(`Material ${id} not found`);
+        return res.status(404).json({ error: "Material not found" });
+      }
+      
+      const updatedMaterial = await storage.updateMaterial(id, materialData);
+      console.log(`Successfully updated material ${id}: ${updatedMaterial.name}`);
+      
+      // Ensure we're sending JSON response
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(200).json(updatedMaterial);
+    } catch (error) {
+      console.error("Error updating material:", error);
+      res.setHeader('Content-Type', 'application/json');
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid material data", details: error.errors });
+      }
+      return res.status(500).json({ error: "Failed to update material" });
+    }
+  });
+
   app.patch("/api/materials/:id", async (req, res) => {
     try {
       console.log(`PATCH request for material ${req.params.id} with data:`, req.body);

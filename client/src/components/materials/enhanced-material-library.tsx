@@ -207,8 +207,8 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
   const editMaterialMutation = useMutation({
     mutationFn: async (data: { id: number; material: Partial<Material> }) => {
       console.log('Updating material:', data.id, data.material);
-      const response = await fetch(`/api/materials/${data.id}`, {
-        method: "PATCH",
+      const response = await fetch(`/api/materials/${data.id}/update`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
