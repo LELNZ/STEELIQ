@@ -1035,14 +1035,14 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                     material: {
                       name: editingMaterial.name,
                       code: editingMaterial.code,
-                      width: editingMaterial.width ? String(editingMaterial.width) : undefined,
-                      thickness: editingMaterial.thickness ? String(editingMaterial.thickness) : undefined,
-                      length: editingMaterial.length ? String(editingMaterial.length) : undefined,
-                      grade: editingMaterial.grade,
-                      standard: editingMaterial.standard,
-                      weightPerMeter: editingMaterial.weightPerMeter ? String(editingMaterial.weightPerMeter) : undefined,
-                      pricePerMeter: editingMaterial.pricePerMeter ? String(editingMaterial.pricePerMeter) : undefined,
-                      pricePerKg: editingMaterial.pricePerKg ? String(editingMaterial.pricePerKg) : undefined,
+                      width: editingMaterial.width && editingMaterial.width !== '' ? String(editingMaterial.width) : null,
+                      thickness: editingMaterial.thickness && editingMaterial.thickness !== '' ? String(editingMaterial.thickness) : null,
+                      length: editingMaterial.length && editingMaterial.length !== '' ? String(editingMaterial.length) : null,
+                      grade: editingMaterial.grade && editingMaterial.grade !== '' ? editingMaterial.grade : null,
+                      standard: editingMaterial.standard && editingMaterial.standard !== '' ? editingMaterial.standard : null,
+                      weightPerMeter: editingMaterial.weightPerMeter && editingMaterial.weightPerMeter !== '' ? String(editingMaterial.weightPerMeter) : null,
+                      pricePerMeter: editingMaterial.pricePerMeter && editingMaterial.pricePerMeter !== '' ? String(editingMaterial.pricePerMeter) : null,
+                      pricePerKg: editingMaterial.pricePerKg && editingMaterial.pricePerKg !== '' ? String(editingMaterial.pricePerKg) : null,
                       lengthOptions: editingMaterial.lengthOptions
                     }
                   });
