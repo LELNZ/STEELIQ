@@ -81,11 +81,28 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
         isActive: true,
       }));
 
-      const response = await apiRequest("POST", "/api/materials/bulk-import", {
-        materials: materialData
-      });
+      // Process in chunks of 100 materials at a time to avoid payload size issues
+      const chunkSize = 100;
+      const totalResults = {
+        updated: 0,
+        created: 0,
+        errors: [] as string[]
+      };
 
-      return response.json();
+      for (let i = 0; i < materialData.length; i += chunkSize) {
+        const chunk = materialData.slice(i, i + chunkSize);
+        
+        const response = await apiRequest("POST", "/api/materials/bulk-import", {
+          materials: chunk
+        });
+        
+        const chunkResult = await response.json();
+        totalResults.updated += chunkResult.updated;
+        totalResults.created += chunkResult.created;
+        totalResults.errors.push(...chunkResult.errors);
+      }
+
+      return totalResults;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
