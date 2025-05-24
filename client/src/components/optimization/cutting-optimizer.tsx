@@ -33,6 +33,8 @@ export default function CuttingOptimizerComponent() {
     const saved = localStorage.getItem('favorite-materials');
     return saved ? JSON.parse(saved) : [];
   });
+  const [materialSearchText, setMaterialSearchText] = useState("");
+  const [stockSearchText, setStockSearchText] = useState("");
 
   // New cut request form
   const [newCut, setNewCut] = useState({
@@ -75,7 +77,7 @@ export default function CuttingOptimizerComponent() {
   };
 
   // Create searchable material list with code, name, and category
-  const searchableMaterials = materials?.map(material => ({
+  const allSearchableMaterials = materials?.map(material => ({
     value: material.code || material.name,
     label: `${material.code} - ${material.name}`,
     category: material.category || "Other",
@@ -87,6 +89,27 @@ export default function CuttingOptimizerComponent() {
     if (!a.isFavorite && b.isFavorite) return 1;
     return a.label.localeCompare(b.label);
   }) || [];
+
+  // Filter materials based on search text
+  const searchableMaterials = allSearchableMaterials.filter(material => {
+    if (!materialSearchText) return true;
+    const searchLower = materialSearchText.toLowerCase();
+    return (
+      material.material.code?.toLowerCase().includes(searchLower) ||
+      material.material.name?.toLowerCase().includes(searchLower) ||
+      material.category.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const stockSearchableMaterials = allSearchableMaterials.filter(material => {
+    if (!stockSearchText) return true;
+    const searchLower = stockSearchText.toLowerCase();
+    return (
+      material.material.code?.toLowerCase().includes(searchLower) ||
+      material.material.name?.toLowerCase().includes(searchLower) ||
+      material.category.toLowerCase().includes(searchLower)
+    );
+  });
 
   const addCutRequest = () => {
     if (!newCut.length || !newCut.materialType) return;
@@ -218,85 +241,82 @@ export default function CuttingOptimizerComponent() {
                     max="180"
                   />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-2 relative">
                   <Label htmlFor="cut-material">Material</Label>
-                  <Popover open={openMaterialSearch} onOpenChange={setOpenMaterialSearch}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openMaterialSearch}
-                        className="w-full justify-between text-left"
-                      >
-                        <span className="truncate">
-                          {newCut.materialType
-                            ? searchableMaterials.find((material) => material.value === newCut.materialType)?.label
-                            : "Search materials..."}
-                        </span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-96 p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Type to search materials..." />
-                        <CommandEmpty>No material found.</CommandEmpty>
-                        <CommandGroup className="max-h-60 overflow-y-auto">
-                          {searchableMaterials.map((material) => (
-                            <div
-                              key={material.value}
-                              className="flex items-center justify-between cursor-pointer hover:bg-accent hover:text-accent-foreground p-2 rounded-sm"
-                              onClick={() => {
-                                const newValue = newCut.materialType === material.value ? "" : material.value;
-                                setNewCut({ ...newCut, materialType: newValue });
-                                if (newValue) {
-                                  setOpenMaterialSearch(false);
-                                }
-                              }}
-                            >
-                              <div className="flex items-center min-w-0 flex-1">
-                                <Check
-                                  className={`mr-2 h-4 w-4 flex-shrink-0 ${
-                                    newCut.materialType === material.value ? "opacity-100" : "opacity-0"
-                                  }`}
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <div className="font-medium truncate">{material.material.code}</div>
-                                    {material.isFavorite && (
-                                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
-                                    )}
-                                  </div>
-                                  <div className="text-sm text-muted-foreground truncate">{material.material.name}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{material.category}</div>
-                                </div>
+                  <div className="relative">
+                    <Input
+                      id="cut-material"
+                      value={materialSearchText || (newCut.materialType ? allSearchableMaterials.find(m => m.value === newCut.materialType)?.label || "" : "")}
+                      onChange={(e) => {
+                        setMaterialSearchText(e.target.value);
+                        setOpenMaterialSearch(true);
+                        if (!e.target.value) {
+                          setNewCut({ ...newCut, materialType: "" });
+                        }
+                      }}
+                      onFocus={() => setOpenMaterialSearch(true)}
+                      placeholder="Type to search materials..."
+                      className="pr-8"
+                    />
+                    <ChevronsUpDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50" />
+                  </div>
+                  {openMaterialSearch && (materialSearchText || !newCut.materialType) && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {searchableMaterials.slice(0, 10).map((material) => (
+                        <div
+                          key={material.value}
+                          className="flex items-center justify-between cursor-pointer hover:bg-accent p-2 border-b last:border-b-0"
+                          onClick={() => {
+                            setNewCut({ ...newCut, materialType: material.value });
+                            setMaterialSearchText("");
+                            setOpenMaterialSearch(false);
+                          }}
+                        >
+                          <div className="flex items-center min-w-0 flex-1">
+                            <Check
+                              className={`mr-2 h-4 w-4 flex-shrink-0 ${
+                                newCut.materialType === material.value ? "opacity-100" : "opacity-0"
+                              }`}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <div className="font-medium truncate">{material.material.code}</div>
+                                {material.isFavorite && (
+                                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
+                                )}
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="p-1 h-auto flex-shrink-0 ml-2"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  toggleFavorite(material.value);
-                                }}
-                              >
-                                <Star
-                                  className={`h-4 w-4 ${
-                                    material.isFavorite 
-                                      ? "fill-yellow-400 text-yellow-400" 
-                                      : "text-muted-foreground hover:text-yellow-400"
-                                  }`}
-                                />
-                              </Button>
+                              <div className="text-sm text-muted-foreground truncate">{material.material.name}</div>
+                              <div className="text-xs text-muted-foreground truncate">{material.category}</div>
                             </div>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-1 h-auto flex-shrink-0 ml-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              toggleFavorite(material.value);
+                            }}
+                          >
+                            <Star
+                              className={`h-4 w-4 ${
+                                material.isFavorite 
+                                  ? "fill-yellow-400 text-yellow-400" 
+                                  : "text-muted-foreground hover:text-yellow-400"
+                              }`}
+                            />
+                          </Button>
+                        </div>
+                      ))}
+                      {searchableMaterials.length === 0 && (
+                        <div className="p-2 text-center text-muted-foreground">No materials found</div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={addCutRequest} size="sm" className="px-3 py-2">
+                  <Button onClick={addCutRequest} size="sm" className="px-3 py-2 h-10">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -382,85 +402,82 @@ export default function CuttingOptimizerComponent() {
                     min="1"
                   />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-2 relative">
                   <Label htmlFor="stock-material">Material</Label>
-                  <Popover open={openStockMaterialSearch} onOpenChange={setOpenStockMaterialSearch}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openStockMaterialSearch}
-                        className="w-full justify-between text-left"
-                      >
-                        <span className="truncate">
-                          {newStock.materialType
-                            ? searchableMaterials.find((material) => material.value === newStock.materialType)?.label
-                            : "Search materials..."}
-                        </span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-96 p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Type to search materials..." />
-                        <CommandEmpty>No material found.</CommandEmpty>
-                        <CommandGroup className="max-h-60 overflow-y-auto">
-                          {searchableMaterials.map((material) => (
-                            <div
-                              key={material.value}
-                              className="flex items-center justify-between cursor-pointer hover:bg-accent hover:text-accent-foreground p-2 rounded-sm"
-                              onClick={() => {
-                                const newValue = newStock.materialType === material.value ? "" : material.value;
-                                setNewStock({ ...newStock, materialType: newValue });
-                                if (newValue) {
-                                  setOpenStockMaterialSearch(false);
-                                }
-                              }}
-                            >
-                              <div className="flex items-center min-w-0 flex-1">
-                                <Check
-                                  className={`mr-2 h-4 w-4 flex-shrink-0 ${
-                                    newStock.materialType === material.value ? "opacity-100" : "opacity-0"
-                                  }`}
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <div className="font-medium truncate">{material.material.code}</div>
-                                    {material.isFavorite && (
-                                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
-                                    )}
-                                  </div>
-                                  <div className="text-sm text-muted-foreground truncate">{material.material.name}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{material.category}</div>
-                                </div>
+                  <div className="relative">
+                    <Input
+                      id="stock-material"
+                      value={stockSearchText || (newStock.materialType ? allSearchableMaterials.find(m => m.value === newStock.materialType)?.label || "" : "")}
+                      onChange={(e) => {
+                        setStockSearchText(e.target.value);
+                        setOpenStockMaterialSearch(true);
+                        if (!e.target.value) {
+                          setNewStock({ ...newStock, materialType: "" });
+                        }
+                      }}
+                      onFocus={() => setOpenStockMaterialSearch(true)}
+                      placeholder="Type to search materials..."
+                      className="pr-8"
+                    />
+                    <ChevronsUpDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50" />
+                  </div>
+                  {openStockMaterialSearch && (stockSearchText || !newStock.materialType) && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {stockSearchableMaterials.slice(0, 10).map((material) => (
+                        <div
+                          key={material.value}
+                          className="flex items-center justify-between cursor-pointer hover:bg-accent p-2 border-b last:border-b-0"
+                          onClick={() => {
+                            setNewStock({ ...newStock, materialType: material.value });
+                            setStockSearchText("");
+                            setOpenStockMaterialSearch(false);
+                          }}
+                        >
+                          <div className="flex items-center min-w-0 flex-1">
+                            <Check
+                              className={`mr-2 h-4 w-4 flex-shrink-0 ${
+                                newStock.materialType === material.value ? "opacity-100" : "opacity-0"
+                              }`}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <div className="font-medium truncate">{material.material.code}</div>
+                                {material.isFavorite && (
+                                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
+                                )}
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="p-1 h-auto flex-shrink-0 ml-2"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  toggleFavorite(material.value);
-                                }}
-                              >
-                                <Star
-                                  className={`h-4 w-4 ${
-                                    material.isFavorite 
-                                      ? "fill-yellow-400 text-yellow-400" 
-                                      : "text-muted-foreground hover:text-yellow-400"
-                                  }`}
-                                />
-                              </Button>
+                              <div className="text-sm text-muted-foreground truncate">{material.material.name}</div>
+                              <div className="text-xs text-muted-foreground truncate">{material.category}</div>
                             </div>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-1 h-auto flex-shrink-0 ml-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              toggleFavorite(material.value);
+                            }}
+                          >
+                            <Star
+                              className={`h-4 w-4 ${
+                                material.isFavorite 
+                                  ? "fill-yellow-400 text-yellow-400" 
+                                  : "text-muted-foreground hover:text-yellow-400"
+                              }`}
+                            />
+                          </Button>
+                        </div>
+                      ))}
+                      {stockSearchableMaterials.length === 0 && (
+                        <div className="p-2 text-center text-muted-foreground">No materials found</div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={addStockItem} size="sm" className="px-3 py-2">
+                  <Button onClick={addStockItem} size="sm" className="px-3 py-2 h-10">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
