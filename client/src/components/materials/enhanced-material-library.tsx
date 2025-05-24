@@ -64,6 +64,7 @@ const CATEGORY_STRUCTURE = {
 export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }: EnhancedMaterialLibraryProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [selectedMaterials, setSelectedMaterials] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
   
@@ -148,10 +149,17 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
 
   // Handle category change
   const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
-    setSelectedSubcategory("all");
-    setSelectedMaterials(new Set());
-    setSelectAll(false);
+    if (category === selectedCategory) {
+      // Toggle expansion
+      setExpandedCategory(expandedCategory === category ? null : category);
+    } else {
+      // Select new category
+      setSelectedCategory(category);
+      setExpandedCategory(category);
+      setSelectedSubcategory("all");
+      setSelectedMaterials(new Set());
+      setSelectAll(false);
+    }
   };
 
   // Handle subcategory change
@@ -176,56 +184,85 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
 
   return (
     <div className="space-y-6">
-      {/* Category Navigation */}
+      {/* Quick-Click Category Navigation */}
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-semibold">Steel Catalogue Categories</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Main Category Selector */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Main Category</label>
-              <Select value={selectedCategory} onValueChange={handleCategoryChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {Object.entries(CATEGORY_STRUCTURE).map(([category, info]) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* All Categories Button */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={selectedCategory === "all" ? "default" : "outline"}
+              size="sm"
+              className="rounded-full text-xs px-3 py-1 h-auto"
+              onClick={() => {
+                setSelectedCategory("all");
+                setSelectedSubcategory("all");
+                setExpandedCategory(null);
+                setSelectedMaterials(new Set());
+                setSelectAll(false);
+              }}
+            >
+              All Categories
+            </Button>
+          </div>
 
-            {/* Subcategory Selector */}
-            {currentSubcategories.length > 0 && (
-              <div>
-                <label className="text-sm font-medium mb-2 block">Subcategory</label>
-                <Select value={selectedSubcategory} onValueChange={handleSubcategoryChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select subcategory" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Subcategories</SelectItem>
-                    {currentSubcategories.map((subcategory) => (
-                      <SelectItem key={subcategory} value={subcategory}>
+          {/* Main Category Quick-Click Buttons */}
+          <div className="space-y-3">
+            {Object.entries(CATEGORY_STRUCTURE).map(([category, info]) => (
+              <div key={category} className="space-y-2">
+                {/* Main Category Button */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    size="sm"
+                    className="rounded-full text-xs px-4 py-1 h-auto font-medium"
+                    onClick={() => handleCategoryChange(category)}
+                  >
+                    {category}
+                    {selectedCategory === category && expandedCategory === category && " ▼"}
+                    {selectedCategory === category && expandedCategory !== category && " ▶"}
+                  </Button>
+                </div>
+
+                {/* Subcategory Buttons (Expandable) */}
+                {expandedCategory === category && (
+                  <div className="ml-4 flex flex-wrap gap-2 animate-in slide-in-from-top-2 duration-200">
+                    <Button
+                      variant={selectedSubcategory === "all" ? "secondary" : "ghost"}
+                      size="sm"
+                      className="rounded-full text-xs px-3 py-1 h-auto"
+                      onClick={() => handleSubcategoryChange("all")}
+                    >
+                      All {category}
+                    </Button>
+                    {info.subcategories.map((subcategory) => (
+                      <Button
+                        key={subcategory}
+                        variant={selectedSubcategory === subcategory ? "secondary" : "ghost"}
+                        size="sm"
+                        className="rounded-full text-xs px-3 py-1 h-auto"
+                        onClick={() => handleSubcategoryChange(subcategory)}
+                      >
                         {subcategory}
-                      </SelectItem>
+                      </Button>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
 
           {/* Category Description */}
           {selectedCategory !== "all" && (
-            <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-md">
-              {CATEGORY_STRUCTURE[selectedCategory as keyof typeof CATEGORY_STRUCTURE]?.description}
+            <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-md mt-4">
+              <strong>{selectedCategory}:</strong> {CATEGORY_STRUCTURE[selectedCategory as keyof typeof CATEGORY_STRUCTURE]?.description}
+              {selectedSubcategory !== "all" && (
+                <span className="block mt-1 text-blue-700 font-medium">
+                  Filtered by: {selectedSubcategory}
+                </span>
+              )}
             </div>
           )}
         </CardContent>
