@@ -1,13 +1,9 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import MaterialUpload from "@/components/materials/material-upload";
 import OrganizedMaterialLibrary from "@/components/materials/organized-material-library";
-import { Plus, Upload, Download, Search, Package, Edit, Trash2 } from "lucide-react";
-import { Material } from "@shared/schema";
+import { Plus, Upload, Download } from "lucide-react";
 
 export default function Materials() {
   const [searchQuery, setSearchQuery] = useState("");
