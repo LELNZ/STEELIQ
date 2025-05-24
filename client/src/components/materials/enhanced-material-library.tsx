@@ -552,7 +552,15 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => setEditingMaterial(material)}
+                          onClick={() => {
+                            const newPrice = prompt(`Edit price for ${material.name}:`, material.pricePerMeter?.toString() || "");
+                            if (newPrice !== null && !isNaN(parseFloat(newPrice))) {
+                              editMaterialMutation.mutate({
+                                id: material.id,
+                                material: { pricePerMeter: parseFloat(newPrice) }
+                              });
+                            }
+                          }}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -710,7 +718,15 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => setEditingMaterial(material)}
+                        onClick={() => {
+                          const newPrice = prompt(`Edit price for ${material.name}:`, material.pricePerMeter?.toString() || "");
+                          if (newPrice !== null && !isNaN(parseFloat(newPrice))) {
+                            editMaterialMutation.mutate({
+                              id: material.id,
+                              material: { pricePerMeter: parseFloat(newPrice) }
+                            });
+                          }
+                        }}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
