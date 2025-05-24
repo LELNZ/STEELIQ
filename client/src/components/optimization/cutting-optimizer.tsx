@@ -185,7 +185,7 @@ export default function CuttingOptimizerComponent() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add new cut request */}
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-6 gap-2">
                 <div>
                   <Label htmlFor="cut-length">Length (mm)</Label>
                   <Input
@@ -218,7 +218,7 @@ export default function CuttingOptimizerComponent() {
                     max="180"
                   />
                 </div>
-                <div>
+                <div className="col-span-2">
                   <Label htmlFor="cut-material">Material</Label>
                   <Popover open={openMaterialSearch} onOpenChange={setOpenMaterialSearch}>
                     <PopoverTrigger asChild>
@@ -246,8 +246,11 @@ export default function CuttingOptimizerComponent() {
                               key={material.value}
                               className="flex items-center justify-between cursor-pointer hover:bg-accent hover:text-accent-foreground p-2 rounded-sm"
                               onClick={() => {
-                                setNewCut({ ...newCut, materialType: material.value });
-                                setOpenMaterialSearch(false);
+                                const newValue = newCut.materialType === material.value ? "" : material.value;
+                                setNewCut({ ...newCut, materialType: newValue });
+                                if (newValue) {
+                                  setOpenMaterialSearch(false);
+                                }
                               }}
                             >
                               <div className="flex items-center min-w-0 flex-1">
@@ -358,7 +361,7 @@ export default function CuttingOptimizerComponent() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add new stock item */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 <div>
                   <Label htmlFor="stock-length">Length (mm)</Label>
                   <Input
@@ -379,7 +382,7 @@ export default function CuttingOptimizerComponent() {
                     min="1"
                   />
                 </div>
-                <div>
+                <div className="col-span-2">
                   <Label htmlFor="stock-material">Material</Label>
                   <Popover open={openStockMaterialSearch} onOpenChange={setOpenStockMaterialSearch}>
                     <PopoverTrigger asChild>
@@ -407,8 +410,11 @@ export default function CuttingOptimizerComponent() {
                               key={material.value}
                               className="flex items-center justify-between cursor-pointer hover:bg-accent hover:text-accent-foreground p-2 rounded-sm"
                               onClick={() => {
-                                setNewStock({ ...newStock, materialType: material.value });
-                                setOpenStockMaterialSearch(false);
+                                const newValue = newStock.materialType === material.value ? "" : material.value;
+                                setNewStock({ ...newStock, materialType: newValue });
+                                if (newValue) {
+                                  setOpenStockMaterialSearch(false);
+                                }
                               }}
                             >
                               <div className="flex items-center min-w-0 flex-1">
