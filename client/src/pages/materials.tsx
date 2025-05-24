@@ -52,14 +52,7 @@ export default function Materials() {
             <Plus className="w-4 h-4 mr-2" />
             Add Material
           </Button>
-          <Button 
-            variant="outline"
-            onClick={() => setShowBulkImport(true)}
-            className="bg-blue-50 hover:bg-blue-100 border-blue-200"
-          >
-            <Database className="w-4 h-4 mr-2" />
-            Import Steel Catalogue
-          </Button>
+
           <Button 
             variant="outline"
             onClick={() => setShowUploadModal(true)}

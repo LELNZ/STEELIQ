@@ -1,0 +1,29 @@
+Category,Code,Name,Width (mm),Thickness (mm),Diameter (mm),Depth (mm),Flange TF (mm),Web TW (mm),Weight (kg/m),Length Options (m),Grade,Standard
+SHS,SHS020020015,Square Hollow Section 20x20x1.5mm,20,1.5,,,20,,,0.89,6.1,C350LO,AS/NZS 1163
+SHS,SHS025025020,Square Hollow Section 25x25x2mm,25,2,,,25,,,1.45,6.1,C350LO,AS/NZS 1163
+SHS,SHS050050030,Square Hollow Section 50x50x3mm,50,3,,,50,,,4.30,6.1,C350LO,AS/NZS 1163
+SHS,SHS100100060,Square Hollow Section 100x100x6mm,100,6,,,100,,,17.25,6.1,C350LO,AS/NZS 1163
+SHS,SHS150150080,Square Hollow Section 150x150x8mm,150,8,,,150,,,35.43,8.0;12.0,C350LO,AS/NZS 1163
+SHS,SHS300300125,Square Hollow Section 300x300x12.5mm,300,12.5,,,300,,,112.30,8.0;12.0,C350LO,AS/NZS 1163
+RHS,RHS050025015,Rectangular Hollow Section 50x25x1.5mm,50,1.5,,25,,,1.35,6.1,C350LO,AS/NZS 1163
+RHS,RHS100050040,Rectangular Hollow Section 100x50x4mm,100,4,,50,,,6.82,6.1,C350LO,AS/NZS 1163
+RHS,RHS250150090,Rectangular Hollow Section 250x150x9mm,250,9,,150,,,51.80,8.0;12.0,C350LO,AS/NZS 1163
+Flats,SF02505,Mild Steel Flat 25x5mm,25,5,,,,,0.98,6.0,300,AS/NZS 3679.1-300
+Flats,SF05010,Mild Steel Flat 50x10mm,50,10,,,,,3.93,6.0,300,AS/NZS 3679.1-300
+Flats,SF10020,Mild Steel Flat 100x20mm,100,20,,,,,15.70,6.0,300,AS/NZS 3679.1-300
+Flats,SF30025,Mild Steel Flat 300x25mm,300,25,,,,,58.88,6.0,300,AS/NZS 3679.1-300
+Equal Angles,SA05005,Mild Steel Equal Angle 50x50x5mm,50,5,,,,,3.48,6.0;9.0,300,AS/NZS 3679.1-300
+Equal Angles,SA10010,Mild Steel Equal Angle 100x100x10mm,100,10,,,,,14.20,6.0;9.0;12.0,300,AS/NZS 3679.1-300
+Equal Angles,SA20016,Mild Steel Equal Angle 200x200x16mm,200,16,,,,,48.70,9.0;12.0,300,AS/NZS 3679.1-300
+Unequal Angles,SUA10007508,Mild Steel Unequal Angle 100x75x8mm,100,8,,,,,10.30,6.0;9.0;12.0,300,AS/NZS 3679.1-300
+Unequal Angles,SUA15010012,Mild Steel Unequal Angle 150x100x12mm,150,12,,,,,22.50,6.0;12.0,300,AS/NZS 3679.1-300
+Rounds,SR16,Mild Steel Round 16mm,,,16,,,1.58,6.0;9.0,300,AS/NZS 3679.1-300
+Rounds,SR40,Mild Steel Round 40mm,,,40,,,9.86,6.0,300,AS/NZS 3679.1-300
+Squares,SQ25,Mild Steel Square 25mm,25,,,,,,4.91,6.0,300,AS/NZS 3679.1-300
+Squares,SQ50,Mild Steel Square 50mm,50,,,,,,19.63,6.0,300,AS/NZS 3679.1-300
+Channels,SC10015,Mild Steel Channel 100x15mm,100,,,,15,10,10.42,6.0;9.0;12.0,300,AS/NZS 3679.1-300
+Channels,SC20020,Mild Steel Channel 200x20mm,200,,,,20,15,27.86,6.0;9.0;12.0,300,AS/NZS 3679.1-300
+Plates,PL10,Mild Steel Plate 10mm,,,10,,,78.50,3.0x1.5;6.0x2.0,300,AS/NZS 3679.1-300
+Plates,PL25,Mild Steel Plate 25mm,,,25,,,196.25,3.0x1.5;6.0x2.0,300,AS/NZS 3679.1-300
+Sheets,SH120,Cold Rolled Sheet 1.2mm,,,1.2,,,9.42,1.2x2.4,300,AS 1397
+Sheets,SH300,Cold Rolled Sheet 3.0mm,,,3.0,,,23.55,1.2x2.4,300,AS 1397

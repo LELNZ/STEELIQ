@@ -30,17 +30,21 @@ interface MaterialUploadProps {
 }
 
 interface ParsedMaterial {
+  category?: string;
   code: string;
   name: string;
   width?: number;
   thickness?: number;
-  length?: number;
+  diameter?: number;
+  depth?: number;
+  flangeTF?: number;
+  webTW?: number;
   weightPerMeter?: number;
+  lengthOptions?: string;
   grade?: string;
-  coating?: string;
+  standard?: string;
   pricePerKg?: number;
   pricePerMeter?: number;
-  supplier?: string;
   errors: string[];
 }
 
@@ -198,19 +202,61 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
                 else material.errors.push('Invalid length value');
               }
               break;
+            case 'category':
+              material.category = value;
+              break;
+            case 'diameter':
+            case 'diameter mm':
+              if (value) {
+                const num = parseFloat(value);
+                if (!isNaN(num)) material.diameter = num;
+                else material.errors.push('Invalid diameter value');
+              }
+              break;
+            case 'depth':
+            case 'depth mm':
+              if (value) {
+                const num = parseFloat(value);
+                if (!isNaN(num)) material.depth = num;
+                else material.errors.push('Invalid depth value');
+              }
+              break;
+            case 'flange tf':
+            case 'flange tf mm':
+              if (value) {
+                const num = parseFloat(value);
+                if (!isNaN(num)) material.flangeTF = num;
+                else material.errors.push('Invalid flange TF value');
+              }
+              break;
+            case 'web tw':
+            case 'web tw mm':
+              if (value) {
+                const num = parseFloat(value);
+                if (!isNaN(num)) material.webTW = num;
+                else material.errors.push('Invalid web TW value');
+              }
+              break;
             case 'weightpermeter':
             case 'weight_per_meter':
+            case 'weight':
+            case 'weight kg/m':
               if (value) {
                 const num = parseFloat(value);
                 if (!isNaN(num)) material.weightPerMeter = num;
                 else material.errors.push('Invalid weight per meter value');
               }
               break;
+            case 'length options':
+            case 'length options m':
+            case 'standard_lengths':
+              material.lengthOptions = value;
+              break;
             case 'grade':
               material.grade = value;
               break;
-            case 'coating':
-              material.coating = value;
+            case 'standard':
+              material.standard = value;
               break;
             case 'priceperm':
             case 'price_per_m':
