@@ -287,29 +287,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Materials data must be an array" });
       }
 
+      console.log(`Starting bulk import of ${materialsData.length} materials`);
+
       const results = {
         updated: 0,
         created: 0,
         errors: [] as string[]
       };
 
-      for (const materialData of materialsData) {
-        try {
-          const validatedData = insertMaterialSchema.parse(materialData);
-          const existingMaterial = await storage.getMaterialByCode(validatedData.code);
-          
-          if (existingMaterial) {
-            await storage.updateMaterial(existingMaterial.id, validatedData);
-            results.updated++;
-          } else {
-            await storage.createMaterial(validatedData);
-            results.created++;
+      // Process in batches of 50 for better performance
+      const batchSize = 50;
+      for (let i = 0; i < materialsData.length; i += batchSize) {
+        const batch = materialsData.slice(i, i + batchSize);
+        console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(materialsData.length/batchSize)}`);
+        
+        for (const materialData of batch) {
+          try {
+            const validatedData = insertMaterialSchema.parse(materialData);
+            const existingMaterial = await storage.getMaterialByCode(validatedData.code);
+            
+            if (existingMaterial) {
+              await storage.updateMaterial(existingMaterial.id, validatedData);
+              results.updated++;
+            } else {
+              await storage.createMaterial(validatedData);
+              results.created++;
+            }
+          } catch (error: any) {
+            results.errors.push(`${materialData.code}: ${error.message || 'Unknown error'}`);
           }
-        } catch (error: any) {
-          results.errors.push(`${materialData.code}: ${error.message || 'Unknown error'}`);
         }
       }
 
+      console.log(`Bulk import complete: ${results.updated} updated, ${results.created} created, ${results.errors.length} errors`);
       res.json(results);
     } catch (error) {
       console.error("Error in bulk import:", error);
