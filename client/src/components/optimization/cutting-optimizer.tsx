@@ -56,50 +56,7 @@ export default function CuttingOptimizerComponent() {
     return types;
   }, [] as string[]) || [];
 
-  // Functions for managing favorites
-  const toggleFavorite = (materialValue: string) => {
-    const newFavorites = favoriteMaterials.includes(materialValue)
-      ? favoriteMaterials.filter(fav => fav !== materialValue)
-      : [...favoriteMaterials, materialValue];
-    
-    setFavoriteMaterials(newFavorites);
-    localStorage.setItem('favorite-materials', JSON.stringify(newFavorites));
-  };
 
-  // Create searchable material list with code, name, and category
-  const allSearchableMaterials = materials?.map(material => ({
-    value: material.code || material.name,
-    label: `${material.code} - ${material.name}`,
-    category: material.category || "Other",
-    material,
-    isFavorite: favoriteMaterials.includes(material.code || material.name)
-  })).sort((a, b) => {
-    // Sort favorites first, then alphabetically
-    if (a.isFavorite && !b.isFavorite) return -1;
-    if (!a.isFavorite && b.isFavorite) return 1;
-    return a.label.localeCompare(b.label);
-  }) || [];
-
-  // Filter materials based on search text
-  const searchableMaterials = allSearchableMaterials.filter(material => {
-    if (!materialSearchText) return true;
-    const searchLower = materialSearchText.toLowerCase();
-    return (
-      material.material.code?.toLowerCase().includes(searchLower) ||
-      material.material.name?.toLowerCase().includes(searchLower) ||
-      material.category.toLowerCase().includes(searchLower)
-    );
-  });
-
-  const stockSearchableMaterials = allSearchableMaterials.filter(material => {
-    if (!stockSearchText) return true;
-    const searchLower = stockSearchText.toLowerCase();
-    return (
-      material.material.code?.toLowerCase().includes(searchLower) ||
-      material.material.name?.toLowerCase().includes(searchLower) ||
-      material.category.toLowerCase().includes(searchLower)
-    );
-  });
 
   const addCutRequest = () => {
     if (!newCut.length || !newCut.materialType) return;
