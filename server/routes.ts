@@ -93,14 +93,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/materials", async (req, res) => {
     try {
       const materialData = insertMaterialSchema.parse(req.body);
-      const material = await storage.createMaterial(materialData);
-      res.status(201).json(material);
+      
+      // Check if material with this code already exists
+      const existingMaterial = await storage.getMaterialByCode(materialData.code);
+      
+      if (existingMaterial) {
+        // Update existing material with new specifications
+        const updatedMaterial = await storage.updateMaterial(existingMaterial.id, materialData);
+        res.status(200).json(updatedMaterial);
+      } else {
+        // Create new material
+        const material = await storage.createMaterial(materialData);
+        res.status(201).json(material);
+      }
     } catch (error) {
-      console.error("Error creating material:", error);
+      console.error("Error creating/updating material:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid material data", details: error.errors });
       }
-      res.status(500).json({ error: "Failed to create material" });
+      res.status(500).json({ error: "Failed to create/update material" });
     }
   });
 
