@@ -104,10 +104,19 @@ export default function Materials() {
           </p>
         </div>
         
-        {/* Dimensional reference image will be passed from child component */}
-        <div id="dimensional-reference-container" className="flex-shrink-0">
-          {/* This will be populated by the EnhancedMaterialLibrary component */}
-        </div>
+        {/* Dimensional reference image */}
+        {selectedSubcategory !== "all" && selectedCategory !== "all" && DIMENSION_IMAGES[selectedCategory as keyof typeof DIMENSION_IMAGES]?.[selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]] && (
+          <div className="flex-shrink-0 bg-white p-3 rounded-md border shadow-sm">
+            <div className="text-xs text-muted-foreground mb-2 text-center font-medium">
+              Dimensional Reference
+            </div>
+            <img 
+              src={DIMENSION_IMAGES[selectedCategory as keyof typeof DIMENSION_IMAGES][selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]]} 
+              alt={`${selectedSubcategory} dimensions`}
+              className="w-20 h-20 object-contain"
+            />
+          </div>
+        )}
       </div>
 
       {/* Action Bar */}
@@ -154,6 +163,8 @@ export default function Materials() {
       <EnhancedMaterialLibrary 
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        onCategoryChange={setSelectedCategory}
+        onSubcategoryChange={setSelectedSubcategory}
       />
 
       {/* Upload Modal */}

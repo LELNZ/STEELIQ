@@ -32,6 +32,8 @@ import squareBarImg from "@assets/Square Bar.png";
 interface EnhancedMaterialLibraryProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  onCategoryChange?: (category: string) => void;
+  onSubcategoryChange?: (subcategory: string) => void;
 }
 
 // Structured category system for Lateral Engineering (ordered as requested)
@@ -135,7 +137,7 @@ const CATEGORY_STRUCTURE = {
   }
 };
 
-export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }: EnhancedMaterialLibraryProps) {
+export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategoryChange, onSubcategoryChange }: EnhancedMaterialLibraryProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -358,6 +360,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
       setSelectedSubcategory("all");
       setSelectedMaterials(new Set());
       setSelectAll(false);
+      onCategoryChange?.(category);
     }
   };
 
@@ -366,6 +369,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
     setSelectedSubcategory(subcategory);
     setSelectedMaterials(new Set());
     setSelectAll(false);
+    onSubcategoryChange?.(subcategory);
   };
 
   // Handle delete selected
