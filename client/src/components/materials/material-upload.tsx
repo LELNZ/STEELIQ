@@ -62,36 +62,36 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
     mutationFn: async (materials: ParsedMaterial[]) => {
       const validMaterials = materials.filter(m => m.errors.length === 0);
       
-      const responses = await Promise.all(
-        validMaterials.map(material => 
-          apiRequest("POST", "/api/materials", {
-            code: material.code,
-            name: material.name,
-            category: material.category,
-            width: material.width,
-            thickness: material.thickness,
-            diameter: material.diameter,
-            depth: material.depth,
-            flangeTf: material.flangeTF,
-            webTw: material.webTW,
-            weightPerMeter: material.weightPerMeter,
-            lengthOptions: material.lengthOptions,
-            grade: material.grade,
-            standard: material.standard,
-            pricePerKg: material.pricePerKg,
-            pricePerMeter: material.pricePerMeter,
-            isActive: true,
-          })
-        )
-      );
+      const materialData = validMaterials.map(material => ({
+        code: material.code,
+        name: material.name,
+        category: material.category,
+        width: material.width,
+        thickness: material.thickness,
+        diameter: material.diameter,
+        depth: material.depth,
+        flangeTf: material.flangeTF,
+        webTw: material.webTW,
+        weightPerMeter: material.weightPerMeter,
+        lengthOptions: material.lengthOptions,
+        grade: material.grade,
+        standard: material.standard,
+        pricePerKg: material.pricePerKg,
+        pricePerMeter: material.pricePerMeter,
+        isActive: true,
+      }));
 
-      return responses.map(r => r.json());
+      const response = await apiRequest("POST", "/api/materials/bulk-import", {
+        materials: materialData
+      });
+
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
       toast({
-        title: "Success",
-        description: `Successfully imported ${parsedMaterials.filter(m => m.errors.length === 0).length} materials`,
+        title: "Import Complete",
+        description: `Updated: ${data.updated} materials, Created: ${data.created} new materials${data.errors.length > 0 ? `, Errors: ${data.errors.length}` : ''}`,
       });
       onOpenChange(false);
       resetState();

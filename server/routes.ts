@@ -97,12 +97,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if material with this code already exists
       const existingMaterial = await storage.getMaterialByCode(materialData.code);
       
+      console.log(`Checking material ${materialData.code}: ${existingMaterial ? 'EXISTS' : 'NEW'}`);
+      
       if (existingMaterial) {
         // Update existing material with new specifications
+        console.log(`Updating material ${materialData.code} with ID ${existingMaterial.id}`);
         const updatedMaterial = await storage.updateMaterial(existingMaterial.id, materialData);
         res.status(200).json(updatedMaterial);
       } else {
         // Create new material
+        console.log(`Creating new material ${materialData.code}`);
         const material = await storage.createMaterial(materialData);
         res.status(201).json(material);
       }
@@ -274,14 +278,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // CSV import/export routes
-  app.post("/api/materials/import", async (req, res) => {
+  // Bulk import/update materials endpoint
+  app.post("/api/materials/bulk-import", async (req, res) => {
     try {
-      // This would handle CSV file upload and parsing
-      // For now, return a placeholder response
-      res.json({ message: "CSV import functionality to be implemented" });
+      const materialsData = req.body.materials;
+      
+      if (!Array.isArray(materialsData)) {
+        return res.status(400).json({ error: "Materials data must be an array" });
+      }
+
+      const results = {
+        updated: 0,
+        created: 0,
+        errors: [] as string[]
+      };
+
+      for (const materialData of materialsData) {
+        try {
+          const validatedData = insertMaterialSchema.parse(materialData);
+          const existingMaterial = await storage.getMaterialByCode(validatedData.code);
+          
+          if (existingMaterial) {
+            await storage.updateMaterial(existingMaterial.id, validatedData);
+            results.updated++;
+          } else {
+            await storage.createMaterial(validatedData);
+            results.created++;
+          }
+        } catch (error: any) {
+          results.errors.push(`${materialData.code}: ${error.message || 'Unknown error'}`);
+        }
+      }
+
+      res.json(results);
     } catch (error) {
-      console.error("Error importing materials:", error);
+      console.error("Error in bulk import:", error);
       res.status(500).json({ error: "Failed to import materials" });
     }
   });
