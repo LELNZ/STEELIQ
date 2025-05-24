@@ -206,6 +206,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
   // Edit material mutation
   const editMaterialMutation = useMutation({
     mutationFn: async (data: { id: number; material: Partial<Material> }) => {
+      console.log('Updating material:', data.id, data.material);
       const response = await fetch(`/api/materials/${data.id}`, {
         method: "PATCH",
         headers: {
@@ -213,10 +214,21 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
         },
         body: JSON.stringify(data.material),
       });
-      if (!response.ok) throw new Error('Failed to update material');
-      return response.json();
+      
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Update failed:', errorData);
+        throw new Error(`Failed to update material: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('Update successful:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Material update mutation successful:', data);
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
       setEditingMaterial(null);
       toast({
@@ -224,10 +236,11 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
         description: "Material updated successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Material update mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to update material",
+        description: error.message || "Failed to update material",
         variant: "destructive",
       });
     },
