@@ -303,22 +303,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         for (const materialData of batch) {
           try {
-            // Clean and prepare data before validation
+            // Clean and prepare data before validation - handle empty CSV fields properly
             const cleanedData = {
-              ...materialData,
-              // Convert numeric strings to proper numbers or null
-              width: materialData.width === '' || materialData.width === undefined ? null : String(materialData.width),
-              thickness: materialData.thickness === '' || materialData.thickness === undefined ? null : String(materialData.thickness),
-              diameter: materialData.diameter === '' || materialData.diameter === undefined ? null : String(materialData.diameter),
-              depth: materialData.depth === '' || materialData.depth === undefined ? null : String(materialData.depth),
-              flangeTf: materialData.flangeTf === '' || materialData.flangeTf === undefined ? null : String(materialData.flangeTf),
-              webTw: materialData.webTw === '' || materialData.webTw === undefined ? null : String(materialData.webTw),
-              weightPerMeter: materialData.weightPerMeter === '' || materialData.weightPerMeter === undefined ? null : String(materialData.weightPerMeter),
-              pricePerKg: materialData.pricePerKg === '' || materialData.pricePerKg === undefined ? null : String(materialData.pricePerKg),
-              pricePerMeter: materialData.pricePerMeter === '' || materialData.pricePerMeter === undefined ? null : String(materialData.pricePerMeter),
-              // Ensure required fields are present
               code: materialData.code || '',
               name: materialData.name || '',
+              category: materialData.category || null,
+              width: (materialData.width && materialData.width !== '') ? String(materialData.width) : null,
+              thickness: (materialData.thickness && materialData.thickness !== '') ? String(materialData.thickness) : null,
+              diameter: (materialData.diameter && materialData.diameter !== '') ? String(materialData.diameter) : null,
+              depth: (materialData.depth && materialData.depth !== '') ? String(materialData.depth) : null,
+              flangeTf: (materialData.flangeTf && materialData.flangeTf !== '') ? String(materialData.flangeTf) : null,
+              webTw: (materialData.webTw && materialData.webTw !== '') ? String(materialData.webTw) : null,
+              weightPerMeter: (materialData.weightPerMeter && materialData.weightPerMeter !== '') ? String(materialData.weightPerMeter) : null,
+              lengthOptions: materialData.lengthOptions || null,
+              grade: materialData.grade || null,
+              standard: materialData.standard || null,
+              pricePerKg: (materialData.pricePerKg && materialData.pricePerKg !== '') ? String(materialData.pricePerKg) : null,
+              pricePerMeter: (materialData.pricePerMeter && materialData.pricePerMeter !== '') ? String(materialData.pricePerMeter) : null,
+              isActive: true,
             };
 
             const validatedData = insertMaterialSchema.parse(cleanedData);
@@ -333,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           } catch (error: any) {
             const errorMsg = error.message || 'Unknown error';
-            console.log(`Validation error for ${materialData.code}:`, error);
+            console.log(`Validation error for ${materialData.code}:`, JSON.stringify(error.issues || error, null, 2));
             results.errors.push(`${materialData.code || 'Unknown'}: ${errorMsg}`);
           }
         }
