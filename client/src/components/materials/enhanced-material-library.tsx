@@ -391,14 +391,14 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
             
             {/* Dimensional reference image positioned at top right */}
             {selectedSubcategory !== "all" && expandedCategory && DIMENSION_IMAGES[expandedCategory as keyof typeof DIMENSION_IMAGES]?.[selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]] && (
-              <div className="flex-shrink-0 bg-white p-3 rounded-md border shadow-sm">
-                <div className="text-xs text-muted-foreground mb-2 text-center font-medium">
-                  Dimensional Reference
-                </div>
+              <div className="flex items-center gap-2 flex-shrink-0 bg-gray-50 px-3 py-1 rounded border">
+                <span className="text-xs text-muted-foreground font-medium">
+                  Dimensional Reference:
+                </span>
                 <img 
                   src={DIMENSION_IMAGES[expandedCategory as keyof typeof DIMENSION_IMAGES][selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]]} 
                   alt={`${selectedSubcategory} dimensions`}
-                  className="w-24 h-24 object-contain"
+                  className="w-8 h-8 object-contain"
                 />
               </div>
             )}
