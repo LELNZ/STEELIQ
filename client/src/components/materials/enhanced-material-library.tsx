@@ -114,8 +114,8 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
 
     // Sheet Metal - Enhanced to include all plate and sheet materials
     if (name.includes('plate') || category.toLowerCase().includes('plate')) {
-      if (name.includes('chequer') || name.includes('checker')) categories.push('Mild Steel Chequer Plate');
-      else if (name.includes('weather resistant')) categories.push('Weather Resistant Plate');
+      if (name.includes('chequer') || name.includes('checker') || code.includes('plcq')) categories.push('Mild Steel Chequer Plate');
+      else if (name.includes('weather resistant') || code.includes('plwr')) categories.push('Weather Resistant Plate');
       else categories.push('Mild Steel Plate');
     }
     if (name.includes('sheet') || category.toLowerCase().includes('sheet')) {
