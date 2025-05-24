@@ -30,6 +30,7 @@ export default function CuttingOptimizerComponent() {
     length: "",
     quantity: "1",
     materialType: "",
+    angle: "90",
     description: ""
   });
 
@@ -62,11 +63,12 @@ export default function CuttingOptimizerComponent() {
       length: parseFloat(newCut.length),
       quantity: parseInt(newCut.quantity),
       materialType: newCut.materialType,
+      angle: parseFloat(newCut.angle),
       description: newCut.description || undefined
     };
 
     setCutRequests([...cutRequests, request]);
-    setNewCut({ length: "", quantity: "1", materialType: "", description: "" });
+    setNewCut({ length: "", quantity: "1", materialType: "", angle: "90", description: "" });
   };
 
   const addStockItem = () => {
@@ -150,7 +152,7 @@ export default function CuttingOptimizerComponent() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add new cut request */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 <div>
                   <Label htmlFor="cut-length">Length (mm)</Label>
                   <Input
@@ -169,6 +171,18 @@ export default function CuttingOptimizerComponent() {
                     value={newCut.quantity}
                     onChange={(e) => setNewCut({ ...newCut, quantity: e.target.value })}
                     min="1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cut-angle">Angle (°)</Label>
+                  <Input
+                    id="cut-angle"
+                    type="number"
+                    value={newCut.angle}
+                    onChange={(e) => setNewCut({ ...newCut, angle: e.target.value })}
+                    placeholder="90"
+                    min="1"
+                    max="180"
                   />
                 </div>
                 <div>
@@ -214,12 +228,20 @@ export default function CuttingOptimizerComponent() {
                       <div className="flex-1">
                         <span className="font-medium">{request.length}mm</span>
                         <span className="text-muted-foreground"> × {request.quantity}</span>
+                        {request.angle && request.angle !== 90 && (
+                          <Badge variant="secondary" className="ml-2 text-xs">
+                            {request.angle}° angle
+                          </Badge>
+                        )}
                         <Badge variant="outline" className="ml-2 text-xs">
                           {request.materialType}
                         </Badge>
                         {request.description && (
                           <p className="text-xs text-muted-foreground">{request.description}</p>
                         )}
+                        <p className="text-xs text-muted-foreground">
+                          Est. time: {request.angle && request.angle !== 90 ? '12' : '10'} min per cut
+                        </p>
                       </div>
                       <Button
                         variant="ghost"
@@ -456,7 +478,14 @@ export default function CuttingOptimizerComponent() {
                       <div className="space-y-1">
                         {plan.cuts.map((cut, cutIndex) => (
                           <div key={cutIndex} className="flex justify-between text-xs p-1 bg-muted rounded">
-                            <span>Cut {cutIndex + 1}: {cut.length}mm</span>
+                            <div>
+                              <span>Cut {cutIndex + 1}: {cut.length}mm</span>
+                              {cut.angle && cut.angle !== 90 && (
+                                <Badge variant="secondary" className="ml-1 text-xs">
+                                  {cut.angle}°
+                                </Badge>
+                              )}
+                            </div>
                             <span>@ {cut.position.toFixed(0)}mm</span>
                           </div>
                         ))}

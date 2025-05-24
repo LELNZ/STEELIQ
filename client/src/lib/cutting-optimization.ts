@@ -8,6 +8,7 @@ export interface CutRequest {
   length: number;
   quantity: number;
   materialType: string;
+  angle?: number; // Cutting angle in degrees, default 90
   priority?: number;
   jobId?: string;
   description?: string;
@@ -27,6 +28,7 @@ export interface Cut {
   length: number;
   position: number;
   quantity: number;
+  angle?: number; // Cutting angle in degrees
 }
 
 export interface CuttingPlan {
@@ -46,6 +48,7 @@ export interface OptimizationResult {
     totalWastePercentage: number;
     avgEfficiency: number;
     totalCuts: number;
+    totalCuttingTime: number; // in minutes
     algorithm: string;
     executionTime: number;
   };
@@ -306,7 +309,8 @@ export class CuttingOptimizer {
       requestId: request.id,
       length: request.length,
       position,
-      quantity: 1
+      quantity: 1,
+      angle: request.angle || 90
     });
 
     plan.totalCuts++;
