@@ -303,27 +303,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         for (const materialData of batch) {
           try {
-            // Clean and prepare data before validation - handle empty CSV fields properly
-            const cleanedData = {
-              code: materialData.code || '',
-              name: materialData.name || '',
-              category: materialData.category || null,
-              width: (materialData.width && materialData.width !== '') ? String(materialData.width) : null,
-              thickness: (materialData.thickness && materialData.thickness !== '') ? String(materialData.thickness) : null,
-              diameter: (materialData.diameter && materialData.diameter !== '') ? String(materialData.diameter) : null,
-              depth: (materialData.depth && materialData.depth !== '') ? String(materialData.depth) : null,
-              flangeTf: (materialData.flangeTf && materialData.flangeTf !== '') ? String(materialData.flangeTf) : null,
-              webTw: (materialData.webTw && materialData.webTw !== '') ? String(materialData.webTw) : null,
-              weightPerMeter: (materialData.weightPerMeter && materialData.weightPerMeter !== '') ? String(materialData.weightPerMeter) : null,
-              lengthOptions: materialData.lengthOptions || null,
-              grade: materialData.grade || null,
-              standard: materialData.standard || null,
-              pricePerKg: (materialData.pricePerKg && materialData.pricePerKg !== '') ? String(materialData.pricePerKg) : null,
-              pricePerMeter: (materialData.pricePerMeter && materialData.pricePerMeter !== '') ? String(materialData.pricePerMeter) : null,
-              isActive: true,
+            // Test simple material creation first
+            if (!materialData.code || !materialData.name) {
+              throw new Error('Code and name are required');
+            }
+
+            const testData = {
+              code: String(materialData.code).trim(),
+              name: String(materialData.name).trim(),
+              category: materialData.category ? String(materialData.category).trim() : null,
+              isActive: true
             };
 
-            const validatedData = insertMaterialSchema.parse(cleanedData);
+            console.log(`Testing basic validation for ${testData.code}:`, testData);
+            const validatedData = insertMaterialSchema.parse(testData);
+            
             const existingMaterial = await storage.getMaterialByCode(validatedData.code);
             
             if (existingMaterial) {
@@ -334,9 +328,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               results.created++;
             }
           } catch (error: any) {
-            const errorMsg = error.message || 'Unknown error';
-            console.log(`Validation error for ${materialData.code}:`, JSON.stringify(error.issues || error, null, 2));
-            results.errors.push(`${materialData.code || 'Unknown'}: ${errorMsg}`);
+            console.log(`DETAILED ERROR for ${materialData.code}:`, {
+              message: error.message,
+              issues: error.issues,
+              data: materialData
+            });
+            results.errors.push(`${materialData.code || 'Unknown'}: ${error.message}`);
           }
         }
       }
