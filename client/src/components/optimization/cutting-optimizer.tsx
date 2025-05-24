@@ -155,8 +155,8 @@ export default function CuttingOptimizerComponent() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add new cut request */}
-              <div className="grid grid-cols-6 gap-2">
-                <div>
+              <div className="grid grid-cols-12 gap-3">
+                <div className="col-span-3">
                   <Label htmlFor="cut-length">Length (mm)</Label>
                   <Input
                     id="cut-length"
@@ -166,7 +166,7 @@ export default function CuttingOptimizerComponent() {
                     placeholder="1000"
                   />
                 </div>
-                <div>
+                <div className="col-span-2">
                   <Label htmlFor="cut-quantity">Qty</Label>
                   <Input
                     id="cut-quantity"
@@ -176,7 +176,7 @@ export default function CuttingOptimizerComponent() {
                     min="1"
                   />
                 </div>
-                <div>
+                <div className="col-span-2">
                   <Label htmlFor="cut-angle">Angle (°)</Label>
                   <Input
                     id="cut-angle"
@@ -188,7 +188,7 @@ export default function CuttingOptimizerComponent() {
                     max="180"
                   />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-4">
                   <Label htmlFor="cut-material">Material</Label>
                   <InstantMaterialSearch
                     value={newCut.materialType}
@@ -196,8 +196,8 @@ export default function CuttingOptimizerComponent() {
                     placeholder="Type to search materials..."
                   />
                 </div>
-                <div className="flex items-end">
-                  <Button onClick={addCutRequest} size="sm" className="px-3 py-2 h-10">
+                <div className="col-span-1 flex items-end">
+                  <Button onClick={addCutRequest} size="sm" className="px-3 py-2 h-10 w-full">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -262,8 +262,8 @@ export default function CuttingOptimizerComponent() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add new stock item */}
-              <div className="grid grid-cols-5 gap-2">
-                <div>
+              <div className="grid grid-cols-12 gap-3">
+                <div className="col-span-3">
                   <Label htmlFor="stock-length">Length (mm)</Label>
                   <Input
                     id="stock-length"
@@ -273,7 +273,7 @@ export default function CuttingOptimizerComponent() {
                     placeholder="6000"
                   />
                 </div>
-                <div>
+                <div className="col-span-2">
                   <Label htmlFor="stock-available">Qty</Label>
                   <Input
                     id="stock-available"
@@ -284,6 +284,17 @@ export default function CuttingOptimizerComponent() {
                   />
                 </div>
                 <div className="col-span-2">
+                  <Label htmlFor="stock-cost">Cost ($/m)</Label>
+                  <Input
+                    id="stock-cost"
+                    type="number"
+                    step="0.01"
+                    value={newStock.cost}
+                    onChange={(e) => setNewStock({ ...newStock, cost: e.target.value })}
+                    placeholder="25.50"
+                  />
+                </div>
+                <div className="col-span-4">
                   <Label htmlFor="stock-material">Material</Label>
                   <InstantMaterialSearch
                     value={newStock.materialType}
@@ -291,24 +302,14 @@ export default function CuttingOptimizerComponent() {
                     placeholder="Type to search materials..."
                   />
                 </div>
-                <div className="flex items-end">
-                  <Button onClick={addStockItem} size="sm" className="px-3 py-2 h-10">
+                <div className="col-span-1 flex items-end">
+                  <Button onClick={addStockItem} size="sm" className="px-3 py-2 h-10 w-full">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="stock-cost">Cost per meter (optional)</Label>
-                <Input
-                  id="stock-cost"
-                  type="number"
-                  step="0.01"
-                  value={newStock.cost}
-                  onChange={(e) => setNewStock({ ...newStock, cost: e.target.value })}
-                  placeholder="25.00"
-                />
-              </div>
+
 
               {/* Stock items list */}
               {stockItems.length > 0 && (
