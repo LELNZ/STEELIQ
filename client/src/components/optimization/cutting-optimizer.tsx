@@ -236,20 +236,19 @@ export default function CuttingOptimizerComponent() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80 p-0" align="start">
+                    <PopoverContent className="w-96 p-0" align="start">
                       <Command>
                         <CommandInput placeholder="Type to search materials..." />
                         <CommandEmpty>No material found.</CommandEmpty>
                         <CommandGroup className="max-h-60 overflow-y-auto">
                           {searchableMaterials.map((material) => (
-                            <CommandItem
+                            <div
                               key={material.value}
-                              value={material.value}
-                              onSelect={(value) => {
-                                setNewCut({ ...newCut, materialType: value });
+                              className="flex items-center justify-between cursor-pointer hover:bg-accent hover:text-accent-foreground p-2 rounded-sm"
+                              onClick={() => {
+                                setNewCut({ ...newCut, materialType: material.value });
                                 setOpenMaterialSearch(false);
                               }}
-                              className="flex items-center justify-between cursor-pointer"
                             >
                               <div className="flex items-center min-w-0 flex-1">
                                 <Check
@@ -286,7 +285,7 @@ export default function CuttingOptimizerComponent() {
                                   }`}
                                 />
                               </Button>
-                            </CommandItem>
+                            </div>
                           ))}
                         </CommandGroup>
                       </Command>
@@ -398,20 +397,19 @@ export default function CuttingOptimizerComponent() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80 p-0" align="start">
+                    <PopoverContent className="w-96 p-0" align="start">
                       <Command>
                         <CommandInput placeholder="Type to search materials..." />
                         <CommandEmpty>No material found.</CommandEmpty>
                         <CommandGroup className="max-h-60 overflow-y-auto">
                           {searchableMaterials.map((material) => (
-                            <CommandItem
+                            <div
                               key={material.value}
-                              value={material.value}
-                              onSelect={(value) => {
-                                setNewStock({ ...newStock, materialType: value });
+                              className="flex items-center justify-between cursor-pointer hover:bg-accent hover:text-accent-foreground p-2 rounded-sm"
+                              onClick={() => {
+                                setNewStock({ ...newStock, materialType: material.value });
                                 setOpenStockMaterialSearch(false);
                               }}
-                              className="flex items-center justify-between cursor-pointer"
                             >
                               <div className="flex items-center min-w-0 flex-1">
                                 <Check
@@ -448,7 +446,7 @@ export default function CuttingOptimizerComponent() {
                                   }`}
                                 />
                               </Button>
-                            </CommandItem>
+                            </div>
                           ))}
                         </CommandGroup>
                       </Command>
