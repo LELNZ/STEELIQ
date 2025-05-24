@@ -23,6 +23,7 @@ import {
   X,
   Package
 } from "lucide-react";
+import { LoadingSpinner, LoadingOverlay } from "@/components/ui/loading-spinner";
 
 interface MaterialUploadProps {
   open: boolean;
@@ -559,7 +560,14 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
                       disabled={validMaterials.length === 0 || uploadMutation.isPending}
                       className="bg-accent hover:bg-accent/90"
                     >
-                      {uploadMutation.isPending ? "Importing..." : `Import ${validMaterials.length} Materials`}
+                      {uploadMutation.isPending ? (
+                        <>
+                          <LoadingSpinner size="sm" className="mr-2" />
+                          Importing...
+                        </>
+                      ) : (
+                        `Import ${validMaterials.length} Materials`
+                      )}
                     </Button>
                   </div>
                 </div>
