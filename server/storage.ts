@@ -26,6 +26,7 @@ export interface IStorage {
   getMaterialByCode(code: string): Promise<Material | undefined>;
   createMaterial(material: InsertMaterial): Promise<Material>;
   updateMaterial(id: number, material: Partial<InsertMaterial>): Promise<Material>;
+  deleteMaterial(id: number): Promise<void>;
   searchMaterials(query: string): Promise<Material[]>;
 
   // Inventory
@@ -125,6 +126,10 @@ export class DatabaseStorage implements IStorage {
   async updateMaterial(id: number, material: Partial<InsertMaterial>): Promise<Material> {
     const [updatedMaterial] = await db.update(materials).set(material).where(eq(materials.id, id)).returning();
     return updatedMaterial;
+  }
+
+  async deleteMaterial(id: number): Promise<void> {
+    await db.delete(materials).where(eq(materials.id, id));
   }
 
   async searchMaterials(query: string): Promise<Material[]> {

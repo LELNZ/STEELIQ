@@ -104,6 +104,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/materials/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const material = await storage.getMaterial(id);
+      if (!material) {
+        return res.status(404).json({ error: "Material not found" });
+      }
+      
+      await storage.deleteMaterial(id);
+      console.log(`Successfully deleted material ${id}: ${material.name}`);
+      res.status(200).json({ message: "Material deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting material:", error);
+      res.status(500).json({ error: "Failed to delete material" });
+    }
+  });
+
   // Inventory routes
   app.get("/api/inventory", async (req, res) => {
     try {
