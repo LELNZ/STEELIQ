@@ -9,7 +9,7 @@ import InstantMaterialSearch from "@/components/materials/instant-material-searc
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star, Download, FileText, Table, QrCode } from "lucide-react";
+import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star, Download, FileText, Table, QrCode, Briefcase, ToggleLeft, ToggleRight } from "lucide-react";
 import { 
   CuttingOptimizer, 
   CutRequest, 
@@ -25,6 +25,10 @@ export default function CuttingOptimizerComponent() {
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("multi");
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isJobMode, setIsJobMode] = useState(false);
+  const [groupIdenticalPlans, setGroupIdenticalPlans] = useState(true);
+  const [showCreateJobDialog, setShowCreateJobDialog] = useState(false);
+  const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
 
   // New cut request form
   const [newCut, setNewCut] = useState({
@@ -97,46 +101,138 @@ export default function CuttingOptimizerComponent() {
     setStockItems(stockItems.filter(stock => stock.id !== id));
   };
 
+  // Helper functions
+  const generateJobNumber = () => {
+    const now = new Date();
+    const year = now.getFullYear().toString().slice(-2);
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const sequence = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `LAT-${year}${month}${day}-${sequence}`;
+  };
+
+  const processPlansForDisplay = (plans: CuttingPlan[]) => {
+    if (!groupIdenticalPlans) {
+      return plans.map(plan => ({ plan, repeatCount: 1 }));
+    }
+
+    const grouped: { plan: CuttingPlan, repeatCount: number }[] = [];
+    const processed = new Set<number>();
+
+    plans.forEach((plan, index) => {
+      if (processed.has(index)) return;
+
+      const identical = plans.filter((otherPlan, otherIndex) => {
+        if (otherIndex <= index || processed.has(otherIndex)) return false;
+        return JSON.stringify(otherPlan.cuts) === JSON.stringify(plan.cuts) &&
+               otherPlan.stockLength === plan.stockLength;
+      });
+
+      identical.forEach((_, idx) => {
+        const actualIndex = plans.findIndex((p, i) => i > index && JSON.stringify(p.cuts) === JSON.stringify(plan.cuts));
+        if (actualIndex !== -1) processed.add(actualIndex);
+      });
+
+      grouped.push({
+        plan,
+        repeatCount: identical.length + 1
+      });
+    });
+
+    return grouped;
+  };
+
   // Export functions
   const exportToPDF = () => {
     if (!optimizationResult) return;
     
-    const jobId = `JOB-${Date.now()}`;
-    const timestamp = new Date().toLocaleString();
+    const identifier = isJobMode ? generateJobNumber() : `SIM-${Date.now()}`;
+    const timestamp = new Date().toLocaleString('en-NZ');
     
-    // Create PDF content
+    // Create professional workshop-friendly PDF content
     const pdfContent = `
-LATERAL ENGINEERING - CUTTING OPTIMIZATION REPORT
-Job ID: ${jobId}
+═══════════════════════════════════════════════════════════════
+                    LATERAL ENGINEERING LIMITED
+                    CUTTING OPTIMIZATION REPORT
+═══════════════════════════════════════════════════════════════
+
+${isJobMode ? 'JOB' : 'SIMULATION'} ID: ${identifier}
 Generated: ${timestamp}
+Algorithm: ${optimizationResult.summary.algorithm}
 
-OPTIMIZATION SUMMARY:
-- Algorithm: ${optimizationResult.summary.algorithm}
-- Total Waste: ${optimizationResult.summary.totalWaste.toFixed(1)}mm (${optimizationResult.summary.totalWastePercentage.toFixed(1)}%)
-- Average Efficiency: ${optimizationResult.summary.avgEfficiency.toFixed(1)}%
-- Total Cuts: ${optimizationResult.summary.totalCuts}
-- Estimated Cutting Time: ${optimizationResult.summary.totalCuttingTime} minutes
+───────────────────────────────────────────────────────────────
+OPTIMIZATION SUMMARY
+───────────────────────────────────────────────────────────────
+✓ Total Efficiency:     ${optimizationResult.summary.avgEfficiency.toFixed(1)}%
+✓ Total Waste:          ${optimizationResult.summary.totalWaste.toFixed(0)}mm (${optimizationResult.summary.totalWastePercentage.toFixed(1)}%)
+✓ Total Cuts Required:  ${optimizationResult.summary.totalCuts}
+✓ Estimated Cut Time:   ${Math.floor(optimizationResult.summary.totalCuttingTime / 60)}h ${optimizationResult.summary.totalCuttingTime % 60}m
 
-CUTTING PLANS:
-${optimizationResult.plans.map((plan, i) => `
-Plan ${i + 1}: ${plan.stockLength}mm stock
-- Material: ${plan.cuts[0]?.requestId || 'N/A'}
-- Cuts: ${plan.totalCuts}
-- Efficiency: ${plan.efficiency.toFixed(1)}%
-- Waste: ${plan.wasteLength.toFixed(1)}mm
-${plan.cuts.map(cut => `  • ${cut.length}mm x${cut.quantity} at ${cut.position}mm`).join('\n')}
-`).join('\n')}
+───────────────────────────────────────────────────────────────
+CUTTING SEQUENCE - WORKSHOP INSTRUCTIONS
+───────────────────────────────────────────────────────────────
 
-REMNANTS (>500mm):
-${optimizationResult.remnants.map(remnant => `- ${remnant.length}mm ${remnant.materialType}`).join('\n')}
+${processPlansForDisplay(optimizationResult.plans).map((planGroup, i) => {
+  if (planGroup.repeatCount > 1) {
+    return `
+STOCK GROUP ${i + 1} - REPEAT ${planGroup.repeatCount}x
+Stock Length: ${planGroup.plan.stockLength}mm
+Material: ${planGroup.plan.cuts[0]?.requestId || 'Mixed'}
+Efficiency: ${planGroup.plan.efficiency.toFixed(1)}%
+Waste per stock: ${planGroup.plan.wasteLength.toFixed(0)}mm
+
+Cut Sequence (repeat for each stock):
+${planGroup.plan.cuts.map((cut, cutIndex) => 
+  `  ${cutIndex + 1}. Cut ${cut.length}mm x${cut.quantity} @ ${cut.position.toFixed(0)}mm${cut.angle && cut.angle !== 90 ? ` (${cut.angle}° angle)` : ''}`
+).join('\n')}
+
+Total waste for group: ${(planGroup.plan.wasteLength * planGroup.repeatCount).toFixed(0)}mm
+`;
+  } else {
+    return `
+STOCK ${i + 1}
+Stock Length: ${planGroup.plan.stockLength}mm
+Material: ${planGroup.plan.cuts[0]?.requestId || 'Mixed'}
+Efficiency: ${planGroup.plan.efficiency.toFixed(1)}%
+Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm
+
+Cut Sequence:
+${planGroup.plan.cuts.map((cut, cutIndex) => 
+  `  ${cutIndex + 1}. Cut ${cut.length}mm x${cut.quantity} @ ${cut.position.toFixed(0)}mm${cut.angle && cut.angle !== 90 ? ` (${cut.angle}° angle)` : ''}`
+).join('\n')}
+`;
+  }
+}).join('\n')}
+
+${optimizationResult.remnants.length > 0 ? `
+───────────────────────────────────────────────────────────────
+REMNANTS TO SAVE (>500mm)
+───────────────────────────────────────────────────────────────
+${optimizationResult.remnants.map(remnant => 
+  `• ${remnant.length.toFixed(0)}mm ${remnant.materialType} - Label and store`
+).join('\n')}
+` : ''}
+
+───────────────────────────────────────────────────────────────
+SAFETY REMINDERS
+───────────────────────────────────────────────────────────────
+• Check all measurements twice before cutting
+• Allow 2.4mm kerf + 0.5mm user error margin
+• Verify material specifications match requirements
+• Use appropriate PPE for cutting operations
+• Label all remnants with mill cert/heat numbers
+
+═══════════════════════════════════════════════════════════════
+End of Cutting Report - ${identifier}
+═══════════════════════════════════════════════════════════════
     `;
 
-    // Create and download PDF
-    const blob = new Blob([pdfContent], { type: 'text/plain' });
+    // Create and download PDF-ready text file (will integrate proper PDF library later)
+    const blob = new Blob([pdfContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cutting-optimization-${jobId}.txt`;
+    a.download = `${isJobMode ? 'job' : 'simulation'}-cutting-plan-${identifier}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -146,40 +242,58 @@ ${optimizationResult.remnants.map(remnant => `- ${remnant.length}mm ${remnant.ma
   const exportToExcel = () => {
     if (!optimizationResult) return;
     
-    const jobId = `JOB-${Date.now()}`;
+    const identifier = isJobMode ? generateJobNumber() : `SIM-${Date.now()}`;
+    const timestamp = new Date().toLocaleString('en-NZ');
     
-    // Create CSV content for Excel compatibility
-    let csvContent = "Cutting Optimization Report\n\n";
-    csvContent += `Job ID,${jobId}\n`;
-    csvContent += `Generated,${new Date().toLocaleString()}\n\n`;
+    // Create professional Excel-friendly CSV content
+    let csvContent = "LATERAL ENGINEERING - CUTTING OPTIMIZATION REPORT\n";
+    csvContent += `${isJobMode ? 'JOB' : 'SIMULATION'} ID:,${identifier}\n`;
+    csvContent += `Generated:,${timestamp}\n`;
+    csvContent += `Algorithm:,${optimizationResult.summary.algorithm}\n\n`;
     
-    csvContent += "Summary\n";
-    csvContent += `Algorithm,${optimizationResult.summary.algorithm}\n`;
-    csvContent += `Total Waste,${optimizationResult.summary.totalWaste.toFixed(1)}mm\n`;
-    csvContent += `Waste Percentage,${optimizationResult.summary.totalWastePercentage.toFixed(1)}%\n`;
-    csvContent += `Average Efficiency,${optimizationResult.summary.avgEfficiency.toFixed(1)}%\n`;
-    csvContent += `Total Cuts,${optimizationResult.summary.totalCuts}\n`;
-    csvContent += `Cutting Time,${optimizationResult.summary.totalCuttingTime} minutes\n\n`;
+    csvContent += "OPTIMIZATION SUMMARY\n";
+    csvContent += "Metric,Value,Unit\n";
+    csvContent += `Total Efficiency,${optimizationResult.summary.avgEfficiency.toFixed(1)},percent\n`;
+    csvContent += `Total Waste,${optimizationResult.summary.totalWaste.toFixed(0)},mm\n`;
+    csvContent += `Waste Percentage,${optimizationResult.summary.totalWastePercentage.toFixed(1)},percent\n`;
+    csvContent += `Total Cuts,${optimizationResult.summary.totalCuts},count\n`;
+    csvContent += `Cutting Time,${Math.floor(optimizationResult.summary.totalCuttingTime / 60)},hours\n`;
+    csvContent += `Cutting Time,${optimizationResult.summary.totalCuttingTime % 60},minutes\n\n`;
     
-    csvContent += "Cutting Plans\n";
-    csvContent += "Plan,Stock Length,Material,Cuts,Efficiency,Waste,Cut Details\n";
-    optimizationResult.plans.forEach((plan, i) => {
-      const cutDetails = plan.cuts.map(cut => `${cut.length}mm x${cut.quantity}`).join('; ');
-      csvContent += `${i + 1},${plan.stockLength}mm,${plan.cuts[0]?.requestId || 'N/A'},${plan.totalCuts},${plan.efficiency.toFixed(1)}%,${plan.wasteLength.toFixed(1)}mm,"${cutDetails}"\n`;
+    csvContent += "DETAILED CUTTING PLANS\n";
+    csvContent += "Stock #,Length (mm),Material,Efficiency (%),Waste (mm),Cut #,Cut Length (mm),Quantity,Position (mm),Angle (deg)\n";
+    
+    const processedPlans = processPlansForDisplay(optimizationResult.plans);
+    let stockCounter = 1;
+    
+    processedPlans.forEach((planGroup) => {
+      const plan = planGroup.plan;
+      if (planGroup.repeatCount > 1) {
+        csvContent += `Stock Group ${stockCounter}-${stockCounter + planGroup.repeatCount - 1} (${planGroup.repeatCount}x identical),${plan.stockLength},${plan.cuts[0]?.requestId || 'Mixed'},${plan.efficiency.toFixed(1)},${plan.wasteLength.toFixed(0)},,,,,\n`;
+      }
+      
+      for (let repeat = 0; repeat < planGroup.repeatCount; repeat++) {
+        plan.cuts.forEach((cut, cutIndex) => {
+          csvContent += `${stockCounter},${plan.stockLength},${cut.requestId || 'Mixed'},${plan.efficiency.toFixed(1)},${plan.wasteLength.toFixed(0)},${cutIndex + 1},${cut.length},${cut.quantity},${cut.position.toFixed(0)},${cut.angle || 90}\n`;
+        });
+        stockCounter++;
+      }
     });
     
-    csvContent += "\nRemnants\n";
-    csvContent += "Length,Material,Reusable\n";
-    optimizationResult.remnants.forEach(remnant => {
-      csvContent += `${remnant.length}mm,${remnant.materialType},${remnant.isReusable ? 'Yes' : 'No'}\n`;
-    });
+    if (optimizationResult.remnants.length > 0) {
+      csvContent += "\nREMNANTS TO SAVE\n";
+      csvContent += "Length (mm),Material,Reusable,Notes\n";
+      optimizationResult.remnants.forEach(remnant => {
+        csvContent += `${remnant.length.toFixed(0)},${remnant.materialType},${remnant.isReusable ? 'Yes' : 'No'},Label with mill cert/heat number\n`;
+      });
+    }
 
     // Create and download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cutting-optimization-${jobId}.csv`;
+    a.download = `${isJobMode ? 'job' : 'simulation'}-cutting-data-${identifier}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -516,6 +630,12 @@ ${optimizationResult.remnants.map(remnant => `- ${remnant.length}mm ${remnant.ma
                       Optimization Results
                     </CardTitle>
                     <div className="flex gap-2">
+                      {!isJobMode && (
+                        <Button variant="default" size="sm" onClick={() => setShowCreateJobDialog(true)}>
+                          <Briefcase className="h-4 w-4 mr-1" />
+                          Create Job
+                        </Button>
+                      )}
                       <Button variant="outline" size="sm" onClick={exportToPDF}>
                         <FileText className="h-4 w-4 mr-1" />
                         PDF
