@@ -98,9 +98,9 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery }:
     if (name.includes('square bar') || name.includes('sq ') || code.includes('sq')) categories.push('Squares');
 
     // Pregal Sections
-    if (name.includes('duragal') || name.includes('pregal') || code.includes('dga')) {
+    if (name.includes('duragal') || name.includes('pregal') || code.includes('dga') || code.includes('dgfl') || category.toLowerCase().includes('duragal')) {
       if (name.includes('angle')) categories.push('Pregal Angles');
-      if (name.includes('flat')) categories.push('Pregal Flats');
+      if (name.includes('flat') || code.includes('dgfl') || category.toLowerCase().includes('duragal flats')) categories.push('Pregal Flats');
       if (name.includes('channel')) categories.push('Pregal Channels');
     }
 
