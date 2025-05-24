@@ -72,17 +72,17 @@ export default function Sidebar() {
                 const isActive = location === item.href;
                 return (
                   <li key={item.name}>
-                    <Link href={item.href}>
-                      <a
-                        className={cn(
-                          "flex items-center px-6 py-3 text-primary-foreground/80 hover:bg-primary/20 hover:text-white transition-colors duration-200",
-                          isActive && "bg-primary/30 text-white"
-                        )}
-                      >
-                        <item.icon className="w-5 h-5 mr-3" />
-                        {item.name}
-                        {item.badge && (
-                          <span
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "flex items-center px-6 py-3 text-primary-foreground/80 hover:bg-primary/20 hover:text-white transition-colors duration-200",
+                        isActive && "bg-primary/30 text-white"
+                      )}
+                    >
+                      <item.icon className="w-5 h-5 mr-3" />
+                      {item.name}
+                      {item.badge && (
+                        <span
                             className={cn(
                               "ml-auto text-xs px-2 py-1 rounded-full",
                               item.badgeVariant === "warning"
@@ -93,7 +93,6 @@ export default function Sidebar() {
                             {item.badge}
                           </span>
                         )}
-                      </a>
                     </Link>
                   </li>
                 );
