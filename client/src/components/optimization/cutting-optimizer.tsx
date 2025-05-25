@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star, Download, FileText, Table, QrCode, Briefcase, ToggleLeft, ToggleRight, History, Settings } from "lucide-react";
 import jsPDF from "jspdf";
-import { SimulationHistory } from "./simulation-history";
+import { SimulationHistoryWorking } from "./simulation-history-working";
 import { 
   CuttingOptimizer, 
   CutRequest, 
@@ -1007,8 +1007,7 @@ export default function CuttingOptimizerComponent() {
 
       {/* Simulation History Section */}
       <div className="mt-8">
-        <SimulationHistory 
-          key={`sim-history-${Date.now()}`}
+        <SimulationHistoryWorking 
           onRecallSimulation={(simulationData) => {
             // Load the recalled simulation data back into the optimizer
             if (simulationData.cutRequests) {
