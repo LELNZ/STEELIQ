@@ -270,25 +270,46 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                       </div>
                     </div>
                     
-                    {/* Cut indicators with angled red highlights and external orientation toggles */}
+                    {/* Angled Cut Shape Indicators with external orientation toggles */}
                     {complexCuts.map((cut, index) => (
                       <div key={cut.id}>
                         {(cut.position === 'start' || cut.position === 'both') && (
                           <div className="absolute left-0 top-0 h-12 flex items-center">
-                            {/* Cut indicator rectangle with angled red highlight */}
+                            {/* Angled cut shape that represents the actual cut */}
                             <div 
-                              className="w-6 h-12 rounded-l-lg cursor-pointer transition-opacity flex flex-col items-center justify-center group relative overflow-hidden"
+                              className="relative cursor-pointer transition-opacity group"
                               onClick={() => removeComplexCut(cut.id)}
                               title={`${cut.angle}° cut - Click to remove`}
-                              style={{
-                                background: `linear-gradient(${cut.orientation === 'same' ? cut.angle : -cut.angle}deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)`,
-                                opacity: 0.9
-                              }}
                             >
-                              {/* Angle text */}
-                              <div className="text-xs text-white font-bold drop-shadow">
-                                {cut.angle}°
-                              </div>
+                              <svg width="24" height="48" className="overflow-visible">
+                                <defs>
+                                  <linearGradient id={`grad-start-${cut.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style={{stopColor:"#ef4444", stopOpacity:1}} />
+                                    <stop offset="50%" style={{stopColor:"#dc2626", stopOpacity:1}} />
+                                    <stop offset="100%" style={{stopColor:"#b91c1c", stopOpacity:1}} />
+                                  </linearGradient>
+                                </defs>
+                                {/* Angled cut shape based on angle and orientation */}
+                                <polygon
+                                  points={cut.orientation === 'same' 
+                                    ? `0,0 24,0 ${24 - (cut.angle / 90 * 24)},48 0,48`
+                                    : `0,0 24,0 24,48 ${cut.angle / 90 * 24},48`
+                                  }
+                                  fill={`url(#grad-start-${cut.id})`}
+                                  opacity="0.9"
+                                  className="hover:opacity-100 transition-opacity"
+                                />
+                                {/* Angle text */}
+                                <text 
+                                  x="12" 
+                                  y="26" 
+                                  textAnchor="middle" 
+                                  className="text-xs font-bold fill-white"
+                                  style={{fontSize: '10px'}}
+                                >
+                                  {cut.angle}°
+                                </text>
+                              </svg>
                             </div>
                             {/* Orientation toggle button outside blue bar */}
                             <button
@@ -310,20 +331,41 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                         )}
                         {(cut.position === 'end' || cut.position === 'both') && (
                           <div className="absolute right-0 top-0 h-12 flex items-center">
-                            {/* Cut indicator rectangle with angled red highlight */}
+                            {/* Angled cut shape that represents the actual cut */}
                             <div 
-                              className="w-6 h-12 rounded-r-lg cursor-pointer transition-opacity flex flex-col items-center justify-center group relative overflow-hidden"
+                              className="relative cursor-pointer transition-opacity group"
                               onClick={() => removeComplexCut(cut.id)}
                               title={`${cut.angle}° cut - Click to remove`}
-                              style={{
-                                background: `linear-gradient(${cut.orientation === 'same' ? -cut.angle : cut.angle}deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)`,
-                                opacity: 0.9
-                              }}
                             >
-                              {/* Angle text */}
-                              <div className="text-xs text-white font-bold drop-shadow">
-                                {cut.angle}°
-                              </div>
+                              <svg width="24" height="48" className="overflow-visible">
+                                <defs>
+                                  <linearGradient id={`grad-end-${cut.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style={{stopColor:"#ef4444", stopOpacity:1}} />
+                                    <stop offset="50%" style={{stopColor:"#dc2626", stopOpacity:1}} />
+                                    <stop offset="100%" style={{stopColor:"#b91c1c", stopOpacity:1}} />
+                                  </linearGradient>
+                                </defs>
+                                {/* Angled cut shape based on angle and orientation */}
+                                <polygon
+                                  points={cut.orientation === 'same' 
+                                    ? `0,0 24,0 24,48 ${cut.angle / 90 * 24},48`
+                                    : `0,0 24,0 ${24 - (cut.angle / 90 * 24)},48 0,48`
+                                  }
+                                  fill={`url(#grad-end-${cut.id})`}
+                                  opacity="0.9"
+                                  className="hover:opacity-100 transition-opacity"
+                                />
+                                {/* Angle text */}
+                                <text 
+                                  x="12" 
+                                  y="26" 
+                                  textAnchor="middle" 
+                                  className="text-xs font-bold fill-white"
+                                  style={{fontSize: '10px'}}
+                                >
+                                  {cut.angle}°
+                                </text>
+                              </svg>
                             </div>
                             {/* Orientation toggle button outside blue bar */}
                             <button
