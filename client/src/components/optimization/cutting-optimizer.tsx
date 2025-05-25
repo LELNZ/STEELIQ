@@ -175,89 +175,137 @@ export default function CuttingOptimizerComponent() {
     // Create PDF using jsPDF
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.width;
-    const margin = 20;
+    const pageHeight = pdf.internal.pageSize.height;
+    const margin = 15;
     let yPosition = margin;
 
-    // Helper function to add text with word wrapping
-    const addText = (text: string, fontSize = 10, isBold = false) => {
+    // Helper function to add text with better formatting
+    const addText = (text: string, fontSize = 11, isBold = false, indent = 0) => {
       pdf.setFontSize(fontSize);
       if (isBold) pdf.setFont('helvetica', 'bold');
       else pdf.setFont('helvetica', 'normal');
       
-      const lines = pdf.splitTextToSize(text, pageWidth - 2 * margin);
+      const maxWidth = pageWidth - 2 * margin - indent;
+      const lines = pdf.splitTextToSize(text, maxWidth);
+      
       lines.forEach((line: string) => {
-        if (yPosition > pdf.internal.pageSize.height - margin) {
+        if (yPosition > pageHeight - 25) {
           pdf.addPage();
           yPosition = margin;
         }
-        pdf.text(line, margin, yPosition);
-        yPosition += fontSize * 0.5;
+        pdf.text(line, margin + indent, yPosition);
+        yPosition += fontSize * 0.65;
       });
-      yPosition += 5;
+      yPosition += 3;
     };
 
-    // Header with logo space
-    addText('LATERAL ENGINEERING LIMITED', 16, true);
-    addText('CUTTING OPTIMIZATION REPORT', 14, true);
-    addText('Professional Steel Cutting Solutions', 10);
+    // Add colored background for headers with repeat highlighting
+    const addHeaderBox = (text: string, isRepeat = false, repeatCount = 0) => {
+      const boxHeight = 10;
+      if (isRepeat) {
+        pdf.setFillColor(255, 193, 7); // Bright yellow for repeats
+        pdf.rect(margin, yPosition - 6, pageWidth - 2 * margin, boxHeight, 'F');
+        pdf.setTextColor(0, 0, 0); // Black text on yellow
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`🔄 REPEAT ${repeatCount}x - ${text}`, margin + 5, yPosition);
+      } else {
+        pdf.setFillColor(52, 144, 220); // Blue for headers
+        pdf.rect(margin, yPosition - 6, pageWidth - 2 * margin, boxHeight, 'F');
+        pdf.setTextColor(255, 255, 255); // White text on blue
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(text, margin + 5, yPosition);
+      }
+      pdf.setTextColor(0, 0, 0); // Reset to black
+      yPosition += boxHeight + 5;
+    };
+
+    // Professional Header
+    pdf.setFontSize(18);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('LATERAL ENGINEERING LIMITED', margin, yPosition);
+    yPosition += 10;
+    
+    pdf.setFontSize(14);
+    pdf.text('WORKSHOP CUTTING INSTRUCTIONS', margin, yPosition);
+    yPosition += 15;
+
+    // Job Info Box with key metrics
+    pdf.setDrawColor(200);
+    pdf.rect(margin, yPosition, pageWidth - 2 * margin, 30);
+    yPosition += 6;
     addText(`${isJobMode ? 'JOB' : 'SIMULATION'} ID: ${identifier}`, 12, true);
     addText(`Generated: ${timestamp}`, 10);
-    addText(`Algorithm: ${optimizationResult.summary.algorithm}`, 10);
-    yPosition += 10;
+    addText(`EFFICIENCY: ${optimizationResult.summary.avgEfficiency.toFixed(1)}% | WASTE: ${optimizationResult.summary.totalWastePercentage.toFixed(1)}% | TIME: ${Math.floor(optimizationResult.summary.totalCuttingTime / 60)}h ${optimizationResult.summary.totalCuttingTime % 60}m`, 11, true);
+    yPosition += 12;
 
-    // Summary
-    addText('OPTIMIZATION SUMMARY', 12, true);
-    addText(`✓ Total Efficiency: ${optimizationResult.summary.avgEfficiency.toFixed(1)}%`, 10);
-    addText(`✓ Total Waste: ${optimizationResult.summary.totalWaste.toFixed(0)}mm (${optimizationResult.summary.totalWastePercentage.toFixed(1)}%)`, 10);
-    addText(`✓ Total Cuts Required: ${optimizationResult.summary.totalCuts}`, 10);
-    addText(`✓ Estimated Cut Time: ${Math.floor(optimizationResult.summary.totalCuttingTime / 60)}h ${optimizationResult.summary.totalCuttingTime % 60}m`, 10);
-    yPosition += 10;
-
-    // Cutting Plans
-    addText('CUTTING SEQUENCE - WORKSHOP INSTRUCTIONS', 12, true);
-    
+    // Organize cutting plans by stock length for better readability
     const processedPlans = processPlansForDisplay(optimizationResult.plans);
-    processedPlans.forEach((planGroup, i) => {
-      const materialName = getMaterialName(planGroup.plan.cuts[0]?.requestId || 'Mixed');
-      
-      if (planGroup.repeatCount > 1) {
-        addText(`STOCK GROUP ${i + 1} - REPEAT ${planGroup.repeatCount}x`, 11, true);
-        addText(`Stock Length: ${planGroup.plan.stockLength}mm | Material: ${materialName}`, 10);
-        addText(`Efficiency: ${planGroup.plan.efficiency.toFixed(1)}% | Waste per stock: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 10);
-        addText('Cut Sequence (repeat for each stock):', 10, true);
-      } else {
-        addText(`STOCK ${i + 1}`, 11, true);
-        addText(`Stock Length: ${planGroup.plan.stockLength}mm | Material: ${materialName}`, 10);
-        addText(`Efficiency: ${planGroup.plan.efficiency.toFixed(1)}% | Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 10);
-        addText('Cut Sequence:', 10, true);
+    const stockGroups = new Map<number, typeof processedPlans>();
+    
+    // Group by stock length
+    processedPlans.forEach(planGroup => {
+      const stockLength = planGroup.plan.stockLength;
+      if (!stockGroups.has(stockLength)) {
+        stockGroups.set(stockLength, []);
       }
+      stockGroups.get(stockLength)!.push(planGroup);
+    });
+
+    // Display each stock length group in organized columns
+    Array.from(stockGroups.entries()).forEach(([stockLength, plans]) => {
+      if (yPosition > pageHeight - 50) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+
+      addHeaderBox(`STOCK LENGTH: ${stockLength}mm`);
       
-      planGroup.plan.cuts.forEach((cut, cutIndex) => {
-        const angleText = cut.angle && cut.angle !== 90 ? ` (${cut.angle}° angle)` : '';
-        addText(`  ${cutIndex + 1}. Cut ${cut.length}mm x${cut.quantity} @ ${cut.position.toFixed(0)}mm${angleText}`, 9);
+      plans.forEach((planGroup, planIndex) => {
+        const materialName = getMaterialName(planGroup.plan.cuts[0]?.requestId || 'Mixed');
+        
+        if (planGroup.repeatCount > 1) {
+          // Highlighted repeat section
+          addHeaderBox(materialName, true, planGroup.repeatCount);
+          addText(`Efficiency: ${planGroup.plan.efficiency.toFixed(1)}% | Waste per stock: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 10, false, 5);
+          addText('CUTTING SEQUENCE (apply to each stock):', 11, true, 5);
+        } else {
+          addText(`${materialName}`, 11, true);
+          addText(`Efficiency: ${planGroup.plan.efficiency.toFixed(1)}% | Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 10, false, 5);
+          addText('CUTTING SEQUENCE:', 11, true, 5);
+        }
+        
+        // Cuts in a clean, readable format
+        planGroup.plan.cuts.forEach((cut, cutIndex) => {
+          const angleText = cut.angle && cut.angle !== 90 ? ` [${cut.angle}° ANGLE]` : '';
+          addText(`${cutIndex + 1}. ${cut.length}mm (x${cut.quantity}) → Position: ${cut.position.toFixed(0)}mm${angleText}`, 10, false, 15);
+        });
+        yPosition += 8;
       });
       yPosition += 5;
     });
 
-    // Remnants
+    // Remnants section
     if (optimizationResult.remnants.length > 0) {
-      addText('REMNANTS TO SAVE (>500mm)', 12, true);
+      if (yPosition > pageHeight - 30) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+      addHeaderBox('REMNANTS TO SAVE (>500mm)');
       optimizationResult.remnants.forEach(remnant => {
-        addText(`• ${remnant.length.toFixed(0)}mm ${remnant.materialType} - Label and store`, 10);
+        addText(`• ${remnant.length.toFixed(0)}mm ${remnant.materialType} - Label and store`, 10, false, 5);
       });
-      yPosition += 5;
     }
 
-    // Safety reminders
-    addText('SAFETY REMINDERS', 12, true);
-    addText('• Check all measurements twice before cutting', 10);
-    addText('• Allow 2.4mm kerf + 0.5mm user error margin', 10);
-    addText('• Verify material specifications match requirements', 10);
-    addText('• Use appropriate PPE for cutting operations', 10);
-    addText('• Label all remnants with mill cert/heat numbers', 10);
+    // Footer with safety reminder
+    yPosition = pageHeight - 15;
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('⚠️ VERIFY ALL MEASUREMENTS BEFORE CUTTING | Generated by LEL Steel Management System', margin, yPosition);
 
-    // Save PDF
-    pdf.save(`${isJobMode ? 'job' : 'simulation'}-cutting-plan-${identifier}.pdf`);
+    // Download PDF
+    pdf.save(`${isJobMode ? 'Job' : 'Simulation'}_${identifier}_CuttingPlan.pdf`);
   };
 
   const exportToExcel = () => {
