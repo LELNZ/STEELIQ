@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Trash2, Settings, Triangle, Square, ChevronDown, ChevronRight } from "lucide-react";
+import InstantMaterialSearch from "@/components/materials/instant-material-search";
 
 interface ComplexCut {
   id: string;
@@ -21,7 +22,7 @@ interface ComplexCutsConfiguratorProps {
   length: string;
   onComplexCutsChange: (cuts: ComplexCut[]) => void;
   complexCuts: ComplexCut[];
-  onAddToRequest?: (length: number, quantity: number, complexCuts: ComplexCut[]) => void;
+  onAddToRequest?: (length: number, quantity: number, complexCuts: ComplexCut[], material?: string) => void;
 }
 
 export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCuts, onAddToRequest }: ComplexCutsConfiguratorProps) {
@@ -32,6 +33,7 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
   const [dragOverPosition, setDragOverPosition] = useState<'start' | 'end' | null>(null);
   const [localLength, setLocalLength] = useState(length || '');
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState("");
   const [newCut, setNewCut] = useState({
     position: 'end' as 'start' | 'end' | 'both',
     angle: '45',
@@ -401,6 +403,17 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                   </Button>
                 </div>
                 
+                {/* Material Selection */}
+                <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Label className="text-xs font-medium mb-1 block">Material:</Label>
+                  <InstantMaterialSearch
+                    value={selectedMaterial}
+                    onSelect={setSelectedMaterial}
+                    placeholder="Search for material..."
+                    className="text-xs"
+                  />
+                </div>
+
                 {/* Compact Quantity and Add to Request Section */}
                 <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
@@ -418,14 +431,15 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                   
                   <Button
                     onClick={() => {
-                      if (onAddToRequest && localLength && complexCuts.length > 0) {
-                        onAddToRequest(parseInt(localLength.toString()), quantity, complexCuts);
+                      if (onAddToRequest && localLength && complexCuts.length > 0 && selectedMaterial) {
+                        onAddToRequest(parseInt(localLength.toString()), quantity, complexCuts, selectedMaterial);
                         setQuantity(1);
                         onComplexCutsChange([]);
+                        setSelectedMaterial("");
                         setIsOpen(false);
                       }
                     }}
-                    disabled={!localLength || complexCuts.length === 0 || !onAddToRequest}
+                    disabled={!localLength || complexCuts.length === 0 || !onAddToRequest || !selectedMaterial}
                     className="w-full h-7 bg-green-600 hover:bg-green-700 text-white text-xs"
                   >
                     <Plus className="w-3 h-3 mr-1" />
