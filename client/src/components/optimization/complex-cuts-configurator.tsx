@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2, Settings, Triangle, Square } from "lucide-react";
+import { Plus, Trash2, Settings, Triangle, Square, ChevronDown, ChevronRight } from "lucide-react";
 
 interface ComplexCut {
   id: string;
@@ -21,9 +21,12 @@ interface ComplexCutsConfiguratorProps {
   length: string;
   onComplexCutsChange: (cuts: ComplexCut[]) => void;
   complexCuts: ComplexCut[];
+  onAddToRequest?: (length: number, quantity: number, complexCuts: ComplexCut[]) => void;
 }
 
-export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCuts }: ComplexCutsConfiguratorProps) {
+export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCuts, onAddToRequest }: ComplexCutsConfiguratorProps) {
+  const [quantity, setQuantity] = useState(1);
+  const [showExamples, setShowExamples] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [newCut, setNewCut] = useState({
     position: 'end' as 'start' | 'end' | 'both',
@@ -182,7 +185,7 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                 </div>
                 
                 {/* Quick action buttons below the visual */}
-                <div className="mt-4 flex gap-2 justify-center">
+                <div className="mt-3 flex gap-1 justify-center">
                   <Button
                     size="sm"
                     variant="outline"
@@ -196,16 +199,51 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                       };
                       onComplexCutsChange([...complexCuts, newCut]);
                     }}
+                    className="text-xs px-2 py-1 h-6"
                   >
-                    Add 45° Both Ends
+                    45° Both Ends
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => onComplexCutsChange([])}
                     disabled={complexCuts.length === 0}
+                    className="text-xs px-2 py-1 h-6"
                   >
-                    Clear All Cuts
+                    Clear All
+                  </Button>
+                </div>
+                
+                {/* Quantity and Add to Request Section */}
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="quantity" className="text-sm font-medium">Quantity:</Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        min="1"
+                        value={quantity}
+                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-16 h-8 text-center"
+                      />
+                      <span className="text-sm text-muted-foreground">pieces</span>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    onClick={() => {
+                      if (onAddToRequest && length && complexCuts.length > 0) {
+                        onAddToRequest(parseInt(length), quantity, complexCuts);
+                        setQuantity(1);
+                        onComplexCutsChange([]);
+                      }
+                    }}
+                    disabled={!length || complexCuts.length === 0 || !onAddToRequest}
+                    className="w-full h-9 bg-green-600 hover:bg-green-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add {quantity} × {length}mm {getComplexCutDescription()} to Cut List
                   </Button>
                 </div>
               </div>
@@ -320,27 +358,40 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
             </Card>
           )}
 
-          {/* Common Examples */}
+          {/* Common Examples - Collapsible */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Common Examples</CardTitle>
+            <CardHeader className="pb-2">
+              <Button
+                variant="ghost"
+                onClick={() => setShowExamples(!showExamples)}
+                className="w-full justify-between p-0 h-auto font-medium text-left hover:bg-transparent"
+              >
+                <span className="text-sm">Common Examples</span>
+                {showExamples ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-2 text-sm">
-                <div className="p-2 bg-muted rounded">
-                  <strong>Example 1:</strong> 300mm with 2x 45° cuts (same orientation)
-                  <div className="text-xs text-muted-foreground">Both ends, same direction</div>
+            {showExamples && (
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 gap-2 text-sm">
+                  <div className="p-2 bg-muted rounded">
+                    <strong>Example 1:</strong> 300mm with 2x 45° cuts (same orientation)
+                    <div className="text-xs text-muted-foreground">Both ends, same direction</div>
+                  </div>
+                  <div className="p-2 bg-muted rounded">
+                    <strong>Example 2:</strong> 600mm with 1x 45° and 1x 90° cuts
+                    <div className="text-xs text-muted-foreground">Different angles at each end</div>
+                  </div>
+                  <div className="p-2 bg-muted rounded">
+                    <strong>Example 3:</strong> 200mm with 2x 45° cuts (same orientation)
+                    <div className="text-xs text-muted-foreground">Both ends, parallel cuts</div>
+                  </div>
                 </div>
-                <div className="p-2 bg-muted rounded">
-                  <strong>Example 2:</strong> 600mm with 1x 45° and 1x 90° cuts
-                  <div className="text-xs text-muted-foreground">Different angles at each end</div>
-                </div>
-                <div className="p-2 bg-muted rounded">
-                  <strong>Example 3:</strong> 200mm with 2x 45° cuts (same orientation)
-                  <div className="text-xs text-muted-foreground">Both ends, parallel cuts</div>
-                </div>
-              </div>
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
 
           <div className="flex justify-end gap-2">
