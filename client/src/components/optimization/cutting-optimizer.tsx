@@ -613,9 +613,14 @@ export default function CuttingOptimizerComponent() {
               {cutRequests.length > 0 && (
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   <Separator />
-                  <h4 className="font-medium">Requested Cuts ({cutRequests.length})</h4>
-                  {cutRequests.map((request) => (
-                    <div key={request.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Requested Cuts ({cutRequests.length})</h4>
+                    <div className="text-sm text-muted-foreground">
+                      Total: {cutRequests.reduce((total, req) => total + (req.length * req.quantity), 0).toLocaleString()}mm
+                    </div>
+                  </div>
+                  {cutRequests.map((request, index) => (
+                    <div key={`cut-${request.id}-${index}`} className="flex items-center justify-between p-2 bg-muted rounded">
                       <div className="flex-1">
                         <span className="font-medium">{request.length}mm</span>
                         <span className="text-muted-foreground"> × {request.quantity}</span>
@@ -712,8 +717,8 @@ export default function CuttingOptimizerComponent() {
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   <Separator />
                   <h4 className="font-medium">Stock Items ({stockItems.length})</h4>
-                  {stockItems.map((stock) => (
-                    <div key={stock.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                  {stockItems.map((stock, index) => (
+                    <div key={`stock-${stock.id}-${index}`} className="flex items-center justify-between p-2 bg-muted rounded">
                       <div className="flex-1">
                         <span className="font-medium">{stock.length}mm</span>
                         <span className="text-muted-foreground"> × {stock.available}</span>
@@ -838,6 +843,10 @@ export default function CuttingOptimizerComponent() {
                   </div>
 
                   <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Total Material Length:</span>
+                      <span className="font-medium">{optimizationResult.plans.reduce((total, plan) => total + plan.stockLength, 0).toLocaleString()}mm</span>
+                    </div>
                     <div className="flex justify-between text-sm">
                       <span>Total Cuts:</span>
                       <span className="font-medium">{optimizationResult.summary.totalCuts}</span>

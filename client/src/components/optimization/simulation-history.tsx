@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,22 +31,53 @@ export function SimulationHistory({ onRecallSimulation }: SimulationHistoryProps
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Mock data for now until backend is implemented
-  const simulations: SimulationSummary[] = [];
+  // Load simulations from localStorage
+  const [simulations, setSimulations] = useState<SimulationSummary[]>([]);
   const isLoading = false;
 
+  useEffect(() => {
+    loadSimulations();
+  }, []);
+
+  const loadSimulations = () => {
+    try {
+      const stored = localStorage.getItem('cutting_simulations');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Filter out expired simulations (older than 7 days)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const validSimulations = parsed.filter((sim: SimulationSummary) => 
+          new Date(sim.createdAt) > sevenDaysAgo
+        );
+        setSimulations(validSimulations);
+        // Update localStorage with filtered data
+        localStorage.setItem('cutting_simulations', JSON.stringify(validSimulations));
+      }
+    } catch (error) {
+      console.error('Error loading simulations:', error);
+    }
+  };
+
   const deleteSimulation = (id: string) => {
+    const updated = simulations.filter(sim => sim.id !== id);
+    setSimulations(updated);
+    localStorage.setItem('cutting_simulations', JSON.stringify(updated));
     toast({
-      title: "Feature coming soon",
-      description: "Simulation history will be available in the next update.",
+      title: "Simulation deleted",
+      description: "The simulation has been permanently removed.",
     });
   };
 
   const recallSimulation = (id: string) => {
-    toast({
-      title: "Feature coming soon", 
-      description: "Simulation recall will be available in the next update.",
-    });
+    const simulation = simulations.find(sim => sim.id === id);
+    if (simulation) {
+      onRecallSimulation(simulation);
+      toast({
+        title: "Simulation recalled",
+        description: "The simulation has been loaded into the optimizer.",
+      });
+    }
   };
 
   const formatTimeRemaining = (expiresAt: string) => {
