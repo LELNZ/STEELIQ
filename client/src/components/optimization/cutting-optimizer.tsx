@@ -25,6 +25,8 @@ import { Material } from "@shared/schema";
 export default function CuttingOptimizerComponent() {
   const [cutRequests, setCutRequests] = useState<CutRequest[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  
+
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("multi");
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -44,7 +46,8 @@ export default function CuttingOptimizerComponent() {
     quantity: "1",
     materialType: "",
     angle: "90",
-    description: ""
+    description: "",
+    complexCuts: []
   });
 
   // New stock item form
@@ -69,7 +72,38 @@ export default function CuttingOptimizerComponent() {
     return types;
   }, []);
 
-
+  // Calculate material summaries for tracking
+  const calculateMaterialSummary = () => {
+    const summary = new Map<string, { required: number; available: number; name: string }>();
+    
+    // Add required materials from cut requests
+    cutRequests.forEach(request => {
+      const key = request.materialType;
+      const materialName = materialsData.find(m => m.code === key)?.name || key;
+      const current = summary.get(key) || { required: 0, available: 0, name: materialName };
+      current.required += request.length * request.quantity;
+      summary.set(key, current);
+    });
+    
+    // Add available materials from stock
+    stockItems.forEach(stock => {
+      const key = stock.materialType;
+      const materialName = materialsData.find(m => m.code === key)?.name || key;
+      const current = summary.get(key) || { required: 0, available: 0, name: materialName };
+      current.available += stock.length * stock.available;
+      summary.set(key, current);
+    });
+    
+    return Array.from(summary.entries()).map(([code, data]) => ({
+      code,
+      name: data.name,
+      required: data.required,
+      available: data.available,
+      shortage: Math.max(0, data.required - data.available)
+    }));
+  };
+  
+  const materialSummary = calculateMaterialSummary();
 
   const addCutRequest = () => {
     if (!newCut.length || !newCut.materialType) return;
@@ -756,7 +790,7 @@ export default function CuttingOptimizerComponent() {
                   <Separator />
                   <h4 className="font-medium">Stock Items ({stockItems.length})</h4>
                   {stockItems.map((stock, index) => (
-                    <div key={`stock-item-${index}-${stock.length}-${stock.materialType}`} className="flex items-center justify-between p-2 bg-muted rounded">
+                    <div key={`stock-${stock.id || index}-${stock.length}-${stock.materialType}-${stock.available}`} className="flex items-center justify-between p-2 bg-muted rounded">
                       <div className="flex-1">
                         <span className="font-medium">{stock.length}mm</span>
                         <span className="text-muted-foreground"> × {stock.available}</span>
