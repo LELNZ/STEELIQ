@@ -276,12 +276,12 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                         {/* Left side cuts */}
                         {(cut.position === 'start' || cut.position === 'both') && (
                           <div className="absolute left-0 top-0">
-                            <svg width="48" height="48" className="overflow-visible">
-                              {/* Red triangle showing material being removed */}
+                            <svg width="60" height="48" className="overflow-visible">
+                              {/* Red triangle showing material being removed - fills corner properly */}
                               <polygon
                                 points={cut.orientation === 'same' 
-                                  ? `0,0 ${cut.angle / 90 * 48},0 0,${cut.angle / 90 * 48}`
-                                  : `0,0 ${(90 - cut.angle) / 90 * 48},0 0,${(90 - cut.angle) / 90 * 48}`
+                                  ? `0,0 60,0 0,48`
+                                  : `0,0 60,0 60,48`
                                 }
                                 fill="#ef4444"
                                 opacity="0.8"
@@ -290,8 +290,8 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                               />
                               {/* Angle label */}
                               <text 
-                                x={cut.angle / 90 * 24} 
-                                y={cut.angle / 90 * 24} 
+                                x="20" 
+                                y="20" 
                                 textAnchor="middle" 
                                 className="fill-white text-xs font-bold pointer-events-none"
                                 style={{fontSize: '10px'}}
@@ -321,12 +321,12 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                         {/* Right side cuts */}
                         {(cut.position === 'end' || cut.position === 'both') && (
                           <div className="absolute right-0 top-0">
-                            <svg width="48" height="48" className="overflow-visible">
-                              {/* Red triangle showing material being removed */}
+                            <svg width="60" height="48" className="overflow-visible">
+                              {/* Red triangle showing material being removed - fills corner properly */}
                               <polygon
                                 points={cut.orientation === 'same' 
-                                  ? `48,0 ${48 - (cut.angle / 90 * 48)},0 48,${cut.angle / 90 * 48}`
-                                  : `48,0 ${48 - ((90 - cut.angle) / 90 * 48)},0 48,${(90 - cut.angle) / 90 * 48}`
+                                  ? `0,0 60,0 60,48`
+                                  : `0,0 60,0 0,48`
                                 }
                                 fill="#ef4444"
                                 opacity="0.8"
@@ -335,8 +335,8 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                               />
                               {/* Angle label */}
                               <text 
-                                x={48 - (cut.angle / 90 * 24)} 
-                                y={cut.angle / 90 * 24} 
+                                x="40" 
+                                y="20" 
                                 textAnchor="middle" 
                                 className="fill-white text-xs font-bold pointer-events-none"
                                 style={{fontSize: '10px'}}
