@@ -379,18 +379,11 @@ export default function CuttingOptimizerComponent() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <img 
-            src="/attached_assets/Logo used in Google Admin icon.jpg" 
-            alt="Lateral Engineering Logo" 
-            className="h-12 w-12 object-contain"
-          />
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Cutting Optimization</h1>
-            <p className="text-muted-foreground">
-              Minimize waste and maximize efficiency with advanced algorithms
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Cutting Optimization</h1>
+          <p className="text-muted-foreground">
+            Minimize waste and maximize efficiency with advanced algorithms
+          </p>
         </div>
         <div className="flex items-center gap-4">
           {/* Mode Toggle */}
