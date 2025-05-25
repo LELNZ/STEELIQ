@@ -1,5 +1,5 @@
-import SimpleCuttingOptimizer from "@/components/optimization/simple-cutting-optimizer";
+import CuttingOptimizerComponent from "@/components/optimization/cutting-optimizer";
 
 export default function Optimization() {
-  return <SimpleCuttingOptimizer />;
+  return <CuttingOptimizerComponent />;
 }
