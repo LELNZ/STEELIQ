@@ -163,6 +163,20 @@ export default function StandardCuttingPlan({
               .text-orange-600 { color: #ea580c; }
               .font-medium { font-weight: 500; }
               .text-xs { font-size: 0.75rem; line-height: 1rem; }
+              .left-3 { left: 0.75rem; }
+              .w-14 { width: 3.5rem; }
+              .-top-4 { top: -1rem; }
+              .right-1 { right: 0.25rem; }
+              .left-1 { left: 0.25rem; }
+              .-bottom-5 { bottom: -1.25rem; }
+              .right-0 { right: 0; }
+              .left-0 { left: 0; }
+              .top-0 { top: 0; }
+              .h-full { height: 100%; }
+              .flex-col { flex-direction: column; }
+              .items-center { align-items: center; }
+              .justify-center { justify-content: center; }
+              .gap-1 { gap: 0.25rem; }
               
               /* Badge styles */
               .inline-flex { display: inline-flex; }
@@ -170,7 +184,20 @@ export default function StandardCuttingPlan({
               .rounded-full { border-radius: 9999px; }
               .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
               .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-              .bg-secondary { background-color: #f1f5f9; }
+              .bg-secondary { background-color: #f1f5f9; border: 1px solid #e2e8f0; }
+              
+              /* Width utilities */
+              .w-14 { width: 3.5rem; }
+              .w-20 { width: 5rem; }
+              .w-24 { width: 6rem; }
+              .w-28 { width: 7rem; }
+              .w-12 { width: 3rem; }
+              .w-16 { width: 4rem; }
+              .min-w-48 { min-width: 12rem; }
+              
+              /* Flexbox utilities */
+              .flex { display: flex; }
+              .space-y-1 > * + * { margin-top: 0.25rem; }
               
               /* Stats grid */
               .grid { display: grid; }
@@ -221,12 +248,16 @@ export default function StandardCuttingPlan({
       const contentElement = document.querySelector('[data-print-content]');
       if (!contentElement) return;
       
-      // Capture the visual content as canvas
+      // Capture the visual content as canvas with better quality
       const canvas = await html2canvas(contentElement as HTMLElement, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        width: contentElement.scrollWidth,
+        height: contentElement.scrollHeight,
+        windowWidth: 1400,
+        windowHeight: 2000
       });
       
       const imgData = canvas.toDataURL('image/png');
@@ -465,14 +496,14 @@ export default function StandardCuttingPlan({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-16">Cut #</TableHead>
-                  <TableHead>Length (mm)</TableHead>
-                  <TableHead>First Cut Angle</TableHead>
-                  <TableHead>Second Cut Angle</TableHead>
-                  <TableHead>Visual Guide</TableHead>
-                  <TableHead>Qty</TableHead>
-                  <TableHead>Est. Time</TableHead>
-                  <TableHead>Instructions</TableHead>
+                  <TableHead className="w-14">Cut #</TableHead>
+                  <TableHead className="w-20">Length (mm)</TableHead>
+                  <TableHead className="w-24">First Cut Angle</TableHead>
+                  <TableHead className="w-24">Second Cut Angle</TableHead>
+                  <TableHead className="w-28">Visual Guide</TableHead>
+                  <TableHead className="w-12">Qty</TableHead>
+                  <TableHead className="w-16">Est. Time</TableHead>
+                  <TableHead className="min-w-48">Instructions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
