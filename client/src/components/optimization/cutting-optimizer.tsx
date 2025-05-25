@@ -623,51 +623,65 @@ export default function CuttingOptimizerComponent() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Add new cut request */}
-              <div className="grid grid-cols-12 gap-3">
-                <div className="col-span-3">
-                  <Label htmlFor="cut-length">Length (mm)</Label>
-                  <Input
-                    id="cut-length"
-                    type="number"
-                    value={newCut.length}
-                    onChange={(e) => setNewCut({ ...newCut, length: e.target.value })}
-                    placeholder="1000"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Label htmlFor="cut-quantity">Qty</Label>
-                  <Input
-                    id="cut-quantity"
-                    type="number"
-                    value={newCut.quantity}
-                    onChange={(e) => setNewCut({ ...newCut, quantity: e.target.value })}
-                    min="1"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Label htmlFor="cut-angle">Angle (°)</Label>
-                  <Input
-                    id="cut-angle"
-                    type="number"
-                    value={newCut.angle}
-                    onChange={(e) => setNewCut({ ...newCut, angle: e.target.value })}
-                    placeholder="90"
-                    min="1"
-                    max="180"
-                  />
-                </div>
-                <div className="col-span-4">
-                  <Label htmlFor="cut-material">Material</Label>
+              {/* Material, Length, and Quantity - Professional Layout */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-4">
+                <h4 className="text-sm font-medium text-slate-700 mb-3">Material Specification</h4>
+                
+                {/* Material Selection */}
+                <div>
+                  <Label htmlFor="cut-material" className="text-xs font-medium text-slate-600">Material</Label>
                   <InstantMaterialSearch
                     value={newCut.materialType}
                     onSelect={(materialCode) => setNewCut({ ...newCut, materialType: materialCode })}
                     placeholder="Type to search materials..."
+                    className="mt-1"
                   />
                 </div>
-                <div className="col-span-1 flex items-end">
-                  <Button onClick={addCutRequest} size="sm" className="px-3 py-2 h-10 w-full">
-                    <Plus className="h-4 w-4" />
+                
+                {/* Length, Quantity, and Angle in a row */}
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="col-span-2">
+                    <Label htmlFor="cut-length" className="text-xs font-medium text-slate-600">Length (mm)</Label>
+                    <Input
+                      id="cut-length"
+                      type="number"
+                      value={newCut.length}
+                      onChange={(e) => setNewCut({ ...newCut, length: e.target.value })}
+                      placeholder="1000"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cut-quantity" className="text-xs font-medium text-slate-600">Qty</Label>
+                    <Input
+                      id="cut-quantity"
+                      type="number"
+                      value={newCut.quantity}
+                      onChange={(e) => setNewCut({ ...newCut, quantity: e.target.value })}
+                      min="1"
+                      className="mt-1 w-20"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cut-angle" className="text-xs font-medium text-slate-600">Angle (°)</Label>
+                    <Input
+                      id="cut-angle"
+                      type="number"
+                      value={newCut.angle}
+                      onChange={(e) => setNewCut({ ...newCut, angle: e.target.value })}
+                      placeholder="90"
+                      min="1"
+                      max="180"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                
+                {/* Add Button */}
+                <div className="flex justify-end">
+                  <Button onClick={addCutRequest} size="sm" className="px-4 py-2">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Cut
                   </Button>
                 </div>
               </div>

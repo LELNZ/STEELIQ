@@ -279,17 +279,30 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                         {(cut.position === 'start' || cut.position === 'both') && (
                           <div className="absolute left-0 top-0">
                             <svg width="60" height="48" className="overflow-visible">
-                              {/* Red triangle showing material being removed - flips top to bottom */}
-                              <polygon
-                                points={cut.orientation === 'same' 
-                                  ? `0,0 60,0 0,48`
-                                  : `0,48 60,48 0,0`
-                                }
-                                fill="#ef4444"
-                                opacity="0.8"
-                                className="cursor-pointer hover:opacity-100 transition-opacity"
-                                onClick={() => removeComplexCut(cut.id)}
-                              />
+                              {/* Red shape showing material being removed - vertical line for 90° */}
+                              {cut.angle === 90 ? (
+                                <rect
+                                  x="0"
+                                  y="0"
+                                  width="60"
+                                  height="48"
+                                  fill="#ef4444"
+                                  opacity="0.8"
+                                  className="cursor-pointer hover:opacity-100 transition-opacity"
+                                  onClick={() => removeComplexCut(cut.id)}
+                                />
+                              ) : (
+                                <polygon
+                                  points={cut.orientation === 'same' 
+                                    ? `0,0 60,0 0,48`
+                                    : `0,48 60,48 0,0`
+                                  }
+                                  fill="#ef4444"
+                                  opacity="0.8"
+                                  className="cursor-pointer hover:opacity-100 transition-opacity"
+                                  onClick={() => removeComplexCut(cut.id)}
+                                />
+                              )}
                               {/* Angle label */}
                               <text 
                                 x="20" 
@@ -324,17 +337,30 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                         {(cut.position === 'end' || cut.position === 'both') && (
                           <div className="absolute right-0 top-0">
                             <svg width="60" height="48" className="overflow-visible">
-                              {/* Red triangle showing material being removed - flips top to bottom */}
-                              <polygon
-                                points={cut.orientation === 'same' 
-                                  ? `0,0 60,0 60,48`
-                                  : `60,48 60,0 0,48`
-                                }
-                                fill="#ef4444"
-                                opacity="0.8"
-                                className="cursor-pointer hover:opacity-100 transition-opacity"
-                                onClick={() => removeComplexCut(cut.id)}
-                              />
+                              {/* Red shape showing material being removed - vertical line for 90° */}
+                              {cut.angle === 90 ? (
+                                <rect
+                                  x="0"
+                                  y="0"
+                                  width="60"
+                                  height="48"
+                                  fill="#ef4444"
+                                  opacity="0.8"
+                                  className="cursor-pointer hover:opacity-100 transition-opacity"
+                                  onClick={() => removeComplexCut(cut.id)}
+                                />
+                              ) : (
+                                <polygon
+                                  points={cut.orientation === 'same' 
+                                    ? `0,0 60,0 60,48`
+                                    : `60,48 60,0 0,48`
+                                  }
+                                  fill="#ef4444"
+                                  opacity="0.8"
+                                  className="cursor-pointer hover:opacity-100 transition-opacity"
+                                  onClick={() => removeComplexCut(cut.id)}
+                                />
+                              )}
                               {/* Angle label */}
                               <text 
                                 x="40" 
@@ -424,7 +450,7 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                       min="1"
                       value={quantity}
                       onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-12 h-7 text-center text-xs"
+                      className="w-20 h-7 text-center text-xs"
                     />
                     <span className="text-xs text-muted-foreground">pcs</span>
                   </div>
