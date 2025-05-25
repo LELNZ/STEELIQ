@@ -367,16 +367,7 @@ export default function CuttingOptimizerComponent() {
     return grouped;
   };
 
-  // Initialize toast hook
-  const { toast } = useToast();
-
-    // Helper function to add text with better formatting
-    const addText = (text: string, fontSize = 11, isBold = false, indent = 0) => {
-      pdf.setFontSize(fontSize);
-      if (isBold) pdf.setFont('helvetica', 'bold');
-      else pdf.setFont('helvetica', 'normal');
-      
-      const maxWidth = pageWidth - 2 * margin - indent;
+  // Clean section - ready for testing
       const lines = pdf.splitTextToSize(text, maxWidth);
       
       lines.forEach((line: string) => {
