@@ -288,14 +288,16 @@ export default function CuttingOptimizerComponent() {
         const material = materialsData.find(m => m.code === request?.materialType);
         
         // Create proper material specification format: "SHS 100x100x9 x 8000mm"
-        let materialSpec = 'Mixed Materials';
+        let materialSpec = 'Unknown Material';
         if (material) {
-          const dimensions = [material.height, material.width, material.thickness]
+          const dimensions = [material.width, material.thickness]
             .filter(d => d && d > 0)
             .join('x');
           materialSpec = dimensions 
             ? `${material.name} ${dimensions} x ${stockLength}mm`
             : `${material.name} x ${stockLength}mm`;
+        } else if (request?.materialType) {
+          materialSpec = `${request.materialType} x ${stockLength}mm`;
         }
         
         if (planGroup.repeatCount > 1) {
@@ -804,12 +806,7 @@ export default function CuttingOptimizerComponent() {
                           Create Job
                         </Button>
                       )}
-                      {!isJobMode && (
-                        <Button variant="default" size="sm" onClick={() => setShowCreateJobDialog(true)} className="h-7 px-2 text-xs">
-                          <Briefcase className="h-3 w-3 mr-1" />
-                          Job
-                        </Button>
-                      )}
+
                       <Button variant="outline" size="sm" onClick={exportToPDF} className="h-7 px-2 text-xs">
                         <FileText className="h-3 w-3 mr-1" />
                         PDF
