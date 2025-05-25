@@ -27,6 +27,7 @@ interface ComplexCutsConfiguratorProps {
 export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCuts, onAddToRequest }: ComplexCutsConfiguratorProps) {
   const [quantity, setQuantity] = useState(1);
   const [showExamples, setShowExamples] = useState(false);
+  const [showManualAdd, setShowManualAdd] = useState(false);
   const [draggedCut, setDraggedCut] = useState<{ angle: number; id: string } | null>(null);
   const [dragOverPosition, setDragOverPosition] = useState<'start' | 'end' | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -123,7 +124,7 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                 {/* Drag & Drop Toolbox */}
                 <div className="mb-4 p-3 bg-white rounded-lg border-2 border-dashed border-gray-300">
                   <div className="text-xs font-medium text-gray-600 mb-2">Cut Tools - Drag to Material:</div>
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2 flex-wrap items-center">
                     {[30, 45, 60, 90].map((angle) => (
                       <div
                         key={angle}
@@ -138,6 +139,28 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                         {angle}°
                       </div>
                     ))}
+                    <div className="flex items-center gap-1 ml-2">
+                      <Input
+                        type="number"
+                        placeholder="Custom"
+                        className="w-16 h-8 text-center text-sm"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const customAngle = parseInt((e.target as HTMLInputElement).value);
+                            if (customAngle && customAngle > 0 && customAngle <= 180) {
+                              setDraggedCut({ angle: customAngle, id: `custom_${Date.now()}` });
+                              // Create draggable element for custom angle
+                              const customTool = document.createElement('div');
+                              customTool.textContent = `${customAngle}°`;
+                              customTool.style.cssText = 'padding: 8px 12px; background: #fed7aa; border: 1px solid #fb923c; border-radius: 8px; position: absolute; top: -100px; left: -100px; pointer-events: none;';
+                              document.body.appendChild(customTool);
+                              setTimeout(() => document.body.removeChild(customTool), 100);
+                            }
+                          }
+                        }}
+                      />
+                      <span className="text-xs text-gray-500">°</span>
+                    </div>
                   </div>
                 </div>
                 
@@ -308,21 +331,19 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                   </Button>
                 </div>
                 
-                {/* Quantity and Add to Request Section */}
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="quantity" className="text-sm font-medium">Quantity:</Label>
-                      <Input
-                        id="quantity"
-                        type="number"
-                        min="1"
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-16 h-8 text-center"
-                      />
-                      <span className="text-sm text-muted-foreground">pieces</span>
-                    </div>
+                {/* Compact Quantity and Add to Request Section */}
+                <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Label htmlFor="quantity" className="text-xs font-medium">Qty:</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      value={quantity}
+                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-12 h-7 text-center text-xs"
+                    />
+                    <span className="text-xs text-muted-foreground">pcs</span>
                   </div>
                   
                   <Button
@@ -335,9 +356,9 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                       }
                     }}
                     disabled={!length || complexCuts.length === 0 || !onAddToRequest}
-                    className="w-full h-9 bg-green-600 hover:bg-green-700 text-white"
+                    className="w-full h-7 bg-green-600 hover:bg-green-700 text-white text-xs"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-3 h-3 mr-1" />
                     Add {quantity}× to Cut List
                   </Button>
                 </div>
@@ -347,10 +368,22 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
 
           {/* Add New Complex Cut */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Add Complex Cut</CardTitle>
+            <CardHeader className="pb-2">
+              <Button
+                variant="ghost"
+                onClick={() => setShowManualAdd(!showManualAdd)}
+                className="w-full justify-between p-0 h-auto font-medium text-left hover:bg-transparent"
+              >
+                <span className="text-sm">Manually Add Complex Cut</span>
+                {showManualAdd ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
             </CardHeader>
-            <CardContent>
+            {showManualAdd && (
+              <CardContent className="pt-0">
               <div className="grid grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="cut-position">Position</Label>
@@ -414,7 +447,8 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                   </Button>
                 </div>
               </div>
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
 
           {/* Current Complex Cuts List */}
