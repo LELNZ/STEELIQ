@@ -958,6 +958,24 @@ export default function CuttingOptimizerComponent() {
           )}
         </div>
       </div>
+
+      {/* Simulation History Section */}
+      <div className="mt-8">
+        <SimulationHistory 
+          onRecallSimulation={(simulationData) => {
+            // Load the recalled simulation data back into the optimizer
+            if (simulationData.cutRequests) {
+              setCutRequests(JSON.parse(simulationData.cutRequests));
+            }
+            if (simulationData.stockItems) {
+              setStockItems(JSON.parse(simulationData.stockItems));
+            }
+            if (simulationData.optimizationData) {
+              setOptimizationResult(JSON.parse(simulationData.optimizationData));
+            }
+          }}
+        />
+      </div>
     </div>
   );
 }
