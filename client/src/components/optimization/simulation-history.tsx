@@ -31,35 +31,23 @@ export function SimulationHistory({ onRecallSimulation }: SimulationHistoryProps
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch simulation history
-  const { data: simulations = [], isLoading } = useQuery({
-    queryKey: ['/api/simulations'],
-    queryFn: () => apiRequest('/api/simulations'),
-  });
+  // Mock data for now until backend is implemented
+  const simulations: SimulationSummary[] = [];
+  const isLoading = false;
 
-  // Delete simulation mutation
-  const deleteSimulationMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/simulations/${id}`, { method: 'DELETE' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/simulations'] });
-      toast({
-        title: "Simulation deleted",
-        description: "The simulation has been permanently removed.",
-      });
-    },
-  });
+  const deleteSimulation = (id: string) => {
+    toast({
+      title: "Feature coming soon",
+      description: "Simulation history will be available in the next update.",
+    });
+  };
 
-  // Recall simulation mutation
-  const recallSimulationMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/simulations/${id}`),
-    onSuccess: (data) => {
-      onRecallSimulation(data);
-      toast({
-        title: "Simulation recalled",
-        description: "The simulation has been loaded into the optimizer.",
-      });
-    },
-  });
+  const recallSimulation = (id: string) => {
+    toast({
+      title: "Feature coming soon", 
+      description: "Simulation recall will be available in the next update.",
+    });
+  };
 
   const formatTimeRemaining = (expiresAt: string) => {
     const expires = new Date(expiresAt);
@@ -156,8 +144,7 @@ export function SimulationHistory({ onRecallSimulation }: SimulationHistoryProps
                     <Button
                       size="sm"
                       variant="default"
-                      onClick={() => recallSimulationMutation.mutate(sim.id)}
-                      disabled={recallSimulationMutation.isPending}
+                      onClick={() => recallSimulation(sim.id)}
                       className="flex-1"
                     >
                       <Eye className="h-3 w-3 mr-1" />
@@ -183,8 +170,7 @@ export function SimulationHistory({ onRecallSimulation }: SimulationHistoryProps
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => deleteSimulationMutation.mutate(sim.id)}
-                      disabled={deleteSimulationMutation.isPending}
+                      onClick={() => deleteSimulation(sim.id)}
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>

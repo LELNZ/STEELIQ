@@ -13,7 +13,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star, Download, FileText, Table, QrCode, Briefcase, ToggleLeft, ToggleRight, History, Settings } from "lucide-react";
 import jsPDF from "jspdf";
 import { SimulationHistory } from "./simulation-history";
-import { PdfExportConfigurator, type PdfConfig } from "./pdf-export-configurator";
 import { 
   CuttingOptimizer, 
   CutRequest, 
@@ -291,7 +290,7 @@ export default function CuttingOptimizerComponent() {
         let materialSpec = 'Unknown Material';
         if (material) {
           const dimensions = [material.width, material.thickness]
-            .filter(d => d && d > 0)
+            .filter(d => d && Number(d) > 0)
             .join('x');
           materialSpec = dimensions 
             ? `${material.name} ${dimensions} x ${stockLength}mm`
