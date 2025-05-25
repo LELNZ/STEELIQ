@@ -201,11 +201,30 @@ export default function StandardCuttingPlan({
               
               /* Stats grid */
               .grid { display: grid; }
+              .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
               .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+              .md\\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
               .gap-4 { gap: 1rem; }
               .text-center { text-align: center; }
               .text-2xl { font-size: 1.5rem; line-height: 2rem; }
               .font-bold { font-weight: 700; }
+              .mb-1 { margin-bottom: 0.25rem; }
+              .mt-2 { margin-top: 0.5rem; }
+              .pb-4 { padding-bottom: 1rem; }
+              .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+              
+              /* Card styles */
+              .bg-card { background-color: white; }
+              .text-foreground { color: #0f172a; }
+              .text-muted-foreground { color: #64748b; }
+              
+              /* Header styling */
+              .flex { display: flex; }
+              .items-center { align-items: center; }
+              .justify-between { justify-content: space-between; }
+              .gap-2 { gap: 0.5rem; }
+              .gap-4 { gap: 1rem; }
+              .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
               
               /* Colors */
               .text-green-600 { color: #16a34a; }
