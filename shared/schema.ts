@@ -171,6 +171,25 @@ export const optimizationSimulations = pgTable("optimization_simulations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// PDF Export Configuration table
+export const pdfExportConfigs = pgTable("pdf_export_configs", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  isDefault: boolean("is_default").default(false),
+  showCheckboxes: boolean("show_checkboxes").default(true),
+  checkboxPosition: text("checkbox_position").default("right"), // "left" or "right"
+  compactLayout: boolean("compact_layout").default(true),
+  showMaterialSpecs: boolean("show_material_specs").default(true),
+  showEfficiency: boolean("show_efficiency").default(true),
+  showWaste: boolean("show_waste").default(true),
+  showAngles: boolean("show_angles").default(true),
+  fontSize: integer("font_size").default(10),
+  lineSpacing: decimal("line_spacing", { precision: 3, scale: 1 }).default("1.2"),
+  includeRemnants: boolean("include_remnants").default(true),
+  headerStyle: text("header_style").default("colored"), // "colored" or "simple"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   assignedJobs: many(jobs),
@@ -314,6 +333,11 @@ export const insertOptimizationSimulationSchema = createInsertSchema(optimizatio
   createdAt: true,
 });
 
+export const insertPdfExportConfigSchema = createInsertSchema(pdfExportConfigs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -344,3 +368,6 @@ export type InsertRemnant = z.infer<typeof insertRemnantSchema>;
 
 export type OptimizationSimulation = typeof optimizationSimulations.$inferSelect;
 export type InsertOptimizationSimulation = z.infer<typeof insertOptimizationSimulationSchema>;
+
+export type PdfExportConfig = typeof pdfExportConfigs.$inferSelect;
+export type InsertPdfExportConfig = z.infer<typeof insertPdfExportConfigSchema>;

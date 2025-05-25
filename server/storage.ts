@@ -74,6 +74,12 @@ export interface IStorage {
     avgEfficiency: number;
     weeklyVolume: number;
   }>;
+
+  // Optimization Simulations
+  getOptimizationSimulations(): Promise<OptimizationSimulation[]>;
+  getOptimizationSimulation(id: string): Promise<OptimizationSimulation | undefined>;
+  createOptimizationSimulation(simulation: InsertOptimizationSimulation): Promise<OptimizationSimulation>;
+  deleteExpiredSimulations(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
