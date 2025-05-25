@@ -281,7 +281,7 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                               <polygon
                                 points={cut.orientation === 'same' 
                                   ? `0,0 60,0 0,48`
-                                  : `0,48 60,0 0,0`
+                                  : `0,48 60,48 0,0`
                                 }
                                 fill="#ef4444"
                                 opacity="0.8"
