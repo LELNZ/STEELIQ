@@ -214,103 +214,80 @@ export default function StandardCuttingPlan({
 
   const handleExport = async () => {
     try {
-      // Dynamic import of jsPDF
+      // Use html2canvas to capture the visual layout exactly as displayed
+      const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
-      const doc = new jsPDF();
       
-      // Add title
-      doc.setFontSize(20);
-      doc.text(`Cutting Plan - ${jobNumber || 'Job'}`, 20, 20);
+      const contentElement = document.querySelector('[data-print-content]');
+      if (!contentElement) return;
       
-      // Add job details
-      doc.setFontSize(12);
-      doc.text(`Material: ${materialCode}`, 20, 35);
-      doc.text(`Plans: ${plans.length}`, 20, 45);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 55);
-      
-      let yPosition = 70;
-      
-      // Add summary stats
-      const stats = calculateTotalStats();
-      doc.text(`Summary:`, 20, yPosition);
-      yPosition += 10;
-      doc.text(`Total Cuts: ${stats.totalCuts} | Efficiency: ${stats.avgEfficiency.toFixed(1)}% | Waste: ${stats.totalWaste.toFixed(0)}mm | Est. Time: ${formatTime(stats.totalTime)}`, 20, yPosition);
-      yPosition += 20;
-      
-      // Add each cutting plan
-      plans.forEach((plan, planIndex) => {
-        if (yPosition > 250) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        
-        // Plan header
-        doc.setFontSize(14);
-        doc.text(`Stock Bar #${planIndex + 1} - ${plan.stockLength}mm`, 20, yPosition);
-        yPosition += 10;
-        
-        doc.setFontSize(10);
-        doc.text(`Efficiency: ${plan.efficiency.toFixed(1)}% | Cuts: ${plan.totalCuts} | Waste: ${plan.wasteLength.toFixed(0)}mm`, 20, yPosition);
-        yPosition += 15;
-        
-        // Instructions
-        if (plan.instructions) {
-          if (plan.instructions.general) {
-            doc.text(`Instructions: ${plan.instructions.general}`, 20, yPosition);
-            yPosition += 8;
-          }
-          if (plan.instructions.heatNumber) {
-            doc.text(`Heat Number: ${plan.instructions.heatNumber}`, 20, yPosition);
-            yPosition += 8;
-          }
-        }
-        yPosition += 5;
-        
-        // Table header
-        doc.text('Cut#', 20, yPosition);
-        doc.text('Length', 40, yPosition);
-        doc.text('First Cut', 70, yPosition);
-        doc.text('Second Cut', 100, yPosition);
-        doc.text('Qty', 130, yPosition);
-        doc.text('Time', 150, yPosition);
-        doc.text('Instructions', 170, yPosition);
-        yPosition += 8;
-        
-        // Cuts
-        plan.cuts.forEach((cut, cutIndex) => {
-          if (yPosition > 270) {
-            doc.addPage();
-            yPosition = 20;
-          }
-          
-          const hasAngleCuts = (cut.startAngle && cut.startAngle !== 90) || (cut.endAngle && cut.endAngle !== 90);
-          const timePerCut = hasAngleCuts ? 12 : 10;
-          const totalCutTime = timePerCut * cut.quantity;
-          
-          doc.text(`#${cutIndex + 1}`, 20, yPosition);
-          doc.text(`${cut.length}mm`, 40, yPosition);
-          doc.text(`${cut.startAngle || 90}°`, 70, yPosition);
-          doc.text(`${cut.endAngle || 90}°`, 100, yPosition);
-          doc.text(`${cut.quantity}`, 130, yPosition);
-          doc.text(formatTime(totalCutTime), 150, yPosition);
-          doc.text(cut.cuttingInstructions || cut.description || '-', 170, yPosition);
-          yPosition += 8;
-        });
-        
-        // Waste
-        doc.text('OFFCUT', 20, yPosition);
-        doc.text(`${plan.wasteLength.toFixed(0)}mm`, 40, yPosition);
-        doc.text(`Tag: ${plan.instructions?.heatNumber || 'Heat#'}`, 170, yPosition);
-        yPosition += 15;
+      // Capture the visual content as canvas
+      const canvas = await html2canvas(contentElement as HTMLElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
       });
       
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 295; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      // Add additional pages if content is longer
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
       // Save the PDF
-      doc.save(`cutting-plan-${jobNumber || 'job'}-${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.save(`cutting-plan-${jobNumber || 'job'}-${new Date().toISOString().split('T')[0]}.pdf`);
       
     } catch (error) {
       console.error('PDF export failed:', error);
-      // Fallback to print
-      handlePrint();
+      // Fallback to simple text PDF
+      try {
+        const { jsPDF } = await import('jspdf');
+        const doc = new jsPDF();
+        
+        doc.setFontSize(20);
+        doc.text(`Cutting Plan - ${jobNumber || 'Job'}`, 20, 20);
+        doc.setFontSize(12);
+        doc.text(`Material: ${materialCode} | Plans: ${plans.length}`, 20, 35);
+        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
+        
+        let yPos = 60;
+        plans.forEach((plan, index) => {
+          if (yPos > 250) { doc.addPage(); yPos = 20; }
+          doc.text(`Stock Bar #${index + 1} - ${plan.stockLength}mm`, 20, yPos);
+          yPos += 10;
+          plan.cuts.forEach((cut, cutIndex) => {
+            if (yPos > 270) { doc.addPage(); yPos = 20; }
+            doc.text(`#${cutIndex + 1}: ${cut.length}mm - ${cut.startAngle || 90}°/${cut.endAngle || 90}° - Qty: ${cut.quantity}`, 20, yPos);
+            yPos += 8;
+          });
+          yPos += 5;
+        });
+        
+        doc.save(`cutting-plan-${jobNumber || 'job'}-${new Date().toISOString().split('T')[0]}.pdf`);
+      } catch (fallbackError) {
+        console.error('Fallback PDF also failed:', fallbackError);
+        handlePrint();
+      }
     }
   };
 
