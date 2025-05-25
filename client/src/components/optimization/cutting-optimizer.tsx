@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star, Download, FileText, Table, QrCode, Briefcase, ToggleLeft, ToggleRight } from "lucide-react";
+import jsPDF from "jspdf";
 import { 
   CuttingOptimizer, 
   CutRequest, 
@@ -150,94 +151,89 @@ export default function CuttingOptimizerComponent() {
     const identifier = isJobMode ? generateJobNumber() : `SIM-${Date.now()}`;
     const timestamp = new Date().toLocaleString('en-NZ');
     
-    // Create professional workshop-friendly PDF content
-    const pdfContent = `
-═══════════════════════════════════════════════════════════════
-                    LATERAL ENGINEERING LIMITED
-                    CUTTING OPTIMIZATION REPORT
-═══════════════════════════════════════════════════════════════
+    // Create PDF using jsPDF
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.width;
+    const margin = 20;
+    let yPosition = margin;
 
-${isJobMode ? 'JOB' : 'SIMULATION'} ID: ${identifier}
-Generated: ${timestamp}
-Algorithm: ${optimizationResult.summary.algorithm}
+    // Helper function to add text with word wrapping
+    const addText = (text: string, fontSize = 10, isBold = false) => {
+      pdf.setFontSize(fontSize);
+      if (isBold) pdf.setFont('helvetica', 'bold');
+      else pdf.setFont('helvetica', 'normal');
+      
+      const lines = pdf.splitTextToSize(text, pageWidth - 2 * margin);
+      lines.forEach((line: string) => {
+        if (yPosition > pdf.internal.pageSize.height - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.text(line, margin, yPosition);
+        yPosition += fontSize * 0.5;
+      });
+      yPosition += 5;
+    };
 
-───────────────────────────────────────────────────────────────
-OPTIMIZATION SUMMARY
-───────────────────────────────────────────────────────────────
-✓ Total Efficiency:     ${optimizationResult.summary.avgEfficiency.toFixed(1)}%
-✓ Total Waste:          ${optimizationResult.summary.totalWaste.toFixed(0)}mm (${optimizationResult.summary.totalWastePercentage.toFixed(1)}%)
-✓ Total Cuts Required:  ${optimizationResult.summary.totalCuts}
-✓ Estimated Cut Time:   ${Math.floor(optimizationResult.summary.totalCuttingTime / 60)}h ${optimizationResult.summary.totalCuttingTime % 60}m
+    // Header
+    addText('LATERAL ENGINEERING LIMITED', 16, true);
+    addText('CUTTING OPTIMIZATION REPORT', 14, true);
+    addText(`${isJobMode ? 'JOB' : 'SIMULATION'} ID: ${identifier}`, 12, true);
+    addText(`Generated: ${timestamp}`, 10);
+    addText(`Algorithm: ${optimizationResult.summary.algorithm}`, 10);
+    yPosition += 10;
 
-───────────────────────────────────────────────────────────────
-CUTTING SEQUENCE - WORKSHOP INSTRUCTIONS
-───────────────────────────────────────────────────────────────
+    // Summary
+    addText('OPTIMIZATION SUMMARY', 12, true);
+    addText(`✓ Total Efficiency: ${optimizationResult.summary.avgEfficiency.toFixed(1)}%`, 10);
+    addText(`✓ Total Waste: ${optimizationResult.summary.totalWaste.toFixed(0)}mm (${optimizationResult.summary.totalWastePercentage.toFixed(1)}%)`, 10);
+    addText(`✓ Total Cuts Required: ${optimizationResult.summary.totalCuts}`, 10);
+    addText(`✓ Estimated Cut Time: ${Math.floor(optimizationResult.summary.totalCuttingTime / 60)}h ${optimizationResult.summary.totalCuttingTime % 60}m`, 10);
+    yPosition += 10;
 
-${processPlansForDisplay(optimizationResult.plans).map((planGroup, i) => {
-  if (planGroup.repeatCount > 1) {
-    return `
-STOCK GROUP ${i + 1} - REPEAT ${planGroup.repeatCount}x
-Stock Length: ${planGroup.plan.stockLength}mm
-Material: ${planGroup.plan.cuts[0]?.requestId || 'Mixed'}
-Efficiency: ${planGroup.plan.efficiency.toFixed(1)}%
-Waste per stock: ${planGroup.plan.wasteLength.toFixed(0)}mm
+    // Cutting Plans
+    addText('CUTTING SEQUENCE - WORKSHOP INSTRUCTIONS', 12, true);
+    
+    const processedPlans = processPlansForDisplay(optimizationResult.plans);
+    processedPlans.forEach((planGroup, i) => {
+      if (planGroup.repeatCount > 1) {
+        addText(`STOCK GROUP ${i + 1} - REPEAT ${planGroup.repeatCount}x`, 11, true);
+        addText(`Stock Length: ${planGroup.plan.stockLength}mm | Material: ${planGroup.plan.cuts[0]?.requestId || 'Mixed'}`, 10);
+        addText(`Efficiency: ${planGroup.plan.efficiency.toFixed(1)}% | Waste per stock: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 10);
+        addText('Cut Sequence (repeat for each stock):', 10, true);
+      } else {
+        addText(`STOCK ${i + 1}`, 11, true);
+        addText(`Stock Length: ${planGroup.plan.stockLength}mm | Material: ${planGroup.plan.cuts[0]?.requestId || 'Mixed'}`, 10);
+        addText(`Efficiency: ${planGroup.plan.efficiency.toFixed(1)}% | Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 10);
+        addText('Cut Sequence:', 10, true);
+      }
+      
+      planGroup.plan.cuts.forEach((cut, cutIndex) => {
+        const angleText = cut.angle && cut.angle !== 90 ? ` (${cut.angle}° angle)` : '';
+        addText(`  ${cutIndex + 1}. Cut ${cut.length}mm x${cut.quantity} @ ${cut.position.toFixed(0)}mm${angleText}`, 9);
+      });
+      yPosition += 5;
+    });
 
-Cut Sequence (repeat for each stock):
-${planGroup.plan.cuts.map((cut, cutIndex) => 
-  `  ${cutIndex + 1}. Cut ${cut.length}mm x${cut.quantity} @ ${cut.position.toFixed(0)}mm${cut.angle && cut.angle !== 90 ? ` (${cut.angle}° angle)` : ''}`
-).join('\n')}
+    // Remnants
+    if (optimizationResult.remnants.length > 0) {
+      addText('REMNANTS TO SAVE (>500mm)', 12, true);
+      optimizationResult.remnants.forEach(remnant => {
+        addText(`• ${remnant.length.toFixed(0)}mm ${remnant.materialType} - Label and store`, 10);
+      });
+      yPosition += 5;
+    }
 
-Total waste for group: ${(planGroup.plan.wasteLength * planGroup.repeatCount).toFixed(0)}mm
-`;
-  } else {
-    return `
-STOCK ${i + 1}
-Stock Length: ${planGroup.plan.stockLength}mm
-Material: ${planGroup.plan.cuts[0]?.requestId || 'Mixed'}
-Efficiency: ${planGroup.plan.efficiency.toFixed(1)}%
-Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm
+    // Safety reminders
+    addText('SAFETY REMINDERS', 12, true);
+    addText('• Check all measurements twice before cutting', 10);
+    addText('• Allow 2.4mm kerf + 0.5mm user error margin', 10);
+    addText('• Verify material specifications match requirements', 10);
+    addText('• Use appropriate PPE for cutting operations', 10);
+    addText('• Label all remnants with mill cert/heat numbers', 10);
 
-Cut Sequence:
-${planGroup.plan.cuts.map((cut, cutIndex) => 
-  `  ${cutIndex + 1}. Cut ${cut.length}mm x${cut.quantity} @ ${cut.position.toFixed(0)}mm${cut.angle && cut.angle !== 90 ? ` (${cut.angle}° angle)` : ''}`
-).join('\n')}
-`;
-  }
-}).join('\n')}
-
-${optimizationResult.remnants.length > 0 ? `
-───────────────────────────────────────────────────────────────
-REMNANTS TO SAVE (>500mm)
-───────────────────────────────────────────────────────────────
-${optimizationResult.remnants.map(remnant => 
-  `• ${remnant.length.toFixed(0)}mm ${remnant.materialType} - Label and store`
-).join('\n')}
-` : ''}
-
-───────────────────────────────────────────────────────────────
-SAFETY REMINDERS
-───────────────────────────────────────────────────────────────
-• Check all measurements twice before cutting
-• Allow 2.4mm kerf + 0.5mm user error margin
-• Verify material specifications match requirements
-• Use appropriate PPE for cutting operations
-• Label all remnants with mill cert/heat numbers
-
-═══════════════════════════════════════════════════════════════
-End of Cutting Report - ${identifier}
-═══════════════════════════════════════════════════════════════
-    `;
-
-    // Create and download PDF-ready text file (will integrate proper PDF library later)
-    const blob = new Blob([pdfContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${isJobMode ? 'job' : 'simulation'}-cutting-plan-${identifier}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Save PDF
+    pdf.save(`${isJobMode ? 'job' : 'simulation'}-cutting-plan-${identifier}.pdf`);
   };
 
   const exportToExcel = () => {
@@ -365,9 +361,61 @@ End of Cutting Report - ${identifier}
             Minimize waste and maximize efficiency with advanced algorithms
           </p>
         </div>
-        <Badge variant="secondary" className="text-sm">
-          Target: &lt;5% Waste
-        </Badge>
+        <div className="flex items-center gap-4">
+          {/* Mode Toggle */}
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-medium">Mode:</Label>
+            <div className="flex border rounded-md">
+              <Button
+                variant={!isJobMode ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setIsJobMode(false)}
+                className={`h-8 px-3 text-xs rounded-r-none ${!isJobMode ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              >
+                <Zap className="h-3 w-3 mr-1" />
+                Simulation
+              </Button>
+              <Button
+                variant={isJobMode ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setIsJobMode(true)}
+                className={`h-8 px-3 text-xs rounded-l-none ${isJobMode ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              >
+                <Briefcase className="h-3 w-3 mr-1" />
+                Job
+              </Button>
+            </div>
+          </div>
+          
+          {/* Plan Grouping Toggle */}
+          {optimizationResult && (
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-medium">Group Plans:</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setGroupIdenticalPlans(!groupIdenticalPlans)}
+                className="h-8 px-3 text-xs"
+              >
+                {groupIdenticalPlans ? (
+                  <>
+                    <ToggleRight className="h-3 w-3 mr-1" />
+                    ON
+                  </>
+                ) : (
+                  <>
+                    <ToggleLeft className="h-3 w-3 mr-1" />
+                    OFF
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+          
+          <Badge variant="secondary" className="text-sm">
+            Target: &lt;5% Waste
+          </Badge>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -630,24 +678,24 @@ End of Cutting Report - ${identifier}
                       <BarChart3 className="h-5 w-5" />
                       Optimization Results
                     </CardTitle>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                       {!isJobMode && (
-                        <Button variant="default" size="sm" onClick={() => setShowCreateJobDialog(true)}>
-                          <Briefcase className="h-4 w-4 mr-1" />
-                          Create Job
+                        <Button variant="default" size="sm" onClick={() => setShowCreateJobDialog(true)} className="h-7 px-2 text-xs">
+                          <Briefcase className="h-3 w-3 mr-1" />
+                          Job
                         </Button>
                       )}
-                      <Button variant="outline" size="sm" onClick={exportToPDF}>
-                        <FileText className="h-4 w-4 mr-1" />
+                      <Button variant="outline" size="sm" onClick={exportToPDF} className="h-7 px-2 text-xs">
+                        <FileText className="h-3 w-3 mr-1" />
                         PDF
                       </Button>
-                      <Button variant="outline" size="sm" onClick={exportToExcel}>
-                        <Table className="h-4 w-4 mr-1" />
+                      <Button variant="outline" size="sm" onClick={exportToExcel} className="h-7 px-2 text-xs">
+                        <Table className="h-3 w-3 mr-1" />
                         Excel
                       </Button>
-                      <Button variant="outline" size="sm" onClick={generateQRCode}>
-                        <QrCode className="h-4 w-4 mr-1" />
-                        QR Code
+                      <Button variant="outline" size="sm" onClick={generateQRCode} className="h-7 px-2 text-xs">
+                        <QrCode className="h-3 w-3 mr-1" />
+                        QR
                       </Button>
                     </div>
                   </div>
