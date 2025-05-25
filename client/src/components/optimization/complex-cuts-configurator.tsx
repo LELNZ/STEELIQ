@@ -30,6 +30,7 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [draggedCut, setDraggedCut] = useState<{ angle: number; id: string } | null>(null);
   const [dragOverPosition, setDragOverPosition] = useState<'start' | 'end' | null>(null);
+  const [localLength, setLocalLength] = useState(length || '');
   const [isOpen, setIsOpen] = useState(false);
   const [newCut, setNewCut] = useState({
     position: 'end' as 'start' | 'end' | 'both',
@@ -105,8 +106,8 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                 <Input
                   id="piece-length"
                   type="number"
-                  value={length}
-                  onChange={() => {}} // Read-only, controlled by parent
+                  value={localLength}
+                  onChange={(e) => setLocalLength(e.target.value)}
                   className="w-20 h-8 text-center"
                   placeholder="0"
                 />
@@ -140,26 +141,32 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                       </div>
                     ))}
                     <div className="flex items-center gap-1 ml-2">
-                      <Input
-                        type="number"
-                        placeholder="Custom"
-                        className="w-16 h-8 text-center text-sm"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            const customAngle = parseInt((e.target as HTMLInputElement).value);
-                            if (customAngle && customAngle > 0 && customAngle <= 180) {
-                              setDraggedCut({ angle: customAngle, id: `custom_${Date.now()}` });
-                              // Create draggable element for custom angle
-                              const customTool = document.createElement('div');
-                              customTool.textContent = `${customAngle}°`;
-                              customTool.style.cssText = 'padding: 8px 12px; background: #fed7aa; border: 1px solid #fb923c; border-radius: 8px; position: absolute; top: -100px; left: -100px; pointer-events: none;';
-                              document.body.appendChild(customTool);
-                              setTimeout(() => document.body.removeChild(customTool), 100);
-                            }
+                      <div
+                        draggable
+                        onDragStart={(e) => {
+                          const input = e.currentTarget.querySelector('input') as HTMLInputElement;
+                          const customAngle = parseInt(input.value);
+                          if (customAngle && customAngle > 0 && customAngle <= 180) {
+                            setDraggedCut({ angle: customAngle, id: `custom_${Date.now()}` });
+                            e.dataTransfer.effectAllowed = 'copy';
+                          } else {
+                            e.preventDefault();
                           }
                         }}
-                      />
-                      <span className="text-xs text-gray-500">°</span>
+                        className="flex items-center gap-1 px-2 py-1 bg-orange-100 border border-orange-300 rounded-lg cursor-grab active:cursor-grabbing hover:bg-orange-200 transition-colors"
+                        title="Enter angle and drag to material bar"
+                      >
+                        <Input
+                          type="number"
+                          placeholder="Custom"
+                          className="w-12 h-6 text-center text-xs border-0 bg-transparent p-0"
+                          min="1"
+                          max="180"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onDragStart={(e) => e.stopPropagation()}
+                        />
+                        <span className="text-xs text-gray-600">°</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -168,7 +175,7 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                   <div className="relative">
                     {/* Material bar with drop zones */}
                     <div className="w-80 h-12 bg-gradient-to-r from-blue-200 to-blue-300 border-2 border-blue-400 rounded-lg flex items-center justify-center relative shadow-md">
-                      <span className="text-sm font-medium text-blue-800">{length || '0'}mm</span>
+                      <span className="text-sm font-medium text-blue-800">{localLength || '0'}mm</span>
                       
                       {/* Drop zone - Start */}
                       <div 
@@ -263,32 +270,86 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                       </div>
                     </div>
                     
-                    {/* Cut indicators with interactive controls */}
+                    {/* Visual Cut Angle Indicators */}
                     {complexCuts.map((cut, index) => (
                       <div key={cut.id}>
                         {(cut.position === 'start' || cut.position === 'both') && (
-                          <div className="absolute left-0 top-0 h-12 flex items-center">
-                            <div 
-                              className="w-6 h-12 bg-red-500 opacity-80 rounded-l-lg cursor-pointer hover:opacity-100 transition-opacity flex items-center justify-center group"
-                              onClick={() => removeComplexCut(cut.id)}
-                              title={`${cut.angle}° cut - Click to remove`}
-                            >
-                              <div className="text-xs text-white font-bold transform -rotate-90">
+                          <div className="absolute -left-8 top-0 h-12 flex items-center">
+                            <div className="relative">
+                              {/* Visual angle line */}
+                              <div 
+                                className="w-8 h-1 bg-red-500 origin-right shadow-md"
+                                style={{
+                                  transform: `rotate(${cut.orientation === 'same' ? cut.angle - 90 : -(cut.angle - 90)}deg)`
+                                }}
+                              />
+                              {/* Angle label with background */}
+                              <div className="absolute -top-6 -left-2 text-xs font-bold text-red-600 bg-white px-1 rounded border shadow-sm">
                                 {cut.angle}°
                               </div>
+                              {/* Interactive orientation toggle */}
+                              <button
+                                onClick={() => {
+                                  const updatedCuts = complexCuts.map(c => 
+                                    c.id === cut.id 
+                                      ? { ...c, orientation: c.orientation === 'same' ? 'opposite' : 'same' }
+                                      : c
+                                  );
+                                  onComplexCutsChange(updatedCuts);
+                                }}
+                                className="absolute -bottom-6 -left-1 text-sm bg-orange-100 hover:bg-orange-200 px-2 py-1 rounded border font-bold transition-colors"
+                                title="Toggle cut orientation"
+                              >
+                                {cut.orientation === 'same' ? '/' : '\\'}
+                              </button>
+                              {/* Remove button */}
+                              <button
+                                onClick={() => removeComplexCut(cut.id)}
+                                className="absolute -right-4 -top-2 text-xs bg-red-100 hover:bg-red-200 text-red-600 w-4 h-4 rounded-full flex items-center justify-center"
+                                title="Remove cut"
+                              >
+                                ×
+                              </button>
                             </div>
                           </div>
                         )}
                         {(cut.position === 'end' || cut.position === 'both') && (
-                          <div className="absolute right-0 top-0 h-12 flex items-center">
-                            <div 
-                              className="w-6 h-12 bg-red-500 opacity-80 rounded-r-lg cursor-pointer hover:opacity-100 transition-opacity flex items-center justify-center group"
-                              onClick={() => removeComplexCut(cut.id)}
-                              title={`${cut.angle}° cut - Click to remove`}
-                            >
-                              <div className="text-xs text-white font-bold transform -rotate-90">
+                          <div className="absolute -right-8 top-0 h-12 flex items-center">
+                            <div className="relative">
+                              {/* Visual angle line */}
+                              <div 
+                                className="w-8 h-1 bg-red-500 origin-left shadow-md"
+                                style={{
+                                  transform: `rotate(${cut.orientation === 'same' ? -(cut.angle - 90) : (cut.angle - 90)}deg)`
+                                }}
+                              />
+                              {/* Angle label with background */}
+                              <div className="absolute -top-6 -right-2 text-xs font-bold text-red-600 bg-white px-1 rounded border shadow-sm">
                                 {cut.angle}°
                               </div>
+                              {/* Interactive orientation toggle */}
+                              <button
+                                onClick={() => {
+                                  const updatedCuts = complexCuts.map(c => 
+                                    c.id === cut.id 
+                                      ? { ...c, orientation: c.orientation === 'same' ? 'opposite' : 'same' }
+                                      : c
+                                  );
+                                  onComplexCutsChange(updatedCuts);
+                                }}
+                                className="absolute -bottom-6 -right-1 text-sm bg-orange-100 hover:bg-orange-200 px-2 py-1 rounded border font-bold transition-colors"
+                                title="Toggle cut orientation"
+                              >
+                                {cut.orientation === 'same' ? '\\' : '/'}
+                              </button>
+                              {/* Remove button */}
+                              <button
+                                onClick={() => removeComplexCut(cut.id)}
+                                className="absolute -left-4 -top-2 text-xs bg-red-100 hover:bg-red-200 text-red-600 w-4 h-4 rounded-full flex items-center justify-center"
+                                title="Remove cut"
+                              >
+                                ×
+                              </button>
                             </div>
                           </div>
                         )}
@@ -348,14 +409,14 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                   
                   <Button
                     onClick={() => {
-                      if (onAddToRequest && length && complexCuts.length > 0) {
-                        onAddToRequest(parseInt(length), quantity, complexCuts);
+                      if (onAddToRequest && localLength && complexCuts.length > 0) {
+                        onAddToRequest(parseInt(localLength.toString()), quantity, complexCuts);
                         setQuantity(1);
                         onComplexCutsChange([]);
                         setIsOpen(false);
                       }
                     }}
-                    disabled={!length || complexCuts.length === 0 || !onAddToRequest}
+                    disabled={!localLength || complexCuts.length === 0 || !onAddToRequest}
                     className="w-full h-7 bg-green-600 hover:bg-green-700 text-white text-xs"
                   >
                     <Plus className="w-3 h-3 mr-1" />
