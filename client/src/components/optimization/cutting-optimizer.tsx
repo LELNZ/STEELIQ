@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star, Download, FileText, Table, QrCode, Briefcase, ToggleLeft, ToggleRight, History, Settings } from "lucide-react";
 import jsPDF from "jspdf";
 import { SimulationHistoryWorking } from "./simulation-history-working";
+import { ComplexCutsConfigurator } from "./complex-cuts-configurator";
 import { 
   CuttingOptimizer, 
   CutRequest, 
@@ -118,7 +119,7 @@ export default function CuttingOptimizerComponent() {
     };
 
     setCutRequests([...cutRequests, request]);
-    setNewCut({ length: "", quantity: "1", materialType: "", angle: "90", description: "" });
+    setNewCut({ length: "", quantity: "1", materialType: "", angle: "90", description: "", complexCuts: [] });
   };
 
   const addStockItem = () => {
@@ -671,14 +672,24 @@ export default function CuttingOptimizerComponent() {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="cut-description">Description (optional)</Label>
-                <Input
-                  id="cut-description"
-                  value={newCut.description}
-                  onChange={(e) => setNewCut({ ...newCut, description: e.target.value })}
-                  placeholder="Job reference or notes"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="cut-description">Description (optional)</Label>
+                  <Input
+                    id="cut-description"
+                    value={newCut.description}
+                    onChange={(e) => setNewCut({ ...newCut, description: e.target.value })}
+                    placeholder="Job reference or notes"
+                  />
+                </div>
+                <div>
+                  <Label>Complex Cuts</Label>
+                  <ComplexCutsConfigurator
+                    length={newCut.length}
+                    complexCuts={newCut.complexCuts}
+                    onComplexCutsChange={(cuts) => setNewCut({ ...newCut, complexCuts: cuts })}
+                  />
+                </div>
               </div>
 
               {/* Cut requests list */}
@@ -691,6 +702,36 @@ export default function CuttingOptimizerComponent() {
                       Total: {cutRequests.reduce((total, req) => total + (req.length * req.quantity), 0).toLocaleString()}mm
                     </div>
                   </div>
+                  
+                  {/* Material Summary for Cut Requirements */}
+                  {materialSummary.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <h5 className="text-sm font-medium text-muted-foreground">Material Requirements:</h5>
+                      {materialSummary.map((material) => (
+                        <div key={`req-${material.code}`} className="flex items-center justify-between p-2 bg-background rounded border">
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{material.name}</div>
+                            <div className="text-xs text-muted-foreground">{material.code}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium">
+                              {material.required.toLocaleString()}mm
+                            </div>
+                            {material.shortage > 0 && (
+                              <div className="text-xs text-red-600 font-medium">
+                                Need: {material.shortage.toLocaleString()}mm more
+                              </div>
+                            )}
+                            {material.shortage === 0 && material.available > 0 && (
+                              <div className="text-xs text-green-600 font-medium">
+                                ✓ Sufficient stock
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {cutRequests.map((request, index) => (
                     <div key={`cut-${index}-${request.id}`} className="flex items-center justify-between p-2 bg-muted rounded">
                       <div className="flex-1">
@@ -788,7 +829,44 @@ export default function CuttingOptimizerComponent() {
               {stockItems.length > 0 && (
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   <Separator />
-                  <h4 className="font-medium">Stock Items ({stockItems.length})</h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Stock Items ({stockItems.length})</h4>
+                    <div className="text-sm text-muted-foreground">
+                      Total: {stockItems.reduce((total, stock) => total + (stock.length * stock.available), 0).toLocaleString()}mm
+                    </div>
+                  </div>
+                  
+                  {/* Material Summary for Available Stock */}
+                  {materialSummary.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <h5 className="text-sm font-medium text-muted-foreground">Available Stock by Material:</h5>
+                      {materialSummary.map((material) => (
+                        <div key={`stock-${material.code}`} className="flex items-center justify-between p-2 bg-background rounded border">
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{material.name}</div>
+                            <div className="text-xs text-muted-foreground">{material.code}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium">
+                              Available: {material.available.toLocaleString()}mm
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Required: {material.required.toLocaleString()}mm
+                            </div>
+                            {material.available >= material.required ? (
+                              <div className="text-xs text-green-600 font-medium">
+                                ✓ {(material.available - material.required).toLocaleString()}mm excess
+                              </div>
+                            ) : (
+                              <div className="text-xs text-red-600 font-medium">
+                                ⚠ {material.shortage.toLocaleString()}mm short
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {stockItems.map((stock, index) => (
                     <div key={`stock-${stock.id || index}-${stock.length}-${stock.materialType}-${stock.available}`} className="flex items-center justify-between p-2 bg-muted rounded">
                       <div className="flex-1">
