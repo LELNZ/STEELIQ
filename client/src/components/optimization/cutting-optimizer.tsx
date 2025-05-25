@@ -504,6 +504,8 @@ export default function CuttingOptimizerComponent() {
     // Save simulation to localStorage for history
     if (!isJobMode) {
       saveSimulation(result, cutRequests, stockItems);
+      // Force refresh of simulation history
+      window.dispatchEvent(new Event('simulation-saved'));
     }
   };
 
@@ -656,7 +658,7 @@ export default function CuttingOptimizerComponent() {
                     </div>
                   </div>
                   {cutRequests.map((request, index) => (
-                    <div key={`cut-${request.id}-${index}`} className="flex items-center justify-between p-2 bg-muted rounded">
+                    <div key={`cut-${index}-${request.id}`} className="flex items-center justify-between p-2 bg-muted rounded">
                       <div className="flex-1">
                         <span className="font-medium">{request.length}mm</span>
                         <span className="text-muted-foreground"> × {request.quantity}</span>
@@ -754,7 +756,7 @@ export default function CuttingOptimizerComponent() {
                   <Separator />
                   <h4 className="font-medium">Stock Items ({stockItems.length})</h4>
                   {stockItems.map((stock, index) => (
-                    <div key={`stock-${stock.id}-${index}`} className="flex items-center justify-between p-2 bg-muted rounded">
+                    <div key={`stock-item-${index}-${stock.length}-${stock.materialType}`} className="flex items-center justify-between p-2 bg-muted rounded">
                       <div className="flex-1">
                         <span className="font-medium">{stock.length}mm</span>
                         <span className="text-muted-foreground"> × {stock.available}</span>
@@ -1006,6 +1008,7 @@ export default function CuttingOptimizerComponent() {
       {/* Simulation History Section */}
       <div className="mt-8">
         <SimulationHistory 
+          key={`sim-history-${Date.now()}`}
           onRecallSimulation={(simulationData) => {
             // Load the recalled simulation data back into the optimizer
             if (simulationData.cutRequests) {

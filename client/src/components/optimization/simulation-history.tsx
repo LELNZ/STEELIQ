@@ -37,6 +37,17 @@ export function SimulationHistory({ onRecallSimulation }: SimulationHistoryProps
 
   useEffect(() => {
     loadSimulations();
+    
+    // Listen for simulation saved events
+    const handleSimulationSaved = () => {
+      loadSimulations();
+    };
+    
+    window.addEventListener('simulation-saved', handleSimulationSaved);
+    
+    return () => {
+      window.removeEventListener('simulation-saved', handleSimulationSaved);
+    };
   }, []);
 
   const loadSimulations = () => {
