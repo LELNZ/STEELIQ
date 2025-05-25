@@ -10,8 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star, Download, FileText, Table, QrCode, Briefcase, ToggleLeft, ToggleRight } from "lucide-react";
+import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star, Download, FileText, Table, QrCode, Briefcase, ToggleLeft, ToggleRight, History, Settings } from "lucide-react";
 import jsPDF from "jspdf";
+import { SimulationHistory } from "./simulation-history";
+import { PdfExportConfigurator, type PdfConfig } from "./pdf-export-configurator";
 import { 
   CuttingOptimizer, 
   CutRequest, 
