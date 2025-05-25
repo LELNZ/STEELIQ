@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import logoIcon from "@assets/Logo used in Google Admin icon.jpg";
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -50,7 +51,7 @@ export default function Sidebar() {
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center">
             <img 
-              src="/attached_assets/Logo used in Google Admin icon.jpg" 
+              src={logoIcon} 
               alt="Lateral Engineering Logo" 
               className="w-10 h-10 object-contain"
             />
