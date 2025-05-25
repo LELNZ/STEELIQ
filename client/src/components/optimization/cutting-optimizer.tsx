@@ -417,6 +417,37 @@ export default function CuttingOptimizerComponent() {
     URL.revokeObjectURL(url);
   };
 
+  const saveSimulation = (result: any, cuts: CutRequest[], stock: StockItem[]) => {
+    try {
+      const simulation = {
+        id: `SIM-${Date.now()}`,
+        description: `${cuts.length} cuts, ${stock.length} stock items`,
+        efficiency: result.summary.avgEfficiency,
+        wastePercentage: result.summary.totalWastePercentage,
+        stockCount: stock.length,
+        totalCuttingTime: result.summary.totalCuttingTime,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        cutRequests: JSON.stringify(cuts),
+        stockItems: JSON.stringify(stock),
+        optimizationData: JSON.stringify(result)
+      };
+
+      const existing = localStorage.getItem('cutting_simulations');
+      const simulations = existing ? JSON.parse(existing) : [];
+      simulations.unshift(simulation); // Add to beginning
+      
+      // Keep only last 20 simulations
+      if (simulations.length > 20) {
+        simulations.splice(20);
+      }
+      
+      localStorage.setItem('cutting_simulations', JSON.stringify(simulations));
+    } catch (error) {
+      console.error('Error saving simulation:', error);
+    }
+  };
+
   const generateQRCode = () => {
     if (!optimizationResult) return;
     
@@ -469,6 +500,11 @@ export default function CuttingOptimizerComponent() {
 
     setOptimizationResult(result);
     setIsOptimizing(false);
+
+    // Save simulation to localStorage for history
+    if (!isJobMode) {
+      saveSimulation(result, cutRequests, stockItems);
+    }
   };
 
   return (
