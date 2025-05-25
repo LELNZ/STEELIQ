@@ -1,6 +1,7 @@
 import { Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import logoIcon from "@assets/LEL Symbol only.png";
 import { 
   Select,
   SelectContent,
@@ -15,7 +16,19 @@ export default function TopBar() {
     <header className="bg-card border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <h2 className="text-2xl font-bold text-foreground">Jobs & Cutting Management</h2>
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 flex items-center justify-center">
+              <img 
+                src={logoIcon} 
+                alt="Lateral Engineering Logo" 
+                className="w-8 h-8 object-contain"
+              />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Lateral Engineering</h1>
+              <p className="text-muted-foreground text-sm">Steel Management</p>
+            </div>
+          </div>
           <div className="flex items-center space-x-2 bg-accent/10 px-3 py-1 rounded-full">
             <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
             <span className="text-accent text-sm font-medium">Real-time Sync</span>

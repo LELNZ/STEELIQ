@@ -46,24 +46,8 @@ export default function Sidebar() {
   const [location] = useLocation();
 
   return (
-    <div className="w-64 flex-shrink-0 p-4">
+    <div className="w-64 flex-shrink-0 p-4 pt-8">
       <div className="bg-card rounded-xl shadow-lg border h-full">
-        {/* Header with Logo and Branding */}
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 flex items-center justify-center">
-              <img 
-                src={logoIcon} 
-                alt="Lateral Engineering Logo" 
-                className="w-10 h-10 object-contain"
-              />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-foreground">Lateral Engineering</h1>
-              <p className="text-muted-foreground text-sm">Steel Management</p>
-            </div>
-          </div>
-        </div>
 
         {/* Navigation */}
         <nav className="p-4">
