@@ -198,6 +198,25 @@ export default function StandardCuttingPlan({
               /* Flexbox utilities */
               .flex { display: flex; }
               .space-y-1 > * + * { margin-top: 0.25rem; }
+              .relative { position: relative; }
+              .absolute { position: absolute; }
+              .top-0 { top: 0; }
+              .left-0 { left: 0; }
+              .h-8 { height: 2rem; }
+              .h-full { height: 100%; }
+              .w-full { width: 100%; }
+              .rounded { border-radius: 0.25rem; }
+              .overflow-hidden { overflow: hidden; }
+              
+              /* Stock bar visualization */
+              .bg-blue-500 { background-color: #3b82f6; }
+              .bg-red-200 { background-color: #fecaca; }
+              .bg-green-100 { background-color: #dcfce7; }
+              .border { border: 1px solid #e5e7eb; }
+              .border-r { border-right: 1px solid #e5e7eb; }
+              .text-xs { font-size: 0.75rem; line-height: 1rem; }
+              .text-white { color: white; }
+              .font-medium { font-weight: 500; }
               
               /* Stats grid */
               .grid { display: grid; }
@@ -267,41 +286,59 @@ export default function StandardCuttingPlan({
       const contentElement = document.querySelector('[data-print-content]');
       if (!contentElement) return;
       
-      // Capture the visual content as canvas with better quality
-      const canvas = await html2canvas(contentElement as HTMLElement, {
-        scale: 3,
+      // Capture the visual content as canvas with optimized settings
+      const htmlElement = contentElement as HTMLElement;
+      const canvas = await html2canvas(htmlElement, {
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        width: contentElement.scrollWidth,
-        height: contentElement.scrollHeight,
-        windowWidth: 1400,
-        windowHeight: 2000
+        width: htmlElement.offsetWidth,
+        height: htmlElement.offsetHeight,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0
       });
       
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.8); // Use JPEG with compression
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
       });
       
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
+      const pageWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const margin = 10; // 10mm margin
+      const printWidth = pageWidth - (margin * 2);
+      const printHeight = pageHeight - (margin * 2);
       
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      // Calculate proper scaling to fit page with margins
+      const imgAspectRatio = canvas.width / canvas.height;
+      let imgWidth = printWidth;
+      let imgHeight = printWidth / imgAspectRatio;
       
-      // Add additional pages if content is longer
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      // If height exceeds page, scale down to fit
+      if (imgHeight > printHeight) {
+        imgHeight = printHeight;
+        imgWidth = printHeight * imgAspectRatio;
+      }
+      
+      // Center the image on the page
+      const xOffset = margin + (printWidth - imgWidth) / 2;
+      const yOffset = margin;
+      
+      // Add image to PDF
+      pdf.addImage(imgData, 'JPEG', xOffset, yOffset, imgWidth, imgHeight);
+      
+      // If content is too tall for one page, split it
+      if (canvas.height > canvas.width * 1.4) { // If very tall content
+        const secondPageY = yOffset + imgHeight - pageHeight + margin;
+        if (secondPageY > 0) {
+          pdf.addPage();
+          pdf.addImage(imgData, 'JPEG', xOffset, -secondPageY + margin, imgWidth, imgHeight);
+        }
       }
       
       // Save the PDF
