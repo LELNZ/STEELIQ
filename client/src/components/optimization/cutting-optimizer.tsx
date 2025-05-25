@@ -811,6 +811,143 @@ export default function CuttingOptimizerComponent() {
                   ))}
                 </div>
               )}
+
+              {/* Interactive Cutting Preview */}
+              {cutRequests.length > 0 && (
+                <div className="mt-6 space-y-4">
+                  <Separator />
+                  <div className="space-y-3">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Interactive Cutting Preview
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Drag and drop cuts to see how they'll fit on material bars
+                    </p>
+                    
+                    {/* Material Type Tabs */}
+                    <div className="flex flex-wrap gap-2">
+                      {Array.from(new Set(cutRequests.map(cut => cut.materialType))).map(materialType => (
+                        <Badge key={materialType} variant="outline" className="text-xs">
+                          {materialType}
+                        </Badge>
+                      ))}
+                    </div>
+                    
+                    {/* Preview for each material type */}
+                    {Array.from(new Set(cutRequests.map(cut => cut.materialType))).map(materialType => {
+                      const materialCuts = cutRequests.filter(cut => cut.materialType === materialType);
+                      const totalRequiredLength = materialCuts.reduce((sum, cut) => sum + (cut.length * cut.quantity), 0);
+                      const availableStock = stockItems.filter(stock => stock.materialType === materialType);
+                      const totalAvailableLength = availableStock.reduce((sum, stock) => sum + (stock.length * stock.available), 0);
+                      
+                      return (
+                        <div key={materialType} className="border border-slate-200 rounded-lg p-4 bg-white">
+                          <div className="flex items-center justify-between mb-3">
+                            <h5 className="font-medium text-sm">{materialType}</h5>
+                            <div className="text-xs text-muted-foreground">
+                              Required: {totalRequiredLength.toLocaleString()}mm | Available: {totalAvailableLength.toLocaleString()}mm
+                            </div>
+                          </div>
+                          
+                          {/* Cut pieces visualization */}
+                          <div className="space-y-2">
+                            <div className="text-xs font-medium text-slate-600">Cut Pieces:</div>
+                            <div className="flex flex-wrap gap-2">
+                              {materialCuts.map((cut, index) => {
+                                const colors = [
+                                  'bg-blue-500',
+                                  'bg-green-500', 
+                                  'bg-purple-500',
+                                  'bg-yellow-500',
+                                  'bg-pink-500',
+                                  'bg-cyan-500'
+                                ];
+                                const cutColor = colors[index % colors.length];
+                                
+                                return Array.from({ length: cut.quantity }, (_, qtyIndex) => (
+                                  <div
+                                    key={`${cut.id}-${qtyIndex}`}
+                                    className={`${cutColor} text-white text-xs px-2 py-1 rounded cursor-move flex items-center gap-1 min-w-0`}
+                                    draggable
+                                    title={`${cut.length}mm piece - ${cut.startAngle || 90}°/${cut.endAngle || 90}° angles`}
+                                  >
+                                    <span className="truncate">{cut.length}mm</span>
+                                    {((cut.startAngle && cut.startAngle !== 90) || (cut.endAngle && cut.endAngle !== 90)) && (
+                                      <span className="text-yellow-200">∠</span>
+                                    )}
+                                  </div>
+                                ));
+                              })}
+                            </div>
+                          </div>
+                          
+                          {/* Material bars visualization */}
+                          <div className="mt-4 space-y-2">
+                            <div className="text-xs font-medium text-slate-600">Available Material Bars:</div>
+                            {availableStock.length > 0 ? (
+                              availableStock.map((stock, stockIndex) => (
+                                Array.from({ length: stock.available }, (_, barIndex) => (
+                                  <div key={`${stock.id}-${barIndex}`} className="space-y-1">
+                                    <div className="text-xs text-muted-foreground">
+                                      Bar #{stockIndex + 1}-{barIndex + 1}: {stock.length}mm
+                                      {stock.cost && ` • $${stock.cost}/m`}
+                                    </div>
+                                    <div 
+                                      className="h-8 bg-gradient-to-r from-slate-300 to-slate-400 border-2 border-slate-500 rounded relative min-h-8"
+                                      onDragOver={(e) => e.preventDefault()}
+                                      onDrop={(e) => {
+                                        e.preventDefault();
+                                        // Visual feedback for drop (will be enhanced with actual optimization later)
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        const dropPosition = ((e.clientX - rect.left) / rect.width) * stock.length;
+                                        console.log(`Dropped at position: ${dropPosition.toFixed(0)}mm on ${stock.length}mm bar`);
+                                      }}
+                                      title={`Drop cuts here - ${stock.length}mm available`}
+                                    >
+                                      <div className="absolute inset-0 flex items-center justify-center text-slate-700 text-xs font-medium">
+                                        Drop cuts here ({stock.length}mm available)
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))
+                              ))
+                            ) : (
+                              <div className="text-xs text-muted-foreground italic bg-yellow-50 border border-yellow-200 rounded p-2">
+                                No stock available for {materialType}. Add stock items below to see cutting preview.
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Quick efficiency indicator */}
+                          {totalAvailableLength > 0 && (
+                            <div className="mt-3 p-2 bg-slate-50 rounded border">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-slate-600">Estimated Efficiency:</span>
+                                <span className={`font-medium ${
+                                  (totalRequiredLength / totalAvailableLength) > 0.95 ? 'text-green-600' :
+                                  (totalRequiredLength / totalAvailableLength) > 0.85 ? 'text-yellow-600' : 'text-red-600'
+                                }`}>
+                                  {((totalRequiredLength / totalAvailableLength) * 100).toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="mt-1 h-2 bg-slate-200 rounded overflow-hidden">
+                                <div 
+                                  className={`h-full transition-all ${
+                                    (totalRequiredLength / totalAvailableLength) > 0.95 ? 'bg-green-500' :
+                                    (totalRequiredLength / totalAvailableLength) > 0.85 ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`}
+                                  style={{ width: `${Math.min((totalRequiredLength / totalAvailableLength) * 100, 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
