@@ -112,25 +112,98 @@ export default function StandardCuttingPlan({
     // Create print-friendly version without sidebar
     const printWindow = window.open('', '_blank');
     if (printWindow) {
+      const contentElement = document.querySelector('[data-print-content]');
+      const contentHTML = contentElement?.innerHTML || '';
+      
       printWindow.document.write(`
         <html>
           <head>
             <title>Cutting Plan - ${jobNumber || 'Job'}</title>
             <style>
-              body { font-family: Arial, sans-serif; margin: 20px; }
+              * { box-sizing: border-box; }
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 0; 
+                padding: 20px; 
+                background: white;
+                color: black;
+              }
+              
+              /* Copy all the visual styles */
+              .space-y-6 > * + * { margin-top: 1.5rem; }
+              .bg-card { background: white; }
+              .border { border: 1px solid #e5e7eb; }
+              .rounded-lg { border-radius: 0.5rem; }
+              .p-6 { padding: 1.5rem; }
+              .pb-4 { padding-bottom: 1rem; }
+              .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+              
+              /* Table styles */
               table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background-color: #f2f2f2; font-weight: bold; }
-              .header { margin-bottom: 20px; }
-              .stats { display: flex; gap: 20px; margin-bottom: 20px; }
-              .stat { text-align: center; }
-              .waste-row { background-color: #ffebee; }
-              .angle-cut { color: #ff9800; font-weight: bold; }
-              @media print { body { margin: 0; } }
+              th, td { 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+                text-align: left; 
+                vertical-align: middle;
+              }
+              th { background-color: #f8f9fa; font-weight: bold; }
+              .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+              
+              /* Visual bar styles */
+              .relative { position: relative; }
+              .absolute { position: absolute; }
+              .w-20 { width: 5rem; }
+              .h-6 { height: 1.5rem; }
+              .bg-gradient-to-r { background: linear-gradient(to right, #cbd5e1, #94a3b8); }
+              .border-slate-500 { border-color: #64748b; }
+              .rounded-sm { border-radius: 0.125rem; }
+              .bg-blue-500 { background-color: #3b82f6; }
+              .border-x-2 { border-left-width: 2px; border-right-width: 2px; }
+              .border-white { border-color: white; }
+              .text-orange-600 { color: #ea580c; }
+              .font-medium { font-weight: 500; }
+              .text-xs { font-size: 0.75rem; line-height: 1rem; }
+              
+              /* Badge styles */
+              .inline-flex { display: inline-flex; }
+              .items-center { align-items: center; }
+              .rounded-full { border-radius: 9999px; }
+              .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+              .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+              .bg-secondary { background-color: #f1f5f9; }
+              
+              /* Stats grid */
+              .grid { display: grid; }
+              .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+              .gap-4 { gap: 1rem; }
+              .text-center { text-align: center; }
+              .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+              .font-bold { font-weight: 700; }
+              
+              /* Colors */
+              .text-green-600 { color: #16a34a; }
+              .text-orange-600 { color: #ea580c; }
+              .text-blue-600 { color: #2563eb; }
+              .text-purple-600 { color: #9333ea; }
+              .text-red-600 { color: #dc2626; }
+              .bg-red-50 { background-color: #fef2f2; }
+              .border-red-200 { border-color: #fecaca; }
+              .border-t-2 { border-top-width: 2px; }
+              
+              /* Instructions */
+              .bg-blue-50 { background-color: #eff6ff; }
+              .border-blue-200 { border-color: #bfdbfe; }
+              .text-blue-700 { color: #1d4ed8; }
+              .font-mono { font-family: ui-monospace, monospace; }
+              
+              @media print { 
+                body { margin: 0; padding: 10px; } 
+                .no-print { display: none; }
+              }
             </style>
           </head>
           <body>
-            ${document.querySelector('[data-print-content]')?.innerHTML || ''}
+            ${contentHTML}
           </body>
         </html>
       `);
@@ -259,30 +332,24 @@ export default function StandardCuttingPlan({
   const SimpleBarGuide = ({ cut }: { cut: Cut }) => (
     <div className="flex flex-col items-center gap-1">
       <div className="relative w-20 h-6 bg-gradient-to-r from-slate-300 to-slate-400 border border-slate-500 rounded-sm">
-        {/* Left end piece (blue like your image) */}
-        <div className="absolute left-0 top-0 w-4 h-full bg-blue-500 border-r-2 border-white rounded-l-sm"></div>
+        {/* Kept workpiece (center section) */}
+        <div className="absolute left-3 top-0 w-14 h-full bg-blue-500 border-x-2 border-white"></div>
         
-        {/* Right end indicator */}
-        <div className="absolute right-0 top-0 w-1 h-full bg-red-500 rounded-r-sm"></div>
-        
-        {/* Angle indicators */}
-        <div className="absolute -top-4 left-1 text-xs text-blue-600 font-medium">
+        {/* Angle indicators - matching bandsaw orientation */}
+        <div className="absolute -top-4 right-1 text-xs text-orange-600 font-medium">
           {cut.startAngle || 90}°
         </div>
-        <div className="absolute -top-4 right-1 text-xs text-red-600 font-medium">
+        <div className="absolute -top-4 left-1 text-xs text-orange-600 font-medium">
           {cut.endAngle || 90}°
         </div>
         
-        {/* Cut labels */}
-        <div className="absolute -bottom-5 left-0 text-xs text-blue-600">
+        {/* Cut labels - matching your bandsaw setup */}
+        <div className="absolute -bottom-5 right-0 text-xs text-orange-600">
           Cut 1
         </div>
-        <div className="absolute -bottom-5 right-0 text-xs text-red-600">
+        <div className="absolute -bottom-5 left-0 text-xs text-orange-600">
           Cut 2
         </div>
-      </div>
-      <div className="text-xs text-muted-foreground mt-1">
-        {cut.length}mm piece
       </div>
     </div>
   );
@@ -304,7 +371,7 @@ export default function StandardCuttingPlan({
                 <span>Plans: {plans.length}</span>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 no-print">
               <Button variant="outline" size="sm" onClick={handlePrint}>
                 <Clipboard className="h-4 w-4 mr-2" />
                 Print
