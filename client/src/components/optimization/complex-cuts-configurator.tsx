@@ -90,15 +90,24 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
           </p>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
           {/* Current Configuration */}
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Current Configuration</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-sm">
-                <strong>Piece Length:</strong> {length}mm
+              <div className="flex items-center gap-2 mb-2">
+                <Label htmlFor="piece-length" className="text-sm font-medium">Piece Length:</Label>
+                <Input
+                  id="piece-length"
+                  type="number"
+                  value={length}
+                  onChange={() => {}} // Read-only, controlled by parent
+                  className="w-20 h-8 text-center"
+                  placeholder="0"
+                />
+                <span className="text-sm text-muted-foreground">mm</span>
               </div>
               <div className="text-sm mt-1">
                 <strong>Cut Specification:</strong> {getComplexCutDescription()}
@@ -237,13 +246,14 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                         onAddToRequest(parseInt(length), quantity, complexCuts);
                         setQuantity(1);
                         onComplexCutsChange([]);
+                        setIsOpen(false);
                       }
                     }}
                     disabled={!length || complexCuts.length === 0 || !onAddToRequest}
-                    className="w-full h-9 bg-green-600 hover:bg-green-700"
+                    className="w-full h-9 bg-green-600 hover:bg-green-700 text-white"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add {quantity} × {length}mm {getComplexCutDescription()} to Cut List
+                    Add {quantity}× to Cut List
                   </Button>
                 </div>
               </div>
