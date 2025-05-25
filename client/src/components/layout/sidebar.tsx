@@ -1,42 +1,42 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import logoIcon from "@assets/LEL Symbol only.png";
+import { Badge } from "@/components/ui/badge";
 import { 
   LayoutDashboard, 
   Briefcase, 
   Package, 
   Warehouse, 
-  Zap,
+  Scissors,
   BarChart3,
   DollarSign,
   Settings,
-  Users,
-  Slice
+  Users
 } from "lucide-react";
 
 const navigation = [
   {
-    name: "Main",
+    name: "MAIN MENU",
     items: [
       { name: "Dashboard", href: "/", icon: LayoutDashboard },
-      { name: "Jobs & Cutting", href: "/jobs", icon: Briefcase, badge: "12" },
-      { name: "Material Library", href: "/materials", icon: Package },
-      { name: "Inventory", href: "/inventory", icon: Warehouse, badge: "3", badgeVariant: "warning" },
-      { name: "Optimization", href: "/optimization", icon: Zap },
+      { name: "Cuts Manager", href: "/optimization", icon: Scissors },
+      { name: "Materials", href: "/materials", icon: Package },
+      { name: "Stock", href: "/inventory", icon: Warehouse },
+      { name: "Jobs", href: "/jobs", icon: Briefcase },
     ],
   },
   {
-    name: "Reports",
+    name: "ADMIN",
     items: [
-      { name: "Analytics", href: "/analytics", icon: BarChart3 },
+      { name: "User Management", href: "/team", icon: Users },
+      { name: "Settings", href: "/settings", icon: Settings },
+    ],
+  },
+  {
+    name: "SYSTEM",
+    items: [
+      { name: "Reports", href: "/analytics", icon: BarChart3, badge: "Online", badgeVariant: "success" },
       { name: "Cost Analysis", href: "/costs", icon: DollarSign },
-    ],
-  },
-  {
-    name: "Settings",
-    items: [
-      { name: "Preferences", href: "/settings", icon: Settings },
-      { name: "Team Management", href: "/team", icon: Users },
     ],
   },
 ];
@@ -45,64 +45,66 @@ export default function Sidebar() {
   const [location] = useLocation();
 
   return (
-    <div className="w-64 bg-primary text-white flex-shrink-0">
+    <div className="w-64 bg-white border-r border-gray-200 flex-shrink-0">
       {/* Logo */}
-      <div className="p-6 border-b border-primary/20">
+      <div className="p-6 border-b border-gray-100">
         <div className="flex items-center space-x-3">
-          <div className="w-16 h-16 flex items-center justify-center">
+          <div className="w-12 h-12 flex items-center justify-center">
             <img 
               src={logoIcon} 
               alt="Lateral Engineering Logo" 
-              className="w-14 h-14 object-contain filter brightness-0 invert"
+              className="w-10 h-10 object-contain"
             />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">Lateral Engineering</h1>
-            <p className="text-primary-foreground/70 text-sm">Steel Management</p>
+            <h1 className="text-lg font-bold text-gray-900">LATERAL</h1>
+            <p className="text-gray-500 text-xs font-medium">Steel Cut Optimizer</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="mt-6">
+      <nav className="py-6">
         {navigation.map((section) => (
           <div key={section.name} className="mb-6">
-            <div className="px-6 mb-4">
-              <h3 className="text-primary-foreground/70 text-xs uppercase tracking-wider font-medium">
+            <div className="px-6 mb-3">
+              <h3 className="text-xs font-semibold text-blue-600 uppercase tracking-wider">
                 {section.name}
               </h3>
             </div>
-            <ul className="space-y-1">
+            <div className="space-y-1">
               {section.items.map((item) => {
                 const isActive = location === item.href;
                 return (
-                  <li key={item.name}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "flex items-center px-6 py-3 text-primary-foreground/80 hover:bg-primary/20 hover:text-white transition-colors duration-200",
-                        isActive && "bg-primary/30 text-white"
-                      )}
-                    >
-                      <item.icon className="w-5 h-5 mr-3" />
-                      {item.name}
-                      {item.badge && (
-                        <span
-                            className={cn(
-                              "ml-auto text-xs px-2 py-1 rounded-full",
-                              item.badgeVariant === "warning"
-                                ? "bg-warning text-warning-foreground"
-                                : "bg-accent text-accent-foreground"
-                            )}
-                          >
-                            {item.badge}
-                          </span>
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center justify-between mx-3 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+                      isActive
+                        ? "bg-blue-500 text-white shadow-sm"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.name}</span>
+                    </div>
+                    {item.badge && (
+                      <Badge 
+                        variant={item.badgeVariant === "success" ? "default" : "secondary"}
+                        className={cn(
+                          "text-xs px-2 py-1",
+                          item.badgeVariant === "success" ? "bg-green-500 text-white" : ""
                         )}
-                    </Link>
-                  </li>
+                      >
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </Link>
                 );
               })}
-            </ul>
+            </div>
           </div>
         ))}
       </nav>
