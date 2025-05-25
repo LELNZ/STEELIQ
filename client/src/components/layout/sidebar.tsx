@@ -49,11 +49,11 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-6 border-b border-primary/20">
         <div className="flex items-center space-x-3">
-          <div className="w-16 h-16 rounded-lg flex items-center justify-center bg-white/10 hover:bg-white/20 transition-all duration-300 cursor-pointer group">
+          <div className="w-16 h-16 flex items-center justify-center">
             <img 
               src={logoIcon} 
               alt="Lateral Engineering Logo" 
-              className="w-14 h-14 object-contain filter brightness-0 invert transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 group-active:scale-95 group-active:rotate-6"
+              className="w-14 h-14 object-contain filter brightness-0 invert"
             />
           </div>
           <div>
