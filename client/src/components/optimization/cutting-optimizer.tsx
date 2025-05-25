@@ -46,7 +46,8 @@ export default function CuttingOptimizerComponent() {
     length: "",
     quantity: "1",
     materialType: "",
-    angle: "90",
+    startAngle: 90,
+    endAngle: 90,
     description: "",
     complexCuts: []
   });
@@ -114,12 +115,13 @@ export default function CuttingOptimizerComponent() {
       length: parseFloat(newCut.length),
       quantity: parseInt(newCut.quantity),
       materialType: newCut.materialType,
-      angle: parseFloat(newCut.angle),
+      startAngle: newCut.startAngle,
+      endAngle: newCut.endAngle,
       description: newCut.description || undefined
     };
 
     setCutRequests([...cutRequests, request]);
-    setNewCut({ length: "", quantity: "1", materialType: "", angle: "90", description: "", complexCuts: [] });
+    setNewCut({ length: "", quantity: "1", materialType: "", startAngle: 90, endAngle: 90, description: "", complexCuts: [] });
   };
 
   const addStockItem = () => {
@@ -638,8 +640,8 @@ export default function CuttingOptimizerComponent() {
                   />
                 </div>
                 
-                {/* Length, Quantity, and Angle in a row */}
-                <div className="grid grid-cols-4 gap-3">
+                {/* Length and Quantity */}
+                <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-2">
                     <Label htmlFor="cut-length" className="text-xs font-medium text-slate-600">Length (mm)</Label>
                     <Input
@@ -662,18 +664,37 @@ export default function CuttingOptimizerComponent() {
                       className="mt-1 w-20"
                     />
                   </div>
+                </div>
+
+                {/* Dual Angle Inputs */}
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="cut-angle" className="text-xs font-medium text-slate-600">Angle (°)</Label>
+                    <Label htmlFor="start-angle" className="text-xs font-medium text-slate-600">Start Angle (°)</Label>
                     <Input
-                      id="cut-angle"
+                      id="start-angle"
                       type="number"
-                      value={newCut.angle}
-                      onChange={(e) => setNewCut({ ...newCut, angle: e.target.value })}
+                      value={newCut.startAngle || 90}
+                      onChange={(e) => setNewCut({ ...newCut, startAngle: parseInt(e.target.value) || 90 })}
                       placeholder="90"
                       min="1"
                       max="180"
                       className="mt-1"
                     />
+                    <p className="text-xs text-slate-500 mt-1">Left side cut (cutting from left to right)</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="end-angle" className="text-xs font-medium text-slate-600">End Angle (°)</Label>
+                    <Input
+                      id="end-angle"
+                      type="number"
+                      value={newCut.endAngle || 90}
+                      onChange={(e) => setNewCut({ ...newCut, endAngle: parseInt(e.target.value) || 90 })}
+                      placeholder="90"
+                      min="1"
+                      max="180"
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Right side cut</p>
                   </div>
                 </div>
                 

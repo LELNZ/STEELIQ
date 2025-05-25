@@ -8,7 +8,9 @@ export interface CutRequest {
   length: number;
   quantity: number;
   materialType: string;
-  angle?: number; // Cutting angle in degrees, default 90
+  startAngle?: number; // Left side cutting angle in degrees, default 90
+  endAngle?: number; // Right side cutting angle in degrees, default 90
+  angle?: number; // Legacy support - will be used for both if start/end not specified
   priority?: number;
   jobId?: string;
   description?: string;
@@ -28,7 +30,11 @@ export interface Cut {
   length: number;
   position: number;
   quantity: number;
-  angle?: number; // Cutting angle in degrees
+  startAngle?: number; // Left side cutting angle in degrees
+  endAngle?: number; // Right side cutting angle in degrees
+  angle?: number; // Legacy support
+  usesExistingAngle?: boolean; // True if this cut starts with an existing angle from previous cut
+  createsOffcut?: boolean; // True if this cut creates a reusable angled offcut
 }
 
 export interface CuttingPlan {
@@ -64,6 +70,9 @@ export interface Remnant {
   isReusable: boolean;
   millCert?: string;
   heatNumber?: string;
+  existingStartAngle?: number; // Angle already cut on the left side
+  existingEndAngle?: number; // Angle already cut on the right side
+  canChainWith?: string[]; // IDs of cut requests this remnant can be chained with
 }
 
 export class CuttingOptimizer {
