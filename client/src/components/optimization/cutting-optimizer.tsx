@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star, Download, FileText, Table, QrCode, Briefcase, ToggleLeft, ToggleRight, History, Settings } from "lucide-react";
 import jsPDF from "jspdf";
+import { useToast } from "@/hooks/use-toast";
 import { SimulationHistoryWorking } from "./simulation-history-working";
 import { ComplexCutsConfigurator } from "./complex-cuts-configurator";
 import { 
@@ -35,6 +36,169 @@ export default function CuttingOptimizerComponent() {
   const [groupIdenticalPlans, setGroupIdenticalPlans] = useState(true);
   const [showCreateJobDialog, setShowCreateJobDialog] = useState(false);
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'detailed' | 'simple'>('detailed');
+
+  // Initialize toast hook
+  const { toast } = useToast();
+
+  // PDF Export Function
+  const exportToPDF = (mode: 'detailed' | 'simple') => {
+    if (!optimizationResult) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Lateral Engineering - Cutting Plan', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 15;
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, yPos, { align: 'center' });
+    doc.text(`View: ${mode === 'detailed' ? 'Detailed Visual' : 'Simple Traditional'}`, pageWidth / 2, yPos + 7, { align: 'center' });
+    yPos += 25;
+
+    // Summary
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Optimization Summary', 15, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Plans: ${optimizationResult.plans.length}`, 15, yPos);
+    yPos += 30;
+
+    // Process plans for display
+    const plansToShow = processPlansForDisplay(optimizationResult.plans);
+
+    plansToShow.forEach((planGroup, index) => {
+      // Check if we need a new page
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Stock header
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Stock #${index + 1}${planGroup.repeatCount > 1 ? ` (Repeat ${planGroup.repeatCount}x)` : ''}`, 15, yPos);
+      doc.text(`${planGroup.plan.efficiency.toFixed(1)}% Efficiency`, pageWidth - 15, yPos, { align: 'right' });
+      yPos += 10;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Length: ${planGroup.plan.stockLength}mm | Cuts: ${planGroup.plan.cuts.length} | Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 15, yPos);
+      yPos += 15;
+
+      if (mode === 'detailed') {
+        // Detailed view - show each cut with full details
+        planGroup.plan.cuts.forEach((cut, cutIndex) => {
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+          }
+
+          doc.setFont('helvetica', 'bold');
+          doc.text(`Cut #${cutIndex + 1}:`, 20, yPos);
+          doc.setFont('helvetica', 'normal');
+          doc.text(`${cut.length}mm @ ${cut.position.toFixed(0)}mm`, 50, yPos);
+          
+          if (cut.startAngle && cut.startAngle !== 90) {
+            doc.text(`Start: ${cut.startAngle}°`, 120, yPos);
+          }
+          if (cut.endAngle && cut.endAngle !== 90) {
+            doc.text(`End: ${cut.endAngle}°`, 150, yPos);
+          }
+          if (cut.usesExistingAngle) {
+            doc.text('⚡ Chained', pageWidth - 30, yPos);
+          }
+          yPos += 7;
+        });
+      } else {
+        // Simple view - table format
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        
+        // Table headers
+        const headers = ['Cut', 'Length', 'Position', 'Start°', 'End°', 'Notes'];
+        const colWidths = [20, 25, 25, 20, 20, 40];
+        let xPos = 15;
+        
+        headers.forEach((header, i) => {
+          doc.text(header, xPos, yPos);
+          xPos += colWidths[i];
+        });
+        yPos += 7;
+
+        // Draw line under headers
+        doc.line(15, yPos - 2, pageWidth - 15, yPos - 2);
+        yPos += 3;
+
+        doc.setFont('helvetica', 'normal');
+        
+        // Cut rows
+        planGroup.plan.cuts.forEach((cut, cutIndex) => {
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 30;
+          }
+
+          xPos = 15;
+          const values = [
+            `#${cutIndex + 1}`,
+            `${cut.length}mm`,
+            `${cut.position.toFixed(0)}mm`,
+            `${cut.startAngle || 90}°`,
+            `${cut.endAngle || 90}°`,
+            cut.usesExistingAngle ? '⚡ Chained' : (cut.quantity > 1 ? `Qty: ${cut.quantity}` : '')
+          ];
+
+          values.forEach((value, i) => {
+            doc.text(value, xPos, yPos);
+            xPos += colWidths[i];
+          });
+          yPos += 6;
+        });
+
+        // Waste row
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 30;
+        }
+        
+        doc.setFont('helvetica', 'bold');
+        xPos = 15;
+        const wasteValues = [
+          'WASTE',
+          `${planGroup.plan.wasteLength.toFixed(0)}mm`,
+          `${(planGroup.plan.stockLength - planGroup.plan.wasteLength).toFixed(0)}mm`,
+          '-',
+          '-',
+          'Offcut'
+        ];
+
+        wasteValues.forEach((value, i) => {
+          doc.text(value, xPos, yPos);
+          xPos += colWidths[i];
+        });
+      }
+
+      yPos += 20;
+    });
+
+    // Save the PDF
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    doc.save(`Cutting-Plan-${mode}-${timestamp}.pdf`);
+    
+    toast({
+      title: "PDF Exported Successfully",
+      description: `${mode === 'detailed' ? 'Detailed' : 'Simple'} cutting plan has been downloaded.`,
+    });
+  };
 
   // Fetch materials
   const { data: materialsData = [] } = useQuery<Material[]>({
@@ -203,19 +367,8 @@ export default function CuttingOptimizerComponent() {
     return grouped;
   };
 
-  // Export functions
-  const exportToPDF = () => {
-    if (!optimizationResult) return;
-    
-    const identifier = isJobMode ? generateJobNumber() : `SIM-${Date.now()}`;
-    const timestamp = new Date().toLocaleString('en-NZ');
-    
-    // Create PDF using jsPDF
-    const pdf = new jsPDF();
-    const pageWidth = pdf.internal.pageSize.width;
-    const pageHeight = pdf.internal.pageSize.height;
-    const margin = 15;
-    let yPosition = margin;
+  // Initialize toast hook
+  const { toast } = useToast();
 
     // Helper function to add text with better formatting
     const addText = (text: string, fontSize = 11, isBold = false, indent = 0) => {
@@ -1079,204 +1232,298 @@ export default function CuttingOptimizerComponent() {
               {/* Cutting Plans */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Visual Cutting Plans ({optimizationResult.plans.length})
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Cutting Plans ({optimizationResult.plans.length})
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-medium">View:</Label>
+                      <div className="flex border rounded-lg">
+                        <Button
+                          variant={viewMode === 'detailed' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setViewMode('detailed')}
+                          className="h-8 px-3 text-xs rounded-r-none"
+                        >
+                          <Table className="h-3 w-3 mr-1" />
+                          Detailed
+                        </Button>
+                        <Button
+                          variant={viewMode === 'simple' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setViewMode('simple')}
+                          className="h-8 px-3 text-xs rounded-l-none"
+                        >
+                          <FileText className="h-3 w-3 mr-1" />
+                          Simple
+                        </Button>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => exportToPDF(viewMode)}
+                        className="h-8 px-3 text-xs"
+                      >
+                        <Download className="h-3 w-3 mr-1" />
+                        PDF
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-6 max-h-96 overflow-y-auto">
-                  {processPlansForDisplay(optimizationResult.plans).map((planGroup, groupIndex) => (
-                    <div key={planGroup.plan.stockId + groupIndex} className="border-2 rounded-lg p-4 space-y-4 bg-white print:break-inside-avoid">
-                      {/* Header with repeat indicator */}
-                      <div className="flex justify-between items-center pb-2 border-b">
-                        <div>
-                          <span className="font-bold text-lg">Stock #{groupIndex + 1}</span>
-                          {planGroup.repeatCount > 1 && (
-                            <Badge variant="default" className="ml-2 bg-yellow-500 text-black">
-                              REPEAT {planGroup.repeatCount}x
+                  {viewMode === 'detailed' ? (
+                    // Detailed Visual View
+                    processPlansForDisplay(optimizationResult.plans).map((planGroup, groupIndex) => (
+                      <div key={planGroup.plan.stockId + groupIndex} className="border-2 rounded-lg p-4 space-y-4 bg-white print:break-inside-avoid">
+                        {/* Header with repeat indicator */}
+                        <div className="flex justify-between items-center pb-2 border-b">
+                          <div>
+                            <span className="font-bold text-lg">Stock #{groupIndex + 1}</span>
+                            {planGroup.repeatCount > 1 && (
+                              <Badge variant="default" className="ml-2 bg-yellow-500 text-black">
+                                REPEAT {planGroup.repeatCount}x
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={planGroup.plan.efficiency > 90 ? "default" : planGroup.plan.efficiency > 75 ? "secondary" : "destructive"} className="text-sm">
+                              {planGroup.plan.efficiency.toFixed(1)}% Efficiency
                             </Badge>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <Badge variant={planGroup.plan.efficiency > 90 ? "default" : planGroup.plan.efficiency > 75 ? "secondary" : "destructive"} className="text-sm">
-                            {planGroup.plan.efficiency.toFixed(1)}% Efficiency
-                          </Badge>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Material: {planGroup.plan.cuts[0]?.requestId?.split('_')[0] || 'Mixed'}
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Material: {planGroup.plan.cuts[0]?.requestId?.split('_')[0] || 'Mixed'}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      
-                      {/* Stock info */}
-                      <div className="grid grid-cols-3 gap-4 text-sm bg-slate-50 p-3 rounded">
-                        <div>
-                          <span className="font-medium">Total Length:</span>
-                          <div className="text-lg font-bold">{planGroup.plan.stockLength}mm</div>
+                        
+                        {/* Stock info */}
+                        <div className="grid grid-cols-3 gap-4 text-sm bg-slate-50 p-3 rounded">
+                          <div>
+                            <span className="font-medium">Total Length:</span>
+                            <div className="text-lg font-bold">{planGroup.plan.stockLength}mm</div>
+                          </div>
+                          <div>
+                            <span className="font-medium">Total Cuts:</span>
+                            <div className="text-lg font-bold text-blue-600">{planGroup.plan.cuts.length}</div>
+                          </div>
+                          <div>
+                            <span className="font-medium">Waste:</span>
+                            <div className="text-lg font-bold text-red-600">{planGroup.plan.wasteLength.toFixed(0)}mm</div>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium">Total Cuts:</span>
-                          <div className="text-lg font-bold text-blue-600">{planGroup.plan.cuts.length}</div>
-                        </div>
-                        <div>
-                          <span className="font-medium">Waste:</span>
-                          <div className="text-lg font-bold text-red-600">{planGroup.plan.wasteLength.toFixed(0)}mm</div>
-                        </div>
-                      </div>
 
-                      {/* Visual cutting diagram */}
-                      <div className="space-y-3">
-                        <h4 className="font-medium">Cutting Diagram:</h4>
-                        <div className="relative">
-                          {/* Material bar representation */}
-                          <div className="relative h-12 bg-gradient-to-r from-slate-300 to-slate-400 border-2 border-slate-500 rounded" style={{ width: '100%' }}>
-                            {/* Cut positions */}
+                        {/* Visual cutting diagram */}
+                        <div className="space-y-3">
+                          <h4 className="font-medium">Cutting Diagram:</h4>
+                          <div className="relative">
+                            {/* Material bar representation */}
+                            <div className="relative h-12 bg-gradient-to-r from-slate-300 to-slate-400 border-2 border-slate-500 rounded" style={{ width: '100%' }}>
+                              {/* Cut positions */}
+                              {planGroup.plan.cuts.map((cut, cutIndex) => {
+                                const leftPercent = (cut.position / planGroup.plan.stockLength) * 100;
+                                const widthPercent = (cut.length / planGroup.plan.stockLength) * 100;
+                                const colors = [
+                                  'bg-blue-500',
+                                  'bg-green-500', 
+                                  'bg-purple-500',
+                                  'bg-yellow-500',
+                                  'bg-pink-500',
+                                  'bg-cyan-500'
+                                ];
+                                const cutColor = colors[cutIndex % colors.length];
+                                
+                                return (
+                                  <div key={cutIndex} className="absolute top-0 h-full flex items-center">
+                                    {/* Cut piece */}
+                                    <div 
+                                      className={`h-full ${cutColor} border border-slate-700 flex items-center justify-center text-white text-xs font-bold rounded-sm`}
+                                      style={{ 
+                                        left: `${leftPercent}%`,
+                                        width: `${widthPercent}%`,
+                                        minWidth: '20px'
+                                      }}
+                                      title={`Cut ${cutIndex + 1}: ${cut.length}mm at ${cut.position}mm`}
+                                    >
+                                      {widthPercent > 5 && (
+                                        <span className="truncate px-1">
+                                          {cut.length}
+                                        </span>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Angle indicators */}
+                                    {((cut.startAngle && cut.startAngle !== 90) || (cut.endAngle && cut.endAngle !== 90)) && (
+                                      <div className="absolute -top-6 left-0 right-0 flex justify-between text-xs">
+                                        {cut.startAngle && cut.startAngle !== 90 && (
+                                          <span className="bg-red-100 text-red-800 px-1 rounded border">
+                                            ↗ {cut.startAngle}°
+                                          </span>
+                                        )}
+                                        {cut.endAngle && cut.endAngle !== 90 && (
+                                          <span className="bg-red-100 text-red-800 px-1 rounded border">
+                                            {cut.endAngle}° ↖
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    
+                                    {/* Chain indicator */}
+                                    {cut.usesExistingAngle && (
+                                      <div className="absolute -bottom-6 left-0 bg-green-100 text-green-800 text-xs px-2 py-1 rounded border">
+                                        ⚡ Uses existing angle
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              
+                              {/* Waste area */}
+                              {planGroup.plan.wasteLength > 0 && (
+                                <div 
+                                  className="absolute top-0 h-full bg-red-300 border border-red-500 flex items-center justify-center text-red-800 text-xs font-bold"
+                                  style={{ 
+                                    right: '0',
+                                    width: `${(planGroup.plan.wasteLength / planGroup.plan.stockLength) * 100}%`
+                                  }}
+                                  title={`Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm`}
+                                >
+                                  WASTE
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Scale markers */}
+                            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                              <span>0mm</span>
+                              <span>{(planGroup.plan.stockLength / 2).toFixed(0)}mm</span>
+                              <span>{planGroup.plan.stockLength}mm</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Detailed cut list */}
+                        <div className="space-y-2">
+                          <h4 className="font-medium">Cut Sequence:</h4>
+                          <div className="grid gap-2">
                             {planGroup.plan.cuts.map((cut, cutIndex) => {
-                              const leftPercent = (cut.position / planGroup.plan.stockLength) * 100;
-                              const widthPercent = (cut.length / planGroup.plan.stockLength) * 100;
                               const colors = [
-                                'bg-blue-500',
-                                'bg-green-500', 
-                                'bg-purple-500',
-                                'bg-yellow-500',
-                                'bg-pink-500',
-                                'bg-cyan-500'
+                                'border-blue-500 bg-blue-50',
+                                'border-green-500 bg-green-50', 
+                                'border-purple-500 bg-purple-50',
+                                'border-yellow-500 bg-yellow-50',
+                                'border-pink-500 bg-pink-50',
+                                'border-cyan-500 bg-cyan-50'
                               ];
                               const cutColor = colors[cutIndex % colors.length];
                               
                               return (
-                                <div key={cutIndex} className="absolute top-0 h-full flex items-center">
-                                  {/* Cut piece */}
-                                  <div 
-                                    className={`h-full ${cutColor} border border-slate-700 flex items-center justify-center text-white text-xs font-bold rounded-sm`}
-                                    style={{ 
-                                      left: `${leftPercent}%`,
-                                      width: `${widthPercent}%`,
-                                      minWidth: '20px'
-                                    }}
-                                    title={`Cut ${cutIndex + 1}: ${cut.length}mm at ${cut.position}mm`}
-                                  >
-                                    {widthPercent > 5 && (
-                                      <span className="truncate px-1">
-                                        {cut.length}
-                                      </span>
-                                    )}
+                                <div key={cutIndex} className={`flex justify-between items-center text-sm p-3 border-2 rounded ${cutColor}`}>
+                                  <div className="flex items-center gap-3">
+                                    <div className="font-bold text-lg w-8">#{cutIndex + 1}</div>
+                                    <div>
+                                      <div className="font-medium">{cut.length}mm piece</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        Position: {cut.position.toFixed(0)}mm
+                                        {cut.startAngle && cut.startAngle !== 90 && ` • Start: ${cut.startAngle}°`}
+                                        {cut.endAngle && cut.endAngle !== 90 && ` • End: ${cut.endAngle}°`}
+                                      </div>
+                                    </div>
                                   </div>
-                                  
-                                  {/* Angle indicators */}
-                                  {((cut.startAngle && cut.startAngle !== 90) || (cut.endAngle && cut.endAngle !== 90)) && (
-                                    <div className="absolute -top-6 left-0 right-0 flex justify-between text-xs">
-                                      {cut.startAngle && cut.startAngle !== 90 && (
-                                        <span className="bg-red-100 text-red-800 px-1 rounded border">
-                                          ↗ {cut.startAngle}°
-                                        </span>
+                                  <div className="text-right">
+                                    <div className="flex gap-1">
+                                      {cut.usesExistingAngle && (
+                                        <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-300">
+                                          ⚡ Chained
+                                        </Badge>
                                       )}
-                                      {cut.endAngle && cut.endAngle !== 90 && (
-                                        <span className="bg-red-100 text-red-800 px-1 rounded border">
-                                          {cut.endAngle}° ↖
-                                        </span>
+                                      {cut.createsOffcut && (
+                                        <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">
+                                          ↻ Creates offcut
+                                        </Badge>
                                       )}
                                     </div>
-                                  )}
-                                  
-                                  {/* Chain indicator */}
-                                  {cut.usesExistingAngle && (
-                                    <div className="absolute -bottom-6 left-0 bg-green-100 text-green-800 text-xs px-2 py-1 rounded border">
-                                      ⚡ Uses existing angle
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {cut.quantity} piece{cut.quantity > 1 ? 's' : ''}
                                     </div>
-                                  )}
+                                  </div>
                                 </div>
                               );
                             })}
-                            
-                            {/* Waste area */}
-                            {planGroup.plan.wasteLength > 0 && (
-                              <div 
-                                className="absolute top-0 h-full bg-red-300 border border-red-500 flex items-center justify-center text-red-800 text-xs font-bold"
-                                style={{ 
-                                  right: '0',
-                                  width: `${(planGroup.plan.wasteLength / planGroup.plan.stockLength) * 100}%`
-                                }}
-                                title={`Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm`}
-                              >
-                                WASTE
-                              </div>
+                          </div>
+                        </div>
+                        
+                        {/* Material savings indicator */}
+                        {planGroup.plan.cuts.some(cut => cut.usesExistingAngle) && (
+                          <div className="bg-green-50 border border-green-200 rounded p-3">
+                            <div className="flex items-center gap-2 text-green-800">
+                              <Zap className="h-4 w-4" />
+                              <span className="font-medium">Material Savings Achieved!</span>
+                            </div>
+                            <div className="text-sm text-green-700 mt-1">
+                              This plan uses progressive angle optimization to minimize waste and reduce cutting time.
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    // Simple Traditional View
+                    processPlansForDisplay(optimizationResult.plans).map((planGroup, groupIndex) => (
+                      <div key={planGroup.plan.stockId + groupIndex} className="border rounded-lg p-4 space-y-3 bg-white print:break-inside-avoid">
+                        {/* Simple header */}
+                        <div className="flex justify-between items-center pb-2 border-b">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold">Stock #{groupIndex + 1}</span>
+                            {planGroup.repeatCount > 1 && (
+                              <Badge variant="secondary" className="text-xs">
+                                x{planGroup.repeatCount}
+                              </Badge>
                             )}
                           </div>
-                          
-                          {/* Scale markers */}
-                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                            <span>0mm</span>
-                            <span>{(planGroup.plan.stockLength / 2).toFixed(0)}mm</span>
-                            <span>{planGroup.plan.stockLength}mm</span>
+                          <div className="text-right text-sm">
+                            <div className="font-medium">{planGroup.plan.stockLength}mm</div>
+                            <div className="text-xs text-muted-foreground">
+                              {planGroup.plan.efficiency.toFixed(1)}% efficiency
+                            </div>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Detailed cut list */}
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Cut Sequence:</h4>
-                        <div className="grid gap-2">
-                          {planGroup.plan.cuts.map((cut, cutIndex) => {
-                            const colors = [
-                              'border-blue-500 bg-blue-50',
-                              'border-green-500 bg-green-50', 
-                              'border-purple-500 bg-purple-50',
-                              'border-yellow-500 bg-yellow-50',
-                              'border-pink-500 bg-pink-50',
-                              'border-cyan-500 bg-cyan-50'
-                            ];
-                            const cutColor = colors[cutIndex % colors.length];
-                            
-                            return (
-                              <div key={cutIndex} className={`flex justify-between items-center text-sm p-3 border-2 rounded ${cutColor}`}>
-                                <div className="flex items-center gap-3">
-                                  <div className="font-bold text-lg w-8">#{cutIndex + 1}</div>
-                                  <div>
-                                    <div className="font-medium">{cut.length}mm piece</div>
-                                    <div className="text-xs text-muted-foreground">
-                                      Position: {cut.position.toFixed(0)}mm
-                                      {cut.startAngle && cut.startAngle !== 90 && ` • Start: ${cut.startAngle}°`}
-                                      {cut.endAngle && cut.endAngle !== 90 && ` • End: ${cut.endAngle}°`}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="flex gap-1">
-                                    {cut.usesExistingAngle && (
-                                      <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-300">
-                                        ⚡ Chained
-                                      </Badge>
-                                    )}
-                                    {cut.createsOffcut && (
-                                      <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">
-                                        ↻ Creates offcut
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    {cut.quantity} piece{cut.quantity > 1 ? 's' : ''}
-                                  </div>
-                                </div>
+                        
+                        {/* Simple cut list table */}
+                        <div className="space-y-1">
+                          <div className="grid grid-cols-6 gap-2 text-xs font-medium text-muted-foreground border-b pb-1">
+                            <div>Cut</div>
+                            <div>Length</div>
+                            <div>Position</div>
+                            <div>Start °</div>
+                            <div>End °</div>
+                            <div>Notes</div>
+                          </div>
+                          {planGroup.plan.cuts.map((cut, cutIndex) => (
+                            <div key={cutIndex} className="grid grid-cols-6 gap-2 text-sm py-1 border-b border-dashed">
+                              <div className="font-medium">#{cutIndex + 1}</div>
+                              <div>{cut.length}mm</div>
+                              <div>{cut.position.toFixed(0)}mm</div>
+                              <div>{cut.startAngle || 90}°</div>
+                              <div>{cut.endAngle || 90}°</div>
+                              <div className="text-xs">
+                                {cut.usesExistingAngle && '⚡ Chained'}
+                                {cut.quantity > 1 && ` Qty: ${cut.quantity}`}
                               </div>
-                            );
-                          })}
+                            </div>
+                          ))}
+                          {/* Waste info */}
+                          <div className="grid grid-cols-6 gap-2 text-sm py-1 bg-red-50 text-red-700">
+                            <div className="font-medium">WASTE</div>
+                            <div>{planGroup.plan.wasteLength.toFixed(0)}mm</div>
+                            <div>{(planGroup.plan.stockLength - planGroup.plan.wasteLength).toFixed(0)}mm</div>
+                            <div>-</div>
+                            <div>-</div>
+                            <div className="text-xs">Offcut</div>
+                          </div>
                         </div>
                       </div>
-                      
-                      {/* Material savings indicator */}
-                      {planGroup.plan.cuts.some(cut => cut.usesExistingAngle) && (
-                        <div className="bg-green-50 border border-green-200 rounded p-3">
-                          <div className="flex items-center gap-2 text-green-800">
-                            <Zap className="h-4 w-4" />
-                            <span className="font-medium">Material Savings Achieved!</span>
-                          </div>
-                          <div className="text-sm text-green-700 mt-1">
-                            This plan uses progressive angle optimization to minimize waste and reduce cutting time.
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </CardContent>
               </Card>
 
