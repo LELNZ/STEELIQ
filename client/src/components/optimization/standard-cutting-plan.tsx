@@ -109,12 +109,136 @@ export default function StandardCuttingPlan({
   };
 
   const handlePrint = () => {
-    window.print();
+    // Create print-friendly version without sidebar
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Cutting Plan - ${jobNumber || 'Job'}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; font-weight: bold; }
+              .header { margin-bottom: 20px; }
+              .stats { display: flex; gap: 20px; margin-bottom: 20px; }
+              .stat { text-align: center; }
+              .waste-row { background-color: #ffebee; }
+              .angle-cut { color: #ff9800; font-weight: bold; }
+              @media print { body { margin: 0; } }
+            </style>
+          </head>
+          <body>
+            ${document.querySelector('[data-print-content]')?.innerHTML || ''}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
-  const handleExport = () => {
-    // Export functionality would be implemented here
-    console.log("Export cutting plan");
+  const handleExport = async () => {
+    try {
+      // Dynamic import of jsPDF
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF();
+      
+      // Add title
+      doc.setFontSize(20);
+      doc.text(`Cutting Plan - ${jobNumber || 'Job'}`, 20, 20);
+      
+      // Add job details
+      doc.setFontSize(12);
+      doc.text(`Material: ${materialCode}`, 20, 35);
+      doc.text(`Plans: ${plans.length}`, 20, 45);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 55);
+      
+      let yPosition = 70;
+      
+      // Add summary stats
+      const stats = calculateTotalStats();
+      doc.text(`Summary:`, 20, yPosition);
+      yPosition += 10;
+      doc.text(`Total Cuts: ${stats.totalCuts} | Efficiency: ${stats.avgEfficiency.toFixed(1)}% | Waste: ${stats.totalWaste.toFixed(0)}mm | Est. Time: ${formatTime(stats.totalTime)}`, 20, yPosition);
+      yPosition += 20;
+      
+      // Add each cutting plan
+      plans.forEach((plan, planIndex) => {
+        if (yPosition > 250) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        
+        // Plan header
+        doc.setFontSize(14);
+        doc.text(`Stock Bar #${planIndex + 1} - ${plan.stockLength}mm`, 20, yPosition);
+        yPosition += 10;
+        
+        doc.setFontSize(10);
+        doc.text(`Efficiency: ${plan.efficiency.toFixed(1)}% | Cuts: ${plan.totalCuts} | Waste: ${plan.wasteLength.toFixed(0)}mm`, 20, yPosition);
+        yPosition += 15;
+        
+        // Instructions
+        if (plan.instructions) {
+          if (plan.instructions.general) {
+            doc.text(`Instructions: ${plan.instructions.general}`, 20, yPosition);
+            yPosition += 8;
+          }
+          if (plan.instructions.heatNumber) {
+            doc.text(`Heat Number: ${plan.instructions.heatNumber}`, 20, yPosition);
+            yPosition += 8;
+          }
+        }
+        yPosition += 5;
+        
+        // Table header
+        doc.text('Cut#', 20, yPosition);
+        doc.text('Length', 40, yPosition);
+        doc.text('First Cut', 70, yPosition);
+        doc.text('Second Cut', 100, yPosition);
+        doc.text('Qty', 130, yPosition);
+        doc.text('Time', 150, yPosition);
+        doc.text('Instructions', 170, yPosition);
+        yPosition += 8;
+        
+        // Cuts
+        plan.cuts.forEach((cut, cutIndex) => {
+          if (yPosition > 270) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          
+          const hasAngleCuts = (cut.startAngle && cut.startAngle !== 90) || (cut.endAngle && cut.endAngle !== 90);
+          const timePerCut = hasAngleCuts ? 12 : 10;
+          const totalCutTime = timePerCut * cut.quantity;
+          
+          doc.text(`#${cutIndex + 1}`, 20, yPosition);
+          doc.text(`${cut.length}mm`, 40, yPosition);
+          doc.text(`${cut.startAngle || 90}°`, 70, yPosition);
+          doc.text(`${cut.endAngle || 90}°`, 100, yPosition);
+          doc.text(`${cut.quantity}`, 130, yPosition);
+          doc.text(formatTime(totalCutTime), 150, yPosition);
+          doc.text(cut.cuttingInstructions || cut.description || '-', 170, yPosition);
+          yPosition += 8;
+        });
+        
+        // Waste
+        doc.text('OFFCUT', 20, yPosition);
+        doc.text(`${plan.wasteLength.toFixed(0)}mm`, 40, yPosition);
+        doc.text(`Tag: ${plan.instructions?.heatNumber || 'Heat#'}`, 170, yPosition);
+        yPosition += 15;
+      });
+      
+      // Save the PDF
+      doc.save(`cutting-plan-${jobNumber || 'job'}-${new Date().toISOString().split('T')[0]}.pdf`);
+      
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      // Fallback to print
+      handlePrint();
+    }
   };
 
   // Visual indicator components for review
@@ -130,33 +254,41 @@ export default function StandardCuttingPlan({
     </div>
   );
 
-  const ArrowIndicator = ({ direction }: { direction: 'left' | 'right' }) => (
-    <div className="flex items-center justify-center">
-      {direction === 'left' ? 
-        <ArrowLeft className="h-4 w-4 text-blue-600" /> : 
-        <ArrowRight className="h-4 w-4 text-blue-600" />
-      }
-    </div>
-  );
 
-  const PieceOrientation = ({ cut, cutIndex }: { cut: Cut; cutIndex: number }) => (
-    <div className="flex items-center gap-2 mt-1">
-      <div className="flex items-center gap-1 text-xs">
-        <span className="text-blue-600">First Cut →</span>
-        <div className="w-8 h-3 bg-blue-100 border border-blue-300 rounded-sm flex items-center justify-center">
-          <span className="text-xs">{cut.startAngle || 90}°</span>
+
+  const SimpleBarGuide = ({ cut }: { cut: Cut }) => (
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative w-20 h-6 bg-gradient-to-r from-slate-300 to-slate-400 border border-slate-500 rounded-sm">
+        {/* Left end piece (blue like your image) */}
+        <div className="absolute left-0 top-0 w-4 h-full bg-blue-500 border-r-2 border-white rounded-l-sm"></div>
+        
+        {/* Right end indicator */}
+        <div className="absolute right-0 top-0 w-1 h-full bg-red-500 rounded-r-sm"></div>
+        
+        {/* Angle indicators */}
+        <div className="absolute -top-4 left-1 text-xs text-blue-600 font-medium">
+          {cut.startAngle || 90}°
         </div>
-        <span className="text-gray-400">|</span>
-        <div className="w-8 h-3 bg-green-100 border border-green-300 rounded-sm flex items-center justify-center">
-          <span className="text-xs">{cut.endAngle || 90}°</span>
+        <div className="absolute -top-4 right-1 text-xs text-red-600 font-medium">
+          {cut.endAngle || 90}°
         </div>
-        <span className="text-green-600">← Second Cut</span>
+        
+        {/* Cut labels */}
+        <div className="absolute -bottom-5 left-0 text-xs text-blue-600">
+          Cut 1
+        </div>
+        <div className="absolute -bottom-5 right-0 text-xs text-red-600">
+          Cut 2
+        </div>
+      </div>
+      <div className="text-xs text-muted-foreground mt-1">
+        {cut.length}mm piece
       </div>
     </div>
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-print-content>
       {/* Header with Job Info */}
       <Card>
         <CardHeader className="pb-4">
@@ -312,50 +444,35 @@ export default function StandardCuttingPlan({
                       <TableCell className="font-mono text-lg font-bold">{cut.length}mm</TableCell>
                       
                       {/* First Cut Angle (Right side of piece) */}
-                      <TableCell>
+                      <TableCell className="py-2">
                         <div className="flex flex-col items-center">
-                          <span className={cut.startAngle !== 90 ? "text-orange-600 font-bold text-lg" : "text-lg font-medium"}>
+                          <span className={cut.startAngle !== 90 ? "text-orange-600 font-bold" : "font-medium"}>
                             {cut.startAngle || 90}°
                           </span>
                           <span className="text-xs text-muted-foreground">Right end</span>
-                          {/* Example 1: Simple blade indicator */}
-                          <BladeIndicator />
                         </div>
                       </TableCell>
                       
                       {/* Second Cut Angle (Left side of piece) */}
-                      <TableCell>
+                      <TableCell className="py-2">
                         <div className="flex flex-col items-center">
-                          <span className={cut.endAngle !== 90 ? "text-orange-600 font-bold text-lg" : "text-lg font-medium"}>
+                          <span className={cut.endAngle !== 90 ? "text-orange-600 font-bold" : "font-medium"}>
                             {cut.endAngle || 90}°
                           </span>
                           <span className="text-xs text-muted-foreground">Left end</span>
-                          {/* Example 2: Bandsaw indicator */}
-                          <BandsawIndicator />
                         </div>
                       </TableCell>
                       
-                      {/* Visual Guide Options */}
+                      {/* Visual Guide */}
                       <TableCell>
-                        <div className="space-y-2">
-                          {/* Option 1: Arrow indicators */}
-                          <div className="flex items-center gap-1">
-                            <ArrowIndicator direction="right" />
-                            <span className="text-xs">Cut 1</span>
-                            <ArrowIndicator direction="left" />
-                            <span className="text-xs">Cut 2</span>
-                          </div>
-                          
-                          {/* Option 2: Piece orientation visual */}
-                          <PieceOrientation cut={cut} cutIndex={cutIndex} />
-                        </div>
+                        <SimpleBarGuide cut={cut} />
                       </TableCell>
                       
-                      <TableCell>
-                        <Badge variant="secondary" className="text-lg px-3 py-1">{cut.quantity}</Badge>
+                      <TableCell className="py-2">
+                        <Badge variant="secondary" className="px-2 py-1">{cut.quantity}</Badge>
                       </TableCell>
                       
-                      <TableCell>
+                      <TableCell className="py-2">
                         <span className={hasAngleCuts ? "text-orange-600 font-medium" : "font-medium"}>
                           {formatTime(totalCutTime)}
                         </span>
@@ -364,7 +481,7 @@ export default function StandardCuttingPlan({
                         )}
                       </TableCell>
                       
-                      <TableCell>
+                      <TableCell className="py-2">
                         <div className="space-y-1">
                           {cut.cuttingInstructions && (
                             <div className="text-sm font-medium text-blue-600">
