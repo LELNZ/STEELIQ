@@ -196,9 +196,10 @@ export default function CuttingOptimizerComponent() {
       yPosition += 5;
     };
 
-    // Header
+    // Header with logo space
     addText('LATERAL ENGINEERING LIMITED', 16, true);
     addText('CUTTING OPTIMIZATION REPORT', 14, true);
+    addText('Professional Steel Cutting Solutions', 10);
     addText(`${isJobMode ? 'JOB' : 'SIMULATION'} ID: ${identifier}`, 12, true);
     addText(`Generated: ${timestamp}`, 10);
     addText(`Algorithm: ${optimizationResult.summary.algorithm}`, 10);
@@ -378,11 +379,18 @@ export default function CuttingOptimizerComponent() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Cutting Optimization</h1>
-          <p className="text-muted-foreground">
-            Minimize waste and maximize efficiency with advanced algorithms
-          </p>
+        <div className="flex items-center gap-4">
+          <img 
+            src="/attached_assets/Logo used in Google Admin icon.jpg" 
+            alt="Lateral Engineering Logo" 
+            className="h-12 w-12 object-contain"
+          />
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Cutting Optimization</h1>
+            <p className="text-muted-foreground">
+              Minimize waste and maximize efficiency with advanced algorithms
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           {/* Mode Toggle */}
