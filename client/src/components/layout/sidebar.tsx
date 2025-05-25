@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import logoIcon from "@assets/LEL Variations Logo Symbol 01-04.png";
+import logoIcon from "@assets/LEL Symbol only.png";
 import { 
   LayoutDashboard, 
   Briefcase, 
