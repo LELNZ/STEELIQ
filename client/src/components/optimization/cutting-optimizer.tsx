@@ -1254,6 +1254,7 @@ export default function CuttingOptimizerComponent() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }
