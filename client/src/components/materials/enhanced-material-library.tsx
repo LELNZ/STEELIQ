@@ -143,7 +143,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [selectedMaterials, setSelectedMaterials] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
-  const [viewFormat, setViewFormat] = useState<"card" | "list">("card");
+  const [viewFormat, setViewFormat] = useState<"card" | "list">("list");
   const [cardSize, setCardSize] = useState<"normal" | "small" | "tiny">("normal");
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   
@@ -223,8 +223,13 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
     return categories;
   };
 
-  // Optimized material filtering
+  // Optimized material filtering - only show materials when category selected or search entered
   const filteredMaterials = (materials as Material[]).filter((material: Material) => {
+    // Don't show any materials by default - require category selection or search
+    if (selectedCategory === "all" && !searchQuery.trim()) {
+      return false;
+    }
+
     // Search filter
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery || 
@@ -819,20 +824,31 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
         <Card>
           <CardContent className="p-12 text-center">
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">No materials found</h3>
-            <p className="text-muted-foreground mb-4">
-              {searchQuery || selectedCategory !== "all"
-                ? "No materials match your current filters"
-                : "Start by importing your steel catalogue"
-              }
-            </p>
-            <Button variant="outline" onClick={() => {
-              setSearchQuery("");
-              setSelectedCategory("all");
-              setSelectedSubcategory("all");
-            }}>
-              Clear Filters
-            </Button>
+            {selectedCategory === "all" && !searchQuery.trim() ? (
+              <>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Select a Material Category</h3>
+                <p className="text-muted-foreground mb-4">
+                  Choose a category above or use the search bar to browse your steel catalogue
+                </p>
+                <div className="text-sm text-muted-foreground">
+                  <p>💡 <strong>Tip:</strong> Click on category buttons like "Merchant Bar" or "SHS/RHS" to start browsing</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-foreground mb-2">No materials found</h3>
+                <p className="text-muted-foreground mb-4">
+                  No materials match your current filters
+                </p>
+                <Button variant="outline" onClick={() => {
+                  setSearchQuery("");
+                  setSelectedCategory("all");
+                  setSelectedSubcategory("all");
+                }}>
+                  Clear Filters
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
