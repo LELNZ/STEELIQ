@@ -27,8 +27,6 @@ import { Material } from "@shared/schema";
 export default function CuttingOptimizerComponent() {
   const [cutRequests, setCutRequests] = useState<CutRequest[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
-  
-
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("multi");
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -37,168 +35,7 @@ export default function CuttingOptimizerComponent() {
   const [showCreateJobDialog, setShowCreateJobDialog] = useState(false);
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'detailed' | 'simple'>('detailed');
-
-  // Initialize toast hook
   const { toast } = useToast();
-
-  // PDF Export Function
-  const exportToPDF = (mode: 'detailed' | 'simple') => {
-    if (!optimizationResult) return;
-
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let yPos = 20;
-
-    // Header
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Lateral Engineering - Cutting Plan', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 15;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, yPos, { align: 'center' });
-    doc.text(`View: ${mode === 'detailed' ? 'Detailed Visual' : 'Simple Traditional'}`, pageWidth / 2, yPos + 7, { align: 'center' });
-    yPos += 25;
-
-    // Summary
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Optimization Summary', 15, yPos);
-    yPos += 10;
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Total Plans: ${optimizationResult.plans.length}`, 15, yPos);
-    yPos += 30;
-
-    // Process plans for display
-    const plansToShow = processPlansForDisplay(optimizationResult.plans);
-
-    plansToShow.forEach((planGroup, index) => {
-      // Check if we need a new page
-      if (yPos > 250) {
-        doc.addPage();
-        yPos = 20;
-      }
-
-      // Stock header
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Stock #${index + 1}${planGroup.repeatCount > 1 ? ` (Repeat ${planGroup.repeatCount}x)` : ''}`, 15, yPos);
-      doc.text(`${planGroup.plan.efficiency.toFixed(1)}% Efficiency`, pageWidth - 15, yPos, { align: 'right' });
-      yPos += 10;
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Length: ${planGroup.plan.stockLength}mm | Cuts: ${planGroup.plan.cuts.length} | Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 15, yPos);
-      yPos += 15;
-
-      if (mode === 'detailed') {
-        // Detailed view - show each cut with full details
-        planGroup.plan.cuts.forEach((cut, cutIndex) => {
-          if (yPos > 270) {
-            doc.addPage();
-            yPos = 20;
-          }
-
-          doc.setFont('helvetica', 'bold');
-          doc.text(`Cut #${cutIndex + 1}:`, 20, yPos);
-          doc.setFont('helvetica', 'normal');
-          doc.text(`${cut.length}mm @ ${cut.position.toFixed(0)}mm`, 50, yPos);
-          
-          if (cut.startAngle && cut.startAngle !== 90) {
-            doc.text(`Start: ${cut.startAngle}°`, 120, yPos);
-          }
-          if (cut.endAngle && cut.endAngle !== 90) {
-            doc.text(`End: ${cut.endAngle}°`, 150, yPos);
-          }
-          if (cut.usesExistingAngle) {
-            doc.text('⚡ Chained', pageWidth - 30, yPos);
-          }
-          yPos += 7;
-        });
-      } else {
-        // Simple view - table format
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
-        
-        // Table headers
-        const headers = ['Cut', 'Length', 'Position', 'Start°', 'End°', 'Notes'];
-        const colWidths = [20, 25, 25, 20, 20, 40];
-        let xPos = 15;
-        
-        headers.forEach((header, i) => {
-          doc.text(header, xPos, yPos);
-          xPos += colWidths[i];
-        });
-        yPos += 7;
-
-        // Draw line under headers
-        doc.line(15, yPos - 2, pageWidth - 15, yPos - 2);
-        yPos += 3;
-
-        doc.setFont('helvetica', 'normal');
-        
-        // Cut rows
-        planGroup.plan.cuts.forEach((cut, cutIndex) => {
-          if (yPos > 270) {
-            doc.addPage();
-            yPos = 30;
-          }
-
-          xPos = 15;
-          const values = [
-            `#${cutIndex + 1}`,
-            `${cut.length}mm`,
-            `${cut.position.toFixed(0)}mm`,
-            `${cut.startAngle || 90}°`,
-            `${cut.endAngle || 90}°`,
-            cut.usesExistingAngle ? '⚡ Chained' : (cut.quantity > 1 ? `Qty: ${cut.quantity}` : '')
-          ];
-
-          values.forEach((value, i) => {
-            doc.text(value, xPos, yPos);
-            xPos += colWidths[i];
-          });
-          yPos += 6;
-        });
-
-        // Waste row
-        if (yPos > 270) {
-          doc.addPage();
-          yPos = 30;
-        }
-        
-        doc.setFont('helvetica', 'bold');
-        xPos = 15;
-        const wasteValues = [
-          'WASTE',
-          `${planGroup.plan.wasteLength.toFixed(0)}mm`,
-          `${(planGroup.plan.stockLength - planGroup.plan.wasteLength).toFixed(0)}mm`,
-          '-',
-          '-',
-          'Offcut'
-        ];
-
-        wasteValues.forEach((value, i) => {
-          doc.text(value, xPos, yPos);
-          xPos += colWidths[i];
-        });
-      }
-
-      yPos += 20;
-    });
-
-    // Save the PDF
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    doc.save(`Cutting-Plan-${mode}-${timestamp}.pdf`);
-    
-    toast({
-      title: "PDF Exported Successfully",
-      description: `${mode === 'detailed' ? 'Detailed' : 'Simple'} cutting plan has been downloaded.`,
-    });
-  };
 
   // Fetch materials
   const { data: materialsData = [] } = useQuery<Material[]>({
@@ -370,14 +207,38 @@ export default function CuttingOptimizerComponent() {
   // Initialize toast hook
   const { toast } = useToast();
 
-    // Helper function to add text with better formatting
-    const addText = (text: string, fontSize = 11, isBold = false, indent = 0) => {
-      pdf.setFontSize(fontSize);
-      if (isBold) pdf.setFont('helvetica', 'bold');
-      else pdf.setFont('helvetica', 'normal');
+  // PDF Export Function
+  const exportToPDF = (mode: 'detailed' | 'simple' = 'detailed') => {
+    if (!optimizationResult) return;
+    
+    const doc = new jsPDF();
+    let yPos = 20;
+    
+    doc.setFontSize(16);
+    doc.text('Lateral Engineering - Cutting Plan', 20, yPos);
+    yPos += 20;
+    
+    doc.setFontSize(12);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, yPos);
+    yPos += 15;
+    
+    processPlansForDisplay(optimizationResult.plans).forEach((planGroup, index) => {
+      doc.text(`Stock #${index + 1} - ${planGroup.plan.stockLength}mm`, 20, yPos);
+      yPos += 10;
       
-      const maxWidth = pageWidth - 2 * margin - indent;
-      const lines = pdf.splitTextToSize(text, maxWidth);
+      planGroup.plan.cuts.forEach((cut, cutIndex) => {
+        doc.text(`Cut ${cutIndex + 1}: ${cut.length}mm`, 30, yPos);
+        yPos += 8;
+      });
+      yPos += 10;
+    });
+    
+    doc.save(`Cutting-Plan-${mode}-${Date.now()}.pdf`);
+    toast({
+      title: "PDF Exported",
+      description: "Cutting plan has been downloaded successfully.",
+    });
+  };
       
       lines.forEach((line: string) => {
         if (yPosition > pageHeight - 25) {
