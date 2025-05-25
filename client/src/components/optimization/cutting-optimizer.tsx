@@ -208,7 +208,7 @@ export default function CuttingOptimizerComponent() {
         pdf.setTextColor(0, 0, 0); // Black text on yellow
         pdf.setFontSize(12);
         pdf.setFont('helvetica', 'bold');
-        pdf.text(`🔄 REPEAT ${repeatCount}x - ${text}`, margin + 5, yPosition);
+        pdf.text(`REPEAT ${repeatCount}x - ${text}`, margin + 5, yPosition);
       } else {
         pdf.setFillColor(52, 144, 220); // Blue for headers
         pdf.rect(margin, yPosition - 6, pageWidth - 2 * margin, boxHeight, 'F');
@@ -219,6 +219,22 @@ export default function CuttingOptimizerComponent() {
       }
       pdf.setTextColor(0, 0, 0); // Reset to black
       yPosition += boxHeight + 5;
+    };
+
+    // Add checkbox for workshop tracking
+    const addCheckbox = (text: string, indent = 0) => {
+      const checkboxSize = 4;
+      const checkboxX = margin + indent;
+      
+      // Draw checkbox
+      pdf.setDrawColor(0);
+      pdf.rect(checkboxX, yPosition - 4, checkboxSize, checkboxSize);
+      
+      // Add text next to checkbox
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(text, checkboxX + checkboxSize + 3, yPosition);
+      yPosition += 8;
     };
 
     // Professional Header
@@ -263,23 +279,34 @@ export default function CuttingOptimizerComponent() {
       addHeaderBox(`STOCK LENGTH: ${stockLength}mm`);
       
       plans.forEach((planGroup, planIndex) => {
-        const materialName = getMaterialName(planGroup.plan.cuts[0]?.requestId || 'Mixed');
+        // Get clean material name
+        const request = cutRequests.find(req => req.id === (planGroup.plan.cuts[0]?.requestId || ''));
+        const material = materialsData.find(m => m.code === request?.materialType);
+        const materialName = material ? `${material.name} (${material.code})` : (request?.materialType || 'Mixed Materials');
         
         if (planGroup.repeatCount > 1) {
-          // Highlighted repeat section
+          // Highlighted repeat section with checkboxes
           addHeaderBox(materialName, true, planGroup.repeatCount);
           addText(`Efficiency: ${planGroup.plan.efficiency.toFixed(1)}% | Waste per stock: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 10, false, 5);
           addText('CUTTING SEQUENCE (apply to each stock):', 11, true, 5);
+          
+          // Add checkboxes for each repeat
+          for (let i = 1; i <= planGroup.repeatCount; i++) {
+            addCheckbox(`Stock ${i} of ${planGroup.repeatCount} completed`, 10);
+          }
+          yPosition += 5;
         } else {
           addText(`${materialName}`, 11, true);
           addText(`Efficiency: ${planGroup.plan.efficiency.toFixed(1)}% | Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 10, false, 5);
           addText('CUTTING SEQUENCE:', 11, true, 5);
+          addCheckbox('Stock completed', 10);
+          yPosition += 5;
         }
         
-        // Cuts in a clean, readable format
+        // Cuts in a clean, readable format with proper arrows
         planGroup.plan.cuts.forEach((cut, cutIndex) => {
-          const angleText = cut.angle && cut.angle !== 90 ? ` [${cut.angle}° ANGLE]` : '';
-          addText(`${cutIndex + 1}. ${cut.length}mm (x${cut.quantity}) → Position: ${cut.position.toFixed(0)}mm${angleText}`, 10, false, 15);
+          const angleText = cut.angle && cut.angle !== 90 ? ` [${cut.angle} DEGREE ANGLE]` : '';
+          addText(`${cutIndex + 1}. ${cut.length}mm (x${cut.quantity}) -> Position: ${cut.position.toFixed(0)}mm${angleText}`, 10, false, 15);
         });
         yPosition += 8;
       });
