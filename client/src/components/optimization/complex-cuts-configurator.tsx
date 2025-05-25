@@ -292,8 +292,8 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                                 {/* Angled cut shape based on angle and orientation */}
                                 <polygon
                                   points={cut.orientation === 'same' 
-                                    ? `0,0 24,0 ${24 - (cut.angle / 90 * 24)},48 0,48`
-                                    : `0,0 24,0 24,48 ${cut.angle / 90 * 24},48`
+                                    ? `0,0 24,0 0,${48 - (cut.angle / 90 * 48)}`
+                                    : `0,0 24,0 0,${cut.angle / 90 * 48}`
                                   }
                                   fill={`url(#grad-start-${cut.id})`}
                                   opacity="0.9"
@@ -348,8 +348,8 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                                 {/* Angled cut shape based on angle and orientation */}
                                 <polygon
                                   points={cut.orientation === 'same' 
-                                    ? `0,0 24,0 24,48 ${cut.angle / 90 * 24},48`
-                                    : `0,0 24,0 ${24 - (cut.angle / 90 * 24)},48 0,48`
+                                    ? `0,0 24,0 24,${cut.angle / 90 * 48}`
+                                    : `0,0 24,0 24,${48 - (cut.angle / 90 * 48)}`
                                   }
                                   fill={`url(#grad-end-${cut.id})`}
                                   opacity="0.9"
