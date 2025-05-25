@@ -289,11 +289,11 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                                     <stop offset="100%" style={{stopColor:"#b91c1c", stopOpacity:1}} />
                                   </linearGradient>
                                 </defs>
-                                {/* Angled cut shape based on angle and orientation - fills corner */}
+                                {/* Material removal visualization - shows what gets cut off */}
                                 <polygon
                                   points={cut.orientation === 'same' 
-                                    ? `0,0 ${(90 - cut.angle) / 90 * 24},0 0,${(90 - cut.angle) / 90 * 48}`
-                                    : `0,${cut.angle / 90 * 48} ${cut.angle / 90 * 24},0 0,0`
+                                    ? `0,0 ${cut.angle / 90 * 24},0 0,${cut.angle / 90 * 48}`
+                                    : `0,0 ${(90 - cut.angle) / 90 * 24},0 0,${(90 - cut.angle) / 90 * 48}`
                                   }
                                   fill={`url(#grad-start-${cut.id})`}
                                   opacity="0.9"
@@ -345,11 +345,11 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                                     <stop offset="100%" style={{stopColor:"#b91c1c", stopOpacity:1}} />
                                   </linearGradient>
                                 </defs>
-                                {/* Angled cut shape based on angle and orientation - fills corner */}
+                                {/* Material removal visualization - shows what gets cut off */}
                                 <polygon
                                   points={cut.orientation === 'same' 
-                                    ? `24,0 24,${cut.angle / 90 * 48} ${24 - (cut.angle / 90 * 24)},48 0,48 0,0`
-                                    : `24,${48 - (cut.angle / 90 * 48)} 24,48 0,48 0,0 ${(90 - cut.angle) / 90 * 24},0`
+                                    ? `24,0 ${24 - (cut.angle / 90 * 24)},0 24,${cut.angle / 90 * 48}`
+                                    : `24,0 ${24 - ((90 - cut.angle) / 90 * 24)},0 24,${(90 - cut.angle) / 90 * 48}`
                                   }
                                   fill={`url(#grad-end-${cut.id})`}
                                   opacity="0.9"
