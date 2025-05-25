@@ -7,8 +7,7 @@ export interface CutRequest {
   id: string;
   length: number;
   quantity: number;
-  materialCode?: string;
-  materialType?: string;
+  materialType: string;
   startAngle?: number; // Left side cutting angle in degrees, default 90
   endAngle?: number; // Right side cutting angle in degrees, default 90
   angle?: number; // Legacy support - will be used for both if start/end not specified
@@ -21,7 +20,6 @@ export interface StockItem {
   id: string;
   length: number;
   available: number;
-  quantity?: number;
   materialType: string;
   cost?: number;
   supplier?: string;
@@ -62,10 +60,6 @@ export interface OptimizationResult {
   };
   remnants: Remnant[];
   unallocated: CutRequest[];
-  // Additional properties for compatibility
-  efficiency?: number;
-  wastePercentage?: number;
-  totalMaterialLength?: number;
 }
 
 export interface Remnant {
@@ -105,7 +99,7 @@ export class CuttingOptimizer {
     const materialGroups = this.groupRequestsByMaterial(requests);
     const availableStock = stock.map(s => ({ ...s, remaining: s.available }));
     
-    for (const [materialType, materialRequests] of Array.from(materialGroups.entries())) {
+    for (const [materialType, materialRequests] of materialGroups) {
       const materialStock = availableStock.filter(s => s.materialType === materialType);
       const angleChains = this.buildAngleChains(materialRequests);
       
@@ -116,7 +110,7 @@ export class CuttingOptimizer {
     }
     
     const executionTime = performance.now() - startTime;
-    return this.createOptimizationResult(plans, remnants, "Progressive Angle-Aware", executionTime);
+    return this.buildOptimizationResult(plans, remnants, unallocated, "Progressive Angle-Aware", executionTime);
   }
 
   /**

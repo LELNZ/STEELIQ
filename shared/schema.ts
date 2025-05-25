@@ -47,7 +47,7 @@ export const materials = pgTable("materials", {
 });
 
 // Inventory tracking
-export const inventory: any = pgTable("inventory", {
+export const inventory = pgTable("inventory", {
   id: serial("id").primaryKey(),
   materialId: integer("material_id").references(() => materials.id).notNull(),
   batchNumber: text("batch_number"),

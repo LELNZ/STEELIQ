@@ -75,30 +75,14 @@ export interface IStorage {
     weeklyVolume: number;
   }>;
 
-  // Optimization Simulations (simplified for now)
-  getOptimizationSimulations(): Promise<any[]>;
-  getOptimizationSimulation(id: string): Promise<any | undefined>;
-  createOptimizationSimulation(simulation: any): Promise<any>;
+  // Optimization Simulations
+  getOptimizationSimulations(): Promise<OptimizationSimulation[]>;
+  getOptimizationSimulation(id: string): Promise<OptimizationSimulation | undefined>;
+  createOptimizationSimulation(simulation: InsertOptimizationSimulation): Promise<OptimizationSimulation>;
   deleteExpiredSimulations(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // Optimization Simulations (placeholder methods)
-  async getOptimizationSimulations(): Promise<any[]> {
-    return [];
-  }
-
-  async getOptimizationSimulation(id: string): Promise<any | undefined> {
-    return undefined;
-  }
-
-  async createOptimizationSimulation(simulation: any): Promise<any> {
-    return simulation;
-  }
-
-  async deleteExpiredSimulations(): Promise<void> {
-    // Implementation placeholder
-  }
   // Users
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
