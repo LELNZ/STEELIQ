@@ -1,7 +1,7 @@
 import { Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import logoIcon from "@assets/LEL Symbol only.png";
+import logoIcon from "@assets/LEL Symbol black only.png";
 import { 
   Select,
   SelectContent,
