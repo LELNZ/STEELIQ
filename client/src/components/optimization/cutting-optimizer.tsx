@@ -221,20 +221,22 @@ export default function CuttingOptimizerComponent() {
       yPosition += boxHeight + 5;
     };
 
-    // Add checkbox for workshop tracking
-    const addCheckbox = (text: string, indent = 0) => {
-      const checkboxSize = 4;
-      const checkboxX = margin + indent;
+    // Add checkbox for workshop tracking (compact version on right side)
+    const addRightCheckbox = (text: string, checkboxNumber: number) => {
+      const checkboxSize = 3;
+      const rightMargin = pageWidth - margin - 40;
+      const checkboxY = yPosition - 3;
       
-      // Draw checkbox
+      // Draw checkbox on right side
       pdf.setDrawColor(0);
-      pdf.rect(checkboxX, yPosition - 4, checkboxSize, checkboxSize);
+      pdf.rect(rightMargin, checkboxY, checkboxSize, checkboxSize);
       
-      // Add text next to checkbox
-      pdf.setFontSize(10);
+      // Add compact text next to checkbox
+      pdf.setFontSize(8);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(text, checkboxX + checkboxSize + 3, yPosition);
-      yPosition += 8;
+      pdf.text(`${checkboxNumber}`, rightMargin + checkboxSize + 2, yPosition);
+      
+      return rightMargin; // Return position for alignment
     };
 
     // Professional Header
@@ -279,36 +281,52 @@ export default function CuttingOptimizerComponent() {
       addHeaderBox(`STOCK LENGTH: ${stockLength}mm`);
       
       plans.forEach((planGroup, planIndex) => {
-        // Get clean material name
+        // Get detailed material specification
         const request = cutRequests.find(req => req.id === (planGroup.plan.cuts[0]?.requestId || ''));
         const material = materialsData.find(m => m.code === request?.materialType);
-        const materialName = material ? `${material.name} (${material.code})` : (request?.materialType || 'Mixed Materials');
         
-        if (planGroup.repeatCount > 1) {
-          // Highlighted repeat section with checkboxes
-          addHeaderBox(materialName, true, planGroup.repeatCount);
-          addText(`Efficiency: ${planGroup.plan.efficiency.toFixed(1)}% | Waste per stock: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 10, false, 5);
-          addText('CUTTING SEQUENCE (apply to each stock):', 11, true, 5);
-          
-          // Add checkboxes for each repeat
-          for (let i = 1; i <= planGroup.repeatCount; i++) {
-            addCheckbox(`Stock ${i} of ${planGroup.repeatCount} completed`, 10);
-          }
-          yPosition += 5;
-        } else {
-          addText(`${materialName}`, 11, true);
-          addText(`Efficiency: ${planGroup.plan.efficiency.toFixed(1)}% | Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 10, false, 5);
-          addText('CUTTING SEQUENCE:', 11, true, 5);
-          addCheckbox('Stock completed', 10);
-          yPosition += 5;
+        // Create proper material specification format: "SHS 100x100x9 x 8000mm"
+        let materialSpec = 'Mixed Materials';
+        if (material) {
+          const dimensions = [material.height, material.width, material.thickness]
+            .filter(d => d && d > 0)
+            .join('x');
+          materialSpec = dimensions 
+            ? `${material.name} ${dimensions} x ${stockLength}mm`
+            : `${material.name} x ${stockLength}mm`;
         }
         
-        // Cuts in a clean, readable format with proper arrows
+        if (planGroup.repeatCount > 1) {
+          // Compact repeat section with right-side checkboxes
+          addHeaderBox(materialSpec, true, planGroup.repeatCount);
+          
+          // Compact info line
+          addText(`Eff: ${planGroup.plan.efficiency.toFixed(1)}% | Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm/stock | Cuts:`, 9, false, 2);
+          
+          // Add numbered checkboxes on right side for each repeat
+          const startY = yPosition;
+          for (let i = 1; i <= planGroup.repeatCount; i++) {
+            addRightCheckbox(`Stock ${i}`, i);
+            if (i < planGroup.repeatCount) yPosition += 6; // Compact spacing
+          }
+          yPosition = Math.max(yPosition, startY + (planGroup.repeatCount * 6)) + 3;
+        } else {
+          // Single stock with compact format
+          pdf.setFontSize(11);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${materialSpec}`, margin, yPosition);
+          addRightCheckbox('Complete', 1);
+          yPosition += 3;
+          
+          addText(`Eff: ${planGroup.plan.efficiency.toFixed(1)}% | Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm | Cuts:`, 9, false, 2);
+        }
+        
+        // Compact cutting sequence with reduced spacing
         planGroup.plan.cuts.forEach((cut, cutIndex) => {
-          const angleText = cut.angle && cut.angle !== 90 ? ` [${cut.angle} DEGREE ANGLE]` : '';
-          addText(`${cutIndex + 1}. ${cut.length}mm (x${cut.quantity}) -> Position: ${cut.position.toFixed(0)}mm${angleText}`, 10, false, 15);
+          const angleText = cut.angle && cut.angle !== 90 ? ` [${cut.angle}°]` : '';
+          addText(`${cutIndex + 1}. ${cut.length}mm -> ${cut.position.toFixed(0)}mm${angleText}`, 9, false, 8);
         });
-        yPosition += 8;
+        yPosition += 4; // Reduced spacing between sections
       });
       yPosition += 5;
     });
