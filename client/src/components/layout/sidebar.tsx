@@ -13,6 +13,7 @@ import {
   Users,
   Slice
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const navigation = [
   {
@@ -45,67 +46,65 @@ export default function Sidebar() {
   const [location] = useLocation();
 
   return (
-    <div className="w-64 bg-primary text-white flex-shrink-0">
-      {/* Logo */}
-      <div className="p-6 border-b border-primary/20">
-        <div className="flex items-center space-x-3">
-          <div className="w-16 h-16 flex items-center justify-center">
-            <img 
-              src={logoIcon} 
-              alt="Lateral Engineering Logo" 
-              className="w-14 h-14 object-contain filter brightness-0 invert"
-            />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white">Lateral Engineering</h1>
-            <p className="text-primary-foreground/70 text-sm">Steel Management</p>
+    <div className="w-64 flex-shrink-0 p-4">
+      <div className="bg-card rounded-xl shadow-lg border h-full">
+        {/* Header with Logo and Branding */}
+        <div className="p-6 border-b border-border">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img 
+                src={logoIcon} 
+                alt="Lateral Engineering Logo" 
+                className="w-10 h-10 object-contain"
+              />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-foreground">Lateral Engineering</h1>
+              <p className="text-muted-foreground text-sm">Steel Management</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="mt-6">
-        {navigation.map((section) => (
-          <div key={section.name} className="mb-6">
-            <div className="px-6 mb-4">
-              <h3 className="text-primary-foreground/70 text-xs uppercase tracking-wider font-medium">
+        {/* Navigation */}
+        <nav className="p-4">
+          {navigation.map((section) => (
+            <div key={section.name} className="mb-6">
+              <h3 className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 {section.name}
               </h3>
-            </div>
-            <ul className="space-y-1">
-              {section.items.map((item) => {
-                const isActive = location === item.href;
-                return (
-                  <li key={item.name}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "flex items-center px-6 py-3 text-primary-foreground/80 hover:bg-primary/20 hover:text-white transition-colors duration-200",
-                        isActive && "bg-primary/30 text-white"
-                      )}
-                    >
-                      <item.icon className="w-5 h-5 mr-3" />
-                      {item.name}
-                      {item.badge && (
-                        <span
-                            className={cn(
-                              "ml-auto text-xs px-2 py-1 rounded-full",
-                              item.badgeVariant === "warning"
-                                ? "bg-warning text-warning-foreground"
-                                : "bg-accent text-accent-foreground"
-                            )}
+              <ul className="space-y-1">
+                {section.items.map((item) => {
+                  const isActive = location === item.href;
+                  return (
+                    <li key={item.name}>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors",
+                          isActive
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                        )}
+                      >
+                        <item.icon className="mr-3 h-4 w-4" />
+                        <span className="flex-1">{item.name}</span>
+                        {item.badge && (
+                          <Badge 
+                            variant={item.badgeVariant as any || "secondary"} 
+                            className="ml-2 h-5 px-2 text-xs"
                           >
                             {item.badge}
-                          </span>
+                          </Badge>
                         )}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </nav>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
+      </div>
     </div>
   );
 }
