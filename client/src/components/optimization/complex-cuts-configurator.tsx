@@ -101,32 +101,112 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                 <strong>Cut Specification:</strong> {getComplexCutDescription()}
               </div>
               
-              {/* Visual representation */}
+              {/* Interactive Visual Preview */}
               <div className="mt-4 p-4 bg-muted rounded-lg">
-                <div className="text-xs text-muted-foreground mb-2">Visual Preview:</div>
+                <div className="text-xs text-muted-foreground mb-2">Interactive Visual Preview:</div>
+                <div className="text-xs text-blue-600 mb-2">💡 Click on the left or right end of the material bar to add cuts</div>
                 <div className="flex items-center justify-center">
                   <div className="relative">
                     {/* Material bar */}
-                    <div className="w-48 h-6 bg-blue-200 border border-blue-400 rounded flex items-center justify-center">
-                      <span className="text-xs font-medium">{length}mm</span>
+                    <div className="w-80 h-12 bg-gradient-to-r from-blue-200 to-blue-300 border-2 border-blue-400 rounded-lg flex items-center justify-center relative shadow-md">
+                      <span className="text-sm font-medium text-blue-800">{length || '0'}mm</span>
+                      
+                      {/* Clickable zones for adding cuts */}
+                      <div 
+                        className="absolute left-0 top-0 w-8 h-full bg-red-100 opacity-0 hover:opacity-30 cursor-pointer border-l-2 border-red-400 rounded-l-lg transition-opacity"
+                        onClick={() => {
+                          const newCut: ComplexCut = {
+                            id: `quick_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            position: 'start',
+                            angle: 45,
+                            orientation: 'same',
+                            quantity: 1
+                          };
+                          onComplexCutsChange([...complexCuts, newCut]);
+                        }}
+                        title="Click to add cut at start"
+                      />
+                      
+                      <div 
+                        className="absolute right-0 top-0 w-8 h-full bg-red-100 opacity-0 hover:opacity-30 cursor-pointer border-r-2 border-red-400 rounded-r-lg transition-opacity"
+                        onClick={() => {
+                          const newCut: ComplexCut = {
+                            id: `quick_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            position: 'end',
+                            angle: 45,
+                            orientation: 'same',
+                            quantity: 1
+                          };
+                          onComplexCutsChange([...complexCuts, newCut]);
+                        }}
+                        title="Click to add cut at end"
+                      />
                     </div>
                     
-                    {/* Cut indicators */}
+                    {/* Cut indicators with interactive controls */}
                     {complexCuts.map((cut, index) => (
-                      <div key={cut.id} className="absolute top-0 h-6 flex items-center">
+                      <div key={cut.id}>
                         {(cut.position === 'start' || cut.position === 'both') && (
-                          <div className="absolute left-0 top-0 h-6 w-2 bg-red-500 opacity-70">
-                            <div className="text-xs text-white text-center leading-6">{cut.angle}°</div>
+                          <div className="absolute left-0 top-0 h-12 flex items-center">
+                            <div 
+                              className="w-6 h-12 bg-red-500 opacity-80 rounded-l-lg cursor-pointer hover:opacity-100 transition-opacity flex items-center justify-center group"
+                              onClick={() => removeComplexCut(cut.id)}
+                              title={`${cut.angle}° cut - Click to remove`}
+                            >
+                              <div className="text-xs text-white font-bold transform -rotate-90">
+                                {cut.angle}°
+                              </div>
+                            </div>
                           </div>
                         )}
                         {(cut.position === 'end' || cut.position === 'both') && (
-                          <div className="absolute right-0 top-0 h-6 w-2 bg-red-500 opacity-70">
-                            <div className="text-xs text-white text-center leading-6">{cut.angle}°</div>
+                          <div className="absolute right-0 top-0 h-12 flex items-center">
+                            <div 
+                              className="w-6 h-12 bg-red-500 opacity-80 rounded-r-lg cursor-pointer hover:opacity-100 transition-opacity flex items-center justify-center group"
+                              onClick={() => removeComplexCut(cut.id)}
+                              title={`${cut.angle}° cut - Click to remove`}
+                            >
+                              <div className="text-xs text-white font-bold transform -rotate-90">
+                                {cut.angle}°
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
                     ))}
+                    
+                    {/* Length markers */}
+                    <div className="absolute -bottom-6 left-0 text-xs text-muted-foreground">0mm</div>
+                    <div className="absolute -bottom-6 right-0 text-xs text-muted-foreground">{length}mm</div>
                   </div>
+                </div>
+                
+                {/* Quick action buttons below the visual */}
+                <div className="mt-4 flex gap-2 justify-center">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const newCut: ComplexCut = {
+                        id: `both_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        position: 'both',
+                        angle: 45,
+                        orientation: 'same',
+                        quantity: 1
+                      };
+                      onComplexCutsChange([...complexCuts, newCut]);
+                    }}
+                  >
+                    Add 45° Both Ends
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onComplexCutsChange([])}
+                    disabled={complexCuts.length === 0}
+                  >
+                    Clear All Cuts
+                  </Button>
                 </div>
               </div>
             </CardContent>

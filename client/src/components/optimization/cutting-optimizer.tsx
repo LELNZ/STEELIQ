@@ -698,9 +698,6 @@ export default function CuttingOptimizerComponent() {
                   <Separator />
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">Requested Cuts ({cutRequests.length})</h4>
-                    <div className="text-sm text-muted-foreground">
-                      Total: {cutRequests.reduce((total, req) => total + (req.length * req.quantity), 0).toLocaleString()}mm
-                    </div>
                   </div>
                   
                   {/* Material Summary for Cut Requirements */}

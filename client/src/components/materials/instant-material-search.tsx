@@ -105,7 +105,7 @@ export default function InstantMaterialSearch({
       </div>
       
       {isOpen && (searchText || !value) && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-80 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
           {filteredMaterials.slice(0, 10).map((material) => (
             <div
               key={material.value}
@@ -124,13 +124,13 @@ export default function InstantMaterialSearch({
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <div className="font-medium truncate">{material.material.code}</div>
+                    <div className="font-medium">{material.material.code}</div>
                     {showFavorites && material.isFavorite && (
                       <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
                     )}
                   </div>
-                  <div className="text-sm text-muted-foreground truncate">{material.material.name}</div>
-                  <div className="text-xs text-muted-foreground truncate">{material.category}</div>
+                  <div className="text-sm text-muted-foreground">{material.material.name}</div>
+                  <div className="text-xs text-muted-foreground">{material.category}</div>
                 </div>
               </div>
               {showFavorites && (
