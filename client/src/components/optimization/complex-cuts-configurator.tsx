@@ -270,48 +270,36 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                       </div>
                     </div>
                     
-                    {/* Angled Cut Shape Indicators with external orientation toggles */}
-                    {complexCuts.map((cut, index) => (
+                    {/* Material Removal Visualization - Red triangles show what gets cut off */}
+                    {complexCuts.map((cut) => (
                       <div key={cut.id}>
+                        {/* Left side cuts */}
                         {(cut.position === 'start' || cut.position === 'both') && (
-                          <div className="absolute left-0 top-0 h-12 flex items-center">
-                            {/* Angled cut shape that represents the actual cut */}
-                            <div 
-                              className="relative cursor-pointer transition-opacity group"
-                              onClick={() => removeComplexCut(cut.id)}
-                              title={`${cut.angle}° cut - Click to remove`}
-                            >
-                              <svg width="24" height="48" className="overflow-visible">
-                                <defs>
-                                  <linearGradient id={`grad-start-${cut.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" style={{stopColor:"#ef4444", stopOpacity:1}} />
-                                    <stop offset="50%" style={{stopColor:"#dc2626", stopOpacity:1}} />
-                                    <stop offset="100%" style={{stopColor:"#b91c1c", stopOpacity:1}} />
-                                  </linearGradient>
-                                </defs>
-                                {/* Material removal visualization - shows what gets cut off */}
-                                <polygon
-                                  points={cut.orientation === 'same' 
-                                    ? `0,0 ${cut.angle / 90 * 24},0 0,${cut.angle / 90 * 48}`
-                                    : `0,0 ${(90 - cut.angle) / 90 * 24},0 0,${(90 - cut.angle) / 90 * 48}`
-                                  }
-                                  fill={`url(#grad-start-${cut.id})`}
-                                  opacity="0.9"
-                                  className="hover:opacity-100 transition-opacity"
-                                />
-                                {/* Angle text */}
-                                <text 
-                                  x="12" 
-                                  y="26" 
-                                  textAnchor="middle" 
-                                  className="text-xs font-bold fill-white"
-                                  style={{fontSize: '10px'}}
-                                >
-                                  {cut.angle}°
-                                </text>
-                              </svg>
-                            </div>
-                            {/* Orientation toggle button outside blue bar */}
+                          <div className="absolute left-0 top-0">
+                            <svg width="48" height="48" className="overflow-visible">
+                              {/* Red triangle showing material being removed */}
+                              <polygon
+                                points={cut.orientation === 'same' 
+                                  ? `0,0 ${cut.angle / 90 * 48},0 0,${cut.angle / 90 * 48}`
+                                  : `0,0 ${(90 - cut.angle) / 90 * 48},0 0,${(90 - cut.angle) / 90 * 48}`
+                                }
+                                fill="#ef4444"
+                                opacity="0.8"
+                                className="cursor-pointer hover:opacity-100 transition-opacity"
+                                onClick={() => removeComplexCut(cut.id)}
+                              />
+                              {/* Angle label */}
+                              <text 
+                                x={cut.angle / 90 * 24} 
+                                y={cut.angle / 90 * 24} 
+                                textAnchor="middle" 
+                                className="fill-white text-xs font-bold pointer-events-none"
+                                style={{fontSize: '10px'}}
+                              >
+                                {cut.angle}°
+                              </text>
+                            </svg>
+                            {/* Orientation toggle button */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -322,52 +310,41 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                                 );
                                 onComplexCutsChange(updatedCuts);
                               }}
-                              className="absolute -left-8 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-orange-100 hover:bg-orange-200 border border-orange-300 rounded text-xs font-bold transition-colors flex items-center justify-center shadow-sm"
+                              className="absolute -left-8 top-6 w-6 h-6 bg-orange-100 hover:bg-orange-200 border border-orange-300 rounded text-xs font-bold transition-colors flex items-center justify-center"
                               title="Toggle cut orientation"
                             >
                               {cut.orientation === 'same' ? '/' : '\\'}
                             </button>
                           </div>
                         )}
+                        
+                        {/* Right side cuts */}
                         {(cut.position === 'end' || cut.position === 'both') && (
-                          <div className="absolute right-0 top-0 h-12 flex items-center">
-                            {/* Angled cut shape that represents the actual cut */}
-                            <div 
-                              className="relative cursor-pointer transition-opacity group"
-                              onClick={() => removeComplexCut(cut.id)}
-                              title={`${cut.angle}° cut - Click to remove`}
-                            >
-                              <svg width="24" height="48" className="overflow-visible">
-                                <defs>
-                                  <linearGradient id={`grad-end-${cut.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" style={{stopColor:"#ef4444", stopOpacity:1}} />
-                                    <stop offset="50%" style={{stopColor:"#dc2626", stopOpacity:1}} />
-                                    <stop offset="100%" style={{stopColor:"#b91c1c", stopOpacity:1}} />
-                                  </linearGradient>
-                                </defs>
-                                {/* Material removal visualization - shows what gets cut off */}
-                                <polygon
-                                  points={cut.orientation === 'same' 
-                                    ? `24,0 ${24 - (cut.angle / 90 * 24)},0 24,${cut.angle / 90 * 48}`
-                                    : `24,0 ${24 - ((90 - cut.angle) / 90 * 24)},0 24,${(90 - cut.angle) / 90 * 48}`
-                                  }
-                                  fill={`url(#grad-end-${cut.id})`}
-                                  opacity="0.9"
-                                  className="hover:opacity-100 transition-opacity"
-                                />
-                                {/* Angle text */}
-                                <text 
-                                  x="12" 
-                                  y="26" 
-                                  textAnchor="middle" 
-                                  className="text-xs font-bold fill-white"
-                                  style={{fontSize: '10px'}}
-                                >
-                                  {cut.angle}°
-                                </text>
-                              </svg>
-                            </div>
-                            {/* Orientation toggle button outside blue bar */}
+                          <div className="absolute right-0 top-0">
+                            <svg width="48" height="48" className="overflow-visible">
+                              {/* Red triangle showing material being removed */}
+                              <polygon
+                                points={cut.orientation === 'same' 
+                                  ? `48,0 ${48 - (cut.angle / 90 * 48)},0 48,${cut.angle / 90 * 48}`
+                                  : `48,0 ${48 - ((90 - cut.angle) / 90 * 48)},0 48,${(90 - cut.angle) / 90 * 48}`
+                                }
+                                fill="#ef4444"
+                                opacity="0.8"
+                                className="cursor-pointer hover:opacity-100 transition-opacity"
+                                onClick={() => removeComplexCut(cut.id)}
+                              />
+                              {/* Angle label */}
+                              <text 
+                                x={48 - (cut.angle / 90 * 24)} 
+                                y={cut.angle / 90 * 24} 
+                                textAnchor="middle" 
+                                className="fill-white text-xs font-bold pointer-events-none"
+                                style={{fontSize: '10px'}}
+                              >
+                                {cut.angle}°
+                              </text>
+                            </svg>
+                            {/* Orientation toggle button */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -378,7 +355,7 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                                 );
                                 onComplexCutsChange(updatedCuts);
                               }}
-                              className="absolute -right-8 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-orange-100 hover:bg-orange-200 border border-orange-300 rounded text-xs font-bold transition-colors flex items-center justify-center shadow-sm"
+                              className="absolute -right-8 top-6 w-6 h-6 bg-orange-100 hover:bg-orange-200 border border-orange-300 rounded text-xs font-bold transition-colors flex items-center justify-center"
                               title="Toggle cut orientation"
                             >
                               {cut.orientation === 'same' ? '\\' : '/'}
