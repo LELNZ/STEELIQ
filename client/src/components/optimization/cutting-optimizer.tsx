@@ -14,6 +14,7 @@ import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star, Dow
 import jsPDF from "jspdf";
 import { SimulationHistoryWorking } from "./simulation-history-working";
 import { ComplexCutsConfigurator } from "./complex-cuts-configurator";
+import EnhancedCuttingPlan from "./enhanced-cutting-plan";
 import { 
   CuttingOptimizer, 
   CutRequest, 
@@ -1213,62 +1214,90 @@ export default function CuttingOptimizerComponent() {
                 </CardContent>
               </Card>
 
-              {/* Cutting Plans */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Visual Cutting Plans ({optimizationResult.plans.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6 max-h-96 overflow-y-auto">
-                  {processPlansForDisplay(optimizationResult.plans).map((planGroup, groupIndex) => (
-                    <div key={planGroup.plan.stockId + groupIndex} className="border-2 rounded-lg p-4 space-y-4 bg-white print:break-inside-avoid">
-                      {/* Header with repeat indicator */}
-                      <div className="flex justify-between items-center pb-2 border-b">
-                        <div>
-                          <span className="font-bold text-lg">Stock #{groupIndex + 1}</span>
-                          {planGroup.repeatCount > 1 && (
-                            <Badge variant="default" className="ml-2 bg-yellow-500 text-black">
-                              REPEAT {planGroup.repeatCount}x
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <Badge variant={planGroup.plan.efficiency > 90 ? "default" : planGroup.plan.efficiency > 75 ? "secondary" : "destructive"} className="text-sm">
-                            {planGroup.plan.efficiency.toFixed(1)}% Efficiency
-                          </Badge>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Material: {planGroup.plan.cuts[0]?.requestId?.split('_')[0] || 'Mixed'}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Stock info */}
-                      <div className="grid grid-cols-3 gap-4 text-sm bg-slate-50 p-3 rounded">
-                        <div>
-                          <span className="font-medium">Total Length:</span>
-                          <div className="text-lg font-bold">{planGroup.plan.stockLength}mm</div>
-                        </div>
-                        <div>
-                          <span className="font-medium">Total Cuts:</span>
-                          <div className="text-lg font-bold text-blue-600">{planGroup.plan.cuts.length}</div>
-                        </div>
-                        <div>
-                          <span className="font-medium">Waste:</span>
-                          <div className="text-lg font-bold text-red-600">{planGroup.plan.wasteLength.toFixed(0)}mm</div>
-                        </div>
-                      </div>
+              {/* Enhanced Cutting Plans */}
+              <EnhancedCuttingPlan 
+                plans={optimizationResult.plans.map(plan => ({
+                  stockId: plan.stockId,
+                  stockLength: plan.stockLength,
+                  cuts: plan.cuts.map(cut => ({
+                    id: cut.requestId || `cut-${Math.random()}`,
+                    length: cut.length,
+                    position: cut.position,
+                    startAngle: cutRequests.find(req => req.id === cut.requestId)?.startAngle,
+                    endAngle: cutRequests.find(req => req.id === cut.requestId)?.endAngle,
+                    description: cutRequests.find(req => req.id === cut.requestId)?.description,
+                  })),
+                  efficiency: plan.efficiency,
+                  wasteLength: plan.wasteLength,
+                  material: plan.cuts[0]?.requestId?.split('_')[0] || 'Steel'
+                }))}
+                materialName={stockItems[0]?.materialType || "Steel Bar"}
+              />
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-muted-foreground">
+                <Scissors className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Run optimization to see cutting plans</p>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-foreground mb-2">Steel Cutting Optimizer</h3>
+            <p className="text-muted-foreground mb-6">
+              Add your cut requirements and stock materials to get started with optimization
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-                      {/* Visual cutting diagram */}
-                      <div className="space-y-3">
-                        <h4 className="font-medium">Cutting Diagram:</h4>
-                        <div className="relative">
-                          {/* Material bar representation */}
-                          <div className="relative h-12 bg-gradient-to-r from-slate-300 to-slate-400 border-2 border-slate-500 rounded" style={{ width: '100%' }}>
-                            {/* Cut positions */}
-                            {planGroup.plan.cuts.map((cut, cutIndex) => {
-                              const leftPercent = (cut.position / planGroup.plan.stockLength) * 100;
+      {/* Complex Cuts Dialog */}
+      <ComplexCutsConfigurator 
+        open={showComplexCutsDialog}
+        onOpenChange={setShowComplexCutsDialog}
+        onSave={handleComplexCutsSave}
+      />
+
+      {/* Job Creation Dialog */}
+      <Dialog open={showCreateJobDialog} onOpenChange={setShowCreateJobDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Job from Optimization</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This will create a new job with the current optimization results.
+            </p>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleCreateJob}
+                className="flex-1"
+              >
+                Create Job
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCreateJobDialog(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Simulation History */}
+      <SimulationHistoryWorking 
+        currentSimulationId={currentSimulationId}
+        onLoadSimulation={loadSimulation}
+        cutRequests={cutRequests}
+        stockItems={stockItems}
+        optimizationResult={optimizationResult}
+      />
                               const widthPercent = (cut.length / planGroup.plan.stockLength) * 100;
                               const colors = [
                                 'bg-blue-500',
