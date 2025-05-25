@@ -688,12 +688,12 @@ export default function CuttingOptimizerComponent() {
                     length={newCut.length}
                     complexCuts={newCut.complexCuts}
                     onComplexCutsChange={(cuts) => setNewCut({ ...newCut, complexCuts: cuts })}
-                    onAddToRequest={(reqLength, reqQuantity, cuts) => {
+                    onAddToRequest={(reqLength, reqQuantity, cuts, material) => {
                       const request: CutRequest = {
                         id: `cut_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                         length: reqLength,
                         quantity: reqQuantity,
-                        materialType: newCut.materialType,
+                        materialType: material || newCut.materialType,
                         angle: 90,
                         complexCuts: cuts,
                         description: undefined
