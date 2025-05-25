@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -175,6 +176,9 @@ export default function BulkCatalogueImport({ open, onOpenChange }: BulkCatalogu
             <Database className="h-5 w-5" />
             Import Complete Steel Catalogue
           </DialogTitle>
+          <DialogDescription>
+            Import the full 602-item steel catalogue with SHS, RHS, flats, angles, rounds, pipes, plates and sheets including all AS/NZS and API standards.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
