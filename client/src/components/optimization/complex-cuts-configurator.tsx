@@ -270,24 +270,24 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                       </div>
                     </div>
                     
-                    {/* Visual Cut Angle Indicators */}
+                    {/* Visual Cut Angle Indicators - Inside Material Bar */}
                     {complexCuts.map((cut, index) => (
                       <div key={cut.id}>
                         {(cut.position === 'start' || cut.position === 'both') && (
-                          <div className="absolute -left-8 top-0 h-12 flex items-center">
+                          <div className="absolute left-2 top-0 h-12 flex items-center">
                             <div className="relative">
-                              {/* Visual angle line */}
+                              {/* Visual angle line inside bar */}
                               <div 
-                                className="w-8 h-1 bg-red-500 origin-right shadow-md"
+                                className="w-6 h-1 bg-red-500 origin-left shadow-md"
                                 style={{
                                   transform: `rotate(${cut.orientation === 'same' ? cut.angle - 90 : -(cut.angle - 90)}deg)`
                                 }}
                               />
-                              {/* Angle label with background */}
-                              <div className="absolute -top-6 -left-2 text-xs font-bold text-red-600 bg-white px-1 rounded border shadow-sm">
+                              {/* Angle label above bar */}
+                              <div className="absolute -top-8 -left-1 text-xs font-bold text-red-600 bg-white px-1 rounded border shadow-sm">
                                 {cut.angle}°
                               </div>
-                              {/* Interactive orientation toggle */}
+                              {/* Interactive orientation toggle below bar */}
                               <button
                                 onClick={() => {
                                   const updatedCuts = complexCuts.map(c => 
@@ -297,7 +297,7 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                                   );
                                   onComplexCutsChange(updatedCuts);
                                 }}
-                                className="absolute -bottom-6 -left-1 text-sm bg-orange-100 hover:bg-orange-200 px-2 py-1 rounded border font-bold transition-colors"
+                                className="absolute top-4 -left-1 text-sm bg-orange-100 hover:bg-orange-200 px-2 py-1 rounded border font-bold transition-colors"
                                 title="Toggle cut orientation"
                               >
                                 {cut.orientation === 'same' ? '/' : '\\'}
@@ -305,7 +305,7 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                               {/* Remove button */}
                               <button
                                 onClick={() => removeComplexCut(cut.id)}
-                                className="absolute -right-4 -top-2 text-xs bg-red-100 hover:bg-red-200 text-red-600 w-4 h-4 rounded-full flex items-center justify-center"
+                                className="absolute -top-2 left-6 text-xs bg-red-100 hover:bg-red-200 text-red-600 w-4 h-4 rounded-full flex items-center justify-center"
                                 title="Remove cut"
                               >
                                 ×
@@ -314,20 +314,20 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                           </div>
                         )}
                         {(cut.position === 'end' || cut.position === 'both') && (
-                          <div className="absolute -right-8 top-0 h-12 flex items-center">
+                          <div className="absolute right-2 top-0 h-12 flex items-center">
                             <div className="relative">
-                              {/* Visual angle line */}
+                              {/* Visual angle line inside bar */}
                               <div 
-                                className="w-8 h-1 bg-red-500 origin-left shadow-md"
+                                className="w-6 h-1 bg-red-500 origin-right shadow-md"
                                 style={{
                                   transform: `rotate(${cut.orientation === 'same' ? -(cut.angle - 90) : (cut.angle - 90)}deg)`
                                 }}
                               />
-                              {/* Angle label with background */}
-                              <div className="absolute -top-6 -right-2 text-xs font-bold text-red-600 bg-white px-1 rounded border shadow-sm">
+                              {/* Angle label above bar */}
+                              <div className="absolute -top-8 -right-1 text-xs font-bold text-red-600 bg-white px-1 rounded border shadow-sm">
                                 {cut.angle}°
                               </div>
-                              {/* Interactive orientation toggle */}
+                              {/* Interactive orientation toggle below bar */}
                               <button
                                 onClick={() => {
                                   const updatedCuts = complexCuts.map(c => 
@@ -337,7 +337,7 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                                   );
                                   onComplexCutsChange(updatedCuts);
                                 }}
-                                className="absolute -bottom-6 -right-1 text-sm bg-orange-100 hover:bg-orange-200 px-2 py-1 rounded border font-bold transition-colors"
+                                className="absolute top-4 -right-1 text-sm bg-orange-100 hover:bg-orange-200 px-2 py-1 rounded border font-bold transition-colors"
                                 title="Toggle cut orientation"
                               >
                                 {cut.orientation === 'same' ? '\\' : '/'}
@@ -345,7 +345,7 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                               {/* Remove button */}
                               <button
                                 onClick={() => removeComplexCut(cut.id)}
-                                className="absolute -left-4 -top-2 text-xs bg-red-100 hover:bg-red-200 text-red-600 w-4 h-4 rounded-full flex items-center justify-center"
+                                className="absolute -top-2 -left-6 text-xs bg-red-100 hover:bg-red-200 text-red-600 w-4 h-4 rounded-full flex items-center justify-center"
                                 title="Remove cut"
                               >
                                 ×
