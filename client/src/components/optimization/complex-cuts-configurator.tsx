@@ -27,6 +27,8 @@ interface ComplexCutsConfiguratorProps {
 export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCuts, onAddToRequest }: ComplexCutsConfiguratorProps) {
   const [quantity, setQuantity] = useState(1);
   const [showExamples, setShowExamples] = useState(false);
+  const [draggedCut, setDraggedCut] = useState<{ angle: number; id: string } | null>(null);
+  const [dragOverPosition, setDragOverPosition] = useState<'start' | 'end' | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [newCut, setNewCut] = useState({
     position: 'end' as 'start' | 'end' | 'both',
@@ -113,22 +115,68 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                 <strong>Cut Specification:</strong> {getComplexCutDescription()}
               </div>
               
-              {/* Interactive Visual Preview */}
+              {/* Interactive Drag & Drop Visual Preview */}
               <div className="mt-4 p-4 bg-muted rounded-lg">
-                <div className="text-xs text-muted-foreground mb-2">Interactive Visual Preview:</div>
-                <div className="text-xs text-blue-600 mb-2">💡 Click on the left or right end of the material bar to add cuts</div>
+                <div className="text-xs text-muted-foreground mb-2">Interactive Drag & Drop Preview:</div>
+                <div className="text-xs text-purple-600 mb-3">🎯 Drag angle cuts from the toolbox below onto the material bar ends</div>
+                
+                {/* Drag & Drop Toolbox */}
+                <div className="mb-4 p-3 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                  <div className="text-xs font-medium text-gray-600 mb-2">Cut Tools - Drag to Material:</div>
+                  <div className="flex gap-2 flex-wrap">
+                    {[30, 45, 60, 90].map((angle) => (
+                      <div
+                        key={angle}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedCut({ angle, id: `drag_${Date.now()}` });
+                          e.dataTransfer.effectAllowed = 'copy';
+                        }}
+                        className="px-3 py-2 bg-orange-100 border border-orange-300 rounded-lg cursor-grab active:cursor-grabbing hover:bg-orange-200 transition-colors text-sm font-medium"
+                        title={`Drag ${angle}° cut to material bar`}
+                      >
+                        {angle}°
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
                 <div className="flex items-center justify-center">
                   <div className="relative">
-                    {/* Material bar */}
+                    {/* Material bar with drop zones */}
                     <div className="w-80 h-12 bg-gradient-to-r from-blue-200 to-blue-300 border-2 border-blue-400 rounded-lg flex items-center justify-center relative shadow-md">
                       <span className="text-sm font-medium text-blue-800">{length || '0'}mm</span>
                       
-                      {/* Clickable zones for adding cuts */}
+                      {/* Drop zone - Start */}
                       <div 
-                        className="absolute left-0 top-0 w-8 h-full bg-red-100 opacity-0 hover:opacity-30 cursor-pointer border-l-2 border-red-400 rounded-l-lg transition-opacity"
+                        className={`absolute left-0 top-0 w-12 h-full rounded-l-lg transition-all ${
+                          dragOverPosition === 'start' 
+                            ? 'bg-green-200 border-2 border-green-500' 
+                            : 'bg-red-100 opacity-0 hover:opacity-30'
+                        } cursor-pointer border-l-2 border-red-400`}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOverPosition('start');
+                        }}
+                        onDragLeave={() => setDragOverPosition(null)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedCut) {
+                            const newCut: ComplexCut = {
+                              id: `start_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                              position: 'start',
+                              angle: draggedCut.angle,
+                              orientation: 'same',
+                              quantity: 1
+                            };
+                            onComplexCutsChange([...complexCuts, newCut]);
+                          }
+                          setDraggedCut(null);
+                          setDragOverPosition(null);
+                        }}
                         onClick={() => {
                           const newCut: ComplexCut = {
-                            id: `quick_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            id: `quick_start_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                             position: 'start',
                             angle: 45,
                             orientation: 'same',
@@ -136,14 +184,45 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                           };
                           onComplexCutsChange([...complexCuts, newCut]);
                         }}
-                        title="Click to add cut at start"
-                      />
+                        title="Drop cut here or click to add 45° cut"
+                      >
+                        {dragOverPosition === 'start' && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-xs font-bold text-green-700">Drop Here</span>
+                          </div>
+                        )}
+                      </div>
                       
+                      {/* Drop zone - End */}
                       <div 
-                        className="absolute right-0 top-0 w-8 h-full bg-red-100 opacity-0 hover:opacity-30 cursor-pointer border-r-2 border-red-400 rounded-r-lg transition-opacity"
+                        className={`absolute right-0 top-0 w-12 h-full rounded-r-lg transition-all ${
+                          dragOverPosition === 'end' 
+                            ? 'bg-green-200 border-2 border-green-500' 
+                            : 'bg-red-100 opacity-0 hover:opacity-30'
+                        } cursor-pointer border-r-2 border-red-400`}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOverPosition('end');
+                        }}
+                        onDragLeave={() => setDragOverPosition(null)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedCut) {
+                            const newCut: ComplexCut = {
+                              id: `end_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                              position: 'end',
+                              angle: draggedCut.angle,
+                              orientation: 'same',
+                              quantity: 1
+                            };
+                            onComplexCutsChange([...complexCuts, newCut]);
+                          }
+                          setDraggedCut(null);
+                          setDragOverPosition(null);
+                        }}
                         onClick={() => {
                           const newCut: ComplexCut = {
-                            id: `quick_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            id: `quick_end_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                             position: 'end',
                             angle: 45,
                             orientation: 'same',
@@ -151,8 +230,14 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                           };
                           onComplexCutsChange([...complexCuts, newCut]);
                         }}
-                        title="Click to add cut at end"
-                      />
+                        title="Drop cut here or click to add 45° cut"
+                      >
+                        {dragOverPosition === 'end' && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-xs font-bold text-green-700">Drop Here</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     
                     {/* Cut indicators with interactive controls */}
