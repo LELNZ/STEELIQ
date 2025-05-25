@@ -7,7 +7,8 @@ export interface CutRequest {
   id: string;
   length: number;
   quantity: number;
-  materialType: string;
+  materialCode?: string;
+  materialType?: string;
   startAngle?: number; // Left side cutting angle in degrees, default 90
   endAngle?: number; // Right side cutting angle in degrees, default 90
   angle?: number; // Legacy support - will be used for both if start/end not specified
@@ -20,6 +21,7 @@ export interface StockItem {
   id: string;
   length: number;
   available: number;
+  quantity?: number;
   materialType: string;
   cost?: number;
   supplier?: string;
@@ -60,6 +62,10 @@ export interface OptimizationResult {
   };
   remnants: Remnant[];
   unallocated: CutRequest[];
+  // Additional properties for compatibility
+  efficiency?: number;
+  wastePercentage?: number;
+  totalMaterialLength?: number;
 }
 
 export interface Remnant {

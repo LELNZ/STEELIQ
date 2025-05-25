@@ -223,13 +223,13 @@ export default function CuttingOptimizerComponent() {
       
       switch (selectedAlgorithm) {
         case "bestFit":
-          result = CuttingOptimizer.bestFitDecreasing(cutRequests, stockItems);
+          result = CuttingOptimizer.firstFitDecreasing(cutRequests, stockItems);
           break;
         case "binPacking":
           result = CuttingOptimizer.binPackingDP(cutRequests, stockItems);
           break;
         default:
-          result = CuttingOptimizer.bestFitDecreasing(cutRequests, stockItems);
+          result = CuttingOptimizer.firstFitDecreasing(cutRequests, stockItems);
       }
       
       setOptimizationResult(result);
@@ -270,7 +270,7 @@ export default function CuttingOptimizerComponent() {
                 <Label>Material</Label>
                 <InstantMaterialSearch
                   value={materialCode}
-                  onValueChange={setMaterialCode}
+                  onSelect={setMaterialCode}
                   placeholder="Type to search materials..."
                 />
               </div>
