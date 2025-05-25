@@ -99,7 +99,7 @@ export class CuttingOptimizer {
     const materialGroups = this.groupRequestsByMaterial(requests);
     const availableStock = stock.map(s => ({ ...s, remaining: s.available }));
     
-    for (const [materialType, materialRequests] of materialGroups) {
+    for (const [materialType, materialRequests] of Array.from(materialGroups.entries())) {
       const materialStock = availableStock.filter(s => s.materialType === materialType);
       const angleChains = this.buildAngleChains(materialRequests);
       
@@ -110,7 +110,7 @@ export class CuttingOptimizer {
     }
     
     const executionTime = performance.now() - startTime;
-    return this.buildOptimizationResult(plans, remnants, unallocated, "Progressive Angle-Aware", executionTime);
+    return this.createOptimizationResult(plans, remnants, "Progressive Angle-Aware", executionTime);
   }
 
   /**
