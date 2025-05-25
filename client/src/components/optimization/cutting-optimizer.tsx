@@ -1079,37 +1079,202 @@ export default function CuttingOptimizerComponent() {
               {/* Cutting Plans */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Cutting Plans ({optimizationResult.plans.length})</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Visual Cutting Plans ({optimizationResult.plans.length})
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 max-h-96 overflow-y-auto">
-                  {optimizationResult.plans.map((plan, index) => (
-                    <div key={plan.stockId} className="border rounded p-3 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">Stock #{index + 1}</span>
-                        <Badge variant={plan.efficiency > 90 ? "default" : plan.efficiency > 75 ? "secondary" : "destructive"}>
-                          {plan.efficiency.toFixed(1)}% efficiency
-                        </Badge>
+                <CardContent className="space-y-6 max-h-96 overflow-y-auto">
+                  {processPlansForDisplay(optimizationResult.plans).map((planGroup, groupIndex) => (
+                    <div key={planGroup.plan.stockId + groupIndex} className="border-2 rounded-lg p-4 space-y-4 bg-white print:break-inside-avoid">
+                      {/* Header with repeat indicator */}
+                      <div className="flex justify-between items-center pb-2 border-b">
+                        <div>
+                          <span className="font-bold text-lg">Stock #{groupIndex + 1}</span>
+                          {planGroup.repeatCount > 1 && (
+                            <Badge variant="default" className="ml-2 bg-yellow-500 text-black">
+                              REPEAT {planGroup.repeatCount}x
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={planGroup.plan.efficiency > 90 ? "default" : planGroup.plan.efficiency > 75 ? "secondary" : "destructive"} className="text-sm">
+                            {planGroup.plan.efficiency.toFixed(1)}% Efficiency
+                          </Badge>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Material: {planGroup.plan.cuts[0]?.requestId?.split('_')[0] || 'Mixed'}
+                          </div>
+                        </div>
                       </div>
                       
-                      <div className="text-sm text-muted-foreground">
-                        Length: {plan.stockLength}mm | Cuts: {plan.cuts.length} | Waste: {plan.wasteLength.toFixed(0)}mm
+                      {/* Stock info */}
+                      <div className="grid grid-cols-3 gap-4 text-sm bg-slate-50 p-3 rounded">
+                        <div>
+                          <span className="font-medium">Total Length:</span>
+                          <div className="text-lg font-bold">{planGroup.plan.stockLength}mm</div>
+                        </div>
+                        <div>
+                          <span className="font-medium">Total Cuts:</span>
+                          <div className="text-lg font-bold text-blue-600">{planGroup.plan.cuts.length}</div>
+                        </div>
+                        <div>
+                          <span className="font-medium">Waste:</span>
+                          <div className="text-lg font-bold text-red-600">{planGroup.plan.wasteLength.toFixed(0)}mm</div>
+                        </div>
                       </div>
 
-                      <div className="space-y-1">
-                        {plan.cuts.map((cut, cutIndex) => (
-                          <div key={cutIndex} className="flex justify-between text-xs p-1 bg-muted rounded">
-                            <div>
-                              <span>Cut {cutIndex + 1}: {cut.length}mm</span>
-                              {cut.angle && cut.angle !== 90 && (
-                                <Badge variant="secondary" className="ml-1 text-xs">
-                                  {cut.angle}°
-                                </Badge>
-                              )}
-                            </div>
-                            <span>@ {cut.position.toFixed(0)}mm</span>
+                      {/* Visual cutting diagram */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium">Cutting Diagram:</h4>
+                        <div className="relative">
+                          {/* Material bar representation */}
+                          <div className="relative h-12 bg-gradient-to-r from-slate-300 to-slate-400 border-2 border-slate-500 rounded" style={{ width: '100%' }}>
+                            {/* Cut positions */}
+                            {planGroup.plan.cuts.map((cut, cutIndex) => {
+                              const leftPercent = (cut.position / planGroup.plan.stockLength) * 100;
+                              const widthPercent = (cut.length / planGroup.plan.stockLength) * 100;
+                              const colors = [
+                                'bg-blue-500',
+                                'bg-green-500', 
+                                'bg-purple-500',
+                                'bg-yellow-500',
+                                'bg-pink-500',
+                                'bg-cyan-500'
+                              ];
+                              const cutColor = colors[cutIndex % colors.length];
+                              
+                              return (
+                                <div key={cutIndex} className="absolute top-0 h-full flex items-center">
+                                  {/* Cut piece */}
+                                  <div 
+                                    className={`h-full ${cutColor} border border-slate-700 flex items-center justify-center text-white text-xs font-bold rounded-sm`}
+                                    style={{ 
+                                      left: `${leftPercent}%`,
+                                      width: `${widthPercent}%`,
+                                      minWidth: '20px'
+                                    }}
+                                    title={`Cut ${cutIndex + 1}: ${cut.length}mm at ${cut.position}mm`}
+                                  >
+                                    {widthPercent > 5 && (
+                                      <span className="truncate px-1">
+                                        {cut.length}
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Angle indicators */}
+                                  {((cut.startAngle && cut.startAngle !== 90) || (cut.endAngle && cut.endAngle !== 90)) && (
+                                    <div className="absolute -top-6 left-0 right-0 flex justify-between text-xs">
+                                      {cut.startAngle && cut.startAngle !== 90 && (
+                                        <span className="bg-red-100 text-red-800 px-1 rounded border">
+                                          ↗ {cut.startAngle}°
+                                        </span>
+                                      )}
+                                      {cut.endAngle && cut.endAngle !== 90 && (
+                                        <span className="bg-red-100 text-red-800 px-1 rounded border">
+                                          {cut.endAngle}° ↖
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                  {/* Chain indicator */}
+                                  {cut.usesExistingAngle && (
+                                    <div className="absolute -bottom-6 left-0 bg-green-100 text-green-800 text-xs px-2 py-1 rounded border">
+                                      ⚡ Uses existing angle
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            
+                            {/* Waste area */}
+                            {planGroup.plan.wasteLength > 0 && (
+                              <div 
+                                className="absolute top-0 h-full bg-red-300 border border-red-500 flex items-center justify-center text-red-800 text-xs font-bold"
+                                style={{ 
+                                  right: '0',
+                                  width: `${(planGroup.plan.wasteLength / planGroup.plan.stockLength) * 100}%`
+                                }}
+                                title={`Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm`}
+                              >
+                                WASTE
+                              </div>
+                            )}
                           </div>
-                        ))}
+                          
+                          {/* Scale markers */}
+                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>0mm</span>
+                            <span>{(planGroup.plan.stockLength / 2).toFixed(0)}mm</span>
+                            <span>{planGroup.plan.stockLength}mm</span>
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Detailed cut list */}
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Cut Sequence:</h4>
+                        <div className="grid gap-2">
+                          {planGroup.plan.cuts.map((cut, cutIndex) => {
+                            const colors = [
+                              'border-blue-500 bg-blue-50',
+                              'border-green-500 bg-green-50', 
+                              'border-purple-500 bg-purple-50',
+                              'border-yellow-500 bg-yellow-50',
+                              'border-pink-500 bg-pink-50',
+                              'border-cyan-500 bg-cyan-50'
+                            ];
+                            const cutColor = colors[cutIndex % colors.length];
+                            
+                            return (
+                              <div key={cutIndex} className={`flex justify-between items-center text-sm p-3 border-2 rounded ${cutColor}`}>
+                                <div className="flex items-center gap-3">
+                                  <div className="font-bold text-lg w-8">#{cutIndex + 1}</div>
+                                  <div>
+                                    <div className="font-medium">{cut.length}mm piece</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      Position: {cut.position.toFixed(0)}mm
+                                      {cut.startAngle && cut.startAngle !== 90 && ` • Start: ${cut.startAngle}°`}
+                                      {cut.endAngle && cut.endAngle !== 90 && ` • End: ${cut.endAngle}°`}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="flex gap-1">
+                                    {cut.usesExistingAngle && (
+                                      <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-300">
+                                        ⚡ Chained
+                                      </Badge>
+                                    )}
+                                    {cut.createsOffcut && (
+                                      <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">
+                                        ↻ Creates offcut
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {cut.quantity} piece{cut.quantity > 1 ? 's' : ''}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                      {/* Material savings indicator */}
+                      {planGroup.plan.cuts.some(cut => cut.usesExistingAngle) && (
+                        <div className="bg-green-50 border border-green-200 rounded p-3">
+                          <div className="flex items-center gap-2 text-green-800">
+                            <Zap className="h-4 w-4" />
+                            <span className="font-medium">Material Savings Achieved!</span>
+                          </div>
+                          <div className="text-sm text-green-700 mt-1">
+                            This plan uses progressive angle optimization to minimize waste and reduce cutting time.
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </CardContent>
