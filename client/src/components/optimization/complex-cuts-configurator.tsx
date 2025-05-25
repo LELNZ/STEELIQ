@@ -277,11 +277,11 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                         {(cut.position === 'start' || cut.position === 'both') && (
                           <div className="absolute left-0 top-0">
                             <svg width="60" height="48" className="overflow-visible">
-                              {/* Red triangle showing material being removed - fills corner properly */}
+                              {/* Red triangle showing material being removed - flips top to bottom */}
                               <polygon
                                 points={cut.orientation === 'same' 
                                   ? `0,0 60,0 0,48`
-                                  : `0,0 60,0 60,48`
+                                  : `0,48 60,0 0,0`
                                 }
                                 fill="#ef4444"
                                 opacity="0.8"
@@ -322,11 +322,11 @@ export function ComplexCutsConfigurator({ length, onComplexCutsChange, complexCu
                         {(cut.position === 'end' || cut.position === 'both') && (
                           <div className="absolute right-0 top-0">
                             <svg width="60" height="48" className="overflow-visible">
-                              {/* Red triangle showing material being removed - fills corner properly */}
+                              {/* Red triangle showing material being removed - flips top to bottom */}
                               <polygon
                                 points={cut.orientation === 'same' 
                                   ? `0,0 60,0 60,48`
-                                  : `0,0 60,0 0,48`
+                                  : `60,48 60,0 0,48`
                                 }
                                 fill="#ef4444"
                                 opacity="0.8"
