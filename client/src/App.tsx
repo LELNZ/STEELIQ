@@ -27,11 +27,11 @@ function Router() {
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="h-screen overflow-hidden bg-background">
+    <div className="min-h-screen bg-background">
       <TopBar />
-      <div className="flex h-full pt-0">
+      <div className="flex min-h-screen pt-0">
         <Sidebar />
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 p-6 pb-20">
           {children}
         </main>
       </div>
