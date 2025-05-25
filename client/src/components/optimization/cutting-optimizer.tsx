@@ -32,6 +32,11 @@ export default function CuttingOptimizerComponent() {
   const [showCreateJobDialog, setShowCreateJobDialog] = useState(false);
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
 
+  // Fetch materials
+  const { data: materialsData = [] } = useQuery<Material[]>({
+    queryKey: ["/api/materials"],
+  });
+
   // New cut request form
   const [newCut, setNewCut] = useState({
     length: "",
@@ -49,18 +54,19 @@ export default function CuttingOptimizerComponent() {
     cost: ""
   });
 
-  // Fetch materials for dropdown
-  const { data: materials } = useQuery<Material[]>({
-    queryKey: ["/api/materials"],
-  });
+  // Helper function to get material name from code
+  const getMaterialName = (materialCode: string): string => {
+    const material = materialsData.find((m: Material) => m.code === materialCode);
+    return material ? `${material.name} (${material.code})` : materialCode;
+  };
 
-  const materialTypes = materials?.reduce((types, material) => {
+  const materialTypes = materialsData.reduce((types: string[], material: Material) => {
     const category = material.category || "Other";
     if (!types.includes(category)) {
       types.push(category);
     }
     return types;
-  }, [] as string[]) || [];
+  }, []);
 
 
 
@@ -124,20 +130,35 @@ export default function CuttingOptimizerComponent() {
     plans.forEach((plan, index) => {
       if (processed.has(index)) return;
 
-      const identical = plans.filter((otherPlan, otherIndex) => {
-        if (otherIndex <= index || processed.has(otherIndex)) return false;
-        return JSON.stringify(otherPlan.cuts) === JSON.stringify(plan.cuts) &&
-               otherPlan.stockLength === plan.stockLength;
-      });
+      // Find all identical plans (same stock length and same cut pattern)
+      const identicalIndexes = plans
+        .map((otherPlan, otherIndex) => {
+          if (otherIndex === index) return otherIndex; // Include self
+          
+          // Check if stock lengths match
+          if (otherPlan.stockLength !== plan.stockLength) return -1;
+          
+          // Check if cut patterns match (same cuts in same order)
+          if (otherPlan.cuts.length !== plan.cuts.length) return -1;
+          
+          const cutsMatch = otherPlan.cuts.every((cut, cutIndex) => {
+            const planCut = plan.cuts[cutIndex];
+            return cut.length === planCut.length && 
+                   cut.quantity === planCut.quantity && 
+                   cut.position === planCut.position &&
+                   (cut.angle || 90) === (planCut.angle || 90);
+          });
+          
+          return cutsMatch ? otherIndex : -1;
+        })
+        .filter(idx => idx !== -1 && !processed.has(idx));
 
-      identical.forEach((_, idx) => {
-        const actualIndex = plans.findIndex((p, i) => i > index && JSON.stringify(p.cuts) === JSON.stringify(plan.cuts));
-        if (actualIndex !== -1) processed.add(actualIndex);
-      });
+      // Mark all identical plans as processed
+      identicalIndexes.forEach(idx => processed.add(idx));
 
       grouped.push({
         plan,
-        repeatCount: identical.length + 1
+        repeatCount: identicalIndexes.length
       });
     });
 
@@ -196,14 +217,16 @@ export default function CuttingOptimizerComponent() {
     
     const processedPlans = processPlansForDisplay(optimizationResult.plans);
     processedPlans.forEach((planGroup, i) => {
+      const materialName = getMaterialName(planGroup.plan.cuts[0]?.requestId || 'Mixed');
+      
       if (planGroup.repeatCount > 1) {
         addText(`STOCK GROUP ${i + 1} - REPEAT ${planGroup.repeatCount}x`, 11, true);
-        addText(`Stock Length: ${planGroup.plan.stockLength}mm | Material: ${planGroup.plan.cuts[0]?.requestId || 'Mixed'}`, 10);
+        addText(`Stock Length: ${planGroup.plan.stockLength}mm | Material: ${materialName}`, 10);
         addText(`Efficiency: ${planGroup.plan.efficiency.toFixed(1)}% | Waste per stock: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 10);
         addText('Cut Sequence (repeat for each stock):', 10, true);
       } else {
         addText(`STOCK ${i + 1}`, 11, true);
-        addText(`Stock Length: ${planGroup.plan.stockLength}mm | Material: ${planGroup.plan.cuts[0]?.requestId || 'Mixed'}`, 10);
+        addText(`Stock Length: ${planGroup.plan.stockLength}mm | Material: ${materialName}`, 10);
         addText(`Efficiency: ${planGroup.plan.efficiency.toFixed(1)}% | Waste: ${planGroup.plan.wasteLength.toFixed(0)}mm`, 10);
         addText('Cut Sequence:', 10, true);
       }
@@ -679,6 +702,12 @@ export default function CuttingOptimizerComponent() {
                       Optimization Results
                     </CardTitle>
                     <div className="flex gap-1">
+                      {isJobMode && (
+                        <Button variant="default" size="sm" onClick={() => setShowCreateJobDialog(true)} className="h-7 px-2 text-xs">
+                          <Plus className="h-3 w-3 mr-1" />
+                          Create Job
+                        </Button>
+                      )}
                       {!isJobMode && (
                         <Button variant="default" size="sm" onClick={() => setShowCreateJobDialog(true)} className="h-7 px-2 text-xs">
                           <Briefcase className="h-3 w-3 mr-1" />
