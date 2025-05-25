@@ -83,6 +83,228 @@ export class CuttingOptimizer {
   private static readonly SAFETY_MARGIN = 10; // mm - additional safety margin
 
   /**
+   * Progressive Angle-Aware Optimization
+   * Intelligently chains cuts with compatible angles to minimize waste
+   */
+  static progressiveAngleOptimization(
+    requests: CutRequest[],
+    stock: StockItem[]
+  ): OptimizationResult {
+    const startTime = performance.now();
+    const plans: CuttingPlan[] = [];
+    const remnants: Remnant[] = [];
+    const unallocated: CutRequest[] = [];
+    
+    // Group requests by material type and analyze angle compatibility
+    const materialGroups = this.groupRequestsByMaterial(requests);
+    const availableStock = stock.map(s => ({ ...s, remaining: s.available }));
+    
+    for (const [materialType, materialRequests] of materialGroups) {
+      const materialStock = availableStock.filter(s => s.materialType === materialType);
+      const angleChains = this.buildAngleChains(materialRequests);
+      
+      // Process each angle chain for optimal material usage
+      for (const chain of angleChains) {
+        this.processAngleChain(chain, materialStock, plans, remnants, unallocated);
+      }
+    }
+    
+    const executionTime = performance.now() - startTime;
+    return this.buildOptimizationResult(plans, remnants, unallocated, "Progressive Angle-Aware", executionTime);
+  }
+
+  /**
+   * Groups cut requests by material type for efficient processing
+   */
+  private static groupRequestsByMaterial(requests: CutRequest[]): Map<string, CutRequest[]> {
+    const groups = new Map<string, CutRequest[]>();
+    
+    for (const request of requests) {
+      const existing = groups.get(request.materialType) || [];
+      existing.push(request);
+      groups.set(request.materialType, existing);
+    }
+    
+    return groups;
+  }
+
+  /**
+   * Builds chains of cuts that can share angled offcuts
+   */
+  private static buildAngleChains(requests: CutRequest[]): CutRequest[][] {
+    const chains: CutRequest[][] = [];
+    const processed = new Set<string>();
+    
+    for (const request of requests) {
+      if (processed.has(request.id)) continue;
+      
+      const chain = this.findCompatibleChain(request, requests, processed);
+      chains.push(chain);
+    }
+    
+    return chains;
+  }
+
+  /**
+   * Finds all cuts that can be chained together due to compatible angles
+   */
+  private static findCompatibleChain(
+    startRequest: CutRequest, 
+    allRequests: CutRequest[], 
+    processed: Set<string>
+  ): CutRequest[] {
+    const chain = [startRequest];
+    processed.add(startRequest.id);
+    
+    const startAngle = startRequest.startAngle || startRequest.angle || 90;
+    const endAngle = startRequest.endAngle || startRequest.angle || 90;
+    
+    // Find requests that can use the end angle as their start angle
+    for (const request of allRequests) {
+      if (processed.has(request.id)) continue;
+      
+      const reqStartAngle = request.startAngle || request.angle || 90;
+      
+      // Check if this request can start with the previous cut's end angle
+      if (Math.abs(reqStartAngle - endAngle) < 1) { // Allow 1° tolerance
+        const subChain = this.findCompatibleChain(request, allRequests, processed);
+        chain.push(...subChain);
+        break; // Only chain one at a time for simplicity
+      }
+    }
+    
+    return chain;
+  }
+
+  /**
+   * Processes a chain of angle-compatible cuts for optimal material usage
+   */
+  private static processAngleChain(
+    chain: CutRequest[],
+    materialStock: StockItem[],
+    plans: CuttingPlan[],
+    remnants: Remnant[],
+    unallocated: CutRequest[]
+  ): void {
+    // Expand chain by quantity
+    const expandedChain: (CutRequest & { chainPosition: number })[] = [];
+    
+    for (const request of chain) {
+      for (let i = 0; i < request.quantity; i++) {
+        expandedChain.push({ 
+          ...request, 
+          id: `${request.id}_${i}`,
+          chainPosition: chain.indexOf(request)
+        });
+      }
+    }
+    
+    // Try to fit chains in available stock
+    for (const stockItem of materialStock) {
+      while (stockItem.remaining > 0 && expandedChain.length > 0) {
+        const result = this.fitChainInStock(expandedChain, stockItem);
+        if (result.plan) {
+          plans.push(result.plan);
+          expandedChain.splice(0, result.consumedCuts);
+          
+          // Create remnant if significant length remains
+          if (result.remainingLength >= this.MIN_REMNANT_LENGTH) {
+            remnants.push({
+              id: `remnant_${result.plan.stockId}_${Date.now()}`,
+              length: result.remainingLength,
+              materialType: stockItem.materialType,
+              stockId: result.plan.stockId,
+              isReusable: true,
+              existingStartAngle: result.lastEndAngle,
+              canChainWith: []
+            });
+          }
+        } else {
+          break; // Can't fit any more in this stock
+        }
+      }
+    }
+    
+    // Add any remaining cuts to unallocated
+    unallocated.push(...expandedChain);
+  }
+
+  /**
+   * Attempts to fit a chain of cuts in a single stock item
+   */
+  private static fitChainInStock(
+    chain: (CutRequest & { chainPosition: number })[],
+    stockItem: StockItem
+  ): {
+    plan: CuttingPlan | null;
+    consumedCuts: number;
+    remainingLength: number;
+    lastEndAngle?: number;
+  } {
+    if (chain.length === 0) return { plan: null, consumedCuts: 0, remainingLength: stockItem.length };
+    
+    const cuts: Cut[] = [];
+    let currentPosition = 0;
+    let consumedCuts = 0;
+    let totalKerfLoss = 0;
+    
+    for (let i = 0; i < chain.length; i++) {
+      const request = chain[i];
+      const requiredLength = request.length;
+      const isFirstCut = i === 0;
+      const isPreviousChained = i > 0 && chain[i-1].chainPosition === request.chainPosition - 1;
+      
+      // Calculate kerf - no kerf needed if using existing angle from previous cut
+      const kerfNeeded = isFirstCut || !isPreviousChained ? this.TOTAL_KERF : 0;
+      const totalRequired = requiredLength + kerfNeeded;
+      
+      if (currentPosition + totalRequired > stockItem.length) {
+        break; // Won't fit
+      }
+      
+      cuts.push({
+        requestId: request.id,
+        length: requiredLength,
+        position: currentPosition + kerfNeeded,
+        quantity: 1,
+        startAngle: request.startAngle || request.angle || 90,
+        endAngle: request.endAngle || request.angle || 90,
+        usesExistingAngle: isPreviousChained,
+        createsOffcut: i < chain.length - 1
+      });
+      
+      currentPosition += totalRequired;
+      totalKerfLoss += kerfNeeded;
+      consumedCuts++;
+    }
+    
+    if (cuts.length === 0) return { plan: null, consumedCuts: 0, remainingLength: stockItem.length };
+    
+    const wasteLength = stockItem.length - currentPosition;
+    const efficiency = ((stockItem.length - wasteLength) / stockItem.length) * 100;
+    
+    const plan: CuttingPlan = {
+      stockId: `stock_${stockItem.materialType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      stockLength: stockItem.length,
+      cuts,
+      wasteLength,
+      efficiency,
+      totalCuts: cuts.length,
+      kerfLoss: totalKerfLoss
+    };
+    
+    stockItem.remaining--;
+    
+    const lastCut = cuts[cuts.length - 1];
+    return {
+      plan,
+      consumedCuts,
+      remainingLength: wasteLength,
+      lastEndAngle: lastCut.endAngle
+    };
+  }
+
+  /**
    * First Fit Decreasing Algorithm
    * Sorts cuts by length (descending) and places each in the first stock that fits
    */

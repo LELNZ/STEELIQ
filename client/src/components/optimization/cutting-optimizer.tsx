@@ -520,6 +520,9 @@ export default function CuttingOptimizerComponent() {
     let result: OptimizationResult;
 
     switch (selectedAlgorithm) {
+      case "angleAware":
+        result = CuttingOptimizer.progressiveAngleOptimization(cutRequests, stockItems);
+        break;
       case "firstFit":
         result = CuttingOptimizer.firstFitDecreasing(cutRequests, stockItems);
         break;
