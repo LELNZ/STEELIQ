@@ -16,13 +16,7 @@ import {
   History,
   Info
 } from "lucide-react";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import InstantMaterialSearch from "@/components/materials/instant-material-search";
 import StandardCuttingPlan from "@/components/optimization/standard-cutting-plan";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Material } from "@shared/schema";
@@ -403,18 +397,11 @@ export default function CuttingOptimizationFixed() {
                 </div>
                 <div>
                   <Label htmlFor="cut-material">Material Code</Label>
-                  <Select onValueChange={(materialCode: string) => setNewCut({ ...newCut, materialCode })} value={newCut.materialCode}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select material..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {materialsData.map((material) => (
-                        <SelectItem key={material.id} value={material.code}>
-                          {material.code} - {material.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <InstantMaterialSearch
+                    onSelect={(materialCode) => setNewCut({ ...newCut, materialCode })}
+                    placeholder="Type to search materials..."
+                    value={newCut.materialCode}
+                  />
                 </div>
               </div>
               
@@ -577,18 +564,11 @@ export default function CuttingOptimizationFixed() {
                 </div>
                 <div>
                   <Label htmlFor="stock-material">Material Code</Label>
-                  <Select onValueChange={(materialCode: string) => setNewStock({ ...newStock, materialCode })} value={newStock.materialCode}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select material..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {materialsData.map((material) => (
-                        <SelectItem key={material.id} value={material.code}>
-                          {material.code} - {material.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <InstantMaterialSearch
+                    onSelect={(materialCode) => setNewStock({ ...newStock, materialCode })}
+                    placeholder="Type to search materials..."
+                    value={newStock.materialCode}
+                  />
                 </div>
               </div>
               <Button onClick={handleAddStock} className="w-full">
