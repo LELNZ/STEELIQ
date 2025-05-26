@@ -11,7 +11,8 @@ import {
   DollarSign,
   Settings,
   Users,
-  Slice
+  Slice,
+  FileText
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -21,6 +22,7 @@ const navigation = [
     items: [
       { name: "Dashboard", href: "/", icon: LayoutDashboard },
       { name: "Jobs & Cutting", href: "/jobs", icon: Briefcase, badge: "12" },
+      { name: "Estimates & Quotes", href: "/estimates", icon: FileText, badge: "2", badgeVariant: "info" },
       { name: "Material Library", href: "/materials", icon: Package },
       { name: "Inventory", href: "/inventory", icon: Warehouse, badge: "3", badgeVariant: "warning" },
       { name: "Optimization", href: "/optimization", icon: Zap },

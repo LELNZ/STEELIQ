@@ -713,7 +713,25 @@ export default function CuttingOptimizationFixed() {
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <Label className="text-xs">Heavy Materials</Label>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Label className="text-xs">Heavy Materials</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="h-3 w-3 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-xs max-w-48">
+                              <p className="font-medium mb-1">Heavy Materials Include:</p>
+                              <p>• Universal Beams (UB/WB)</p>
+                              <p>• Universal Columns (UC/WC)</p>
+                              <p>• Plates and thick sections</p>
+                              <p>• Materials requiring crane/lifting equipment</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
@@ -726,7 +744,25 @@ export default function CuttingOptimizationFixed() {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs">Medium Materials</Label>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Label className="text-xs">Medium Materials</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="h-3 w-3 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-xs max-w-48">
+                              <p className="font-medium mb-1">Medium Materials Include:</p>
+                              <p>• RHS (Rectangular Hollow Sections)</p>
+                              <p>• SHS (Square Hollow Sections)</p>
+                              <p>• Medium angles and channels</p>
+                              <p>• Most standard structural sections</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
@@ -739,7 +775,25 @@ export default function CuttingOptimizationFixed() {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs">Light Materials</Label>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Label className="text-xs">Light Materials</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="h-3 w-3 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-xs max-w-48">
+                              <p className="font-medium mb-1">Light Materials Include:</p>
+                              <p>• Small angles (25x25, 30x30, 40x40)</p>
+                              <p>• Flat bars and strips</p>
+                              <p>• Round bars under 50mm diameter</p>
+                              <p>• Thin sections easily hand-carried</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
@@ -781,26 +835,26 @@ export default function CuttingOptimizationFixed() {
       {/* Results Section */}
       {optimizationResult ? (
         <div className="space-y-4">
-          {/* Create Job Button */}
+          {/* Create Estimate Button */}
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold">Convert to Professional Job</h3>
+                  <h3 className="font-semibold">Create Professional Estimate</h3>
                   <p className="text-sm text-muted-foreground">
-                    Create a formal job with estimation, material procurement, and production scheduling
+                    Convert this cutting plan into a detailed estimate with material costs, labor calculations, and markup
                   </p>
                 </div>
                 <Button 
                   onClick={() => {
-                    // Navigate to job creation with cutting plan data
-                    console.log('Creating job from cutting plan:', optimizationResult);
-                    // TODO: Implement job creation navigation
+                    // Navigate to estimate creation with cutting plan data
+                    console.log('Creating estimate from cutting plan:', optimizationResult);
+                    // TODO: Implement estimate creation navigation
                   }}
                   className="flex items-center gap-2"
                 >
                   <Package className="h-4 w-4" />
-                  Create Job
+                  Create Estimate
                 </Button>
               </div>
             </CardContent>

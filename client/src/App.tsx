@@ -10,6 +10,7 @@ import Materials from "@/pages/materials-fixed";
 import Inventory from "@/pages/inventory";
 import CuttingOptimizationFixed from "@/pages/cutting-optimization-fixed";
 import CuttingPlanTest from "@/pages/cutting-plan-test";
+import Estimates from "@/pages/estimates";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
 
@@ -18,6 +19,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/jobs" component={Jobs} />
+      <Route path="/estimates" component={Estimates} />
       <Route path="/materials" component={Materials} />
       <Route path="/inventory" component={Inventory} />
       <Route path="/optimization" component={CuttingOptimizationFixed} />
