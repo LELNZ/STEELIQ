@@ -951,7 +951,7 @@ export default function CuttingOptimizationFixed() {
                         updatedRequirements[index] = { ...cut, quantity: newQuantity };
                         setCutRequirements(updatedRequirements);
                       }}
-                      className="w-12 h-6 text-xs"
+                      className="w-16 h-6 text-xs"
                       min="1"
                     />
                   </div>
@@ -967,7 +967,7 @@ export default function CuttingOptimizationFixed() {
                       updatedRequirements[index] = { ...cut, description: e.target.value };
                       setCutRequirements(updatedRequirements);
                     }}
-                    className="h-6 text-xs flex-1 min-w-32"
+                    className="h-6 text-xs flex-1 min-w-24"
                   />
                   
                   <Button
