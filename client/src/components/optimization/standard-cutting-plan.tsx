@@ -642,13 +642,53 @@ export default function StandardCuttingPlan({
         </Card>
       )}
 
-      {/* Detailed Cutting Plans */}
-      {plans.map((plan, planIndex) => (
-        <Card key={planIndex}>
+      {/* Detailed Cutting Plans - Grouped */}
+      {plans.map((plan, planIndex) => {
+        // Create signature for this plan
+        const currentSignature = plan.cuts.map(cut => 
+          `${cut.length}-${cut.startPosition}-${cut.endPosition}-${cut.firstCutAngle}-${cut.secondCutAngle}`
+        ).join('|') + `|remnant:${plan.wasteLength}`;
+        
+        // Find all identical plans
+        const identicalPlans = plans.filter((p, idx) => {
+          const sig = p.cuts.map(cut => 
+            `${cut.length}-${cut.startPosition}-${cut.endPosition}-${cut.firstCutAngle}-${cut.secondCutAngle}`
+          ).join('|') + `|remnant:${p.wasteLength}`;
+          return sig === currentSignature && p.materialCode === plan.materialCode;
+        });
+        
+        // Only show first of identical group
+        const isFirstOfGroup = plans.findIndex(p => {
+          const sig = p.cuts.map(cut => 
+            `${cut.length}-${cut.startPosition}-${cut.endPosition}-${cut.firstCutAngle}-${cut.secondCutAngle}`
+          ).join('|') + `|remnant:${p.wasteLength}`;
+          return sig === currentSignature && p.materialCode === plan.materialCode;
+        }) === planIndex;
+        
+        if (identicalPlans.length > 1 && !isFirstOfGroup) {
+          return null; // Skip duplicate sequences
+        }
+        
+        return (
+        <Card key={planIndex} className={identicalPlans.length > 1 ? 'border-2 border-blue-200 bg-blue-50/20' : ''}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">
-                {plan.materialCode} Bar #{planIndex + 1} - {plan.stockLength}mm
+                {identicalPlans.length > 1 ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span>{plan.materialCode} Bar#{identicalPlans.map((_, idx) => planIndex + 1 + idx).join(', #')} - {plan.stockLength}mm</span>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 font-semibold">
+                        {identicalPlans.length}x identical repeats
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground font-normal">
+                      Repeat this cutting sequence {identicalPlans.length} times
+                    </div>
+                  </div>
+                ) : (
+                  `${plan.materialCode} Bar #${planIndex + 1} - {plan.stockLength}mm`
+                )}
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Badge className={getEfficiencyColor(plan.efficiency)}>
@@ -662,9 +702,11 @@ export default function StandardCuttingPlan({
                 </Badge>
               </div>
             </div>
-            
+          </CardHeader>
+          
+          <CardContent>
             {/* Per-bar totals summary */}
-            <div className="grid grid-cols-4 gap-3 mt-3 p-3 bg-muted/30 rounded-lg">
+            <div className="grid grid-cols-4 gap-3 mb-4 p-3 bg-muted/30 rounded-lg">
               <div className="text-center">
                 <div className="text-sm font-medium text-green-600">
                   {(plan.stockLength - plan.wasteLength).toFixed(0)}mm
