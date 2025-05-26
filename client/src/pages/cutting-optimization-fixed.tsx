@@ -77,7 +77,7 @@ export default function CuttingOptimizationFixed() {
       "Wear correct PPE - safety glasses, gloves, ear protection",
       "Use two-person lift for heavy pieces",
       "Use crane for over 40.1kg pieces",
-      "Handle with care - structural steel"
+      "Use correct lifting form"
     ],
     finishing: [
       "Deburr all edges after cutting",
@@ -825,79 +825,72 @@ export default function CuttingOptimizationFixed() {
               </Button>
             </div>
 
-            {/* General Instructions Card */}
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-medium mb-3 text-blue-800">General Instructions</h4>
+            {/* General Instructions - Compact */}
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+              <h4 className="font-medium mb-2 text-blue-800 text-sm">General Instructions</h4>
               
-              {/* Quick-select by category */}
-              <div className="space-y-3">
+              {/* Compact grid layout */}
+              <div className="grid grid-cols-3 gap-2 text-xs">
                 {Object.entries(instructionCategories).map(([category, instructions]) => (
-                  <div key={category}>
-                    <Label className="text-xs font-medium text-blue-700 capitalize mb-1 block">{category}</Label>
-                    <div className="grid grid-cols-1 gap-1">
-                      {instructions.map((instruction, index) => (
-                        <label key={index} className="flex items-center space-x-2 text-xs">
-                          <input
-                            type="checkbox"
-                            checked={generalInstructions.includes(instruction)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setGeneralInstructions([...generalInstructions, instruction]);
-                              } else {
-                                setGeneralInstructions(generalInstructions.filter(i => i !== instruction));
-                              }
-                            }}
-                            className="h-3 w-3"
-                          />
-                          <span className="text-slate-700">{instruction}</span>
-                        </label>
-                      ))}
-                    </div>
+                  <div key={category} className="space-y-1">
+                    <div className="font-medium text-blue-700 capitalize text-xs">{category}</div>
+                    {instructions.map((instruction, index) => (
+                      <label key={index} className="flex items-start space-x-1">
+                        <input
+                          type="checkbox"
+                          checked={generalInstructions.includes(instruction)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setGeneralInstructions([...generalInstructions, instruction]);
+                            } else {
+                              setGeneralInstructions(generalInstructions.filter(i => i !== instruction));
+                            }
+                          }}
+                          className="h-3 w-3 mt-0.5 flex-shrink-0"
+                        />
+                        <span className="text-slate-700 leading-tight">{instruction}</span>
+                      </label>
+                    ))}
                   </div>
                 ))}
               </div>
 
-              {/* Custom instruction input */}
-              <div className="mt-3">
-                <Label htmlFor="custom-instruction" className="text-xs font-medium text-blue-700">Custom Instruction</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="custom-instruction"
-                    value={customInstruction}
-                    onChange={(e) => setCustomInstruction(e.target.value)}
-                    placeholder="Enter custom instruction..."
-                    className="h-8 text-xs"
-                  />
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      if (customInstruction.trim()) {
-                        setGeneralInstructions([...generalInstructions, customInstruction.trim()]);
-                        setCustomInstruction("");
-                      }
-                    }}
-                    className="h-8"
-                  >
-                    Add
-                  </Button>
-                </div>
+              {/* Compact custom instruction */}
+              <div className="mt-2 flex gap-1">
+                <Input
+                  value={customInstruction}
+                  onChange={(e) => setCustomInstruction(e.target.value)}
+                  placeholder="Custom instruction..."
+                  className="h-7 text-xs flex-1"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (customInstruction.trim()) {
+                      setGeneralInstructions([...generalInstructions, customInstruction.trim()]);
+                      setCustomInstruction("");
+                    }
+                  }}
+                  className="h-7 px-2 text-xs"
+                >
+                  Add
+                </Button>
               </div>
 
-              {/* Selected instructions display */}
+              {/* Compact selected display */}
               {generalInstructions.length > 0 && (
-                <div className="mt-3 p-2 bg-white rounded border">
-                  <Label className="text-xs font-medium text-blue-700 mb-1 block">Selected Instructions:</Label>
-                  <div className="space-y-1">
+                <div className="mt-2 p-1 bg-white rounded">
+                  <div className="flex flex-wrap gap-1">
                     {generalInstructions.map((instruction, index) => (
-                      <div key={index} className="flex items-center justify-between text-xs bg-blue-100 px-2 py-1 rounded">
-                        <span>{instruction}</span>
+                      <span key={index} className="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                        {instruction.length > 30 ? `${instruction.substring(0, 30)}...` : instruction}
                         <button
                           onClick={() => setGeneralInstructions(generalInstructions.filter((_, i) => i !== index))}
-                          className="text-blue-600 hover:text-blue-800 ml-2"
+                          className="ml-1 text-blue-600 hover:text-blue-800"
                         >
                           ×
                         </button>
-                      </div>
+                      </span>
                     ))}
                   </div>
                 </div>
