@@ -22,7 +22,7 @@ function Router() {
       <Route path="/estimates" component={Estimates} />
       <Route path="/materials" component={Materials} />
       <Route path="/inventory" component={Inventory} />
-      <Route path="/optimization" component={CuttingOptimizationSimple} />
+      <Route path="/optimization" component={CuttingPlanTest} />
       <Route path="/cutting-plan-test" component={CuttingPlanTest} />
       <Route component={NotFound} />
     </Switch>

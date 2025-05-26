@@ -50,6 +50,23 @@ export default function CuttingOptimizationSimple() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [useAngleGrouping, setUseAngleGrouping] = useState(false);
 
+  // Materials query
+  const { data: materialsData, isLoading: materialsLoading } = useQuery<Material[]>({
+    queryKey: ['/api/materials'],
+  });
+
+  // Early return if materials are still loading
+  if (materialsLoading || !materialsData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading materials database...</p>
+        </div>
+      </div>
+    );
+  }
+
   const [newCut, setNewCut] = useState({
     length: "",
     quantity: "1",
