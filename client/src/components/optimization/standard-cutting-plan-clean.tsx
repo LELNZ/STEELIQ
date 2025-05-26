@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronRight, Download, Info } from "lucide-react";
@@ -98,7 +99,7 @@ export function StandardCuttingPlan({
         allowTaint: true
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.getDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgWidth = 210;
       const pageHeight = 295;
@@ -123,7 +124,7 @@ export function StandardCuttingPlan({
     }
   };
 
-  // Group identical cutting sequences - Key feature for reducing page usage
+  // Group identical cutting sequences
   const groupedPlans = (() => {
     const processedPlans: Array<{
       plan: CutPlan;
@@ -249,7 +250,7 @@ export function StandardCuttingPlan({
         </Collapsible>
       )}
 
-      {/* Cutting Plans with Sequence Grouping */}
+      {/* Cutting Plans */}
       {groupedPlans.map(({ plan, planIndex, isGrouped, groupCount, groupIds }) => (
         <Card key={planIndex} className={isGrouped ? 'border-2 border-blue-200 bg-blue-50/20' : ''}>
           <CardHeader>
