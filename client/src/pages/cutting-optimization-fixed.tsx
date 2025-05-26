@@ -145,11 +145,11 @@ export default function CuttingOptimizationFixed() {
     return getMaterialWeight(materialCode, length).category;
   };
 
-  // Clean cutting optimization function - fixes overflow issue
+  // Advanced cutting optimization for sub-5% waste
   const runCleanCuttingOptimization = (cuts: CutRequirement[], stock: StockItem[]) => {
     const plans: any[] = [];
     
-    // Group cuts by material code
+    // Group cuts by material code (process separately)
     const materialGroups = cuts.reduce((groups: { [key: string]: CutRequirement[] }, cut) => {
       if (!groups[cut.materialCode]) {
         groups[cut.materialCode] = [];
@@ -179,8 +179,17 @@ export default function CuttingOptimizationFixed() {
         }
       });
 
-      // Sort cuts longest first for better nesting
-      allCuts.sort((a, b) => b.length - a.length);
+      // Sort cuts by complexity and length for optimal nesting
+      // Priority: Complex angles first, then by length (longest first)
+      allCuts.sort((a, b) => {
+        const aComplexity = (a.firstCutAngle !== 90 || a.secondCutAngle !== 90) ? 1 : 0;
+        const bComplexity = (b.firstCutAngle !== 90 || b.secondCutAngle !== 90) ? 1 : 0;
+        
+        if (aComplexity !== bComplexity) {
+          return bComplexity - aComplexity; // Complex cuts first
+        }
+        return b.length - a.length; // Then longest first
+      });
 
       // Create individual stock bars from quantities
       const stockBars: any[] = [];
@@ -200,20 +209,21 @@ export default function CuttingOptimizationFixed() {
       let cutIndex = 0;
       let barIndex = 0;
 
-      // Continue until all cuts are processed or no more bars available
+      // Process all cuts with advanced offcut utilization
       while (cutIndex < allCuts.length && barIndex < stockBars.length) {
         const currentBar = stockBars[barIndex];
         let currentPosition = 0;
         const barCuts: any[] = [];
 
-        // Fill this bar with as many cuts as possible
-        while (cutIndex < allCuts.length) {
-          const cut = allCuts[cutIndex];
+        // First pass: Fill with cuts in order
+        let tempCutIndex = cutIndex;
+        while (tempCutIndex < allCuts.length) {
+          const cut = allCuts[tempCutIndex];
           const kerfWidth = cut.kerfWidth || 2.4;
           
-          // Check if cut fits on current bar
           if (currentPosition + cut.length + kerfWidth <= currentBar.length) {
-            // Calculate handling time
+            // Calculate weight and handling time
+            const weightData = getMaterialWeight(materialCode, cut.length);
             const category = getMaterialWeightCategory(materialCode, cut.length);
             const handlingTime = handlingTimes[category].total;
             
@@ -230,14 +240,63 @@ export default function CuttingOptimizationFixed() {
               materialCode: materialCode,
               cuttingTime: (cut.firstCutAngle === 90 && cut.secondCutAngle === 90) ? 10 : 12,
               handlingTime: handlingTime,
-              kerfWidth: kerfWidth
+              kerfWidth: kerfWidth,
+              weight: weightData.totalWeight,
+              weightPerMeter: weightData.weightPerMeter
             });
             
             currentPosition += cut.length + kerfWidth;
-            cutIndex++; // Move to next cut (THIS IS THE KEY FIX!)
+            
+            // Remove this cut from remaining cuts
+            allCuts.splice(tempCutIndex, 1);
           } else {
-            // Cut doesn't fit, break to next bar
-            break;
+            tempCutIndex++;
+          }
+        }
+
+        // Second pass: Try to fit smaller cuts in remaining space (offcut utilization)
+        const remainingSpace = currentBar.length - currentPosition;
+        if (remainingSpace > 100) { // If significant space remains
+          tempCutIndex = 0;
+          while (tempCutIndex < allCuts.length) {
+            const cut = allCuts[tempCutIndex];
+            const kerfWidth = cut.kerfWidth || 2.4;
+            
+            if (cut.length + kerfWidth <= remainingSpace) {
+              // Calculate weight and handling time
+              const weightData = getMaterialWeight(materialCode, cut.length);
+              const category = getMaterialWeightCategory(materialCode, cut.length);
+              const handlingTime = handlingTimes[category].total;
+              
+              // Add cut to this bar
+              barCuts.push({
+                id: cut.id,
+                length: cut.length,
+                quantity: 1,
+                startPosition: currentPosition,
+                endPosition: currentPosition + cut.length,
+                firstCutAngle: cut.firstCutAngle,
+                secondCutAngle: cut.secondCutAngle,
+                description: cut.description,
+                materialCode: materialCode,
+                cuttingTime: (cut.firstCutAngle === 90 && cut.secondCutAngle === 90) ? 10 : 12,
+                handlingTime: handlingTime,
+                kerfWidth: kerfWidth,
+                weight: weightData.totalWeight,
+                weightPerMeter: weightData.weightPerMeter
+              });
+              
+              currentPosition += cut.length + kerfWidth;
+              
+              // Remove this cut from remaining cuts
+              allCuts.splice(tempCutIndex, 1);
+              
+              // Update remaining space for next iteration
+              const newRemainingSpace = currentBar.length - currentPosition;
+              if (newRemainingSpace < 100) break; // No point continuing if space too small
+            } else {
+              tempCutIndex++;
+            }
           }
         }
 
@@ -246,17 +305,20 @@ export default function CuttingOptimizationFixed() {
           const totalCutLength = barCuts.reduce((sum, cut) => sum + cut.length, 0);
           const wasteLength = currentBar.length - currentPosition;
           const efficiency = ((totalCutLength / currentBar.length) * 100);
+          const wastePercentage = (wasteLength / currentBar.length) * 100;
 
           plans.push({
             id: `${materialCode}-bar-${currentBar.barNumber}`,
             stockLength: currentBar.length,
             cuts: barCuts,
             wasteLength: wasteLength,
+            wastePercentage: Math.round(wastePercentage * 10) / 10,
             efficiency: Math.round(efficiency * 10) / 10,
             totalCuts: barCuts.length,
             materialCode: materialCode,
             totalCuttingTime: barCuts.reduce((sum, cut) => sum + (cut.cuttingTime || 10), 0),
             totalHandlingTime: barCuts.reduce((sum, cut) => sum + (cut.handlingTime || 3), 0),
+            totalWeight: barCuts.reduce((sum, cut) => sum + (cut.weight || 0), 0),
             instructions: {
               general: 'Deburr all edges after cutting',
               cuttingMethod: 'Bandsaw - standard setup',
