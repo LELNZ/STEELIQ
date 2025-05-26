@@ -489,6 +489,29 @@ export default function CuttingOptimizationFixed() {
               </Button>
             </div>
 
+            {/* Material requirements summary */}
+            {cutRequirements.length > 0 && (
+              <div className="bg-muted/50 p-3 rounded border">
+                <h4 className="text-sm font-medium mb-2">Material Requirements Summary</h4>
+                <div className="space-y-1">
+                  {Object.entries(
+                    cutRequirements.reduce((acc, cut) => {
+                      if (!acc[cut.materialCode]) {
+                        acc[cut.materialCode] = 0;
+                      }
+                      acc[cut.materialCode] += cut.length * cut.quantity;
+                      return acc;
+                    }, {} as Record<string, number>)
+                  ).map(([materialCode, totalLength]) => (
+                    <div key={materialCode} className="flex justify-between text-sm">
+                      <span className="font-medium">{materialCode}</span>
+                      <span className="text-muted-foreground">{(totalLength / 1000).toFixed(1)}m total</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Cut requirements list */}
             <div className="space-y-2">
               {cutRequirements.map((cut, index) => (
@@ -576,6 +599,41 @@ export default function CuttingOptimizationFixed() {
                 Add Stock Item
               </Button>
             </div>
+
+            {/* Stock availability summary */}
+            {stockItems.length > 0 && cutRequirements.length > 0 && (
+              <div className="bg-muted/50 p-3 rounded border">
+                <h4 className="text-sm font-medium mb-2">Stock Availability Status</h4>
+                <div className="space-y-1">
+                  {Object.entries(
+                    cutRequirements.reduce((acc, cut) => {
+                      if (!acc[cut.materialCode]) {
+                        acc[cut.materialCode] = 0;
+                      }
+                      acc[cut.materialCode] += cut.length * cut.quantity;
+                      return acc;
+                    }, {} as Record<string, number>)
+                  ).map(([materialCode, requiredLength]) => {
+                    const availableLength = stockItems
+                      .filter(stock => stock.materialCode === materialCode)
+                      .reduce((sum, stock) => sum + (stock.length * stock.quantity), 0);
+                    const isAvailable = availableLength >= requiredLength;
+                    
+                    return (
+                      <div key={materialCode} className="flex justify-between items-center text-sm">
+                        <span className="font-medium">{materialCode}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">
+                            {(requiredLength / 1000).toFixed(1)}m req / {(availableLength / 1000).toFixed(1)}m avail
+                          </span>
+                          <div className={`w-3 h-3 rounded-full ${isAvailable ? 'bg-green-500' : 'bg-red-500'}`} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Stock items list */}
             <div className="space-y-2">
