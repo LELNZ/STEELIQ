@@ -548,6 +548,28 @@ export default function StandardCuttingPlan({
                 </Badge>
               </div>
             </div>
+            
+            {/* Per-bar totals summary */}
+            <div className="grid grid-cols-3 gap-4 mt-3 p-3 bg-muted/30 rounded-lg">
+              <div className="text-center">
+                <div className="text-sm font-medium text-green-600">
+                  {(plan.stockLength - plan.wasteLength).toFixed(0)}mm
+                </div>
+                <div className="text-xs text-muted-foreground">Material Used</div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-medium text-red-600">
+                  {plan.wasteLength.toFixed(0)}mm
+                </div>
+                <div className="text-xs text-muted-foreground">Waste</div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-medium text-blue-600">
+                  {formatTime(plan.totalCuttingTime || 0)}
+                </div>
+                <div className="text-xs text-muted-foreground">Cut Time</div>
+              </div>
+            </div>
           </CardHeader>
           
           <CardContent>

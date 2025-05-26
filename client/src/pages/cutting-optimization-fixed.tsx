@@ -499,13 +499,15 @@ export default function CuttingOptimizationFixed() {
                       if (!acc[cut.materialCode]) {
                         acc[cut.materialCode] = 0;
                       }
-                      acc[cut.materialCode] += cut.length * cut.quantity;
+                      // Include kerf waste per cut in total material calculation
+                      const kerfWaste = (cut.kerfWidth || 2.4) * cut.quantity;
+                      acc[cut.materialCode] += (cut.length * cut.quantity) + kerfWaste;
                       return acc;
                     }, {} as Record<string, number>)
                   ).map(([materialCode, totalLength]) => (
                     <div key={materialCode} className="flex justify-between text-sm">
                       <span className="font-medium">{materialCode}</span>
-                      <span className="text-muted-foreground">{(totalLength / 1000).toFixed(1)}m total</span>
+                      <span className="text-muted-foreground">{Math.round(totalLength)}mm total</span>
                     </div>
                   ))}
                 </div>
@@ -610,7 +612,9 @@ export default function CuttingOptimizationFixed() {
                       if (!acc[cut.materialCode]) {
                         acc[cut.materialCode] = 0;
                       }
-                      acc[cut.materialCode] += cut.length * cut.quantity;
+                      // Include kerf waste per cut in required material calculation
+                      const kerfWaste = (cut.kerfWidth || 2.4) * cut.quantity;
+                      acc[cut.materialCode] += (cut.length * cut.quantity) + kerfWaste;
                       return acc;
                     }, {} as Record<string, number>)
                   ).map(([materialCode, requiredLength]) => {
@@ -624,7 +628,7 @@ export default function CuttingOptimizationFixed() {
                         <span className="font-medium">{materialCode}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground">
-                            {(requiredLength / 1000).toFixed(1)}m req / {(availableLength / 1000).toFixed(1)}m avail
+                            {Math.round(requiredLength)}mm req / {Math.round(availableLength)}mm avail
                           </span>
                           <div className={`w-3 h-3 rounded-full ${isAvailable ? 'bg-green-500' : 'bg-red-500'}`} />
                         </div>
