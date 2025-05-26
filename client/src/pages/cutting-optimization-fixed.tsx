@@ -111,24 +111,72 @@ export default function CuttingOptimizationFixed() {
     return () => clearInterval(timer);
   }, []);
 
-  // Determine material weight category based on material code
-  const getMaterialWeightCategory = (materialCode: string): 'heavy' | 'medium' | 'light' => {
+  // Estimate material weight per meter and determine category
+  const estimateMaterialWeight = (materialCode: string, length: number): { weightPerMeter: number; totalWeight: number; category: 'heavy' | 'medium' | 'light' } => {
     const code = materialCode.toUpperCase();
+    let weightPerMeter = 0;
     
-    // Heavy materials (large beams, columns, thick plates)
-    if (code.includes('UB') || code.includes('UC') || code.includes('WB') || code.includes('WC') ||
-        code.includes('PLATE') || code.includes('BEAM') || code.includes('COLUMN')) {
-      return 'heavy';
+    // Extract dimensions from material codes for weight calculation
+    const dimensions = code.match(/\d+/g)?.map(Number) || [];
+    
+    // Weight estimation based on material type and dimensions
+    if (code.includes('UB') || code.includes('WB')) {
+      // Universal Beams - typical weights from steel tables
+      const depth = dimensions[0] || 200;
+      weightPerMeter = depth < 200 ? 15 : depth < 400 ? 45 : 80; // kg/m approximation
+    } else if (code.includes('UC') || code.includes('WC')) {
+      // Universal Columns
+      const depth = dimensions[0] || 150;
+      weightPerMeter = depth < 200 ? 25 : depth < 300 ? 50 : 100;
+    } else if (code.includes('RHS')) {
+      // Rectangular Hollow Sections
+      const width = dimensions[0] || 50;
+      const height = dimensions[1] || 25;
+      const thickness = dimensions[2] || 3;
+      weightPerMeter = ((width + height) * 2 * thickness * 0.007850); // Steel density approximation
+    } else if (code.includes('SHS')) {
+      // Square Hollow Sections  
+      const size = dimensions[0] || 50;
+      const thickness = dimensions[1] || 3;
+      weightPerMeter = (size * 4 * thickness * 0.007850);
+    } else if (code.includes('ANGLE')) {
+      // Angles
+      const leg1 = dimensions[0] || 50;
+      const leg2 = dimensions[1] || leg1;
+      const thickness = dimensions[2] || 5;
+      weightPerMeter = ((leg1 + leg2) * thickness * 0.007850);
+    } else if (code.includes('FLAT') || code.includes('PLATE')) {
+      // Flat bars and plates
+      const width = dimensions[0] || 50;
+      const thickness = dimensions[1] || 6;
+      weightPerMeter = (width * thickness * 0.007850);
+    } else if (code.includes('ROUND') || code.includes('ROD')) {
+      // Round bars
+      const diameter = dimensions[0] || 20;
+      weightPerMeter = (Math.PI * Math.pow(diameter/2, 2) * 0.000007850);
+    } else {
+      // Default estimation for unknown types
+      weightPerMeter = 10; // Conservative default
     }
     
-    // Light materials (small angles, thin sections)
-    if (code.includes('ANGLE') && (code.includes('25') || code.includes('30') || code.includes('40')) ||
-        code.includes('FLAT') || code.includes('ROD') || code.includes('ROUND') && parseInt(code.match(/\d+/)?.[0] || '0') < 50) {
-      return 'light';
+    const totalWeight = (weightPerMeter * length) / 1000; // Convert mm to meters
+    
+    // Categorize based on total weight
+    let category: 'heavy' | 'medium' | 'light';
+    if (totalWeight <= 5) {
+      category = 'light';
+    } else if (totalWeight <= 20) {
+      category = 'medium';
+    } else {
+      category = 'heavy';
     }
     
-    // Medium materials (most RHS, SHS, moderate sizes)
-    return 'medium';
+    return { weightPerMeter, totalWeight, category };
+  };
+
+  // Get material weight category (backward compatibility)
+  const getMaterialWeightCategory = (materialCode: string, length: number = 1000): 'heavy' | 'medium' | 'light' => {
+    return estimateMaterialWeight(materialCode, length).category;
   };
 
   // Simple cutting optimization function
@@ -194,7 +242,7 @@ export default function CuttingOptimizationFixed() {
               description: cut.description,
               materialCode: materialCode,
               cuttingTime: (cut.firstCutAngle === 90 && cut.secondCutAngle === 90) ? 10 : 12,
-              handlingTime: handlingTimes[getMaterialWeightCategory(materialCode)],
+              handlingTime: handlingTimes[getMaterialWeightCategory(materialCode, cut.length)],
               kerfWidth: kerfWidth
             });
             
@@ -722,11 +770,12 @@ export default function CuttingOptimizationFixed() {
                           </TooltipTrigger>
                           <TooltipContent>
                             <div className="text-xs max-w-48">
-                              <p className="font-medium mb-1">Heavy Materials Include:</p>
-                              <p>• Universal Beams (UB/WB)</p>
-                              <p>• Universal Columns (UC/WC)</p>
-                              <p>• Plates and thick sections</p>
-                              <p>• Materials requiring crane/lifting equipment</p>
+                              <p className="font-medium mb-1">Heavy Materials (20.01kg+):</p>
+                              <p>• Large Universal Beams (UB/WB)</p>
+                              <p>• Heavy Universal Columns (UC/WC)</p>
+                              <p>• Thick plates and long sections</p>
+                              <p>• Requires crane/lifting equipment</p>
+                              <p className="text-muted-foreground mt-1 italic">Weight calculated from material code and cut length</p>
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -753,11 +802,12 @@ export default function CuttingOptimizationFixed() {
                           </TooltipTrigger>
                           <TooltipContent>
                             <div className="text-xs max-w-48">
-                              <p className="font-medium mb-1">Medium Materials Include:</p>
-                              <p>• RHS (Rectangular Hollow Sections)</p>
-                              <p>• SHS (Square Hollow Sections)</p>
+                              <p className="font-medium mb-1">Medium Materials (5.01-20kg):</p>
+                              <p>• Standard RHS/SHS sections</p>
                               <p>• Medium angles and channels</p>
-                              <p>• Most standard structural sections</p>
+                              <p>• Most structural sections</p>
+                              <p>• Two-person lift required</p>
+                              <p className="text-muted-foreground mt-1 italic">Weight calculated from material code and cut length</p>
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -784,11 +834,12 @@ export default function CuttingOptimizationFixed() {
                           </TooltipTrigger>
                           <TooltipContent>
                             <div className="text-xs max-w-48">
-                              <p className="font-medium mb-1">Light Materials Include:</p>
-                              <p>• Small angles (25x25, 30x30, 40x40)</p>
-                              <p>• Flat bars and strips</p>
-                              <p>• Round bars under 50mm diameter</p>
-                              <p>• Thin sections easily hand-carried</p>
+                              <p className="font-medium mb-1">Light Materials (0-5kg):</p>
+                              <p>• Small angles and strips</p>
+                              <p>• Thin flat bars</p>
+                              <p>• Small round bars</p>
+                              <p>• Easy single-person handling</p>
+                              <p className="text-muted-foreground mt-1 italic">Weight calculated from material code and cut length</p>
                             </div>
                           </TooltipContent>
                         </Tooltip>
