@@ -99,8 +99,7 @@ export default function CuttingOptimizationFixed() {
     firstCutAngle: 90,
     secondCutAngle: 90,
     kerfWidth: 2.4,
-    description: "",
-    specificInstructions: ""
+    description: ""
   });
 
   const [newStock, setNewStock] = useState({
@@ -521,8 +520,7 @@ export default function CuttingOptimizationFixed() {
         firstCutAngle: 90,
         secondCutAngle: 90,
         kerfWidth: 2.4,
-        description: "",
-        specificInstructions: ""
+        description: ""
       });
     }
   };
@@ -798,24 +796,12 @@ export default function CuttingOptimizationFixed() {
               </TooltipProvider>
               
               <div>
-                <Label htmlFor="cut-description">Description (Optional)</Label>
+                <Label htmlFor="cut-description">Description & Instructions (Optional)</Label>
                 <Input
                   id="cut-description"
                   value={newCut.description}
                   onChange={(e) => setNewCut({ ...newCut, description: e.target.value })}
-                  placeholder="Purpose or notes..."
-                  className="h-8"
-                />
-              </div>
-
-              {/* Specific Instructions for Individual Cut */}
-              <div>
-                <Label htmlFor="specific-instructions" className="text-xs">Specific Instructions (Optional)</Label>
-                <Input
-                  id="specific-instructions"
-                  value={newCut.specificInstructions}
-                  onChange={(e) => setNewCut({ ...newCut, specificInstructions: e.target.value })}
-                  placeholder="Special handling for this cut..."
+                  placeholder="Purpose, notes, or special handling instructions..."
                   className="h-8"
                 />
               </div>
