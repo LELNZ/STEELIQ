@@ -896,6 +896,21 @@ export default function CuttingOptimizationFixed() {
                   </div>
                 </div>
               )}
+
+              {/* Cutting Method Selection */}
+              <div className="mt-2">
+                <Label htmlFor="cutting-method" className="text-xs font-medium text-blue-700">Cutting Method</Label>
+                <select
+                  id="cutting-method"
+                  value={cuttingMethod}
+                  onChange={(e) => setCuttingMethod(e.target.value)}
+                  className="w-full h-7 text-xs border border-gray-300 rounded px-2 bg-white"
+                >
+                  <option value="Bandsaw - standard setup">Bandsaw - standard setup</option>
+                  <option value="Plasma cutter">Plasma cutter</option>
+                  <option value="Oxy-fuel cutting">Oxy-fuel cutting</option>
+                </select>
+              </div>
             </div>
 
             {/* Material requirements summary */}
@@ -1399,6 +1414,8 @@ export default function CuttingOptimizationFixed() {
             plans={optimizationResult}
             materialCode={cutRequirements[0]?.materialCode || 'MIXED'}
             jobNumber={`JOB-${new Date().toISOString().split('T')[0]}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
+            generalInstructions={generalInstructions}
+            cuttingMethod={cuttingMethod}
           />
         </div>
       ) : cutRequirements.length > 0 && stockItems.length > 0 ? (
