@@ -373,8 +373,39 @@ export default function CuttingOptimizationFixed() {
   };
 
   const loadSimulation = (sim: any) => {
+    console.log('Loading simulation:', sim);
+    
+    // Load optimization results
     setOptimizationResult(sim.results);
+    
+    // Restore original cut requirements if available
+    if (sim.cutRequests) {
+      try {
+        const originalRequirements = typeof sim.cutRequests === 'string' 
+          ? JSON.parse(sim.cutRequests) 
+          : sim.cutRequests;
+        setCutRequirements(originalRequirements);
+        console.log('Restored cut requirements:', originalRequirements);
+      } catch (error) {
+        console.warn('Could not parse cut requirements:', error);
+      }
+    }
+    
+    // Restore stock items if available
+    if (sim.stockItems) {
+      try {
+        const originalStock = typeof sim.stockItems === 'string' 
+          ? JSON.parse(sim.stockItems) 
+          : sim.stockItems;
+        setStockItems(originalStock);
+        console.log('Restored stock items:', originalStock);
+      } catch (error) {
+        console.warn('Could not parse stock items:', error);
+      }
+    }
+    
     setShowHistory(false);
+    console.log('Simulation loaded successfully');
   };
 
   return (
