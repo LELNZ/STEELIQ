@@ -27,12 +27,19 @@ import {
 interface Cut {
   id: string;
   length: number;
-  position: number;
-  startAngle?: number;
-  endAngle?: number;
+  startPosition: number;
+  endPosition: number;
+  firstCutAngle: number;
+  secondCutAngle: number;
   description?: string;
   quantity: number;
-  cuttingInstructions?: string;
+  materialCode: string;
+  cuttingTime: number;
+  isNested?: boolean;
+  nestedWith?: string;
+  materialSavings?: number;
+  nestingType?: string;
+  kerfWidth?: number;
 }
 
 interface PlanInstructions {
@@ -43,11 +50,19 @@ interface PlanInstructions {
 }
 
 interface CutPlan {
+  id: string;
   stockLength: number;
+  materialCode: string;
   cuts: Cut[];
   wasteLength: number;
   efficiency: number;
   totalCuts: number;
+  materialSavings?: number;
+  nestedCuts?: number;
+  nestingEfficiency?: number;
+  totalCuttingTime: number;
+  heatNumber?: string;
+  millCert?: string;
   materialType?: string;
   materialGrade?: string;
   instructions?: PlanInstructions;
@@ -75,8 +90,8 @@ export default function StandardCuttingPlan({
     // Calculate total cutting time (10 min standard, 12 min for angle cuts)
     const totalTime = plans.reduce((totalMinutes, plan) => {
       const planTime = plan.cuts.reduce((cutTime, cut) => {
-        const hasAngleCuts = (cut.startAngle && cut.startAngle !== 90) || 
-                           (cut.endAngle && cut.endAngle !== 90);
+        const hasAngleCuts = (cut.firstCutAngle && cut.firstCutAngle !== 90) || 
+                           (cut.secondCutAngle && cut.secondCutAngle !== 90);
         const timePerCut = hasAngleCuts ? 12 : 10;
         return cutTime + (timePerCut * cut.quantity);
       }, 0);
@@ -519,7 +534,7 @@ export default function StandardCuttingPlan({
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">
-                Stock Bar #{planIndex + 1} - {plan.stockLength}mm
+                {plan.materialCode} Bar #{planIndex + 1} - {plan.stockLength}mm
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Badge className={getEfficiencyColor(plan.efficiency)}>
@@ -583,8 +598,8 @@ export default function StandardCuttingPlan({
               </TableHeader>
               <TableBody>
                 {plan.cuts.map((cut, cutIndex) => {
-                  const hasAngleCuts = (cut.startAngle && cut.startAngle !== 90) || 
-                                     (cut.endAngle && cut.endAngle !== 90);
+                  const hasAngleCuts = (cut.firstCutAngle && cut.firstCutAngle !== 90) || 
+                                     (cut.secondCutAngle && cut.secondCutAngle !== 90);
                   const timePerCut = hasAngleCuts ? 12 : 10;
                   const totalCutTime = timePerCut * cut.quantity;
                   
@@ -596,8 +611,8 @@ export default function StandardCuttingPlan({
                       {/* First Cut Angle (Right side of piece) */}
                       <TableCell className="py-2">
                         <div className="flex flex-col items-center">
-                          <span className={cut.startAngle !== 90 ? "text-orange-600 font-bold" : "font-medium"}>
-                            {cut.startAngle || 90}°
+                          <span className={cut.firstCutAngle !== 90 ? "text-orange-600 font-bold" : "font-medium"}>
+                            {cut.firstCutAngle || 90}°
                           </span>
                           <span className="text-xs text-muted-foreground">Right end</span>
                         </div>
