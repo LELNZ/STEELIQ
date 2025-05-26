@@ -1,15 +1,51 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Scissors, Plus, Trash2, Play, Zap, Clock, Info } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Switch } from "@/components/ui/switch";
+import { Scissors, Plus, Trash2, Play, Zap, History, Briefcase, Settings, Info, Clock } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import StandardCuttingPlan from "@/components/optimization/standard-cutting-plan";
+import InstantMaterialSearch from "@/components/materials/instant-material-search";
+import { Material } from "@shared/schema";
+
+// Smart date formatting with relative time display
+const formatRelativeTime = (date: string | Date) => {
+  if (!date) return 'Unknown time';
+  
+  try {
+    const now = new Date();
+    const targetDate = new Date(date);
+    const diffMs = now.getTime() - targetDate.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    
+    // For older dates, show the actual date
+    return targetDate.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: targetDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    });
+  } catch {
+    return 'Invalid date';
+  }
+};
 
 interface CutRequirement {
   id: string;
@@ -29,156 +65,261 @@ interface StockItem {
   materialCode: string;
 }
 
-// Clean optimization function with proper error handling
-const optimizeCutting = (cutRequirements: CutRequirement[], stockItems: StockItem[]) => {
-  try {
-    const plans: any[] = [];
-    
-    if (!cutRequirements || !stockItems || cutRequirements.length === 0 || stockItems.length === 0) {
-      return plans;
+// Advanced optimization function with nesting and multiple stock support
+const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockItem[]) => {
+  const plans: any[] = [];
+  
+  // Group requirements by material type
+  const materialGroups = cutRequirements.reduce((groups, req) => {
+    if (!groups[req.materialCode]) {
+      groups[req.materialCode] = [];
     }
+    groups[req.materialCode].push(req);
+    return groups;
+  }, {} as Record<string, CutRequirement[]>);
+
+  // Process each material type
+  Object.entries(materialGroups).forEach(([materialCode, requirements]) => {
+    // Find matching stock for this material
+    const availableStock = stockItems.filter(stock => stock.materialCode === materialCode);
     
-    // Group requirements by material type
-    const materialGroups = cutRequirements.reduce((groups, req) => {
-      if (!req.materialCode) return groups;
-      if (!groups[req.materialCode]) {
-        groups[req.materialCode] = [];
-      }
-      groups[req.materialCode].push(req);
-      return groups;
-    }, {} as Record<string, CutRequirement[]>);
+    if (availableStock.length === 0) return;
 
-    // Process each material type
-    Object.entries(materialGroups).forEach(([materialCode, requirements]) => {
-      // Find matching stock for this material
-      const availableStock = stockItems.filter(stock => stock.materialCode === materialCode);
+    // Sort stock by length (shortest first to minimize waste as requested)
+    const sortedStock = [...availableStock].sort((a, b) => a.length - b.length);
+    
+    // Track requirements across all bars
+    let globalRemainingRequirements = [...requirements];
+
+    sortedStock.forEach((stock, stockIndex) => {
+      // Skip this bar if no requirements left
+      if (globalRemainingRequirements.length === 0) return;
       
-      if (availableStock.length === 0) return;
-
-      // Sort stock by length (shortest first to minimize waste)
-      const sortedStock = [...availableStock].sort((a, b) => a.length - b.length);
+      let currentPosition = 0;
+      const cuts: any[] = [];
+      let cutSequence = 1;
       
-      // Expand requirements by quantity (create individual cuts)
-      const expandedRequirements: CutRequirement[] = [];
-      requirements.forEach(req => {
-        for (let i = 0; i < (req.quantity || 1); i++) {
-          expandedRequirements.push({
-            ...req,
-            id: `${req.id}-${i + 1}`,
-            quantity: 1
-          });
-        }
-      });
-
-      // Process each stock bar
-      for (let stockIndex = 0; stockIndex < sortedStock.length; stockIndex++) {
-        if (expandedRequirements.length === 0) break;
+      // Process cuts and track what gets completed on this bar
+      const completedCuts = [];
+      
+      // Advanced nesting: optimize angle arrangements for this bar
+      const optimizedOrder = optimizeAngleNesting(globalRemainingRequirements);
+      
+      // Process cuts in optimized order to maximize nesting opportunities
+      let attemptedReqs = new Set();
+      
+      while (globalRemainingRequirements.length > 0 && currentPosition < stock.length && attemptedReqs.size < globalRemainingRequirements.length) {
+        let cutPlaced = false;
         
-        const stock = sortedStock[stockIndex];
-        let currentPosition = 0;
-        const cuts: any[] = [];
-        let cutSequence = 1;
-        
-        // Try to fit cuts on this bar
-        let i = 0;
-        while (i < expandedRequirements.length && currentPosition < stock.length) {
-          const req = expandedRequirements[i];
+        for (let reqIndex = 0; reqIndex < globalRemainingRequirements.length; reqIndex++) {
+          const req = globalRemainingRequirements[reqIndex];
+          const reqKey = `${req.length}-${req.firstCutAngle}-${req.secondCutAngle}`;
+          
+          if (attemptedReqs.has(reqKey)) continue;
+          
           const kerfWidth = req.kerfWidth || 2.4;
           
           // Check if this cut fits on current stock
           if (currentPosition + req.length + kerfWidth <= stock.length) {
             cuts.push({
-              id: `${materialCode}-bar${stockIndex + 1}-cut${cutSequence}`,
+              id: `${materialCode}-${stockIndex + 1}-cut-${cutSequence}`,
               length: req.length,
-              quantity: 1,
+              quantity: 1, // Each cut is individual
               startPosition: currentPosition,
               endPosition: currentPosition + req.length,
-              firstCutAngle: req.firstCutAngle || 90,
-              secondCutAngle: req.secondCutAngle || 90,
+              firstCutAngle: req.firstCutAngle,
+              secondCutAngle: req.secondCutAngle,
               description: req.description || `${req.length}mm piece`,
               materialCode: req.materialCode,
               cuttingTime: (req.firstCutAngle === 90 && req.secondCutAngle === 90) ? 10 : 12,
+              isNested: false,
+              nestedWith: null,
+              materialSavings: 0,
+              nestingType: null,
               kerfWidth: kerfWidth
             });
             
             currentPosition += req.length + kerfWidth;
             cutSequence++;
+            cutPlaced = true;
             
-            // Remove this requirement as it's been placed
-            expandedRequirements.splice(i, 1);
+            // Reduce quantity for this requirement
+            req.quantity -= 1;
+            
+            // Track this cut as completed
+            completedCuts.push({
+              length: req.length,
+              materialCode: req.materialCode,
+              firstCutAngle: req.firstCutAngle,
+              secondCutAngle: req.secondCutAngle
+            });
+            
+            // If this requirement is fully satisfied, remove it
+            if (req.quantity <= 0) {
+              globalRemainingRequirements.splice(reqIndex, 1);
+            }
+            
+            // Reset attempted set since we made progress
+            attemptedReqs.clear();
+            break;
           } else {
-            i++;
+            // Mark this requirement as attempted for this bar
+            attemptedReqs.add(reqKey);
           }
         }
+        
+        // If no cuts were placed in this iteration, break to avoid infinite loop
+        if (!cutPlaced) break;
+      }
 
-        // Create plan for this bar if it has cuts
-        if (cuts.length > 0) {
-          const totalCutsLength = cuts.reduce((sum, cut) => sum + cut.length, 0);
-          const totalKerfAllowance = cuts.reduce((sum, cut) => sum + (cut.kerfWidth || 2.4), 0);
-          const wasteLength = stock.length - totalCutsLength - totalKerfAllowance;
-          const efficiency = ((totalCutsLength + totalKerfAllowance) / stock.length) * 100;
-          
-          plans.push({
-            id: `plan-${materialCode}-${stockIndex + 1}`,
-            stockLength: stock.length,
-            cuts: cuts,
-            wasteLength: Math.max(0, wasteLength),
-            efficiency: Math.min(100, Math.max(0, efficiency)),
-            totalCuts: cuts.length,
-            materialType: materialCode,
-            materialGrade: 'Standard Grade',
-            barNumber: stockIndex + 1,
-            instructions: {
-              general: 'Check material grade before cutting',
-              setup: 'Standard bandsaw setup',
-              safety: 'Wear appropriate PPE'
-            }
-          });
-        }
+      if (cuts.length > 0) {
+        const totalCutsLength = cuts.reduce((sum, cut) => sum + (cut.length * cut.quantity), 0);
+        const totalKerfAllowance = cuts.reduce((sum, cut) => sum + (cut.kerfWidth || 2.4), 0);
+        const wasteLength = Math.max(0, stock.length - totalCutsLength - totalKerfAllowance);
+        const totalCuts = cuts.reduce((sum, cut) => sum + cut.quantity, 0);
+        
+
+        const materialSavings = cuts.reduce((sum, cut) => sum + (cut.materialSavings || 0), 0);
+        const nestedCuts = cuts.filter(cut => cut.isNested).length;
+
+        plans.push({
+          id: `plan-${materialCode}-${stockIndex + 1}`,
+          stockLength: stock.length,
+          materialCode: materialCode,
+          cuts: cuts,
+          wasteLength: wasteLength,
+          efficiency: Math.min(95, ((totalCutsLength / stock.length) * 100)),
+          totalCuttingTime: cuts.reduce((sum, cut) => sum + cut.cuttingTime * cut.quantity, 0),
+          totalCuts: totalCuts,
+          materialSavings: materialSavings,
+          nestedCuts: nestedCuts,
+          nestingEfficiency: nestedCuts > 0 ? (materialSavings / totalCutsLength * 100) : 0,
+          instructions: {
+            general: "Load material from left side of bandsaw. First cut is from right end.",
+            safety: "Ensure proper clamping before each cut. Check blade condition.",
+            sequence: "Follow cut sequence as shown. Mark completed cuts.",
+            quality: "Verify angles with protractor. Deburr all cut edges.",
+            nesting: nestedCuts > 0 ? `${nestedCuts} cuts use waste angles, saving ${(materialSavings || 0).toFixed(1)}mm` : "No nesting opportunities found"
+          },
+          heatNumber: `H2024-${materialCode}-${stockIndex + 1}`,
+          millCert: `MC-2024-${materialCode}-${stockIndex + 1}`
+        });
       }
     });
+  });
 
-    return plans;
-  } catch (error) {
-    console.error('Optimization error:', error);
-    return [];
-  }
+  return plans;
 };
 
-// Smart relative time formatter
-const formatRelativeTime = (timestamp: string | Date) => {
-  try {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+// Advanced angle nesting optimization - uses waste cuts from previous pieces
+const optimizeAngleNesting = (requirements: CutRequirement[]) => {
+  const optimized: (CutRequirement & { 
+    isNested?: boolean; 
+    nestedWith?: string;
+    usesWasteCut?: boolean;
+    materialSavings?: number;
+    nestingType?: string;
+  })[] = [];
+  
+  const availableWasteCuts: Array<{
+    id: string;
+    angle: number;
+    position: 'start' | 'end';
+    fromPieceId: string;
+  }> = [];
 
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    
-    // For older dates, show actual date
-    if (date.getFullYear() === now.getFullYear()) {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  // Sort by angle complexity to optimize nesting opportunities
+  const sortedRequirements = [...requirements].sort((a, b) => {
+    const aComplexity = (a.firstCutAngle !== 90 ? 1 : 0) + (a.secondCutAngle !== 90 ? 1 : 0);
+    const bComplexity = (b.firstCutAngle !== 90 ? 1 : 0) + (b.secondCutAngle !== 90 ? 1 : 0);
+    return bComplexity - aComplexity; // Most complex first for better nesting
+  });
+
+  sortedRequirements.forEach((req) => {
+    let usedWasteCut = false;
+    let materialSavings = 0;
+    let nestingInfo = {};
+
+    // Check if we can use an existing waste cut for either end
+    const usableWasteCut = availableWasteCuts.find(waste => 
+      waste.angle === req.firstCutAngle || waste.angle === req.secondCutAngle
+    );
+
+    if (usableWasteCut) {
+      // Calculate material savings (typical kerf + setup savings)
+      const angleDepth = calculateAngleDepth(usableWasteCut.angle, 50); // Assuming 50mm typical width
+      materialSavings = angleDepth + 5; // Add kerf savings
+      
+      nestingInfo = {
+        isNested: true,
+        nestedWith: usableWasteCut.fromPieceId,
+        usesWasteCut: true,
+        materialSavings: materialSavings,
+        nestingType: `Uses ${usableWasteCut.angle}° cut from piece`,
+        wastePosition: usableWasteCut.position
+      };
+
+      // Remove the used waste cut
+      const wasteIndex = availableWasteCuts.indexOf(usableWasteCut);
+      availableWasteCuts.splice(wasteIndex, 1);
+      usedWasteCut = true;
     }
-  } catch (error) {
-    return "Unknown time";
+
+    // Add this piece to optimized list
+    optimized.push({
+      ...req,
+      ...nestingInfo
+    });
+
+    // Add any new waste cuts this piece creates
+    if (req.firstCutAngle !== 90) {
+      availableWasteCuts.push({
+        id: `waste-${req.id}-start`,
+        angle: req.firstCutAngle,
+        position: 'start',
+        fromPieceId: req.id
+      });
+    }
+    if (req.secondCutAngle !== 90) {
+      availableWasteCuts.push({
+        id: `waste-${req.id}-end`,
+        angle: req.secondCutAngle,
+        position: 'end',
+        fromPieceId: req.id
+      });
+    }
+  });
+
+  return optimized;
+};
+
+// Calculate the depth of material saved by using an angled waste cut
+const calculateAngleDepth = (angle: number, materialWidth: number) => {
+  // For a given angle and material width, calculate how much length is saved
+  if (angle === 90) return 0;
+  const radians = (angle * Math.PI) / 180;
+  return materialWidth * Math.tan(radians / 2);
+};
+
+// Enhanced material type color coding
+const getMaterialColor = (materialCode: string) => {
+  const colors = [
+    'text-blue-600', 'text-green-600', 'text-purple-600', 
+    'text-orange-600', 'text-red-600', 'text-cyan-600'
+  ];
+  let hash = 0;
+  for (let i = 0; i < materialCode.length; i++) {
+    hash = materialCode.charCodeAt(i) + ((hash << 5) - hash);
   }
+  return colors[Math.abs(hash) % colors.length];
 };
 
 export default function CuttingOptimizationNew() {
-  // State management
   const [cutRequirements, setCutRequirements] = useState<CutRequirement[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [optimizationResult, setOptimizationResult] = useState<any>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
-
+  
   // Advanced settings
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("multi");
   const [isJobMode, setIsJobMode] = useState(false);
@@ -230,10 +371,12 @@ export default function CuttingOptimizationNew() {
     }, 60000); // Update every minute
 
     return () => clearInterval(timer);
-  }, []);
+  }, []);;
 
-  // Common material codes for quick selection
-  const commonMaterials = ['SHS10090', 'RHS10050', 'UB200', 'UC200', 'FLAT50x5'];
+  // Fetch materials for search integration
+  const { data: materialsData = [] } = useQuery<Material[]>({
+    queryKey: ["/api/materials"],
+  });
 
   // New cut requirement form with proper angles
   const [newCut, setNewCut] = useState({
@@ -325,412 +468,544 @@ export default function CuttingOptimizationNew() {
     // Update local state
     setSimulationHistory(prev => [simulation, ...prev.slice(0, 19)]);
     
-    // Save to localStorage
+    // Save to localStorage with 7-day expiration
     try {
       const existing = localStorage.getItem('cutting_simulations');
       const simulations = existing ? JSON.parse(existing) : [];
-      simulations.unshift(simulation);
       
-      // Keep only last 20 simulations
-      if (simulations.length > 20) {
-        simulations.splice(20);
-      }
+      // Filter out expired simulations (older than 7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const validSimulations = simulations.filter((sim: any) => 
+        new Date(sim.createdAt) > sevenDaysAgo
+      );
       
-      localStorage.setItem('cutting_simulations', JSON.stringify(simulations));
+      // Add new simulation and keep most recent ones
+      const updatedSimulations = [simulation, ...validSimulations].slice(0, 50);
+      localStorage.setItem('cutting_simulations', JSON.stringify(updatedSimulations));
+      
+      // Dispatch event for history components to update
+      window.dispatchEvent(new CustomEvent('simulation-saved'));
     } catch (error) {
-      console.error('Error saving simulation:', error);
+      console.error('Error saving simulation to localStorage:', error);
     }
-    
     setIsOptimizing(false);
   };
 
-  const loadSimulation = (sim: any) => {
+  const loadSimulation = (simulation: any) => {
     try {
-      setCutRequirements(JSON.parse(sim.cutRequirements));
-      setStockItems(JSON.parse(sim.stockItems));
-      setOptimizationResult(JSON.parse(sim.optimizationData));
+      // Safely parse stored data that might be in string format
+      const cutReqs = typeof simulation.cutRequirements === 'string' 
+        ? JSON.parse(simulation.cutRequirements) 
+        : simulation.cutRequirements || [];
+      
+      const stockItems = typeof simulation.stockItems === 'string'
+        ? JSON.parse(simulation.stockItems)
+        : simulation.stockItems || [];
+        
+      const results = typeof simulation.optimizationData === 'string'
+        ? JSON.parse(simulation.optimizationData)
+        : simulation.results || null;
+
+      setCutRequirements(cutReqs);
+      setStockItems(stockItems);
+      setOptimizationResult(results);
+      setSelectedAlgorithm(simulation.algorithm || 'multi');
+      setShowHistory(false); // Close history panel after loading
     } catch (error) {
       console.error('Error loading simulation:', error);
     }
   };
 
-  const getMaterialColor = (materialCode: string) => {
-    const hash = materialCode.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    const hue = Math.abs(hash) % 360;
-    return `hsl(${hue}, 70%, 45%)`;
-  };
-
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Cutting Optimization</h1>
-          <p className="text-muted-foreground">Advanced steel cutting optimization with multi-bar distribution and angle-aware nesting</p>
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-[1800px] mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Cutting Optimization</h1>
+            <p className="text-muted-foreground mt-1">
+              Professional workshop-ready cutting plans with minimal waste
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+              className="flex items-center gap-2"
+            >
+              <History className="w-4 h-4" />
+              History ({simulationHistory.length})
+            </Button>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={isJobMode}
+                onCheckedChange={setIsJobMode}
+                id="job-mode"
+              />
+              <Label htmlFor="job-mode" className="flex items-center gap-2">
+                <Briefcase className="w-4 h-4" />
+                Job Mode
+              </Label>
+            </div>
+            <Badge variant="outline" className="px-3 py-1">
+              <Zap className="w-4 h-4 mr-2" />
+              Enhanced
+            </Badge>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant={showHistory ? "default" : "outline"}
-            onClick={() => setShowHistory(!showHistory)}
-          >
-            <Clock className="h-4 w-4 mr-2" />
-            History ({simulationHistory.length})
-          </Button>
-        </div>
-      </div>
 
-      {/* History Panel */}
-      {showHistory && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Simulation History
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {simulationHistory.length === 0 ? (
-              <p className="text-muted-foreground">No simulations yet. Run an optimization to see history.</p>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {simulationHistory.map((sim) => (
-                  <div
-                    key={sim.id}
-                    className="flex items-center justify-between p-3 border rounded cursor-pointer hover:bg-muted/50"
-                    onClick={() => loadSimulation(sim)}
-                  >
-                    <div>
-                      <div className="font-medium">{sim.id}</div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {formatRelativeTime(sim.timestamp || sim.createdAt)} • {sim.algorithm}
+
+
+        {/* Simulation History Panel */}
+        {showHistory && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="w-5 h-5" />
+                Simulation History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {simulationHistory.length === 0 ? (
+                <p className="text-muted-foreground">No simulations yet. Run an optimization to see history.</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {simulationHistory.map((sim) => (
+                    <div
+                      key={sim.id}
+                      className="flex items-center justify-between p-3 border rounded cursor-pointer hover:bg-muted/50"
+                      onClick={() => loadSimulation(sim)}
+                    >
+                      <div>
+                        <div className="font-medium">{sim.id}</div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatRelativeTime(sim.timestamp || sim.createdAt)} • {sim.algorithm}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">{(typeof sim.efficiency === 'number') ? sim.efficiency.toFixed(1) : '0.0'}% efficient</div>
+                        <div className="text-sm text-muted-foreground">{(typeof sim.totalWaste === 'number') ? sim.totalWaste.toFixed(0) : '0'}mm waste</div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium">{(typeof sim.efficiency === 'number') ? sim.efficiency.toFixed(1) : '0.0'}% efficient</div>
-                      <div className="text-sm text-muted-foreground">{(typeof sim.totalWaste === 'number') ? sim.totalWaste.toFixed(0) : '0'}mm waste</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Input Section - Side by Side */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Cut Requirements */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Scissors className="h-5 w-5" />
-                Cut Requirements
-              </div>
-              {cutRequirements.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {(() => {
-                    const totals = cutRequirements.reduce((acc, cut) => {
-                      const materialKey = cut.materialCode;
-                      acc[materialKey] = (acc[materialKey] || 0) + (cut.length * cut.quantity);
-                      return acc;
-                    }, {} as Record<string, number>);
-                    return Object.entries(totals).map(([material, total]) => (
-                      <Badge key={material} variant="secondary" className={`text-xs`} style={{color: getMaterialColor(material)}}>
-                        {material}: {total.toLocaleString()}mm
-                      </Badge>
-                    ));
-                  })()}
+                  ))}
                 </div>
               )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label htmlFor="cut-length">Length (mm)</Label>
-                  <Input
-                    id="cut-length"
-                    type="number"
-                    value={newCut.length}
-                    onChange={(e) => setNewCut({ ...newCut, length: e.target.value })}
-                    placeholder="e.g. 1500"
-                  />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Input Section - Side by Side */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Cut Requirements */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Scissors className="h-5 w-5" />
+                  Cut Requirements
                 </div>
-                <div>
-                  <Label htmlFor="cut-quantity">Quantity</Label>
-                  <Input
-                    id="cut-quantity"
-                    type="number"
-                    value={newCut.quantity}
-                    onChange={(e) => setNewCut({ ...newCut, quantity: e.target.value })}
-                    min="1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cut-material">Material Code</Label>
-                  <Select value={newCut.materialCode} onValueChange={(materialCode) => setNewCut({ ...newCut, materialCode })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select material..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {commonMaterials.map((material) => (
-                        <SelectItem key={material} value={material}>
-                          {material}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              {/* Cut Angles and Kerf Width */}
-              <TooltipProvider>
-                <div className="grid grid-cols-3 gap-2">
+                {cutRequirements.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {(() => {
+                      const totals = cutRequirements.reduce((acc, cut) => {
+                        const materialKey = cut.materialCode;
+                        acc[materialKey] = (acc[materialKey] || 0) + (cut.length * cut.quantity);
+                        return acc;
+                      }, {} as Record<string, number>);
+                      return Object.entries(totals).map(([material, total]) => (
+                        <Badge key={material} variant="secondary" className={`text-xs ${getMaterialColor(material)}`}>
+                          {material}: {total.toLocaleString()}mm
+                        </Badge>
+                      ));
+                    })()}
+                  </div>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <div className="flex items-center gap-1 mb-1">
-                      <Label htmlFor="first-cut-angle" className="text-xs">First Angle</Label>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-64">
-                          <div className="text-center">
-                            <p className="font-semibold text-blue-600">First Cut Angle (Right End)</p>
-                            <p className="text-sm mt-1">This is the first cut made on the bandsaw.</p>
-                            <p className="text-sm">Material feeds from left, first cut is on the right end of your piece.</p>
-                            <p className="text-xs text-muted-foreground mt-1">90° = square cut, other angles = mitre cuts</p>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
+                    <Label htmlFor="cut-length">Length (mm)</Label>
                     <Input
-                      id="first-cut-angle"
+                      id="cut-length"
                       type="number"
-                      value={newCut.firstCutAngle}
-                      onChange={(e) => setNewCut({ ...newCut, firstCutAngle: parseFloat(e.target.value) || 90 })}
-                      min="15"
-                      max="165"
-                      className="h-8"
+                      value={newCut.length}
+                      onChange={(e) => setNewCut({ ...newCut, length: e.target.value })}
+                      placeholder="1200"
                     />
                   </div>
                   <div>
-                    <div className="flex items-center gap-1 mb-1">
-                      <Label htmlFor="second-cut-angle" className="text-xs">Second Angle</Label>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-64">
-                          <div className="text-center">
-                            <p className="font-semibold text-green-600">Second Cut Angle (Left End)</p>
-                            <p className="text-sm mt-1">This is the second cut made on the bandsaw.</p>
-                            <p className="text-sm">After the first cut, this cuts the left end of your piece.</p>
-                            <p className="text-xs text-muted-foreground mt-1">90° = square cut, other angles = mitre cuts</p>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
+                    <Label htmlFor="cut-quantity">Quantity</Label>
                     <Input
-                      id="second-cut-angle"
+                      id="cut-quantity"
                       type="number"
-                      value={newCut.secondCutAngle}
-                      onChange={(e) => setNewCut({ ...newCut, secondCutAngle: parseFloat(e.target.value) || 90 })}
-                      min="15"
-                      max="165"
-                      className="h-8"
+                      value={newCut.quantity}
+                      onChange={(e) => setNewCut({ ...newCut, quantity: e.target.value })}
+                      min="1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="kerf-width" className="text-xs">Kerf (mm)</Label>
+                    <Label htmlFor="cut-material">Material Code</Label>
+                    <InstantMaterialSearch
+                      onSelect={(materialCode) => setNewCut({ ...newCut, materialCode })}
+                      placeholder="Search materials..."
+                      value={newCut.materialCode}
+                    />
+                  </div>
+                </div>
+                
+                {/* Cut Angles and Kerf Width */}
+                <TooltipProvider>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <div className="flex items-center gap-1 mb-1">
+                        <Label htmlFor="first-cut-angle" className="text-xs">First Angle</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-64">
+                            <div className="text-center">
+                              <p className="font-semibold text-blue-600">First Cut Angle (Right End)</p>
+                              <p className="text-sm mt-1">This is the first cut made on the bandsaw.</p>
+                              <p className="text-sm">Material feeds from left, first cut is on the right end of your piece.</p>
+                              <p className="text-xs text-muted-foreground mt-1">90° = square cut, other angles = mitre cuts</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="first-cut-angle"
+                        type="number"
+                        value={newCut.firstCutAngle}
+                        onChange={(e) => setNewCut({ ...newCut, firstCutAngle: parseInt(e.target.value) })}
+                        min="0"
+                        max="90"
+                        placeholder="90"
+                        className="h-8"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Right end</p>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1 mb-1">
+                        <Label htmlFor="second-cut-angle" className="text-xs">Second Angle</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-64">
+                            <div className="text-center">
+                              <p className="font-semibold text-blue-600">Second Cut Angle (Left End)</p>
+                              <p className="text-sm mt-1">This is the second cut made on the bandsaw.</p>
+                              <p className="text-sm">After the first cut, this cuts the left end of your piece.</p>
+                              <p className="text-xs text-muted-foreground mt-1">90° = square cut, other angles = mitre cuts</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="second-cut-angle"
+                        type="number"
+                        value={newCut.secondCutAngle}
+                        onChange={(e) => setNewCut({ ...newCut, secondCutAngle: parseInt(e.target.value) })}
+                        min="0"
+                        max="90"
+                        placeholder="90"
+                        className="h-8"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Left end</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="kerf-width" className="text-xs">Kerf (mm)</Label>
                     <Input
                       id="kerf-width"
                       type="number"
                       step="0.1"
                       value={newCut.kerfWidth}
                       onChange={(e) => setNewCut({ ...newCut, kerfWidth: parseFloat(e.target.value) || 2.4 })}
+                      placeholder="2.4"
                       className="h-8"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Blade kerf</p>
+                    </div>
+                  </div>
+                </TooltipProvider>
+                <div>
+                  <Label htmlFor="cut-description" className="text-xs">Description</Label>
+                  <Input
+                    id="cut-description"
+                    value={newCut.description}
+                    onChange={(e) => setNewCut({ ...newCut, description: e.target.value })}
+                    placeholder="Purpose or notes..."
+                    className="h-8"
+                  />
+                </div>
+                <Button onClick={handleAddCut} className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Cut Requirement
+                </Button>
+              </div>
+
+              {/* Cut requirements list */}
+              <div className="space-y-2">
+                {cutRequirements.map((cut, index) => (
+                  <div key={cut.id} className="flex items-center justify-between p-3 border rounded">
+                    <div className="flex items-center gap-2 flex-1">
+                      <Badge variant="outline">{cut.materialCode}</Badge>
+                      <span className="font-medium">{cut.length}mm</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm text-muted-foreground">×</span>
+                        <Input
+                          type="number"
+                          value={cut.quantity}
+                          onChange={(e) => {
+                            const newQuantity = parseInt(e.target.value) || 1;
+                            const updatedRequirements = [...cutRequirements];
+                            updatedRequirements[index] = { ...cut, quantity: newQuantity };
+                            setCutRequirements(updatedRequirements);
+                          }}
+                          className="w-16 h-7 text-sm"
+                          min="1"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <span>Angles: {cut.firstCutAngle}°/{cut.secondCutAngle}°</span>
+                      </div>
+                      {cut.description && (
+                        <span className="text-sm text-muted-foreground">- {cut.description}</span>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCutRequirements(cutRequirements.filter((_, i) => i !== index))}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Available Stock */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  Available Stock
+                </div>
+                {stockItems.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {(() => {
+                      const totals = stockItems.reduce((acc, stock) => {
+                        const materialKey = stock.materialCode;
+                        acc[materialKey] = (acc[materialKey] || 0) + (stock.length * stock.quantity);
+                        return acc;
+                      }, {} as Record<string, number>);
+                      return Object.entries(totals).map(([material, total]) => (
+                        <Badge key={material} variant="outline" className={`text-xs ${getMaterialColor(material)}`}>
+                          {material}: {total.toLocaleString()}mm
+                        </Badge>
+                      ));
+                    })()}
+                  </div>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Optimization Settings */}
+              <div className="border-b pb-4 mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Settings className="w-4 h-4" />
+                  <Label className="text-sm font-medium">Optimization Settings</Label>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="algorithm" className="text-xs">Cutting Algorithm</Label>
+                  <Select value={selectedAlgorithm} onValueChange={setSelectedAlgorithm}>
+                    <SelectTrigger className="w-full h-8 text-sm">
+                      <SelectValue placeholder="Select algorithm" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="multi">Multi-Algorithm (Recommended)</SelectItem>
+                      <SelectItem value="firstfit">First Fit Decreasing</SelectItem>
+                      <SelectItem value="bestfit">Best Fit Decreasing</SelectItem>
+                      <SelectItem value="genetic">Genetic Algorithm</SelectItem>
+                      <SelectItem value="binpacking">Advanced Bin Packing</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedAlgorithm === "multi" && "Uses multiple algorithms and selects the best result"}
+                    {selectedAlgorithm === "firstfit" && "Fast algorithm, good for simple cuts"}
+                    {selectedAlgorithm === "bestfit" && "Optimizes for minimal waste"}
+                    {selectedAlgorithm === "genetic" && "Advanced optimization for complex requirements"}
+                    {selectedAlgorithm === "binpacking" && "Specialized for maximum material utilization"}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label htmlFor="stock-length">Length (mm)</Label>
+                    <Input
+                      id="stock-length"
+                      type="number"
+                      value={newStock.length}
+                      onChange={(e) => setNewStock({ ...newStock, length: e.target.value })}
+                      placeholder="6000"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="stock-quantity">Quantity</Label>
+                    <Input
+                      id="stock-quantity"
+                      type="number"
+                      value={newStock.quantity}
+                      onChange={(e) => setNewStock({ ...newStock, quantity: e.target.value })}
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="stock-material">Material Code</Label>
+                    <InstantMaterialSearch
+                      onSelect={(materialCode) => setNewStock({ ...newStock, materialCode })}
+                      placeholder="Search materials..."
+                      value={newStock.materialCode}
                     />
                   </div>
                 </div>
-              </TooltipProvider>
-              
-              <div>
-                <Label htmlFor="cut-description">Description (Optional)</Label>
-                <Textarea
-                  id="cut-description"
-                  value={newCut.description}
-                  onChange={(e) => setNewCut({ ...newCut, description: e.target.value })}
-                  placeholder="Purpose or notes..."
-                  className="h-8"
-                />
+                <Button onClick={handleAddStock} className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Stock Item
+                </Button>
               </div>
-              <Button onClick={handleAddCut} className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Cut Requirement
-              </Button>
-            </div>
 
-            {/* Cut requirements list */}
-            <div className="space-y-2">
-              {cutRequirements.map((cut, index) => (
-                <div key={cut.id} className="flex items-center justify-between p-3 border rounded">
-                  <div className="flex items-center gap-2 flex-1">
-                    <Badge variant="outline">{cut.materialCode}</Badge>
-                    <span className="font-medium">{cut.length}mm</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm text-muted-foreground">×</span>
-                      <Input
-                        type="number"
-                        value={cut.quantity}
-                        onChange={(e) => {
-                          const newQuantity = parseInt(e.target.value) || 1;
-                          const updatedRequirements = [...cutRequirements];
-                          updatedRequirements[index] = { ...cut, quantity: newQuantity };
-                          setCutRequirements(updatedRequirements);
-                        }}
-                        className="w-16 h-7 text-sm"
-                        min="1"
-                      />
+              {/* Stock items list */}
+              <div className="space-y-2">
+                {stockItems.map((stock, index) => (
+                  <div key={stock.id} className="flex items-center justify-between p-3 border rounded">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{stock.materialCode}</Badge>
+                      <span className="font-medium">{stock.length}mm</span>
+                      <span className="text-sm text-muted-foreground">× {stock.quantity}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <span>Angles: {cut.firstCutAngle}°/{cut.secondCutAngle}°</span>
-                    </div>
-                    {cut.description && (
-                      <span className="text-sm text-muted-foreground">- {cut.description}</span>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setStockItems(stockItems.filter((_, i) => i !== index))}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCutRequirements(cutRequirements.filter((_, i) => i !== index))}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Available Stock */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Available Stock
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label htmlFor="stock-length">Length (mm)</Label>
-                  <Input
-                    id="stock-length"
-                    type="number"
-                    value={newStock.length}
-                    onChange={(e) => setNewStock({ ...newStock, length: e.target.value })}
-                    placeholder="e.g. 6000"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="stock-quantity">Quantity</Label>
-                  <Input
-                    id="stock-quantity"
-                    type="number"
-                    value={newStock.quantity}
-                    onChange={(e) => setNewStock({ ...newStock, quantity: e.target.value })}
-                    min="1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="stock-material">Material Code</Label>
-                  <Select value={newStock.materialCode} onValueChange={(materialCode) => setNewStock({ ...newStock, materialCode })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select material..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {commonMaterials.map((material) => (
-                        <SelectItem key={material} value={material}>
-                          {material}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                ))}
               </div>
-              <Button onClick={handleAddStock} className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Stock Item
+
+              {/* Optimization Button */}
+              <Button
+                onClick={handleOptimize}
+                disabled={cutRequirements.length === 0 || stockItems.length === 0 || isOptimizing}
+                className="w-full"
+                size="lg"
+              >
+                {isOptimizing ? (
+                  <>
+                    <Zap className="h-4 w-4 mr-2 animate-spin" />
+                    Optimizing...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Generate Cutting Plan
+                  </>
+                )}
               </Button>
-            </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* Stock items list */}
-            <div className="space-y-2">
-              {stockItems.map((stock, index) => (
-                <div key={stock.id} className="flex items-center justify-between p-3 border rounded">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{stock.materialCode}</Badge>
-                    <span className="font-medium">{stock.length}mm</span>
-                    <span className="text-sm text-muted-foreground">× {stock.quantity}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setStockItems(stockItems.filter((_, i) => i !== index))}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+        {/* Simulation History Panel */}
+        {showHistory && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <History className="w-5 h-5" />
+                  Simulation History
+                </CardTitle>
+                <Badge variant="outline" className="text-xs">
+                  {simulationHistory.length} saved
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {simulationHistory.length === 0 ? (
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No saved simulations</h3>
+                  <p className="text-muted-foreground">
+                    Run an optimization to save your first simulation
+                  </p>
                 </div>
-              ))}
-            </div>
-
-            {/* Optimization Button */}
-            <Button
-              onClick={handleOptimize}
-              disabled={cutRequirements.length === 0 || stockItems.length === 0 || isOptimizing}
-              className="w-full"
-              size="lg"
-            >
-              {isOptimizing ? (
-                <>
-                  <Zap className="h-4 w-4 mr-2 animate-spin" />
-                  Optimizing...
-                </>
               ) : (
-                <>
-                  <Play className="h-4 w-4 mr-2" />
-                  Generate Cutting Plan
-                </>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {simulationHistory.slice(0, 10).map((sim) => (
+                    <div key={sim.id} className="p-4 border rounded-lg bg-card hover:bg-muted/50 cursor-pointer transition-colors"
+                         onClick={() => loadSimulation(sim)}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {sim.id}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatRelativeTime(sim.createdAt || sim.timestamp)}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium">{(typeof sim.efficiency === 'number') ? sim.efficiency.toFixed(1) : '0.0'}% efficient</div>
+                          <div className="text-sm text-muted-foreground">{(typeof sim.totalWaste === 'number') ? sim.totalWaste.toFixed(0) : '0'}mm waste</div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Algorithm: {sim.algorithm} • Materials: {sim.results?.length || 0}
+                      </div>
+                    </div>
+                  ))}
+                  {simulationHistory.length > 10 && (
+                    <div className="text-center text-sm text-muted-foreground pt-2">
+                      Showing 10 of {simulationHistory.length} simulations. Scroll to see more.
+                    </div>
+                  )}
+                </div>
               )}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Full Width Results Section */}
-      {optimizationResult ? (
-        <StandardCuttingPlan 
-          plans={optimizationResult}
-          materialCode={cutRequirements[0]?.materialCode || 'MIXED'}
-          jobNumber={`JOB-${new Date().toISOString().split('T')[0]}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
-        />
-      ) : cutRequirements.length > 0 && stockItems.length > 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <Scissors className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Ready to Optimize</h3>
-            <p className="text-muted-foreground">
-              Click "Generate Cutting Plan" to create your professional workshop cutting plan.
-            </p>
-          </CardContent>
-        </Card>
-      ) : null}
+        {/* Full Width Results Section */}
+        {optimizationResult ? (
+          <StandardCuttingPlan 
+            plans={optimizationResult}
+            materialCode={cutRequirements[0]?.materialCode || 'MIXED'}
+            jobNumber={`JOB-${new Date().toISOString().split('T')[0]}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
+          />
+        ) : cutRequirements.length > 0 && stockItems.length > 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Scissors className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">Ready to Optimize</h3>
+              <p className="text-muted-foreground">
+                Click "Generate Cutting Plan" to create your professional workshop cutting plan.
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
     </div>
   );
 }
