@@ -621,8 +621,8 @@ export default function StandardCuttingPlan({
                       {/* Second Cut Angle (Left side of piece) */}
                       <TableCell className="py-2">
                         <div className="flex flex-col items-center">
-                          <span className={cut.endAngle !== 90 ? "text-orange-600 font-bold" : "font-medium"}>
-                            {cut.endAngle || 90}°
+                          <span className={cut.secondCutAngle !== 90 ? "text-orange-600 font-bold" : "font-medium"}>
+                            {cut.secondCutAngle || 90}°
                           </span>
                           <span className="text-xs text-muted-foreground">Left end</span>
                         </div>
