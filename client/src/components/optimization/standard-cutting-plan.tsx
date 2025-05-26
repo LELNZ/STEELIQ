@@ -84,6 +84,47 @@ export default function StandardCuttingPlan({
   cuttingMethod = "Bandsaw - standard setup"
 }: StandardCuttingPlanProps) {
   
+  // Group identical sequences
+  const groupIdenticalSequences = (plans: CutPlan[]) => {
+    const groups: { [key: string]: CutPlan[] } = {};
+    
+    plans.forEach(plan => {
+      // Create a signature for the cutting sequence
+      const signature = plan.cuts.map(cut => 
+        `${cut.length}-${cut.startPosition}-${cut.endPosition}-${cut.firstCutAngle}-${cut.secondCutAngle}-${cut.materialCode}-${cut.quantity}`
+      ).join('|') + `|remnant:${plan.wasteLength}`;
+      
+      if (!groups[signature]) {
+        groups[signature] = [];
+      }
+      groups[signature].push(plan);
+    });
+    
+    // Convert to grouped format
+    return Object.values(groups).map(groupPlans => {
+      if (groupPlans.length === 1) {
+        // Single sequence - return as is
+        return {
+          type: 'single' as const,
+          plans: groupPlans,
+          count: 1,
+          barIds: [groupPlans[0].id]
+        };
+      } else {
+        // Multiple identical sequences - group them
+        return {
+          type: 'grouped' as const,
+          plans: groupPlans,
+          count: groupPlans.length,
+          barIds: groupPlans.map(p => p.id),
+          representativePlan: groupPlans[0] // Use first plan as template
+        };
+      }
+    });
+  };
+  
+  const groupedSequences = groupIdenticalSequences(plans);
+  
   const calculateTotalStats = () => {
     const totalWaste = plans.reduce((sum, plan) => sum + plan.wasteLength, 0);
     const totalStock = plans.reduce((sum, plan) => sum + plan.stockLength, 0);
