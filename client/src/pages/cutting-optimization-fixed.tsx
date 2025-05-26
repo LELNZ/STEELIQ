@@ -48,6 +48,13 @@ export default function CuttingOptimizationFixed() {
   const [simulationHistory, setSimulationHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Material handling time settings
+  const [handlingTimes, setHandlingTimes] = useState({
+    heavy: 5, // minutes
+    medium: 3, // minutes  
+    light: 1, // minutes
+  });
 
   // Fetch materials
   const { data: materialsData = [] } = useQuery<Material[]>({
@@ -103,6 +110,26 @@ export default function CuttingOptimizationFixed() {
     }, 60000);
     return () => clearInterval(timer);
   }, []);
+
+  // Determine material weight category based on material code
+  const getMaterialWeightCategory = (materialCode: string): 'heavy' | 'medium' | 'light' => {
+    const code = materialCode.toUpperCase();
+    
+    // Heavy materials (large beams, columns, thick plates)
+    if (code.includes('UB') || code.includes('UC') || code.includes('WB') || code.includes('WC') ||
+        code.includes('PLATE') || code.includes('BEAM') || code.includes('COLUMN')) {
+      return 'heavy';
+    }
+    
+    // Light materials (small angles, thin sections)
+    if (code.includes('ANGLE') && (code.includes('25') || code.includes('30') || code.includes('40')) ||
+        code.includes('FLAT') || code.includes('ROD') || code.includes('ROUND') && parseInt(code.match(/\d+/)?.[0] || '0') < 50) {
+      return 'light';
+    }
+    
+    // Medium materials (most RHS, SHS, moderate sizes)
+    return 'medium';
+  };
 
   // Simple cutting optimization function
   const runCuttingOptimization = (cuts: CutRequirement[], stock: StockItem[]) => {
@@ -167,6 +194,7 @@ export default function CuttingOptimizationFixed() {
               description: cut.description,
               materialCode: materialCode,
               cuttingTime: (cut.firstCutAngle === 90 && cut.secondCutAngle === 90) ? 10 : 12,
+              handlingTime: handlingTimes[getMaterialWeightCategory(materialCode)],
               kerfWidth: kerfWidth
             });
             
@@ -196,6 +224,7 @@ export default function CuttingOptimizationFixed() {
             totalCuts: barCuts.length,
             materialCode: materialCode,
             totalCuttingTime: barCuts.reduce((sum, cut) => sum + (cut.cuttingTime || 10), 0),
+            totalHandlingTime: barCuts.reduce((sum, cut) => sum + (cut.handlingTime || 3), 0),
             instructions: {
               general: 'Deburr all edges after cutting',
               cuttingMethod: 'Bandsaw - standard setup',
@@ -672,6 +701,59 @@ export default function CuttingOptimizationFixed() {
                 </div>
               ))}
             </div>
+
+            {/* Material Handling Time Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Material Handling Time (per piece)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Heavy Materials</Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={handlingTimes.heavy}
+                        onChange={(e) => setHandlingTimes({...handlingTimes, heavy: parseInt(e.target.value) || 5})}
+                        className="h-8 text-xs"
+                        min="1"
+                      />
+                      <span className="text-xs text-muted-foreground">min</span>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Medium Materials</Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={handlingTimes.medium}
+                        onChange={(e) => setHandlingTimes({...handlingTimes, medium: parseInt(e.target.value) || 3})}
+                        className="h-8 text-xs"
+                        min="1"
+                      />
+                      <span className="text-xs text-muted-foreground">min</span>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Light Materials</Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={handlingTimes.light}
+                        onChange={(e) => setHandlingTimes({...handlingTimes, light: parseInt(e.target.value) || 1})}
+                        className="h-8 text-xs"
+                        min="1"
+                      />
+                      <span className="text-xs text-muted-foreground">min</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Optimization Button */}
             <Button

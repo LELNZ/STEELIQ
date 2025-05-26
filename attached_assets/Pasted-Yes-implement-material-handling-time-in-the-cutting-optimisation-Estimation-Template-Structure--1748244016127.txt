@@ -1,0 +1,43 @@
+Yes implement material handling time in the cutting optimisation.
+
+Estimation Template Structure: Should the standard costs template include categories like:
+
+Workshop labor (welding, assembly, finishing) yes - fabrication, welding, assembly, loading / unloading vehicle/transport or onsite, coatings inhouse or onsite.
+Subcontractor labour (for inhouse operations i.e fabrication,welding,coatings + for onsite operations i.e erection, onsite welding, coatings, demolition)
+Equipment rental/usage fees ( inhouse equipment use + Hire/lease fees)
+Consumables (welding rods, grinding discs, gas type use, welding wire type use, paint etc.)
+Quality inspection time
+Packaging/preparation for delivery?
+Quote-to-Job Workflow: When a quote is accepted, should the system:
+
+Lock the material prices at quote rates?
+Transfer all cutting plans as production work orders?
+Generate material procurement lists with lead times?
+Create automatic scheduling based on delivery dates?
+Traceability Requirements: For heat numbers/mill certificates:
+
+Do you need to scan/upload actual certificate documents?
+Should the system track which specific pieces came from which heat?
+Any regulatory compliance requirements for documentation?
+Recommended Cut Simulation → Estimate → Job Workflow:
+
+Phase 1: Initial Simulation
+
+Customer provides requirements → Cutting simulation created
+Material optimization with waste analysis
+Quick time/cost estimation for initial discussion
+Phase 2: Professional Estimate Creation
+
+Convert simulation to formal quote with:
+Detailed material costs (database + user adjustments)
+Labor calculations (cutting + handling + fabrication)
+Markup application and overhead allocation
+Delivery scheduling and transport costs
+Quote versioning and customer presentation tools
+Phase 3: Job Creation & Management
+
+Quote acceptance → Automatic job creation
+Material procurement alerts and inventory allocation
+Heat number assignment and traceability setup
+Production scheduling with cutting plan work orders
+Progress tracking and cost control against estimate

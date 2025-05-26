@@ -1,0 +1,52 @@
+Yes implement material handling time in the cutting optimisation.
+
+Estimation Template Structure: Should the standard costs template include categories like:
+
+Workshop labor (welding, assembly, finishing) yes - fabrication, welding, assembly, loading / unloading vehicle/transport, coatings.
+Onsite Labor - fabrication, welding, assembly, erection, coatings.
+Subcontractor labour (for inhouse operations i.e fabrication, welding, coatings, assembly + for onsite labor i.e fabrication, welding, assembly, erection, coatings, demolition.
+Equipment rental/usage fees ( inhouse equipment use i.e truck/Hiab/crane, fuel, generator, gas plant, plasma, gouging, welding machine + Hire/lease - i.e truck/Hiab/crane, fuel, generator, gas plant, plasma, gouging, welding machine allow user to input more rows for additional fees and build a standard template)
+Consumables (welding rods type use, grinding discs, cutting disc, fibre discs, compressed gas type use, welding wire type use, paint type use, Nuts, Bolts, Chemical Anchors etc.)
+Quality inspection time - yes
+Packaging/preparation for delivery? yes if required, allow user input
+
+Quote-to-Job Workflow: When a quote is accepted, should the system:
+
+Lock the material prices at quote rates? no allow user input
+Transfer all cutting plans as production work orders? yes and allow for material adaptations and re calculation if job requirement change
+Generate material procurement lists with lead times? yes
+Create automatic scheduling based on delivery dates? yes
+Traceability Requirements: For heat numbers/mill certificates: yes
+
+Do you need to scan/upload actual certificate documents? yes both photos and documents i.e pdf
+Should the system track which specific pieces came from which heat? yes
+Any regulatory compliance requirements for documentation? yes this needs to meet CC2/CC3 - perhaps this can be a separate section we work on that will automatically provide the job with all compliance documentation for user input to be presented to client when required but kept in each job permanently.
+
+
+Recommended Cut Simulation → Estimate → Job Workflow:
+
+Phase 1: Initial Simulation
+
+Customer provides requirements → Cutting simulation created
+Material optimization with waste analysis
+Quick time/cost estimation for initial discussion
+Good.
+
+Phase 2: Professional Estimate Creation
+
+Convert simulation to formal quote with:
+Detailed material costs (database + user adjustments)
+Labor calculations (cutting + handling + workshop operations + site works + subcontractors)
+Markup application and overhead allocation
+Delivery scheduling and transport costs
+Quote versioning and customer presentation tools
+
+
+Phase 3: Job Creation & Management
+
+Quote acceptance → Automatic job creation
+Material procurement alerts and inventory allocation
+Compliance documentation
+Heat number assignment and traceability setup
+Production scheduling with cutting plan work orders
+Progress tracking and cost control against estimate
