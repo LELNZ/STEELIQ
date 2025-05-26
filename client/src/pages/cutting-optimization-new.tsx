@@ -67,27 +67,39 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
       // Advanced nesting: try to pair complementary angles
       const optimizedCuts = optimizeAngleNesting(remainingRequirements);
 
-      optimizedCuts.forEach((req, index) => {
-        if (currentPosition + req.length + 5 <= stock.length) {
-          cuts.push({
-            id: `${materialCode}-${stockIndex + 1}-cut-${index + 1}`,
-            length: req.length,
-            quantity: req.quantity,
-            startPosition: currentPosition,
-            endPosition: currentPosition + req.length,
-            firstCutAngle: req.firstCutAngle,
-            secondCutAngle: req.secondCutAngle,
-            description: req.description || `Cut ${index + 1}`,
-            materialCode: req.materialCode,
-            cuttingTime: (req.firstCutAngle === 90 && req.secondCutAngle === 90) ? 10 : 12,
-            isNested: req.isNested || false,
-            nestedWith: req.nestedWith || null,
-            materialSavings: req.materialSavings || 0,
-            nestingType: req.nestingType || null
-          });
-          // For multiple pieces: each piece needs kerf allowance for both cuts
-          const kerfPerPiece = (req.kerfWidth || 2.4);
-          currentPosition += req.length + kerfPerPiece;
+      let cutSequence = 1;
+      
+      optimizedCuts.forEach((req) => {
+        // Create individual cuts for each quantity
+        for (let i = 0; i < req.quantity; i++) {
+          const kerfWidth = req.kerfWidth || 2.4;
+          
+          // Check if this cut fits on current stock
+          if (currentPosition + req.length + kerfWidth <= stock.length) {
+            cuts.push({
+              id: `${materialCode}-${stockIndex + 1}-cut-${cutSequence}`,
+              length: req.length,
+              quantity: 1, // Each cut is individual
+              startPosition: currentPosition,
+              endPosition: currentPosition + req.length,
+              firstCutAngle: req.firstCutAngle,
+              secondCutAngle: req.secondCutAngle,
+              description: req.description || `${req.length}mm piece`,
+              materialCode: req.materialCode,
+              cuttingTime: (req.firstCutAngle === 90 && req.secondCutAngle === 90) ? 10 : 12,
+              isNested: req.isNested || false,
+              nestedWith: req.nestedWith || null,
+              materialSavings: req.materialSavings || 0,
+              nestingType: req.nestingType || null,
+              kerfWidth: kerfWidth
+            });
+            
+            currentPosition += req.length + kerfWidth;
+            cutSequence++;
+          } else {
+            // This cut doesn't fit, will need another bar
+            break;
+          }
         }
       });
 
