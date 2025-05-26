@@ -271,8 +271,37 @@ export default function StandardCuttingPlan({
       )}
 
       {/* Cutting Plans with Sequence Grouping */}
-      {groupedPlans.map(({ plan, planIndex, isGrouped, groupCount, groupIds }) => (
-        <Card key={planIndex} className={`p-3 ${isGrouped ? 'border-2 border-blue-200 bg-blue-50/20' : ''}`}>
+      {groupedPlans.map(({ plan, planIndex, isGrouped, groupCount, groupIds }, index) => {
+        // Add page break before new material types (for PDF)
+        const previousPlan = index > 0 ? groupedPlans[index - 1].plan : null;
+        const isNewMaterial = previousPlan && previousPlan.materialCode !== plan.materialCode;
+        
+        return (
+        <Card key={planIndex} className={`p-3 ${isGrouped ? 'border-2 border-blue-200 bg-blue-50/20' : ''} ${isNewMaterial && isGeneratingPDF ? 'mt-12 border-t-4 border-t-gray-800' : ''}`}>
+          {/* Workshop Information Section */}
+          {isNewMaterial && isGeneratingPDF && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+              <h3 className="font-bold text-sm mb-2">WORKSHOP SETUP - {plan.materialCode}</h3>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <strong>Material Handling:</strong>
+                  <ul className="mt-1 space-y-1">
+                    <li>• Check material grade and heat number</li>
+                    <li>• Use appropriate lifting equipment</li>
+                    <li>• Position material securely in saw</li>
+                  </ul>
+                </div>
+                <div>
+                  <strong>Quality Control:</strong>
+                  <ul className="mt-1 space-y-1">
+                    <li>• Verify dimensions before cutting</li>
+                    <li>• Check cut angles with protractor</li>
+                    <li>• Mark part numbers after cutting</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="space-y-2">
             {/* Compact Header */}
             <div className="flex items-center justify-between">
@@ -405,7 +434,8 @@ export default function StandardCuttingPlan({
             </CollapsibleContent>
           </Collapsible>
         </Card>
-      ))}
+        )
+      })}
     </div>
   );
 }
