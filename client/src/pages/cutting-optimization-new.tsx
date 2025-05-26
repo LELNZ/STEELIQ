@@ -18,6 +18,35 @@ import StandardCuttingPlan from "@/components/optimization/standard-cutting-plan
 import InstantMaterialSearch from "@/components/materials/instant-material-search";
 import { Material } from "@shared/schema";
 
+// Smart date formatting with relative time display
+const formatRelativeTime = (date: string | Date) => {
+  if (!date) return 'Unknown time';
+  
+  try {
+    const now = new Date();
+    const targetDate = new Date(date);
+    const diffMs = now.getTime() - targetDate.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    
+    // For older dates, show the actual date
+    return targetDate.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: targetDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    });
+  } catch {
+    return 'Invalid date';
+  }
+};
+
 interface CutRequirement {
   id: string;
   length: number;
@@ -303,46 +332,31 @@ export default function CuttingOptimizationNew() {
   const [isJobMode, setIsJobMode] = useState(false);
   const [simulationHistory, setSimulationHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Load simulation history from localStorage on component mount
   useEffect(() => {
     const loadSimulationHistory = () => {
       try {
-        const stored = localStorage.getItem('cutting_simulations');
-        if (stored) {
-          const simulations = JSON.parse(stored);
-          // Filter out expired simulations (older than 7 days) and validate data
-          const sevenDaysAgo = new Date();
-          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-          const validSimulations = simulations.filter((sim: any) => {
-            // Validate the simulation has required properties
-            if (!sim.id || !sim.createdAt) return false;
-            
-            try {
-              return new Date(sim.createdAt) > sevenDaysAgo;
-            } catch {
-              return false;
-            }
-          }).map((sim: any) => ({
-            ...sim,
-            efficiency: typeof sim.efficiency === 'number' ? sim.efficiency : 0,
-            totalWaste: typeof sim.totalWaste === 'number' ? sim.totalWaste : 0
-          }));
-          
-          setSimulationHistory(validSimulations);
-          
-          // Update localStorage with cleaned data
-          localStorage.setItem('cutting_simulations', JSON.stringify(validSimulations));
-        }
-      } catch (error) {
-        console.error('Error loading simulation history:', error);
-        // Clear corrupted data
+        // Clear all stored simulations to start fresh
         localStorage.removeItem('cutting_simulations');
+        setSimulationHistory([]);
+      } catch (error) {
+        console.error('Error clearing simulation history:', error);
         setSimulationHistory([]);
       }
     };
 
     loadSimulationHistory();
+  }, []);
+
+  // Update current time every minute for real-time relative date display
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
   }, []);;
 
   // Fetch materials for search integration
@@ -552,8 +566,9 @@ export default function CuttingOptimizationNew() {
                     >
                       <div>
                         <div className="font-medium">{sim.id}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {sim.timestamp ? new Date(sim.timestamp).toLocaleString() : 'Unknown date'} • {sim.algorithm}
+                        <div className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatRelativeTime(sim.timestamp || sim.createdAt)} • {sim.algorithm}
                         </div>
                       </div>
                       <div className="text-right">
@@ -918,8 +933,9 @@ export default function CuttingOptimizationNew() {
                           <Badge variant="secondary" className="text-xs">
                             {sim.id}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {sim.createdAt ? new Date(sim.createdAt).toLocaleDateString() : 'Unknown date'} {sim.createdAt ? new Date(sim.createdAt).toLocaleTimeString() : ''}
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatRelativeTime(sim.createdAt || sim.timestamp)}
                           </span>
                         </div>
                         <div className="text-right">
