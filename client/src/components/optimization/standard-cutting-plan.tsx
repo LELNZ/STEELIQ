@@ -191,59 +191,54 @@ export default function StandardCuttingPlan({
         </Button>
       </div>
 
-      {/* Summary Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{groupedPlans.length}</div>
-              <div className="text-sm text-muted-foreground">Unique Sequences</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{overallEfficiency.toFixed(1)}%</div>
-              <div className="text-sm text-muted-foreground">Overall Efficiency</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{totalStats.totalCuts}</div>
-              <div className="text-sm text-muted-foreground">Total Cuts</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{formatTime(totalStats.totalCuttingTime)}</div>
-              <div className="text-sm text-muted-foreground">Total Time</div>
-            </div>
+      {/* Compact Summary Statistics */}
+      <Card className="p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="text-center">
+            <div className="text-xl font-bold text-blue-600">{groupedPlans.length}</div>
+            <div className="text-xs text-muted-foreground">Unique Sequences</div>
           </div>
-        </CardContent>
+          <div className="text-center">
+            <div className="text-xl font-bold text-green-600">{overallEfficiency.toFixed(1)}%</div>
+            <div className="text-xs text-muted-foreground">Overall Efficiency</div>
+          </div>
+          <div className="text-center">
+            <div className="text-xl font-bold text-purple-600">{totalStats.totalCuts}</div>
+            <div className="text-xs text-muted-foreground">Total Cuts</div>
+          </div>
+          <div className="text-center">
+            <div className="text-xl font-bold text-orange-600">{formatTime(totalStats.totalCuttingTime)}</div>
+            <div className="text-xs text-muted-foreground">Total Time</div>
+          </div>
+        </div>
       </Card>
 
       {/* General Instructions */}
       {generalInstructions.length > 0 && (
         <Collapsible open={showInstructions} onOpenChange={setShowInstructions}>
-          <Card>
+          <Card className="p-3">
             <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-gray-50">
+              <div className="cursor-pointer hover:bg-gray-50 p-2 rounded">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Info className="w-5 h-5" />
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Info className="w-4 h-4" />
                     General Instructions
-                  </CardTitle>
-                  {showInstructions ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </div>
+                  {showInstructions ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                 </div>
-              </CardHeader>
+              </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <CardContent>
-                <ul className="space-y-2">
+              <div className="pt-2">
+                <ul className="space-y-1">
                   {generalInstructions.map((instruction, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
+                    <li key={index} className="flex items-start gap-2 text-sm">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></span>
                       <span>{instruction}</span>
                     </li>
                   ))}
                 </ul>
-              </CardContent>
+              </div>
             </CollapsibleContent>
           </Card>
         </Collapsible>
@@ -251,116 +246,116 @@ export default function StandardCuttingPlan({
 
       {/* Cutting Plans with Sequence Grouping */}
       {groupedPlans.map(({ plan, planIndex, isGrouped, groupCount, groupIds }) => (
-        <Card key={planIndex} className={isGrouped ? 'border-2 border-blue-200 bg-blue-50/20' : ''}>
-          <CardHeader>
+        <Card key={planIndex} className={`p-3 ${isGrouped ? 'border-2 border-blue-200 bg-blue-50/20' : ''}`}>
+          <div className="space-y-2">
+            {/* Compact Header */}
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">
+              <div className="flex-1">
                 {isGrouped ? (
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span>{plan.materialCode} Bar#{groupIds?.join(', #')} - {plan.stockLength}mm</span>
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 font-semibold">
-                        {groupCount}x identical repeats
+                      <span className="text-sm font-medium">{plan.materialCode} Bar#{groupIds?.join(', #')} - {plan.stockLength}mm</span>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5">
+                        {groupCount}x identical
                       </Badge>
                     </div>
-                    <div className="text-sm text-muted-foreground font-normal">
+                    <div className="text-xs text-muted-foreground">
                       Repeat this cutting sequence {groupCount} times
                     </div>
                   </div>
                 ) : (
-                  `${plan.materialCode} Bar #${planIndex + 1} - ${plan.stockLength}mm`
+                  <span className="text-sm font-medium">{plan.materialCode} Bar #{planIndex + 1} - {plan.stockLength}mm</span>
                 )}
-              </CardTitle>
+              </div>
               <div className="flex items-center gap-2">
-                <Badge className={getEfficiencyColor(plan.efficiency)}>
-                  {plan.efficiency.toFixed(1)}% Efficient
+                <Badge className={`text-xs px-2 py-0.5 ${getEfficiencyColor(plan.efficiency)}`}>
+                  {plan.efficiency.toFixed(1)}%
                 </Badge>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => togglePlan(planIndex)}
-                  className="flex items-center gap-1"
+                  className="h-6 px-2 text-xs"
                 >
-                  {expandedPlans.has(planIndex) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  Details
+                  {expandedPlans.has(planIndex) ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                 </Button>
               </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-4 gap-4 pt-2">
-              <div className="text-center">
-                <div className="text-sm font-medium text-green-600">
+            {/* Compact Stats */}
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <div>
+                <div className="text-xs font-medium text-green-600">
                   {plan.cuts.reduce((sum, cut) => sum + (cut.length * cut.quantity), 0).toFixed(0)}mm
                 </div>
                 <div className="text-xs text-muted-foreground">Used</div>
               </div>
-              <div className="text-center">
-                <div className="text-sm font-medium text-red-600">
+              <div>
+                <div className="text-xs font-medium text-red-600">
                   {plan.wasteLength.toFixed(0)}mm
                 </div>
                 <div className="text-xs text-muted-foreground">Waste</div>
               </div>
-              <div className="text-center">
-                <div className="text-sm font-medium text-blue-600">
+              <div>
+                <div className="text-xs font-medium text-blue-600">
                   {formatTime(plan.totalCuttingTime || 0)}
                 </div>
                 <div className="text-xs text-muted-foreground">Time</div>
               </div>
-              <div className="text-center">
-                <div className="text-sm font-medium text-purple-600">
+              <div>
+                <div className="text-xs font-medium text-purple-600">
                   {plan.totalCuts}
                 </div>
                 <div className="text-xs text-muted-foreground">Cuts</div>
               </div>
             </div>
-          </CardHeader>
+          </div>
 
           <Collapsible open={expandedPlans.has(planIndex)} onOpenChange={() => togglePlan(planIndex)}>
             <CollapsibleContent>
-              <CardContent>
-                <Table>
+              <div className="pt-2">
+                <Table className="text-xs">
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-16">Seq</TableHead>
-                      <TableHead>Length</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>First Angle</TableHead>
-                      <TableHead>Second Angle</TableHead>
-                      <TableHead>Qty</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Description</TableHead>
+                    <TableRow className="h-8">
+                      <TableHead className="w-8 px-2 py-1">Seq</TableHead>
+                      <TableHead className="px-2 py-1">Length</TableHead>
+                      <TableHead className="px-2 py-1">Position</TableHead>
+                      <TableHead className="px-2 py-1">First°</TableHead>
+                      <TableHead className="px-2 py-1">Second°</TableHead>
+                      <TableHead className="w-8 px-2 py-1">Qty</TableHead>
+                      <TableHead className="px-2 py-1">Time</TableHead>
+                      <TableHead className="px-2 py-1">Description</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {plan.cuts.map((cut, cutIndex) => (
-                      <TableRow key={cut.id}>
-                        <TableCell className="font-mono font-bold">
+                      <TableRow key={cut.id} className="h-8">
+                        <TableCell className="font-mono font-bold px-2 py-1">
                           {cutIndex + 1}
                         </TableCell>
-                        <TableCell className="font-mono font-medium">
+                        <TableCell className="font-mono font-medium px-2 py-1">
                           {cut.length.toFixed(0)}mm
                         </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {cut.startPosition.toFixed(0)} - {cut.endPosition.toFixed(0)}mm
+                        <TableCell className="font-mono px-2 py-1">
+                          {cut.startPosition.toFixed(0)}-{cut.endPosition.toFixed(0)}mm
                         </TableCell>
-                        <TableCell className="py-2">
+                        <TableCell className="px-2 py-1">
                           <span className={cut.firstCutAngle !== 90 ? "text-orange-600 font-bold" : "font-medium"}>
                             {cut.firstCutAngle || 90}°
                           </span>
                         </TableCell>
-                        <TableCell className="py-2">
+                        <TableCell className="px-2 py-1">
                           <span className={cut.secondCutAngle !== 90 ? "text-orange-600 font-bold" : "font-medium"}>
                             {cut.secondCutAngle || 90}°
                           </span>
                         </TableCell>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium px-2 py-1">
                           {cut.quantity}
                         </TableCell>
-                        <TableCell className="font-mono text-sm">
+                        <TableCell className="font-mono px-2 py-1">
                           {formatTime(cut.cuttingTime)}
                         </TableCell>
-                        <TableCell className="text-sm">
+                        <TableCell className="px-2 py-1">
                           {cut.description || '-'}
                         </TableCell>
                       </TableRow>
@@ -369,18 +364,18 @@ export default function StandardCuttingPlan({
                 </Table>
 
                 {plan.wasteLength > 0 && (
-                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-red-800">
+                      <span className="font-medium text-red-800">
                         Remnant: {plan.wasteLength.toFixed(0)}mm
                       </span>
-                      <Badge variant="outline" className="text-red-600 border-red-300">
+                      <Badge variant="outline" className="text-red-600 border-red-300 text-xs px-1 py-0">
                         {plan.wasteLength >= 500 ? 'Reusable' : 'Scrap'}
                       </Badge>
                     </div>
                   </div>
                 )}
-              </CardContent>
+              </div>
             </CollapsibleContent>
           </Collapsible>
         </Card>
