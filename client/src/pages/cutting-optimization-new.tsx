@@ -177,7 +177,7 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
             safety: "Ensure proper clamping before each cut. Check blade condition.",
             sequence: "Follow cut sequence as shown. Mark completed cuts.",
             quality: "Verify angles with protractor. Deburr all cut edges.",
-            nesting: nestedCuts > 0 ? `${nestedCuts} cuts use waste angles, saving ${materialSavings.toFixed(1)}mm` : "No nesting opportunities found"
+            nesting: nestedCuts > 0 ? `${nestedCuts} cuts use waste angles, saving ${(materialSavings || 0).toFixed(1)}mm` : "No nesting opportunities found"
           },
           heatNumber: `H2024-${materialCode}-${stockIndex + 1}`,
           millCert: `MC-2024-${materialCode}-${stockIndex + 1}`
@@ -361,21 +361,34 @@ export default function CuttingOptimizationNew() {
         const stored = localStorage.getItem('cutting_simulations');
         if (stored) {
           const simulations = JSON.parse(stored);
-          // Filter out expired simulations (older than 7 days)
+          // Filter out expired simulations (older than 7 days) and validate data
           const sevenDaysAgo = new Date();
           sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-          const validSimulations = simulations.filter((sim: any) => 
-            new Date(sim.createdAt) > sevenDaysAgo
-          );
+          const validSimulations = simulations.filter((sim: any) => {
+            // Validate the simulation has required properties
+            if (!sim.id || !sim.createdAt) return false;
+            
+            try {
+              return new Date(sim.createdAt) > sevenDaysAgo;
+            } catch {
+              return false;
+            }
+          }).map((sim: any) => ({
+            ...sim,
+            efficiency: typeof sim.efficiency === 'number' ? sim.efficiency : 0,
+            totalWaste: typeof sim.totalWaste === 'number' ? sim.totalWaste : 0
+          }));
+          
           setSimulationHistory(validSimulations);
           
-          // Update localStorage with filtered data
-          if (validSimulations.length !== simulations.length) {
-            localStorage.setItem('cutting_simulations', JSON.stringify(validSimulations));
-          }
+          // Update localStorage with cleaned data
+          localStorage.setItem('cutting_simulations', JSON.stringify(validSimulations));
         }
       } catch (error) {
         console.error('Error loading simulation history:', error);
+        // Clear corrupted data
+        localStorage.removeItem('cutting_simulations');
+        setSimulationHistory([]);
       }
     };
 
@@ -576,8 +589,8 @@ export default function CuttingOptimizationNew() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-medium">{sim.efficiency.toFixed(1)}% efficient</div>
-                        <div className="text-sm text-muted-foreground">{sim.totalWaste.toFixed(0)}mm waste</div>
+                        <div className="text-sm font-medium">{(typeof sim.efficiency === 'number') ? sim.efficiency.toFixed(1) : '0.0'}% efficient</div>
+                        <div className="text-sm text-muted-foreground">{(typeof sim.totalWaste === 'number') ? sim.totalWaste.toFixed(0) : '0'}mm waste</div>
                       </div>
                     </div>
                   ))}
@@ -942,8 +955,8 @@ export default function CuttingOptimizationNew() {
                           </span>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm font-medium">{sim.efficiency ? sim.efficiency.toFixed(1) : '0.0'}% efficient</div>
-                          <div className="text-sm text-muted-foreground">{sim.totalWaste ? sim.totalWaste.toFixed(0) : '0'}mm waste</div>
+                          <div className="text-sm font-medium">{(typeof sim.efficiency === 'number') ? sim.efficiency.toFixed(1) : '0.0'}% efficient</div>
+                          <div className="text-sm text-muted-foreground">{(typeof sim.totalWaste === 'number') ? sim.totalWaste.toFixed(0) : '0'}mm waste</div>
                         </div>
                       </div>
                       <div className="text-sm text-muted-foreground">
