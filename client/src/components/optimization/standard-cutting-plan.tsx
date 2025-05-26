@@ -616,6 +616,7 @@ export default function StandardCuttingPlan({
                 <TableRow>
                   <TableHead className="w-14">Cut #</TableHead>
                   <TableHead className="w-20">Length (mm)</TableHead>
+                  <TableHead className="w-20">Weight (kg)</TableHead>
                   <TableHead className="w-24">First Cut Angle</TableHead>
                   <TableHead className="w-24">Second Cut Angle</TableHead>
                   <TableHead className="w-28">Visual Guide</TableHead>
@@ -635,6 +636,11 @@ export default function StandardCuttingPlan({
                     <TableRow key={cutIndex}>
                       <TableCell className="font-medium">#{cutIndex + 1}</TableCell>
                       <TableCell className="font-mono text-lg font-bold">{cut.length}mm</TableCell>
+                      
+                      {/* Weight per piece */}
+                      <TableCell className="font-mono font-medium">
+                        {cut.weight ? `${cut.weight.toFixed(2)}kg` : 'N/A'}
+                      </TableCell>
                       
                       {/* First Cut Angle (Right side of piece) */}
                       <TableCell className="py-2">
