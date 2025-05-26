@@ -465,10 +465,28 @@ export default function CuttingOptimizationNew() {
   };
 
   const loadSimulation = (simulation: any) => {
-    setCutRequirements(simulation.cutRequirements);
-    setStockItems(simulation.stockItems);
-    setOptimizationResult(simulation.results);
-    setSelectedAlgorithm(simulation.algorithm);
+    try {
+      // Safely parse stored data that might be in string format
+      const cutReqs = typeof simulation.cutRequirements === 'string' 
+        ? JSON.parse(simulation.cutRequirements) 
+        : simulation.cutRequirements || [];
+      
+      const stockItems = typeof simulation.stockItems === 'string'
+        ? JSON.parse(simulation.stockItems)
+        : simulation.stockItems || [];
+        
+      const results = typeof simulation.optimizationData === 'string'
+        ? JSON.parse(simulation.optimizationData)
+        : simulation.results || null;
+
+      setCutRequirements(cutReqs);
+      setStockItems(stockItems);
+      setOptimizationResult(results);
+      setSelectedAlgorithm(simulation.algorithm || 'multi');
+      setShowHistory(false); // Close history panel after loading
+    } catch (error) {
+      console.error('Error loading simulation:', error);
+    }
   };
 
   return (
@@ -535,7 +553,7 @@ export default function CuttingOptimizationNew() {
                       <div>
                         <div className="font-medium">{sim.id}</div>
                         <div className="text-sm text-muted-foreground">
-                          {new Date(sim.timestamp).toLocaleString()} • {sim.algorithm}
+                          {sim.timestamp ? new Date(sim.timestamp).toLocaleString() : 'Unknown date'} • {sim.algorithm}
                         </div>
                       </div>
                       <div className="text-right">
@@ -901,7 +919,7 @@ export default function CuttingOptimizationNew() {
                             {sim.id}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
-                            {new Date(sim.createdAt).toLocaleDateString()} {new Date(sim.createdAt).toLocaleTimeString()}
+                            {sim.createdAt ? new Date(sim.createdAt).toLocaleDateString() : 'Unknown date'} {sim.createdAt ? new Date(sim.createdAt).toLocaleTimeString() : ''}
                           </span>
                         </div>
                         <div className="text-right">
