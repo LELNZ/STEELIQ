@@ -303,6 +303,7 @@ export default function CuttingOptimizationFixed() {
         // Move to next stock bar
         stockBarIndex++;
       }
+    });
 
     return plans;
   };
