@@ -8,7 +8,6 @@ import Dashboard from "@/pages/dashboard";
 import Jobs from "@/pages/jobs";
 import Materials from "@/pages/materials-fixed";
 import Inventory from "@/pages/inventory";
-import Optimization from "@/pages/optimization";
 import CuttingOptimizationNew from "@/pages/cutting-optimization-new";
 import CuttingPlanTest from "@/pages/cutting-plan-test";
 import Sidebar from "@/components/layout/sidebar";
@@ -21,8 +20,7 @@ function Router() {
       <Route path="/jobs" component={Jobs} />
       <Route path="/materials" component={Materials} />
       <Route path="/inventory" component={Inventory} />
-      <Route path="/optimization" component={Optimization} />
-      <Route path="/cutting-optimization-new" component={CuttingOptimizationNew} />
+      <Route path="/optimization" component={CuttingOptimizationNew} />
       <Route path="/cutting-plan-test" component={CuttingPlanTest} />
       <Route component={NotFound} />
     </Switch>
