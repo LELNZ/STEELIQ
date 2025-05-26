@@ -7,7 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Scissors, Plus, Trash2, Play, Zap, History, Briefcase, Settings } from "lucide-react";
+import { Scissors, Plus, Trash2, Play, Zap, History, Briefcase, Settings, Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import StandardCuttingPlan from "@/components/optimization/standard-cutting-plan";
 import InstantMaterialSearch from "@/components/materials/instant-material-search";
 import { Material } from "@shared/schema";
@@ -523,37 +529,68 @@ export default function CuttingOptimizationNew() {
                 </div>
                 
                 {/* Cut Angles and Kerf Width */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <Label htmlFor="first-cut-angle" className="text-xs">First Angle</Label>
-                    <Input
-                      id="first-cut-angle"
-                      type="number"
-                      value={newCut.firstCutAngle}
-                      onChange={(e) => setNewCut({ ...newCut, firstCutAngle: parseInt(e.target.value) })}
-                      min="0"
-                      max="90"
-                      placeholder="90"
-                      className="h-8"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Right end</p>
-                  </div>
-                  <div>
-                    <Label htmlFor="second-cut-angle" className="text-xs">Second Angle</Label>
-                    <Input
-                      id="second-cut-angle"
-                      type="number"
-                      value={newCut.secondCutAngle}
-                      onChange={(e) => setNewCut({ ...newCut, secondCutAngle: parseInt(e.target.value) })}
-                      min="0"
-                      max="90"
-                      placeholder="90"
-                      className="h-8"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Left end</p>
-                  </div>
-                  <div>
-                    <Label htmlFor="kerf-width" className="text-xs">Kerf (mm)</Label>
+                <TooltipProvider>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <div className="flex items-center gap-1 mb-1">
+                        <Label htmlFor="first-cut-angle" className="text-xs">First Angle</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-64">
+                            <div className="text-center">
+                              <p className="font-semibold text-blue-600">First Cut Angle (Right End)</p>
+                              <p className="text-sm mt-1">This is the first cut made on the bandsaw.</p>
+                              <p className="text-sm">Material feeds from left, first cut is on the right end of your piece.</p>
+                              <p className="text-xs text-muted-foreground mt-1">90° = square cut, other angles = mitre cuts</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="first-cut-angle"
+                        type="number"
+                        value={newCut.firstCutAngle}
+                        onChange={(e) => setNewCut({ ...newCut, firstCutAngle: parseInt(e.target.value) })}
+                        min="0"
+                        max="90"
+                        placeholder="90"
+                        className="h-8"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Right end</p>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1 mb-1">
+                        <Label htmlFor="second-cut-angle" className="text-xs">Second Angle</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-64">
+                            <div className="text-center">
+                              <p className="font-semibold text-blue-600">Second Cut Angle (Left End)</p>
+                              <p className="text-sm mt-1">This is the second cut made on the bandsaw.</p>
+                              <p className="text-sm">After the first cut, this cuts the left end of your piece.</p>
+                              <p className="text-xs text-muted-foreground mt-1">90° = square cut, other angles = mitre cuts</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="second-cut-angle"
+                        type="number"
+                        value={newCut.secondCutAngle}
+                        onChange={(e) => setNewCut({ ...newCut, secondCutAngle: parseInt(e.target.value) })}
+                        min="0"
+                        max="90"
+                        placeholder="90"
+                        className="h-8"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Left end</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="kerf-width" className="text-xs">Kerf (mm)</Label>
                     <Input
                       id="kerf-width"
                       type="number"
@@ -564,8 +601,9 @@ export default function CuttingOptimizationNew() {
                       className="h-8"
                     />
                     <p className="text-xs text-muted-foreground mt-1">Blade kerf</p>
+                    </div>
                   </div>
-                </div>
+                </TooltipProvider>
                 <div>
                   <Label htmlFor="cut-description" className="text-xs">Description</Label>
                   <Input
