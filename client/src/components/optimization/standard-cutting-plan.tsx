@@ -308,50 +308,55 @@ export default function StandardCuttingPlan({
           // Ensure fonts are properly loaded in the clone
           const clonedElement = clonedDoc.querySelector('[data-print-content]') as HTMLElement;
           if (clonedElement) {
-            clonedElement.style.fontSmoothing = 'antialiased';
-            clonedElement.style.webkitFontSmoothing = 'antialiased';
+            (clonedElement.style as any).fontSmoothing = 'antialiased';
+            (clonedElement.style as any).webkitFontSmoothing = 'antialiased';
             clonedElement.style.textRendering = 'optimizeLegibility';
           }
         }
       });
       
-      const imgData = canvas.toDataURL('image/jpeg', 0.8); // Use JPEG with compression
+      // Use PNG for better text quality, but compress appropriately
+      const imgData = canvas.toDataURL('image/png', 0.9);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'a4',
+        compress: true
       });
       
       const pageWidth = 210; // A4 width in mm
       const pageHeight = 297; // A4 height in mm
-      const margin = 10; // 10mm margin
+      const margin = 8; // Reduced margin for better use of space
       const printWidth = pageWidth - (margin * 2);
       const printHeight = pageHeight - (margin * 2);
       
-      // Calculate proper scaling to fit page with margins
+      // Calculate scaling to ensure text remains crisp
       const imgAspectRatio = canvas.width / canvas.height;
       let imgWidth = printWidth;
       let imgHeight = printWidth / imgAspectRatio;
       
-      // If height exceeds page, scale down to fit
+      // If height exceeds page, scale proportionally
       if (imgHeight > printHeight) {
         imgHeight = printHeight;
         imgWidth = printHeight * imgAspectRatio;
       }
       
-      // Center the image on the page
-      const xOffset = margin + (printWidth - imgWidth) / 2;
-      const yOffset = margin;
+      // Align to pixel boundaries for crisp rendering
+      const xOffset = Math.round(margin + (printWidth - imgWidth) / 2);
+      const yOffset = Math.round(margin);
+      const finalWidth = Math.round(imgWidth);
+      const finalHeight = Math.round(imgHeight);
       
-      // Add image to PDF
-      pdf.addImage(imgData, 'JPEG', xOffset, yOffset, imgWidth, imgHeight);
+      // Add image with precise positioning
+      pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight, '', 'MEDIUM');
       
-      // If content is too tall for one page, split it
-      if (canvas.height > canvas.width * 1.4) { // If very tall content
-        const secondPageY = yOffset + imgHeight - pageHeight + margin;
-        if (secondPageY > 0) {
+      // Handle multi-page content if needed
+      if (canvas.height > canvas.width * 1.3) {
+        const remainingHeight = finalHeight - (pageHeight - margin * 2);
+        if (remainingHeight > 0) {
           pdf.addPage();
-          pdf.addImage(imgData, 'JPEG', xOffset, -secondPageY + margin, imgWidth, imgHeight);
+          const secondPageOffset = -remainingHeight + margin;
+          pdf.addImage(imgData, 'PNG', xOffset, secondPageOffset, finalWidth, finalHeight, '', 'MEDIUM');
         }
       }
       
