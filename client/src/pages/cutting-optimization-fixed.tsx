@@ -51,9 +51,10 @@ export default function CuttingOptimizationFixed() {
   
   // Material handling time settings (loading + unloading per piece)
   const [handlingTimes, setHandlingTimes] = useState({
-    heavy: { loading: 3, unloading: 2, total: 5 }, // minutes
-    medium: { loading: 2, unloading: 1, total: 3 }, // minutes  
-    light: { loading: 0.5, unloading: 0.5, total: 1 }, // minutes
+    crane: { loading: 5, unloading: 5, total: 10 }, // 40.01kg+ requires crane
+    heavy: { loading: 3, unloading: 2, total: 5 }, // 20.01-40kg manual heavy lift
+    medium: { loading: 2, unloading: 1, total: 3 }, // 5.01-20kg two-person lift
+    light: { loading: 0.5, unloading: 0.5, total: 1 }, // 0-5kg single person
   });
 
   // Fetch materials
@@ -161,21 +162,23 @@ export default function CuttingOptimizationFixed() {
     
     const totalWeight = (weightPerMeter * length) / 1000; // Convert mm to meters
     
-    // Categorize based on total weight
-    let category: 'heavy' | 'medium' | 'light';
+    // Categorize based on total weight with crane requirement
+    let category: 'crane' | 'heavy' | 'medium' | 'light';
     if (totalWeight <= 5) {
       category = 'light';
     } else if (totalWeight <= 20) {
       category = 'medium';
-    } else {
+    } else if (totalWeight <= 40) {
       category = 'heavy';
+    } else {
+      category = 'crane';
     }
     
     return { weightPerMeter, totalWeight, category };
   };
 
-  // Get material weight category (backward compatibility)
-  const getMaterialWeightCategory = (materialCode: string, length: number = 1000): 'heavy' | 'medium' | 'light' => {
+  // Get material weight category (updated to include crane)
+  const getMaterialWeightCategory = (materialCode: string, length: number = 1000): 'crane' | 'heavy' | 'medium' | 'light' => {
     return estimateMaterialWeight(materialCode, length).category;
   };
 
@@ -230,6 +233,15 @@ export default function CuttingOptimizationFixed() {
           const kerfWidth = cut.kerfWidth || 2.4;
           
           if (currentPosition + cut.length + kerfWidth <= stockBar.length) {
+            // Calculate batch handling time reduction
+            const isFirstPieceOfMaterial = barCuts.length === 0;
+            const category = getMaterialWeightCategory(materialCode, cut.length);
+            const baseHandlingTime = handlingTimes[category].total;
+            
+            // Reduce loading time for subsequent pieces (material already positioned)
+            const batchReduction = isFirstPieceOfMaterial ? 0 : handlingTimes[category].loading * 0.3; // 30% reduction
+            const adjustedHandlingTime = baseHandlingTime - batchReduction;
+            
             // Cut fits on this bar
             barCuts.push({
               id: cut.id,
@@ -242,8 +254,9 @@ export default function CuttingOptimizationFixed() {
               description: cut.description,
               materialCode: materialCode,
               cuttingTime: (cut.firstCutAngle === 90 && cut.secondCutAngle === 90) ? 10 : 12,
-              handlingTime: handlingTimes[getMaterialWeightCategory(materialCode, cut.length)].total,
-              kerfWidth: kerfWidth
+              handlingTime: adjustedHandlingTime,
+              kerfWidth: kerfWidth,
+              isBatchCut: !isFirstPieceOfMaterial
             });
             
             currentPosition += cut.length + kerfWidth;
@@ -759,7 +772,69 @@ export default function CuttingOptimizationFixed() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-4 gap-3">
+                  <div>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Label className="text-xs">Crane Required</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="h-3 w-3 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-xs max-w-48">
+                              <p className="font-medium mb-1">Crane Materials (40.01kg+):</p>
+                              <p>• Loading with crane: 5min</p>
+                              <p>• Unloading with crane: 5min</p>
+                              <p>• Heavy beams, large sections</p>
+                              <p className="text-muted-foreground mt-1 italic">Weight calculated from material library data</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={handlingTimes.crane.loading}
+                          onChange={(e) => {
+                            const loading = parseFloat(e.target.value) || 5;
+                            const unloading = handlingTimes.crane.unloading;
+                            setHandlingTimes({
+                              ...handlingTimes, 
+                              crane: { loading, unloading, total: loading + unloading }
+                            });
+                          }}
+                          className="h-7 text-xs"
+                          min="0.1"
+                        />
+                        <span className="text-xs text-muted-foreground">Load</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={handlingTimes.crane.unloading}
+                          onChange={(e) => {
+                            const unloading = parseFloat(e.target.value) || 5;
+                            const loading = handlingTimes.crane.loading;
+                            setHandlingTimes({
+                              ...handlingTimes, 
+                              crane: { loading, unloading, total: loading + unloading }
+                            });
+                          }}
+                          className="h-7 text-xs"
+                          min="0.1"
+                        />
+                        <span className="text-xs text-muted-foreground">Unload</span>
+                      </div>
+                      <div className="text-xs text-center font-medium text-orange-600">
+                        Total: {handlingTimes.crane.total}min
+                      </div>
+                    </div>
+                  </div>
                   <div>
                     <div className="flex items-center gap-1 mb-1">
                       <Label className="text-xs">Heavy Materials</Label>
@@ -770,11 +845,11 @@ export default function CuttingOptimizationFixed() {
                           </TooltipTrigger>
                           <TooltipContent>
                             <div className="text-xs max-w-48">
-                              <p className="font-medium mb-1">Heavy Materials (20.01kg+):</p>
+                              <p className="font-medium mb-1">Heavy Materials (20.01-40kg):</p>
                               <p>• Loading into cutting bay: 3min</p>
                               <p>• Unloading finished pieces: 2min</p>
-                              <p>• Requires crane/lifting equipment</p>
-                              <p className="text-muted-foreground mt-1 italic">Weight calculated from material code and cut length</p>
+                              <p>• Manual heavy lift required</p>
+                              <p className="text-muted-foreground mt-1 italic">Weight calculated from material library data</p>
                             </div>
                           </TooltipContent>
                         </Tooltip>
