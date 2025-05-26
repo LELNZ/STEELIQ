@@ -60,6 +60,7 @@ export default function StandardCuttingPlan({
   cuttingMethod = "Band Saw"
 }: StandardCuttingPlanProps) {
   const [expandedPlans, setExpandedPlans] = useState<Set<number>>(new Set());
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
 
   const formatTime = (minutes: number): string => {
@@ -91,11 +92,25 @@ export default function StandardCuttingPlan({
     const element = document.getElementById('cutting-plan-container');
     if (!element) return;
 
+    setIsGeneratingPDF(true);
+    
+    // Expand all plans for PDF
+    const allPlanIndexes = new Set(Array.from({ length: groupedPlans.length }, (_, i) => i));
+    setExpandedPlans(allPlanIndexes);
+    
+    // Show instructions for PDF
+    setShowInstructions(true);
+
+    // Wait for DOM to update
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     try {
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        allowTaint: true
+        allowTaint: true,
+        height: element.scrollHeight,
+        windowHeight: element.scrollHeight
       });
 
       const imgData = canvas.toDataURL('image/png');
@@ -121,6 +136,8 @@ export default function StandardCuttingPlan({
     } catch (error) {
       console.error('Error generating PDF:', error);
     }
+    
+    setIsGeneratingPDF(false);
   };
 
   // SEQUENCE GROUPING FEATURE - Groups identical cutting sequences to reduce page usage
@@ -178,16 +195,25 @@ export default function StandardCuttingPlan({
   const overallEfficiency = totalStats.totalLength / (totalStats.totalLength + totalStats.totalWaste) * 100;
 
   return (
-    <div id="cutting-plan-container" className="space-y-6 p-6 bg-white">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b pb-4">
+    <div id="cutting-plan-container" className={`space-y-6 p-6 bg-white ${isGeneratingPDF ? 'print-optimized' : ''}`}>
+      {/* Professional Workshop Header */}
+      <div className="flex items-center justify-between border-b-2 border-gray-800 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Cutting Plan</h1>
-          <p className="text-gray-600">Job: {jobNumber} | Method: {cuttingMethod}</p>
+          <h1 className="text-3xl font-bold text-gray-900">WORKSHOP CUTTING PLAN</h1>
+          <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
+            <div><strong>Job Number:</strong> {jobNumber}</div>
+            <div><strong>Cutting Method:</strong> {cuttingMethod}</div>
+            <div><strong>Generated:</strong> {new Date().toLocaleString()}</div>
+            <div><strong>Total Plans:</strong> {groupedPlans.length} sequences</div>
+          </div>
         </div>
-        <Button onClick={handleDownloadPDF} className="flex items-center gap-2">
+        <Button 
+          onClick={handleDownloadPDF} 
+          disabled={isGeneratingPDF}
+          className="flex items-center gap-2"
+        >
           <Download className="w-4 h-4" />
-          Download PDF
+          {isGeneratingPDF ? "Generating Workshop PDF..." : "Download Workshop PDF"}
         </Button>
       </div>
 
