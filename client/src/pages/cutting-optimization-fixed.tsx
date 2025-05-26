@@ -30,7 +30,6 @@ interface CutRequirement {
   secondCutAngle: number;
   kerfWidth?: number;
   description?: string;
-  instructions?: string;
 }
 
 interface StockItem {
@@ -968,20 +967,7 @@ export default function CuttingOptimizationFixed() {
                       updatedRequirements[index] = { ...cut, description: e.target.value };
                       setCutRequirements(updatedRequirements);
                     }}
-                    className="h-6 text-xs flex-1 min-w-20"
-                  />
-                  
-                  {/* Editable Instructions */}
-                  <Input
-                    type="text"
-                    placeholder="Instructions..."
-                    value={cut.instructions || ''}
-                    onChange={(e) => {
-                      const updatedRequirements = [...cutRequirements];
-                      updatedRequirements[index] = { ...cut, instructions: e.target.value };
-                      setCutRequirements(updatedRequirements);
-                    }}
-                    className="h-6 text-xs flex-1 min-w-20"
+                    className="h-6 text-xs flex-1 min-w-32"
                   />
                   
                   <Button
