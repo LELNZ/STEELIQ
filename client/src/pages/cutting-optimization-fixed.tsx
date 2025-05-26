@@ -112,53 +112,11 @@ export default function CuttingOptimizationFixed() {
     return () => clearInterval(timer);
   }, []);
 
-  // Estimate material weight per meter and determine category
-  const estimateMaterialWeight = (materialCode: string, length: number): { weightPerMeter: number; totalWeight: number; category: 'heavy' | 'medium' | 'light' } => {
-    const code = materialCode.toUpperCase();
-    let weightPerMeter = 0;
-    
-    // Extract dimensions from material codes for weight calculation
-    const dimensions = code.match(/\d+/g)?.map(Number) || [];
-    
-    // Weight estimation based on material type and dimensions
-    if (code.includes('UB') || code.includes('WB')) {
-      // Universal Beams - typical weights from steel tables
-      const depth = dimensions[0] || 200;
-      weightPerMeter = depth < 200 ? 15 : depth < 400 ? 45 : 80; // kg/m approximation
-    } else if (code.includes('UC') || code.includes('WC')) {
-      // Universal Columns
-      const depth = dimensions[0] || 150;
-      weightPerMeter = depth < 200 ? 25 : depth < 300 ? 50 : 100;
-    } else if (code.includes('RHS')) {
-      // Rectangular Hollow Sections
-      const width = dimensions[0] || 50;
-      const height = dimensions[1] || 25;
-      const thickness = dimensions[2] || 3;
-      weightPerMeter = ((width + height) * 2 * thickness * 0.007850); // Steel density approximation
-    } else if (code.includes('SHS')) {
-      // Square Hollow Sections  
-      const size = dimensions[0] || 50;
-      const thickness = dimensions[1] || 3;
-      weightPerMeter = (size * 4 * thickness * 0.007850);
-    } else if (code.includes('ANGLE')) {
-      // Angles
-      const leg1 = dimensions[0] || 50;
-      const leg2 = dimensions[1] || leg1;
-      const thickness = dimensions[2] || 5;
-      weightPerMeter = ((leg1 + leg2) * thickness * 0.007850);
-    } else if (code.includes('FLAT') || code.includes('PLATE')) {
-      // Flat bars and plates
-      const width = dimensions[0] || 50;
-      const thickness = dimensions[1] || 6;
-      weightPerMeter = (width * thickness * 0.007850);
-    } else if (code.includes('ROUND') || code.includes('ROD')) {
-      // Round bars
-      const diameter = dimensions[0] || 20;
-      weightPerMeter = (Math.PI * Math.pow(diameter/2, 2) * 0.000007850);
-    } else {
-      // Default estimation for unknown types
-      weightPerMeter = 10; // Conservative default
-    }
+  // Get material weight from database and determine category
+  const getMaterialWeight = (materialCode: string, length: number): { weightPerMeter: number; totalWeight: number; category: 'crane' | 'heavy' | 'medium' | 'light' } => {
+    // Find material in database by code
+    const material = materialsData.find(m => m.code === materialCode);
+    const weightPerMeter = material?.weightPerMeter ? parseFloat(material.weightPerMeter.toString()) : 10; // Default if not found
     
     const totalWeight = (weightPerMeter * length) / 1000; // Convert mm to meters
     
@@ -179,7 +137,7 @@ export default function CuttingOptimizationFixed() {
 
   // Get material weight category (updated to include crane)
   const getMaterialWeightCategory = (materialCode: string, length: number = 1000): 'crane' | 'heavy' | 'medium' | 'light' => {
-    return estimateMaterialWeight(materialCode, length).category;
+    return getMaterialWeight(materialCode, length).category;
   };
 
   // Simple cutting optimization function
@@ -200,17 +158,45 @@ export default function CuttingOptimizationFixed() {
       const availableStock = stock.filter(s => s.materialCode === materialCode);
       if (availableStock.length === 0) return;
 
-      // Expand requirements by quantity
+      // Expand requirements by quantity and group identical cuts for batch processing
       const allCuts: any[] = [];
       requirements.forEach(req => {
-        for (let i = 0; i < req.quantity; i++) {
+        // Check if this exact cut specification already exists
+        const existingCutIndex = allCuts.findIndex(cut => 
+          cut.length === req.length && 
+          cut.firstCutAngle === req.firstCutAngle && 
+          cut.secondCutAngle === req.secondCutAngle &&
+          cut.description === (req.description || `${req.length}mm piece`)
+        );
+
+        if (existingCutIndex >= 0) {
+          // Add to existing batch
+          allCuts[existingCutIndex].batchQuantity += req.quantity;
+          for (let i = 0; i < req.quantity; i++) {
+            allCuts[existingCutIndex].pieces.push({
+              id: `${req.id}-${i + 1}`,
+              originalReqId: req.id
+            });
+          }
+        } else {
+          // Create new batch
+          const pieces = [];
+          for (let i = 0; i < req.quantity; i++) {
+            pieces.push({
+              id: `${req.id}-${i + 1}`,
+              originalReqId: req.id
+            });
+          }
+          
           allCuts.push({
-            id: `${req.id}-${i + 1}`,
+            id: `batch-${req.id}`,
             length: req.length,
             firstCutAngle: req.firstCutAngle,
             secondCutAngle: req.secondCutAngle,
             description: req.description || `${req.length}mm piece`,
-            kerfWidth: req.kerfWidth || 2.4
+            kerfWidth: req.kerfWidth || 2.4,
+            batchQuantity: req.quantity,
+            pieces: pieces
           });
         }
       });
