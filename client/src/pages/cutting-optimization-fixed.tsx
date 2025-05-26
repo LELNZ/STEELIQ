@@ -145,6 +145,134 @@ export default function CuttingOptimizationFixed() {
     return getMaterialWeight(materialCode, length).category;
   };
 
+  // Clean cutting optimization function - fixes overflow issue
+  const runCleanCuttingOptimization = (cuts: CutRequirement[], stock: StockItem[]) => {
+    const plans: any[] = [];
+    
+    // Group cuts by material code
+    const materialGroups = cuts.reduce((groups: { [key: string]: CutRequirement[] }, cut) => {
+      if (!groups[cut.materialCode]) {
+        groups[cut.materialCode] = [];
+      }
+      groups[cut.materialCode].push(cut);
+      return groups;
+    }, {});
+
+    // Process each material type separately
+    Object.entries(materialGroups).forEach(([materialCode, requirements]) => {
+      const availableStock = stock.filter(s => s.materialCode === materialCode);
+      if (availableStock.length === 0) return;
+
+      // Expand requirements by quantity into individual cuts
+      const allCuts: any[] = [];
+      requirements.forEach(req => {
+        for (let i = 0; i < req.quantity; i++) {
+          allCuts.push({
+            id: `${req.id}-${i + 1}`,
+            length: req.length,
+            firstCutAngle: req.firstCutAngle,
+            secondCutAngle: req.secondCutAngle,
+            description: req.description || `${req.length}mm piece`,
+            kerfWidth: req.kerfWidth || 2.4,
+            materialCode: materialCode
+          });
+        }
+      });
+
+      // Sort cuts longest first for better nesting
+      allCuts.sort((a, b) => b.length - a.length);
+
+      // Create individual stock bars from quantities
+      const stockBars: any[] = [];
+      availableStock.forEach((stockItem) => {
+        for (let i = 0; i < stockItem.quantity; i++) {
+          stockBars.push({
+            length: stockItem.length,
+            materialCode: stockItem.materialCode,
+            barNumber: stockBars.length + 1
+          });
+        }
+      });
+
+      // Sort stock bars by length (shortest first to minimize waste)
+      stockBars.sort((a, b) => a.length - b.length);
+
+      let cutIndex = 0;
+      let barIndex = 0;
+
+      // Continue until all cuts are processed or no more bars available
+      while (cutIndex < allCuts.length && barIndex < stockBars.length) {
+        const currentBar = stockBars[barIndex];
+        let currentPosition = 0;
+        const barCuts: any[] = [];
+
+        // Fill this bar with as many cuts as possible
+        while (cutIndex < allCuts.length) {
+          const cut = allCuts[cutIndex];
+          const kerfWidth = cut.kerfWidth || 2.4;
+          
+          // Check if cut fits on current bar
+          if (currentPosition + cut.length + kerfWidth <= currentBar.length) {
+            // Calculate handling time
+            const category = getMaterialWeightCategory(materialCode, cut.length);
+            const handlingTime = handlingTimes[category].total;
+            
+            // Add cut to this bar
+            barCuts.push({
+              id: cut.id,
+              length: cut.length,
+              quantity: 1,
+              startPosition: currentPosition,
+              endPosition: currentPosition + cut.length,
+              firstCutAngle: cut.firstCutAngle,
+              secondCutAngle: cut.secondCutAngle,
+              description: cut.description,
+              materialCode: materialCode,
+              cuttingTime: (cut.firstCutAngle === 90 && cut.secondCutAngle === 90) ? 10 : 12,
+              handlingTime: handlingTime,
+              kerfWidth: kerfWidth
+            });
+            
+            currentPosition += cut.length + kerfWidth;
+            cutIndex++; // Move to next cut (THIS IS THE KEY FIX!)
+          } else {
+            // Cut doesn't fit, break to next bar
+            break;
+          }
+        }
+
+        // Create cutting plan for this bar
+        if (barCuts.length > 0) {
+          const totalCutLength = barCuts.reduce((sum, cut) => sum + cut.length, 0);
+          const wasteLength = currentBar.length - currentPosition;
+          const efficiency = ((totalCutLength / currentBar.length) * 100);
+
+          plans.push({
+            id: `${materialCode}-bar-${currentBar.barNumber}`,
+            stockLength: currentBar.length,
+            cuts: barCuts,
+            wasteLength: wasteLength,
+            efficiency: Math.round(efficiency * 10) / 10,
+            totalCuts: barCuts.length,
+            materialCode: materialCode,
+            totalCuttingTime: barCuts.reduce((sum, cut) => sum + (cut.cuttingTime || 10), 0),
+            totalHandlingTime: barCuts.reduce((sum, cut) => sum + (cut.handlingTime || 3), 0),
+            instructions: {
+              general: 'Deburr all edges after cutting',
+              cuttingMethod: 'Bandsaw - standard setup',
+              heatNumber: 'TBD',
+              millCertNumber: 'TBD'
+            }
+          });
+        }
+        
+        barIndex++; // Move to next bar
+      }
+    });
+
+    return plans;
+  };
+
   // Simple cutting optimization function
   const runCuttingOptimization = (cuts: CutRequirement[], stock: StockItem[]) => {
     const plans: any[] = [];
@@ -332,7 +460,7 @@ export default function CuttingOptimizationFixed() {
     try {
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      const results = runCuttingOptimization(cutRequirements, stockItems);
+      const results = runCleanCuttingOptimization(cutRequirements, stockItems);
       setOptimizationResult(results);
       
       // Save to history with original requirements
