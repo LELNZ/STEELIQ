@@ -435,10 +435,10 @@ export default function StandardCuttingPlan({
         
         {/* Angle indicators - matching bandsaw orientation */}
         <div className="absolute -top-4 right-1 text-xs text-orange-600 font-medium">
-          {cut.startAngle || 90}°
+          {cut.firstCutAngle || 90}°
         </div>
         <div className="absolute -top-4 left-1 text-xs text-orange-600 font-medium">
-          {cut.endAngle || 90}°
+          {cut.secondCutAngle || 90}°
         </div>
         
         {/* Cut labels - matching your bandsaw setup */}

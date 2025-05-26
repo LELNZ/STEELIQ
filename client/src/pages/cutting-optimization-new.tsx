@@ -79,7 +79,9 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
             materialSavings: req.materialSavings || 0,
             nestingType: req.nestingType || null
           });
-          currentPosition += req.length + (req.kerfWidth || 2.4); // Add kerf allowance
+          // For multiple pieces: each piece needs kerf allowance for both cuts
+          const kerfPerPiece = (req.kerfWidth || 2.4);
+          currentPosition += req.length + kerfPerPiece;
         }
       });
 
@@ -557,7 +559,7 @@ export default function CuttingOptimizationNew() {
                       type="number"
                       step="0.1"
                       value={newCut.kerfWidth}
-                      onChange={(e) => setNewCut({ ...newCut, kerfWidth: parseFloat(e.target.value) })}
+                      onChange={(e) => setNewCut({ ...newCut, kerfWidth: parseFloat(e.target.value) || 2.4 })}
                       placeholder="2.4"
                       className="h-8"
                     />
