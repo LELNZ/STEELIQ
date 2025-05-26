@@ -92,10 +92,18 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
       });
 
       if (cuts.length > 0) {
-        const totalCutsLength = cuts.reduce((sum, cut) => sum + cut.length, 0);
+        const totalCutsLength = cuts.reduce((sum, cut) => sum + (cut.length * cut.quantity), 0);
         const totalKerfAllowance = cuts.reduce((sum, cut) => sum + (cut.kerfWidth || 2.4), 0);
         const wasteLength = Math.max(0, stock.length - totalCutsLength - totalKerfAllowance);
         const totalCuts = cuts.reduce((sum, cut) => sum + cut.quantity, 0);
+        
+        console.log(`Stock ${stockIndex + 1} (${materialCode}):`, {
+          stockLength: stock.length,
+          totalCutsLength,
+          totalKerfAllowance,
+          wasteLength,
+          cuts: cuts.map(c => ({ length: c.length, qty: c.quantity, total: c.length * c.quantity }))
+        });
         const materialSavings = cuts.reduce((sum, cut) => sum + (cut.materialSavings || 0), 0);
         const nestedCuts = cuts.filter(cut => cut.isNested).length;
 
