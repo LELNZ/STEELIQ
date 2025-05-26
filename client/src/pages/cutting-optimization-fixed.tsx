@@ -1386,7 +1386,12 @@ export default function CuttingOptimizationFixed() {
 
           <StandardCuttingPlan 
             plans={optimizationResult}
-            materialCode={cutRequirements[0]?.materialCode || 'MIXED'}
+            materialCode={
+              // Get unique material codes and display them properly
+              Array.from(new Set(cutRequirements.map(req => req.materialCode))).length === 1 
+                ? cutRequirements[0]?.materialCode || 'MIXED'
+                : Array.from(new Set(cutRequirements.map(req => req.materialCode))).join(', ')
+            }
             jobNumber={`JOB-${new Date().toISOString().split('T')[0]}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
             generalInstructions={generalInstructions}
             cuttingMethod={cuttingMethod}
