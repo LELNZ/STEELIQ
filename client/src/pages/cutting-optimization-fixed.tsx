@@ -47,6 +47,11 @@ export default function CuttingOptimizationFixed() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [simulationHistory, setSimulationHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+
+  // Fetch optimization simulations from database
+  const { data: dbSimulations = [] } = useQuery<any[]>({
+    queryKey: ["/api/optimization-simulations"],
+  });
   const [currentTime, setCurrentTime] = useState(new Date());
   
   // Material handling time settings (loading + unloading per piece)
@@ -330,12 +335,14 @@ export default function CuttingOptimizationFixed() {
       const results = runCuttingOptimization(cutRequirements, stockItems);
       setOptimizationResult(results);
       
-      // Save to history
+      // Save to history with original requirements
       const simulation = {
         id: `SIM-${Date.now()}`,
         timestamp: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         results: results,
+        cutRequests: JSON.stringify(cutRequirements),  // Store as JSON string
+        stockItems: JSON.stringify(stockItems),        // Store as JSON string
         efficiency: results.length > 0 ? results.reduce((acc, plan) => acc + plan.efficiency, 0) / results.length : 0,
         totalWaste: results.reduce((acc, plan) => acc + plan.wasteLength, 0)
       };

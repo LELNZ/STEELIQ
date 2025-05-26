@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -430,6 +430,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(404).send('File not found');
       }
     });
+  });
+
+  // Optimization simulation routes
+  app.get("/api/optimization-simulations", async (req, res) => {
+    try {
+      const simulations = await storage.getOptimizationSimulations();
+      res.json(simulations);
+    } catch (error) {
+      console.error("Error fetching optimization simulations:", error);
+      res.status(500).json({ error: "Failed to fetch optimization simulations" });
+    }
+  });
+
+  app.post("/api/optimization-simulations", async (req, res) => {
+    try {
+      const simulationData = insertOptimizationSimulationSchema.parse(req.body);
+      const simulation = await storage.createOptimizationSimulation(simulationData);
+      res.status(201).json(simulation);
+    } catch (error) {
+      console.error("Error creating optimization simulation:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid simulation data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create optimization simulation" });
+    }
+  });
+
+  app.get("/api/optimization-simulations/:id", async (req, res) => {
+    try {
+      const simulationId = req.params.id;
+      const simulation = await storage.getOptimizationSimulation(simulationId);
+      if (!simulation) {
+        return res.status(404).json({ error: "Simulation not found" });
+      }
+      res.json(simulation);
+    } catch (error) {
+      console.error("Error fetching optimization simulation:", error);
+      res.status(500).json({ error: "Failed to fetch optimization simulation" });
+    }
   });
 
   const httpServer = createServer(app);
