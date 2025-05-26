@@ -14,6 +14,7 @@ import { Scissors, Plus, Trash2, Play, BarChart3, Package, Clock, Zap, Star, Dow
 import jsPDF from "jspdf";
 import { SimulationHistoryWorking } from "./simulation-history-working";
 import { ComplexCutsConfigurator } from "./complex-cuts-configurator";
+import StandardCuttingPlan from "./standard-cutting-plan";
 import { 
   CuttingOptimizer, 
   CutRequest, 
@@ -1213,72 +1214,71 @@ export default function CuttingOptimizerComponent() {
                 </CardContent>
               </Card>
 
-              {/* Cutting Plans */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Visual Cutting Plans ({optimizationResult.plans.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6 max-h-96 overflow-y-auto">
-                  {processPlansForDisplay(optimizationResult.plans).map((planGroup, groupIndex) => (
-                    <div key={planGroup.plan.stockId + groupIndex} className="border-2 rounded-lg p-4 space-y-4 bg-white print:break-inside-avoid">
-                      {/* Header with repeat indicator */}
-                      <div className="flex justify-between items-center pb-2 border-b">
-                        <div>
-                          <span className="font-bold text-lg">Stock #{groupIndex + 1}</span>
-                          {planGroup.repeatCount > 1 && (
-                            <Badge variant="default" className="ml-2 bg-yellow-500 text-black">
-                              REPEAT {planGroup.repeatCount}x
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <Badge variant={planGroup.plan.efficiency > 90 ? "default" : planGroup.plan.efficiency > 75 ? "secondary" : "destructive"} className="text-sm">
-                            {planGroup.plan.efficiency.toFixed(1)}% Efficiency
-                          </Badge>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Material: {planGroup.plan.cuts[0]?.requestId?.split('_')[0] || 'Mixed'}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Stock info */}
-                      <div className="grid grid-cols-3 gap-4 text-sm bg-slate-50 p-3 rounded">
-                        <div>
-                          <span className="font-medium">Total Length:</span>
-                          <div className="text-lg font-bold">{planGroup.plan.stockLength}mm</div>
-                        </div>
-                        <div>
-                          <span className="font-medium">Total Cuts:</span>
-                          <div className="text-lg font-bold text-blue-600">{planGroup.plan.cuts.length}</div>
-                        </div>
-                        <div>
-                          <span className="font-medium">Waste:</span>
-                          <div className="text-lg font-bold text-red-600">{planGroup.plan.wasteLength.toFixed(0)}mm</div>
-                        </div>
-                      </div>
+              {/* Professional Workshop Cutting Plans */}
+              <StandardCuttingPlan 
+                plans={optimizationResult.plans.map(plan => ({
+                  stockLength: plan.stockLength,
+                  cuts: plan.cuts.map(cut => ({
+                    id: cut.id,
+                    length: cut.length,
+                    position: cut.position,
+                    startAngle: cut.startAngle,
+                    endAngle: cut.endAngle,
+                    description: cut.description || '',
+                    quantity: cut.quantity || 1,
+                    cuttingInstructions: cut.usesExistingAngle ? 'Use existing angle cut' : undefined
+                  })),
+                  wasteLength: plan.wasteLength,
+                  efficiency: plan.efficiency,
+                  totalCuts: plan.cuts.length,
+                  materialType: plan.cuts[0]?.requestId?.split('_')[0] || 'Mixed Materials',
+                  materialGrade: 'AS/NZS 3678-350',
+                  instructions: {
+                    general: 'Deburr all edges after cutting',
+                    cuttingMethod: 'Bandsaw - standard setup',
+                    heatNumber: 'H12345-2024',
+                    millCertNumber: 'MC-789456'
+                  }
+                }))}
+                materialCode={optimizationResult.plans[0]?.cuts[0]?.requestId?.split('_')[0] || 'MIXED'}
+                jobNumber={currentSimulationId || `SIM-${Date.now()}`}
+              />
 
-                      {/* Visual cutting diagram */}
-                      <div className="space-y-3">
-                        <h4 className="font-medium">Cutting Diagram:</h4>
-                        <div className="relative">
-                          {/* Material bar representation */}
-                          <div className="relative h-12 bg-gradient-to-r from-slate-300 to-slate-400 border-2 border-slate-500 rounded" style={{ width: '100%' }}>
-                            {/* Cut positions */}
-                            {planGroup.plan.cuts.map((cut, cutIndex) => {
-                              const leftPercent = (cut.position / planGroup.plan.stockLength) * 100;
-                              const widthPercent = (cut.length / planGroup.plan.stockLength) * 100;
-                              const colors = [
-                                'bg-blue-500',
-                                'bg-green-500', 
-                                'bg-purple-500',
-                                'bg-yellow-500',
-                                'bg-pink-500',
-                                'bg-cyan-500'
-                              ];
-                              const cutColor = colors[cutIndex % colors.length];
+              {/* Remnants */}
+              {optimizationResult.remnants && optimizationResult.remnants.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Reusable Remnants ({optimizationResult.remnants.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {optimizationResult.remnants.map((remnant) => (
+                      <div key={remnant.id} className="flex justify-between items-center p-2 bg-green-50 rounded">
+                        <span className="text-sm font-medium">{remnant.length.toFixed(0)}mm</span>
+                        <Badge variant="outline">{remnant.materialType}</Badge>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Unallocated Cuts */}
+              {optimizationResult.unallocated.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-red-600">
+                      Unallocated Cuts ({optimizationResult.unallocated.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {optimizationResult.unallocated.map((cut) => (
+                      <div key={cut.id} className="flex justify-between items-center p-2 bg-red-50 rounded">
+                        <span className="text-sm">{cut.length}mm × {cut.quantity}</span>
+                        <Badge variant="destructive">{cut.materialType}</Badge>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
                               
                               return (
                                 <div key={cutIndex} className="absolute top-0 h-full flex items-center">
