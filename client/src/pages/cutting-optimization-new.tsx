@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Scissors, Plus, Trash2, Play, Zap, History, Briefcase, Settings, Info } from "lucide-react";
+import { Scissors, Plus, Trash2, Play, Zap, History, Briefcase, Settings, Info, Clock } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -942,8 +942,8 @@ export default function CuttingOptimizationNew() {
                           </span>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm font-medium">{sim.efficiency?.toFixed(1)}% efficient</div>
-                          <div className="text-sm text-muted-foreground">{sim.totalWaste?.toFixed(0)}mm waste</div>
+                          <div className="text-sm font-medium">{sim.efficiency ? sim.efficiency.toFixed(1) : '0.0'}% efficient</div>
+                          <div className="text-sm text-muted-foreground">{sim.totalWaste ? sim.totalWaste.toFixed(0) : '0'}mm waste</div>
                         </div>
                       </div>
                       <div className="text-sm text-muted-foreground">
