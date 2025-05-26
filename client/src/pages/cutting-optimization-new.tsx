@@ -331,11 +331,32 @@ export default function CuttingOptimizationNew() {
   useEffect(() => {
     const loadSimulationHistory = () => {
       try {
-        // Clear all stored simulations to start fresh
-        localStorage.removeItem('cutting_simulations');
-        setSimulationHistory([]);
+        const stored = localStorage.getItem('cutting_simulations');
+        if (stored) {
+          const simulations = JSON.parse(stored);
+          
+          // Filter out expired simulations (older than 7 days)
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          
+          const validSimulations = simulations.filter((sim: any) => {
+            const simDate = new Date(sim.timestamp);
+            return simDate > sevenDaysAgo;
+          });
+          
+          // Save filtered simulations back to localStorage
+          if (validSimulations.length !== simulations.length) {
+            localStorage.setItem('cutting_simulations', JSON.stringify(validSimulations));
+          }
+          
+          setSimulationHistory(validSimulations);
+        } else {
+          setSimulationHistory([]);
+        }
       } catch (error) {
-        console.error('Error clearing simulation history:', error);
+        console.error('Error loading simulation history:', error);
+        // If data is corrupted, clear it
+        localStorage.removeItem('cutting_simulations');
         setSimulationHistory([]);
       }
     };
