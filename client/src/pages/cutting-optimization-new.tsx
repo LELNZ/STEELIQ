@@ -442,7 +442,7 @@ export default function CuttingOptimizationNew() {
     // Simulate optimization processing based on selected algorithm
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    const results = runOptimization(cutRequirements, stockItems);
+    const results = optimizeCutting(cutRequirements, stockItems);
     setOptimizationResult(results);
     
     // Save to simulation history with localStorage persistence
@@ -754,10 +754,24 @@ export default function CuttingOptimizationNew() {
               <div className="space-y-2">
                 {cutRequirements.map((cut, index) => (
                   <div key={cut.id} className="flex items-center justify-between p-3 border rounded">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-1">
                       <Badge variant="outline">{cut.materialCode}</Badge>
                       <span className="font-medium">{cut.length}mm</span>
-                      <span className="text-sm text-muted-foreground">× {cut.quantity}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm text-muted-foreground">×</span>
+                        <Input
+                          type="number"
+                          value={cut.quantity}
+                          onChange={(e) => {
+                            const newQuantity = parseInt(e.target.value) || 1;
+                            const updatedRequirements = [...cutRequirements];
+                            updatedRequirements[index] = { ...cut, quantity: newQuantity };
+                            setCutRequirements(updatedRequirements);
+                          }}
+                          className="w-16 h-7 text-sm"
+                          min="1"
+                        />
+                      </div>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <span>Angles: {cut.firstCutAngle}°/{cut.secondCutAngle}°</span>
                       </div>
