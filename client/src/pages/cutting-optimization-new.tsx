@@ -464,13 +464,13 @@ export default function CuttingOptimizationNew() {
       stockItems: JSON.stringify(stockItems),
       optimizationData: JSON.stringify(results),
       results: results,
-      efficiency: results.reduce((acc: number, plan: any) => acc + plan.efficiency, 0) / results.length,
-      totalWaste: results.reduce((acc: number, plan: any) => acc + plan.wasteLength, 0),
+      efficiency: results.length > 0 ? results.reduce((acc: number, plan: any) => acc + (plan.efficiency || 0), 0) / results.length : 0,
+      totalWaste: results.reduce((acc: number, plan: any) => acc + (plan.wasteLength || 0), 0),
       summary: JSON.stringify({
         totalMaterials: results.length,
-        totalCuts: results.reduce((acc: number, plan: any) => acc + plan.totalCuts, 0),
-        totalWaste: results.reduce((acc: number, plan: any) => acc + plan.wasteLength, 0),
-        avgEfficiency: results.reduce((acc: number, plan: any) => acc + plan.efficiency, 0) / results.length
+        totalCuts: results.reduce((acc: number, plan: any) => acc + (plan.totalCuts || 0), 0),
+        totalWaste: results.reduce((acc: number, plan: any) => acc + (plan.wasteLength || 0), 0),
+        avgEfficiency: results.length > 0 ? results.reduce((acc: number, plan: any) => acc + (plan.efficiency || 0), 0) / results.length : 0
       })
     };
     
