@@ -532,34 +532,32 @@ export default function StandardCuttingPlan({
         </CardContent>
       </Card>
 
-      {/* General Instructions & Cutting Method */}
+      {/* Plan Instructions - Compact */}
       {(generalInstructions.length > 0 || cuttingMethod) && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clipboard className="h-5 w-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Clipboard className="h-4 w-4" />
               Plan Instructions
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="pt-0">
+            <div className="flex flex-wrap gap-4 items-start">
               {/* Cutting Method */}
-              <div>
-                <h4 className="font-medium mb-2 text-blue-800">Cutting Method</h4>
-                <div className="p-2 bg-blue-50 rounded border">
-                  <span className="text-sm">{cuttingMethod}</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-blue-700">Method:</span>
+                <span className="text-sm bg-blue-100 px-2 py-1 rounded">{cuttingMethod}</span>
               </div>
               
               {/* General Instructions */}
               {generalInstructions.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2 text-blue-800">General Instructions</h4>
-                  <div className="space-y-1">
+                <div className="flex items-start gap-2">
+                  <span className="text-sm font-medium text-blue-700">Instructions:</span>
+                  <div className="flex flex-wrap gap-1">
                     {generalInstructions.map((instruction, index) => (
-                      <div key={index} className="p-2 bg-blue-50 rounded border text-sm">
-                        • {instruction}
-                      </div>
+                      <span key={index} className="text-xs bg-blue-100 px-2 py-1 rounded">
+                        {instruction}
+                      </span>
                     ))}
                   </div>
                 </div>
