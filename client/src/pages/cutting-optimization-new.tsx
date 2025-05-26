@@ -29,52 +29,131 @@ interface StockItem {
   materialCode: string;
 }
 
-// Mock optimization function for demonstration
+// Advanced optimization function with nesting and multiple stock support
 const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockItem[]) => {
-  let currentPosition = 0;
-  const stockLength = stockItems[0]?.length || 6000;
+  const plans: any[] = [];
   
-  const cuts = cutRequirements.map((req, index) => {
-    const cut = {
-      id: `cut-${index + 1}`,
-      length: req.length,
-      quantity: req.quantity,
-      startPosition: currentPosition,
-      endPosition: currentPosition + req.length,
-      firstCutAngle: req.firstCutAngle,
-      secondCutAngle: req.secondCutAngle,
-      description: req.description || `Cut ${index + 1}`,
-      materialCode: req.materialCode,
-      cuttingTime: req.firstCutAngle === 90 && req.secondCutAngle === 90 ? 10 : 12
-    };
-    currentPosition += req.length + 5; // Add 5mm kerf allowance
-    return cut;
+  // Group requirements by material type
+  const materialGroups = cutRequirements.reduce((groups, req) => {
+    if (!groups[req.materialCode]) {
+      groups[req.materialCode] = [];
+    }
+    groups[req.materialCode].push(req);
+    return groups;
+  }, {} as Record<string, CutRequirement[]>);
+
+  // Process each material type
+  Object.entries(materialGroups).forEach(([materialCode, requirements]) => {
+    // Find matching stock for this material
+    const availableStock = stockItems.filter(stock => stock.materialCode === materialCode);
+    
+    if (availableStock.length === 0) return;
+
+    // Sort stock by length (longest first for better optimization)
+    const sortedStock = [...availableStock].sort((a, b) => b.length - a.length);
+
+    sortedStock.forEach((stock, stockIndex) => {
+      let currentPosition = 0;
+      const cuts: any[] = [];
+      let remainingRequirements = [...requirements];
+
+      // Advanced nesting: try to pair complementary angles
+      const optimizedCuts = optimizeAngleNesting(remainingRequirements);
+
+      optimizedCuts.forEach((req, index) => {
+        if (currentPosition + req.length + 5 <= stock.length) {
+          cuts.push({
+            id: `${materialCode}-${stockIndex + 1}-cut-${index + 1}`,
+            length: req.length,
+            quantity: req.quantity,
+            startPosition: currentPosition,
+            endPosition: currentPosition + req.length,
+            firstCutAngle: req.firstCutAngle,
+            secondCutAngle: req.secondCutAngle,
+            description: req.description || `Cut ${index + 1}`,
+            materialCode: req.materialCode,
+            cuttingTime: (req.firstCutAngle === 90 && req.secondCutAngle === 90) ? 10 : 12,
+            isNested: req.isNested || false,
+            nestedWith: req.nestedWith || null
+          });
+          currentPosition += req.length + 5; // Add 5mm kerf allowance
+        }
+      });
+
+      if (cuts.length > 0) {
+        const totalCutsLength = cuts.reduce((sum, cut) => sum + cut.length, 0);
+        const wasteLength = Math.max(0, stock.length - totalCutsLength - (cuts.length * 5));
+        const totalCuts = cuts.reduce((sum, cut) => sum + cut.quantity, 0);
+
+        plans.push({
+          id: `plan-${materialCode}-${stockIndex + 1}`,
+          stockLength: stock.length,
+          materialCode: materialCode,
+          cuts: cuts,
+          wasteLength: wasteLength,
+          efficiency: Math.min(95, ((totalCutsLength / stock.length) * 100)),
+          totalCuttingTime: cuts.reduce((sum, cut) => sum + cut.cuttingTime * cut.quantity, 0),
+          totalCuts: totalCuts,
+          instructions: {
+            general: "Load material from left side of bandsaw. First cut is from right end.",
+            safety: "Ensure proper clamping before each cut. Check blade condition.",
+            sequence: "Follow cut sequence as shown. Mark completed cuts.",
+            quality: "Verify angles with protractor. Deburr all cut edges."
+          },
+          heatNumber: `H2024-${materialCode}-${stockIndex + 1}`,
+          millCert: `MC-2024-${materialCode}-${stockIndex + 1}`
+        });
+      }
+    });
   });
 
-  const totalCutsLength = cutRequirements.reduce((sum, req) => sum + req.length, 0);
-  const wasteLength = Math.max(0, stockLength - totalCutsLength - (cutRequirements.length * 5));
-  const totalCuts = cutRequirements.reduce((sum, req) => sum + req.quantity, 0);
+  return plans;
+};
 
-  return [
-    {
-      id: "plan-1",
-      stockLength: stockLength,
-      materialCode: cutRequirements[0]?.materialCode || "UB200x100",
-      cuts: cuts,
-      wasteLength: wasteLength,
-      efficiency: Math.min(95, ((totalCutsLength / stockLength) * 100)),
-      totalCuttingTime: cutRequirements.reduce((sum, req) => sum + (req.firstCutAngle === 90 && req.secondCutAngle === 90 ? 10 : 12) * req.quantity, 0),
-      totalCuts: totalCuts,
-      instructions: {
-        general: "Load material from left side of bandsaw. First cut is from right end.",
-        safety: "Ensure proper clamping before each cut. Check blade condition.",
-        sequence: "Follow cut sequence as shown. Mark completed cuts.",
-        quality: "Verify angles with protractor. Deburr all cut edges."
-      },
-      heatNumber: "H2024-001-A",
-      millCert: "MC-2024-001"
+// Advanced angle nesting optimization
+const optimizeAngleNesting = (requirements: CutRequirement[]) => {
+  const optimized: (CutRequirement & { isNested?: boolean; nestedWith?: string })[] = [];
+  const processed = new Set<string>();
+
+  requirements.forEach((req, index) => {
+    if (processed.has(req.id)) return;
+
+    // Look for complementary angles that can be nested
+    const complementaryReq = requirements.find((other, otherIndex) => 
+      otherIndex > index && 
+      !processed.has(other.id) &&
+      other.materialCode === req.materialCode &&
+      canNestAngles(req.firstCutAngle, req.secondCutAngle, other.firstCutAngle, other.secondCutAngle)
+    );
+
+    if (complementaryReq) {
+      // Create nested cuts
+      optimized.push({
+        ...req,
+        isNested: true,
+        nestedWith: complementaryReq.id
+      });
+      optimized.push({
+        ...complementaryReq,
+        isNested: true,
+        nestedWith: req.id
+      });
+      processed.add(req.id);
+      processed.add(complementaryReq.id);
+    } else {
+      optimized.push(req);
+      processed.add(req.id);
     }
-  ];
+  });
+
+  return optimized;
+};
+
+// Check if two cuts can be nested (angles complement each other)
+const canNestAngles = (angle1a: number, angle1b: number, angle2a: number, angle2b: number) => {
+  // Check if angles can be paired to create straight cuts
+  return (angle1a + angle2a === 90) || (angle1b + angle2b === 90) || 
+         (angle1a + angle2b === 90) || (angle1b + angle2a === 90);
 };
 
 export default function CuttingOptimizationNew() {
@@ -271,19 +350,19 @@ export default function CuttingOptimizationNew() {
                   Cut Requirements
                 </div>
                 {cutRequirements.length > 0 && (
-                  <div className="text-sm">
-                    <Badge variant="secondary">
-                      {(() => {
-                        const totals = cutRequirements.reduce((acc, cut) => {
-                          const materialKey = cut.materialCode;
-                          acc[materialKey] = (acc[materialKey] || 0) + (cut.length * cut.quantity);
-                          return acc;
-                        }, {} as Record<string, number>);
-                        return Object.entries(totals).map(([material, total]) => 
-                          `${material}: ${total.toLocaleString()}mm`
-                        ).join(', ');
-                      })()}
-                    </Badge>
+                  <div className="flex flex-wrap gap-1">
+                    {(() => {
+                      const totals = cutRequirements.reduce((acc, cut) => {
+                        const materialKey = cut.materialCode;
+                        acc[materialKey] = (acc[materialKey] || 0) + (cut.length * cut.quantity);
+                        return acc;
+                      }, {} as Record<string, number>);
+                      return Object.entries(totals).map(([material, total]) => (
+                        <Badge key={material} variant="secondary" className="text-xs">
+                          {material}: {total.toLocaleString()}mm
+                        </Badge>
+                      ));
+                    })()}
                   </div>
                 )}
               </CardTitle>
@@ -402,19 +481,19 @@ export default function CuttingOptimizationNew() {
                   Available Stock
                 </div>
                 {stockItems.length > 0 && (
-                  <div className="text-sm">
-                    <Badge variant="outline">
-                      {(() => {
-                        const totals = stockItems.reduce((acc, stock) => {
-                          const materialKey = stock.materialCode;
-                          acc[materialKey] = (acc[materialKey] || 0) + (stock.length * stock.quantity);
-                          return acc;
-                        }, {} as Record<string, number>);
-                        return Object.entries(totals).map(([material, total]) => 
-                          `${material}: ${total.toLocaleString()}mm`
-                        ).join(', ');
-                      })()}
-                    </Badge>
+                  <div className="flex flex-wrap gap-1">
+                    {(() => {
+                      const totals = stockItems.reduce((acc, stock) => {
+                        const materialKey = stock.materialCode;
+                        acc[materialKey] = (acc[materialKey] || 0) + (stock.length * stock.quantity);
+                        return acc;
+                      }, {} as Record<string, number>);
+                      return Object.entries(totals).map(([material, total]) => (
+                        <Badge key={material} variant="outline" className="text-xs">
+                          {material}: {total.toLocaleString()}mm
+                        </Badge>
+                      ));
+                    })()}
                   </div>
                 )}
               </CardTitle>
