@@ -473,11 +473,18 @@ export default function CuttingOptimizationNew() {
                 </div>
                 <div>
                   <Label htmlFor="cut-material">Material Code</Label>
-                  <InstantMaterialSearch
-                    onSelect={(materialCode) => setNewCut({ ...newCut, materialCode })}
-                    placeholder="Search materials..."
-                    value={newCut.materialCode}
-                  />
+                  <Select value={newCut.materialCode} onValueChange={(materialCode) => setNewCut({ ...newCut, materialCode })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select material..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {commonMaterials.map((material) => (
+                        <SelectItem key={material} value={material}>
+                          {material}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               
@@ -643,11 +650,18 @@ export default function CuttingOptimizationNew() {
                 </div>
                 <div>
                   <Label htmlFor="stock-material">Material Code</Label>
-                  <InstantMaterialSearch
-                    onSelect={(materialCode) => setNewStock({ ...newStock, materialCode })}
-                    placeholder="Search materials..."
-                    value={newStock.materialCode}
-                  />
+                  <Select value={newStock.materialCode} onValueChange={(materialCode) => setNewStock({ ...newStock, materialCode })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select material..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {commonMaterials.map((material) => (
+                        <SelectItem key={material} value={material}>
+                          {material}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <Button onClick={handleAddStock} className="w-full">
