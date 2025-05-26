@@ -220,8 +220,58 @@ const getMaterialColor = (materialCode: string) => {
 };
 
 export default function CuttingOptimizationNew() {
-  const [cutRequirements, setCutRequirements] = useState<CutRequirement[]>([]);
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [cutRequirements, setCutRequirements] = useState<CutRequirement[]>([
+    {
+      id: 'demo-cut-1',
+      length: 300,
+      quantity: 1,
+      materialCode: 'SHS50x50',
+      firstCutAngle: 45,
+      secondCutAngle: 90,
+      description: 'Bracket piece A'
+    },
+    {
+      id: 'demo-cut-2', 
+      length: 250,
+      quantity: 1,
+      materialCode: 'SHS50x50',
+      firstCutAngle: 45,
+      secondCutAngle: 90,
+      description: 'Bracket piece B'
+    },
+    {
+      id: 'demo-cut-3',
+      length: 400,
+      quantity: 1,
+      materialCode: 'UB200x100',
+      firstCutAngle: 30,
+      secondCutAngle: 90,
+      description: 'Support beam'
+    },
+    {
+      id: 'demo-cut-4',
+      length: 200,
+      quantity: 1,
+      materialCode: 'UB200x100', 
+      firstCutAngle: 30,
+      secondCutAngle: 90,
+      description: 'Short beam'
+    }
+  ]);
+  const [stockItems, setStockItems] = useState<StockItem[]>([
+    {
+      id: 'demo-stock-1',
+      length: 6000,
+      quantity: 1,
+      materialCode: 'SHS50x50'
+    },
+    {
+      id: 'demo-stock-2', 
+      length: 6000,
+      quantity: 1,
+      materialCode: 'UB200x100'
+    }
+  ]);
   const [optimizationResult, setOptimizationResult] = useState<any>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   
