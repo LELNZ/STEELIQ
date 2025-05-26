@@ -491,9 +491,9 @@ export default function CuttingOptimizationFixed() {
 
             {/* Material requirements summary */}
             {cutRequirements.length > 0 && (
-              <div className="bg-muted/50 p-3 rounded border">
-                <h4 className="text-sm font-medium mb-2">Material Requirements Summary</h4>
-                <div className="space-y-1">
+              <div className="bg-muted/30 p-2 rounded text-xs">
+                <h4 className="font-medium mb-1">Required Materials</h4>
+                <div className="space-y-0.5">
                   {Object.entries(
                     cutRequirements.reduce((acc, cut) => {
                       if (!acc[cut.materialCode]) {
@@ -505,9 +505,9 @@ export default function CuttingOptimizationFixed() {
                       return acc;
                     }, {} as Record<string, number>)
                   ).map(([materialCode, totalLength]) => (
-                    <div key={materialCode} className="flex justify-between text-sm">
+                    <div key={materialCode} className="flex justify-between">
                       <span className="font-medium">{materialCode}</span>
-                      <span className="text-muted-foreground">{Math.round(totalLength)}mm total</span>
+                      <span className="text-muted-foreground">{Math.round(totalLength)}mm</span>
                     </div>
                   ))}
                 </div>
@@ -604,9 +604,9 @@ export default function CuttingOptimizationFixed() {
 
             {/* Stock availability summary */}
             {stockItems.length > 0 && cutRequirements.length > 0 && (
-              <div className="bg-muted/50 p-3 rounded border">
-                <h4 className="text-sm font-medium mb-2">Stock Availability Status</h4>
-                <div className="space-y-1">
+              <div className="bg-muted/30 p-2 rounded text-xs">
+                <h4 className="font-medium mb-1">Stock Status</h4>
+                <div className="space-y-0.5">
                   {Object.entries(
                     cutRequirements.reduce((acc, cut) => {
                       if (!acc[cut.materialCode]) {
@@ -624,13 +624,13 @@ export default function CuttingOptimizationFixed() {
                     const isAvailable = availableLength >= requiredLength;
                     
                     return (
-                      <div key={materialCode} className="flex justify-between items-center text-sm">
+                      <div key={materialCode} className="flex justify-between items-center">
                         <span className="font-medium">{materialCode}</span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <span className="text-muted-foreground">
-                            {Math.round(requiredLength)}mm req / {Math.round(availableLength)}mm avail
+                            {Math.round(requiredLength)}/{Math.round(availableLength)}mm
                           </span>
-                          <div className={`w-3 h-3 rounded-full ${isAvailable ? 'bg-green-500' : 'bg-red-500'}`} />
+                          <div className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-green-500' : 'bg-red-500'}`} />
                         </div>
                       </div>
                     );
@@ -643,10 +643,24 @@ export default function CuttingOptimizationFixed() {
             <div className="space-y-2">
               {stockItems.map((stock, index) => (
                 <div key={stock.id} className="flex items-center justify-between p-3 border rounded">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-1">
                     <Badge variant="outline">{stock.materialCode}</Badge>
                     <span className="font-medium">{stock.length}mm</span>
-                    <span className="text-sm text-muted-foreground">× {stock.quantity}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm text-muted-foreground">×</span>
+                      <Input
+                        type="number"
+                        value={stock.quantity}
+                        onChange={(e) => {
+                          const newQuantity = parseInt(e.target.value) || 1;
+                          const updatedStock = [...stockItems];
+                          updatedStock[index] = { ...stock, quantity: newQuantity };
+                          setStockItems(updatedStock);
+                        }}
+                        className="w-16 h-7 text-sm"
+                        min="1"
+                      />
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
