@@ -75,7 +75,9 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
             materialCode: req.materialCode,
             cuttingTime: (req.firstCutAngle === 90 && req.secondCutAngle === 90) ? 10 : 12,
             isNested: req.isNested || false,
-            nestedWith: req.nestedWith || null
+            nestedWith: req.nestedWith || null,
+            materialSavings: req.materialSavings || 0,
+            nestingType: req.nestingType || null
           });
           currentPosition += req.length + (req.kerfWidth || 2.4); // Add kerf allowance
         }
@@ -83,7 +85,8 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
 
       if (cuts.length > 0) {
         const totalCutsLength = cuts.reduce((sum, cut) => sum + cut.length, 0);
-        const wasteLength = Math.max(0, stock.length - totalCutsLength - (cuts.length * 5));
+        const totalKerfAllowance = cuts.reduce((sum, cut) => sum + (cut.kerfWidth || 2.4), 0);
+        const wasteLength = Math.max(0, stock.length - totalCutsLength - totalKerfAllowance);
         const totalCuts = cuts.reduce((sum, cut) => sum + cut.quantity, 0);
         const materialSavings = cuts.reduce((sum, cut) => sum + (cut.materialSavings || 0), 0);
         const nestedCuts = cuts.filter(cut => cut.isNested).length;
@@ -517,10 +520,10 @@ export default function CuttingOptimizationNew() {
                   </div>
                 </div>
                 
-                {/* Cut Angles - Proper Bandsaw Orientation */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Cut Angles and Kerf Width */}
+                <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <Label htmlFor="first-cut-angle">First Cut Angle (Right End)</Label>
+                    <Label htmlFor="first-cut-angle" className="text-xs">First Angle</Label>
                     <Input
                       id="first-cut-angle"
                       type="number"
@@ -529,11 +532,12 @@ export default function CuttingOptimizationNew() {
                       min="0"
                       max="90"
                       placeholder="90"
+                      className="h-8"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">Right end cut (first in bandsaw operation)</p>
+                    <p className="text-xs text-muted-foreground mt-1">Right end</p>
                   </div>
                   <div>
-                    <Label htmlFor="second-cut-angle">Second Cut Angle (Left End)</Label>
+                    <Label htmlFor="second-cut-angle" className="text-xs">Second Angle</Label>
                     <Input
                       id="second-cut-angle"
                       type="number"
@@ -542,17 +546,32 @@ export default function CuttingOptimizationNew() {
                       min="0"
                       max="90"
                       placeholder="90"
+                      className="h-8"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">Left end cut (second in bandsaw operation)</p>
+                    <p className="text-xs text-muted-foreground mt-1">Left end</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="kerf-width" className="text-xs">Kerf (mm)</Label>
+                    <Input
+                      id="kerf-width"
+                      type="number"
+                      step="0.1"
+                      value={newCut.kerfWidth}
+                      onChange={(e) => setNewCut({ ...newCut, kerfWidth: parseFloat(e.target.value) })}
+                      placeholder="2.4"
+                      className="h-8"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Blade kerf</p>
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="cut-description">Description (Optional)</Label>
+                  <Label htmlFor="cut-description" className="text-xs">Description</Label>
                   <Input
                     id="cut-description"
                     value={newCut.description}
                     onChange={(e) => setNewCut({ ...newCut, description: e.target.value })}
                     placeholder="Purpose or notes..."
+                    className="h-8"
                   />
                 </div>
                 <Button onClick={handleAddCut} className="w-full">
