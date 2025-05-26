@@ -548,16 +548,34 @@ export default function StandardCuttingPlan({
         </CardContent>
       </Card>
 
-      {/* Plan Instructions - Compact */}
+      {/* Plan Instructions - Collapsible */}
       {(generalInstructions.length > 0 || cuttingMethod) && (
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader 
+            className="pb-3 cursor-pointer hover:bg-muted/30 transition-colors"
+            onClick={() => {
+              const content = document.getElementById('plan-instructions-content');
+              const icon = document.getElementById('plan-instructions-icon');
+              if (content && icon) {
+                const isHidden = content.style.display === 'none';
+                content.style.display = isHidden ? 'block' : 'none';
+                icon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+              }
+            }}
+          >
             <CardTitle className="text-base flex items-center gap-2">
               <Clipboard className="h-4 w-4" />
               Plan Instructions
+              <span 
+                id="plan-instructions-icon"
+                className="ml-auto text-muted-foreground transition-transform duration-200"
+                style={{ transform: 'rotate(0deg)' }}
+              >
+                ▼
+              </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent id="plan-instructions-content" className="pt-0">
             <div className="flex flex-wrap gap-4 items-start">
               {/* Cutting Method */}
               <div className="flex items-center gap-2">
