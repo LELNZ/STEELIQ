@@ -58,20 +58,42 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
 
     // Sort stock by length (shortest first to minimize waste as requested)
     const sortedStock = [...availableStock].sort((a, b) => a.length - b.length);
+    
+    // Track requirements across all bars
+    let globalRemainingRequirements = [...requirements];
 
     sortedStock.forEach((stock, stockIndex) => {
+      // Skip this bar if no requirements left
+      if (globalRemainingRequirements.length === 0) return;
+      
       let currentPosition = 0;
       const cuts: any[] = [];
-      let remainingRequirements = [...requirements];
 
       // Advanced nesting: try to pair complementary angles
-      const optimizedCuts = optimizeAngleNesting(remainingRequirements);
+      const optimizedCuts = optimizeAngleNesting(globalRemainingRequirements);
 
       let cutSequence = 1;
       
+      // Process cuts and track what gets completed on this bar
+      const completedCuts = [];
+      
       optimizedCuts.forEach((req) => {
-        // Create individual cuts for each quantity
-        for (let i = 0; i < req.quantity; i++) {
+        let remainingQuantity = req.quantity;
+        
+        // Find if we already have this requirement partially completed
+        const existingReq = globalRemainingRequirements.find(r => 
+          r.length === req.length && 
+          r.materialCode === req.materialCode &&
+          r.firstCutAngle === req.firstCutAngle &&
+          r.secondCutAngle === req.secondCutAngle
+        );
+        
+        if (existingReq) {
+          remainingQuantity = existingReq.quantity;
+        }
+        
+        // Create individual cuts for this bar
+        for (let i = 0; i < remainingQuantity; i++) {
           const kerfWidth = req.kerfWidth || 2.4;
           
           // Check if this cut fits on current stock
@@ -96,9 +118,34 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
             
             currentPosition += req.length + kerfWidth;
             cutSequence++;
+            
+            // Track this cut as completed
+            completedCuts.push({
+              length: req.length,
+              materialCode: req.materialCode,
+              firstCutAngle: req.firstCutAngle,
+              secondCutAngle: req.secondCutAngle
+            });
           } else {
-            // This cut doesn't fit, will need another bar
+            // This cut doesn't fit, stop trying more cuts on this bar
             break;
+          }
+        }
+      });
+
+      // Update global requirements by reducing completed quantities
+      completedCuts.forEach(completed => {
+        const reqIndex = globalRemainingRequirements.findIndex(r => 
+          r.length === completed.length && 
+          r.materialCode === completed.materialCode &&
+          r.firstCutAngle === completed.firstCutAngle &&
+          r.secondCutAngle === completed.secondCutAngle
+        );
+        
+        if (reqIndex !== -1) {
+          globalRemainingRequirements[reqIndex].quantity -= 1;
+          if (globalRemainingRequirements[reqIndex].quantity <= 0) {
+            globalRemainingRequirements.splice(reqIndex, 1);
           }
         }
       });
