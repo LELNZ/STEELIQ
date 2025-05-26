@@ -81,15 +81,12 @@ export default function CuttingOptimizationFixed() {
     ],
     finishing: [
       "Deburr all edges after cutting",
-      "Bevel edges as per drawing specifications",
-      "File cut ends to remove sharp edges",
       "Stack on pallet when complete"
     ],
     quality: [
       "Check dimensions before cutting",
-      "Mark cut sequence numbers on material",
-      "Verify angles with protractor before cutting",
-      "Measure twice, cut once"
+      "Mark part number on material as per drawing",
+      "Verify angles with protractor before cutting"
     ]
   };
 
