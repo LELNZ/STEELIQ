@@ -780,11 +780,38 @@ export default function CuttingOptimizationFixed() {
 
       {/* Results Section */}
       {optimizationResult ? (
-        <StandardCuttingPlan 
-          plans={optimizationResult}
-          materialCode={cutRequirements[0]?.materialCode || 'MIXED'}
-          jobNumber={`JOB-${new Date().toISOString().split('T')[0]}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
-        />
+        <div className="space-y-4">
+          {/* Create Job Button */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold">Convert to Professional Job</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Create a formal job with estimation, material procurement, and production scheduling
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => {
+                    // Navigate to job creation with cutting plan data
+                    console.log('Creating job from cutting plan:', optimizationResult);
+                    // TODO: Implement job creation navigation
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Package className="h-4 w-4" />
+                  Create Job
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <StandardCuttingPlan 
+            plans={optimizationResult}
+            materialCode={cutRequirements[0]?.materialCode || 'MIXED'}
+            jobNumber={`JOB-${new Date().toISOString().split('T')[0]}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
+          />
+        </div>
       ) : cutRequirements.length > 0 && stockItems.length > 0 ? (
         <Card>
           <CardContent className="p-12 text-center">

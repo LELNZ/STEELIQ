@@ -550,7 +550,7 @@ export default function StandardCuttingPlan({
             </div>
             
             {/* Per-bar totals summary */}
-            <div className="grid grid-cols-3 gap-4 mt-3 p-3 bg-muted/30 rounded-lg">
+            <div className="grid grid-cols-4 gap-3 mt-3 p-3 bg-muted/30 rounded-lg">
               <div className="text-center">
                 <div className="text-sm font-medium text-green-600">
                   {(plan.stockLength - plan.wasteLength).toFixed(0)}mm
@@ -568,6 +568,12 @@ export default function StandardCuttingPlan({
                   {formatTime(plan.totalCuttingTime || 0)}
                 </div>
                 <div className="text-xs text-muted-foreground">Cut Time</div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-medium text-purple-600">
+                  {formatTime(plan.totalHandlingTime || 0)}
+                </div>
+                <div className="text-xs text-muted-foreground">Handling Time</div>
               </div>
             </div>
           </CardHeader>
