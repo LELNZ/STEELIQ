@@ -49,11 +49,11 @@ export default function CuttingOptimizationFixed() {
   const [showHistory, setShowHistory] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   
-  // Material handling time settings
+  // Material handling time settings (loading + unloading per piece)
   const [handlingTimes, setHandlingTimes] = useState({
-    heavy: 5, // minutes
-    medium: 3, // minutes  
-    light: 1, // minutes
+    heavy: { loading: 3, unloading: 2, total: 5 }, // minutes
+    medium: { loading: 2, unloading: 1, total: 3 }, // minutes  
+    light: { loading: 0.5, unloading: 0.5, total: 1 }, // minutes
   });
 
   // Fetch materials
@@ -242,7 +242,7 @@ export default function CuttingOptimizationFixed() {
               description: cut.description,
               materialCode: materialCode,
               cuttingTime: (cut.firstCutAngle === 90 && cut.secondCutAngle === 90) ? 10 : 12,
-              handlingTime: handlingTimes[getMaterialWeightCategory(materialCode, cut.length)],
+              handlingTime: handlingTimes[getMaterialWeightCategory(materialCode, cut.length)].total,
               kerfWidth: kerfWidth
             });
             
@@ -771,9 +771,8 @@ export default function CuttingOptimizationFixed() {
                           <TooltipContent>
                             <div className="text-xs max-w-48">
                               <p className="font-medium mb-1">Heavy Materials (20.01kg+):</p>
-                              <p>• Large Universal Beams (UB/WB)</p>
-                              <p>• Heavy Universal Columns (UC/WC)</p>
-                              <p>• Thick plates and long sections</p>
+                              <p>• Loading into cutting bay: 3min</p>
+                              <p>• Unloading finished pieces: 2min</p>
                               <p>• Requires crane/lifting equipment</p>
                               <p className="text-muted-foreground mt-1 italic">Weight calculated from material code and cut length</p>
                             </div>
@@ -781,15 +780,46 @@ export default function CuttingOptimizationFixed() {
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        value={handlingTimes.heavy}
-                        onChange={(e) => setHandlingTimes({...handlingTimes, heavy: parseInt(e.target.value) || 5})}
-                        className="h-8 text-xs"
-                        min="1"
-                      />
-                      <span className="text-xs text-muted-foreground">min</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={handlingTimes.heavy.loading}
+                          onChange={(e) => {
+                            const loading = parseFloat(e.target.value) || 3;
+                            const unloading = handlingTimes.heavy.unloading;
+                            setHandlingTimes({
+                              ...handlingTimes, 
+                              heavy: { loading, unloading, total: loading + unloading }
+                            });
+                          }}
+                          className="h-7 text-xs"
+                          min="0.1"
+                        />
+                        <span className="text-xs text-muted-foreground">Load</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={handlingTimes.heavy.unloading}
+                          onChange={(e) => {
+                            const unloading = parseFloat(e.target.value) || 2;
+                            const loading = handlingTimes.heavy.loading;
+                            setHandlingTimes({
+                              ...handlingTimes, 
+                              heavy: { loading, unloading, total: loading + unloading }
+                            });
+                          }}
+                          className="h-7 text-xs"
+                          min="0.1"
+                        />
+                        <span className="text-xs text-muted-foreground">Unload</span>
+                      </div>
+                      <div className="text-xs text-center font-medium text-blue-600">
+                        Total: {handlingTimes.heavy.total}min
+                      </div>
                     </div>
                   </div>
                   <div>
@@ -803,9 +833,8 @@ export default function CuttingOptimizationFixed() {
                           <TooltipContent>
                             <div className="text-xs max-w-48">
                               <p className="font-medium mb-1">Medium Materials (5.01-20kg):</p>
-                              <p>• Standard RHS/SHS sections</p>
-                              <p>• Medium angles and channels</p>
-                              <p>• Most structural sections</p>
+                              <p>• Loading into cutting bay: 2min</p>
+                              <p>• Unloading finished pieces: 1min</p>
                               <p>• Two-person lift required</p>
                               <p className="text-muted-foreground mt-1 italic">Weight calculated from material code and cut length</p>
                             </div>
@@ -813,15 +842,46 @@ export default function CuttingOptimizationFixed() {
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        value={handlingTimes.medium}
-                        onChange={(e) => setHandlingTimes({...handlingTimes, medium: parseInt(e.target.value) || 3})}
-                        className="h-8 text-xs"
-                        min="1"
-                      />
-                      <span className="text-xs text-muted-foreground">min</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={handlingTimes.medium.loading}
+                          onChange={(e) => {
+                            const loading = parseFloat(e.target.value) || 2;
+                            const unloading = handlingTimes.medium.unloading;
+                            setHandlingTimes({
+                              ...handlingTimes, 
+                              medium: { loading, unloading, total: loading + unloading }
+                            });
+                          }}
+                          className="h-7 text-xs"
+                          min="0.1"
+                        />
+                        <span className="text-xs text-muted-foreground">Load</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={handlingTimes.medium.unloading}
+                          onChange={(e) => {
+                            const unloading = parseFloat(e.target.value) || 1;
+                            const loading = handlingTimes.medium.loading;
+                            setHandlingTimes({
+                              ...handlingTimes, 
+                              medium: { loading, unloading, total: loading + unloading }
+                            });
+                          }}
+                          className="h-7 text-xs"
+                          min="0.1"
+                        />
+                        <span className="text-xs text-muted-foreground">Unload</span>
+                      </div>
+                      <div className="text-xs text-center font-medium text-blue-600">
+                        Total: {handlingTimes.medium.total}min
+                      </div>
                     </div>
                   </div>
                   <div>
@@ -835,9 +895,8 @@ export default function CuttingOptimizationFixed() {
                           <TooltipContent>
                             <div className="text-xs max-w-48">
                               <p className="font-medium mb-1">Light Materials (0-5kg):</p>
-                              <p>• Small angles and strips</p>
-                              <p>• Thin flat bars</p>
-                              <p>• Small round bars</p>
+                              <p>• Loading into cutting bay: 0.5min</p>
+                              <p>• Unloading finished pieces: 0.5min</p>
                               <p>• Easy single-person handling</p>
                               <p className="text-muted-foreground mt-1 italic">Weight calculated from material code and cut length</p>
                             </div>
@@ -845,15 +904,46 @@ export default function CuttingOptimizationFixed() {
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        value={handlingTimes.light}
-                        onChange={(e) => setHandlingTimes({...handlingTimes, light: parseInt(e.target.value) || 1})}
-                        className="h-8 text-xs"
-                        min="1"
-                      />
-                      <span className="text-xs text-muted-foreground">min</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={handlingTimes.light.loading}
+                          onChange={(e) => {
+                            const loading = parseFloat(e.target.value) || 0.5;
+                            const unloading = handlingTimes.light.unloading;
+                            setHandlingTimes({
+                              ...handlingTimes, 
+                              light: { loading, unloading, total: loading + unloading }
+                            });
+                          }}
+                          className="h-7 text-xs"
+                          min="0.1"
+                        />
+                        <span className="text-xs text-muted-foreground">Load</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={handlingTimes.light.unloading}
+                          onChange={(e) => {
+                            const unloading = parseFloat(e.target.value) || 0.5;
+                            const loading = handlingTimes.light.loading;
+                            setHandlingTimes({
+                              ...handlingTimes, 
+                              light: { loading, unloading, total: loading + unloading }
+                            });
+                          }}
+                          className="h-7 text-xs"
+                          min="0.1"
+                        />
+                        <span className="text-xs text-muted-foreground">Unload</span>
+                      </div>
+                      <div className="text-xs text-center font-medium text-blue-600">
+                        Total: {handlingTimes.light.total}min
+                      </div>
                     </div>
                   </div>
                 </div>
