@@ -31,26 +31,40 @@ interface StockItem {
 
 // Mock optimization function for demonstration
 const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockItem[]) => {
+  let currentPosition = 0;
+  const stockLength = stockItems[0]?.length || 6000;
+  
+  const cuts = cutRequirements.map((req, index) => {
+    const cut = {
+      id: `cut-${index + 1}`,
+      length: req.length,
+      quantity: req.quantity,
+      startPosition: currentPosition,
+      endPosition: currentPosition + req.length,
+      firstCutAngle: req.firstCutAngle,
+      secondCutAngle: req.secondCutAngle,
+      description: req.description || `Cut ${index + 1}`,
+      materialCode: req.materialCode,
+      cuttingTime: req.firstCutAngle === 90 && req.secondCutAngle === 90 ? 10 : 12
+    };
+    currentPosition += req.length + 5; // Add 5mm kerf allowance
+    return cut;
+  });
+
+  const totalCutsLength = cutRequirements.reduce((sum, req) => sum + req.length, 0);
+  const wasteLength = Math.max(0, stockLength - totalCutsLength - (cutRequirements.length * 5));
+  const totalCuts = cutRequirements.reduce((sum, req) => sum + req.quantity, 0);
+
   return [
     {
       id: "plan-1",
-      stockLength: stockItems[0]?.length || 6000,
+      stockLength: stockLength,
       materialCode: cutRequirements[0]?.materialCode || "UB200x100",
-      cuts: cutRequirements.map((req, index) => ({
-        id: `cut-${index + 1}`,
-        length: req.length,
-        quantity: req.quantity,
-        startPosition: index * (req.length + 5),
-        endPosition: (index * (req.length + 5)) + req.length,
-        firstCutAngle: req.firstCutAngle,
-        secondCutAngle: req.secondCutAngle,
-        description: req.description || `Cut ${index + 1}`,
-        materialCode: req.materialCode,
-        cuttingTime: req.firstCutAngle === 90 && req.secondCutAngle === 90 ? 10 : 12
-      })),
-      wasteLength: Math.max(0, (stockItems[0]?.length || 6000) - cutRequirements.reduce((sum, req) => sum + req.length, 0) - (cutRequirements.length * 5)),
-      efficiency: Math.min(95, ((cutRequirements.reduce((sum, req) => sum + (req.length * req.quantity), 0) / (stockItems[0]?.length || 6000)) * 100)),
-      totalCuttingTime: cutRequirements.reduce((sum, req) => sum + (req.firstCutAngle === 90 && req.secondCutAngle === 90 ? 10 : 12), 0),
+      cuts: cuts,
+      wasteLength: wasteLength,
+      efficiency: Math.min(95, ((totalCutsLength / stockLength) * 100)),
+      totalCuttingTime: cutRequirements.reduce((sum, req) => sum + (req.firstCutAngle === 90 && req.secondCutAngle === 90 ? 10 : 12) * req.quantity, 0),
+      totalCuts: totalCuts,
       instructions: {
         general: "Load material from left side of bandsaw. First cut is from right end.",
         safety: "Ensure proper clamping before each cut. Check blade condition.",
@@ -206,41 +220,7 @@ export default function CuttingOptimizationNew() {
           </div>
         </div>
 
-        {/* Algorithm Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Optimization Settings
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <Label htmlFor="algorithm">Cutting Algorithm</Label>
-                <Select value={selectedAlgorithm} onValueChange={setSelectedAlgorithm}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select algorithm" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="multi">Multi-Algorithm (Recommended)</SelectItem>
-                    <SelectItem value="firstfit">First Fit Decreasing</SelectItem>
-                    <SelectItem value="bestfit">Best Fit Decreasing</SelectItem>
-                    <SelectItem value="genetic">Genetic Algorithm</SelectItem>
-                    <SelectItem value="binpacking">Advanced Bin Packing</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {selectedAlgorithm === "multi" && "Uses multiple algorithms and selects the best result"}
-                {selectedAlgorithm === "firstfit" && "Fast algorithm, good for simple cuts"}
-                {selectedAlgorithm === "bestfit" && "Optimizes for minimal waste"}
-                {selectedAlgorithm === "genetic" && "Advanced optimization for complex requirements"}
-                {selectedAlgorithm === "binpacking" && "Specialized for maximum material utilization"}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
 
         {/* Simulation History Panel */}
         {showHistory && (
@@ -416,12 +396,59 @@ export default function CuttingOptimizationNew() {
           {/* Available Stock */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
-                Available Stock
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  Available Stock
+                </div>
+                {stockItems.length > 0 && (
+                  <div className="text-sm">
+                    <Badge variant="outline">
+                      {(() => {
+                        const totals = stockItems.reduce((acc, stock) => {
+                          const materialKey = stock.materialCode;
+                          acc[materialKey] = (acc[materialKey] || 0) + (stock.length * stock.quantity);
+                          return acc;
+                        }, {} as Record<string, number>);
+                        return Object.entries(totals).map(([material, total]) => 
+                          `${material}: ${total.toLocaleString()}mm`
+                        ).join(', ');
+                      })()}
+                    </Badge>
+                  </div>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Optimization Settings */}
+              <div className="border-b pb-4 mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Settings className="w-4 h-4" />
+                  <Label className="text-sm font-medium">Optimization Settings</Label>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="algorithm" className="text-xs">Cutting Algorithm</Label>
+                  <Select value={selectedAlgorithm} onValueChange={setSelectedAlgorithm}>
+                    <SelectTrigger className="w-full h-8 text-sm">
+                      <SelectValue placeholder="Select algorithm" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="multi">Multi-Algorithm (Recommended)</SelectItem>
+                      <SelectItem value="firstfit">First Fit Decreasing</SelectItem>
+                      <SelectItem value="bestfit">Best Fit Decreasing</SelectItem>
+                      <SelectItem value="genetic">Genetic Algorithm</SelectItem>
+                      <SelectItem value="binpacking">Advanced Bin Packing</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedAlgorithm === "multi" && "Uses multiple algorithms and selects the best result"}
+                    {selectedAlgorithm === "firstfit" && "Fast algorithm, good for simple cuts"}
+                    {selectedAlgorithm === "bestfit" && "Optimizes for minimal waste"}
+                    {selectedAlgorithm === "genetic" && "Advanced optimization for complex requirements"}
+                    {selectedAlgorithm === "binpacking" && "Specialized for maximum material utilization"}
+                  </p>
+                </div>
+              </div>
               <div className="grid gap-4">
                 <div className="grid grid-cols-3 gap-3">
                   <div>
