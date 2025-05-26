@@ -49,8 +49,8 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
     
     if (availableStock.length === 0) return;
 
-    // Sort stock by length (longest first for better optimization)
-    const sortedStock = [...availableStock].sort((a, b) => b.length - a.length);
+    // Sort stock by length (shortest first to minimize waste as requested)
+    const sortedStock = [...availableStock].sort((a, b) => a.length - b.length);
 
     sortedStock.forEach((stock, stockIndex) => {
       let currentPosition = 0;
@@ -84,6 +84,8 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
         const totalCutsLength = cuts.reduce((sum, cut) => sum + cut.length, 0);
         const wasteLength = Math.max(0, stock.length - totalCutsLength - (cuts.length * 5));
         const totalCuts = cuts.reduce((sum, cut) => sum + cut.quantity, 0);
+        const materialSavings = cuts.reduce((sum, cut) => sum + (cut.materialSavings || 0), 0);
+        const nestedCuts = cuts.filter(cut => cut.isNested).length;
 
         plans.push({
           id: `plan-${materialCode}-${stockIndex + 1}`,
@@ -94,11 +96,15 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
           efficiency: Math.min(95, ((totalCutsLength / stock.length) * 100)),
           totalCuttingTime: cuts.reduce((sum, cut) => sum + cut.cuttingTime * cut.quantity, 0),
           totalCuts: totalCuts,
+          materialSavings: materialSavings,
+          nestedCuts: nestedCuts,
+          nestingEfficiency: nestedCuts > 0 ? (materialSavings / totalCutsLength * 100) : 0,
           instructions: {
             general: "Load material from left side of bandsaw. First cut is from right end.",
             safety: "Ensure proper clamping before each cut. Check blade condition.",
             sequence: "Follow cut sequence as shown. Mark completed cuts.",
-            quality: "Verify angles with protractor. Deburr all cut edges."
+            quality: "Verify angles with protractor. Deburr all cut edges.",
+            nesting: nestedCuts > 0 ? `${nestedCuts} cuts use waste angles, saving ${materialSavings.toFixed(1)}mm` : "No nesting opportunities found"
           },
           heatNumber: `H2024-${materialCode}-${stockIndex + 1}`,
           millCert: `MC-2024-${materialCode}-${stockIndex + 1}`
@@ -110,50 +116,107 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
   return plans;
 };
 
-// Advanced angle nesting optimization
+// Advanced angle nesting optimization - uses waste cuts from previous pieces
 const optimizeAngleNesting = (requirements: CutRequirement[]) => {
-  const optimized: (CutRequirement & { isNested?: boolean; nestedWith?: string })[] = [];
-  const processed = new Set<string>();
+  const optimized: (CutRequirement & { 
+    isNested?: boolean; 
+    nestedWith?: string;
+    usesWasteCut?: boolean;
+    materialSavings?: number;
+    nestingType?: string;
+  })[] = [];
+  
+  const availableWasteCuts: Array<{
+    id: string;
+    angle: number;
+    position: 'start' | 'end';
+    fromPieceId: string;
+  }> = [];
 
-  requirements.forEach((req, index) => {
-    if (processed.has(req.id)) return;
+  // Sort by angle complexity to optimize nesting opportunities
+  const sortedRequirements = [...requirements].sort((a, b) => {
+    const aComplexity = (a.firstCutAngle !== 90 ? 1 : 0) + (a.secondCutAngle !== 90 ? 1 : 0);
+    const bComplexity = (b.firstCutAngle !== 90 ? 1 : 0) + (b.secondCutAngle !== 90 ? 1 : 0);
+    return bComplexity - aComplexity; // Most complex first for better nesting
+  });
 
-    // Look for complementary angles that can be nested
-    const complementaryReq = requirements.find((other, otherIndex) => 
-      otherIndex > index && 
-      !processed.has(other.id) &&
-      other.materialCode === req.materialCode &&
-      canNestAngles(req.firstCutAngle, req.secondCutAngle, other.firstCutAngle, other.secondCutAngle)
+  sortedRequirements.forEach((req) => {
+    let usedWasteCut = false;
+    let materialSavings = 0;
+    let nestingInfo = {};
+
+    // Check if we can use an existing waste cut for either end
+    const usableWasteCut = availableWasteCuts.find(waste => 
+      waste.angle === req.firstCutAngle || waste.angle === req.secondCutAngle
     );
 
-    if (complementaryReq) {
-      // Create nested cuts
-      optimized.push({
-        ...req,
+    if (usableWasteCut) {
+      // Calculate material savings (typical kerf + setup savings)
+      const angleDepth = calculateAngleDepth(usableWasteCut.angle, 50); // Assuming 50mm typical width
+      materialSavings = angleDepth + 5; // Add kerf savings
+      
+      nestingInfo = {
         isNested: true,
-        nestedWith: complementaryReq.id
+        nestedWith: usableWasteCut.fromPieceId,
+        usesWasteCut: true,
+        materialSavings: materialSavings,
+        nestingType: `Uses ${usableWasteCut.angle}° cut from piece`,
+        wastePosition: usableWasteCut.position
+      };
+
+      // Remove the used waste cut
+      const wasteIndex = availableWasteCuts.indexOf(usableWasteCut);
+      availableWasteCuts.splice(wasteIndex, 1);
+      usedWasteCut = true;
+    }
+
+    // Add this piece to optimized list
+    optimized.push({
+      ...req,
+      ...nestingInfo
+    });
+
+    // Add any new waste cuts this piece creates
+    if (req.firstCutAngle !== 90) {
+      availableWasteCuts.push({
+        id: `waste-${req.id}-start`,
+        angle: req.firstCutAngle,
+        position: 'start',
+        fromPieceId: req.id
       });
-      optimized.push({
-        ...complementaryReq,
-        isNested: true,
-        nestedWith: req.id
+    }
+    if (req.secondCutAngle !== 90) {
+      availableWasteCuts.push({
+        id: `waste-${req.id}-end`,
+        angle: req.secondCutAngle,
+        position: 'end',
+        fromPieceId: req.id
       });
-      processed.add(req.id);
-      processed.add(complementaryReq.id);
-    } else {
-      optimized.push(req);
-      processed.add(req.id);
     }
   });
 
   return optimized;
 };
 
-// Check if two cuts can be nested (angles complement each other)
-const canNestAngles = (angle1a: number, angle1b: number, angle2a: number, angle2b: number) => {
-  // Check if angles can be paired to create straight cuts
-  return (angle1a + angle2a === 90) || (angle1b + angle2b === 90) || 
-         (angle1a + angle2b === 90) || (angle1b + angle2a === 90);
+// Calculate the depth of material saved by using an angled waste cut
+const calculateAngleDepth = (angle: number, materialWidth: number) => {
+  // For a given angle and material width, calculate how much length is saved
+  if (angle === 90) return 0;
+  const radians = (angle * Math.PI) / 180;
+  return materialWidth * Math.tan(radians / 2);
+};
+
+// Enhanced material type color coding
+const getMaterialColor = (materialCode: string) => {
+  const colors = [
+    'text-blue-600', 'text-green-600', 'text-purple-600', 
+    'text-orange-600', 'text-red-600', 'text-cyan-600'
+  ];
+  let hash = 0;
+  for (let i = 0; i < materialCode.length; i++) {
+    hash = materialCode.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
 };
 
 export default function CuttingOptimizationNew() {
@@ -358,7 +421,7 @@ export default function CuttingOptimizationNew() {
                         return acc;
                       }, {} as Record<string, number>);
                       return Object.entries(totals).map(([material, total]) => (
-                        <Badge key={material} variant="secondary" className="text-xs">
+                        <Badge key={material} variant="secondary" className={`text-xs ${getMaterialColor(material)}`}>
                           {material}: {total.toLocaleString()}mm
                         </Badge>
                       ));
@@ -489,7 +552,7 @@ export default function CuttingOptimizationNew() {
                         return acc;
                       }, {} as Record<string, number>);
                       return Object.entries(totals).map(([material, total]) => (
-                        <Badge key={material} variant="outline" className="text-xs">
+                        <Badge key={material} variant="outline" className={`text-xs ${getMaterialColor(material)}`}>
                           {material}: {total.toLocaleString()}mm
                         </Badge>
                       ));
