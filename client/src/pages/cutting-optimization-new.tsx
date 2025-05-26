@@ -97,32 +97,26 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
       
       let currentPosition = 0;
       const cuts: any[] = [];
-
-      // Advanced nesting: try to pair complementary angles
-      const optimizedCuts = optimizeAngleNesting(globalRemainingRequirements);
-
       let cutSequence = 1;
       
       // Process cuts and track what gets completed on this bar
       const completedCuts = [];
       
-      optimizedCuts.forEach((req) => {
-        let remainingQuantity = req.quantity;
+      // Advanced nesting: optimize angle arrangements for this bar
+      const optimizedOrder = optimizeAngleNesting(globalRemainingRequirements);
+      
+      // Process cuts in optimized order to maximize nesting opportunities
+      let attemptedReqs = new Set();
+      
+      while (globalRemainingRequirements.length > 0 && currentPosition < stock.length && attemptedReqs.size < globalRemainingRequirements.length) {
+        let cutPlaced = false;
         
-        // Find if we already have this requirement partially completed
-        const existingReq = globalRemainingRequirements.find(r => 
-          r.length === req.length && 
-          r.materialCode === req.materialCode &&
-          r.firstCutAngle === req.firstCutAngle &&
-          r.secondCutAngle === req.secondCutAngle
-        );
-        
-        if (existingReq) {
-          remainingQuantity = existingReq.quantity;
-        }
-        
-        // Create individual cuts for this bar
-        for (let i = 0; i < remainingQuantity; i++) {
+        for (let reqIndex = 0; reqIndex < globalRemainingRequirements.length; reqIndex++) {
+          const req = globalRemainingRequirements[reqIndex];
+          const reqKey = `${req.length}-${req.firstCutAngle}-${req.secondCutAngle}`;
+          
+          if (attemptedReqs.has(reqKey)) continue;
+          
           const kerfWidth = req.kerfWidth || 2.4;
           
           // Check if this cut fits on current stock
@@ -138,15 +132,19 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
               description: req.description || `${req.length}mm piece`,
               materialCode: req.materialCode,
               cuttingTime: (req.firstCutAngle === 90 && req.secondCutAngle === 90) ? 10 : 12,
-              isNested: req.isNested || false,
-              nestedWith: req.nestedWith || null,
-              materialSavings: req.materialSavings || 0,
-              nestingType: req.nestingType || null,
+              isNested: false,
+              nestedWith: null,
+              materialSavings: 0,
+              nestingType: null,
               kerfWidth: kerfWidth
             });
             
             currentPosition += req.length + kerfWidth;
             cutSequence++;
+            cutPlaced = true;
+            
+            // Reduce quantity for this requirement
+            req.quantity -= 1;
             
             // Track this cut as completed
             completedCuts.push({
@@ -155,29 +153,24 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
               firstCutAngle: req.firstCutAngle,
               secondCutAngle: req.secondCutAngle
             });
-          } else {
-            // This cut doesn't fit, stop trying more cuts on this bar
+            
+            // If this requirement is fully satisfied, remove it
+            if (req.quantity <= 0) {
+              globalRemainingRequirements.splice(reqIndex, 1);
+            }
+            
+            // Reset attempted set since we made progress
+            attemptedReqs.clear();
             break;
+          } else {
+            // Mark this requirement as attempted for this bar
+            attemptedReqs.add(reqKey);
           }
         }
-      });
-
-      // Update global requirements by reducing completed quantities
-      completedCuts.forEach(completed => {
-        const reqIndex = globalRemainingRequirements.findIndex(r => 
-          r.length === completed.length && 
-          r.materialCode === completed.materialCode &&
-          r.firstCutAngle === completed.firstCutAngle &&
-          r.secondCutAngle === completed.secondCutAngle
-        );
         
-        if (reqIndex !== -1) {
-          globalRemainingRequirements[reqIndex].quantity -= 1;
-          if (globalRemainingRequirements[reqIndex].quantity <= 0) {
-            globalRemainingRequirements.splice(reqIndex, 1);
-          }
-        }
-      });
+        // If no cuts were placed in this iteration, break to avoid infinite loop
+        if (!cutPlaced) break;
+      }
 
       if (cuts.length > 0) {
         const totalCutsLength = cuts.reduce((sum, cut) => sum + (cut.length * cut.quantity), 0);
