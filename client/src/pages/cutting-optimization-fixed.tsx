@@ -800,11 +800,32 @@ export default function CuttingOptimizationFixed() {
               </Button>
             </div>
 
-            {/* General Instructions - Compact */}
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-              <h4 className="font-medium mb-2 text-blue-800 text-sm">General Instructions</h4>
+            {/* General Instructions - Collapsible */}
+            <div className="mt-3 bg-blue-50 border border-blue-200 rounded">
+              <div 
+                className="p-3 cursor-pointer hover:bg-blue-100 transition-colors flex items-center justify-between"
+                onClick={() => {
+                  const content = document.getElementById('general-instructions-content');
+                  const icon = document.getElementById('general-instructions-icon');
+                  if (content && icon) {
+                    const isHidden = content.style.display === 'none';
+                    content.style.display = isHidden ? 'block' : 'none';
+                    icon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+                  }
+                }}
+              >
+                <h4 className="font-medium text-blue-800 text-sm">General Instructions</h4>
+                <span 
+                  id="general-instructions-icon"
+                  className="text-blue-600 transition-transform duration-200 text-sm"
+                  style={{ transform: 'rotate(0deg)' }}
+                >
+                  ▼
+                </span>
+              </div>
               
-              {/* Compact grid layout */}
+              <div id="general-instructions-content" className="px-3 pb-3">
+                {/* Compact grid layout */}
               <div className="grid grid-cols-3 gap-2 text-xs">
                 {Object.entries(instructionCategories).map(([category, instructions]) => (
                   <div key={category} className="space-y-1">
@@ -884,6 +905,7 @@ export default function CuttingOptimizationFixed() {
                   <option value="Plasma cutter">Plasma cutter</option>
                   <option value="Oxy-fuel cutting">Oxy-fuel cutting</option>
                 </select>
+              </div>
               </div>
             </div>
 
