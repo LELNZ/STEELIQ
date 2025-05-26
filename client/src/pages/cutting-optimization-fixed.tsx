@@ -342,13 +342,7 @@ export default function CuttingOptimizationFixed() {
             materialCode: materialCode,
             totalCuttingTime: barCuts.reduce((sum, cut) => sum + (cut.cuttingTime || 10), 0),
             totalHandlingTime: barCuts.reduce((sum, cut) => sum + (cut.handlingTime || 3), 0),
-            totalWeight: barCuts.reduce((sum, cut) => sum + (cut.weight || 0), 0),
-            instructions: {
-              general: 'Deburr all edges after cutting',
-              cuttingMethod: 'Bandsaw - standard setup',
-              heatNumber: 'TBD',
-              millCertNumber: 'TBD'
-            }
+            totalWeight: barCuts.reduce((sum, cut) => sum + (cut.weight || 0), 0)
           });
         }
         

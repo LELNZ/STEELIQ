@@ -345,9 +345,25 @@ export default function StandardCuttingPlan({
       
       const pageWidth = 210; // A4 width in mm
       const pageHeight = 297; // A4 height in mm
-      const margin = 8; // Reduced margin for better use of space
+      const margin = 10; // Professional margin
       const printWidth = pageWidth - (margin * 2);
       const printHeight = pageHeight - (margin * 2);
+
+      // Add header with professional title
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('CUTTING OPTIMIZATION REPORT', pageWidth / 2, 20, { align: 'center' });
+      
+      // Add job details
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      const currentDate = new Date().toLocaleDateString();
+      const currentTime = new Date().toLocaleTimeString();
+      pdf.text(`Generated: ${currentDate} ${currentTime}`, margin, 30);
+      if (jobNumber) {
+        pdf.text(`Job: ${jobNumber}`, margin, 35);
+      }
+      pdf.text(`Material: ${materialCode}`, margin, 40);
       
       // Calculate scaling to ensure text remains crisp
       const imgAspectRatio = canvas.width / canvas.height;
@@ -480,7 +496,7 @@ export default function StandardCuttingPlan({
               </Button>
               <Button variant="outline" size="sm" onClick={handleExport}>
                 <Download className="h-4 w-4 mr-2" />
-                Export
+                Export PDF
               </Button>
             </div>
           </div>
@@ -618,37 +634,7 @@ export default function StandardCuttingPlan({
           </CardHeader>
           
           <CardContent>
-            {/* Plan Level Instructions */}
-            {plan.instructions && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  {plan.instructions.general && (
-                    <div>
-                      <span className="font-medium">General Instructions:</span>
-                      <p className="text-blue-700">{plan.instructions.general}</p>
-                    </div>
-                  )}
-                  {plan.instructions.cuttingMethod && (
-                    <div>
-                      <span className="font-medium">Cutting Method:</span>
-                      <p className="text-blue-700">{plan.instructions.cuttingMethod}</p>
-                    </div>
-                  )}
-                  {plan.instructions.heatNumber && (
-                    <div>
-                      <span className="font-medium">Heat Number:</span>
-                      <p className="text-blue-700 font-mono">{plan.instructions.heatNumber}</p>
-                    </div>
-                  )}
-                  {plan.instructions.millCertNumber && (
-                    <div>
-                      <span className="font-medium">Mill Cert:</span>
-                      <p className="text-blue-700 font-mono">{plan.instructions.millCertNumber}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+
 
             <Table>
               <TableHeader>
