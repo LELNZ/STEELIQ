@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -354,6 +354,34 @@ export default function CuttingOptimizationNew() {
   const [simulationHistory, setSimulationHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Load simulation history from localStorage on component mount
+  useEffect(() => {
+    const loadSimulationHistory = () => {
+      try {
+        const stored = localStorage.getItem('cutting_simulations');
+        if (stored) {
+          const simulations = JSON.parse(stored);
+          // Filter out expired simulations (older than 7 days)
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          const validSimulations = simulations.filter((sim: any) => 
+            new Date(sim.createdAt) > sevenDaysAgo
+          );
+          setSimulationHistory(validSimulations);
+          
+          // Update localStorage with filtered data
+          if (validSimulations.length !== simulations.length) {
+            localStorage.setItem('cutting_simulations', JSON.stringify(validSimulations));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading simulation history:', error);
+      }
+    };
+
+    loadSimulationHistory();
+  }, []);;
+
   // Fetch materials for search integration
   const { data: materialsData = [] } = useQuery<Material[]>({
     queryKey: ["/api/materials"],
@@ -426,19 +454,50 @@ export default function CuttingOptimizationNew() {
     const results = runOptimization(cutRequirements, stockItems);
     setOptimizationResult(results);
     
-    // Save to simulation history
+    // Save to simulation history with localStorage persistence
     const simulation = {
       id: `SIM-${Date.now()}`,
       timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       algorithm: selectedAlgorithm,
-      cutRequirements: [...cutRequirements],
-      stockItems: [...stockItems],
+      cutRequirements: JSON.stringify(cutRequirements),
+      stockItems: JSON.stringify(stockItems),
+      optimizationData: JSON.stringify(results),
       results: results,
       efficiency: results.reduce((acc: number, plan: any) => acc + plan.efficiency, 0) / results.length,
-      totalWaste: results.reduce((acc: number, plan: any) => acc + plan.wasteLength, 0)
+      totalWaste: results.reduce((acc: number, plan: any) => acc + plan.wasteLength, 0),
+      summary: JSON.stringify({
+        totalMaterials: results.length,
+        totalCuts: results.reduce((acc: number, plan: any) => acc + plan.totalCuts, 0),
+        totalWaste: results.reduce((acc: number, plan: any) => acc + plan.wasteLength, 0),
+        avgEfficiency: results.reduce((acc: number, plan: any) => acc + plan.efficiency, 0) / results.length
+      })
     };
     
-    setSimulationHistory(prev => [simulation, ...prev.slice(0, 19)]); // Keep last 20
+    // Update local state
+    setSimulationHistory(prev => [simulation, ...prev.slice(0, 19)]);
+    
+    // Save to localStorage with 7-day expiration
+    try {
+      const existing = localStorage.getItem('cutting_simulations');
+      const simulations = existing ? JSON.parse(existing) : [];
+      
+      // Filter out expired simulations (older than 7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const validSimulations = simulations.filter((sim: any) => 
+        new Date(sim.createdAt) > sevenDaysAgo
+      );
+      
+      // Add new simulation and keep most recent ones
+      const updatedSimulations = [simulation, ...validSimulations].slice(0, 50);
+      localStorage.setItem('cutting_simulations', JSON.stringify(updatedSimulations));
+      
+      // Dispatch event for history components to update
+      window.dispatchEvent(new CustomEvent('simulation-saved'));
+    } catch (error) {
+      console.error('Error saving simulation to localStorage:', error);
+    }
     setIsOptimizing(false);
   };
 
@@ -844,6 +903,64 @@ export default function CuttingOptimizationNew() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Simulation History Panel */}
+        {showHistory && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <History className="w-5 h-5" />
+                  Simulation History
+                </CardTitle>
+                <Badge variant="outline" className="text-xs">
+                  {simulationHistory.length} saved
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {simulationHistory.length === 0 ? (
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No saved simulations</h3>
+                  <p className="text-muted-foreground">
+                    Run an optimization to save your first simulation
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {simulationHistory.slice(0, 10).map((sim) => (
+                    <div key={sim.id} className="p-4 border rounded-lg bg-card hover:bg-muted/50 cursor-pointer transition-colors"
+                         onClick={() => loadSimulation(sim)}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {sim.id}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(sim.createdAt).toLocaleDateString()} {new Date(sim.createdAt).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium">{sim.efficiency?.toFixed(1)}% efficient</div>
+                          <div className="text-sm text-muted-foreground">{sim.totalWaste?.toFixed(0)}mm waste</div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Algorithm: {sim.algorithm} • Materials: {sim.results?.length || 0}
+                      </div>
+                    </div>
+                  ))}
+                  {simulationHistory.length > 10 && (
+                    <div className="text-center text-sm text-muted-foreground pt-2">
+                      Showing 10 of {simulationHistory.length} simulations. Scroll to see more.
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Full Width Results Section */}
         {optimizationResult ? (
