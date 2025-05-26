@@ -72,12 +72,16 @@ interface StandardCuttingPlanProps {
   plans: CutPlan[];
   materialCode?: string;
   jobNumber?: string;
+  generalInstructions?: string[];
+  cuttingMethod?: string;
 }
 
 export default function StandardCuttingPlan({ 
   plans, 
   materialCode = "Material", 
-  jobNumber 
+  jobNumber,
+  generalInstructions = [],
+  cuttingMethod = "Bandsaw - standard setup"
 }: StandardCuttingPlanProps) {
   
   const calculateTotalStats = () => {
@@ -528,6 +532,43 @@ export default function StandardCuttingPlan({
         </CardContent>
       </Card>
 
+      {/* General Instructions & Cutting Method */}
+      {(generalInstructions.length > 0 || cuttingMethod) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Clipboard className="h-5 w-5" />
+              Plan Instructions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Cutting Method */}
+              <div>
+                <h4 className="font-medium mb-2 text-blue-800">Cutting Method</h4>
+                <div className="p-2 bg-blue-50 rounded border">
+                  <span className="text-sm">{cuttingMethod}</span>
+                </div>
+              </div>
+              
+              {/* General Instructions */}
+              {generalInstructions.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2 text-blue-800">General Instructions</h4>
+                  <div className="space-y-1">
+                    {generalInstructions.map((instruction, index) => (
+                      <div key={index} className="p-2 bg-blue-50 rounded border text-sm">
+                        • {instruction}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Detailed Cutting Plans */}
       {plans.map((plan, planIndex) => (
         <Card key={planIndex}>
@@ -682,16 +723,16 @@ export default function StandardCuttingPlan({
                       
                       <TableCell className="py-2">
                         <div className="space-y-1">
-                          {cut.cuttingInstructions && (
-                            <div className="text-sm font-medium text-blue-600">
-                              {cut.cuttingInstructions}
-                            </div>
-                          )}
-                          {cut.description && (
+                          {cut.description && cut.description.trim() !== '' && (
                             <div className="text-sm text-muted-foreground">
                               {cut.description}
                             </div>
                           )}
+                          {!cut.description || cut.description.trim() === '' ? (
+                            <div className="text-xs text-muted-foreground italic">
+                              No specific instructions
+                            </div>
+                          ) : null}
                         </div>
                       </TableCell>
                     </TableRow>

@@ -70,6 +70,7 @@ export default function CuttingOptimizationFixed() {
   // General instructions for cutting plans
   const [generalInstructions, setGeneralInstructions] = useState<string[]>([]);
   const [customInstruction, setCustomInstruction] = useState("");
+  const [cuttingMethod, setCuttingMethod] = useState("Bandsaw - standard setup");
 
   // Quick-select instruction categories
   const instructionCategories = {
