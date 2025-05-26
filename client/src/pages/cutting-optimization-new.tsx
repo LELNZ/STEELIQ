@@ -1,19 +1,24 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Scissors, Plus, Trash2, Play, Zap } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Scissors, Plus, Trash2, Play, Zap, History, Briefcase, Settings } from "lucide-react";
 import StandardCuttingPlan from "@/components/optimization/standard-cutting-plan";
+import InstantMaterialSearch from "@/components/materials/instant-material-search";
+import { Material } from "@shared/schema";
 
 interface CutRequirement {
   id: string;
   length: number;
   quantity: number;
   materialCode: string;
-  startAngle?: number;
-  endAngle?: number;
+  firstCutAngle: number;  // Right end cut (first cut in bandsaw operation)
+  secondCutAngle: number; // Left end cut (second cut in bandsaw operation)
   description?: string;
 }
 
@@ -117,12 +122,25 @@ export default function CuttingOptimizationNew() {
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [optimizationResult, setOptimizationResult] = useState<any>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  
+  // Advanced settings
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("multi");
+  const [isJobMode, setIsJobMode] = useState(false);
+  const [simulationHistory, setSimulationHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
-  // New cut requirement form
+  // Fetch materials for search integration
+  const { data: materialsData = [] } = useQuery<Material[]>({
+    queryKey: ["/api/materials"],
+  });
+
+  // New cut requirement form with proper angles
   const [newCut, setNewCut] = useState({
     length: "",
     quantity: "1",
     materialCode: "",
+    firstCutAngle: 90,  // Right end (first cut)
+    secondCutAngle: 90, // Left end (second cut)
     description: ""
   });
 
@@ -140,12 +158,19 @@ export default function CuttingOptimizationNew() {
         length: parseFloat(newCut.length),
         quantity: parseInt(newCut.quantity),
         materialCode: newCut.materialCode,
-        description: newCut.description,
-        startAngle: 90,
-        endAngle: 90
+        firstCutAngle: newCut.firstCutAngle,
+        secondCutAngle: newCut.secondCutAngle,
+        description: newCut.description
       };
       setCutRequirements([...cutRequirements, cutRequirement]);
-      setNewCut({ length: "", quantity: "1", materialCode: "", description: "" });
+      setNewCut({ 
+        length: "", 
+        quantity: "1", 
+        materialCode: "", 
+        firstCutAngle: 90,
+        secondCutAngle: 90,
+        description: "" 
+      });
     }
   };
 
@@ -167,24 +192,147 @@ export default function CuttingOptimizationNew() {
 
     setIsOptimizing(true);
     
-    // Simulate optimization processing
+    // Simulate optimization processing based on selected algorithm
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     const results = runOptimization(cutRequirements, stockItems);
     setOptimizationResult(results);
+    
+    // Save to simulation history
+    const simulation = {
+      id: `SIM-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      algorithm: selectedAlgorithm,
+      cutRequirements: [...cutRequirements],
+      stockItems: [...stockItems],
+      results: results,
+      efficiency: results.reduce((acc: number, plan: any) => acc + plan.efficiency, 0) / results.length,
+      totalWaste: results.reduce((acc: number, plan: any) => acc + plan.wasteLength, 0)
+    };
+    
+    setSimulationHistory(prev => [simulation, ...prev.slice(0, 19)]); // Keep last 20
     setIsOptimizing(false);
+  };
+
+  const loadSimulation = (simulation: any) => {
+    setCutRequirements(simulation.cutRequirements);
+    setStockItems(simulation.stockItems);
+    setOptimizationResult(simulation.results);
+    setSelectedAlgorithm(simulation.algorithm);
   };
 
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-[1800px] mx-auto space-y-6">
         {/* Header */}
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Steel Cutting Optimization</h1>
-          <p className="text-muted-foreground">
-            Professional workshop cutting plans with detailed specifications and traceability
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Cutting Optimization</h1>
+            <p className="text-muted-foreground mt-1">
+              Professional workshop-ready cutting plans with minimal waste
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+              className="flex items-center gap-2"
+            >
+              <History className="w-4 h-4" />
+              History ({simulationHistory.length})
+            </Button>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={isJobMode}
+                onCheckedChange={setIsJobMode}
+                id="job-mode"
+              />
+              <Label htmlFor="job-mode" className="flex items-center gap-2">
+                <Briefcase className="w-4 h-4" />
+                Job Mode
+              </Label>
+            </div>
+            <Badge variant="outline" className="px-3 py-1">
+              <Zap className="w-4 h-4 mr-2" />
+              Enhanced
+            </Badge>
+          </div>
         </div>
+
+        {/* Algorithm Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Optimization Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Label htmlFor="algorithm">Cutting Algorithm</Label>
+                <Select value={selectedAlgorithm} onValueChange={setSelectedAlgorithm}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select algorithm" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="multi">Multi-Algorithm (Recommended)</SelectItem>
+                    <SelectItem value="firstfit">First Fit Decreasing</SelectItem>
+                    <SelectItem value="bestfit">Best Fit Decreasing</SelectItem>
+                    <SelectItem value="genetic">Genetic Algorithm</SelectItem>
+                    <SelectItem value="binpacking">Advanced Bin Packing</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {selectedAlgorithm === "multi" && "Uses multiple algorithms and selects the best result"}
+                {selectedAlgorithm === "firstfit" && "Fast algorithm, good for simple cuts"}
+                {selectedAlgorithm === "bestfit" && "Optimizes for minimal waste"}
+                {selectedAlgorithm === "genetic" && "Advanced optimization for complex requirements"}
+                {selectedAlgorithm === "binpacking" && "Specialized for maximum material utilization"}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Simulation History Panel */}
+        {showHistory && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="w-5 h-5" />
+                Simulation History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {simulationHistory.length === 0 ? (
+                <p className="text-muted-foreground">No simulations yet. Run an optimization to see history.</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {simulationHistory.map((sim) => (
+                    <div
+                      key={sim.id}
+                      className="flex items-center justify-between p-3 border rounded cursor-pointer hover:bg-muted/50"
+                      onClick={() => loadSimulation(sim)}
+                    >
+                      <div>
+                        <div className="font-medium">{sim.id}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {new Date(sim.timestamp).toLocaleString()} • {sim.algorithm}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">{sim.efficiency.toFixed(1)}% efficient</div>
+                        <div className="text-sm text-muted-foreground">{sim.totalWaste.toFixed(0)}mm waste</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Left Column - Input */}
@@ -222,12 +370,43 @@ export default function CuttingOptimizationNew() {
                     </div>
                     <div>
                       <Label htmlFor="cut-material">Material Code</Label>
-                      <Input
-                        id="cut-material"
+                      <InstantMaterialSearch
+                        materials={materialsData}
+                        onSelect={(material) => setNewCut({ ...newCut, materialCode: material.code })}
+                        placeholder="Search materials..."
                         value={newCut.materialCode}
-                        onChange={(e) => setNewCut({ ...newCut, materialCode: e.target.value })}
-                        placeholder="UB200x100"
+                        onChange={(value) => setNewCut({ ...newCut, materialCode: value })}
                       />
+                    </div>
+                  </div>
+                  
+                  {/* Cut Angles - Proper Bandsaw Orientation */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="first-cut-angle">First Cut Angle (Right End)</Label>
+                      <Input
+                        id="first-cut-angle"
+                        type="number"
+                        value={newCut.firstCutAngle}
+                        onChange={(e) => setNewCut({ ...newCut, firstCutAngle: parseInt(e.target.value) })}
+                        min="0"
+                        max="90"
+                        placeholder="90"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Right end cut (first in bandsaw operation)</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="second-cut-angle">Second Cut Angle (Left End)</Label>
+                      <Input
+                        id="second-cut-angle"
+                        type="number"
+                        value={newCut.secondCutAngle}
+                        onChange={(e) => setNewCut({ ...newCut, secondCutAngle: parseInt(e.target.value) })}
+                        min="0"
+                        max="90"
+                        placeholder="90"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Left end cut (second in bandsaw operation)</p>
                     </div>
                   </div>
                   <div>
