@@ -67,6 +67,32 @@ export default function CuttingOptimizationFixed() {
     queryKey: ["/api/materials"],
   });
 
+  // General instructions for cutting plans
+  const [generalInstructions, setGeneralInstructions] = useState<string[]>([]);
+  const [customInstruction, setCustomInstruction] = useState("");
+
+  // Quick-select instruction categories
+  const instructionCategories = {
+    safety: [
+      "Wear correct PPE - safety glasses, gloves, ear protection",
+      "Use two-person lift for heavy pieces",
+      "Use crane for over 40.1kg pieces",
+      "Handle with care - structural steel"
+    ],
+    finishing: [
+      "Deburr all edges after cutting",
+      "Bevel edges as per drawing specifications",
+      "File cut ends to remove sharp edges",
+      "Stack on pallet when complete"
+    ],
+    quality: [
+      "Check dimensions before cutting",
+      "Mark cut sequence numbers on material",
+      "Verify angles with protractor before cutting",
+      "Measure twice, cut once"
+    ]
+  };
+
   // Form state
   const [newCut, setNewCut] = useState({
     length: "",
@@ -75,7 +101,8 @@ export default function CuttingOptimizationFixed() {
     firstCutAngle: 90,
     secondCutAngle: 90,
     kerfWidth: 2.4,
-    description: ""
+    description: "",
+    specificInstructions: ""
   });
 
   const [newStock, setNewStock] = useState({
@@ -496,7 +523,8 @@ export default function CuttingOptimizationFixed() {
         firstCutAngle: 90,
         secondCutAngle: 90,
         kerfWidth: 2.4,
-        description: "" 
+        description: "",
+        specificInstructions: ""
       });
     }
   };
@@ -781,10 +809,102 @@ export default function CuttingOptimizationFixed() {
                   className="h-8"
                 />
               </div>
+
+              {/* Specific Instructions for Individual Cut */}
+              <div>
+                <Label htmlFor="specific-instructions" className="text-xs">Specific Instructions (Optional)</Label>
+                <Input
+                  id="specific-instructions"
+                  value={newCut.specificInstructions}
+                  onChange={(e) => setNewCut({ ...newCut, specificInstructions: e.target.value })}
+                  placeholder="Special handling for this cut..."
+                  className="h-8"
+                />
+              </div>
+
               <Button onClick={handleAddCut} className="w-full">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Cut Requirement
               </Button>
+            </div>
+
+            {/* General Instructions Card */}
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-medium mb-3 text-blue-800">General Instructions</h4>
+              
+              {/* Quick-select by category */}
+              <div className="space-y-3">
+                {Object.entries(instructionCategories).map(([category, instructions]) => (
+                  <div key={category}>
+                    <Label className="text-xs font-medium text-blue-700 capitalize mb-1 block">{category}</Label>
+                    <div className="grid grid-cols-1 gap-1">
+                      {instructions.map((instruction, index) => (
+                        <label key={index} className="flex items-center space-x-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={generalInstructions.includes(instruction)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setGeneralInstructions([...generalInstructions, instruction]);
+                              } else {
+                                setGeneralInstructions(generalInstructions.filter(i => i !== instruction));
+                              }
+                            }}
+                            className="h-3 w-3"
+                          />
+                          <span className="text-slate-700">{instruction}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Custom instruction input */}
+              <div className="mt-3">
+                <Label htmlFor="custom-instruction" className="text-xs font-medium text-blue-700">Custom Instruction</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="custom-instruction"
+                    value={customInstruction}
+                    onChange={(e) => setCustomInstruction(e.target.value)}
+                    placeholder="Enter custom instruction..."
+                    className="h-8 text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (customInstruction.trim()) {
+                        setGeneralInstructions([...generalInstructions, customInstruction.trim()]);
+                        setCustomInstruction("");
+                      }
+                    }}
+                    className="h-8"
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+
+              {/* Selected instructions display */}
+              {generalInstructions.length > 0 && (
+                <div className="mt-3 p-2 bg-white rounded border">
+                  <Label className="text-xs font-medium text-blue-700 mb-1 block">Selected Instructions:</Label>
+                  <div className="space-y-1">
+                    {generalInstructions.map((instruction, index) => (
+                      <div key={index} className="flex items-center justify-between text-xs bg-blue-100 px-2 py-1 rounded">
+                        <span>{instruction}</span>
+                        <button
+                          onClick={() => setGeneralInstructions(generalInstructions.filter((_, i) => i !== index))}
+                          className="text-blue-600 hover:text-blue-800 ml-2"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Material requirements summary */}
