@@ -30,6 +30,7 @@ interface CutRequirement {
   secondCutAngle: number;
   kerfWidth?: number;
   description?: string;
+  instructions?: string;
 }
 
 interface StockItem {
@@ -934,41 +935,62 @@ export default function CuttingOptimizationFixed() {
               </div>
             )}
 
-            {/* Cut requirements list */}
-            <div className="space-y-2">
+            {/* Cut requirements list - Compact with editable columns */}
+            <div className="space-y-1">
               {cutRequirements.map((cut, index) => (
-                <div key={cut.id} className="flex items-center justify-between p-3 border rounded">
-                  <div className="flex items-center gap-2 flex-1">
-                    <Badge variant="outline">{cut.materialCode}</Badge>
-                    <span className="font-medium">{cut.length}mm</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm text-muted-foreground">×</span>
-                      <Input
-                        type="number"
-                        value={cut.quantity}
-                        onChange={(e) => {
-                          const newQuantity = parseInt(e.target.value) || 1;
-                          const updatedRequirements = [...cutRequirements];
-                          updatedRequirements[index] = { ...cut, quantity: newQuantity };
-                          setCutRequirements(updatedRequirements);
-                        }}
-                        className="w-16 h-7 text-sm"
-                        min="1"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <span>Angles: {cut.firstCutAngle}°/{cut.secondCutAngle}°</span>
-                    </div>
-                    {cut.description && (
-                      <span className="text-sm text-muted-foreground">- {cut.description}</span>
-                    )}
+                <div key={cut.id} className="flex items-center gap-2 p-2 border rounded text-sm">
+                  <Badge variant="outline" className="text-xs px-2 py-0.5">{cut.materialCode}</Badge>
+                  <span className="font-medium">{cut.length}mm</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-muted-foreground">×</span>
+                    <Input
+                      type="number"
+                      value={cut.quantity}
+                      onChange={(e) => {
+                        const newQuantity = parseInt(e.target.value) || 1;
+                        const updatedRequirements = [...cutRequirements];
+                        updatedRequirements[index] = { ...cut, quantity: newQuantity };
+                        setCutRequirements(updatedRequirements);
+                      }}
+                      className="w-12 h-6 text-xs"
+                      min="1"
+                    />
                   </div>
+                  <span className="text-xs text-muted-foreground">Angles: {cut.firstCutAngle}°/{cut.secondCutAngle}°</span>
+                  
+                  {/* Editable Description */}
+                  <Input
+                    type="text"
+                    placeholder="Description..."
+                    value={cut.description || ''}
+                    onChange={(e) => {
+                      const updatedRequirements = [...cutRequirements];
+                      updatedRequirements[index] = { ...cut, description: e.target.value };
+                      setCutRequirements(updatedRequirements);
+                    }}
+                    className="h-6 text-xs flex-1 min-w-20"
+                  />
+                  
+                  {/* Editable Instructions */}
+                  <Input
+                    type="text"
+                    placeholder="Instructions..."
+                    value={cut.instructions || ''}
+                    onChange={(e) => {
+                      const updatedRequirements = [...cutRequirements];
+                      updatedRequirements[index] = { ...cut, instructions: e.target.value };
+                      setCutRequirements(updatedRequirements);
+                    }}
+                    className="h-6 text-xs flex-1 min-w-20"
+                  />
+                  
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setCutRequirements(cutRequirements.filter((_, i) => i !== index))}
+                    className="h-6 w-6 p-0 flex-shrink-0"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
               ))}
