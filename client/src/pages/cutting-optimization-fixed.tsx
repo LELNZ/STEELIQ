@@ -14,8 +14,7 @@ import {
   Zap,
   Clock,
   History,
-  Info,
-  Settings
+  Info
 } from "lucide-react";
 import InstantMaterialSearch from "@/components/materials/instant-material-search";
 import StandardCuttingPlan from "@/components/optimization/standard-cutting-plan";
@@ -79,8 +78,6 @@ export default function CuttingOptimizationFixed() {
     quantity: "1",
     materialCode: ""
   });
-
-  const [useAngleGrouping, setUseAngleGrouping] = useState(false);
 
   // Load simulation history
   useEffect(() => {
@@ -176,23 +173,8 @@ export default function CuttingOptimizationFixed() {
         }
       });
 
-      // Apply sorting strategy based on user selection
-      if (useAngleGrouping) {
-        // Smart angle grouping: Group by first cut angle, then by length
-        allCuts.sort((a, b) => {
-          // Primary: Group by first cut angle (90° first, then others)
-          if (a.firstCutAngle !== b.firstCutAngle) {
-            if (a.firstCutAngle === 90) return -1;
-            if (b.firstCutAngle === 90) return 1;
-            return a.firstCutAngle - b.firstCutAngle;
-          }
-          // Secondary: Longest first within same angle group
-          return b.length - a.length;
-        });
-      } else {
-        // Standard: Sort cuts by length (longest first for better optimization)
-        allCuts.sort((a, b) => b.length - a.length);
-      }
+      // Sort cuts by length (longest first for better optimization)
+      allCuts.sort((a, b) => b.length - a.length);
 
       // Smart stock selection: Calculate waste efficiency for each stock length
       const stockWithEfficiency = availableStock.map(stock => {
@@ -223,24 +205,23 @@ export default function CuttingOptimizationFixed() {
       });
 
       // Distribute cuts across optimally selected stock bars
-      let stockBarIndex = 0;
-      while (allCuts.length > 0 && stockBarIndex < sortedStock.length) {
-        const stockBar = sortedStock[stockBarIndex];
+      sortedStock.forEach((stockBar, stockIndex) => {
+        if (allCuts.length === 0) return;
+
         let currentPosition = 0;
         const barCuts: any[] = [];
         let cutSequence = 1;
 
-        // Fit cuts on this bar - try all remaining cuts
+        // Fit cuts on this bar
         let i = 0;
-        while (i < allCuts.length) {
+        while (i < allCuts.length && currentPosition < stockBar.length) {
           const cut = allCuts[i];
           const kerfWidth = cut.kerfWidth || 2.4;
           
           if (currentPosition + cut.length + kerfWidth <= stockBar.length) {
-            // Calculate handling time and weight based on piece
+            // Calculate handling time based on piece weight
             const category = getMaterialWeightCategory(materialCode, cut.length);
             const handlingTime = handlingTimes[category].total;
-            const { weightPerMeter, totalWeight } = getMaterialWeight(materialCode, cut.length);
             
             // Cut fits on this bar
             barCuts.push({
@@ -255,9 +236,7 @@ export default function CuttingOptimizationFixed() {
               materialCode: materialCode,
               cuttingTime: (cut.firstCutAngle === 90 && cut.secondCutAngle === 90) ? 10 : 12,
               handlingTime: handlingTime,
-              kerfWidth: kerfWidth,
-              weightPerMeter: weightPerMeter,
-              partWeight: totalWeight
+              kerfWidth: kerfWidth
             });
             
             currentPosition += cut.length + kerfWidth;
@@ -271,38 +250,31 @@ export default function CuttingOptimizationFixed() {
           }
         }
 
-        // If no cuts could fit on this bar, try the next bar
-        if (barCuts.length === 0) {
-          stockBarIndex++;
-          continue;
+        // Create cutting plan for this bar if it has cuts
+        if (barCuts.length > 0) {
+          const totalCutLength = barCuts.reduce((sum, cut) => sum + cut.length, 0);
+          const wasteLength = stockBar.length - currentPosition;
+          const efficiency = ((totalCutLength / stockBar.length) * 100);
+
+          plans.push({
+            id: `${materialCode}-bar-${stockIndex + 1}`,
+            stockLength: stockBar.length,
+            cuts: barCuts,
+            wasteLength: wasteLength,
+            efficiency: Math.round(efficiency * 10) / 10,
+            totalCuts: barCuts.length,
+            materialCode: materialCode,
+            totalCuttingTime: barCuts.reduce((sum, cut) => sum + (cut.cuttingTime || 10), 0),
+            totalHandlingTime: barCuts.reduce((sum, cut) => sum + (cut.handlingTime || 3), 0),
+            instructions: {
+              general: 'Deburr all edges after cutting',
+              cuttingMethod: 'Bandsaw - standard setup',
+              heatNumber: 'H12345-2024',
+              millCertNumber: 'MC-789456'
+            }
+          });
         }
-
-        // Create cutting plan for this bar
-        const totalCutLength = barCuts.reduce((sum, cut) => sum + cut.length, 0);
-        const wasteLength = stockBar.length - currentPosition;
-        const efficiency = ((totalCutLength / stockBar.length) * 100);
-
-        plans.push({
-          id: `${materialCode}-bar-${stockBarIndex + 1}`,
-          stockLength: stockBar.length,
-          cuts: barCuts,
-          wasteLength: wasteLength,
-          efficiency: Math.round(efficiency * 10) / 10,
-          totalCuts: barCuts.length,
-          materialCode: materialCode,
-          totalCuttingTime: barCuts.reduce((sum, cut) => sum + (cut.cuttingTime || 10), 0),
-          totalHandlingTime: barCuts.reduce((sum, cut) => sum + (cut.handlingTime || 3), 0),
-          instructions: {
-            general: 'Deburr all edges after cutting',
-            cuttingMethod: 'Bandsaw - standard setup',
-            heatNumber: 'H12345-2024',
-            millCertNumber: 'MC-789456'
-          }
-        });
-
-        // Move to next stock bar
-        stockBarIndex++;
-      }
+      });
     });
 
     return plans;
@@ -1030,36 +1002,6 @@ export default function CuttingOptimizationFixed() {
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Optimization Strategy */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Cutting Strategy
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="angle-grouping"
-                    checked={useAngleGrouping}
-                    onChange={(e) => setUseAngleGrouping(e.target.checked)}
-                    className="rounded border-gray-300"
-                  />
-                  <label htmlFor="angle-grouping" className="text-sm font-medium">
-                    Smart Angle Grouping
-                  </label>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {useAngleGrouping 
-                    ? "Groups cuts by angle to minimize bandsaw setup time (90° cuts first, then others)" 
-                    : "Standard optimization prioritizes longest cuts first for maximum material efficiency"
-                  }
-                </p>
               </CardContent>
             </Card>
 
