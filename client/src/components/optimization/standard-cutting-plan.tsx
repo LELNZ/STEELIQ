@@ -230,14 +230,14 @@ export default function StandardCuttingPlan({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="pt-2">
-                <ul className="space-y-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1">
                   {generalInstructions.map((instruction, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm">
-                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></span>
-                      <span>{instruction}</span>
-                    </li>
+                    <div key={index} className="flex items-start gap-2 text-xs">
+                      <span className="w-1 h-1 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                      <span className="leading-tight">{instruction}</span>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             </CollapsibleContent>
           </Card>
