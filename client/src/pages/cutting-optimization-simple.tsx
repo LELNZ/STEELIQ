@@ -74,7 +74,7 @@ export default function CuttingOptimizationSimple() {
   });
 
   // Materials query
-  const { data: materialsData = [], isLoading: materialsLoading } = useQuery<Material[]>({
+  const { data: materialsData, isLoading: materialsLoading } = useQuery<Material[]>({
     queryKey: ['/api/materials'],
   });
 
@@ -111,7 +111,7 @@ export default function CuttingOptimizationSimple() {
   // Get material weight from database and determine category
   const getMaterialWeight = (materialCode: string, length: number): { weightPerMeter: number; totalWeight: number; category: 'crane' | 'heavy' | 'medium' | 'light' } => {
     // Return safe defaults if materials are still loading
-    if (!materialsData || materialsData.length === 0) {
+    if (!materialsData) {
       return { weightPerMeter: 10, totalWeight: 0.1, category: 'light' };
     }
     
