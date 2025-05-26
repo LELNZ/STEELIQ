@@ -49,6 +49,7 @@ export default function CuttingOptimizationWorking() {
   const [simulationHistory, setSimulationHistory] = useState<any[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [useAngleGrouping, setUseAngleGrouping] = useState(false);
+  const [loadingSimulation, setLoadingSimulation] = useState(false);
 
   const [newCut, setNewCut] = useState({
     length: "",
@@ -312,7 +313,10 @@ export default function CuttingOptimizationWorking() {
         result: result,
         totalWaste: totalWaste,
         efficiency: avgEfficiency,
-        useAngleGrouping: useAngleGrouping
+        useAngleGrouping: useAngleGrouping,
+        handlingTimes: handlingTimes,
+        totalCuts: result.reduce((acc: number, plan: any) => acc + plan.totalCuts, 0),
+        totalPlans: result.length
       };
       
       setSimulationHistory(prev => [simulation, ...prev.slice(0, 9)]);
@@ -336,12 +340,72 @@ export default function CuttingOptimizationWorking() {
     return `${Math.floor(diffMinutes / 1440)}d ago`;
   };
 
-  const loadSimulation = (sim: any) => {
-    setCutRequirements(sim.cuts || []);
-    setStockItems(sim.stock || []);
-    setOptimizationResult(sim.result);
-    setUseAngleGrouping(sim.useAngleGrouping || false);
-    setShowHistory(false);
+  const loadSimulation = async (sim: any) => {
+    setLoadingSimulation(true);
+    
+    try {
+      console.log('Loading simulation:', sim);
+      
+      // Clear current state first
+      setCutRequirements([]);
+      setStockItems([]);
+      setOptimizationResult(null);
+      
+      // Small delay to show loading state
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Load cut requirements with proper validation
+      if (sim.cuts && Array.isArray(sim.cuts)) {
+        const validatedCuts = sim.cuts.map((cut: any) => ({
+          id: cut.id || `cut-${Date.now()}-${Math.random()}`,
+          length: parseInt(cut.length) || 0,
+          quantity: parseInt(cut.quantity) || 1,
+          materialCode: cut.materialCode || '',
+          firstCutAngle: cut.firstCutAngle || 90,
+          secondCutAngle: cut.secondCutAngle || 90,
+          kerfWidth: cut.kerfWidth || 2.4,
+          description: cut.description || ''
+        }));
+        setCutRequirements(validatedCuts);
+        console.log('Loaded cut requirements:', validatedCuts);
+      }
+      
+      // Load stock items with proper validation
+      if (sim.stock && Array.isArray(sim.stock)) {
+        const validatedStock = sim.stock.map((stock: any) => ({
+          id: stock.id || `stock-${Date.now()}-${Math.random()}`,
+          length: parseInt(stock.length) || 0,
+          quantity: parseInt(stock.quantity) || 1,
+          materialCode: stock.materialCode || ''
+        }));
+        setStockItems(validatedStock);
+        console.log('Loaded stock items:', validatedStock);
+      }
+      
+      // Load optimization result if it exists
+      if (sim.result && Array.isArray(sim.result)) {
+        setOptimizationResult(sim.result);
+        console.log('Loaded optimization result:', sim.result);
+      }
+      
+      // Load angle grouping setting
+      setUseAngleGrouping(sim.useAngleGrouping || false);
+      
+      // Update handling times if saved in simulation
+      if (sim.handlingTimes) {
+        setHandlingTimes(sim.handlingTimes);
+      }
+      
+      // Close history panel
+      setShowHistory(false);
+      
+      console.log('Simulation loaded successfully');
+      
+    } catch (error) {
+      console.error('Error loading simulation:', error);
+    } finally {
+      setLoadingSimulation(false);
+    }
   };
 
   return (
@@ -378,24 +442,47 @@ export default function CuttingOptimizationWorking() {
                 {simulationHistory.map((sim) => (
                   <div
                     key={sim.id}
-                    className="flex items-center justify-between p-3 border rounded cursor-pointer hover:bg-muted/50"
-                    onClick={() => loadSimulation(sim)}
+                    className={`flex items-center justify-between p-3 border rounded cursor-pointer transition-colors ${
+                      loadingSimulation ? 'opacity-50 pointer-events-none' : 'hover:bg-muted/50'
+                    }`}
+                    onClick={() => !loadingSimulation && loadSimulation(sim)}
                   >
-                    <div>
+                    <div className="flex-1">
                       <div className="font-medium">{sim.id}</div>
                       <div className="text-sm text-muted-foreground flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {formatRelativeTime(sim.timestamp)}
                       </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {sim.totalCuts || 0} cuts • {sim.totalPlans || 0} plans • {sim.useAngleGrouping ? 'Angle Grouped' : 'Standard'}
+                      </div>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-medium">{sim.efficiency?.toFixed(1) || '0.0'}% efficient</div>
                       <div className="text-sm text-muted-foreground">{sim.totalWaste?.toFixed(0) || '0'}mm waste</div>
+                      <div className="text-xs text-blue-600 mt-1">
+                        {loadingSimulation ? 'Loading...' : 'Click to load'}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loading Simulation Indicator */}
+      {loadingSimulation && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+              <div>
+                <p className="font-medium text-blue-900">Loading Historical Simulation</p>
+                <p className="text-sm text-blue-700">Restoring cut requirements, stock items, and optimization results...</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
