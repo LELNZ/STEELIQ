@@ -484,13 +484,7 @@ export default function CuttingOptimizationFixed() {
             totalCuts: barCuts.length,
             materialCode: materialCode,
             totalCuttingTime: barCuts.reduce((sum, cut) => sum + (cut.cuttingTime || 10), 0),
-            totalHandlingTime: barCuts.reduce((sum, cut) => sum + (cut.handlingTime || 3), 0),
-            instructions: {
-              general: 'Deburr all edges after cutting',
-              cuttingMethod: 'Bandsaw - standard setup',
-              heatNumber: 'H12345-2024',
-              millCertNumber: 'MC-789456'
-            }
+            totalHandlingTime: barCuts.reduce((sum, cut) => sum + (cut.handlingTime || 3), 0)
           });
         }
       });

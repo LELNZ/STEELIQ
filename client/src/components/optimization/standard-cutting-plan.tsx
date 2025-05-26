@@ -752,8 +752,7 @@ export default function StandardCuttingPlan({
                   </TableCell>
                   <TableCell className="text-center">1</TableCell>
                   <TableCell className="text-center">-</TableCell>
-                  <TableCell className="text-red-600 font-medium">
-                    <div>Tag with: {plan.instructions?.heatNumber || 'Heat#'}</div>
+                  <TableCell className="text-red-600 font-medium text-center">
                     <div className="text-xs">
                       {((plan.wasteLength / plan.stockLength) * 100).toFixed(1)}% waste
                     </div>
