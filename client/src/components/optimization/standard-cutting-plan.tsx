@@ -52,7 +52,7 @@ interface StandardCuttingPlanProps {
   cuttingMethod?: string;
 }
 
-export function StandardCuttingPlan({
+export default function StandardCuttingPlan({
   plans,
   materialCode,
   jobNumber = "JOB-2024-001",
@@ -123,7 +123,7 @@ export function StandardCuttingPlan({
     }
   };
 
-  // Group identical cutting sequences - Key feature for reducing page usage
+  // SEQUENCE GROUPING FEATURE - Groups identical cutting sequences to reduce page usage
   const groupedPlans = (() => {
     const processedPlans: Array<{
       plan: CutPlan;
