@@ -482,53 +482,6 @@ export default function CuttingOptimizationNew() {
       setIsOptimizing(false);
     }
   };
-    
-    // Save to simulation history with localStorage persistence
-    const simulation = {
-      id: `SIM-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      algorithm: selectedAlgorithm,
-      cutRequirements: JSON.stringify(cutRequirements),
-      stockItems: JSON.stringify(stockItems),
-      optimizationData: JSON.stringify(results),
-      results: results,
-      efficiency: results.length > 0 ? results.reduce((acc: number, plan: any) => acc + (plan.efficiency || 0), 0) / results.length : 0,
-      totalWaste: results.reduce((acc: number, plan: any) => acc + (plan.wasteLength || 0), 0),
-      summary: JSON.stringify({
-        totalMaterials: results.length,
-        totalCuts: results.reduce((acc: number, plan: any) => acc + (plan.totalCuts || 0), 0),
-        totalWaste: results.reduce((acc: number, plan: any) => acc + (plan.wasteLength || 0), 0),
-        avgEfficiency: results.length > 0 ? results.reduce((acc: number, plan: any) => acc + (plan.efficiency || 0), 0) / results.length : 0
-      })
-    };
-    
-    // Update local state
-    setSimulationHistory(prev => [simulation, ...prev.slice(0, 19)]);
-    
-    // Save to localStorage with 7-day expiration
-    try {
-      const existing = localStorage.getItem('cutting_simulations');
-      const simulations = existing ? JSON.parse(existing) : [];
-      
-      // Filter out expired simulations (older than 7 days)
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const validSimulations = simulations.filter((sim: any) => 
-        new Date(sim.createdAt) > sevenDaysAgo
-      );
-      
-      // Add new simulation and keep most recent ones
-      const updatedSimulations = [simulation, ...validSimulations].slice(0, 50);
-      localStorage.setItem('cutting_simulations', JSON.stringify(updatedSimulations));
-      
-      // Dispatch event for history components to update
-      window.dispatchEvent(new CustomEvent('simulation-saved'));
-    } catch (error) {
-      console.error('Error saving simulation to localStorage:', error);
-    }
-    setIsOptimizing(false);
-  };
 
   const loadSimulation = (simulation: any) => {
     try {
