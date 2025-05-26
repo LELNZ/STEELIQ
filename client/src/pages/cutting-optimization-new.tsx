@@ -19,6 +19,7 @@ interface CutRequirement {
   materialCode: string;
   firstCutAngle: number;  // Right end cut (first cut in bandsaw operation)
   secondCutAngle: number; // Left end cut (second cut in bandsaw operation)
+  kerfWidth?: number;     // Blade kerf width in mm
   description?: string;
 }
 
@@ -76,7 +77,7 @@ const runOptimization = (cutRequirements: CutRequirement[], stockItems: StockIte
             isNested: req.isNested || false,
             nestedWith: req.nestedWith || null
           });
-          currentPosition += req.length + 5; // Add 5mm kerf allowance
+          currentPosition += req.length + (req.kerfWidth || 2.4); // Add kerf allowance
         }
       });
 
@@ -293,6 +294,7 @@ export default function CuttingOptimizationNew() {
     materialCode: "",
     firstCutAngle: 90,  // Right end (first cut)
     secondCutAngle: 90, // Left end (second cut)
+    kerfWidth: 2.4,
     description: ""
   });
 
@@ -312,6 +314,7 @@ export default function CuttingOptimizationNew() {
         materialCode: newCut.materialCode,
         firstCutAngle: newCut.firstCutAngle,
         secondCutAngle: newCut.secondCutAngle,
+        kerfWidth: newCut.kerfWidth,
         description: newCut.description
       };
       setCutRequirements([...cutRequirements, cutRequirement]);
@@ -321,6 +324,7 @@ export default function CuttingOptimizationNew() {
         materialCode: "", 
         firstCutAngle: 90,
         secondCutAngle: 90,
+        kerfWidth: 2.4,
         description: "" 
       });
     }
