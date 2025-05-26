@@ -439,11 +439,49 @@ export default function CuttingOptimizationNew() {
 
     setIsOptimizing(true);
     
-    // Simulate optimization processing based on selected algorithm
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const results = optimizeCutting(cutRequirements, stockItems);
-    setOptimizationResult(results);
+    try {
+      // Brief processing delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Run the streamlined optimization using the existing function
+      const results = optimizeCutting(cutRequirements, stockItems);
+      setOptimizationResult(results);
+      
+      // Calculate summary statistics
+      const totalWaste = results.reduce((acc, plan) => acc + (plan.wasteLength || 0), 0);
+      const avgEfficiency = results.length > 0 
+        ? results.reduce((acc, plan) => acc + (plan.efficiency || 0), 0) / results.length 
+        : 0;
+      
+      // Create simulation record
+      const simulation = {
+        id: `SIM-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        algorithm: selectedAlgorithm,
+        results: results,
+        efficiency: Math.round(avgEfficiency * 10) / 10,
+        totalWaste: Math.round(totalWaste)
+      };
+      
+      // Update history and save to localStorage
+      setSimulationHistory(prev => [simulation, ...prev.slice(0, 19)]);
+      
+      try {
+        const existing = localStorage.getItem('cutting_simulations') || '[]';
+        const simulations = JSON.parse(existing);
+        const updated = [simulation, ...simulations].slice(0, 20);
+        localStorage.setItem('cutting_simulations', JSON.stringify(updated));
+      } catch (storageError) {
+        console.warn('Could not save to localStorage:', storageError);
+      }
+      
+    } catch (error) {
+      console.error('Optimization failed:', error);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
     
     // Save to simulation history with localStorage persistence
     const simulation = {
