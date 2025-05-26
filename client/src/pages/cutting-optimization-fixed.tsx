@@ -633,42 +633,41 @@ export default function CuttingOptimizationFixed() {
         </Button>
       </div>
 
-      {/* History Card */}
+      {/* Compact History Card */}
       {showHistory && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Simulation History
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {simulationHistory.length === 0 ? (
-              <p className="text-muted-foreground">No simulations yet. Run an optimization to see history.</p>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {simulationHistory.map((sim) => (
-                  <div
-                    key={sim.id}
-                    className="flex items-center justify-between p-3 border rounded cursor-pointer hover:bg-muted/50"
-                    onClick={() => loadSimulation(sim)}
-                  >
-                    <div>
-                      <div className="font-medium">{sim.id}</div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {formatRelativeTime(sim.timestamp)}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium">{sim.efficiency?.toFixed(1) || '0.0'}% efficient</div>
-                      <div className="text-sm text-muted-foreground">{sim.totalWaste?.toFixed(0) || '0'}mm waste</div>
+        <Card className="p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="h-4 w-4" />
+            <span className="text-sm font-medium">Simulation History</span>
+            <Badge variant="outline" className="text-xs ml-auto">
+              {simulationHistory.length} saved
+            </Badge>
+          </div>
+          {simulationHistory.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">No simulations yet. Run an optimization to see history.</p>
+          ) : (
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {simulationHistory.map((sim) => (
+                <div
+                  key={sim.id}
+                  className="flex items-center justify-between p-2 border rounded text-xs cursor-pointer hover:bg-muted/50"
+                  onClick={() => loadSimulation(sim)}
+                >
+                  <div>
+                    <div className="font-medium text-xs">{sim.id}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-2 w-2" />
+                      {formatRelativeTime(sim.timestamp)}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
+                  <div className="text-right">
+                    <div className="text-xs font-medium">{sim.efficiency?.toFixed(1) || '0.0'}% efficient</div>
+                    <div className="text-xs text-muted-foreground">{sim.totalWaste?.toFixed(0) || '0'}mm waste</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       )}
 
