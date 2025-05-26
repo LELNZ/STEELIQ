@@ -286,19 +286,33 @@ export default function StandardCuttingPlan({
       const contentElement = document.querySelector('[data-print-content]');
       if (!contentElement) return;
       
-      // Capture the visual content as canvas with optimized settings
+      // Ensure element is properly positioned and visible
       const htmlElement = contentElement as HTMLElement;
+      
+      // Force a layout reflow to ensure accurate measurements
+      htmlElement.style.position = 'relative';
+      htmlElement.style.transform = 'translateZ(0)';
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      
+      // Capture with precise pixel alignment
       const canvas = await html2canvas(htmlElement, {
-        scale: 2,
+        scale: 1.5, // Reduced scale for better text rendering and smaller file size
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        width: htmlElement.offsetWidth,
-        height: htmlElement.offsetHeight,
-        scrollX: 0,
-        scrollY: 0,
-        x: 0,
-        y: 0
+        logging: false,
+        removeContainer: true,
+        foreignObjectRendering: false, // Use DOM rendering for better text quality
+        imageTimeout: 0,
+        onclone: (clonedDoc) => {
+          // Ensure fonts are properly loaded in the clone
+          const clonedElement = clonedDoc.querySelector('[data-print-content]') as HTMLElement;
+          if (clonedElement) {
+            clonedElement.style.fontSmoothing = 'antialiased';
+            clonedElement.style.webkitFontSmoothing = 'antialiased';
+            clonedElement.style.textRendering = 'optimizeLegibility';
+          }
+        }
       });
       
       const imgData = canvas.toDataURL('image/jpeg', 0.8); // Use JPEG with compression
