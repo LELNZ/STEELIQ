@@ -371,11 +371,9 @@ export default function CuttingOptimizationNew() {
                     <div>
                       <Label htmlFor="cut-material">Material Code</Label>
                       <InstantMaterialSearch
-                        materials={materialsData}
-                        onSelect={(material) => setNewCut({ ...newCut, materialCode: material.code })}
+                        onSelect={(materialCode) => setNewCut({ ...newCut, materialCode })}
                         placeholder="Search materials..."
                         value={newCut.materialCode}
-                        onChange={(value) => setNewCut({ ...newCut, materialCode: value })}
                       />
                     </div>
                   </div>
@@ -482,11 +480,10 @@ export default function CuttingOptimizationNew() {
                     </div>
                     <div>
                       <Label htmlFor="stock-material">Material Code</Label>
-                      <Input
-                        id="stock-material"
+                      <InstantMaterialSearch
+                        onSelect={(materialCode) => setNewStock({ ...newStock, materialCode })}
+                        placeholder="Search materials..."
                         value={newStock.materialCode}
-                        onChange={(e) => setNewStock({ ...newStock, materialCode: e.target.value })}
-                        placeholder="UB200x100"
                       />
                     </div>
                   </div>
