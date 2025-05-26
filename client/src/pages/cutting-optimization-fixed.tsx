@@ -158,45 +158,17 @@ export default function CuttingOptimizationFixed() {
       const availableStock = stock.filter(s => s.materialCode === materialCode);
       if (availableStock.length === 0) return;
 
-      // Expand requirements by quantity and group identical cuts for batch processing
+      // Expand requirements by quantity
       const allCuts: any[] = [];
       requirements.forEach(req => {
-        // Check if this exact cut specification already exists
-        const existingCutIndex = allCuts.findIndex(cut => 
-          cut.length === req.length && 
-          cut.firstCutAngle === req.firstCutAngle && 
-          cut.secondCutAngle === req.secondCutAngle &&
-          cut.description === (req.description || `${req.length}mm piece`)
-        );
-
-        if (existingCutIndex >= 0) {
-          // Add to existing batch
-          allCuts[existingCutIndex].batchQuantity += req.quantity;
-          for (let i = 0; i < req.quantity; i++) {
-            allCuts[existingCutIndex].pieces.push({
-              id: `${req.id}-${i + 1}`,
-              originalReqId: req.id
-            });
-          }
-        } else {
-          // Create new batch
-          const pieces = [];
-          for (let i = 0; i < req.quantity; i++) {
-            pieces.push({
-              id: `${req.id}-${i + 1}`,
-              originalReqId: req.id
-            });
-          }
-          
+        for (let i = 0; i < req.quantity; i++) {
           allCuts.push({
-            id: `batch-${req.id}`,
+            id: `${req.id}-${i + 1}`,
             length: req.length,
             firstCutAngle: req.firstCutAngle,
             secondCutAngle: req.secondCutAngle,
             description: req.description || `${req.length}mm piece`,
-            kerfWidth: req.kerfWidth || 2.4,
-            batchQuantity: req.quantity,
-            pieces: pieces
+            kerfWidth: req.kerfWidth || 2.4
           });
         }
       });
@@ -204,8 +176,36 @@ export default function CuttingOptimizationFixed() {
       // Sort cuts by length (longest first for better optimization)
       allCuts.sort((a, b) => b.length - a.length);
 
-      // Distribute cuts across stock bars
-      availableStock.forEach((stockBar, stockIndex) => {
+      // Smart stock selection: Calculate waste efficiency for each stock length
+      const stockWithEfficiency = availableStock.map(stock => {
+        // Calculate potential cuts that could fit
+        const potentialCuts = allCuts.filter(cut => cut.length + (cut.kerfWidth || 2.4) <= stock.length);
+        const totalCutLength = potentialCuts.reduce((sum, cut) => sum + cut.length + (cut.kerfWidth || 2.4), 0);
+        const wastePercentage = stock.length > 0 ? ((stock.length - totalCutLength) / stock.length) * 100 : 100;
+        
+        return {
+          ...stock,
+          wastePercentage,
+          potentialCuts: potentialCuts.length
+        };
+      });
+
+      // Sort by efficiency: prefer stocks with lower waste percentage and more potential cuts
+      const sortedStock = stockWithEfficiency.sort((a, b) => {
+        // Primary: Lower waste percentage
+        if (Math.abs(a.wastePercentage - b.wastePercentage) > 5) {
+          return a.wastePercentage - b.wastePercentage;
+        }
+        // Secondary: More potential cuts
+        if (a.potentialCuts !== b.potentialCuts) {
+          return b.potentialCuts - a.potentialCuts;
+        }
+        // Tertiary: Shorter length to use efficiently
+        return a.length - b.length;
+      });
+
+      // Distribute cuts across optimally selected stock bars
+      sortedStock.forEach((stockBar, stockIndex) => {
         if (allCuts.length === 0) return;
 
         let currentPosition = 0;
@@ -219,14 +219,9 @@ export default function CuttingOptimizationFixed() {
           const kerfWidth = cut.kerfWidth || 2.4;
           
           if (currentPosition + cut.length + kerfWidth <= stockBar.length) {
-            // Calculate batch handling time reduction
-            const isFirstPieceOfMaterial = barCuts.length === 0;
+            // Calculate handling time based on piece weight
             const category = getMaterialWeightCategory(materialCode, cut.length);
-            const baseHandlingTime = handlingTimes[category].total;
-            
-            // Reduce loading time for subsequent pieces (material already positioned)
-            const batchReduction = isFirstPieceOfMaterial ? 0 : handlingTimes[category].loading * 0.3; // 30% reduction
-            const adjustedHandlingTime = baseHandlingTime - batchReduction;
+            const handlingTime = handlingTimes[category].total;
             
             // Cut fits on this bar
             barCuts.push({
@@ -240,9 +235,8 @@ export default function CuttingOptimizationFixed() {
               description: cut.description,
               materialCode: materialCode,
               cuttingTime: (cut.firstCutAngle === 90 && cut.secondCutAngle === 90) ? 10 : 12,
-              handlingTime: adjustedHandlingTime,
-              kerfWidth: kerfWidth,
-              isBatchCut: !isFirstPieceOfMaterial
+              handlingTime: handlingTime,
+              kerfWidth: kerfWidth
             });
             
             currentPosition += cut.length + kerfWidth;
