@@ -1,12 +1,13 @@
 import { 
   users, materials, materialCategories, inventory, jobs, jobMaterials, 
-  cuttingPlans, cutSequences, remnants,
+  cuttingPlans, cutSequences, remnants, optimizationSimulations,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
   type CuttingPlan, type InsertCuttingPlan, type CutSequence, type InsertCutSequence,
-  type Remnant, type InsertRemnant
+  type Remnant, type InsertRemnant, type OptimizationSimulation, type InsertOptimizationSimulation
 } from "@shared/schema";
+import { desc, eq, lt } from "drizzle-orm";
 import { db } from "./db";
 import { eq, desc, asc, like, and, or, sql } from "drizzle-orm";
 
@@ -286,6 +287,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Analytics
+  async getOptimizationSimulations(): Promise<OptimizationSimulation[]> {
+    return await this.db.select().from(optimizationSimulations).orderBy(desc(optimizationSimulations.createdAt));
+  }
+
+  async getOptimizationSimulation(id: string): Promise<OptimizationSimulation | undefined> {
+    const result = await this.db.select().from(optimizationSimulations).where(eq(optimizationSimulations.id, id));
+    return result[0];
+  }
+
+  async createOptimizationSimulation(simulation: InsertOptimizationSimulation): Promise<OptimizationSimulation> {
+    const result = await this.db.insert(optimizationSimulations).values(simulation).returning();
+    return result[0];
+  }
+
+  async deleteExpiredSimulations(): Promise<void> {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    await this.db.delete(optimizationSimulations).where(lt(optimizationSimulations.createdAt, sevenDaysAgo));
+  }
+
   async getJobStats(): Promise<{
     activeJobs: number;
     completedJobs: number;

@@ -369,7 +369,7 @@ export default function StandardCuttingPlan({
           <Collapsible open={expandedPlans.has(planIndex)} onOpenChange={() => togglePlan(planIndex)}>
             <CollapsibleContent>
               <div className="pt-2">
-                <Table className="text-xs">
+                <Table className={isGeneratingPDF ? "text-sm" : "text-xs"}>
                   <TableHeader>
                     <TableRow className="h-8">
                       <TableHead className="w-8 px-2 py-1">Seq</TableHead>
@@ -378,6 +378,7 @@ export default function StandardCuttingPlan({
                       <TableHead className="px-2 py-1">First°</TableHead>
                       <TableHead className="px-2 py-1">Second°</TableHead>
                       <TableHead className="w-8 px-2 py-1">Qty</TableHead>
+                      <TableHead className="px-2 py-1">Weight</TableHead>
                       <TableHead className="px-2 py-1">Time</TableHead>
                       <TableHead className="px-2 py-1">Description</TableHead>
                     </TableRow>
@@ -406,6 +407,9 @@ export default function StandardCuttingPlan({
                         </TableCell>
                         <TableCell className="font-medium px-2 py-1">
                           {cut.quantity}
+                        </TableCell>
+                        <TableCell className="font-mono px-2 py-1 text-blue-600">
+                          {((cut.length / 1000) * (cut.weightPerMeter || 23.5)).toFixed(1)}kg
                         </TableCell>
                         <TableCell className="font-mono px-2 py-1">
                           {formatTime(cut.cuttingTime)}
