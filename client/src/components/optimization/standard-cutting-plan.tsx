@@ -22,6 +22,9 @@ interface Cut {
   quantity: number;
   materialCode: string;
   cuttingTime: number;
+  handlingTime?: number;
+  weightPerMeter?: number;
+  weight?: number;
   isNested?: boolean;
   nestedWith?: string;
   materialSavings?: number;
@@ -76,7 +79,8 @@ export default function StandardCuttingPlan({
     secondAngle: true,
     qty: true,
     weight: true,
-    time: false, // Optional for workshop use
+    cutTime: false, // Optional for workshop use
+    handlingTime: false, // Optional for workshop use
     description: true
   });
 
@@ -311,11 +315,20 @@ export default function StandardCuttingPlan({
                 
                 <div className="flex items-center space-x-2">
                   <Checkbox 
-                    id="time" 
-                    checked={pdfColumns.time} 
-                    onCheckedChange={(checked) => setPdfColumns(prev => ({...prev, time: checked as boolean}))}
+                    id="cutTime" 
+                    checked={pdfColumns.cutTime} 
+                    onCheckedChange={(checked) => setPdfColumns(prev => ({...prev, cutTime: checked as boolean}))}
                   />
-                  <Label htmlFor="time" className="text-sm">Time</Label>
+                  <Label htmlFor="cutTime" className="text-sm">Cut Time</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="handlingTime" 
+                    checked={pdfColumns.handlingTime} 
+                    onCheckedChange={(checked) => setPdfColumns(prev => ({...prev, handlingTime: checked as boolean}))}
+                  />
+                  <Label htmlFor="handlingTime" className="text-sm">Handling Time</Label>
                 </div>
                 
                 <div className="flex items-center space-x-2 col-span-2">
@@ -464,7 +477,7 @@ export default function StandardCuttingPlan({
             </div>
 
             {/* Compact Stats */}
-            <div className={`grid gap-2 text-center ${isGeneratingPDF ? 'grid-cols-3' : 'grid-cols-4'}`}>
+            <div className={`grid gap-2 text-center ${isGeneratingPDF ? 'grid-cols-3' : 'grid-cols-5'}`}>
               <div>
                 <div className="text-xs font-medium text-green-600">
                   {plan.cuts.reduce((sum, cut) => sum + (cut.length * cut.quantity), 0).toFixed(0)}mm
@@ -480,9 +493,17 @@ export default function StandardCuttingPlan({
               {!isGeneratingPDF && (
                 <div>
                   <div className="text-xs font-medium text-blue-600">
-                    {formatTime(plan.totalCuttingTime || 0)}
+                    {formatTime(plan.cuts.reduce((sum, cut) => sum + (cut.cuttingTime || 0) * cut.quantity, 0))}
                   </div>
-                  <div className="text-xs text-muted-foreground">Time</div>
+                  <div className="text-xs text-muted-foreground">Total Cut Time</div>
+                </div>
+              )}
+              {!isGeneratingPDF && (
+                <div>
+                  <div className="text-xs font-medium text-orange-600">
+                    {formatTime(plan.cuts.reduce((sum, cut) => sum + (cut.handlingTime || 0) * cut.quantity, 0))}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Total Handling Time</div>
                 </div>
               )}
               <div>
@@ -514,7 +535,8 @@ export default function StandardCuttingPlan({
                       </TableHead>
                       {(pdfColumns.qty || !isGeneratingPDF) && <TableHead className="w-8 px-2 py-1">Qty</TableHead>}
                       {(pdfColumns.weight || !isGeneratingPDF) && <TableHead className="px-2 py-1">Weight</TableHead>}
-                      {!isGeneratingPDF && <TableHead className="px-2 py-1">Time</TableHead>}
+                      {(pdfColumns.cutTime || !isGeneratingPDF) && <TableHead className="px-2 py-1">Cut Time</TableHead>}
+                      {(pdfColumns.handlingTime || !isGeneratingPDF) && <TableHead className="px-2 py-1">Handling Time</TableHead>}
                       {(pdfColumns.description || !isGeneratingPDF) && <TableHead className="px-2 py-1">Description</TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -578,9 +600,14 @@ export default function StandardCuttingPlan({
                             {((cut.length / 1000) * (cut.weightPerMeter || 23.5)).toFixed(1)}kg
                           </TableCell>
                         )}
-                        {!isGeneratingPDF && (
+                        {(pdfColumns.cutTime || !isGeneratingPDF) && (
                           <TableCell className="font-mono px-2 py-1">
                             {formatTime(cut.cuttingTime)}
+                          </TableCell>
+                        )}
+                        {(pdfColumns.handlingTime || !isGeneratingPDF) && (
+                          <TableCell className="font-mono px-2 py-1 text-orange-600">
+                            {formatTime(cut.handlingTime || 0)}
                           </TableCell>
                         )}
                         {(pdfColumns.description || !isGeneratingPDF) && (
