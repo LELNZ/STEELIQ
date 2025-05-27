@@ -281,8 +281,8 @@ export default function StandardCuttingPlan({
           {/* Workshop Information Section */}
           {isNewMaterial && isGeneratingPDF && (
             <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-              <h3 className="font-bold text-sm mb-2">WORKSHOP SETUP - {plan.materialCode}</h3>
-              <div className="grid grid-cols-2 gap-4 text-xs">
+              <h3 className="font-bold text-base mb-2">WORKSHOP SETUP - {plan.materialCode}</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <strong>Material Handling:</strong>
                   <ul className="mt-1 space-y-1">
