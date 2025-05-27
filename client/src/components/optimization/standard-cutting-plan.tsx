@@ -503,7 +503,13 @@ export default function StandardCuttingPlan({
                       {(pdfColumns.position || !isGeneratingPDF) && <TableHead className="px-2 py-1">Position</TableHead>}
                       {(pdfColumns.firstAngle || !isGeneratingPDF) && <TableHead className="px-2 py-1">First°</TableHead>}
                       {(pdfColumns.secondAngle || !isGeneratingPDF) && <TableHead className="px-2 py-1">Second°</TableHead>}
-                      <TableHead className="px-2 py-1 w-32">Visual Guide</TableHead>
+                      <TableHead className="px-2 py-1 w-32">
+                        <div className="text-center">Visual Guide</div>
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>Cut 1</span>
+                          <span>Cut 2</span>
+                        </div>
+                      </TableHead>
                       {(pdfColumns.qty || !isGeneratingPDF) && <TableHead className="w-8 px-2 py-1">Qty</TableHead>}
                       {(pdfColumns.weight || !isGeneratingPDF) && <TableHead className="px-2 py-1">Weight</TableHead>}
                       {(pdfColumns.time || !isGeneratingPDF) && <TableHead className="px-2 py-1">Time</TableHead>}
@@ -545,26 +551,18 @@ export default function StandardCuttingPlan({
                         {/* Visual Guide Column */}
                         <TableCell className="px-2 py-1">
                           <div className="relative w-24 h-4 bg-blue-500 rounded border border-gray-300">
-                            {/* First cut highlight (left end) */}
-                            <div className="absolute left-0 top-0 w-6 h-full bg-blue-400 rounded-l border-r border-blue-600 flex items-center justify-center">
+                            {/* First cut highlight (RIGHT end - where material enters bandsaw) */}
+                            <div className="absolute right-0 top-0 w-6 h-full bg-blue-400 rounded-r border-l border-blue-600 flex items-center justify-center">
                               <span className={`text-xs font-bold ${cut.firstCutAngle !== 90 ? 'text-red-600' : 'text-gray-800'}`}>
                                 {cut.firstCutAngle || 90}°
                               </span>
                             </div>
                             
-                            {/* Second cut highlight (right end) */}
-                            <div className="absolute right-0 top-0 w-6 h-full bg-blue-400 rounded-r border-l border-blue-600 flex items-center justify-center">
+                            {/* Second cut highlight (LEFT end - after material slides through) */}
+                            <div className="absolute left-0 top-0 w-6 h-full bg-blue-400 rounded-l border-r border-blue-600 flex items-center justify-center">
                               <span className={`text-xs font-bold ${cut.secondCutAngle !== 90 ? 'text-red-600' : 'text-gray-800'}`}>
                                 {cut.secondCutAngle || 90}°
                               </span>
-                            </div>
-                            
-                            {/* Cut position labels */}
-                            <div className="absolute -bottom-4 left-0 text-xs text-gray-600 font-medium">
-                              Cut 1
-                            </div>
-                            <div className="absolute -bottom-4 right-0 text-xs text-gray-600 font-medium">
-                              Cut 2
                             </div>
                           </div>
                         </TableCell>
