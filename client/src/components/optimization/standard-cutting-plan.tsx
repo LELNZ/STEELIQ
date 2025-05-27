@@ -503,11 +503,11 @@ export default function StandardCuttingPlan({
                       {(pdfColumns.position || !isGeneratingPDF) && <TableHead className="px-2 py-1">Position</TableHead>}
                       {(pdfColumns.firstAngle || !isGeneratingPDF) && <TableHead className="px-2 py-1">First°</TableHead>}
                       {(pdfColumns.secondAngle || !isGeneratingPDF) && <TableHead className="px-2 py-1">Second°</TableHead>}
+                      <TableHead className="px-2 py-1 w-32">Visual Guide</TableHead>
                       {(pdfColumns.qty || !isGeneratingPDF) && <TableHead className="w-8 px-2 py-1">Qty</TableHead>}
                       {(pdfColumns.weight || !isGeneratingPDF) && <TableHead className="px-2 py-1">Weight</TableHead>}
                       {(pdfColumns.time || !isGeneratingPDF) && <TableHead className="px-2 py-1">Time</TableHead>}
                       {(pdfColumns.description || !isGeneratingPDF) && <TableHead className="px-2 py-1">Description</TableHead>}
-                      <TableHead className="px-2 py-1 w-24">Visual Guide</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -542,6 +542,32 @@ export default function StandardCuttingPlan({
                             </span>
                           </TableCell>
                         )}
+                        {/* Visual Guide Column */}
+                        <TableCell className="px-2 py-1">
+                          <div className="relative w-24 h-4 bg-blue-500 rounded border border-gray-300">
+                            {/* First cut highlight (left end) */}
+                            <div className="absolute left-0 top-0 w-6 h-full bg-blue-400 rounded-l border-r border-blue-600 flex items-center justify-center">
+                              <span className={`text-xs font-bold ${cut.firstCutAngle !== 90 ? 'text-red-600' : 'text-gray-800'}`}>
+                                {cut.firstCutAngle || 90}°
+                              </span>
+                            </div>
+                            
+                            {/* Second cut highlight (right end) */}
+                            <div className="absolute right-0 top-0 w-6 h-full bg-blue-400 rounded-r border-l border-blue-600 flex items-center justify-center">
+                              <span className={`text-xs font-bold ${cut.secondCutAngle !== 90 ? 'text-red-600' : 'text-gray-800'}`}>
+                                {cut.secondCutAngle || 90}°
+                              </span>
+                            </div>
+                            
+                            {/* Cut position labels */}
+                            <div className="absolute -bottom-4 left-0 text-xs text-gray-600 font-medium">
+                              Cut 1
+                            </div>
+                            <div className="absolute -bottom-4 right-0 text-xs text-gray-600 font-medium">
+                              Cut 2
+                            </div>
+                          </div>
+                        </TableCell>
                         {(pdfColumns.qty || !isGeneratingPDF) && (
                           <TableCell className="font-medium px-2 py-1">
                             {cut.quantity}
@@ -562,34 +588,6 @@ export default function StandardCuttingPlan({
                             {cut.description || '-'}
                           </TableCell>
                         )}
-                        {/* Visual Guide Column */}
-                        <TableCell className="px-2 py-1">
-                          <div className="relative w-16 h-4 bg-blue-500 rounded-sm border border-gray-300">
-                            {/* Cut 1 indicator (left side - first cut) */}
-                            <div className="absolute -top-1 left-0 w-2 h-2 bg-red-500 rounded-full border border-white transform -translate-x-1"></div>
-                            <div className="absolute -bottom-4 left-0 text-xs text-red-600 font-medium transform -translate-x-1">
-                              Cut 1
-                            </div>
-                            
-                            {/* Cut 2 indicator (right side - second cut) */}
-                            <div className="absolute -top-1 right-0 w-2 h-2 bg-red-500 rounded-full border border-white transform translate-x-1"></div>
-                            <div className="absolute -bottom-4 right-0 text-xs text-red-600 font-medium transform translate-x-1">
-                              Cut 2
-                            </div>
-                            
-                            {/* Angle indicators if not 90 degrees */}
-                            {cut.firstCutAngle !== 90 && (
-                              <div className="absolute -top-6 left-0 text-xs bg-orange-100 text-orange-800 px-1 rounded border transform -translate-x-2">
-                                {cut.firstCutAngle}°
-                              </div>
-                            )}
-                            {cut.secondCutAngle !== 90 && (
-                              <div className="absolute -top-6 right-0 text-xs bg-orange-100 text-orange-800 px-1 rounded border transform translate-x-2">
-                                {cut.secondCutAngle}°
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
