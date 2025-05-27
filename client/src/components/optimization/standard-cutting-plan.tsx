@@ -106,14 +106,16 @@ export default function StandardCuttingPlan({
 
     try {
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 0.8,
         useCORS: true,
         allowTaint: true,
         height: element.scrollHeight,
-        windowHeight: element.scrollHeight
+        windowHeight: element.scrollHeight,
+        backgroundColor: '#ffffff'
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      // Compress image quality to reduce file size
+      const imgData = canvas.toDataURL('image/jpeg', 0.7);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgWidth = 210;
       const pageHeight = 295;
@@ -122,13 +124,13 @@ export default function StandardCuttingPlan({
 
       let position = 0;
 
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
 
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
 
