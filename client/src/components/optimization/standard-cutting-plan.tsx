@@ -3,6 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { ChevronDown, ChevronRight, Download, Info } from "lucide-react";
 import { useState } from "react";
 import html2canvas from "html2canvas";
@@ -62,6 +65,20 @@ export default function StandardCuttingPlan({
   const [expandedPlans, setExpandedPlans] = useState<Set<number>>(new Set());
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showPDFDialog, setShowPDFDialog] = useState(false);
+  
+  // PDF Column Configuration - Default workshop columns
+  const [pdfColumns, setPdfColumns] = useState({
+    seq: true,
+    length: true,
+    position: true,
+    firstAngle: true,
+    secondAngle: true,
+    qty: true,
+    weight: true,
+    time: false, // Optional for workshop use
+    description: true
+  });
 
   const formatTime = (minutes: number): string => {
     if (minutes < 60) return `${minutes.toFixed(1)}min`;
@@ -209,14 +226,119 @@ export default function StandardCuttingPlan({
             <div><strong>Total Plans:</strong> {groupedPlans.length} sequences</div>
           </div>
         </div>
-        <Button 
-          onClick={handleDownloadPDF} 
-          disabled={isGeneratingPDF}
-          className="flex items-center gap-2"
-        >
-          <Download className="w-4 h-4" />
-          {isGeneratingPDF ? "Generating Workshop PDF..." : "Download Workshop PDF"}
-        </Button>
+        <Dialog open={showPDFDialog} onOpenChange={setShowPDFDialog}>
+          <DialogTrigger asChild>
+            <Button 
+              disabled={isGeneratingPDF}
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              {isGeneratingPDF ? "Generating Workshop PDF..." : "Download Workshop PDF"}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>PDF Export Settings</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                Select which columns to include in the workshop PDF:
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="seq" 
+                    checked={pdfColumns.seq} 
+                    onCheckedChange={(checked) => setPdfColumns(prev => ({...prev, seq: checked as boolean}))}
+                  />
+                  <Label htmlFor="seq" className="text-sm">Sequence</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="length" 
+                    checked={pdfColumns.length} 
+                    onCheckedChange={(checked) => setPdfColumns(prev => ({...prev, length: checked as boolean}))}
+                  />
+                  <Label htmlFor="length" className="text-sm">Length</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="position" 
+                    checked={pdfColumns.position} 
+                    onCheckedChange={(checked) => setPdfColumns(prev => ({...prev, position: checked as boolean}))}
+                  />
+                  <Label htmlFor="position" className="text-sm">Position</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="firstAngle" 
+                    checked={pdfColumns.firstAngle} 
+                    onCheckedChange={(checked) => setPdfColumns(prev => ({...prev, firstAngle: checked as boolean}))}
+                  />
+                  <Label htmlFor="firstAngle" className="text-sm">First°</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="secondAngle" 
+                    checked={pdfColumns.secondAngle} 
+                    onCheckedChange={(checked) => setPdfColumns(prev => ({...prev, secondAngle: checked as boolean}))}
+                  />
+                  <Label htmlFor="secondAngle" className="text-sm">Second°</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="qty" 
+                    checked={pdfColumns.qty} 
+                    onCheckedChange={(checked) => setPdfColumns(prev => ({...prev, qty: checked as boolean}))}
+                  />
+                  <Label htmlFor="qty" className="text-sm">Quantity</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="weight" 
+                    checked={pdfColumns.weight} 
+                    onCheckedChange={(checked) => setPdfColumns(prev => ({...prev, weight: checked as boolean}))}
+                  />
+                  <Label htmlFor="weight" className="text-sm">Weight</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="time" 
+                    checked={pdfColumns.time} 
+                    onCheckedChange={(checked) => setPdfColumns(prev => ({...prev, time: checked as boolean}))}
+                  />
+                  <Label htmlFor="time" className="text-sm">Time</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2 col-span-2">
+                  <Checkbox 
+                    id="description" 
+                    checked={pdfColumns.description} 
+                    onCheckedChange={(checked) => setPdfColumns(prev => ({...prev, description: checked as boolean}))}
+                  />
+                  <Label htmlFor="description" className="text-sm">Description</Label>
+                </div>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button onClick={() => { handleDownloadPDF(); setShowPDFDialog(false); }} className="flex-1">
+                  Generate PDF
+                </Button>
+                <Button variant="outline" onClick={() => setShowPDFDialog(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Compact Summary Statistics */}
@@ -374,51 +496,69 @@ export default function StandardCuttingPlan({
                 <Table className={isGeneratingPDF ? "text-base" : "text-xs"}>
                   <TableHeader>
                     <TableRow className="h-8">
-                      <TableHead className="w-8 px-2 py-1">Seq</TableHead>
-                      <TableHead className="px-2 py-1">Length</TableHead>
-                      <TableHead className="px-2 py-1">Position</TableHead>
-                      <TableHead className="px-2 py-1">First°</TableHead>
-                      <TableHead className="px-2 py-1">Second°</TableHead>
-                      <TableHead className="w-8 px-2 py-1">Qty</TableHead>
-                      <TableHead className="px-2 py-1">Weight</TableHead>
-                      <TableHead className="px-2 py-1">Time</TableHead>
-                      <TableHead className="px-2 py-1">Description</TableHead>
+                      {(pdfColumns.seq || !isGeneratingPDF) && <TableHead className="w-8 px-2 py-1">Seq</TableHead>}
+                      {(pdfColumns.length || !isGeneratingPDF) && <TableHead className="px-2 py-1">Length</TableHead>}
+                      {(pdfColumns.position || !isGeneratingPDF) && <TableHead className="px-2 py-1">Position</TableHead>}
+                      {(pdfColumns.firstAngle || !isGeneratingPDF) && <TableHead className="px-2 py-1">First°</TableHead>}
+                      {(pdfColumns.secondAngle || !isGeneratingPDF) && <TableHead className="px-2 py-1">Second°</TableHead>}
+                      {(pdfColumns.qty || !isGeneratingPDF) && <TableHead className="w-8 px-2 py-1">Qty</TableHead>}
+                      {(pdfColumns.weight || !isGeneratingPDF) && <TableHead className="px-2 py-1">Weight</TableHead>}
+                      {(pdfColumns.time || !isGeneratingPDF) && <TableHead className="px-2 py-1">Time</TableHead>}
+                      {(pdfColumns.description || !isGeneratingPDF) && <TableHead className="px-2 py-1">Description</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {plan.cuts.map((cut, cutIndex) => (
                       <TableRow key={cut.id} className="h-8">
-                        <TableCell className="font-mono font-bold px-2 py-1">
-                          {cutIndex + 1}
-                        </TableCell>
-                        <TableCell className="font-mono font-medium px-2 py-1">
-                          {cut.length.toFixed(0)}mm
-                        </TableCell>
-                        <TableCell className="font-mono px-2 py-1">
-                          {cut.startPosition.toFixed(0)}-{cut.endPosition.toFixed(0)}mm
-                        </TableCell>
-                        <TableCell className="px-2 py-1">
-                          <span className={cut.firstCutAngle !== 90 ? "text-orange-600 font-bold" : "font-medium"}>
-                            {cut.firstCutAngle || 90}°
-                          </span>
-                        </TableCell>
-                        <TableCell className="px-2 py-1">
-                          <span className={cut.secondCutAngle !== 90 ? "text-orange-600 font-bold" : "font-medium"}>
-                            {cut.secondCutAngle || 90}°
-                          </span>
-                        </TableCell>
-                        <TableCell className="font-medium px-2 py-1">
-                          {cut.quantity}
-                        </TableCell>
-                        <TableCell className="font-mono px-2 py-1 text-blue-600">
-                          {((cut.length / 1000) * (cut.weightPerMeter || 23.5)).toFixed(1)}kg
-                        </TableCell>
-                        <TableCell className="font-mono px-2 py-1">
-                          {formatTime(cut.cuttingTime)}
-                        </TableCell>
-                        <TableCell className="px-2 py-1">
-                          {cut.description || '-'}
-                        </TableCell>
+                        {(pdfColumns.seq || !isGeneratingPDF) && (
+                          <TableCell className="font-mono font-bold px-2 py-1">
+                            {cutIndex + 1}
+                          </TableCell>
+                        )}
+                        {(pdfColumns.length || !isGeneratingPDF) && (
+                          <TableCell className="font-mono font-medium px-2 py-1">
+                            {cut.length.toFixed(0)}mm
+                          </TableCell>
+                        )}
+                        {(pdfColumns.position || !isGeneratingPDF) && (
+                          <TableCell className="font-mono px-2 py-1">
+                            {cut.startPosition.toFixed(0)}-{cut.endPosition.toFixed(0)}mm
+                          </TableCell>
+                        )}
+                        {(pdfColumns.firstAngle || !isGeneratingPDF) && (
+                          <TableCell className="px-2 py-1">
+                            <span className={cut.firstCutAngle !== 90 ? "text-orange-600 font-bold" : "font-medium"}>
+                              {cut.firstCutAngle || 90}°
+                            </span>
+                          </TableCell>
+                        )}
+                        {(pdfColumns.secondAngle || !isGeneratingPDF) && (
+                          <TableCell className="px-2 py-1">
+                            <span className={cut.secondCutAngle !== 90 ? "text-orange-600 font-bold" : "font-medium"}>
+                              {cut.secondCutAngle || 90}°
+                            </span>
+                          </TableCell>
+                        )}
+                        {(pdfColumns.qty || !isGeneratingPDF) && (
+                          <TableCell className="font-medium px-2 py-1">
+                            {cut.quantity}
+                          </TableCell>
+                        )}
+                        {(pdfColumns.weight || !isGeneratingPDF) && (
+                          <TableCell className="font-mono px-2 py-1 text-blue-600">
+                            {((cut.length / 1000) * (cut.weightPerMeter || 23.5)).toFixed(1)}kg
+                          </TableCell>
+                        )}
+                        {(pdfColumns.time || !isGeneratingPDF) && (
+                          <TableCell className="font-mono px-2 py-1">
+                            {formatTime(cut.cuttingTime)}
+                          </TableCell>
+                        )}
+                        {(pdfColumns.description || !isGeneratingPDF) && (
+                          <TableCell className="px-2 py-1">
+                            {cut.description || '-'}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
