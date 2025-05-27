@@ -464,7 +464,7 @@ export default function StandardCuttingPlan({
             </div>
 
             {/* Compact Stats */}
-            <div className="grid grid-cols-4 gap-2 text-center">
+            <div className={`grid gap-2 text-center ${isGeneratingPDF ? 'grid-cols-3' : 'grid-cols-4'}`}>
               <div>
                 <div className="text-xs font-medium text-green-600">
                   {plan.cuts.reduce((sum, cut) => sum + (cut.length * cut.quantity), 0).toFixed(0)}mm
@@ -477,12 +477,14 @@ export default function StandardCuttingPlan({
                 </div>
                 <div className="text-xs text-muted-foreground">Waste</div>
               </div>
-              <div>
-                <div className="text-xs font-medium text-blue-600">
-                  {formatTime(plan.totalCuttingTime || 0)}
+              {!isGeneratingPDF && (
+                <div>
+                  <div className="text-xs font-medium text-blue-600">
+                    {formatTime(plan.totalCuttingTime || 0)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Time</div>
                 </div>
-                <div className="text-xs text-muted-foreground">Time</div>
-              </div>
+              )}
               <div>
                 <div className="text-xs font-medium text-purple-600">
                   {plan.totalCuts}
@@ -512,7 +514,7 @@ export default function StandardCuttingPlan({
                       </TableHead>
                       {(pdfColumns.qty || !isGeneratingPDF) && <TableHead className="w-8 px-2 py-1">Qty</TableHead>}
                       {(pdfColumns.weight || !isGeneratingPDF) && <TableHead className="px-2 py-1">Weight</TableHead>}
-                      {(pdfColumns.time || !isGeneratingPDF) && <TableHead className="px-2 py-1">Time</TableHead>}
+                      {!isGeneratingPDF && <TableHead className="px-2 py-1">Time</TableHead>}
                       {(pdfColumns.description || !isGeneratingPDF) && <TableHead className="px-2 py-1">Description</TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -576,7 +578,7 @@ export default function StandardCuttingPlan({
                             {((cut.length / 1000) * (cut.weightPerMeter || 23.5)).toFixed(1)}kg
                           </TableCell>
                         )}
-                        {(pdfColumns.time || !isGeneratingPDF) && (
+                        {!isGeneratingPDF && (
                           <TableCell className="font-mono px-2 py-1">
                             {formatTime(cut.cuttingTime)}
                           </TableCell>
