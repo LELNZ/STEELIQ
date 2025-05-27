@@ -503,11 +503,11 @@ export default function StandardCuttingPlan({
                       {(pdfColumns.position || !isGeneratingPDF) && <TableHead className="px-2 py-1">Position</TableHead>}
                       {(pdfColumns.firstAngle || !isGeneratingPDF) && <TableHead className="px-2 py-1">First°</TableHead>}
                       {(pdfColumns.secondAngle || !isGeneratingPDF) && <TableHead className="px-2 py-1">Second°</TableHead>}
-                      <TableHead className="px-2 py-1 w-32">
+                      <TableHead className="px-2 py-1 w-32 text-center">
                         <div className="text-center">Visual Guide</div>
                         <div className="flex justify-between text-xs text-gray-500 mt-1">
-                          <span>Cut 1</span>
                           <span>Cut 2</span>
+                          <span>Cut 1</span>
                         </div>
                       </TableHead>
                       {(pdfColumns.qty || !isGeneratingPDF) && <TableHead className="w-8 px-2 py-1">Qty</TableHead>}
@@ -549,8 +549,8 @@ export default function StandardCuttingPlan({
                           </TableCell>
                         )}
                         {/* Visual Guide Column */}
-                        <TableCell className="px-2 py-1">
-                          <div className="relative w-24 h-4 bg-blue-500 rounded border border-gray-300">
+                        <TableCell className="px-2 py-1 text-center">
+                          <div className="relative w-24 h-4 bg-blue-500 rounded border border-gray-300 mx-auto">
                             {/* First cut highlight (RIGHT end - where material enters bandsaw) */}
                             <div className="absolute right-0 top-0 w-6 h-full bg-blue-400 rounded-r border-l border-blue-600 flex items-center justify-center">
                               <span className={`text-xs font-bold ${cut.firstCutAngle !== 90 ? 'text-red-600' : 'text-gray-800'}`}>
