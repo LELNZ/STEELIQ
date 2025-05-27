@@ -343,7 +343,7 @@ export default function StandardCuttingPlan({
 
       {/* Compact Summary Statistics */}
       <Card className="p-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className={isGeneratingPDF ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 md:grid-cols-4 gap-3"}>
           <div className="text-center">
             <div className="text-xl font-bold text-blue-600">{groupedPlans.length}</div>
             <div className="text-xs text-muted-foreground">Unique Sequences</div>
@@ -356,10 +356,12 @@ export default function StandardCuttingPlan({
             <div className="text-xl font-bold text-purple-600">{totalStats.totalCuts}</div>
             <div className="text-xs text-muted-foreground">Total Cuts</div>
           </div>
-          <div className="text-center">
-            <div className="text-xl font-bold text-orange-600">{formatTime(totalStats.totalCuttingTime)}</div>
-            <div className="text-xs text-muted-foreground">Total Time</div>
-          </div>
+          {!isGeneratingPDF && (
+            <div className="text-center">
+              <div className="text-xl font-bold text-orange-600">{formatTime(totalStats.totalCuttingTime)}</div>
+              <div className="text-xs text-muted-foreground">Total Time</div>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -493,6 +495,84 @@ export default function StandardCuttingPlan({
           <Collapsible open={isGeneratingPDF || expandedPlans.has(planIndex)} onOpenChange={() => togglePlan(planIndex)}>
             <CollapsibleContent>
               <div className="pt-2">
+                {/* Visual Cutting Plan Bar */}
+                <div className="mb-4 p-3 bg-gray-50 rounded border">
+                  <div className="text-xs font-medium text-gray-600 mb-2">Visual Cutting Guide</div>
+                  <div className="relative h-16 bg-gray-200 rounded border overflow-hidden">
+                    {plan.cuts.map((cut, cutIndex) => {
+                      const colors = [
+                        'bg-blue-500', 'bg-green-500', 'bg-purple-500', 
+                        'bg-yellow-500', 'bg-pink-500', 'bg-cyan-500',
+                        'bg-orange-500', 'bg-red-500', 'bg-indigo-500'
+                      ];
+                      const cutColor = colors[cutIndex % colors.length];
+                      const widthPercent = (cut.length / plan.stockLength) * 100;
+                      const leftPercent = (cut.startPosition / plan.stockLength) * 100;
+                      
+                      return (
+                        <div key={cut.id} className="relative">
+                          {/* Cut section */}
+                          <div
+                            className={`absolute top-0 h-full ${cutColor} border-r-2 border-white flex items-center justify-center text-white text-xs font-medium`}
+                            style={{
+                              left: `${leftPercent}%`,
+                              width: `${widthPercent}%`,
+                              minWidth: '20px'
+                            }}
+                            title={`Cut ${cutIndex + 1}: ${cut.length}mm at ${cut.startPosition}mm`}
+                          >
+                            {widthPercent > 8 && (
+                              <span className="truncate px-1">
+                                {cut.length}mm
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Angle indicators */}
+                          {((cut.firstCutAngle && cut.firstCutAngle !== 90) || (cut.secondCutAngle && cut.secondCutAngle !== 90)) && (
+                            <div className="absolute -top-6 flex justify-between text-xs" 
+                                 style={{
+                                   left: `${leftPercent}%`,
+                                   width: `${widthPercent}%`
+                                 }}>
+                              {cut.firstCutAngle && cut.firstCutAngle !== 90 && (
+                                <span className="bg-orange-100 text-orange-800 px-1 rounded border text-xs">
+                                  ↗ {cut.firstCutAngle}°
+                                </span>
+                              )}
+                              <div className="flex-1"></div>
+                              {cut.secondCutAngle && cut.secondCutAngle !== 90 && (
+                                <span className="bg-orange-100 text-orange-800 px-1 rounded border text-xs">
+                                  {cut.secondCutAngle}° ↖
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    
+                    {/* Waste area */}
+                    {plan.wasteLength > 0 && (
+                      <div 
+                        className="absolute top-0 h-full bg-red-300 border border-red-500 flex items-center justify-center text-red-800 text-xs font-bold"
+                        style={{ 
+                          right: '0',
+                          width: `${(plan.wasteLength / plan.stockLength) * 100}%`
+                        }}
+                        title={`Waste: ${plan.wasteLength.toFixed(0)}mm`}
+                      >
+                        WASTE
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Material length indicator */}
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>0mm</span>
+                    <span className="font-medium">{plan.stockLength}mm Total Length</span>
+                  </div>
+                </div>
                 <Table className={isGeneratingPDF ? "text-base" : "text-xs"}>
                   <TableHeader>
                     <TableRow className="h-8">
