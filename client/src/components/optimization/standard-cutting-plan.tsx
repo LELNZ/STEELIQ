@@ -495,84 +495,6 @@ export default function StandardCuttingPlan({
           <Collapsible open={isGeneratingPDF || expandedPlans.has(planIndex)} onOpenChange={() => togglePlan(planIndex)}>
             <CollapsibleContent>
               <div className="pt-2">
-                {/* Visual Cutting Plan Bar */}
-                <div className="mb-4 p-3 bg-gray-50 rounded border">
-                  <div className="text-xs font-medium text-gray-600 mb-2">Visual Cutting Guide</div>
-                  <div className="relative h-16 bg-gray-200 rounded border overflow-hidden">
-                    {plan.cuts.map((cut, cutIndex) => {
-                      const colors = [
-                        'bg-blue-500', 'bg-green-500', 'bg-purple-500', 
-                        'bg-yellow-500', 'bg-pink-500', 'bg-cyan-500',
-                        'bg-orange-500', 'bg-red-500', 'bg-indigo-500'
-                      ];
-                      const cutColor = colors[cutIndex % colors.length];
-                      const widthPercent = (cut.length / plan.stockLength) * 100;
-                      const leftPercent = (cut.startPosition / plan.stockLength) * 100;
-                      
-                      return (
-                        <div key={cut.id} className="relative">
-                          {/* Cut section */}
-                          <div
-                            className={`absolute top-0 h-full ${cutColor} border-r-2 border-white flex items-center justify-center text-white text-xs font-medium`}
-                            style={{
-                              left: `${leftPercent}%`,
-                              width: `${widthPercent}%`,
-                              minWidth: '20px'
-                            }}
-                            title={`Cut ${cutIndex + 1}: ${cut.length}mm at ${cut.startPosition}mm`}
-                          >
-                            {widthPercent > 8 && (
-                              <span className="truncate px-1">
-                                {cut.length}mm
-                              </span>
-                            )}
-                          </div>
-                          
-                          {/* Angle indicators */}
-                          {((cut.firstCutAngle && cut.firstCutAngle !== 90) || (cut.secondCutAngle && cut.secondCutAngle !== 90)) && (
-                            <div className="absolute -top-6 flex justify-between text-xs" 
-                                 style={{
-                                   left: `${leftPercent}%`,
-                                   width: `${widthPercent}%`
-                                 }}>
-                              {cut.firstCutAngle && cut.firstCutAngle !== 90 && (
-                                <span className="bg-orange-100 text-orange-800 px-1 rounded border text-xs">
-                                  ↗ {cut.firstCutAngle}°
-                                </span>
-                              )}
-                              <div className="flex-1"></div>
-                              {cut.secondCutAngle && cut.secondCutAngle !== 90 && (
-                                <span className="bg-orange-100 text-orange-800 px-1 rounded border text-xs">
-                                  {cut.secondCutAngle}° ↖
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                    
-                    {/* Waste area */}
-                    {plan.wasteLength > 0 && (
-                      <div 
-                        className="absolute top-0 h-full bg-red-300 border border-red-500 flex items-center justify-center text-red-800 text-xs font-bold"
-                        style={{ 
-                          right: '0',
-                          width: `${(plan.wasteLength / plan.stockLength) * 100}%`
-                        }}
-                        title={`Waste: ${plan.wasteLength.toFixed(0)}mm`}
-                      >
-                        WASTE
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Material length indicator */}
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>0mm</span>
-                    <span className="font-medium">{plan.stockLength}mm Total Length</span>
-                  </div>
-                </div>
                 <Table className={isGeneratingPDF ? "text-base" : "text-xs"}>
                   <TableHeader>
                     <TableRow className="h-8">
@@ -585,6 +507,7 @@ export default function StandardCuttingPlan({
                       {(pdfColumns.weight || !isGeneratingPDF) && <TableHead className="px-2 py-1">Weight</TableHead>}
                       {(pdfColumns.time || !isGeneratingPDF) && <TableHead className="px-2 py-1">Time</TableHead>}
                       {(pdfColumns.description || !isGeneratingPDF) && <TableHead className="px-2 py-1">Description</TableHead>}
+                      <TableHead className="px-2 py-1 w-24">Visual Guide</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -639,6 +562,34 @@ export default function StandardCuttingPlan({
                             {cut.description || '-'}
                           </TableCell>
                         )}
+                        {/* Visual Guide Column */}
+                        <TableCell className="px-2 py-1">
+                          <div className="relative w-16 h-4 bg-blue-500 rounded-sm border border-gray-300">
+                            {/* Cut 1 indicator (left side - first cut) */}
+                            <div className="absolute -top-1 left-0 w-2 h-2 bg-red-500 rounded-full border border-white transform -translate-x-1"></div>
+                            <div className="absolute -bottom-4 left-0 text-xs text-red-600 font-medium transform -translate-x-1">
+                              Cut 1
+                            </div>
+                            
+                            {/* Cut 2 indicator (right side - second cut) */}
+                            <div className="absolute -top-1 right-0 w-2 h-2 bg-red-500 rounded-full border border-white transform translate-x-1"></div>
+                            <div className="absolute -bottom-4 right-0 text-xs text-red-600 font-medium transform translate-x-1">
+                              Cut 2
+                            </div>
+                            
+                            {/* Angle indicators if not 90 degrees */}
+                            {cut.firstCutAngle !== 90 && (
+                              <div className="absolute -top-6 left-0 text-xs bg-orange-100 text-orange-800 px-1 rounded border transform -translate-x-2">
+                                {cut.firstCutAngle}°
+                              </div>
+                            )}
+                            {cut.secondCutAngle !== 90 && (
+                              <div className="absolute -top-6 right-0 text-xs bg-orange-100 text-orange-800 px-1 rounded border transform translate-x-2">
+                                {cut.secondCutAngle}°
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
