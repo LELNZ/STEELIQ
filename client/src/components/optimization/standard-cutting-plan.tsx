@@ -368,10 +368,10 @@ export default function StandardCuttingPlan({
             </div>
           </div>
 
-          <Collapsible open={expandedPlans.has(planIndex)} onOpenChange={() => togglePlan(planIndex)}>
+          <Collapsible open={isGeneratingPDF || expandedPlans.has(planIndex)} onOpenChange={() => togglePlan(planIndex)}>
             <CollapsibleContent>
               <div className="pt-2">
-                <Table className={isGeneratingPDF ? "text-sm" : "text-xs"}>
+                <Table className={isGeneratingPDF ? "text-base" : "text-xs"}>
                   <TableHeader>
                     <TableRow className="h-8">
                       <TableHead className="w-8 px-2 py-1">Seq</TableHead>
