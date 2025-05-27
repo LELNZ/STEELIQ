@@ -356,7 +356,7 @@ export default function StandardCuttingPlan({
 
       {/* Compact Summary Statistics */}
       <Card className="p-4">
-        <div className={isGeneratingPDF ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 md:grid-cols-4 gap-3"}>
+        <div className={isGeneratingPDF ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 md:grid-cols-5 gap-3"}>
           <div className="text-center">
             <div className="text-xl font-bold text-blue-600">{groupedPlans.length}</div>
             <div className="text-xs text-muted-foreground">Unique Sequences</div>
@@ -371,8 +371,20 @@ export default function StandardCuttingPlan({
           </div>
           {!isGeneratingPDF && (
             <div className="text-center">
-              <div className="text-xl font-bold text-orange-600">{formatTime(totalStats.totalCuttingTime)}</div>
-              <div className="text-xs text-muted-foreground">Total Time</div>
+              <div className="text-xl font-bold text-blue-600">
+                {formatTime(groupedPlans.reduce((sum, { plan }) => 
+                  sum + plan.cuts.reduce((cutSum, cut) => cutSum + (cut.cuttingTime || 0) * cut.quantity, 0), 0))}
+              </div>
+              <div className="text-xs text-muted-foreground">Total Cut Time</div>
+            </div>
+          )}
+          {!isGeneratingPDF && (
+            <div className="text-center">
+              <div className="text-xl font-bold text-orange-600">
+                {formatTime(groupedPlans.reduce((sum, { plan }) => 
+                  sum + plan.cuts.reduce((cutSum, cut) => cutSum + (cut.handlingTime || 0) * cut.quantity, 0), 0))}
+              </div>
+              <div className="text-xs text-muted-foreground">Total Handling Time</div>
             </div>
           )}
         </div>
