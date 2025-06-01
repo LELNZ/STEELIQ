@@ -42,10 +42,14 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
     outerDiameter: material.diameter ? Number(material.diameter) : undefined,
   });
   
+  const [length, setLength] = useState(1000); // Default 1000mm (1 meter)
   const [calculatedArea, setCalculatedArea] = useState<SurfaceAreaResult | null>(null);
-  const [selectedSurfaces, setSelectedSurfaces] = useState<string[]>(["external"]);
+  const [selectedSurfaces, setSelectedSurfaces] = useState<string[]>([]);
   const [calculationMethod, setCalculationMethod] = useState<"3d" | "checklist" | "percentage">("3d");
   const [percentageOverride, setPercentageOverride] = useState("100");
+
+  // Individual surface areas for detailed breakdown
+  const [surfaceAreas, setSurfaceAreas] = useState<Record<string, number>>({});
 
   // Get dimensional reference image based on material category
   const getDimensionalReference = () => {
@@ -105,37 +109,117 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
     }));
   };
 
-  const handleCalculate = () => {
-    if (material.category) {
-      const result = calculateSurfaceArea(material.category, dimensions);
-      setCalculatedArea(result);
+  const calculateIndividualSurfaces = () => {
+    const category = material.category?.toLowerCase() || '';
+    const w = dimensions.width || 0;
+    const d = dimensions.depth || 0;
+    const t = dimensions.thickness || 0;
+    const L = length;
+    
+    const areas: Record<string, number> = {};
+    
+    if (category.includes('channel') || category.includes('pfc')) {
+      // Channel (PFC) - C-shaped profile
+      areas['external_web'] = d * L / 1000000; // Convert mm² to m²
+      areas['internal_web_left'] = (d - 2 * t) * L / 1000000;
+      areas['internal_web_right'] = (d - 2 * t) * L / 1000000;
+      areas['external_flange_top'] = w * L / 1000000;
+      areas['external_flange_bottom'] = w * L / 1000000;
+      areas['internal_flange_top'] = (w - t) * L / 1000000;
+      areas['internal_flange_bottom'] = (w - t) * L / 1000000;
+    } else if (category.includes('ub') || category.includes('universal beam')) {
+      // Universal Beam - I-shaped profile
+      areas['external_web'] = d * L / 1000000;
+      areas['internal_web_left'] = (d - 2 * t) * L / 1000000;
+      areas['internal_web_right'] = (d - 2 * t) * L / 1000000;
+      areas['external_flange_top'] = w * L / 1000000;
+      areas['external_flange_bottom'] = w * L / 1000000;
+      areas['internal_flange_top'] = w * L / 1000000;
+      areas['internal_flange_bottom'] = w * L / 1000000;
+    } else if (category.includes('uc') || category.includes('universal column')) {
+      // Universal Column - H-shaped profile (wider flanges)
+      areas['external_web'] = d * L / 1000000;
+      areas['internal_web_left'] = (d - 2 * t) * L / 1000000;
+      areas['internal_web_right'] = (d - 2 * t) * L / 1000000;
+      areas['external_flange_top'] = w * L / 1000000;
+      areas['external_flange_bottom'] = w * L / 1000000;
+      areas['internal_flange_top'] = w * L / 1000000;
+      areas['internal_flange_bottom'] = w * L / 1000000;
+    } else if (category.includes('shs')) {
+      // Square Hollow Section
+      areas['external_top'] = w * L / 1000000;
+      areas['external_bottom'] = w * L / 1000000;
+      areas['external_left'] = w * L / 1000000;
+      areas['external_right'] = w * L / 1000000;
+      areas['internal_top'] = (w - 2 * t) * L / 1000000;
+      areas['internal_bottom'] = (w - 2 * t) * L / 1000000;
+      areas['internal_left'] = (w - 2 * t) * L / 1000000;
+      areas['internal_right'] = (w - 2 * t) * L / 1000000;
+    } else if (category.includes('rhs')) {
+      // Rectangular Hollow Section
+      areas['external_top'] = w * L / 1000000;
+      areas['external_bottom'] = w * L / 1000000;
+      areas['external_left'] = d * L / 1000000;
+      areas['external_right'] = d * L / 1000000;
+      areas['internal_top'] = (w - 2 * t) * L / 1000000;
+      areas['internal_bottom'] = (w - 2 * t) * L / 1000000;
+      areas['internal_left'] = (d - 2 * t) * L / 1000000;
+      areas['internal_right'] = (d - 2 * t) * L / 1000000;
+    } else if (category.includes('chs') || category.includes('pipe')) {
+      // Circular Hollow Section
+      const outerDiameter = dimensions.outerDiameter || w || 0;
+      const innerDiameter = outerDiameter - 2 * t;
+      areas['external_surface'] = Math.PI * outerDiameter * L / 1000000;
+      areas['internal_surface'] = Math.PI * innerDiameter * L / 1000000;
+    } else if (category.includes('angle')) {
+      // Angle - L-shaped profile
+      areas['external_leg1'] = w * L / 1000000;
+      areas['external_leg2'] = d * L / 1000000;
+      areas['internal_corner'] = (w - t) * L / 1000000;
+      areas['internal_leg2'] = (d - t) * L / 1000000;
     }
+    
+    setSurfaceAreas(areas);
+    return areas;
+  };
+
+  const handleCalculate = () => {
+    const areas = calculateIndividualSurfaces();
+    const total = Object.values(areas).reduce((sum, area) => sum + area, 0);
+    setCalculatedArea({
+      externalArea: total,
+      internalArea: 0,
+      totalArea: total,
+      breakdown: {}
+    });
   };
 
   const getSurfaceOptions = () => {
-    if (!calculatedArea) return [];
-    
-    const options = [];
-    if (calculatedArea.externalArea > 0) {
-      options.push({ id: "external", label: "External Surfaces", area: calculatedArea.externalArea });
-    }
-    if (calculatedArea.internalArea > 0) {
-      options.push({ id: "internal", label: "Internal Surfaces", area: calculatedArea.internalArea });
-    }
-    return options;
+    return Object.entries(surfaceAreas).map(([key, area]) => ({
+      id: key,
+      label: formatSurfaceLabel(key),
+      area: area
+    }));
+  };
+
+  const formatSurfaceLabel = (key: string) => {
+    return key.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
   };
 
   const getSelectedArea = () => {
-    if (!calculatedArea) return 0;
-    
-    let total = 0;
-    if (selectedSurfaces.includes("external")) {
-      total += calculatedArea.externalArea;
+    return selectedSurfaces.reduce((total, surfaceId) => {
+      return total + (surfaceAreas[surfaceId] || 0);
+    }, 0);
+  };
+
+  const toggleSurface = (surfaceId: string) => {
+    if (selectedSurfaces.includes(surfaceId)) {
+      setSelectedSurfaces(selectedSurfaces.filter(s => s !== surfaceId));
+    } else {
+      setSelectedSurfaces([...selectedSurfaces, surfaceId]);
     }
-    if (selectedSurfaces.includes("internal")) {
-      total += calculatedArea.internalArea;
-    }
-    return total;
   };
 
   return (
@@ -197,7 +281,17 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
               </div>
               
               {/* Dimension inputs for 3D method */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="length">Length (mm)</Label>
+                  <Input
+                    id="length"
+                    type="number"
+                    value={length}
+                    onChange={(e) => setLength(Number(e.target.value) || 1000)}
+                    placeholder="1000"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="width">Width (mm)</Label>
                   <Input
@@ -208,18 +302,16 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                     placeholder="Width"
                   />
                 </div>
-                {dimensions.thickness !== undefined && (
-                  <div className="space-y-2">
-                    <Label htmlFor="thickness">Thickness (mm)</Label>
-                    <Input
-                      id="thickness"
-                      type="number"
-                      value={dimensions.thickness || ""}
-                      onChange={(e) => handleDimensionChange("thickness", e.target.value)}
-                      placeholder="Thickness"
-                    />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="thickness">Thickness (mm)</Label>
+                  <Input
+                    id="thickness"
+                    type="number"
+                    value={dimensions.thickness || ""}
+                    onChange={(e) => handleDimensionChange("thickness", e.target.value)}
+                    placeholder="Thickness"
+                  />
+                </div>
                 {dimensions.depth !== undefined && (
                   <div className="space-y-2">
                     <Label htmlFor="depth">Depth (mm)</Label>
@@ -239,216 +331,195 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                 Calculate Surface Area
               </Button>
 
-              {/* 3D Interactive Profile Selector */}
-              {calculatedArea && (
+              {/* Enhanced 3D Interactive Profile Selector with Individual Surfaces */}
+              {Object.keys(surfaceAreas).length > 0 && (
                 <div className="space-y-4">
-                  <Label>3D Interactive Profile - Click surfaces to select/deselect:</Label>
+                  <Label>3D Interactive Profile - Click individual surfaces to select/deselect:</Label>
                   
-                  {/* Interactive SVG Profile based on material type */}
-                  <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <svg width="300" height="200" viewBox="0 0 300 200" className="border rounded">
-                      {/* Background */}
-                      <rect width="300" height="200" fill="white" />
-                      
-                      {/* SHS Profile Interactive Areas */}
-                      {material.category?.toLowerCase().includes('shs') && (
-                        <g>
-                          {/* Outer rectangle - External Surface */}
-                          <rect
-                            x="75" y="50" width="150" height="100"
-                            fill={selectedSurfaces.includes("external") ? "#3b82f6" : "#e5e7eb"}
-                            stroke="#374151" strokeWidth="2"
-                            className="cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                              if (selectedSurfaces.includes("external")) {
-                                setSelectedSurfaces(selectedSurfaces.filter(s => s !== "external"));
-                              } else {
-                                setSelectedSurfaces([...selectedSurfaces, "external"]);
-                              }
-                            }}
-                          />
-                          
-                          {/* Inner rectangle - Internal Surface */}
-                          <rect
-                            x="85" y="60" width="130" height="80"
-                            fill={selectedSurfaces.includes("internal") ? "#10b981" : "#f3f4f6"}
-                            stroke="#374151" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                              if (selectedSurfaces.includes("internal")) {
-                                setSelectedSurfaces(selectedSurfaces.filter(s => s !== "internal"));
-                              } else {
-                                setSelectedSurfaces([...selectedSurfaces, "internal"]);
-                              }
-                            }}
-                          />
-                          
-                          {/* Labels */}
-                          <text x="150" y="35" textAnchor="middle" className="text-xs font-medium">External Surface</text>
-                          <text x="150" y="105" textAnchor="middle" className="text-xs font-medium">Internal Surface</text>
-                          
-                          {/* Dimensions */}
-                          <text x="150" y="180" textAnchor="middle" className="text-xs text-gray-600">
-                            {dimensions.width}mm × {dimensions.width}mm × {dimensions.thickness}mm
-                          </text>
-                        </g>
-                      )}
-                      
-                      {/* RHS Profile Interactive Areas */}
-                      {material.category?.toLowerCase().includes('rhs') && (
-                        <g>
-                          {/* Outer rectangle - External Surface */}
-                          <rect
-                            x="50" y="60" width="200" height="80"
-                            fill={selectedSurfaces.includes("external") ? "#3b82f6" : "#e5e7eb"}
-                            stroke="#374151" strokeWidth="2"
-                            className="cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                              if (selectedSurfaces.includes("external")) {
-                                setSelectedSurfaces(selectedSurfaces.filter(s => s !== "external"));
-                              } else {
-                                setSelectedSurfaces([...selectedSurfaces, "external"]);
-                              }
-                            }}
-                          />
-                          
-                          {/* Inner rectangle - Internal Surface */}
-                          <rect
-                            x="60" y="70" width="180" height="60"
-                            fill={selectedSurfaces.includes("internal") ? "#10b981" : "#f3f4f6"}
-                            stroke="#374151" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                              if (selectedSurfaces.includes("internal")) {
-                                setSelectedSurfaces(selectedSurfaces.filter(s => s !== "internal"));
-                              } else {
-                                setSelectedSurfaces([...selectedSurfaces, "internal"]);
-                              }
-                            }}
-                          />
-                          
-                          {/* Labels */}
-                          <text x="150" y="45" textAnchor="middle" className="text-xs font-medium">External Surface</text>
-                          <text x="150" y="105" textAnchor="middle" className="text-xs font-medium">Internal Surface</text>
-                          
-                          {/* Dimensions */}
-                          <text x="150" y="180" textAnchor="middle" className="text-xs text-gray-600">
-                            {dimensions.width}mm × {dimensions.depth}mm × {dimensions.thickness}mm
-                          </text>
-                        </g>
-                      )}
-                      
-                      {/* Universal Beam Profile Interactive Areas */}
-                      {(material.category?.toLowerCase().includes('ub') || material.category?.toLowerCase().includes('universal beam')) && (
-                        <g>
-                          {/* Top flange */}
-                          <rect
-                            x="75" y="50" width="150" height="15"
-                            fill={selectedSurfaces.includes("external") ? "#3b82f6" : "#e5e7eb"}
-                            stroke="#374151" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                              if (selectedSurfaces.includes("external")) {
-                                setSelectedSurfaces(selectedSurfaces.filter(s => s !== "external"));
-                              } else {
-                                setSelectedSurfaces([...selectedSurfaces, "external"]);
-                              }
-                            }}
-                          />
-                          
-                          {/* Web */}
-                          <rect
-                            x="140" y="65" width="20" height="70"
-                            fill={selectedSurfaces.includes("external") ? "#3b82f6" : "#e5e7eb"}
-                            stroke="#374151" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                              if (selectedSurfaces.includes("external")) {
-                                setSelectedSurfaces(selectedSurfaces.filter(s => s !== "external"));
-                              } else {
-                                setSelectedSurfaces([...selectedSurfaces, "external"]);
-                              }
-                            }}
-                          />
-                          
-                          {/* Bottom flange */}
-                          <rect
-                            x="75" y="135" width="150" height="15"
-                            fill={selectedSurfaces.includes("external") ? "#3b82f6" : "#e5e7eb"}
-                            stroke="#374151" strokeWidth="1"
-                            className="cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                              if (selectedSurfaces.includes("external")) {
-                                setSelectedSurfaces(selectedSurfaces.filter(s => s !== "external"));
-                              } else {
-                                setSelectedSurfaces([...selectedSurfaces, "external"]);
-                              }
-                            }}
-                          />
-                          
-                          {/* Labels */}
-                          <text x="150" y="35" textAnchor="middle" className="text-xs font-medium">Click surfaces to select</text>
-                          
-                          {/* Dimensions */}
-                          <text x="150" y="180" textAnchor="middle" className="text-xs text-gray-600">
-                            UB Profile: {dimensions.width}mm × {dimensions.depth}mm
-                          </text>
-                        </g>
-                      )}
-                      
-                      {/* Default rectangular profile for other types */}
-                      {(!material.category?.toLowerCase().includes('shs') && 
-                        !material.category?.toLowerCase().includes('rhs') && 
-                        !material.category?.toLowerCase().includes('ub') && 
-                        !material.category?.toLowerCase().includes('universal beam')) && (
-                        <g>
-                          <rect
-                            x="100" y="75" width="100" height="50"
-                            fill={selectedSurfaces.includes("external") ? "#3b82f6" : "#e5e7eb"}
-                            stroke="#374151" strokeWidth="2"
-                            className="cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                              if (selectedSurfaces.includes("external")) {
-                                setSelectedSurfaces(selectedSurfaces.filter(s => s !== "external"));
-                              } else {
-                                setSelectedSurfaces([...selectedSurfaces, "external"]);
-                              }
-                            }}
-                          />
-                          <text x="150" y="105" textAnchor="middle" className="text-xs font-medium">External Surface</text>
-                          <text x="150" y="180" textAnchor="middle" className="text-xs text-gray-600">
-                            Click to select surface
-                          </text>
-                        </g>
-                      )}
-                      
-                      {/* Legend */}
-                      <g transform="translate(10, 160)">
-                        <rect x="0" y="0" width="15" height="10" fill="#3b82f6" />
-                        <text x="20" y="8" className="text-xs">Selected External</text>
-                        <rect x="0" y="15" width="15" height="10" fill="#10b981" />
-                        <text x="20" y="23" className="text-xs">Selected Internal</text>
-                        <rect x="0" y="30" width="15" height="10" fill="#e5e7eb" />
-                        <text x="20" y="38" className="text-xs">Unselected</text>
-                      </g>
-                    </svg>
+                  {/* Calculation Formula Display */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="text-sm font-medium mb-2">Surface Area Calculations:</div>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <div>• Web surfaces = depth × length</div>
+                      <div>• External flanges = width × length</div>
+                      <div>• Internal flanges = (width - thickness) × length</div>
+                      <div>• Internal dimensions account for material thickness</div>
+                      <div>• Length: {length}mm | Width: {dimensions.width}mm | Depth: {dimensions.depth}mm | Thickness: {dimensions.thickness}mm</div>
+                    </div>
                   </div>
                   
-                  {/* Surface selection summary */}
+                  {/* Interactive SVG Profile - Channel (PFC) */}
+                  {(material.category?.toLowerCase().includes('channel') || material.category?.toLowerCase().includes('pfc')) && (
+                    <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <svg width="400" height="250" viewBox="0 0 400 250" className="border rounded">
+                        <rect width="400" height="250" fill="white" />
+                        
+                        {/* Channel Profile - C shape */}
+                        {/* External Web */}
+                        <rect x="150" y="50" width="15" height="120" 
+                          fill={selectedSurfaces.includes("external_web") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_web")} />
+                        <text x="140" y="110" textAnchor="middle" className="text-xs font-medium">Ext Web</text>
+                        
+                        {/* Top External Flange */}
+                        <rect x="165" y="50" width="80" height="15"
+                          fill={selectedSurfaces.includes("external_flange_top") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_flange_top")} />
+                        <text x="205" y="45" textAnchor="middle" className="text-xs font-medium">Ext Top</text>
+                        
+                        {/* Bottom External Flange */}
+                        <rect x="165" y="155" width="80" height="15"
+                          fill={selectedSurfaces.includes("external_flange_bottom") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_flange_bottom")} />
+                        <text x="205" y="185" textAnchor="middle" className="text-xs font-medium">Ext Bottom</text>
+                        
+                        {/* Internal Web Left */}
+                        <rect x="170" y="65" width="8" height="90"
+                          fill={selectedSurfaces.includes("internal_web_left") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_web_left")} />
+                        <text x="174" y="115" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 174 115)">Int Left</text>
+                        
+                        {/* Internal Web Right */}
+                        <rect x="178" y="65" width="8" height="90"
+                          fill={selectedSurfaces.includes("internal_web_right") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_web_right")} />
+                        <text x="182" y="115" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 182 115)">Int Right</text>
+                        
+                        {/* Internal Top Flange */}
+                        <rect x="186" y="65" width="50" height="8"
+                          fill={selectedSurfaces.includes("internal_flange_top") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_flange_top")} />
+                        <text x="211" y="80" textAnchor="middle" className="text-xs font-medium">Int Top</text>
+                        
+                        {/* Internal Bottom Flange */}
+                        <rect x="186" y="147" width="50" height="8"
+                          fill={selectedSurfaces.includes("internal_flange_bottom") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_flange_bottom")} />
+                        <text x="211" y="142" textAnchor="middle" className="text-xs font-medium">Int Bottom</text>
+                        
+                        {/* Dimensions */}
+                        <text x="200" y="210" textAnchor="middle" className="text-xs text-gray-600">
+                          PFC: {dimensions.width}mm × {dimensions.depth}mm × {dimensions.thickness}mm × {length}mm
+                        </text>
+                        
+                        {/* Legend */}
+                        <g transform="translate(10, 200)">
+                          <rect x="0" y="0" width="15" height="10" fill="#3b82f6" />
+                          <text x="20" y="8" className="text-xs">External Surfaces</text>
+                          <rect x="0" y="15" width="15" height="10" fill="#10b981" />
+                          <text x="20" y="23" className="text-xs">Internal Surfaces</text>
+                          <rect x="0" y="30" width="15" height="10" fill="#e5e7eb" />
+                          <text x="20" y="38" className="text-xs">Unselected</text>
+                        </g>
+                      </svg>
+                    </div>
+                  )}
+                  
+                  {/* Enhanced SHS Profile with individual sides */}
+                  {material.category?.toLowerCase().includes('shs') && (
+                    <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <svg width="350" height="250" viewBox="0 0 350 250" className="border rounded">
+                        <rect width="350" height="250" fill="white" />
+                        
+                        {/* External Top */}
+                        <rect x="100" y="75" width="150" height="15"
+                          fill={selectedSurfaces.includes("external_top") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_top")} />
+                        <text x="175" y="70" textAnchor="middle" className="text-xs font-medium">Ext Top</text>
+                        
+                        {/* External Left */}
+                        <rect x="100" y="90" width="15" height="120"
+                          fill={selectedSurfaces.includes("external_left") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_left")} />
+                        <text x="95" y="150" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 95 150)">Ext Left</text>
+                        
+                        {/* External Right */}
+                        <rect x="235" y="90" width="15" height="120"
+                          fill={selectedSurfaces.includes("external_right") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_right")} />
+                        <text x="255" y="150" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 255 150)">Ext Right</text>
+                        
+                        {/* External Bottom */}
+                        <rect x="100" y="210" width="150" height="15"
+                          fill={selectedSurfaces.includes("external_bottom") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_bottom")} />
+                        <text x="175" y="240" textAnchor="middle" className="text-xs font-medium">Ext Bottom</text>
+                        
+                        {/* Internal surfaces - smaller and centered */}
+                        <rect x="120" y="100" width="110" height="10"
+                          fill={selectedSurfaces.includes("internal_top") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_top")} />
+                        <text x="175" y="118" textAnchor="middle" className="text-xs">Int Top</text>
+                        
+                        <rect x="120" y="110" width="10" height="90"
+                          fill={selectedSurfaces.includes("internal_left") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_left")} />
+                        
+                        <rect x="220" y="110" width="10" height="90"
+                          fill={selectedSurfaces.includes("internal_right") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_right")} />
+                        
+                        <rect x="120" y="200" width="110" height="10"
+                          fill={selectedSurfaces.includes("internal_bottom") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_bottom")} />
+                        <text x="175" y="195" textAnchor="middle" className="text-xs">Int Bottom</text>
+                      </svg>
+                    </div>
+                  )}
+                  
+                  {/* Surface selection summary with individual areas */}
                   <div className="space-y-2">
-                    <Label>Selected Surfaces:</Label>
-                    {getSurfaceOptions().map((option) => (
-                      <div key={option.id} className="flex items-center justify-between p-2 border rounded">
-                        <span className={`flex items-center gap-2 ${selectedSurfaces.includes(option.id) ? 'font-medium' : 'text-muted-foreground'}`}>
-                          <div className={`w-3 h-3 rounded ${selectedSurfaces.includes(option.id) ? 
-                            (option.id === 'external' ? 'bg-blue-500' : 'bg-green-500') : 'bg-gray-300'}`} />
-                          {option.label}
-                        </span>
-                        <Badge variant={selectedSurfaces.includes(option.id) ? "default" : "secondary"}>
-                          {option.area.toFixed(2)} m²/m
-                        </Badge>
-                      </div>
-                    ))}
+                    <Label>Individual Surface Areas (click to select):</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {getSurfaceOptions().map((option) => (
+                        <div key={option.id} 
+                          className={`flex items-center justify-between p-3 border rounded cursor-pointer transition-colors ${
+                            selectedSurfaces.includes(option.id) 
+                              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300' 
+                              : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                          }`}
+                          onClick={() => toggleSurface(option.id)}>
+                          <span className={`flex items-center gap-2 ${selectedSurfaces.includes(option.id) ? 'font-medium' : 'text-muted-foreground'}`}>
+                            <div className={`w-3 h-3 rounded ${selectedSurfaces.includes(option.id) ? 
+                              (option.id.includes('external') ? 'bg-blue-500' : 'bg-green-500') : 'bg-gray-300'}`} />
+                            {option.label}
+                          </span>
+                          <Badge variant={selectedSurfaces.includes(option.id) ? "default" : "secondary"}>
+                            {option.area.toFixed(4)} m²
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
