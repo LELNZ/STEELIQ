@@ -771,48 +771,212 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                     </div>
                   )}
                   
-                  {/* Flat Bar Profile */}
+                  {/* Equal Angle Profile */}
+                  {material.category?.toLowerCase().includes('angle') && !material.category?.toLowerCase().includes('unequal') && (
+                    <div className="space-y-4">
+                      <div className="flex justify-center p-8 bg-white dark:bg-gray-900 rounded-lg border">
+                        <svg width="280" height="180" viewBox="0 0 280 180" className="drop-shadow-sm">
+                          <defs>
+                            <pattern id="angle-hatch" patternUnits="userSpaceOnUse" width="4" height="4">
+                              <path d="M 0,4 l 4,-4 M -1,1 l 2,-2 M 3,5 l 2,-2" stroke="#9ca3af" strokeWidth="0.5"/>
+                            </pattern>
+                          </defs>
+                          
+                          {/* Equal Angle Profile - Clean L shape */}
+                          {/* External Leg 1 (Vertical) */}
+                          <rect x="120" y="50" width="18" height="80" 
+                            fill={selectedSurfaces.includes("external_leg_1") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_leg_1") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_leg_1")} />
+                          
+                          {/* External Leg 2 (Horizontal) */}
+                          <rect x="138" y="112" width="80" height="18"
+                            fill={selectedSurfaces.includes("external_leg_2") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_leg_2") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_leg_2")} />
+                          
+                          {/* Internal Leg 1 */}
+                          <rect x="125" y="55" width="8" height="57"
+                            fill={selectedSurfaces.includes("internal_leg_1") ? "#10b981" : "url(#angle-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_leg_1") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_leg_1")} />
+                          
+                          {/* Internal Leg 2 */}
+                          <rect x="143" y="117" width="57" height="8"
+                            fill={selectedSurfaces.includes("internal_leg_2") ? "#10b981" : "url(#angle-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_leg_2") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_leg_2")} />
+                          
+                          <text x="140" y="35" textAnchor="middle" className="text-sm font-semibold fill-gray-700 dark:fill-gray-300">
+                            Equal Angle
+                          </text>
+                          
+                          <text x="140" y="160" textAnchor="middle" className="text-xs fill-gray-500">
+                            {dimensions.width} × {dimensions.width} × {dimensions.thickness}mm
+                          </text>
+                        </svg>
+                      </div>
+                      
+                      <div className="flex justify-center space-x-6 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-blue-500 rounded border"></div>
+                          <span>External</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-green-500 rounded border"></div>
+                          <span>Internal</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-gray-200 rounded border"></div>
+                          <span>Unselected</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Unequal Angle Profile */}
+                  {material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle') && (
+                    <div className="space-y-4">
+                      <div className="flex justify-center p-8 bg-white dark:bg-gray-900 rounded-lg border">
+                        <svg width="280" height="180" viewBox="0 0 280 180" className="drop-shadow-sm">
+                          <defs>
+                            <pattern id="unequal-angle-hatch" patternUnits="userSpaceOnUse" width="4" height="4">
+                              <path d="M 0,4 l 4,-4 M -1,1 l 2,-2 M 3,5 l 2,-2" stroke="#9ca3af" strokeWidth="0.5"/>
+                            </pattern>
+                          </defs>
+                          
+                          {/* Unequal Angle Profile - Different leg sizes */}
+                          {/* External Leg 1 (Vertical - longer) */}
+                          <rect x="120" y="40" width="18" height="90" 
+                            fill={selectedSurfaces.includes("external_leg_1") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_leg_1") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_leg_1")} />
+                          
+                          {/* External Leg 2 (Horizontal - shorter) */}
+                          <rect x="138" y="112" width="60" height="18"
+                            fill={selectedSurfaces.includes("external_leg_2") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_leg_2") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_leg_2")} />
+                          
+                          {/* Internal Leg 1 */}
+                          <rect x="125" y="45" width="8" height="67"
+                            fill={selectedSurfaces.includes("internal_leg_1") ? "#10b981" : "url(#unequal-angle-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_leg_1") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_leg_1")} />
+                          
+                          {/* Internal Leg 2 */}
+                          <rect x="143" y="117" width="37" height="8"
+                            fill={selectedSurfaces.includes("internal_leg_2") ? "#10b981" : "url(#unequal-angle-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_leg_2") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_leg_2")} />
+                          
+                          <text x="140" y="30" textAnchor="middle" className="text-sm font-semibold fill-gray-700 dark:fill-gray-300">
+                            Unequal Angle
+                          </text>
+                          
+                          <text x="140" y="160" textAnchor="middle" className="text-xs fill-gray-500">
+                            {dimensions.width} × {dimensions.depth} × {dimensions.thickness}mm
+                          </text>
+                        </svg>
+                      </div>
+                      
+                      <div className="flex justify-center space-x-6 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-blue-500 rounded border"></div>
+                          <span>External</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-green-500 rounded border"></div>
+                          <span>Internal</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-gray-200 rounded border"></div>
+                          <span>Unselected</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Flat Bar Profile - Enhanced with larger selectable areas */}
                   {(material.category?.toLowerCase().includes('flat') || material.category?.toLowerCase().includes('plate')) && (
-                    <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <svg width="350" height="200" viewBox="0 0 350 200" className="border rounded">
-                        <rect width="350" height="200" fill="white" />
-                        
-                        {/* External Top */}
-                        <rect x="100" y="80" width="150" height="15"
-                          fill={selectedSurfaces.includes("external_top") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_top")} />
-                        <text x="175" y="75" textAnchor="middle" className="text-xs font-medium">External Top</text>
-                        
-                        {/* External Bottom */}
-                        <rect x="100" y="105" width="150" height="15"
-                          fill={selectedSurfaces.includes("external_bottom") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_bottom")} />
-                        <text x="175" y="135" textAnchor="middle" className="text-xs font-medium">External Bottom</text>
-                        
-                        {/* External Edge 1 */}
-                        <rect x="95" y="80" width="5" height="40"
-                          fill={selectedSurfaces.includes("external_edge1") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_edge1")} />
-                        <text x="85" y="100" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 85 100)">Edge 1</text>
-                        
-                        {/* External Edge 2 */}
-                        <rect x="250" y="80" width="5" height="40"
-                          fill={selectedSurfaces.includes("external_edge2") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_edge2")} />
-                        <text x="265" y="100" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 265 100)">Edge 2</text>
-                        
-                        <text x="175" y="160" textAnchor="middle" className="text-xs text-gray-600">
-                          Flat Bar: {dimensions.width}mm × {dimensions.thickness}mm × {length}mm
-                        </text>
-                      </svg>
+                    <div className="space-y-4">
+                      <div className="flex justify-center p-8 bg-white dark:bg-gray-900 rounded-lg border">
+                        <svg width="280" height="160" viewBox="0 0 280 160" className="drop-shadow-sm">
+                          <defs>
+                            <pattern id="flat-hatch" patternUnits="userSpaceOnUse" width="4" height="4">
+                              <path d="M 0,4 l 4,-4 M -1,1 l 2,-2 M 3,5 l 2,-2" stroke="#9ca3af" strokeWidth="0.5"/>
+                            </pattern>
+                          </defs>
+                          
+                          {/* Flat Bar Profile - Larger, easier to select areas */}
+                          {/* External Top - Much larger clickable area */}
+                          <rect x="60" y="50" width="160" height="25"
+                            fill={selectedSurfaces.includes("external_top") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_top") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_top")} />
+                          
+                          {/* External Bottom - Much larger clickable area */}
+                          <rect x="60" y="85" width="160" height="25"
+                            fill={selectedSurfaces.includes("external_bottom") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_bottom") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_bottom")} />
+                          
+                          {/* External Edge 1 - Larger clickable area */}
+                          <rect x="40" y="50" width="20" height="60"
+                            fill={selectedSurfaces.includes("external_edge1") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_edge1") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_edge1")} />
+                          
+                          {/* External Edge 2 - Larger clickable area */}
+                          <rect x="220" y="50" width="20" height="60"
+                            fill={selectedSurfaces.includes("external_edge2") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_edge2") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_edge2")} />
+                          
+                          <text x="140" y="35" textAnchor="middle" className="text-sm font-semibold fill-gray-700 dark:fill-gray-300">
+                            Flat Bar
+                          </text>
+                          
+                          <text x="140" y="140" textAnchor="middle" className="text-xs fill-gray-500">
+                            {dimensions.width} × {dimensions.thickness}mm
+                          </text>
+                        </svg>
+                      </div>
+                      
+                      <div className="flex justify-center space-x-6 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-blue-500 rounded border"></div>
+                          <span>External</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-gray-200 rounded border"></div>
+                          <span>Unselected</span>
+                        </div>
+                      </div>
                     </div>
                   )}
                   
