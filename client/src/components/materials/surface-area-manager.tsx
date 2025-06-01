@@ -678,7 +678,8 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                   )}
                   
                   {/* Universal Beam (UB) Profile with individual surfaces */}
-                  {(material.category?.toLowerCase().includes('ub') || material.category?.toLowerCase().includes('universal beam')) && (
+                  {(material.category?.toLowerCase().includes('ub') || material.category?.toLowerCase().includes('universal beam')) && 
+                   !material.category?.toLowerCase().includes('channel') && (
                     <div className="space-y-4">
                       <div className="flex justify-center p-8 bg-white dark:bg-gray-900 rounded-lg border">
                         <svg width="300" height="200" viewBox="0 0 300 200" className="drop-shadow-sm">
@@ -1164,7 +1165,8 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                   )}
                   
                   {/* Universal Column Profile */}
-                  {(material.category?.toLowerCase().includes('uc') || material.category?.toLowerCase().includes('universal column')) && (
+                  {(material.category?.toLowerCase().includes('uc') || material.category?.toLowerCase().includes('universal column')) && 
+                   !material.category?.toLowerCase().includes('channel') && (
                     <div className="space-y-4">
                       <div className="flex justify-center p-8 bg-white dark:bg-gray-900 rounded-lg border">
                         <svg width="300" height="200" viewBox="0 0 300 200" className="drop-shadow-sm">
