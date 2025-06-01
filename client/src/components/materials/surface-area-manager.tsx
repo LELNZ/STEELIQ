@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Save, RotateCcw, Image, CheckSquare, Percent } from "lucide-react";
 import { calculateSurfaceArea, calculateSquareBarArea, type SteelDimensions, type SurfaceAreaResult } from "@/lib/surface-area-calculator";
 import type { Material } from "@shared/schema";
@@ -91,8 +92,10 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
         console.error('Error parsing coating config:', error);
         setCustomConfigurations([]);
       }
+    } else {
+      setCustomConfigurations([]);
     }
-  }, [material.coatingConfig]);
+  }, [material.coatingConfig, material.id]);
 
   // Generate automatic name for custom configuration
   const generateConfigurationName = (surfaces: string[]): string => {
@@ -408,6 +411,42 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
               <div className="text-lg font-semibold">
                 {Number(material.surfaceAreaPerMeter).toFixed(2)} m²/m
               </div>
+            </div>
+          )}
+
+          {/* Custom Configuration Selection */}
+          {customConfigurations.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="coating-config">Load Custom Configuration</Label>
+              <Select 
+                value={coatingConfiguration} 
+                onValueChange={(value) => {
+                  setCoatingConfiguration(value);
+                  if (value !== "default") {
+                    const config = customConfigurations.find(c => c.id === value);
+                    if (config) {
+                      setSelectedSurfaces(config.surfaces);
+                      setCalculationMethod("checklist");
+                      // Trigger calculation with loaded surfaces
+                      if (material.category && dimensions.width) {
+                        handleCalculate();
+                      }
+                    }
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a configuration" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default Configuration</SelectItem>
+                  {customConfigurations.map((config) => (
+                    <SelectItem key={config.id} value={config.id}>
+                      {config.name} ({config.totalArea.toFixed(3)} m²/m)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
