@@ -849,7 +849,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         size="sm"
                         className="flex-shrink-0"
                       />
-                      <div className="flex-1 grid grid-cols-6 gap-4 items-center">
+                      <div className="flex-1 grid grid-cols-7 gap-4 items-center">
                         <div className="col-span-2">
                           <p className="font-semibold">{material.name}</p>
                           <p className="text-sm text-muted-foreground">{material.code}</p>
@@ -881,6 +881,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           ) : (
                             <>
                               <p className="text-sm">W: {material.width || 'N/A'}</p>
+                              {material.depth && <p className="text-sm">D: {material.depth}mm</p>}
                               {/* Show separate web and flange thickness for structural sections */}
                               {(material.category?.toLowerCase().includes('channel') || 
                                 material.category?.toLowerCase().includes('structural channels') ||
@@ -898,6 +899,14 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         </div>
                         <div>
                           <p className="text-sm font-medium">{material.weightPerMeter || 0} kg/m</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-blue-600">
+                            {material.surfaceAreaPerMeter 
+                              ? `${Number(material.surfaceAreaPerMeter).toFixed(3)} m²/m`
+                              : 'Not calculated'
+                            }
+                          </p>
                         </div>
                         <div>
                           <p className="text-sm">{material.grade || 'Standard'}</p>

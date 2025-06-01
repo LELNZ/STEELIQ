@@ -4,6 +4,8 @@
  * All calculations use metric units (mm for dimensions, m²/m for results)
  */
 
+import type { Material } from "@shared/schema";
+
 export interface SteelDimensions {
   width?: number;      // mm
   height?: number;     // mm
@@ -315,4 +317,123 @@ export function calculateSurfaceArea(
     internalArea: 0,
     breakdown: {}
   };
+}
+
+/**
+ * Automatically calculate surface area per meter for a material based on its category and dimensions
+ * Returns surface area in m²/m or null if calculation is not possible
+ */
+export function calculateMaterialSurfaceArea(material: Material): number | null {
+  try {
+    const category = material.category?.toLowerCase() || '';
+    
+    // Parse dimensions from string fields
+    const width = material.width ? parseFloat(material.width) : null;
+    const depth = material.depth ? parseFloat(material.depth) : null;
+    const thickness = material.thickness ? parseFloat(material.thickness) : null;
+    const diameter = material.diameter ? parseFloat(material.diameter) : null;
+    const webTw = material.webTw ? parseFloat(material.webTw) : null;
+    const flangeTf = material.flangeTf ? parseFloat(material.flangeTf) : null;
+
+    // Structural Channels (C-sections)
+    if (category.includes('channel') || category.includes('structural channels')) {
+      if (width && depth && webTw && flangeTf) {
+        const result = calculateChannelArea(width, depth, webTw, flangeTf);
+        return result.totalArea;
+      }
+    }
+    
+    // Universal Beams (I-beams)
+    else if (category.includes('universal beam') || category.includes('i-beam')) {
+      if (width && depth && webTw && flangeTf) {
+        const result = calculateUniversalBeamArea(width, depth, webTw, flangeTf);
+        return result.totalArea;
+      }
+    }
+    
+    // Universal Columns (H-sections)
+    else if (category.includes('universal column') || category.includes('h-section')) {
+      if (width && depth && webTw && flangeTf) {
+        const result = calculateUniversalColumnArea(width, depth, webTw, flangeTf);
+        return result.totalArea;
+      }
+    }
+    
+    // Angles (L-sections)
+    else if (category.includes('angle') || category.includes('equal angle')) {
+      if (width && thickness) {
+        const result = calculateAngleArea(width, thickness);
+        return result.totalArea;
+      }
+    }
+    
+    // Pipes (CHS - Circular Hollow Sections)
+    else if (category.includes('pipe') || category.includes('chs') || category.includes('circular hollow')) {
+      if (diameter && thickness) {
+        const result = calculatePipeArea(diameter, thickness);
+        return result.totalArea;
+      }
+    }
+    
+    // Round bars
+    else if (category.includes('round') || category.includes('bar')) {
+      if (diameter) {
+        const result = calculateRoundBarArea(diameter);
+        return result.totalArea;
+      }
+    }
+    
+    // Square bars
+    else if (category.includes('square') && category.includes('bar')) {
+      if (width) {
+        const result = calculateSquareBarArea(width);
+        return result.totalArea;
+      }
+    }
+    
+    // Flat bars
+    else if (category.includes('flat') || category.includes('plate')) {
+      if (width && thickness) {
+        const result = calculateFlatBarArea(width, thickness);
+        return result.totalArea;
+      }
+    }
+    
+    // RHS (Rectangular Hollow Sections)
+    else if (category.includes('rhs') || category.includes('rectangular hollow')) {
+      if (width && depth && thickness) {
+        const result = calculateRHSArea(width, depth, thickness);
+        return result.totalArea;
+      }
+    }
+    
+    // SHS (Square Hollow Sections)
+    else if (category.includes('shs') || category.includes('square hollow')) {
+      if (width && thickness) {
+        const result = calculateSHSArea(width, thickness);
+        return result.totalArea;
+      }
+    }
+    
+    // Sheet metal
+    else if (category.includes('sheet') || category.includes('plate')) {
+      if (width && thickness) {
+        const result = calculateSheetMetalArea(width, thickness);
+        return result.totalArea;
+      }
+    }
+    
+    // Reinforcing bars
+    else if (category.includes('reinforc') || category.includes('rebar')) {
+      if (diameter) {
+        const result = calculateRoundBarArea(diameter);
+        return result.totalArea;
+      }
+    }
+    
+    return null; // Cannot calculate for this material type
+  } catch (error) {
+    console.error('Error calculating surface area for material:', material.name, error);
+    return null;
+  }
 }
