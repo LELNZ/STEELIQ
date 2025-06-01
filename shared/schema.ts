@@ -76,7 +76,7 @@ export const jobs = pgTable("jobs", {
   clientEmail: text("client_email"),
   clientAddress: text("client_address"),
   projectDescription: text("project_description"),
-  status: text("status").notNull().default("draft"), // draft, planning, ready_to_cut, cutting, cut_complete, fabrication, quality_check, completed, on_hold, backcosting
+  status: text("status").notNull().default("quote"), // quote, client_confirmation, shop_drawings, materials_ordered, processing, fabrication, welding, finishing, coatings, delivery, site_works, variations, completed, on_hold, backcosting
   priority: text("priority").notNull().default("standard"), // standard, high, rush, urgent
   estimatedValue: decimal("estimated_value", { precision: 10, scale: 2 }),
   actualCost: decimal("actual_cost", { precision: 10, scale: 2 }),
@@ -200,9 +200,132 @@ export const coatingSystems = pgTable("coating_systems", {
   pricingMethod: text("pricing_method").notNull().default("per_sqm"), // per_sqm, per_kg, per_piece
   pricePerUnit: decimal("price_per_unit", { precision: 10, scale: 2 }),
   coverageRate: decimal("coverage_rate", { precision: 10, scale: 2 }), // m²/L for paints
-  preparationRequired: text("preparation_required"), // blast, grind, degrease
-  preparationCost: decimal("preparation_cost", { precision: 10, scale: 2 }),
+  applicationMethod: text("application_method"), // spray, brush, dip, roller
+  preparationRequired: text("preparation_required"), // blast, grind, degrease - shown as tags
   dryingTime: integer("drying_time"), // minutes
+  coatsRequired: integer("coats_required").default(1), // number of coats
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Job Estimates - STRUMIS-style estimation system
+export const jobEstimates = pgTable("job_estimates", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => jobs.id).notNull(),
+  estimateNumber: text("estimate_number").notNull().unique(),
+  version: integer("version").default(1),
+  estimateType: text("estimate_type").notNull().default("initial"), // initial, variation, revised
+  totalMaterialCost: decimal("total_material_cost", { precision: 12, scale: 2 }),
+  totalLaborCost: decimal("total_labor_cost", { precision: 12, scale: 2 }),
+  totalSubcontractorCost: decimal("total_subcontractor_cost", { precision: 12, scale: 2 }),
+  totalOverheadCost: decimal("total_overhead_cost", { precision: 12, scale: 2 }),
+  profitMargin: decimal("profit_margin", { precision: 5, scale: 2 }),
+  totalEstimateValue: decimal("total_estimate_value", { precision: 12, scale: 2 }),
+  retentionPercentage: decimal("retention_percentage", { precision: 5, scale: 2 }).default("5.0"),
+  retentionAmount: decimal("retention_amount", { precision: 12, scale: 2 }),
+  estimatedHours: decimal("estimated_hours", { precision: 10, scale: 2 }),
+  tonnage: decimal("tonnage", { precision: 10, scale: 3 }),
+  costPerTonne: decimal("cost_per_tonne", { precision: 10, scale: 2 }),
+  wasteFactorPercentage: decimal("waste_factor_percentage", { precision: 5, scale: 2 }).default("5.0"),
+  estimatorId: integer("estimator_id").references(() => users.id),
+  approvalStatus: text("approval_status").default("draft"), // draft, pending_approval, approved, rejected
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  validUntil: timestamp("valid_until"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Estimate Line Items - detailed breakdown following STRUMIS methodology
+export const estimateLineItems = pgTable("estimate_line_items", {
+  id: serial("id").primaryKey(),
+  estimateId: integer("estimate_id").references(() => jobEstimates.id).notNull(),
+  phase: text("phase"), // Foundation, Structure, Connections, etc.
+  element: text("element"), // Beams, Columns, Bracing, Plates, etc.
+  assembly: text("assembly"), // Frame Assembly, Connection Assembly, etc.
+  materialId: integer("material_id").references(() => materials.id),
+  description: text("description").notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 3 }),
+  unit: text("unit").notNull(), // m, kg, pcs, m², etc.
+  unitMaterialCost: decimal("unit_material_cost", { precision: 10, scale: 2 }),
+  totalMaterialCost: decimal("total_material_cost", { precision: 12, scale: 2 }),
+  laborRate: text("labor_rate").default("workshop"), // workshop, site, subcontractor
+  laborHoursPerUnit: decimal("labor_hours_per_unit", { precision: 8, scale: 3 }),
+  totalLaborHours: decimal("total_labor_hours", { precision: 10, scale: 2 }),
+  laborCostPerHour: decimal("labor_cost_per_hour", { precision: 8, scale: 2 }),
+  totalLaborCost: decimal("total_labor_cost", { precision: 12, scale: 2 }),
+  complexityFactor: decimal("complexity_factor", { precision: 3, scale: 2 }).default("1.0"),
+  wasteAllowance: decimal("waste_allowance", { precision: 5, scale: 2 }),
+  totalLineCost: decimal("total_line_cost", { precision: 12, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Job Variations - change order management
+export const jobVariations = pgTable("job_variations", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => jobs.id).notNull(),
+  variationNumber: text("variation_number").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  requestedBy: text("requested_by"), // client, engineer, site
+  reason: text("reason"), // design_change, site_conditions, client_request
+  costImpact: decimal("cost_impact", { precision: 12, scale: 2 }),
+  timeImpact: integer("time_impact_days"),
+  status: text("status").default("draft"), // draft, submitted, client_review, engineer_review, approved, rejected, implemented
+  estimateId: integer("estimate_id").references(() => jobEstimates.id),
+  submittedAt: timestamp("submitted_at"),
+  clientApprovedAt: timestamp("client_approved_at"),
+  engineerApprovedAt: timestamp("engineer_approved_at"),
+  implementedAt: timestamp("implemented_at"),
+  communications: text("communications"), // JSON array of communication records
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Retention Tracking - 5-10% retention management
+export const retentions = pgTable("retentions", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => jobs.id).notNull(),
+  totalJobValue: decimal("total_job_value", { precision: 12, scale: 2 }),
+  retentionPercentage: decimal("retention_percentage", { precision: 5, scale: 2 }),
+  retentionAmount: decimal("retention_amount", { precision: 12, scale: 2 }),
+  retentionReleaseDate: timestamp("retention_release_date"),
+  status: text("status").default("held"), // held, claimed, received, disputed
+  claimSubmittedAt: timestamp("claim_submitted_at"),
+  receivedAt: timestamp("received_at"),
+  reminderSentAt: timestamp("reminder_sent_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Rate Cards - labor rates by operation type
+export const rateCards = pgTable("rate_cards", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  rateType: text("rate_type").notNull(), // workshop, site, subcontractor
+  operationType: text("operation_type").notNull(), // cutting, drilling, welding, grinding, fitting, painting, erection
+  ratePerHour: decimal("rate_per_hour", { precision: 8, scale: 2 }),
+  overtimeMultiplier: decimal("overtime_multiplier", { precision: 3, scale: 2 }).default("1.5"),
+  travelTimeRate: decimal("travel_time_rate", { precision: 8, scale: 2 }),
+  riskPremium: decimal("risk_premium", { precision: 5, scale: 2 }), // percentage for high-risk work
+  effectiveFrom: timestamp("effective_from").defaultNow(),
+  effectiveTo: timestamp("effective_to"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Customer specific pricing agreements
+export const customerRates = pgTable("customer_rates", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").notNull(), // Will reference customers table when created
+  customerName: text("customer_name").notNull(),
+  rateCardId: integer("rate_card_id").references(() => rateCards.id),
+  discountPercentage: decimal("discount_percentage", { precision: 5, scale: 2 }),
+  markupPercentage: decimal("markup_percentage", { precision: 5, scale: 2 }),
+  specialTerms: text("special_terms"),
+  contractReference: text("contract_reference"),
+  effectiveFrom: timestamp("effective_from").defaultNow(),
+  effectiveTo: timestamp("effective_to"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -214,6 +337,8 @@ export const surfaceAreaConfigs = pgTable("surface_area_configs", {
   surfaceType: text("surface_type").notNull(), // external_top, external_bottom, external_left, external_right, internal_web, internal_flange
   includeInCalculation: boolean("include_in_calculation").default(true),
   areaMultiplier: decimal("area_multiplier", { precision: 5, scale: 3 }).default("1.0"), // adjustment factor
+  selectionMethod: text("selection_method").default("checklist"), // checklist, 3d_interactive, percentage_override
+  percentageOverride: decimal("percentage_override", { precision: 5, scale: 2 }), // for complex situations
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
