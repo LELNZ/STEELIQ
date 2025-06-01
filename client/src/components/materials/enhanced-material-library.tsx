@@ -1496,7 +1496,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                   <div className="space-y-2">
                     <Label htmlFor="edit-coating-config">Coating Configuration</Label>
                     <Select 
-                      value={editingMaterial.coatingConfig?.type || "external-internal"}
+                      value="external-internal"
                       onValueChange={(value) => {
                         // Calculate surface area based on configuration type using unified system
                         let calculatedSurfaceArea = editingMaterial.surfaceAreaPerMeter;

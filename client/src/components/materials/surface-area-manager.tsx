@@ -164,8 +164,8 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       setCustomConfigurations(updatedConfigs);
       setCoatingConfiguration(newConfig.id);
       
-      // Trigger onSave with the custom configuration area (NOT the base material area)
-      onSave(totalArea);
+      // DO NOT update the base material surface area - only save as custom config
+      alert(`Custom configuration "${configName}" saved successfully!`);
       
     } catch (error) {
       console.error('Error saving custom configuration:', error);
