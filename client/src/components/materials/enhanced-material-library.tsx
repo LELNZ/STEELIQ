@@ -999,7 +999,15 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                   <Info className="w-3 h-3 text-muted-foreground hover:text-blue-600" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Surface area per linear meter for coating calculations</p>
+                                  <div className="space-y-1">
+                                    <p className="font-medium">Surface area per linear meter for coating calculations (m²/m)</p>
+                                    <p className="text-xs text-muted-foreground">Includes configurable face selections:</p>
+                                    <ul className="text-xs space-y-1 ml-2">
+                                      <li>• External faces (top, bottom, sides)</li>
+                                      <li>• Internal faces (where applicable)</li>
+                                      <li>• Custom configurations available</li>
+                                    </ul>
+                                  </div>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -1409,6 +1417,59 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                 </div>
               </div>
 
+              {/* Surface Area Configuration */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-foreground border-b pb-2">Surface Area for Coating</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-surface-area" className="flex items-center gap-2">
+                      Surface Area per Meter (m²/m)
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="w-4 h-4 text-muted-foreground hover:text-blue-600" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="space-y-1">
+                              <p className="font-medium">Surface area per linear meter for coating calculations</p>
+                              <p className="text-xs text-muted-foreground">Edit to override calculated value</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </Label>
+                    <Input
+                      id="edit-surface-area"
+                      type="number"
+                      step="0.0001"
+                      value={editingMaterial.surfaceAreaPerMeter || ""}
+                      onChange={(e) => setEditingMaterial({...editingMaterial, surfaceAreaPerMeter: e.target.value})}
+                      placeholder="0.0000"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-coating-config">Coating Configuration</Label>
+                    <Select 
+                      value={editingMaterial.coatingConfig?.type || "all-external"}
+                      onValueChange={(value) => setEditingMaterial({
+                        ...editingMaterial, 
+                        coatingConfig: { type: value, faces: value === 'all-external' ? ['top', 'bottom', 'sides'] : ['all'] }
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select coating type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all-external">All External Faces</SelectItem>
+                        <SelectItem value="external-only">External Only</SelectItem>
+                        <SelectItem value="internal-external">Internal + External</SelectItem>
+                        <SelectItem value="custom">Custom Configuration</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
               {/* Available Lengths */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground border-b pb-2">Available Lengths</h3>
@@ -1449,7 +1510,9 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       pricePerKg: editingMaterial.pricePerKg !== undefined && editingMaterial.pricePerKg !== null && editingMaterial.pricePerKg !== '' ? String(editingMaterial.pricePerKg) : null,
                       lengthOptions: editingMaterial.lengthOptions,
                       webTw: editingMaterial.webTw !== undefined && editingMaterial.webTw !== null && editingMaterial.webTw !== '' ? String(editingMaterial.webTw) : null,
-                      flangeTf: editingMaterial.flangeTf !== undefined && editingMaterial.flangeTf !== null && editingMaterial.flangeTf !== '' ? String(editingMaterial.flangeTf) : null
+                      flangeTf: editingMaterial.flangeTf !== undefined && editingMaterial.flangeTf !== null && editingMaterial.flangeTf !== '' ? String(editingMaterial.flangeTf) : null,
+                      surfaceAreaPerMeter: editingMaterial.surfaceAreaPerMeter,
+                      coatingConfig: editingMaterial.coatingConfig
                     }
                   });
                 }}
