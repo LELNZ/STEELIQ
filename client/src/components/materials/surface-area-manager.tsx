@@ -43,8 +43,6 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
   });
   
   const [calculatedArea, setCalculatedArea] = useState<SurfaceAreaResult | null>(null);
-  const [manualOverride, setManualOverride] = useState(false);
-  const [manualValue, setManualValue] = useState(material.surfaceAreaPerMeter?.toString() || "");
   const [selectedSurfaces, setSelectedSurfaces] = useState<string[]>(["external"]);
   const [calculationMethod, setCalculationMethod] = useState<"3d" | "checklist" | "percentage">("3d");
   const [percentageOverride, setPercentageOverride] = useState("100");
@@ -93,11 +91,11 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
   };
 
   useEffect(() => {
-    if (!manualOverride && material.category) {
+    if (material.category) {
       const result = calculateSurfaceArea(material.category, dimensions);
       setCalculatedArea(result);
     }
-  }, [dimensions, material.category, manualOverride]);
+  }, [dimensions, material.category]);
 
   const handleDimensionChange = (field: keyof SteelDimensions, value: string) => {
     const numValue = value === "" ? undefined : parseFloat(value);
@@ -111,16 +109,6 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
     if (material.category) {
       const result = calculateSurfaceArea(material.category, dimensions);
       setCalculatedArea(result);
-    }
-  };
-
-  const handleSave = () => {
-    const finalValue = manualOverride 
-      ? parseFloat(manualValue) 
-      : calculatedArea?.totalArea || 0;
-    
-    if (finalValue > 0) {
-      onSave(finalValue);
     }
   };
 
@@ -496,87 +484,6 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                 setPercentageOverride("100");
               }}
             >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h4 className="font-semibold text-green-800 mb-2">Calculation Results</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>External Surface Area:</span>
-                        <Badge variant="secondary">{calculatedArea.externalArea.toFixed(2)} m²/m</Badge>
-                      </div>
-                      {calculatedArea.internalArea > 0 && (
-                        <div className="flex justify-between">
-                          <span>Internal Surface Area:</span>
-                          <Badge variant="secondary">{calculatedArea.internalArea.toFixed(2)} m²/m</Badge>
-                        </div>
-                      )}
-                      <div className="flex justify-between font-semibold">
-                        <span>Total Surface Area:</span>
-                        <Badge>{calculatedArea.totalArea.toFixed(2)} m²/m</Badge>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Surface Selection */}
-                  {getSurfaceOptions().length > 1 && (
-                    <div className="space-y-2">
-                      <Label>Select Surfaces for Coating</Label>
-                      <div className="space-y-2">
-                        {getSurfaceOptions().map(option => (
-                          <div key={option.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={option.id}
-                              checked={selectedSurfaces.includes(option.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedSurfaces([...selectedSurfaces, option.id]);
-                                } else {
-                                  setSelectedSurfaces(selectedSurfaces.filter(s => s !== option.id));
-                                }
-                              }}
-                            />
-                            <Label htmlFor={option.id} className="flex-1">
-                              {option.label}
-                            </Label>
-                            <Badge variant="outline">{option.area.toFixed(2)} m²/m</Badge>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {selectedSurfaces.length > 0 && (
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <div className="flex justify-between items-center">
-                            <span className="font-medium">Selected Surface Area:</span>
-                            <Badge className="bg-blue-600">{getSelectedArea().toFixed(2)} m²/m</Badge>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            <Button onClick={handleSave} className="flex-1">
-              <Save className="w-4 h-4 mr-2" />
-              Save Surface Area
-            </Button>
-            <Button variant="outline" onClick={() => {
-              setManualOverride(false);
-              setManualValue("");
-              setCalculatedArea(null);
-            }}>
               <RotateCcw className="w-4 h-4 mr-2" />
               Reset
             </Button>
