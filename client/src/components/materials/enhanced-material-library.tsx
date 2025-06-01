@@ -1284,6 +1284,16 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           />
                         </div>
                         <div className="space-y-2">
+                          <Label htmlFor="edit-depth">Depth (mm)</Label>
+                          <Input
+                            id="edit-depth"
+                            type="number"
+                            value={editingMaterial.depth?.toString() || ""}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, depth: parseFloat(e.target.value) || undefined})}
+                            placeholder="Depth"
+                          />
+                        </div>
+                        <div className="space-y-2">
                           <Label htmlFor="edit-web-thickness">Web Thickness (mm)</Label>
                           <Input
                             id="edit-web-thickness"
@@ -1301,16 +1311,6 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             value={editingMaterial.flangeTf?.toString() || ""}
                             onChange={(e) => setEditingMaterial({...editingMaterial, flangeTf: parseFloat(e.target.value) || undefined})}
                             placeholder="Flange Thickness"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-length">Length (mm)</Label>
-                          <Input
-                            id="edit-length"
-                            type="number"
-                            value={editingMaterial.length?.toString() || ""}
-                            onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
-                            placeholder="Length"
                           />
                         </div>
                       </div>
@@ -1450,19 +1450,52 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                   <div className="space-y-2">
                     <Label htmlFor="edit-coating-config">Coating Configuration</Label>
                     <Select 
-                      value={editingMaterial.coatingConfig?.type || "all-external"}
-                      onValueChange={(value) => setEditingMaterial({
-                        ...editingMaterial, 
-                        coatingConfig: { type: value, faces: value === 'all-external' ? ['top', 'bottom', 'sides'] : ['all'] }
-                      })}
+                      value={editingMaterial.coatingConfig?.type || "external-only"}
+                      onValueChange={(value) => {
+                        // Calculate surface area based on configuration type
+                        let calculatedSurfaceArea = editingMaterial.surfaceAreaPerMeter;
+                        
+                        if (value !== 'custom' && editingMaterial.width && editingMaterial.depth) {
+                          const width = parseFloat(editingMaterial.width);
+                          const depth = parseFloat(editingMaterial.depth);
+                          const webTw = editingMaterial.webTw ? parseFloat(editingMaterial.webTw.toString()) : 0;
+                          const flangeTf = editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : 0;
+                          
+                          if (editingMaterial.category?.toLowerCase().includes('channel')) {
+                            // Channel calculations
+                            if (value === 'external-only') {
+                              calculatedSurfaceArea = ((width + 2 * depth) / 1000).toFixed(4);
+                            } else if (value === 'internal-only') {
+                              calculatedSurfaceArea = ((width - 2 * webTw + 2 * (depth - flangeTf)) / 1000).toFixed(4);
+                            } else if (value === 'external-internal') {
+                              calculatedSurfaceArea = ((2 * (width + depth)) / 1000).toFixed(4);
+                            }
+                          } else if (editingMaterial.category?.toLowerCase().includes('universal')) {
+                            // Universal beam/column calculations
+                            if (value === 'external-only') {
+                              calculatedSurfaceArea = ((2 * (width + depth)) / 1000).toFixed(4);
+                            } else if (value === 'internal-only') {
+                              calculatedSurfaceArea = ((2 * (width - 2 * flangeTf + depth - 2 * webTw)) / 1000).toFixed(4);
+                            } else if (value === 'external-internal') {
+                              calculatedSurfaceArea = ((4 * (width + depth)) / 1000).toFixed(4);
+                            }
+                          }
+                        }
+                        
+                        setEditingMaterial({
+                          ...editingMaterial, 
+                          coatingConfig: { type: value, faces: [] },
+                          surfaceAreaPerMeter: value !== 'custom' ? calculatedSurfaceArea : editingMaterial.surfaceAreaPerMeter
+                        });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select coating type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all-external">All External Faces</SelectItem>
                         <SelectItem value="external-only">External Only</SelectItem>
-                        <SelectItem value="internal-external">Internal + External</SelectItem>
+                        <SelectItem value="internal-only">Internal Only</SelectItem>
+                        <SelectItem value="external-internal">External + Internal</SelectItem>
                         <SelectItem value="custom">Custom Configuration</SelectItem>
                       </SelectContent>
                     </Select>
