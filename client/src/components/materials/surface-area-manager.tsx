@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator, Save, RotateCcw, Image, CheckSquare, Percent } from "lucide-react";
+import { Calculator, Image, CheckSquare, Percent } from "lucide-react";
 import { calculateSurfaceArea, calculateSquareBarArea, type SteelDimensions, type SurfaceAreaResult } from "@/lib/surface-area-calculator";
 import type { Material } from "@shared/schema";
 
@@ -29,9 +29,10 @@ import ucImg from "@assets/Universal Column.png";
 interface SurfaceAreaManagerProps {
   material: Material;
   onSave: (surfaceArea: number) => void;
+  onClose: () => void;
 }
 
-export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaManagerProps) {
+export default function SurfaceAreaManager({ material, onSave, onClose }: SurfaceAreaManagerProps) {
   const [dimensions, setDimensions] = useState<SteelDimensions>(() => {
     const category = material.category?.toLowerCase() || '';
     const width = material.width ? Number(material.width) : undefined;
@@ -1572,12 +1573,7 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <Button 
-              onClick={() => {
-                // Close the surface area manager without saving
-                setCalculatedArea(null);
-                setSelectedSurfaces(["external"]);
-                setPercentageOverride("100");
-              }}
+              onClick={onClose}
               className="w-full"
             >
               Close

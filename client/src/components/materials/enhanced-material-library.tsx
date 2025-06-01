@@ -1623,10 +1623,10 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
               onSave={(surfaceArea) => {
                 updateSurfaceAreaMutation.mutate({
                   id: surfaceAreaMaterial.id,
-                  surfaceAreaPerMeter: surfaceArea,
-                  coatingConfig: { type: 'custom', faces: [] }
+                  surfaceAreaPerMeter: surfaceArea
                 });
               }}
+              onClose={() => setSurfaceAreaMaterial(null)}
             />
           </DialogContent>
         </Dialog>
