@@ -1,11 +1,12 @@
 import { 
   users, materials, materialCategories, inventory, jobs, jobMaterials, 
-  cuttingPlans, cutSequences, remnants, optimizationSimulations,
+  cuttingPlans, cutSequences, remnants, optimizationSimulations, coatingSystems, surfaceAreaConfigs,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
   type CuttingPlan, type InsertCuttingPlan, type CutSequence, type InsertCutSequence,
-  type Remnant, type InsertRemnant, type OptimizationSimulation, type InsertOptimizationSimulation
+  type Remnant, type InsertRemnant, type OptimizationSimulation, type InsertOptimizationSimulation,
+  type CoatingSystem, type InsertCoatingSystem, type SurfaceAreaConfig, type InsertSurfaceAreaConfig
 } from "@shared/schema";
 import { desc, eq, lt, asc, like, and, or, sql } from "drizzle-orm";
 import { db } from "./db";
@@ -80,6 +81,18 @@ export interface IStorage {
   getOptimizationSimulation(id: string): Promise<OptimizationSimulation | undefined>;
   createOptimizationSimulation(simulation: InsertOptimizationSimulation): Promise<OptimizationSimulation>;
   deleteExpiredSimulations(): Promise<void>;
+
+  // Coating Systems
+  getCoatingSystems(): Promise<CoatingSystem[]>;
+  getCoatingSystem(id: number): Promise<CoatingSystem | undefined>;
+  createCoatingSystem(system: InsertCoatingSystem): Promise<CoatingSystem>;
+  updateCoatingSystem(id: number, system: Partial<InsertCoatingSystem>): Promise<CoatingSystem>;
+  deleteCoatingSystem(id: number): Promise<void>;
+
+  // Surface Area Configurations
+  getSurfaceAreaConfigs(materialId: number): Promise<SurfaceAreaConfig[]>;
+  createSurfaceAreaConfig(config: InsertSurfaceAreaConfig): Promise<SurfaceAreaConfig>;
+  updateSurfaceAreaConfig(id: number, config: Partial<InsertSurfaceAreaConfig>): Promise<SurfaceAreaConfig>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -351,6 +364,53 @@ export class DatabaseStorage implements IStorage {
       avgEfficiency: avgEfficiencyResult.avg,
       weeklyVolume: weeklyVolumeResult.count,
     };
+  }
+
+  // Coating Systems
+  async getCoatingSystems(): Promise<CoatingSystem[]> {
+    return await db.select().from(coatingSystems).where(eq(coatingSystems.isActive, true));
+  }
+
+  async getCoatingSystem(id: number): Promise<CoatingSystem | undefined> {
+    const [system] = await db.select().from(coatingSystems).where(eq(coatingSystems.id, id));
+    return system || undefined;
+  }
+
+  async createCoatingSystem(system: InsertCoatingSystem): Promise<CoatingSystem> {
+    const [createdSystem] = await db.insert(coatingSystems).values(system).returning();
+    return createdSystem;
+  }
+
+  async updateCoatingSystem(id: number, system: Partial<InsertCoatingSystem>): Promise<CoatingSystem> {
+    const [updatedSystem] = await db.update(coatingSystems)
+      .set(system)
+      .where(eq(coatingSystems.id, id))
+      .returning();
+    return updatedSystem;
+  }
+
+  async deleteCoatingSystem(id: number): Promise<void> {
+    await db.update(coatingSystems)
+      .set({ isActive: false })
+      .where(eq(coatingSystems.id, id));
+  }
+
+  // Surface Area Configurations
+  async getSurfaceAreaConfigs(materialId: number): Promise<SurfaceAreaConfig[]> {
+    return await db.select().from(surfaceAreaConfigs).where(eq(surfaceAreaConfigs.materialId, materialId));
+  }
+
+  async createSurfaceAreaConfig(config: InsertSurfaceAreaConfig): Promise<SurfaceAreaConfig> {
+    const [createdConfig] = await db.insert(surfaceAreaConfigs).values(config).returning();
+    return createdConfig;
+  }
+
+  async updateSurfaceAreaConfig(id: number, config: Partial<InsertSurfaceAreaConfig>): Promise<SurfaceAreaConfig> {
+    const [updatedConfig] = await db.update(surfaceAreaConfigs)
+      .set(config)
+      .where(eq(surfaceAreaConfigs.id, id))
+      .returning();
+    return updatedConfig;
   }
 }
 
