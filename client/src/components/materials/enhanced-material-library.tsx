@@ -1029,7 +1029,6 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                     <ul className="text-xs space-y-1 ml-2">
                                       <li>• External faces (top, bottom, sides)</li>
                                       <li>• Internal faces (where applicable)</li>
-                                      <li>• Custom configurations available</li>
                                     </ul>
                                   </div>
                                 </TooltipContent>
