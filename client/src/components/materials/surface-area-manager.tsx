@@ -757,70 +757,88 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                   
                   {/* Universal Beam (UB) Profile with individual surfaces */}
                   {(material.category?.toLowerCase().includes('ub') || material.category?.toLowerCase().includes('universal beam')) && (
-                    <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <svg width="400" height="280" viewBox="0 0 400 280" className="border rounded">
-                        <rect width="400" height="280" fill="white" />
-                        
-                        {/* External Top Flange */}
-                        <rect x="100" y="50" width="200" height="20"
-                          fill={selectedSurfaces.includes("external_flange_top") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_flange_top")} />
-                        <text x="200" y="45" textAnchor="middle" className="text-xs font-medium">External Top Flange</text>
-                        
-                        {/* External Web */}
-                        <rect x="185" y="70" width="30" height="120"
-                          fill={selectedSurfaces.includes("external_web") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_web")} />
-                        <text x="175" y="130" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 175 130)">Ext Web</text>
-                        
-                        {/* External Bottom Flange */}
-                        <rect x="100" y="190" width="200" height="20"
-                          fill={selectedSurfaces.includes("external_flange_bottom") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_flange_bottom")} />
-                        <text x="200" y="225" textAnchor="middle" className="text-xs font-medium">External Bottom Flange</text>
-                        
-                        {/* Internal Top Flange */}
-                        <rect x="120" y="75" width="160" height="10"
-                          fill={selectedSurfaces.includes("internal_flange_top") ? "#10b981" : "#f3f4f6"}
-                          stroke="#374151" strokeWidth="1"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("internal_flange_top")} />
-                        <text x="200" y="92" textAnchor="middle" className="text-xs">Internal Top Flange</text>
-                        
-                        {/* Internal Web Left */}
-                        <rect x="190" y="85" width="8" height="100"
-                          fill={selectedSurfaces.includes("internal_web_left") ? "#10b981" : "#f3f4f6"}
-                          stroke="#374151" strokeWidth="1"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("internal_web_left")} />
-                        <text x="194" y="135" textAnchor="middle" className="text-xs" transform="rotate(-90 194 135)">Int L</text>
-                        
-                        {/* Internal Web Right */}
-                        <rect x="202" y="85" width="8" height="100"
-                          fill={selectedSurfaces.includes("internal_web_right") ? "#10b981" : "#f3f4f6"}
-                          stroke="#374151" strokeWidth="1"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("internal_web_right")} />
-                        <text x="206" y="135" textAnchor="middle" className="text-xs" transform="rotate(-90 206 135)">Int R</text>
-                        
-                        {/* Internal Bottom Flange */}
-                        <rect x="120" y="175" width="160" height="10"
-                          fill={selectedSurfaces.includes("internal_flange_bottom") ? "#10b981" : "#f3f4f6"}
-                          stroke="#374151" strokeWidth="1"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("internal_flange_bottom")} />
-                        <text x="200" y="172" textAnchor="middle" className="text-xs">Internal Bottom Flange</text>
-                        
-                        <text x="200" y="250" textAnchor="middle" className="text-xs text-gray-600">
-                          UB: {dimensions.width}mm × {dimensions.depth}mm × {dimensions.thickness}mm × {length}mm
-                        </text>
-                      </svg>
+                    <div className="space-y-4">
+                      <div className="flex justify-center p-8 bg-white dark:bg-gray-900 rounded-lg border">
+                        <svg width="300" height="200" viewBox="0 0 300 200" className="drop-shadow-sm">
+                          <defs>
+                            <pattern id="ub-hatch" patternUnits="userSpaceOnUse" width="4" height="4">
+                              <path d="M 0,4 l 4,-4 M -1,1 l 2,-2 M 3,5 l 2,-2" stroke="#9ca3af" strokeWidth="0.5"/>
+                            </pattern>
+                          </defs>
+                          
+                          {/* Universal Beam I-beam Profile */}
+                          {/* External Top Flange */}
+                          <rect x="100" y="60" width="100" height="12"
+                            fill={selectedSurfaces.includes("external_flange_top") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_flange_top") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_flange_top")} />
+                          
+                          {/* External Bottom Flange */}
+                          <rect x="100" y="128" width="100" height="12"
+                            fill={selectedSurfaces.includes("external_flange_bottom") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_flange_bottom") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_flange_bottom")} />
+                          
+                          {/* Internal Web Left */}
+                          <rect x="144" y="78" width="6" height="44"
+                            fill={selectedSurfaces.includes("internal_web_left") ? "#10b981" : "url(#ub-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_web_left") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_web_left")} />
+                          
+                          {/* Internal Web Right */}
+                          <rect x="150" y="78" width="6" height="44"
+                            fill={selectedSurfaces.includes("internal_web_right") ? "#10b981" : "url(#ub-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_web_right") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_web_right")} />
+                          
+                          {/* Internal Top Flange */}
+                          <rect x="106" y="72" width="88" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_top") ? "#10b981" : "url(#ub-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_top") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_flange_top")} />
+                          
+                          {/* Internal Bottom Flange */}
+                          <rect x="106" y="122" width="88" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_bottom") ? "#10b981" : "url(#ub-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_bottom") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_flange_bottom")} />
+                          
+                          <text x="150" y="50" textAnchor="middle" className="text-sm font-semibold fill-gray-700 dark:fill-gray-300">
+                            Universal Beam
+                          </text>
+                          
+                          <text x="150" y="170" textAnchor="middle" className="text-xs fill-gray-500">
+                            UB: {dimensions.width}mm × {dimensions.depth}mm × {dimensions.webThickness}mm × {dimensions.flangeThickness}mm
+                          </text>
+                        </svg>
+                      </div>
+                      
+                      <div className="flex justify-center space-x-6 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-blue-500 rounded border"></div>
+                          <span>External</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-green-500 rounded border"></div>
+                          <span>Internal</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-gray-200 rounded border"></div>
+                          <span>Unselected</span>
+                        </div>
+                      </div>
                     </div>
                   )}
                   
