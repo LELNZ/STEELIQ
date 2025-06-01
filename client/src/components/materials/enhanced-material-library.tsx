@@ -1058,7 +1058,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     <Input
                       id="edit-thickness"
                       type="number"
-                      value={editingMaterial.thickness || ""}
+                      value={editingMaterial.thickness?.toString() || ""}
                       onChange={(e) => setEditingMaterial({...editingMaterial, thickness: parseFloat(e.target.value) || undefined})}
                       placeholder="Thickness"
                     />
@@ -1068,7 +1068,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     <Input
                       id="edit-length"
                       type="number"
-                      value={editingMaterial.length || ""}
+                      value={editingMaterial.length?.toString() || ""}
                       onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
                       placeholder="Length"
                     />
