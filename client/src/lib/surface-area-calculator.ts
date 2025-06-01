@@ -198,25 +198,27 @@ export function calculateFlatBarArea(width: number, thickness: number): SurfaceA
 }
 
 /**
- * Calculate surface area for Solid Square Bar
- * Area: 4 × width / 1000 (4 faces of equal width)
+ * Calculate surface area for Square Bar
+ * Area: 4 × width / 1000 (four sides of the square)
  */
 export function calculateSquareBarArea(width: number): SurfaceAreaResult {
   const widthM = width / 1000;
-  const totalArea = 4 * widthM; // Four equal faces
+  const totalArea = 4 * widthM; // Four sides
   
   return {
-    totalArea: Number(totalArea.toFixed(2)),
-    externalArea: Number(totalArea.toFixed(2)),
+    totalArea: Number(totalArea.toFixed(4)),
+    externalArea: Number(totalArea.toFixed(4)),
     internalArea: 0,
     breakdown: {
-      top: Number(widthM.toFixed(2)),
-      bottom: Number(widthM.toFixed(2)),
-      left: Number(widthM.toFixed(2)),
-      right: Number(widthM.toFixed(2))
+      top: Number(widthM.toFixed(4)),
+      bottom: Number(widthM.toFixed(4)),
+      left: Number(widthM.toFixed(4)),
+      right: Number(widthM.toFixed(4))
     }
   };
 }
+
+
 
 /**
  * Calculate surface area for Round Bar/Pipe
@@ -338,7 +340,7 @@ export function calculateMaterialSurfaceArea(material: Material): number | null 
     // Structural Channels (C-sections)
     if (category.includes('channel') || category.includes('structural channels')) {
       if (width && depth && webTw && flangeTf) {
-        const result = calculateChannelArea(width, depth, webTw, flangeTf);
+        const result = calculatePFCArea(width, depth, webTw, flangeTf);
         return result.totalArea;
       }
     }
@@ -346,7 +348,7 @@ export function calculateMaterialSurfaceArea(material: Material): number | null 
     // Universal Beams (I-beams)
     else if (category.includes('universal beam') || category.includes('i-beam')) {
       if (width && depth && webTw && flangeTf) {
-        const result = calculateUniversalBeamArea(width, depth, webTw, flangeTf);
+        const result = calculateUBArea(width, depth, webTw, flangeTf);
         return result.totalArea;
       }
     }
@@ -354,7 +356,7 @@ export function calculateMaterialSurfaceArea(material: Material): number | null 
     // Universal Columns (H-sections)
     else if (category.includes('universal column') || category.includes('h-section')) {
       if (width && depth && webTw && flangeTf) {
-        const result = calculateUniversalColumnArea(width, depth, webTw, flangeTf);
+        const result = calculateUCArea(width, depth, webTw, flangeTf);
         return result.totalArea;
       }
     }
@@ -370,7 +372,7 @@ export function calculateMaterialSurfaceArea(material: Material): number | null 
     // Pipes (CHS - Circular Hollow Sections)
     else if (category.includes('pipe') || category.includes('chs') || category.includes('circular hollow')) {
       if (diameter && thickness) {
-        const result = calculatePipeArea(diameter, thickness);
+        const result = calculateRoundArea(diameter, thickness);
         return result.totalArea;
       }
     }
@@ -378,7 +380,7 @@ export function calculateMaterialSurfaceArea(material: Material): number | null 
     // Round bars
     else if (category.includes('round') || category.includes('bar')) {
       if (diameter) {
-        const result = calculateRoundBarArea(diameter);
+        const result = calculateRoundArea(diameter, 0);
         return result.totalArea;
       }
     }
@@ -410,7 +412,7 @@ export function calculateMaterialSurfaceArea(material: Material): number | null 
     // SHS (Square Hollow Sections)
     else if (category.includes('shs') || category.includes('square hollow')) {
       if (width && thickness) {
-        const result = calculateSHSArea(width, thickness);
+        const result = calculateRHSArea(width, width, thickness);
         return result.totalArea;
       }
     }
@@ -418,7 +420,7 @@ export function calculateMaterialSurfaceArea(material: Material): number | null 
     // Sheet metal
     else if (category.includes('sheet') || category.includes('plate')) {
       if (width && thickness) {
-        const result = calculateSheetMetalArea(width, thickness);
+        const result = calculateFlatBarArea(width, thickness);
         return result.totalArea;
       }
     }
@@ -426,7 +428,7 @@ export function calculateMaterialSurfaceArea(material: Material): number | null 
     // Reinforcing bars
     else if (category.includes('reinforc') || category.includes('rebar')) {
       if (diameter) {
-        const result = calculateRoundBarArea(diameter);
+        const result = calculateRoundArea(diameter, 0);
         return result.totalArea;
       }
     }

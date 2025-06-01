@@ -15,6 +15,7 @@ import SurfaceAreaManager from "./surface-area-manager";
 import { Material } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { calculateMaterialSurfaceArea } from "@/lib/surface-area-calculator";
 
 // Import dimensional reference images
 import anglesImg from "@assets/Angles.png";
@@ -151,6 +152,55 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Bulk surface area calculation mutation
+  const bulkCalculateSurfaceAreaMutation = useMutation({
+    mutationFn: async () => {
+      const materialsResponse = await fetch('/api/materials');
+      const materials = await materialsResponse.json();
+      const updates = [];
+      
+      for (const material of materials) {
+        // Only calculate if surface area is missing or zero
+        if (!material.surfaceAreaPerMeter || parseFloat(material.surfaceAreaPerMeter) === 0) {
+          const calculatedArea = calculateMaterialSurfaceArea(material);
+          if (calculatedArea && calculatedArea > 0) {
+            updates.push({
+              id: material.id,
+              surfaceAreaPerMeter: calculatedArea.toFixed(4)
+            });
+          }
+        }
+      }
+      
+      // Update materials with calculated surface areas
+      const promises = updates.map(update => 
+        fetch(`/api/materials/${update.id}/update`, {
+          method: "POST",
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ surfaceAreaPerMeter: update.surfaceAreaPerMeter })
+        })
+      );
+      
+      await Promise.all(promises);
+      return updates.length;
+    },
+    onSuccess: (updatedCount) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      toast({
+        title: "Surface Area Calculation Complete",
+        description: `Updated surface area for ${updatedCount} materials`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Calculation Failed",
+        description: "Failed to calculate surface areas. Please try again.",
+      });
+      console.error("Bulk surface area calculation error:", error);
+    }
+  });
 
   const { data: materials = [], isLoading } = useQuery({
     queryKey: ["/api/materials"],
