@@ -56,6 +56,122 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
 
   // Individual surface areas for detailed breakdown
   const [surfaceAreas, setSurfaceAreas] = useState<Record<string, number>>({});
+  
+  // Custom coating configurations
+  const [coatingConfiguration, setCoatingConfiguration] = useState<string>("default");
+  const [customConfigurations, setCustomConfigurations] = useState<any[]>([]);
+
+  // Determine default coating configuration based on material type
+  const getDefaultCoatingType = () => {
+    const category = material.category?.toLowerCase() || '';
+    
+    if (category.includes('channel') || 
+        category.includes('universal beam') || 
+        category.includes('universal column') ||
+        category.includes('angle')) {
+      return 'external-internal';
+    } else if (category.includes('flat') || 
+               category.includes('round') || 
+               category.includes('square') ||
+               category.includes('pipe') ||
+               category.includes('chs')) {
+      return 'external-only';
+    }
+    
+    return 'external-internal'; // default fallback
+  };
+
+  // Load custom configurations from material coating config
+  useEffect(() => {
+    if (material.coatingConfig) {
+      try {
+        const configs = JSON.parse(material.coatingConfig as string);
+        setCustomConfigurations(configs.customConfigurations || []);
+      } catch (error) {
+        console.error('Error parsing coating config:', error);
+        setCustomConfigurations([]);
+      }
+    }
+  }, [material.coatingConfig]);
+
+  // Generate automatic name for custom configuration
+  const generateConfigurationName = (surfaces: string[]): string => {
+    const sortedSurfaces = surfaces.sort();
+    const nameMap: Record<string, string> = {
+      'external_flange_top': 'External Top Flange',
+      'external_flange_bottom': 'External Bottom Flange',
+      'external_web': 'External Web',
+      'internal_flange_top': 'Internal Top Flange',
+      'internal_flange_bottom': 'Internal Bottom Flange',
+      'internal_web': 'Internal Web',
+      'external_top': 'External Top',
+      'external_bottom': 'External Bottom',
+      'external_left': 'External Left',
+      'external_right': 'External Right',
+      'internal_top': 'Internal Top',
+      'internal_bottom': 'Internal Bottom',
+      'internal_left': 'Internal Left',
+      'internal_right': 'Internal Right',
+      'external_leg1': 'External Leg 1',
+      'external_leg2': 'External Leg 2',
+      'internal_leg1': 'Internal Leg 1',
+      'internal_leg2': 'Internal Leg 2',
+      'external_surface': 'External Surface',
+      'external_edge1': 'External Edge 1',
+      'external_edge2': 'External Edge 2'
+    };
+    
+    const surfaceNames = sortedSurfaces.map(surface => nameMap[surface] || surface);
+    return surfaceNames.join(' + ');
+  };
+
+  // Save custom configuration
+  const saveCustomConfiguration = async () => {
+    if (selectedSurfaces.length === 0) {
+      alert('Please select at least one surface to save a configuration.');
+      return;
+    }
+
+    const configName = generateConfigurationName(selectedSurfaces);
+    const totalArea = selectedSurfaces.reduce((sum, surface) => sum + (surfaceAreas[surface] || 0), 0);
+    
+    const newConfig = {
+      id: Date.now().toString(),
+      name: configName,
+      surfaces: selectedSurfaces,
+      totalArea: totalArea,
+      createdAt: new Date().toISOString()
+    };
+
+    const updatedConfigs = [...customConfigurations, newConfig];
+    const coatingConfigData = {
+      customConfigurations: updatedConfigs
+    };
+
+    try {
+      const response = await fetch(`/api/materials/${material.id}/coating-config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ coatingConfig: coatingConfigData }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save coating configuration');
+      }
+
+      setCustomConfigurations(updatedConfigs);
+      setCoatingConfiguration(newConfig.id);
+      
+      // Trigger onSave with the custom configuration area (NOT the base material area)
+      onSave(totalArea);
+      
+    } catch (error) {
+      console.error('Error saving custom configuration:', error);
+      alert('Failed to save custom configuration. Please try again.');
+    }
+  };
 
   // Get dimensional reference image based on material category
   const getDimensionalReference = () => {
@@ -1572,20 +1688,12 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <Button 
-              onClick={() => {
-                let finalArea = 0;
-                if (calculationMethod === "percentage" && calculatedArea) {
-                  finalArea = calculatedArea.totalArea * (parseFloat(percentageOverride) || 100) / 100;
-                } else {
-                  finalArea = getSelectedArea();
-                }
-                onSave(finalArea);
-              }}
+              onClick={saveCustomConfiguration}
               className="flex-1"
               disabled={!calculatedArea || getSelectedArea() === 0}
             >
               <Save className="w-4 h-4 mr-2" />
-              Save Surface Area
+              Save Custom Configuration
             </Button>
             <Button 
               variant="outline" 
