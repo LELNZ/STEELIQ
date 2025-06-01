@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus, Calculator } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner, LoadingOverlay, LoadingState } from "@/components/ui/loading-spinner";
 import { MaterialTypeIndicator, MaterialIcon } from "./material-icons";
@@ -1048,7 +1048,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     <Input
                       id="edit-width"
                       type="number"
-                      value={editingMaterial.width || ""}
+                      value={editingMaterial.width?.toString() || ""}
                       onChange={(e) => setEditingMaterial({...editingMaterial, width: parseFloat(e.target.value) || undefined})}
                       placeholder="Width"
                     />
@@ -1170,14 +1170,14 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     material: {
                       name: editingMaterial.name,
                       code: editingMaterial.code,
-                      width: editingMaterial.width && editingMaterial.width !== '' ? String(editingMaterial.width) : null,
-                      thickness: editingMaterial.thickness && editingMaterial.thickness !== '' ? String(editingMaterial.thickness) : null,
-                      length: editingMaterial.length && editingMaterial.length !== '' ? String(editingMaterial.length) : null,
+                      width: editingMaterial.width !== undefined && editingMaterial.width !== null && editingMaterial.width !== '' ? String(editingMaterial.width) : null,
+                      thickness: editingMaterial.thickness !== undefined && editingMaterial.thickness !== null && editingMaterial.thickness !== '' ? String(editingMaterial.thickness) : null,
+                      length: editingMaterial.length !== undefined && editingMaterial.length !== null && editingMaterial.length !== '' ? String(editingMaterial.length) : null,
                       grade: editingMaterial.grade && editingMaterial.grade !== '' ? editingMaterial.grade : null,
                       standard: editingMaterial.standard && editingMaterial.standard !== '' ? editingMaterial.standard : null,
-                      weightPerMeter: editingMaterial.weightPerMeter && editingMaterial.weightPerMeter !== '' ? String(editingMaterial.weightPerMeter) : null,
-                      pricePerMeter: editingMaterial.pricePerMeter && editingMaterial.pricePerMeter !== '' ? String(editingMaterial.pricePerMeter) : null,
-                      pricePerKg: editingMaterial.pricePerKg && editingMaterial.pricePerKg !== '' ? String(editingMaterial.pricePerKg) : null,
+                      weightPerMeter: editingMaterial.weightPerMeter !== undefined && editingMaterial.weightPerMeter !== null && editingMaterial.weightPerMeter !== '' ? String(editingMaterial.weightPerMeter) : null,
+                      pricePerMeter: editingMaterial.pricePerMeter !== undefined && editingMaterial.pricePerMeter !== null && editingMaterial.pricePerMeter !== '' ? String(editingMaterial.pricePerMeter) : null,
+                      pricePerKg: editingMaterial.pricePerKg !== undefined && editingMaterial.pricePerKg !== null && editingMaterial.pricePerKg !== '' ? String(editingMaterial.pricePerKg) : null,
                       lengthOptions: editingMaterial.lengthOptions
                     }
                   });
@@ -1197,6 +1197,29 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                 )}
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Surface Area Manager Dialog */}
+      {surfaceAreaMaterial && (
+        <Dialog open={!!surfaceAreaMaterial} onOpenChange={() => setSurfaceAreaMaterial(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Surface Area Calculator - {surfaceAreaMaterial.name}</DialogTitle>
+              <DialogDescription>
+                Calculate surface area for coating and paint estimates
+              </DialogDescription>
+            </DialogHeader>
+            <SurfaceAreaManager
+              material={surfaceAreaMaterial}
+              onSave={(surfaceArea) => {
+                updateSurfaceAreaMutation.mutate({
+                  id: surfaceAreaMaterial.id,
+                  surfaceAreaPerMeter: surfaceArea
+                });
+              }}
+            />
           </DialogContent>
         </Dialog>
       )}

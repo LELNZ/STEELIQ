@@ -116,7 +116,7 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
             <Checkbox 
               id="manual-override" 
               checked={manualOverride}
-              onCheckedChange={setManualOverride}
+              onCheckedChange={(checked) => setManualOverride(checked === true)}
             />
             <Label htmlFor="manual-override">Manual Override</Label>
           </div>
