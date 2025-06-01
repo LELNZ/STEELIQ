@@ -60,6 +60,7 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
   // Get dimensional reference image based on material category
   const getDimensionalReference = () => {
     const category = material.category?.toLowerCase() || '';
+    console.log('Material category:', material.category, 'Lowercase:', category);
     let imageSrc = flatImg; // default
     
     if (category.includes('rhs') || category.includes('rectangular')) {
@@ -68,14 +69,15 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       imageSrc = shsImg;
     } else if (category.includes('square') && !category.includes('hollow')) {
       imageSrc = squareBarImg;
+    } else if (category.includes('channel') || category.includes('pfc') || category.includes('structural channels') || category.includes('channels')) {
+      console.log('Channel detected! Using channel image');
+      imageSrc = channelImg;
     } else if (category.includes('ub') || category.includes('universal beam')) {
       imageSrc = ubImg;
     } else if (category.includes('uc') || category.includes('universal column')) {
       imageSrc = ucImg;
     } else if (category.includes('angle')) {
       imageSrc = anglesImg;
-    } else if (category.includes('channel') || category.includes('pfc') || category.includes('structural channels') || category.includes('channels')) {
-      imageSrc = channelImg;
     } else if (category.includes('pipe') || category.includes('chs')) {
       imageSrc = pipeImg;
     } else if (category.includes('round') || category.includes('rod')) {
