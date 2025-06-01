@@ -1489,7 +1489,8 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             } else if (value === 'external-internal') {
                               // Combined: External flanges + Internal web sides + Internal flange undersides
                               const internalWebDepth = depth - (2 * flangeTf);
-                              calculatedSurfaceArea = ((2 * width + 2 * internalWebDepth + 2 * width) / 1000).toFixed(4);
+                              // External: 2 × flangeWidth, Internal: 2 × webDepth + 2 × flangeWidth
+                              calculatedSurfaceArea = ((2 * width + 2 * internalWebDepth + 2 * width) / 1000).toFixed(3);
                             }
                           }
                         }
