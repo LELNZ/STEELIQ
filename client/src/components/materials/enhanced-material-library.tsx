@@ -713,14 +713,34 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                 }`}>
                   {cardSize !== "tiny" && (
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Width</p>
-                        <p className="font-medium">{material.width || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Thickness</p>
-                        <p className="font-medium">{material.thickness || 'N/A'}</p>
-                      </div>
+                      {/* Show diameter for rounds and pipes, otherwise show width/thickness */}
+                      {(material.category?.toLowerCase().includes('round') || 
+                        material.category?.toLowerCase().includes('pipe') || 
+                        material.category?.toLowerCase().includes('chs')) ? (
+                        <>
+                          <div>
+                            <p className="text-muted-foreground">Diameter (mm)</p>
+                            <p className="font-medium">⌀ {material.diameter || 'N/A'}</p>
+                          </div>
+                          {material.thickness && (
+                            <div>
+                              <p className="text-muted-foreground">Thickness</p>
+                              <p className="font-medium">{material.thickness}</p>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <p className="text-muted-foreground">Width</p>
+                            <p className="font-medium">{material.width || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Thickness</p>
+                            <p className="font-medium">{material.thickness || 'N/A'}</p>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -831,8 +851,20 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           )}
                         </div>
                         <div>
-                          <p className="text-sm">W: {material.width || 'N/A'}</p>
-                          <p className="text-sm">T: {material.thickness || 'N/A'}</p>
+                          {/* Show diameter for rounds and pipes, otherwise show width/thickness */}
+                          {(material.category?.toLowerCase().includes('round') || 
+                            material.category?.toLowerCase().includes('pipe') || 
+                            material.category?.toLowerCase().includes('chs')) ? (
+                            <>
+                              <p className="text-sm">⌀: {material.diameter || 'N/A'}mm</p>
+                              {material.thickness && <p className="text-sm">T: {material.thickness}mm</p>}
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-sm">W: {material.width || 'N/A'}</p>
+                              <p className="text-sm">T: {material.thickness || 'N/A'}</p>
+                            </>
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-medium">{material.weightPerMeter || 0} kg/m</p>
