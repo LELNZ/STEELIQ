@@ -1578,20 +1578,9 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                 setSelectedSurfaces(["external"]);
                 setPercentageOverride("100");
               }}
-              className="flex-1"
+              className="w-full"
             >
               Close
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setCalculatedArea(null);
-                setSelectedSurfaces(["external"]);
-                setPercentageOverride("100");
-              }}
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
             </Button>
           </div>
         </CardContent>
