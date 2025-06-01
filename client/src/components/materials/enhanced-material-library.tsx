@@ -1481,7 +1481,26 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       id="edit-surface-area"
                       type="number"
                       step="0.0001"
-                      value={editingMaterial.surfaceAreaPerMeter || ""}
+                      value={(() => {
+                        // Display calculated value if dimensions are available, otherwise stored value
+                        if (editingMaterial.width && editingMaterial.depth && editingMaterial.category) {
+                          const dimensions = {
+                            width: parseFloat(editingMaterial.width),
+                            depth: parseFloat(editingMaterial.depth),
+                            webThickness: editingMaterial.webTw ? parseFloat(editingMaterial.webTw.toString()) : 0,
+                            flangeThickness: editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : 0
+                          };
+                          
+                          const result = calculateUnifiedSurfaceArea(
+                            editingMaterial.category,
+                            dimensions,
+                            editingMaterial.coatingConfig?.type as 'external-only' | 'internal-only' | 'external-internal' || 'external-internal'
+                          );
+                          
+                          return result.total.toFixed(3);
+                        }
+                        return editingMaterial.surfaceAreaPerMeter || "";
+                      })()}
                       onChange={(e) => setEditingMaterial({...editingMaterial, surfaceAreaPerMeter: e.target.value})}
                       placeholder="0.0000"
                     />
