@@ -74,7 +74,7 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       imageSrc = ucImg;
     } else if (category.includes('angle')) {
       imageSrc = anglesImg;
-    } else if (category.includes('channel') || category.includes('pfc') || category.includes('structural channels')) {
+    } else if (category.includes('channel') || category.includes('pfc') || category.includes('structural channels') || category.includes('channels')) {
       imageSrc = channelImg;
     } else if (category.includes('pipe') || category.includes('chs')) {
       imageSrc = pipeImg;
