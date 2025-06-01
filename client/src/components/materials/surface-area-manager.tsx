@@ -127,7 +127,8 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
     
     const areas: Record<string, number> = {};
     
-    if (category.includes('channel') || category.includes('pfc') || category.includes('structural channels')) {
+    if (category.includes('channel') || category.includes('pfc') || category.includes('structural channels') || 
+        category.includes('cold formed channel') || category.includes('mild steel channel')) {
       // Channel (PFC) - C-shaped profile with separate web and flange thickness
       // External surfaces (3)
       areas['external_web'] = d * L / 1000000; // Convert mm² to m²
@@ -1121,6 +1122,97 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                         <div className="flex items-center space-x-2">
                           <div className="w-4 h-4 bg-blue-500 rounded border"></div>
                           <span>External</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-gray-200 rounded border"></div>
+                          <span>Unselected</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Channel Profile (PFC, Cold Formed, Mild Steel) */}
+                  {(material.category?.toLowerCase().includes('channel') || 
+                    material.category?.toLowerCase().includes('pfc') || 
+                    material.category?.toLowerCase().includes('structural channels') ||
+                    material.category?.toLowerCase().includes('cold formed channel') ||
+                    material.category?.toLowerCase().includes('mild steel channel')) && (
+                    <div className="space-y-4">
+                      <div className="flex justify-center p-8 bg-white dark:bg-gray-900 rounded-lg border">
+                        <svg width="300" height="200" viewBox="0 0 300 200" className="drop-shadow-sm">
+                          <defs>
+                            <pattern id="channel-hatch" patternUnits="userSpaceOnUse" width="4" height="4">
+                              <path d="M 0,4 l 4,-4 M -1,1 l 2,-2 M 3,5 l 2,-2" stroke="#9ca3af" strokeWidth="0.5"/>
+                            </pattern>
+                          </defs>
+                          
+                          {/* Channel C-shaped Profile */}
+                          {/* External Top Flange */}
+                          <rect x="120" y="60" width="80" height="12"
+                            fill={selectedSurfaces.includes("external_flange_top") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_flange_top") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_flange_top")} />
+                          
+                          {/* External Web */}
+                          <rect x="120" y="72" width="12" height="56"
+                            fill={selectedSurfaces.includes("external_web") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_web") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_web")} />
+                          
+                          {/* External Bottom Flange */}
+                          <rect x="120" y="128" width="80" height="12"
+                            fill={selectedSurfaces.includes("external_flange_bottom") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_flange_bottom") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_flange_bottom")} />
+                          
+                          {/* Internal Top Flange */}
+                          <rect x="132" y="72" width="56" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_top") ? "#10b981" : "url(#channel-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_top") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_flange_top")} />
+                          
+                          {/* Internal Web */}
+                          <rect x="132" y="78" width="6" height="44"
+                            fill={selectedSurfaces.includes("internal_web") ? "#10b981" : "url(#channel-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_web") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_web")} />
+                          
+                          {/* Internal Bottom Flange */}
+                          <rect x="132" y="122" width="56" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_bottom") ? "#10b981" : "url(#channel-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_bottom") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_flange_bottom")} />
+                          
+                          <text x="150" y="50" textAnchor="middle" className="text-sm font-semibold fill-gray-700 dark:fill-gray-300">
+                            Channel
+                          </text>
+                          
+                          <text x="150" y="170" textAnchor="middle" className="text-xs fill-gray-500">
+                            {dimensions.width}mm × {dimensions.depth}mm × {dimensions.webThickness}mm × {dimensions.flangeThickness}mm
+                          </text>
+                        </svg>
+                      </div>
+                      
+                      <div className="flex justify-center space-x-6 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-blue-500 rounded border"></div>
+                          <span>External</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-green-500 rounded border"></div>
+                          <span>Internal</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <div className="w-4 h-4 bg-gray-200 rounded border"></div>
