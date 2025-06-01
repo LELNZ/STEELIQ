@@ -1,0 +1,41 @@
+Additional Clarification Questions:
+Construction Status Workflow
+You mentioned construction statuses - should we include standard phases like:
+
+Quote/Estimation → Client Confirmation → Shop Drawings → Materials Ordered → Processing → Fabrication → Welding → Finishing → Coatings → Delivery → Site Works → Completion - Yes all of these
+Do you need sub-statuses within phases (e.g., "Shop Drawings: In Progress" vs "Shop Drawings: Client Review")? Yes lets add this as an option to be selected from the "Settings - Preferences" page
+
+Supplier Integration & PO Management
+For supplier integration - this could mean:
+
+Automatic price feeds from supplier APIs
+Electronic PO generation and tracking
+Invoice matching and three-way matching (PO → Receipt → Invoice)
+Which level interests you most for the initial build? PO generation & Tracking
+
+Variations & Change Management
+Should variations create new line items or modify existing estimates? Create new estimates within the same job - variations need to be approved by client before actioning. 
+Do you need a formal approval chain (Project Manager → Client → Engineer)? Yes
+Should variations automatically update material requirements and cutting plans? No - create a new Cutting plan ( this will be in the variation estimate)
+Retentions: Structural steel work has a 5-10% retention of monies (total revenue + variations) the main contractor will hold, i want a way to account for retentions and add that to the estimate then invoice then reminder for 12months later to make the claim for retentions. 
+
+
+Professional Documentation
+You mentioned multiple documentation layers - should the system generate:
+
+Producer Statements with engineer sign-offs? No Producer Statements are a standard document i can upload as a council template, these are to be filled in and signed by Lateral Engineering Limited then sent to the client / main contractor upon completion of the job and receipt of all monies owed. 
+Health & Safety method statements? Yes
+Compliance certificates? Yes
+Progress claims with photo documentation? Yes
+
+Time Tracking & Scheduling
+Do you need actual vs estimated time tracking for continuous improvement? Yes- back cost everything!
+Should the system suggest job priorities based on delivery dates and dependencies? Yes - to the user only for reference.
+Do you need resource scheduling (which fabricator is assigned to which job)? Yes
+
+Financial Integration
+Do you need integration with accounting software (Xero, QuickBooks, etc.)? Yes Xero, QuickBooks etc.
+Should the system track job profitability in real-time as costs are recorded? Yes
+
+Which of these areas should we prioritize first? I'm thinking we start with the core job workflow and estimation, then build out the advanced features progressively. That sounds good. lets go through the core job workflow - please ask additional questions and making suggestions to ensure we capture all the necessary workflow areas in a industry leading Steel Management System
+In addition i would also like to go through a very detailed estimation system similar to that of STRUMIS - please reseach all online sources for a introduction to the estimation system and we will fill in all the blanks - please ask all necessary questions to ensure we capture all of the details we need for the estimation system

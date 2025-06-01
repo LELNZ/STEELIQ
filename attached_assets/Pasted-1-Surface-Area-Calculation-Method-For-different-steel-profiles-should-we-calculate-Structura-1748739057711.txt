@@ -1,0 +1,38 @@
+1. Surface Area Calculation Method
+For different steel profiles, should we calculate: 
+
+Structural Angles: Outer surface only, or include inner corner surfaces? both + separate surfaces and allow for user input
+RHS/SHS: All 4 external faces, or do we exclude contact surfaces when connected? all 4 external surfaces + separate surfaces and allow for user input
+Universal Beams/Columns: Full perimeter including web and flange surfaces? yes + separate surfaces and allow for user input
+Flat Bar/Plate: Both faces (top and bottom) or just one face? both faces + separate surfaces and allow for user input
+
+
+2. Coating Application Standards
+Galvanizing: Calculate total surface area including all faces? this is a $/kg calculation, use total length weight i.e. 2pcs at 5meters with a weight of 3kg per meter = 15+15=30kgs x $ per kilogram. 
+Paint Systems: Different surface area calculations for primer vs topcoat? no, but we need different coating systems. i.e. - ALK1,IZS1,Top Coat paint on top of Galvanized steel, Zinc Spray & Top Coat Paint system, Intumescent coat, Epoxy + Top Coat, shop primer etc. - please allow user to create more coating system elements and standard price per. - ask any additional questions required to clarify this section.
+Fire Protection: Include internal surfaces that need protection? allow user to select surfaces to include in the calculation i.e. 1,2,3 or 4 external surfaces, or all external + internal etc allow for user to select from a small visual display for each material type i.e PFC has flange and web internal and external surfaces. - please ask any additional questions to clarify this feature.
+
+
+3. Surface Area Units & Precision
+Units: Square meters per linear meter (m²/m) to match your weight units? yes
+Precision: How many decimal places for surface area calculations? 0.00 2 places only.
+Standard Deduction: Any standard deduction for bolt holes, welds, or connections? please explain.
+
+
+4. Profile-Specific Considerations
+Looking at your angle example (20x20x3mm):
+
+Equal Angles: Should we include the inner corner radius in surface area? yes
+Unequal Angles: Different calculation for different leg sizes? yes
+Hollow Sections: External surface only, or include internal surface for special coatings? yes to both.
+
+
+5. Material Import Integration
+Automatic Calculation: Should the system auto-calculate surface area from dimensions when materials are imported? yes and allow user to edit.
+Manual Override: Allow manual entry for non-standard profiles or special requirements? yes
+Validation: Cross-check calculated values against industry standard tables? yes please keep in mind we are in NZ and use Metric system only. 
+
+
+For your immediate need: Should I start by adding a "Surface Area per Meter (m²/m)" field to the materials database and create calculation formulas for the most common profiles like angles, RHS, and flat bar? yes please proceeded with this and add PFC, UB, UC.
+
+What's your preference for the surface area calculation approach? suggest best approach 

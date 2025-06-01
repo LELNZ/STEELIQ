@@ -41,6 +41,7 @@ export const materials = pgTable("materials", {
   coating: text("coating"),
   pricePerKg: decimal("price_per_kg", { precision: 10, scale: 2 }),
   pricePerMeter: decimal("price_per_meter", { precision: 10, scale: 2 }),
+  surfaceAreaPerMeter: decimal("surface_area_per_meter", { precision: 10, scale: 2 }), // m²/m for coating calculations
   supplier: text("supplier"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -190,6 +191,32 @@ export const pdfExportConfigs = pgTable("pdf_export_configs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Coating Systems
+export const coatingSystems = pgTable("coating_systems", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  coatingType: text("coating_type").notNull(), // galvanizing, paint, intumescent, etc.
+  pricingMethod: text("pricing_method").notNull().default("per_sqm"), // per_sqm, per_kg, per_piece
+  pricePerUnit: decimal("price_per_unit", { precision: 10, scale: 2 }),
+  coverageRate: decimal("coverage_rate", { precision: 10, scale: 2 }), // m²/L for paints
+  preparationRequired: text("preparation_required"), // blast, grind, degrease
+  preparationCost: decimal("preparation_cost", { precision: 10, scale: 2 }),
+  dryingTime: integer("drying_time"), // minutes
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Surface Area Configurations - for material-specific surface selections
+export const surfaceAreaConfigs = pgTable("surface_area_configs", {
+  id: serial("id").primaryKey(),
+  materialId: integer("material_id").references(() => materials.id).notNull(),
+  surfaceType: text("surface_type").notNull(), // external_top, external_bottom, external_left, external_right, internal_web, internal_flange
+  includeInCalculation: boolean("include_in_calculation").default(true),
+  areaMultiplier: decimal("area_multiplier", { precision: 5, scale: 3 }).default("1.0"), // adjustment factor
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   assignedJobs: many(jobs),
@@ -208,6 +235,18 @@ export const materialsRelations = relations(materials, ({ one, many }) => ({
   inventory: many(inventory),
   jobMaterials: many(jobMaterials),
   cuttingPlans: many(cuttingPlans),
+  surfaceAreaConfigs: many(surfaceAreaConfigs),
+}));
+
+export const coatingSystemsRelations = relations(coatingSystems, ({ many }) => ({
+  // Future: coating applications, job coatings, etc.
+}));
+
+export const surfaceAreaConfigsRelations = relations(surfaceAreaConfigs, ({ one }) => ({
+  material: one(materials, {
+    fields: [surfaceAreaConfigs.materialId],
+    references: [materials.id],
+  }),
 }));
 
 export const inventoryRelations = relations(inventory, ({ one, many }) => ({
@@ -338,6 +377,16 @@ export const insertPdfExportConfigSchema = createInsertSchema(pdfExportConfigs).
   createdAt: true,
 });
 
+export const insertCoatingSystemSchema = createInsertSchema(coatingSystems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSurfaceAreaConfigSchema = createInsertSchema(surfaceAreaConfigs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -371,3 +420,9 @@ export type InsertOptimizationSimulation = z.infer<typeof insertOptimizationSimu
 
 export type PdfExportConfig = typeof pdfExportConfigs.$inferSelect;
 export type InsertPdfExportConfig = z.infer<typeof insertPdfExportConfigSchema>;
+
+export type CoatingSystem = typeof coatingSystems.$inferSelect;
+export type InsertCoatingSystem = z.infer<typeof insertCoatingSystemSchema>;
+
+export type SurfaceAreaConfig = typeof surfaceAreaConfigs.$inferSelect;
+export type InsertSurfaceAreaConfig = z.infer<typeof insertSurfaceAreaConfigSchema>;
