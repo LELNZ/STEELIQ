@@ -148,12 +148,17 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       areas['external_flange_top'] = w * L / 1000000;
       areas['external_flange_bottom'] = w * L / 1000000;
       
-      // Internal surfaces - UB has internal web surfaces and flange undersides
+      // Internal surfaces - UB has internal web surfaces and separated flange portions
       const internalWebDepth = d - (2 * flangeThickness);
       areas['internal_web_left'] = internalWebDepth * L / 1000000;
       areas['internal_web_right'] = internalWebDepth * L / 1000000;
-      areas['internal_flange_top'] = w * L / 1000000;
-      areas['internal_flange_bottom'] = w * L / 1000000;
+      
+      // Separated internal flange portions (excluding web thickness)
+      const internalFlangePortionWidth = (w - webThickness) / 2;
+      areas['internal_flange_top_left'] = internalFlangePortionWidth * L / 1000000;
+      areas['internal_flange_top_right'] = internalFlangePortionWidth * L / 1000000;
+      areas['internal_flange_bottom_left'] = internalFlangePortionWidth * L / 1000000;
+      areas['internal_flange_bottom_right'] = internalFlangePortionWidth * L / 1000000;
       
     } else if (category.includes('uc') || category.includes('universal column')) {
       // Universal Column - H-shaped profile with separate web and flange thickness
@@ -161,12 +166,17 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       areas['external_flange_top'] = w * L / 1000000;
       areas['external_flange_bottom'] = w * L / 1000000;
       
-      // Internal surfaces - UC similar to UB but typically wider flanges
+      // Internal surfaces - UC similar to UB with separated flange portions
       const internalWebDepth = d - (2 * flangeThickness);
       areas['internal_web_left'] = internalWebDepth * L / 1000000;
       areas['internal_web_right'] = internalWebDepth * L / 1000000;
-      areas['internal_flange_top'] = w * L / 1000000;
-      areas['internal_flange_bottom'] = w * L / 1000000;
+      
+      // Separated internal flange portions (excluding web thickness)
+      const internalFlangePortionWidth = (w - webThickness) / 2;
+      areas['internal_flange_top_left'] = internalFlangePortionWidth * L / 1000000;
+      areas['internal_flange_top_right'] = internalFlangePortionWidth * L / 1000000;
+      areas['internal_flange_bottom_left'] = internalFlangePortionWidth * L / 1000000;
+      areas['internal_flange_bottom_right'] = internalFlangePortionWidth * L / 1000000;
     } else if (category.includes('shs') || (category.includes('square') && category.includes('hollow'))) {
       // Square Hollow Section
       areas['external_top'] = w * L / 1000000;
@@ -799,21 +809,37 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                             className="cursor-pointer hover:opacity-80 transition-all duration-200"
                             onClick={() => toggleSurface("internal_web_right")} />
                           
-                          {/* Internal Top Flange */}
-                          <rect x="106" y="72" width="88" height="6"
-                            fill={selectedSurfaces.includes("internal_flange_top") ? "#10b981" : "url(#ub-hatch)"}
-                            stroke={selectedSurfaces.includes("internal_flange_top") ? "#059669" : "#9ca3af"} 
+                          {/* Internal Top Flange - Left */}
+                          <rect x="106" y="72" width="38" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_top_left") ? "#10b981" : "url(#ub-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_top_left") ? "#059669" : "#9ca3af"} 
                             strokeWidth="1"
                             className="cursor-pointer hover:opacity-80 transition-all duration-200"
-                            onClick={() => toggleSurface("internal_flange_top")} />
+                            onClick={() => toggleSurface("internal_flange_top_left")} />
                           
-                          {/* Internal Bottom Flange */}
-                          <rect x="106" y="122" width="88" height="6"
-                            fill={selectedSurfaces.includes("internal_flange_bottom") ? "#10b981" : "url(#ub-hatch)"}
-                            stroke={selectedSurfaces.includes("internal_flange_bottom") ? "#059669" : "#9ca3af"} 
+                          {/* Internal Top Flange - Right */}
+                          <rect x="156" y="72" width="38" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_top_right") ? "#10b981" : "url(#ub-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_top_right") ? "#059669" : "#9ca3af"} 
                             strokeWidth="1"
                             className="cursor-pointer hover:opacity-80 transition-all duration-200"
-                            onClick={() => toggleSurface("internal_flange_bottom")} />
+                            onClick={() => toggleSurface("internal_flange_top_right")} />
+                          
+                          {/* Internal Bottom Flange - Left */}
+                          <rect x="106" y="122" width="38" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_bottom_left") ? "#10b981" : "url(#ub-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_bottom_left") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_flange_bottom_left")} />
+                          
+                          {/* Internal Bottom Flange - Right */}
+                          <rect x="156" y="122" width="38" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_bottom_right") ? "#10b981" : "url(#ub-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_bottom_right") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_flange_bottom_right")} />
                           
                           <text x="150" y="50" textAnchor="middle" className="text-sm font-semibold fill-gray-700 dark:fill-gray-300">
                             Universal Beam
@@ -1178,21 +1204,37 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                             className="cursor-pointer hover:opacity-80 transition-all duration-200"
                             onClick={() => toggleSurface("internal_web_right")} />
                           
-                          {/* Internal Top Flange */}
-                          <rect x="106" y="72" width="88" height="6"
-                            fill={selectedSurfaces.includes("internal_flange_top") ? "#10b981" : "url(#uc-hatch)"}
-                            stroke={selectedSurfaces.includes("internal_flange_top") ? "#059669" : "#9ca3af"} 
+                          {/* Internal Top Flange - Left */}
+                          <rect x="106" y="72" width="38" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_top_left") ? "#10b981" : "url(#uc-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_top_left") ? "#059669" : "#9ca3af"} 
                             strokeWidth="1"
                             className="cursor-pointer hover:opacity-80 transition-all duration-200"
-                            onClick={() => toggleSurface("internal_flange_top")} />
+                            onClick={() => toggleSurface("internal_flange_top_left")} />
                           
-                          {/* Internal Bottom Flange */}
-                          <rect x="106" y="122" width="88" height="6"
-                            fill={selectedSurfaces.includes("internal_flange_bottom") ? "#10b981" : "url(#uc-hatch)"}
-                            stroke={selectedSurfaces.includes("internal_flange_bottom") ? "#059669" : "#9ca3af"} 
+                          {/* Internal Top Flange - Right */}
+                          <rect x="156" y="72" width="38" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_top_right") ? "#10b981" : "url(#uc-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_top_right") ? "#059669" : "#9ca3af"} 
                             strokeWidth="1"
                             className="cursor-pointer hover:opacity-80 transition-all duration-200"
-                            onClick={() => toggleSurface("internal_flange_bottom")} />
+                            onClick={() => toggleSurface("internal_flange_top_right")} />
+                          
+                          {/* Internal Bottom Flange - Left */}
+                          <rect x="106" y="122" width="38" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_bottom_left") ? "#10b981" : "url(#uc-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_bottom_left") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_flange_bottom_left")} />
+                          
+                          {/* Internal Bottom Flange - Right */}
+                          <rect x="156" y="122" width="38" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_bottom_right") ? "#10b981" : "url(#uc-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_bottom_right") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_flange_bottom_right")} />
                           
                           <text x="150" y="50" textAnchor="middle" className="text-sm font-semibold fill-gray-700 dark:fill-gray-300">
                             Universal Column

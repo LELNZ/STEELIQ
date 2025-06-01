@@ -21,6 +21,10 @@ export interface SurfaceAreaBreakdown {
     externalFlanges?: number;
     internalWeb?: number;
     internalFlanges?: number;
+    internalFlangeTopLeft?: number;
+    internalFlangeTopRight?: number;
+    internalFlangeBottomLeft?: number;
+    internalFlangeBottomRight?: number;
     externalSurfaces?: number;
     internalSurfaces?: number;
   };
@@ -28,20 +32,30 @@ export interface SurfaceAreaBreakdown {
 
 /**
  * Calculate Universal Column/Beam surface area using exact geometry
+ * Now with separated internal flange surfaces (excluding web area)
  */
 export function calculateUniversalSectionArea(
   dimensions: MaterialDimensions,
   coatingType: 'external-only' | 'internal-only' | 'external-internal'
 ): SurfaceAreaBreakdown {
-  const { width, depth, flangeThickness } = dimensions;
+  const { width, depth, flangeThickness, webThickness } = dimensions;
   
   // External surfaces: 2 flanges (no external web)
   const externalFlanges = 2 * width; // mm
   
-  // Internal surfaces: web depth + flange undersides
+  // Internal surfaces: web depth + separated flange portions
   const internalWebDepth = depth - (2 * flangeThickness);
   const internalWeb = 2 * internalWebDepth; // mm (both web sides)
-  const internalFlanges = 2 * width; // mm (flange undersides)
+  
+  // Each internal flange portion excludes web thickness
+  const internalFlangePortionWidth = (width - webThickness) / 2; // mm per portion
+  const internalFlangeTopLeft = internalFlangePortionWidth; // mm
+  const internalFlangeTopRight = internalFlangePortionWidth; // mm
+  const internalFlangeBottomLeft = internalFlangePortionWidth; // mm
+  const internalFlangeBottomRight = internalFlangePortionWidth; // mm
+  
+  const totalInternalFlanges = internalFlangeTopLeft + internalFlangeTopRight + 
+                               internalFlangeBottomLeft + internalFlangeBottomRight;
   
   let external = 0;
   let internal = 0;
@@ -49,10 +63,10 @@ export function calculateUniversalSectionArea(
   if (coatingType === 'external-only') {
     external = externalFlanges;
   } else if (coatingType === 'internal-only') {
-    internal = internalWeb + internalFlanges;
+    internal = internalWeb + totalInternalFlanges;
   } else if (coatingType === 'external-internal') {
     external = externalFlanges;
-    internal = internalWeb + internalFlanges;
+    internal = internalWeb + totalInternalFlanges;
   }
   
   return {
@@ -62,7 +76,10 @@ export function calculateUniversalSectionArea(
     details: {
       externalFlanges: externalFlanges / 1000,
       internalWeb: internalWeb / 1000,
-      internalFlanges: internalFlanges / 1000
+      internalFlangeTopLeft: internalFlangeTopLeft / 1000,
+      internalFlangeTopRight: internalFlangeTopRight / 1000,
+      internalFlangeBottomLeft: internalFlangeBottomLeft / 1000,
+      internalFlangeBottomRight: internalFlangeBottomRight / 1000
     }
   };
 }
