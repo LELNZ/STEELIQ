@@ -856,6 +856,14 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        onClick={() => setSurfaceAreaMaterial(material)}
+                        title="Calculate Surface Area"
+                      >
+                        <Calculator className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
                         onClick={() => setEditingMaterial(material)}
                       >
                         <Edit className="w-4 h-4" />
