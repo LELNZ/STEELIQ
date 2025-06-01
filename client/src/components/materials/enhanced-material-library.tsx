@@ -32,6 +32,7 @@ import roundImg from "@assets/Round.png";
 import sheetMetalImg from "@assets/Sheet metal.png";
 import shsImg from "@assets/SHS.png";
 import squareBarImg from "@assets/Square Bar.png";
+// Updated UB/UC images - force refresh
 import ubImg from "@assets/Universal Beam.png";
 import ucImg from "@assets/Universal Column.png";
 
