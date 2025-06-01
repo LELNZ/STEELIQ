@@ -356,82 +356,96 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                   
                   {/* Interactive SVG Profile - Channel (PFC) */}
                   {(material.category?.toLowerCase().includes('channel') || material.category?.toLowerCase().includes('pfc')) && (
-                    <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <svg width="400" height="250" viewBox="0 0 400 250" className="border rounded">
-                        <rect width="400" height="250" fill="white" />
-                        
-                        {/* Channel Profile - C shape */}
-                        {/* External Web */}
-                        <rect x="150" y="50" width="15" height="120" 
-                          fill={selectedSurfaces.includes("external_web") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_web")} />
-                        <text x="140" y="110" textAnchor="middle" className="text-xs font-medium">Ext Web</text>
-                        
-                        {/* Top External Flange */}
-                        <rect x="165" y="50" width="80" height="15"
-                          fill={selectedSurfaces.includes("external_flange_top") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_flange_top")} />
-                        <text x="205" y="45" textAnchor="middle" className="text-xs font-medium">Ext Top</text>
-                        
-                        {/* Bottom External Flange */}
-                        <rect x="165" y="155" width="80" height="15"
-                          fill={selectedSurfaces.includes("external_flange_bottom") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_flange_bottom")} />
-                        <text x="205" y="185" textAnchor="middle" className="text-xs font-medium">Ext Bottom</text>
-                        
-                        {/* Internal Web Left */}
-                        <rect x="170" y="65" width="8" height="90"
-                          fill={selectedSurfaces.includes("internal_web_left") ? "#10b981" : "#f3f4f6"}
-                          stroke="#374151" strokeWidth="1"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("internal_web_left")} />
-                        <text x="174" y="115" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 174 115)">Int Left</text>
-                        
-                        {/* Internal Web Right */}
-                        <rect x="178" y="65" width="8" height="90"
-                          fill={selectedSurfaces.includes("internal_web_right") ? "#10b981" : "#f3f4f6"}
-                          stroke="#374151" strokeWidth="1"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("internal_web_right")} />
-                        <text x="182" y="115" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 182 115)">Int Right</text>
-                        
-                        {/* Internal Top Flange */}
-                        <rect x="186" y="65" width="50" height="8"
-                          fill={selectedSurfaces.includes("internal_flange_top") ? "#10b981" : "#f3f4f6"}
-                          stroke="#374151" strokeWidth="1"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("internal_flange_top")} />
-                        <text x="211" y="80" textAnchor="middle" className="text-xs font-medium">Int Top</text>
-                        
-                        {/* Internal Bottom Flange */}
-                        <rect x="186" y="147" width="50" height="8"
-                          fill={selectedSurfaces.includes("internal_flange_bottom") ? "#10b981" : "#f3f4f6"}
-                          stroke="#374151" strokeWidth="1"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("internal_flange_bottom")} />
-                        <text x="211" y="142" textAnchor="middle" className="text-xs font-medium">Int Bottom</text>
-                        
-                        {/* Dimensions */}
-                        <text x="200" y="210" textAnchor="middle" className="text-xs text-gray-600">
-                          PFC: {dimensions.width}mm × {dimensions.depth}mm × {dimensions.thickness}mm × {length}mm
-                        </text>
-                        
-                        {/* Legend */}
-                        <g transform="translate(10, 200)">
-                          <rect x="0" y="0" width="15" height="10" fill="#3b82f6" />
-                          <text x="20" y="8" className="text-xs">External Surfaces</text>
-                          <rect x="0" y="15" width="15" height="10" fill="#10b981" />
-                          <text x="20" y="23" className="text-xs">Internal Surfaces</text>
-                          <rect x="0" y="30" width="15" height="10" fill="#e5e7eb" />
-                          <text x="20" y="38" className="text-xs">Unselected</text>
-                        </g>
-                      </svg>
+                    <div className="space-y-4">
+                      {/* Clean Profile Diagram */}
+                      <div className="flex justify-center p-8 bg-white dark:bg-gray-900 rounded-lg border">
+                        <svg width="300" height="200" viewBox="0 0 300 200" className="drop-shadow-sm">
+                          <defs>
+                            <pattern id="hatch" patternUnits="userSpaceOnUse" width="4" height="4">
+                              <path d="M 0,4 l 4,-4 M -1,1 l 2,-2 M 3,5 l 2,-2" stroke="#9ca3af" strokeWidth="0.5"/>
+                            </pattern>
+                          </defs>
+                          
+                          {/* Channel Profile - Clean C shape */}
+                          {/* External Web */}
+                          <rect x="120" y="60" width="20" height="80" 
+                            fill={selectedSurfaces.includes("external_web") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_web") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_web")} />
+                          
+                          {/* Top External Flange */}
+                          <rect x="140" y="60" width="60" height="20"
+                            fill={selectedSurfaces.includes("external_flange_top") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_flange_top") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_flange_top")} />
+                          
+                          {/* Bottom External Flange */}
+                          <rect x="140" y="120" width="60" height="20"
+                            fill={selectedSurfaces.includes("external_flange_bottom") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_flange_bottom") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_flange_bottom")} />
+                          
+                          {/* Internal surfaces with different styling */}
+                          <rect x="145" y="80" width="50" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_top") ? "#10b981" : "url(#hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_top") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_flange_top")} />
+                          
+                          <rect x="145" y="114" width="50" height="6"
+                            fill={selectedSurfaces.includes("internal_flange_bottom") ? "#10b981" : "url(#hatch)"}
+                            stroke={selectedSurfaces.includes("internal_flange_bottom") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_flange_bottom")} />
+                          
+                          <rect x="125" y="86" width="6" height="28"
+                            fill={selectedSurfaces.includes("internal_web_left") ? "#10b981" : "url(#hatch)"}
+                            stroke={selectedSurfaces.includes("internal_web_left") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_web_left")} />
+                          
+                          <rect x="131" y="86" width="6" height="28"
+                            fill={selectedSurfaces.includes("internal_web_right") ? "#10b981" : "url(#hatch)"}
+                            stroke={selectedSurfaces.includes("internal_web_right") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="1"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_web_right")} />
+                          
+                          {/* Clean dimension labels */}
+                          <text x="150" y="45" textAnchor="middle" className="text-sm font-semibold fill-gray-700 dark:fill-gray-300">
+                            Channel Profile
+                          </text>
+                          
+                          <text x="150" y="175" textAnchor="middle" className="text-xs fill-gray-500">
+                            {dimensions.width} × {dimensions.depth} × {dimensions.thickness}mm
+                          </text>
+                        </svg>
+                      </div>
+                      
+                      {/* Simplified Legend */}
+                      <div className="flex justify-center space-x-6 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-blue-500 rounded border"></div>
+                          <span>External</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-green-500 rounded border"></div>
+                          <span>Internal</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-gray-200 rounded border"></div>
+                          <span>Unselected</span>
+                        </div>
+                      </div>
                     </div>
                   )}
                   
@@ -770,28 +784,62 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                     </div>
                   )}
                   
-                  {/* Surface selection summary with individual areas */}
-                  <div className="space-y-2">
-                    <Label>Individual Surface Areas (click to select):</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {getSurfaceOptions().map((option) => (
+                  {/* Professional Surface Selection Table */}
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <Label className="text-lg font-semibold">Surface Area Selection</Label>
+                      <p className="text-sm text-muted-foreground mt-1">Click surfaces above or select from the list below</p>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-gray-900 rounded-lg border overflow-hidden">
+                      <div className="grid grid-cols-4 gap-0 bg-gray-50 dark:bg-gray-800 border-b text-sm font-medium">
+                        <div className="p-3 text-center">Surface</div>
+                        <div className="p-3 text-center">Type</div>
+                        <div className="p-3 text-center">Area (m²)</div>
+                        <div className="p-3 text-center">Select</div>
+                      </div>
+                      
+                      {getSurfaceOptions().map((option, index) => (
                         <div key={option.id} 
-                          className={`flex items-center justify-between p-3 border rounded cursor-pointer transition-colors ${
+                          className={`grid grid-cols-4 gap-0 border-b border-gray-100 dark:border-gray-700 transition-colors ${
                             selectedSurfaces.includes(option.id) 
-                              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300' 
+                              ? 'bg-blue-50 dark:bg-blue-900/20' 
                               : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                          }`}
-                          onClick={() => toggleSurface(option.id)}>
-                          <span className={`flex items-center gap-2 ${selectedSurfaces.includes(option.id) ? 'font-medium' : 'text-muted-foreground'}`}>
-                            <div className={`w-3 h-3 rounded ${selectedSurfaces.includes(option.id) ? 
-                              (option.id.includes('external') ? 'bg-blue-500' : 'bg-green-500') : 'bg-gray-300'}`} />
+                          }`}>
+                          <div className="p-3 text-sm font-medium">
                             {option.label}
-                          </span>
-                          <Badge variant={selectedSurfaces.includes(option.id) ? "default" : "secondary"}>
-                            {option.area.toFixed(4)} m²
-                          </Badge>
+                          </div>
+                          <div className="p-3 text-center">
+                            <Badge variant={option.id.includes('external') ? 'default' : 'secondary'} className="text-xs">
+                              {option.id.includes('external') ? 'External' : 'Internal'}
+                            </Badge>
+                          </div>
+                          <div className="p-3 text-center font-mono text-sm">
+                            {option.area.toFixed(4)}
+                          </div>
+                          <div className="p-3 text-center">
+                            <Checkbox
+                              checked={selectedSurfaces.includes(option.id)}
+                              onCheckedChange={() => toggleSurface(option.id)}
+                              className="mx-auto"
+                            />
+                          </div>
                         </div>
                       ))}
+                      
+                      {/* Total Row */}
+                      <div className="grid grid-cols-4 gap-0 bg-green-50 dark:bg-green-900/20 font-semibold">
+                        <div className="p-3 text-sm">Total Selected</div>
+                        <div className="p-3 text-center">
+                          <Badge variant="outline">{selectedSurfaces.length} surfaces</Badge>
+                        </div>
+                        <div className="p-3 text-center font-mono text-green-600 dark:text-green-400">
+                          {getSelectedArea().toFixed(4)}
+                        </div>
+                        <div className="p-3 text-center">
+                          <div className="w-4 h-4 bg-green-500 rounded mx-auto"></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
