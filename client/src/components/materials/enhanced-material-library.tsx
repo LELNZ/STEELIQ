@@ -736,10 +736,27 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             <p className="text-muted-foreground">Width</p>
                             <p className="font-medium">{material.width || 'N/A'}</p>
                           </div>
-                          <div>
-                            <p className="text-muted-foreground">Thickness</p>
-                            <p className="font-medium">{material.thickness || 'N/A'}</p>
-                          </div>
+                          {/* Show separate web and flange thickness for structural sections */}
+                          {(material.category?.toLowerCase().includes('channel') || 
+                            material.category?.toLowerCase().includes('structural channels') ||
+                            material.category?.toLowerCase().includes('universal beam') ||
+                            material.category?.toLowerCase().includes('universal column')) ? (
+                            <>
+                              <div>
+                                <p className="text-muted-foreground">Web Thickness</p>
+                                <p className="font-medium">{material.webTw || 'N/A'}mm</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Flange Thickness</p>
+                                <p className="font-medium">{material.flangeTf || 'N/A'}mm</p>
+                              </div>
+                            </>
+                          ) : (
+                            <div>
+                              <p className="text-muted-foreground">Thickness</p>
+                              <p className="font-medium">{material.thickness || 'N/A'}</p>
+                            </div>
+                          )}
                         </>
                       )}
                     </div>
@@ -864,7 +881,18 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           ) : (
                             <>
                               <p className="text-sm">W: {material.width || 'N/A'}</p>
-                              <p className="text-sm">T: {material.thickness || 'N/A'}</p>
+                              {/* Show separate web and flange thickness for structural sections */}
+                              {(material.category?.toLowerCase().includes('channel') || 
+                                material.category?.toLowerCase().includes('structural channels') ||
+                                material.category?.toLowerCase().includes('universal beam') ||
+                                material.category?.toLowerCase().includes('universal column')) ? (
+                                <>
+                                  <p className="text-sm">Web: {material.webTw || 'N/A'}mm</p>
+                                  <p className="text-sm">Flange: {material.flangeTf || 'N/A'}mm</p>
+                                </>
+                              ) : (
+                                <p className="text-sm">T: {material.thickness || 'N/A'}</p>
+                              )}
                             </>
                           )}
                         </div>
@@ -1124,38 +1152,89 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-width">Width (mm)</Label>
-                      <Input
-                        id="edit-width"
-                        type="number"
-                        value={editingMaterial.width?.toString() || ""}
-                        onChange={(e) => setEditingMaterial({...editingMaterial, width: parseFloat(e.target.value) || undefined})}
-                        placeholder="Width"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-thickness">Thickness (mm)</Label>
-                      <Input
-                        id="edit-thickness"
-                        type="number"
-                        value={editingMaterial.thickness?.toString() || ""}
-                        onChange={(e) => setEditingMaterial({...editingMaterial, thickness: parseFloat(e.target.value) || undefined})}
-                        placeholder="Thickness"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-length">Length (mm)</Label>
-                      <Input
-                        id="edit-length"
-                        type="number"
-                        value={editingMaterial.length?.toString() || ""}
-                        onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
-                        placeholder="Length"
-                      />
-                    </div>
-                  </div>
+                  <>
+                    {/* Show different layouts for structural sections vs other materials */}
+                    {(editingMaterial.category?.toLowerCase().includes('channel') || 
+                      editingMaterial.category?.toLowerCase().includes('structural channels') ||
+                      editingMaterial.category?.toLowerCase().includes('universal beam') ||
+                      editingMaterial.category?.toLowerCase().includes('universal column')) ? (
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-width">Width (mm)</Label>
+                          <Input
+                            id="edit-width"
+                            type="number"
+                            value={editingMaterial.width?.toString() || ""}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, width: parseFloat(e.target.value) || undefined})}
+                            placeholder="Width"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-web-thickness">Web Thickness (mm)</Label>
+                          <Input
+                            id="edit-web-thickness"
+                            type="number"
+                            value={editingMaterial.webTw?.toString() || ""}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, webTw: parseFloat(e.target.value) || undefined})}
+                            placeholder="Web Thickness"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-flange-thickness">Flange Thickness (mm)</Label>
+                          <Input
+                            id="edit-flange-thickness"
+                            type="number"
+                            value={editingMaterial.flangeTf?.toString() || ""}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, flangeTf: parseFloat(e.target.value) || undefined})}
+                            placeholder="Flange Thickness"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-length">Length (mm)</Label>
+                          <Input
+                            id="edit-length"
+                            type="number"
+                            value={editingMaterial.length?.toString() || ""}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
+                            placeholder="Length"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-width">Width (mm)</Label>
+                          <Input
+                            id="edit-width"
+                            type="number"
+                            value={editingMaterial.width?.toString() || ""}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, width: parseFloat(e.target.value) || undefined})}
+                            placeholder="Width"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-thickness">Thickness (mm)</Label>
+                          <Input
+                            id="edit-thickness"
+                            type="number"
+                            value={editingMaterial.thickness?.toString() || ""}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, thickness: parseFloat(e.target.value) || undefined})}
+                            placeholder="Thickness"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-length">Length (mm)</Label>
+                          <Input
+                            id="edit-length"
+                            type="number"
+                            value={editingMaterial.length?.toString() || ""}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
+                            placeholder="Length"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -1262,7 +1341,9 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       weightPerMeter: editingMaterial.weightPerMeter !== undefined && editingMaterial.weightPerMeter !== null && editingMaterial.weightPerMeter !== '' ? String(editingMaterial.weightPerMeter) : null,
                       pricePerMeter: editingMaterial.pricePerMeter !== undefined && editingMaterial.pricePerMeter !== null && editingMaterial.pricePerMeter !== '' ? String(editingMaterial.pricePerMeter) : null,
                       pricePerKg: editingMaterial.pricePerKg !== undefined && editingMaterial.pricePerKg !== null && editingMaterial.pricePerKg !== '' ? String(editingMaterial.pricePerKg) : null,
-                      lengthOptions: editingMaterial.lengthOptions
+                      lengthOptions: editingMaterial.lengthOptions,
+                      webTw: editingMaterial.webTw !== undefined && editingMaterial.webTw !== null && editingMaterial.webTw !== '' ? String(editingMaterial.webTw) : null,
+                      flangeTf: editingMaterial.flangeTf !== undefined && editingMaterial.flangeTf !== null && editingMaterial.flangeTf !== '' ? String(editingMaterial.flangeTf) : null
                     }
                   });
                 }}
