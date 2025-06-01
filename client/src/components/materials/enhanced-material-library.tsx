@@ -331,7 +331,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ surfaceAreaPerMeter: data.surfaceAreaPerMeter }),
+        body: JSON.stringify({ surfaceAreaPerMeter: data.surfaceAreaPerMeter.toString() }),
       });
       
       if (!response.ok) {
