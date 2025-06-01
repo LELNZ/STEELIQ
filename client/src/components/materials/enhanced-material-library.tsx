@@ -1277,7 +1277,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         id="edit-diameter"
                         type="number"
                         value={editingMaterial.diameter?.toString() || ""}
-                        onChange={(e) => setEditingMaterial({...editingMaterial, diameter: parseFloat(e.target.value) || undefined})}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, diameter: e.target.value ? parseFloat(e.target.value) : undefined})}
                         placeholder="Diameter"
                       />
                     </div>
@@ -1289,7 +1289,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         id="edit-thickness"
                         type="number"
                         value={editingMaterial.thickness?.toString() || ""}
-                        onChange={(e) => setEditingMaterial({...editingMaterial, thickness: parseFloat(e.target.value) || undefined})}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, thickness: e.target.value ? parseFloat(e.target.value) : undefined})}
                         placeholder={editingMaterial.category?.toLowerCase().includes('pipe') ? 'Wall Thickness' : 'Thickness'}
                       />
                     </div>
