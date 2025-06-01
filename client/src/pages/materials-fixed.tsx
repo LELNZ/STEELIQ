@@ -18,6 +18,8 @@ import roundImg from "@assets/Round.png";
 import sheetMetalImg from "@assets/Sheet metal.png";
 import shsImg from "@assets/SHS.png";
 import squareBarImg from "@assets/Square Bar.png";
+import ubImg from "@assets/Universal Beam.png";
+import ucImg from "@assets/Universal Column.png";
 
 const DIMENSION_IMAGES = {
   "Merchant Bar": {
@@ -35,8 +37,8 @@ const DIMENSION_IMAGES = {
   "Structural Sections": {
     "Mild Steel Channel": channelImg,
     "Cold Formed Channel": channelImg,
-    "Universal Beam": channelImg,
-    "Universal Column": channelImg
+    "Universal Beam": ubImg,
+    "Universal Column": ucImg
   },
   "Pregal": {
     "Pregal Angles": anglesImg,
