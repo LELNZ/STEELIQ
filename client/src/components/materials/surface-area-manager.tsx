@@ -164,10 +164,13 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
         throw new Error('Failed to save coating configuration');
       }
 
+      const updatedMaterial = await response.json();
       setCustomConfigurations(updatedConfigs);
       setCoatingConfiguration(newConfig.id);
       
-      // DO NOT update the base material surface area - only save as custom config
+      // Force refresh the material data to show updated configurations
+      window.location.reload();
+      
       alert(`Custom configuration "${configName}" saved successfully!`);
       
     } catch (error) {
@@ -226,6 +229,19 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       handleCalculate();
     }
   }, [dimensions, material.category, length]);
+
+  // Recalculate when selected surfaces change
+  useEffect(() => {
+    if (calculationMethod === "checklist" && Object.keys(surfaceAreas).length > 0) {
+      const total = selectedSurfaces.reduce((sum, surface) => sum + (surfaceAreas[surface] || 0), 0);
+      setCalculatedArea({
+        externalArea: total,
+        internalArea: 0,
+        totalArea: total,
+        breakdown: {}
+      });
+    }
+  }, [selectedSurfaces, surfaceAreas, calculationMethod]);
 
   const handleDimensionChange = (field: keyof SteelDimensions, value: string) => {
     const numValue = value === "" ? undefined : parseFloat(value);
@@ -361,6 +377,11 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       totalArea: total,
       breakdown: {}
     });
+    
+    // Automatically set calculation method to checklist for individual surface selection
+    if (calculationMethod === "3d") {
+      setCalculationMethod("checklist");
+    }
   };
 
   const getSurfaceOptions = () => {
@@ -418,35 +439,33 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
           {customConfigurations.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="coating-config">Load Custom Configuration</Label>
-              <Select 
-                value={coatingConfiguration} 
-                onValueChange={(value) => {
-                  setCoatingConfiguration(value);
-                  if (value !== "default") {
-                    const config = customConfigurations.find(c => c.id === value);
-                    if (config) {
-                      setSelectedSurfaces(config.surfaces);
-                      setCalculationMethod("checklist");
-                      // Trigger calculation with loaded surfaces
-                      if (material.category && dimensions.width) {
-                        handleCalculate();
-                      }
+              <div className="text-sm text-muted-foreground mb-2">
+                {customConfigurations.length} saved configuration(s) available
+              </div>
+              {customConfigurations.map((config) => (
+                <Button
+                  key={config.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedSurfaces(config.surfaces);
+                    setCalculationMethod("checklist");
+                    setCoatingConfiguration(config.id);
+                    // Trigger calculation with loaded surfaces
+                    if (material.category && dimensions.width) {
+                      handleCalculate();
                     }
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a configuration" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">Default Configuration</SelectItem>
-                  {customConfigurations.map((config) => (
-                    <SelectItem key={config.id} value={config.id}>
-                      {config.name} ({config.totalArea.toFixed(3)} m²/m)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  }}
+                  className="w-full justify-start text-left"
+                >
+                  <div>
+                    <div className="font-medium">{config.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {config.totalArea.toFixed(3)} m²/m - {config.surfaces.length} surfaces
+                    </div>
+                  </div>
+                </Button>
+              ))}
             </div>
           )}
 
