@@ -60,7 +60,6 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
   // Get dimensional reference image based on material category
   const getDimensionalReference = () => {
     const category = material.category?.toLowerCase() || '';
-    console.log('Material category:', material.category, 'Lowercase:', category);
     let imageSrc = flatImg; // default
     
     if (category.includes('rhs') || category.includes('rectangular')) {
@@ -70,7 +69,6 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
     } else if (category.includes('square') && !category.includes('hollow')) {
       imageSrc = squareBarImg;
     } else if (category.includes('channel') || category.includes('pfc') || category.includes('structural channels') || category.includes('channels')) {
-      console.log('Channel detected! Using channel image');
       imageSrc = channelImg;
     } else if (category.includes('ub') || category.includes('universal beam')) {
       imageSrc = ubImg;
@@ -123,35 +121,52 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
     const w = dimensions.width || 0;
     const d = dimensions.depth || 0;
     const t = dimensions.thickness || 0;
+    const webThickness = dimensions.webThickness || 0;
+    const flangeThickness = dimensions.flangeThickness || 0;
     const L = length;
     
     const areas: Record<string, number> = {};
     
-    if (category.includes('channel') || category.includes('pfc')) {
-      // Channel (PFC) - C-shaped profile
+    if (category.includes('channel') || category.includes('pfc') || category.includes('structural channels')) {
+      // Channel (PFC) - C-shaped profile with separate web and flange thickness
+      // External surfaces (3)
       areas['external_web'] = d * L / 1000000; // Convert mm² to m²
-      areas['internal_web_left'] = (d - 2 * t) * L / 1000000;
-      areas['internal_web_right'] = (d - 2 * t) * L / 1000000;
       areas['external_flange_top'] = w * L / 1000000;
       areas['external_flange_bottom'] = w * L / 1000000;
-      areas['internal_flange_top'] = (w - t) * L / 1000000;
-      areas['internal_flange_bottom'] = (w - t) * L / 1000000;
+      
+      // Internal surfaces (3) - calculated using actual thickness values
+      const internalFlangeWidth = w - webThickness; // Flange width minus web thickness
+      const internalWebDepth = d - (2 * flangeThickness); // Web depth minus top and bottom flange thickness
+      
+      areas['internal_flange_top'] = internalFlangeWidth * L / 1000000;
+      areas['internal_flange_bottom'] = internalFlangeWidth * L / 1000000;
+      areas['internal_web'] = internalWebDepth * L / 1000000;
+      
     } else if (category.includes('ub') || category.includes('universal beam')) {
-      // Universal Beam - I-shaped profile
+      // Universal Beam - I-shaped profile with separate web and flange thickness
+      // External surfaces
       areas['external_web'] = d * L / 1000000;
-      areas['internal_web_left'] = (d - 2 * t) * L / 1000000;
-      areas['internal_web_right'] = (d - 2 * t) * L / 1000000;
       areas['external_flange_top'] = w * L / 1000000;
       areas['external_flange_bottom'] = w * L / 1000000;
+      
+      // Internal surfaces - UB has internal web surfaces and flange undersides
+      const internalWebDepth = d - (2 * flangeThickness);
+      areas['internal_web_left'] = internalWebDepth * L / 1000000;
+      areas['internal_web_right'] = internalWebDepth * L / 1000000;
       areas['internal_flange_top'] = w * L / 1000000;
       areas['internal_flange_bottom'] = w * L / 1000000;
+      
     } else if (category.includes('uc') || category.includes('universal column')) {
-      // Universal Column - H-shaped profile (wider flanges)
+      // Universal Column - H-shaped profile with separate web and flange thickness
+      // External surfaces
       areas['external_web'] = d * L / 1000000;
-      areas['internal_web_left'] = (d - 2 * t) * L / 1000000;
-      areas['internal_web_right'] = (d - 2 * t) * L / 1000000;
       areas['external_flange_top'] = w * L / 1000000;
       areas['external_flange_bottom'] = w * L / 1000000;
+      
+      // Internal surfaces - UC similar to UB but typically wider flanges
+      const internalWebDepth = d - (2 * flangeThickness);
+      areas['internal_web_left'] = internalWebDepth * L / 1000000;
+      areas['internal_web_right'] = internalWebDepth * L / 1000000;
       areas['internal_flange_top'] = w * L / 1000000;
       areas['internal_flange_bottom'] = w * L / 1000000;
     } else if (category.includes('shs') || (category.includes('square') && category.includes('hollow'))) {
@@ -354,16 +369,45 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                         placeholder="Width"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="thickness">Thickness (mm)</Label>
-                      <Input
-                        id="thickness"
-                        type="number"
-                        value={dimensions.thickness || ""}
-                        onChange={(e) => handleDimensionChange("thickness", e.target.value)}
-                        placeholder="Thickness"
-                      />
-                    </div>
+                    {/* Show separate web and flange thickness for structural sections */}
+                    {(material.category?.toLowerCase().includes('channel') || 
+                      material.category?.toLowerCase().includes('structural channels') ||
+                      material.category?.toLowerCase().includes('universal beam') ||
+                      material.category?.toLowerCase().includes('universal column')) ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="web-thickness">Web Thickness (mm)</Label>
+                          <Input
+                            id="web-thickness"
+                            type="number"
+                            value={dimensions.webThickness || ""}
+                            onChange={(e) => handleDimensionChange("webThickness", e.target.value)}
+                            placeholder="Web Thickness"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="flange-thickness">Flange Thickness (mm)</Label>
+                          <Input
+                            id="flange-thickness"
+                            type="number"
+                            value={dimensions.flangeThickness || ""}
+                            onChange={(e) => handleDimensionChange("flangeThickness", e.target.value)}
+                            placeholder="Flange Thickness"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="thickness">Thickness (mm)</Label>
+                        <Input
+                          id="thickness"
+                          type="number"
+                          value={dimensions.thickness || ""}
+                          onChange={(e) => handleDimensionChange("thickness", e.target.value)}
+                          placeholder="Thickness"
+                        />
+                      </div>
+                    )}
                   </>
                 )}
                 {dimensions.depth !== undefined && (
@@ -394,11 +438,27 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                   <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <div className="text-sm font-medium mb-2">Surface Area Calculations:</div>
                     <div className="text-xs text-muted-foreground space-y-1">
-                      <div>• Web surfaces = depth × length</div>
-                      <div>• External flanges = width × length</div>
-                      <div>• Internal flanges = (width - thickness) × length</div>
-                      <div>• Internal dimensions account for material thickness</div>
-                      <div>• Length: {length}mm | Width: {dimensions.width}mm | Depth: {dimensions.depth}mm | Thickness: {dimensions.thickness}mm</div>
+                      {(material.category?.toLowerCase().includes('channel') || 
+                        material.category?.toLowerCase().includes('structural channels') ||
+                        material.category?.toLowerCase().includes('universal beam') ||
+                        material.category?.toLowerCase().includes('universal column')) ? (
+                        <>
+                          <div>• External surfaces: web, top flange, bottom flange</div>
+                          <div>• Internal flange width = width - web thickness</div>
+                          <div>• Internal web depth = depth - (2 × flange thickness)</div>
+                          <div>• Enhanced accuracy using separate web/flange thicknesses</div>
+                          <div>• Length: {length}mm | Width: {dimensions.width}mm | Depth: {dimensions.depth}mm</div>
+                          <div>• Web Thickness: {dimensions.webThickness}mm | Flange Thickness: {dimensions.flangeThickness}mm</div>
+                        </>
+                      ) : (
+                        <>
+                          <div>• Web surfaces = depth × length</div>
+                          <div>• External flanges = width × length</div>
+                          <div>• Internal flanges = (width - thickness) × length</div>
+                          <div>• Internal dimensions account for material thickness</div>
+                          <div>• Length: {length}mm | Width: {dimensions.width}mm | Depth: {dimensions.depth}mm | Thickness: {dimensions.thickness}mm</div>
+                        </>
+                      )}
                     </div>
                   </div>
                   
