@@ -849,10 +849,29 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       <div>
                         <p className="text-muted-foreground">Surface Area</p>
                         <p className="font-medium">
-                          {material.surfaceAreaPerMeter 
-                            ? `${Number(material.surfaceAreaPerMeter).toFixed(2)} m²/m`
-                            : 'Not calculated'
-                          }
+                          {(() => {
+                            // Use unified calculation system for display consistency
+                            if (material.width && material.depth && material.category) {
+                              const dimensions = {
+                                width: parseFloat(material.width),
+                                depth: parseFloat(material.depth),
+                                webThickness: material.webTw ? parseFloat(material.webTw.toString()) : 0,
+                                flangeThickness: material.flangeTf ? parseFloat(material.flangeTf.toString()) : 0
+                              };
+                              
+                              const result = calculateUnifiedSurfaceArea(
+                                material.category,
+                                dimensions,
+                                'external-internal'
+                              );
+                              
+                              return `${result.total.toFixed(3)} m²/m`;
+                            } else if (material.surfaceAreaPerMeter) {
+                              return `${Number(material.surfaceAreaPerMeter).toFixed(3)} m²/m`;
+                            } else {
+                              return 'Not calculated';
+                            }
+                          })()}
                         </p>
                       </div>
                     )}
@@ -989,10 +1008,29 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         <div>
                           <div className="flex items-center gap-1">
                             <p className="text-sm font-medium text-blue-600">
-                              {material.surfaceAreaPerMeter 
-                                ? `${Number(material.surfaceAreaPerMeter).toFixed(3)} m²/m`
-                                : 'Not calculated'
-                              }
+                              {(() => {
+                                // Use unified calculation system for display consistency
+                                if (material.width && material.depth && material.category) {
+                                  const dimensions = {
+                                    width: parseFloat(material.width),
+                                    depth: parseFloat(material.depth),
+                                    webThickness: material.webTw ? parseFloat(material.webTw.toString()) : 0,
+                                    flangeThickness: material.flangeTf ? parseFloat(material.flangeTf.toString()) : 0
+                                  };
+                                  
+                                  const result = calculateUnifiedSurfaceArea(
+                                    material.category,
+                                    dimensions,
+                                    'external-internal'
+                                  );
+                                  
+                                  return `${result.total.toFixed(3)} m²/m`;
+                                } else if (material.surfaceAreaPerMeter) {
+                                  return `${Number(material.surfaceAreaPerMeter).toFixed(3)} m²/m`;
+                                } else {
+                                  return 'Not calculated';
+                                }
+                              })()}
                             </p>
                             <TooltipProvider>
                               <Tooltip>
