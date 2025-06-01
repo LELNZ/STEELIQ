@@ -713,10 +713,11 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                 }`}>
                   {cardSize !== "tiny" && (
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      {/* Show diameter for rounds and pipes, otherwise show width/thickness */}
+                      {/* Show diameter for rounds, pipes, and reinforcing bars, otherwise show width/thickness */}
                       {(material.category?.toLowerCase().includes('round') || 
                         material.category?.toLowerCase().includes('pipe') || 
-                        material.category?.toLowerCase().includes('chs')) ? (
+                        material.category?.toLowerCase().includes('chs') ||
+                        material.category?.toLowerCase().includes('reinforc')) ? (
                         <>
                           <div>
                             <p className="text-muted-foreground">Diameter (mm)</p>
@@ -724,8 +725,8 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           </div>
                           {material.thickness && (
                             <div>
-                              <p className="text-muted-foreground">Thickness</p>
-                              <p className="font-medium">{material.thickness}</p>
+                              <p className="text-muted-foreground">Wall Thickness</p>
+                              <p className="font-medium">{material.thickness}mm</p>
                             </div>
                           )}
                         </>
@@ -851,10 +852,11 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           )}
                         </div>
                         <div>
-                          {/* Show diameter for rounds and pipes, otherwise show width/thickness */}
+                          {/* Show diameter for rounds, pipes, and reinforcing bars, otherwise show width/thickness */}
                           {(material.category?.toLowerCase().includes('round') || 
                             material.category?.toLowerCase().includes('pipe') || 
-                            material.category?.toLowerCase().includes('chs')) ? (
+                            material.category?.toLowerCase().includes('chs') ||
+                            material.category?.toLowerCase().includes('reinforc')) ? (
                             <>
                               <p className="text-sm">⌀: {material.diameter || 'N/A'}mm</p>
                               {material.thickness && <p className="text-sm">T: {material.thickness}mm</p>}
@@ -1082,38 +1084,79 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
               {/* Dimensions */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground border-b pb-2">Dimensions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-width">Width (mm)</Label>
-                    <Input
-                      id="edit-width"
-                      type="number"
-                      value={editingMaterial.width?.toString() || ""}
-                      onChange={(e) => setEditingMaterial({...editingMaterial, width: parseFloat(e.target.value) || undefined})}
-                      placeholder="Width"
-                    />
+                {/* Show different fields based on material type */}
+                {(editingMaterial.category?.toLowerCase().includes('round') || 
+                  editingMaterial.category?.toLowerCase().includes('pipe') || 
+                  editingMaterial.category?.toLowerCase().includes('chs') ||
+                  editingMaterial.category?.toLowerCase().includes('reinforc')) ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-diameter">Diameter (mm)</Label>
+                      <Input
+                        id="edit-diameter"
+                        type="number"
+                        value={editingMaterial.diameter?.toString() || ""}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, diameter: parseFloat(e.target.value) || undefined})}
+                        placeholder="Diameter"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-thickness">
+                        {editingMaterial.category?.toLowerCase().includes('pipe') ? 'Wall Thickness (mm)' : 'Thickness (mm)'}
+                      </Label>
+                      <Input
+                        id="edit-thickness"
+                        type="number"
+                        value={editingMaterial.thickness?.toString() || ""}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, thickness: parseFloat(e.target.value) || undefined})}
+                        placeholder={editingMaterial.category?.toLowerCase().includes('pipe') ? 'Wall Thickness' : 'Thickness'}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-length">Length (mm)</Label>
+                      <Input
+                        id="edit-length"
+                        type="number"
+                        value={editingMaterial.length?.toString() || ""}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
+                        placeholder="Length"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-thickness">Thickness (mm)</Label>
-                    <Input
-                      id="edit-thickness"
-                      type="number"
-                      value={editingMaterial.thickness?.toString() || ""}
-                      onChange={(e) => setEditingMaterial({...editingMaterial, thickness: parseFloat(e.target.value) || undefined})}
-                      placeholder="Thickness"
-                    />
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-width">Width (mm)</Label>
+                      <Input
+                        id="edit-width"
+                        type="number"
+                        value={editingMaterial.width?.toString() || ""}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, width: parseFloat(e.target.value) || undefined})}
+                        placeholder="Width"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-thickness">Thickness (mm)</Label>
+                      <Input
+                        id="edit-thickness"
+                        type="number"
+                        value={editingMaterial.thickness?.toString() || ""}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, thickness: parseFloat(e.target.value) || undefined})}
+                        placeholder="Thickness"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-length">Length (mm)</Label>
+                      <Input
+                        id="edit-length"
+                        type="number"
+                        value={editingMaterial.length?.toString() || ""}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
+                        placeholder="Length"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-length">Length (mm)</Label>
-                    <Input
-                      id="edit-length"
-                      type="number"
-                      value={editingMaterial.length?.toString() || ""}
-                      onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
-                      placeholder="Length"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Specifications */}
@@ -1212,6 +1255,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       code: editingMaterial.code,
                       width: editingMaterial.width !== undefined && editingMaterial.width !== null && editingMaterial.width !== '' ? String(editingMaterial.width) : null,
                       thickness: editingMaterial.thickness !== undefined && editingMaterial.thickness !== null && editingMaterial.thickness !== '' ? String(editingMaterial.thickness) : null,
+                      diameter: editingMaterial.diameter !== undefined && editingMaterial.diameter !== null && editingMaterial.diameter !== '' ? String(editingMaterial.diameter) : null,
                       length: editingMaterial.length !== undefined && editingMaterial.length !== null && editingMaterial.length !== '' ? String(editingMaterial.length) : null,
                       grade: editingMaterial.grade && editingMaterial.grade !== '' ? editingMaterial.grade : null,
                       standard: editingMaterial.standard && editingMaterial.standard !== '' ? editingMaterial.standard : null,
