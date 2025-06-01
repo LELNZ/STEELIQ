@@ -17,6 +17,7 @@ import { Material } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { calculateMaterialSurfaceArea } from "@/lib/surface-area-calculator";
+import { calculateMaterialSurfaceArea as calculateUnifiedSurfaceArea } from "@/lib/unified-surface-area-calculator";
 
 // Import dimensional reference images
 import anglesImg from "@assets/Angles.png";
@@ -1452,47 +1453,29 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     <Select 
                       value={editingMaterial.coatingConfig?.type || "external-internal"}
                       onValueChange={(value) => {
-                        // Calculate surface area based on configuration type
+                        // Calculate surface area based on configuration type using unified system
                         let calculatedSurfaceArea = editingMaterial.surfaceAreaPerMeter;
                         
-                        if (value !== 'custom' && editingMaterial.width && editingMaterial.depth) {
+                        if (value !== 'custom' && editingMaterial.width && editingMaterial.depth && editingMaterial.category) {
                           const width = parseFloat(editingMaterial.width);
                           const depth = parseFloat(editingMaterial.depth);
                           const webTw = editingMaterial.webTw ? parseFloat(editingMaterial.webTw.toString()) : 0;
                           const flangeTf = editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : 0;
                           
-                          if (editingMaterial.category?.toLowerCase().includes('channel')) {
-                            // Channel calculations - accurate C-shaped geometry
-                            if (value === 'external-only') {
-                              // External: web + 2 flanges
-                              calculatedSurfaceArea = ((depth + 2 * width) / 1000).toFixed(4);
-                            } else if (value === 'internal-only') {
-                              // Internal: reduced dimensions accounting for thickness
-                              const internalFlangeWidth = width - webTw;
-                              const internalWebDepth = depth - (2 * flangeTf);
-                              calculatedSurfaceArea = ((internalWebDepth + 2 * internalFlangeWidth) / 1000).toFixed(4);
-                            } else if (value === 'external-internal') {
-                              // Combined: external + internal surfaces
-                              const internalFlangeWidth = width - webTw;
-                              const internalWebDepth = depth - (2 * flangeTf);
-                              calculatedSurfaceArea = ((depth + 2 * width + internalWebDepth + 2 * internalFlangeWidth) / 1000).toFixed(4);
-                            }
-                          } else if (editingMaterial.category?.toLowerCase().includes('universal')) {
-                            // Universal beam/column calculations - accurate geometry
-                            if (value === 'external-only') {
-                              // External: 2 flanges only (no external web)
-                              calculatedSurfaceArea = ((2 * width) / 1000).toFixed(4);
-                            } else if (value === 'internal-only') {
-                              // Internal: 2 web sides + 2 flange undersides
-                              const internalWebDepth = depth - (2 * flangeTf);
-                              calculatedSurfaceArea = ((2 * internalWebDepth + 2 * width) / 1000).toFixed(4);
-                            } else if (value === 'external-internal') {
-                              // Combined: External flanges + Internal web sides + Internal flange undersides
-                              const internalWebDepth = depth - (2 * flangeTf);
-                              // External: 2 × flangeWidth, Internal: 2 × webDepth + 2 × flangeWidth
-                              calculatedSurfaceArea = ((2 * width + 2 * internalWebDepth + 2 * width) / 1000).toFixed(3);
-                            }
-                          }
+                          const dimensions = {
+                            width,
+                            depth,
+                            webThickness: webTw,
+                            flangeThickness: flangeTf
+                          };
+                          
+                          const result = calculateUnifiedSurfaceArea(
+                            editingMaterial.category,
+                            dimensions,
+                            value as 'external-only' | 'internal-only' | 'external-internal'
+                          );
+                          
+                          calculatedSurfaceArea = result.total.toFixed(3);
                         }
                         
                         setEditingMaterial({
