@@ -144,8 +144,7 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       
     } else if (category.includes('ub') || category.includes('universal beam')) {
       // Universal Beam - I-shaped profile with separate web and flange thickness
-      // External surfaces
-      areas['external_web'] = d * L / 1000000;
+      // External surfaces (no external web - web is internal between flanges)
       areas['external_flange_top'] = w * L / 1000000;
       areas['external_flange_bottom'] = w * L / 1000000;
       
@@ -158,8 +157,7 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       
     } else if (category.includes('uc') || category.includes('universal column')) {
       // Universal Column - H-shaped profile with separate web and flange thickness
-      // External surfaces
-      areas['external_web'] = d * L / 1000000;
+      // External surfaces (no external web - web is internal between flanges)
       areas['external_flange_top'] = w * L / 1000000;
       areas['external_flange_bottom'] = w * L / 1000000;
       
