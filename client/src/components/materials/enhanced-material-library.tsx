@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus } from "lucide-react";
+import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus, Calculator } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner, LoadingOverlay, LoadingState } from "@/components/ui/loading-spinner";
 import { MaterialTypeIndicator, MaterialIcon } from "./material-icons";
+import SurfaceAreaManager from "./surface-area-manager";
 import { Material } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -146,6 +147,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   const [viewFormat, setViewFormat] = useState<"card" | "list">("list");
   const [cardSize, setCardSize] = useState<"normal" | "small" | "tiny">("normal");
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
+  const [surfaceAreaMaterial, setSurfaceAreaMaterial] = useState<Material | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -297,6 +299,46 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
       }
       
       const responseText = await response.text();
+      try {
+        const result = JSON.parse(responseText);
+        return result;
+      } catch (parseError) {
+        throw new Error('Server returned invalid JSON response');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      setEditingMaterial(null);
+      toast({
+        title: "Success",
+        description: "Material updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update material",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Surface area update mutation
+  const updateSurfaceAreaMutation = useMutation({
+    mutationFn: async (data: { id: number; surfaceAreaPerMeter: number }) => {
+      const response = await fetch(`/api/materials/${data.id}/update`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ surfaceAreaPerMeter: data.surfaceAreaPerMeter }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update surface area: ${response.status}`);
+      }
+      
+      const responseText = await response.text();
       console.log('Response text:', responseText);
       
       try {
@@ -309,20 +351,18 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
         throw new Error('Server returned invalid JSON response');
       }
     },
-    onSuccess: (data) => {
-      console.log('Material update mutation successful:', data);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
-      setEditingMaterial(null);
+      setSurfaceAreaMaterial(null);
       toast({
         title: "Success",
-        description: "Material updated successfully",
+        description: "Surface area updated successfully",
       });
     },
     onError: (error: any) => {
-      console.error('Material update mutation error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update material",
+        description: "Failed to update surface area",
         variant: "destructive",
       });
     },
@@ -639,6 +679,14 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         <Button 
                           variant="ghost" 
                           size="sm"
+                          onClick={() => setSurfaceAreaMaterial(material)}
+                          title="Calculate Surface Area"
+                        >
+                          <Calculator className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
                           onClick={() => setEditingMaterial(material)}
                         >
                           <Edit className="w-4 h-4" />
@@ -676,17 +724,28 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     </div>
                   )}
 
-                  <div className={`flex items-center ${cardSize === "tiny" ? "justify-center" : "justify-between"}`}>
+                  <div className={`${cardSize === "tiny" ? "space-y-1" : "grid grid-cols-2 gap-2"}`}>
                     {cardSize !== "tiny" && (
                       <div>
                         <p className="text-muted-foreground">Grade</p>
                         <p className="font-medium">{material.grade || 'Standard'}</p>
                       </div>
                     )}
-                    <div className="text-right">
+                    <div className={cardSize === "tiny" ? "text-center" : "text-right"}>
                       <p className="text-muted-foreground">Weight</p>
                       <p className="font-medium">{material.weightPerMeter || 0} kg/m</p>
                     </div>
+                    {cardSize !== "tiny" && (
+                      <div>
+                        <p className="text-muted-foreground">Surface Area</p>
+                        <p className="font-medium">
+                          {material.surfaceAreaPerMeter 
+                            ? `${Number(material.surfaceAreaPerMeter).toFixed(2)} m²/m`
+                            : 'Not calculated'
+                          }
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {cardSize !== "tiny" && (
