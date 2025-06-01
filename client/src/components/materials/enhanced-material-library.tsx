@@ -1537,7 +1537,6 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         <SelectItem value="external-only">External Only</SelectItem>
                         <SelectItem value="internal-only">Internal Only</SelectItem>
                         <SelectItem value="external-internal">External + Internal</SelectItem>
-                        <SelectItem value="custom">Custom Configuration</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

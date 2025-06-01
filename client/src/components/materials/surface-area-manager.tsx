@@ -1573,19 +1573,14 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
           <div className="flex gap-3 pt-4">
             <Button 
               onClick={() => {
-                let finalArea = 0;
-                if (calculationMethod === "percentage" && calculatedArea) {
-                  finalArea = calculatedArea.totalArea * (parseFloat(percentageOverride) || 100) / 100;
-                } else {
-                  finalArea = getSelectedArea();
-                }
-                onSave(finalArea);
+                // Close the surface area manager without saving
+                setCalculatedArea(null);
+                setSelectedSurfaces(["external"]);
+                setPercentageOverride("100");
               }}
               className="flex-1"
-              disabled={!calculatedArea || getSelectedArea() === 0}
             >
-              <Save className="w-4 h-4 mr-2" />
-              Save Surface Area
+              Close
             </Button>
             <Button 
               variant="outline" 
