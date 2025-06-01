@@ -95,11 +95,10 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
   };
 
   useEffect(() => {
-    if (material.category) {
-      const result = calculateSurfaceArea(material.category, dimensions);
-      setCalculatedArea(result);
+    if (material.category && dimensions.width && dimensions.thickness) {
+      handleCalculate();
     }
-  }, [dimensions, material.category]);
+  }, [dimensions, material.category, length]);
 
   const handleDimensionChange = (field: keyof SteelDimensions, value: string) => {
     const numValue = value === "" ? undefined : parseFloat(value);
@@ -339,7 +338,7 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
               </Button>
 
               {/* Enhanced 3D Interactive Profile Selector with Individual Surfaces */}
-              {Object.keys(surfaceAreas).length > 0 && (
+              {calculatedArea && Object.keys(surfaceAreas).length > 0 && (
                 <div className="space-y-4">
                   <Label>3D Interactive Profile - Click individual surfaces to select/deselect:</Label>
                   
