@@ -1309,6 +1309,9 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     {/* Show different layouts for structural sections vs other materials */}
                     {(editingMaterial.category?.toLowerCase().includes('channel') || 
                       editingMaterial.category?.toLowerCase().includes('structural channels') ||
+                      editingMaterial.category?.toLowerCase().includes('cold formed channel') ||
+                      editingMaterial.category?.toLowerCase().includes('mild steel channel') ||
+                      editingMaterial.category?.toLowerCase().includes('pfc') ||
                       editingMaterial.category?.toLowerCase().includes('universal beam') ||
                       editingMaterial.category?.toLowerCase().includes('universal column')) ? (
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
