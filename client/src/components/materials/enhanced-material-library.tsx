@@ -1462,22 +1462,34 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           const flangeTf = editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : 0;
                           
                           if (editingMaterial.category?.toLowerCase().includes('channel')) {
-                            // Channel calculations
+                            // Channel calculations - accurate C-shaped geometry
                             if (value === 'external-only') {
-                              calculatedSurfaceArea = ((width + 2 * depth) / 1000).toFixed(4);
+                              // External: web + 2 flanges
+                              calculatedSurfaceArea = ((depth + 2 * width) / 1000).toFixed(4);
                             } else if (value === 'internal-only') {
-                              calculatedSurfaceArea = ((width - 2 * webTw + 2 * (depth - flangeTf)) / 1000).toFixed(4);
+                              // Internal: reduced dimensions accounting for thickness
+                              const internalFlangeWidth = width - webTw;
+                              const internalWebDepth = depth - (2 * flangeTf);
+                              calculatedSurfaceArea = ((internalWebDepth + 2 * internalFlangeWidth) / 1000).toFixed(4);
                             } else if (value === 'external-internal') {
-                              calculatedSurfaceArea = ((2 * (width + depth)) / 1000).toFixed(4);
+                              // Combined: external + internal surfaces
+                              const internalFlangeWidth = width - webTw;
+                              const internalWebDepth = depth - (2 * flangeTf);
+                              calculatedSurfaceArea = ((depth + 2 * width + internalWebDepth + 2 * internalFlangeWidth) / 1000).toFixed(4);
                             }
                           } else if (editingMaterial.category?.toLowerCase().includes('universal')) {
-                            // Universal beam/column calculations
+                            // Universal beam/column calculations - accurate geometry
                             if (value === 'external-only') {
-                              calculatedSurfaceArea = ((2 * (width + depth)) / 1000).toFixed(4);
+                              // External: 2 flanges only (no external web)
+                              calculatedSurfaceArea = ((2 * width) / 1000).toFixed(4);
                             } else if (value === 'internal-only') {
-                              calculatedSurfaceArea = ((2 * (width - 2 * flangeTf + depth - 2 * webTw)) / 1000).toFixed(4);
+                              // Internal: 2 web sides + 2 flange undersides
+                              const internalWebDepth = depth - (2 * flangeTf);
+                              calculatedSurfaceArea = ((2 * internalWebDepth + 2 * width) / 1000).toFixed(4);
                             } else if (value === 'external-internal') {
-                              calculatedSurfaceArea = ((4 * (width + depth)) / 1000).toFixed(4);
+                              // Combined: External flanges + Internal web sides + Internal flange undersides
+                              const internalWebDepth = depth - (2 * flangeTf);
+                              calculatedSurfaceArea = ((2 * width + 2 * internalWebDepth + 2 * width) / 1000).toFixed(4);
                             }
                           }
                         }
