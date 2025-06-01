@@ -42,6 +42,7 @@ export const materials = pgTable("materials", {
   pricePerKg: decimal("price_per_kg", { precision: 10, scale: 2 }),
   pricePerMeter: decimal("price_per_meter", { precision: 10, scale: 2 }),
   surfaceAreaPerMeter: decimal("surface_area_per_meter", { precision: 10, scale: 2 }), // m²/m for coating calculations
+  coatingConfig: jsonb("coating_config"), // Stores surface area calculation preferences
   supplier: text("supplier"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),

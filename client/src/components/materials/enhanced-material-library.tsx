@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus, Calculator } from "lucide-react";
+import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus, Calculator, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { LoadingSpinner, LoadingOverlay, LoadingState } from "@/components/ui/loading-spinner";
 import { MaterialTypeIndicator, MaterialIcon } from "./material-icons";
 import SurfaceAreaManager from "./surface-area-manager";
@@ -566,6 +567,26 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
 
             {/* View Controls and Selection */}
             <div className="flex items-center gap-4">
+              {/* Calculate All Surface Areas Button */}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => bulkCalculateSurfaceAreaMutation.mutate()}
+                disabled={bulkCalculateSurfaceAreaMutation.isPending}
+                className="whitespace-nowrap"
+              >
+                {bulkCalculateSurfaceAreaMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Calculating...
+                  </>
+                ) : (
+                  <>
+                    <Calculator className="w-4 h-4 mr-2" />
+                    Calculate All
+                  </>
+                )}
+              </Button>
               {/* View Format Toggle */}
               <div className="flex items-center space-x-2">
                 <Button
@@ -931,7 +952,21 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           ) : (
                             <>
                               <p className="text-sm">W: {material.width || 'N/A'}</p>
-                              {material.depth && <p className="text-sm">D: {material.depth}mm</p>}
+                              {material.depth && (
+                                <div className="flex items-center gap-1">
+                                  <p className="text-sm">D: {material.depth}mm</p>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <Info className="w-3 h-3 text-muted-foreground hover:text-blue-600" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Depth/height dimension of the steel profile (mm)</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                              )}
                               {/* Show separate web and flange thickness for structural sections */}
                               {(material.category?.toLowerCase().includes('channel') || 
                                 material.category?.toLowerCase().includes('structural channels') ||
@@ -951,12 +986,24 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           <p className="text-sm font-medium">{material.weightPerMeter || 0} kg/m</p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-blue-600">
-                            {material.surfaceAreaPerMeter 
-                              ? `${Number(material.surfaceAreaPerMeter).toFixed(3)} m²/m`
-                              : 'Not calculated'
-                            }
-                          </p>
+                          <div className="flex items-center gap-1">
+                            <p className="text-sm font-medium text-blue-600">
+                              {material.surfaceAreaPerMeter 
+                                ? `${Number(material.surfaceAreaPerMeter).toFixed(3)} m²/m`
+                                : 'Not calculated'
+                              }
+                            </p>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Info className="w-3 h-3 text-muted-foreground hover:text-blue-600" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Surface area per linear meter for coating calculations</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </div>
                         <div>
                           <p className="text-sm">{material.grade || 'Standard'}</p>
