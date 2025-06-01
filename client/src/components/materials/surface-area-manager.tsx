@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calculator, Save, RotateCcw, Image, CheckSquare, Percent } from "lucide-react";
-import { calculateSurfaceArea, type SteelDimensions, type SurfaceAreaResult } from "@/lib/surface-area-calculator";
+import { calculateSurfaceArea, calculateSquareBarArea, type SteelDimensions, type SurfaceAreaResult } from "@/lib/surface-area-calculator";
 import type { Material } from "@shared/schema";
 
 // Import dimensional reference images
@@ -32,14 +32,20 @@ interface SurfaceAreaManagerProps {
 }
 
 export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaManagerProps) {
-  const [dimensions, setDimensions] = useState<SteelDimensions>({
-    width: material.width ? Number(material.width) : undefined,
-    thickness: material.thickness ? Number(material.thickness) : undefined,
-    depth: material.depth ? Number(material.depth) : undefined,
-    flangeWidth: material.flangeTf ? Number(material.flangeTf) : undefined,
-    flangeThickness: material.flangeTf ? Number(material.flangeTf) : undefined,
-    webThickness: material.webTw ? Number(material.webTw) : undefined,
-    outerDiameter: material.diameter ? Number(material.diameter) : undefined,
+  const [dimensions, setDimensions] = useState<SteelDimensions>(() => {
+    const category = material.category?.toLowerCase() || '';
+    const width = material.width ? Number(material.width) : undefined;
+    
+    return {
+      width: width,
+      height: (category.includes('square') && !category.includes('hollow')) ? width : material.depth ? Number(material.depth) : undefined,
+      thickness: material.thickness ? Number(material.thickness) : undefined,
+      depth: material.depth ? Number(material.depth) : undefined,
+      flangeWidth: material.flangeTf ? Number(material.flangeTf) : undefined,
+      flangeThickness: material.flangeTf ? Number(material.flangeTf) : undefined,
+      webThickness: material.webTw ? Number(material.webTw) : undefined,
+      outerDiameter: material.diameter ? Number(material.diameter) : undefined,
+    };
   });
   
   const [length, setLength] = useState(1000); // Default 1000mm (1 meter)
@@ -58,8 +64,10 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
     
     if (category.includes('rhs') || category.includes('rectangular')) {
       imageSrc = rhsImg;
-    } else if (category.includes('shs') || category.includes('square')) {
+    } else if (category.includes('shs') || (category.includes('square') && category.includes('hollow'))) {
       imageSrc = shsImg;
+    } else if (category.includes('square') && !category.includes('hollow')) {
+      imageSrc = squareBarImg;
     } else if (category.includes('ub') || category.includes('universal beam')) {
       imageSrc = ubImg;
     } else if (category.includes('uc') || category.includes('universal column')) {
@@ -144,7 +152,7 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       areas['external_flange_bottom'] = w * L / 1000000;
       areas['internal_flange_top'] = w * L / 1000000;
       areas['internal_flange_bottom'] = w * L / 1000000;
-    } else if (category.includes('shs')) {
+    } else if (category.includes('shs') || (category.includes('square') && category.includes('hollow'))) {
       // Square Hollow Section
       areas['external_top'] = w * L / 1000000;
       areas['external_bottom'] = w * L / 1000000;
@@ -154,6 +162,12 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       areas['internal_bottom'] = (w - 2 * t) * L / 1000000;
       areas['internal_left'] = (w - 2 * t) * L / 1000000;
       areas['internal_right'] = (w - 2 * t) * L / 1000000;
+    } else if (category.includes('square') && !category.includes('hollow')) {
+      // Solid Square Bar - 4 external faces only
+      areas['external_face1'] = w * L / 1000000;
+      areas['external_face2'] = w * L / 1000000;
+      areas['external_face3'] = w * L / 1000000;
+      areas['external_face4'] = w * L / 1000000;
     } else if (category.includes('rhs')) {
       // Rectangular Hollow Section
       areas['external_top'] = w * L / 1000000;
@@ -298,26 +312,58 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                     placeholder="1000"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="width">Width (mm)</Label>
-                  <Input
-                    id="width"
-                    type="number"
-                    value={dimensions.width || ""}
-                    onChange={(e) => handleDimensionChange("width", e.target.value)}
-                    placeholder="Width"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="thickness">Thickness (mm)</Label>
-                  <Input
-                    id="thickness"
-                    type="number"
-                    value={dimensions.thickness || ""}
-                    onChange={(e) => handleDimensionChange("thickness", e.target.value)}
-                    placeholder="Thickness"
-                  />
-                </div>
+                {/* Show diameter for rounds, pipes, reinforcing bars */}
+                {(material.category?.toLowerCase().includes('round') || 
+                  material.category?.toLowerCase().includes('pipe') || 
+                  material.category?.toLowerCase().includes('reinforc')) ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="diameter">Diameter (mm)</Label>
+                      <Input
+                        id="diameter"
+                        type="number"
+                        value={dimensions.outerDiameter || ""}
+                        onChange={(e) => handleDimensionChange("outerDiameter", e.target.value)}
+                        placeholder="Diameter"
+                      />
+                    </div>
+                    {material.category?.toLowerCase().includes('pipe') && (
+                      <div className="space-y-2">
+                        <Label htmlFor="thickness">Wall Thickness (mm)</Label>
+                        <Input
+                          id="thickness"
+                          type="number"
+                          value={dimensions.thickness || ""}
+                          onChange={(e) => handleDimensionChange("thickness", e.target.value)}
+                          placeholder="Wall Thickness"
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="width">Width (mm)</Label>
+                      <Input
+                        id="width"
+                        type="number"
+                        value={dimensions.width || ""}
+                        onChange={(e) => handleDimensionChange("width", e.target.value)}
+                        placeholder="Width"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="thickness">Thickness (mm)</Label>
+                      <Input
+                        id="thickness"
+                        type="number"
+                        value={dimensions.thickness || ""}
+                        onChange={(e) => handleDimensionChange("thickness", e.target.value)}
+                        placeholder="Thickness"
+                      />
+                    </div>
+                  </>
+                )}
                 {dimensions.depth !== undefined && (
                   <div className="space-y-2">
                     <Label htmlFor="depth">Depth (mm)</Label>

@@ -196,6 +196,27 @@ export function calculateFlatBarArea(width: number, thickness: number): SurfaceA
 }
 
 /**
+ * Calculate surface area for Solid Square Bar
+ * Area: 4 × width / 1000 (4 faces of equal width)
+ */
+export function calculateSquareBarArea(width: number): SurfaceAreaResult {
+  const widthM = width / 1000;
+  const totalArea = 4 * widthM; // Four equal faces
+  
+  return {
+    totalArea: Number(totalArea.toFixed(2)),
+    externalArea: Number(totalArea.toFixed(2)),
+    internalArea: 0,
+    breakdown: {
+      top: Number(widthM.toFixed(2)),
+      bottom: Number(widthM.toFixed(2)),
+      left: Number(widthM.toFixed(2)),
+      right: Number(widthM.toFixed(2))
+    }
+  };
+}
+
+/**
  * Calculate surface area for Round Bar/Pipe
  * External: π × diameter / 1000
  * Internal (for pipe): π × (diameter - 2×thickness) / 1000
@@ -239,9 +260,21 @@ export function calculateSurfaceArea(
     }
   }
   
-  if (cat.includes('rhs') || cat.includes('shs') || cat.includes('rectangular') || cat.includes('square')) {
+  if (cat.includes('rhs') || cat.includes('rectangular')) {
     if (dimensions.width && dimensions.height && dimensions.thickness) {
       return calculateRHSArea(dimensions.width, dimensions.height, dimensions.thickness);
+    }
+  }
+  
+  if (cat.includes('shs') || (cat.includes('square') && cat.includes('hollow'))) {
+    if (dimensions.width && dimensions.thickness) {
+      return calculateRHSArea(dimensions.width, dimensions.width, dimensions.thickness); // Square hollow section
+    }
+  }
+  
+  if (cat.includes('square') && !cat.includes('hollow')) {
+    if (dimensions.width) {
+      return calculateSquareBarArea(dimensions.width); // Solid square bar
     }
   }
   
