@@ -130,14 +130,18 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
     if (category.includes('channel') || category.includes('pfc') || category.includes('structural channels') || 
         category.includes('cold formed channel') || category.includes('mild steel channel')) {
       // Channel (PFC) - C-shaped profile with separate web and flange thickness
-      // External surfaces (3)
-      areas['external_web'] = d * L / 1000000; // Convert mm² to m²
-      areas['external_flange_top'] = w * L / 1000000;
-      areas['external_flange_bottom'] = w * L / 1000000;
       
-      // Internal surfaces (3) - calculated using actual thickness values
-      const internalFlangeWidth = w - webThickness; // Flange width minus web thickness
-      const internalWebDepth = d - (2 * flangeThickness); // Web depth minus top and bottom flange thickness
+      // External surfaces (3)
+      areas['external_flange_top'] = w * L / 1000000; // Full flange width
+      areas['external_flange_bottom'] = w * L / 1000000; // Full flange width
+      areas['external_web'] = d * L / 1000000; // Full web depth
+      
+      // Internal surfaces (3) - calculated using actual geometry
+      // Internal flanges: flange width minus web thickness (as specified)
+      const internalFlangeWidth = w - webThickness;
+      
+      // Internal web: web depth minus both flange thicknesses
+      const internalWebDepth = d - (2 * flangeThickness);
       
       areas['internal_flange_top'] = internalFlangeWidth * L / 1000000;
       areas['internal_flange_bottom'] = internalFlangeWidth * L / 1000000;
