@@ -175,8 +175,15 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       // Angle - L-shaped profile
       areas['external_leg1'] = w * L / 1000000;
       areas['external_leg2'] = d * L / 1000000;
-      areas['internal_corner'] = (w - t) * L / 1000000;
+      areas['internal_leg1'] = (w - t) * L / 1000000;
       areas['internal_leg2'] = (d - t) * L / 1000000;
+      areas['internal_corner'] = (w - t) * L / 1000000; // Corner intersection
+    } else if (category.includes('flat') || category.includes('plate')) {
+      // Flat bar/plate
+      areas['external_top'] = w * L / 1000000;
+      areas['external_bottom'] = w * L / 1000000;
+      areas['external_edge1'] = t * L / 1000000;
+      areas['external_edge2'] = t * L / 1000000;
     }
     
     setSurfaceAreas(areas);
@@ -493,6 +500,273 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
                           className="cursor-pointer hover:opacity-80 transition-opacity"
                           onClick={() => toggleSurface("internal_bottom")} />
                         <text x="175" y="195" textAnchor="middle" className="text-xs">Int Bottom</text>
+                      </svg>
+                    </div>
+                  )}
+                  
+                  {/* RHS Profile with individual sides */}
+                  {material.category?.toLowerCase().includes('rhs') && (
+                    <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <svg width="400" height="250" viewBox="0 0 400 250" className="border rounded">
+                        <rect width="400" height="250" fill="white" />
+                        
+                        {/* External Top */}
+                        <rect x="75" y="75" width="250" height="15"
+                          fill={selectedSurfaces.includes("external_top") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_top")} />
+                        <text x="200" y="70" textAnchor="middle" className="text-xs font-medium">External Top</text>
+                        
+                        {/* External Left */}
+                        <rect x="75" y="90" width="15" height="120"
+                          fill={selectedSurfaces.includes("external_left") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_left")} />
+                        <text x="70" y="150" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 70 150)">Ext Left</text>
+                        
+                        {/* External Right */}
+                        <rect x="310" y="90" width="15" height="120"
+                          fill={selectedSurfaces.includes("external_right") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_right")} />
+                        <text x="330" y="150" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 330 150)">Ext Right</text>
+                        
+                        {/* External Bottom */}
+                        <rect x="75" y="210" width="250" height="15"
+                          fill={selectedSurfaces.includes("external_bottom") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_bottom")} />
+                        <text x="200" y="240" textAnchor="middle" className="text-xs font-medium">External Bottom</text>
+                        
+                        {/* Internal surfaces */}
+                        <rect x="100" y="100" width="200" height="10"
+                          fill={selectedSurfaces.includes("internal_top") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_top")} />
+                        <text x="200" y="118" textAnchor="middle" className="text-xs">Internal Top</text>
+                        
+                        <rect x="100" y="110" width="10" height="90"
+                          fill={selectedSurfaces.includes("internal_left") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_left")} />
+                        <text x="105" y="155" textAnchor="middle" className="text-xs" transform="rotate(-90 105 155)">Int L</text>
+                        
+                        <rect x="290" y="110" width="10" height="90"
+                          fill={selectedSurfaces.includes("internal_right") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_right")} />
+                        <text x="295" y="155" textAnchor="middle" className="text-xs" transform="rotate(-90 295 155)">Int R</text>
+                        
+                        <rect x="100" y="200" width="200" height="10"
+                          fill={selectedSurfaces.includes("internal_bottom") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_bottom")} />
+                        <text x="200" y="195" textAnchor="middle" className="text-xs">Internal Bottom</text>
+                      </svg>
+                    </div>
+                  )}
+                  
+                  {/* Universal Beam (UB) Profile with individual surfaces */}
+                  {(material.category?.toLowerCase().includes('ub') || material.category?.toLowerCase().includes('universal beam')) && (
+                    <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <svg width="400" height="280" viewBox="0 0 400 280" className="border rounded">
+                        <rect width="400" height="280" fill="white" />
+                        
+                        {/* External Top Flange */}
+                        <rect x="100" y="50" width="200" height="20"
+                          fill={selectedSurfaces.includes("external_flange_top") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_flange_top")} />
+                        <text x="200" y="45" textAnchor="middle" className="text-xs font-medium">External Top Flange</text>
+                        
+                        {/* External Web */}
+                        <rect x="185" y="70" width="30" height="120"
+                          fill={selectedSurfaces.includes("external_web") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_web")} />
+                        <text x="175" y="130" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 175 130)">Ext Web</text>
+                        
+                        {/* External Bottom Flange */}
+                        <rect x="100" y="190" width="200" height="20"
+                          fill={selectedSurfaces.includes("external_flange_bottom") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_flange_bottom")} />
+                        <text x="200" y="225" textAnchor="middle" className="text-xs font-medium">External Bottom Flange</text>
+                        
+                        {/* Internal Top Flange */}
+                        <rect x="120" y="75" width="160" height="10"
+                          fill={selectedSurfaces.includes("internal_flange_top") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_flange_top")} />
+                        <text x="200" y="92" textAnchor="middle" className="text-xs">Internal Top Flange</text>
+                        
+                        {/* Internal Web Left */}
+                        <rect x="190" y="85" width="8" height="100"
+                          fill={selectedSurfaces.includes("internal_web_left") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_web_left")} />
+                        <text x="194" y="135" textAnchor="middle" className="text-xs" transform="rotate(-90 194 135)">Int L</text>
+                        
+                        {/* Internal Web Right */}
+                        <rect x="202" y="85" width="8" height="100"
+                          fill={selectedSurfaces.includes("internal_web_right") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_web_right")} />
+                        <text x="206" y="135" textAnchor="middle" className="text-xs" transform="rotate(-90 206 135)">Int R</text>
+                        
+                        {/* Internal Bottom Flange */}
+                        <rect x="120" y="175" width="160" height="10"
+                          fill={selectedSurfaces.includes("internal_flange_bottom") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_flange_bottom")} />
+                        <text x="200" y="172" textAnchor="middle" className="text-xs">Internal Bottom Flange</text>
+                        
+                        <text x="200" y="250" textAnchor="middle" className="text-xs text-gray-600">
+                          UB: {dimensions.width}mm × {dimensions.depth}mm × {dimensions.thickness}mm × {length}mm
+                        </text>
+                      </svg>
+                    </div>
+                  )}
+                  
+                  {/* Angle Profile with individual legs */}
+                  {material.category?.toLowerCase().includes('angle') && (
+                    <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <svg width="350" height="250" viewBox="0 0 350 250" className="border rounded">
+                        <rect width="350" height="250" fill="white" />
+                        
+                        {/* External Leg 1 (Horizontal) */}
+                        <rect x="150" y="120" width="120" height="15"
+                          fill={selectedSurfaces.includes("external_leg1") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_leg1")} />
+                        <text x="210" y="115" textAnchor="middle" className="text-xs font-medium">External Leg 1</text>
+                        
+                        {/* External Leg 2 (Vertical) */}
+                        <rect x="150" y="60" width="15" height="120"
+                          fill={selectedSurfaces.includes("external_leg2") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_leg2")} />
+                        <text x="145" y="120" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 145 120)">Ext Leg 2</text>
+                        
+                        {/* Internal Leg 1 */}
+                        <rect x="170" y="125" width="90" height="8"
+                          fill={selectedSurfaces.includes("internal_leg1") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_leg1")} />
+                        <text x="215" y="145" textAnchor="middle" className="text-xs">Internal Leg 1</text>
+                        
+                        {/* Internal Leg 2 */}
+                        <rect x="157" y="80" width="8" height="90"
+                          fill={selectedSurfaces.includes("internal_leg2") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_leg2")} />
+                        <text x="161" y="125" textAnchor="middle" className="text-xs" transform="rotate(-90 161 125)">Int Leg 2</text>
+                        
+                        {/* Internal Corner */}
+                        <rect x="157" y="125" width="13" height="8"
+                          fill={selectedSurfaces.includes("internal_corner") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="1"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_corner")} />
+                        <text x="164" y="155" textAnchor="middle" className="text-xs">Corner</text>
+                        
+                        <text x="210" y="200" textAnchor="middle" className="text-xs text-gray-600">
+                          Angle: {dimensions.width}mm × {dimensions.depth}mm × {dimensions.thickness}mm × {length}mm
+                        </text>
+                      </svg>
+                    </div>
+                  )}
+                  
+                  {/* Flat Bar Profile */}
+                  {(material.category?.toLowerCase().includes('flat') || material.category?.toLowerCase().includes('plate')) && (
+                    <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <svg width="350" height="200" viewBox="0 0 350 200" className="border rounded">
+                        <rect width="350" height="200" fill="white" />
+                        
+                        {/* External Top */}
+                        <rect x="100" y="80" width="150" height="15"
+                          fill={selectedSurfaces.includes("external_top") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_top")} />
+                        <text x="175" y="75" textAnchor="middle" className="text-xs font-medium">External Top</text>
+                        
+                        {/* External Bottom */}
+                        <rect x="100" y="105" width="150" height="15"
+                          fill={selectedSurfaces.includes("external_bottom") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_bottom")} />
+                        <text x="175" y="135" textAnchor="middle" className="text-xs font-medium">External Bottom</text>
+                        
+                        {/* External Edge 1 */}
+                        <rect x="95" y="80" width="5" height="40"
+                          fill={selectedSurfaces.includes("external_edge1") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_edge1")} />
+                        <text x="85" y="100" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 85 100)">Edge 1</text>
+                        
+                        {/* External Edge 2 */}
+                        <rect x="250" y="80" width="5" height="40"
+                          fill={selectedSurfaces.includes("external_edge2") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_edge2")} />
+                        <text x="265" y="100" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 265 100)">Edge 2</text>
+                        
+                        <text x="175" y="160" textAnchor="middle" className="text-xs text-gray-600">
+                          Flat Bar: {dimensions.width}mm × {dimensions.thickness}mm × {length}mm
+                        </text>
+                      </svg>
+                    </div>
+                  )}
+                  
+                  {/* Circular Hollow Section (CHS) */}
+                  {(material.category?.toLowerCase().includes('chs') || material.category?.toLowerCase().includes('pipe')) && (
+                    <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <svg width="300" height="200" viewBox="0 0 300 200" className="border rounded">
+                        <rect width="300" height="200" fill="white" />
+                        
+                        {/* External Circle */}
+                        <circle cx="150" cy="100" r="60"
+                          fill={selectedSurfaces.includes("external_surface") ? "#3b82f6" : "#e5e7eb"}
+                          stroke="#374151" strokeWidth="3"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("external_surface")} />
+                        
+                        {/* Internal Circle */}
+                        <circle cx="150" cy="100" r="45"
+                          fill={selectedSurfaces.includes("internal_surface") ? "#10b981" : "#f3f4f6"}
+                          stroke="#374151" strokeWidth="2"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleSurface("internal_surface")} />
+                        
+                        <text x="150" y="75" textAnchor="middle" className="text-xs font-medium">External Surface</text>
+                        <text x="150" y="100" textAnchor="middle" className="text-xs font-medium">Internal Surface</text>
+                        
+                        <text x="150" y="180" textAnchor="middle" className="text-xs text-gray-600">
+                          CHS: ⌀{dimensions.outerDiameter || dimensions.width}mm × {dimensions.thickness}mm × {length}mm
+                        </text>
                       </svg>
                     </div>
                   )}
