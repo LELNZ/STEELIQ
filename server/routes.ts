@@ -176,28 +176,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Coating configuration route
-  app.post("/api/materials/:id/coating-config", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const { coatingConfig } = req.body;
-      
-      const material = await storage.getMaterial(id);
-      if (!material) {
-        return res.status(404).json({ error: "Material not found" });
-      }
-      
-      const updatedMaterial = await storage.updateMaterial(id, { 
-        coatingConfig: JSON.stringify(coatingConfig) 
-      });
-      
-      res.json(updatedMaterial);
-    } catch (error) {
-      console.error("Error saving coating configuration:", error);
-      res.status(500).json({ error: "Failed to save coating configuration" });
-    }
-  });
-
   app.delete("/api/materials/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);

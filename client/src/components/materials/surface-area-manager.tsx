@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Save, RotateCcw, Image, CheckSquare, Percent } from "lucide-react";
 import { calculateSurfaceArea, calculateSquareBarArea, type SteelDimensions, type SurfaceAreaResult } from "@/lib/surface-area-calculator";
 import type { Material } from "@shared/schema";
@@ -57,127 +56,6 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
 
   // Individual surface areas for detailed breakdown
   const [surfaceAreas, setSurfaceAreas] = useState<Record<string, number>>({});
-  
-  // Custom coating configurations
-  const [coatingConfiguration, setCoatingConfiguration] = useState<string>("default");
-  const [customConfigurations, setCustomConfigurations] = useState<any[]>([]);
-
-  // Determine default coating configuration based on material type
-  const getDefaultCoatingType = () => {
-    const category = material.category?.toLowerCase() || '';
-    
-    if (category.includes('channel') || 
-        category.includes('universal beam') || 
-        category.includes('universal column') ||
-        category.includes('angle')) {
-      return 'external-internal';
-    } else if (category.includes('flat') || 
-               category.includes('round') || 
-               category.includes('square') ||
-               category.includes('pipe') ||
-               category.includes('chs')) {
-      return 'external-only';
-    }
-    
-    return 'external-internal'; // default fallback
-  };
-
-  // Load custom configurations from material coating config
-  useEffect(() => {
-    if (material.coatingConfig) {
-      try {
-        const configs = JSON.parse(material.coatingConfig as string);
-        setCustomConfigurations(configs.customConfigurations || []);
-      } catch (error) {
-        console.error('Error parsing coating config:', error);
-        setCustomConfigurations([]);
-      }
-    } else {
-      setCustomConfigurations([]);
-    }
-  }, [material.coatingConfig, material.id]);
-
-  // Generate automatic name for custom configuration
-  const generateConfigurationName = (surfaces: string[]): string => {
-    const sortedSurfaces = surfaces.sort();
-    const nameMap: Record<string, string> = {
-      'external_flange_top': 'External Top Flange',
-      'external_flange_bottom': 'External Bottom Flange',
-      'external_web': 'External Web',
-      'internal_flange_top': 'Internal Top Flange',
-      'internal_flange_bottom': 'Internal Bottom Flange',
-      'internal_web': 'Internal Web',
-      'external_top': 'External Top',
-      'external_bottom': 'External Bottom',
-      'external_left': 'External Left',
-      'external_right': 'External Right',
-      'internal_top': 'Internal Top',
-      'internal_bottom': 'Internal Bottom',
-      'internal_left': 'Internal Left',
-      'internal_right': 'Internal Right',
-      'external_leg1': 'External Leg 1',
-      'external_leg2': 'External Leg 2',
-      'internal_leg1': 'Internal Leg 1',
-      'internal_leg2': 'Internal Leg 2',
-      'external_surface': 'External Surface',
-      'external_edge1': 'External Edge 1',
-      'external_edge2': 'External Edge 2'
-    };
-    
-    const surfaceNames = sortedSurfaces.map(surface => nameMap[surface] || surface);
-    return surfaceNames.join(' + ');
-  };
-
-  // Save custom configuration
-  const saveCustomConfiguration = async () => {
-    if (selectedSurfaces.length === 0) {
-      alert('Please select at least one surface to save a configuration.');
-      return;
-    }
-
-    const configName = generateConfigurationName(selectedSurfaces);
-    const totalArea = selectedSurfaces.reduce((sum, surface) => sum + (surfaceAreas[surface] || 0), 0);
-    
-    const newConfig = {
-      id: Date.now().toString(),
-      name: configName,
-      surfaces: selectedSurfaces,
-      totalArea: totalArea,
-      createdAt: new Date().toISOString()
-    };
-
-    const updatedConfigs = [...customConfigurations, newConfig];
-    const coatingConfigData = {
-      customConfigurations: updatedConfigs
-    };
-
-    try {
-      const response = await fetch(`/api/materials/${material.id}/coating-config`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ coatingConfig: coatingConfigData }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save coating configuration');
-      }
-
-      const updatedMaterial = await response.json();
-      setCustomConfigurations(updatedConfigs);
-      setCoatingConfiguration(newConfig.id);
-      
-      // Force refresh the material data to show updated configurations
-      window.location.reload();
-      
-      alert(`Custom configuration "${configName}" saved successfully!`);
-      
-    } catch (error) {
-      console.error('Error saving custom configuration:', error);
-      alert('Failed to save custom configuration. Please try again.');
-    }
-  };
 
   // Get dimensional reference image based on material category
   const getDimensionalReference = () => {
@@ -229,19 +107,6 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       handleCalculate();
     }
   }, [dimensions, material.category, length]);
-
-  // Recalculate when selected surfaces change
-  useEffect(() => {
-    if (calculationMethod === "checklist" && Object.keys(surfaceAreas).length > 0) {
-      const total = selectedSurfaces.reduce((sum, surface) => sum + (surfaceAreas[surface] || 0), 0);
-      setCalculatedArea({
-        externalArea: total,
-        internalArea: 0,
-        totalArea: total,
-        breakdown: {}
-      });
-    }
-  }, [selectedSurfaces, surfaceAreas, calculationMethod]);
 
   const handleDimensionChange = (field: keyof SteelDimensions, value: string) => {
     const numValue = value === "" ? undefined : parseFloat(value);
@@ -377,11 +242,6 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
       totalArea: total,
       breakdown: {}
     });
-    
-    // Automatically set calculation method to checklist for individual surface selection
-    if (calculationMethod === "3d") {
-      setCalculationMethod("checklist");
-    }
   };
 
   const getSurfaceOptions = () => {
@@ -432,40 +292,6 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
               <div className="text-lg font-semibold">
                 {Number(material.surfaceAreaPerMeter).toFixed(2)} m²/m
               </div>
-            </div>
-          )}
-
-          {/* Custom Configuration Selection */}
-          {customConfigurations.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="coating-config">Load Custom Configuration</Label>
-              <div className="text-sm text-muted-foreground mb-2">
-                {customConfigurations.length} saved configuration(s) available
-              </div>
-              {customConfigurations.map((config) => (
-                <Button
-                  key={config.id}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedSurfaces(config.surfaces);
-                    setCalculationMethod("checklist");
-                    setCoatingConfiguration(config.id);
-                    // Trigger calculation with loaded surfaces
-                    if (material.category && dimensions.width) {
-                      handleCalculate();
-                    }
-                  }}
-                  className="w-full justify-start text-left"
-                >
-                  <div>
-                    <div className="font-medium">{config.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {config.totalArea.toFixed(3)} m²/m - {config.surfaces.length} surfaces
-                    </div>
-                  </div>
-                </Button>
-              ))}
             </div>
           )}
 
@@ -1746,12 +1572,20 @@ export default function SurfaceAreaManager({ material, onSave }: SurfaceAreaMana
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <Button 
-              onClick={saveCustomConfiguration}
+              onClick={() => {
+                let finalArea = 0;
+                if (calculationMethod === "percentage" && calculatedArea) {
+                  finalArea = calculatedArea.totalArea * (parseFloat(percentageOverride) || 100) / 100;
+                } else {
+                  finalArea = getSelectedArea();
+                }
+                onSave(finalArea);
+              }}
               className="flex-1"
               disabled={!calculatedArea || getSelectedArea() === 0}
             >
               <Save className="w-4 h-4 mr-2" />
-              Save Custom Configuration
+              Save Surface Area
             </Button>
             <Button 
               variant="outline" 
