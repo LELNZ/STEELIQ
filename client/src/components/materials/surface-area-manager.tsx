@@ -380,16 +380,42 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                   </>
                 ) : (
                   <>
-                    <div className="space-y-2">
-                      <Label htmlFor="width">Width (mm)</Label>
-                      <Input
-                        id="width"
-                        type="number"
-                        value={dimensions.width || ""}
-                        onChange={(e) => handleDimensionChange("width", e.target.value)}
-                        placeholder="Width"
-                      />
-                    </div>
+                    {/* Special input fields for unequal angles - show W1/W2 */}
+                    {material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle') ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="width1">Width 1 / W1 (mm)</Label>
+                          <Input
+                            id="width1"
+                            type="number"
+                            value={dimensions.width1 || ""}
+                            onChange={(e) => handleDimensionChange("width1", e.target.value)}
+                            placeholder="W1"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="width2">Width 2 / W2 (mm)</Label>
+                          <Input
+                            id="width2"
+                            type="number"
+                            value={dimensions.width2 || ""}
+                            onChange={(e) => handleDimensionChange("width2", e.target.value)}
+                            placeholder="W2"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="width">Width (mm)</Label>
+                        <Input
+                          id="width"
+                          type="number"
+                          value={dimensions.width || ""}
+                          onChange={(e) => handleDimensionChange("width", e.target.value)}
+                          placeholder="Width"
+                        />
+                      </div>
+                    )}
                     {/* Show separate web and flange thickness for structural sections */}
                     {(material.category?.toLowerCase().includes('channel') || 
                       material.category?.toLowerCase().includes('structural channels') ||
