@@ -947,54 +947,54 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                   
                   {/* Unequal Angle Profile */}
                   {material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle') && (
-                    <div className="space-y-4">
-                      <div className="flex justify-center p-8 bg-white dark:bg-gray-900 rounded-lg border">
-                        <svg width="280" height="180" viewBox="0 0 280 180" className="drop-shadow-sm">
+                    <div className="space-y-3">
+                      <div className="flex justify-center p-6 bg-white dark:bg-gray-900 rounded-lg border">
+                        <svg width="240" height="140" viewBox="0 0 240 140" className="drop-shadow-sm">
                           <defs>
                             <pattern id="unequal-angle-hatch" patternUnits="userSpaceOnUse" width="4" height="4">
                               <path d="M 0,4 l 4,-4 M -1,1 l 2,-2 M 3,5 l 2,-2" stroke="#9ca3af" strokeWidth="0.5"/>
                             </pattern>
                           </defs>
                           
-                          {/* Unequal Angle Profile - Different leg sizes */}
-                          {/* External Leg 1 (Vertical - longer) */}
-                          <rect x="120" y="40" width="18" height="90" 
+                          {/* Unequal Angle Profile - L-shape with accurate internal faces */}
+                          {/* External Leg 1 (Vertical - W1) */}
+                          <rect x="80" y="25" width="16" height="70" 
                             fill={selectedSurfaces.includes("external_leg_1") ? "#3b82f6" : "#f3f4f6"}
                             stroke={selectedSurfaces.includes("external_leg_1") ? "#1d4ed8" : "#d1d5db"} 
                             strokeWidth="2"
                             className="cursor-pointer hover:opacity-80 transition-all duration-200"
                             onClick={() => toggleSurface("external_leg_1")} />
                           
-                          {/* External Leg 2 (Horizontal - shorter) */}
-                          <rect x="138" y="112" width="60" height="18"
+                          {/* External Leg 2 (Horizontal - W2) */}
+                          <rect x="96" y="79" width="50" height="16"
                             fill={selectedSurfaces.includes("external_leg_2") ? "#3b82f6" : "#f3f4f6"}
                             stroke={selectedSurfaces.includes("external_leg_2") ? "#1d4ed8" : "#d1d5db"} 
                             strokeWidth="2"
                             className="cursor-pointer hover:opacity-80 transition-all duration-200"
                             onClick={() => toggleSurface("external_leg_2")} />
                           
-                          {/* Internal Leg 1 */}
-                          <rect x="125" y="45" width="8" height="67"
+                          {/* Internal Leg 1 - positioned at the inner corner of vertical leg */}
+                          <rect x="84" y="29" width="8" height="50"
                             fill={selectedSurfaces.includes("internal_leg_1") ? "#10b981" : "url(#unequal-angle-hatch)"}
                             stroke={selectedSurfaces.includes("internal_leg_1") ? "#059669" : "#9ca3af"} 
                             strokeWidth="1"
                             className="cursor-pointer hover:opacity-80 transition-all duration-200"
                             onClick={() => toggleSurface("internal_leg_1")} />
                           
-                          {/* Internal Leg 2 */}
-                          <rect x="143" y="117" width="37" height="8"
+                          {/* Internal Leg 2 - positioned at the inner corner of horizontal leg */}
+                          <rect x="100" y="83" width="38" height="8"
                             fill={selectedSurfaces.includes("internal_leg_2") ? "#10b981" : "url(#unequal-angle-hatch)"}
                             stroke={selectedSurfaces.includes("internal_leg_2") ? "#059669" : "#9ca3af"} 
                             strokeWidth="1"
                             className="cursor-pointer hover:opacity-80 transition-all duration-200"
                             onClick={() => toggleSurface("internal_leg_2")} />
                           
-                          <text x="140" y="30" textAnchor="middle" className="text-sm font-semibold fill-gray-700 dark:fill-gray-300">
+                          <text x="120" y="18" textAnchor="middle" className="text-sm font-semibold fill-gray-700 dark:fill-gray-300">
                             Unequal Angle
                           </text>
                           
-                          <text x="140" y="160" textAnchor="middle" className="text-xs fill-gray-500">
-                            {dimensions.width} × {dimensions.depth} × {dimensions.thickness}mm
+                          <text x="120" y="120" textAnchor="middle" className="text-xs fill-gray-500">
+                            {dimensions.width1 || dimensions.width} × {dimensions.width2 || dimensions.depth} × {dimensions.thickness}mm
                           </text>
                         </svg>
                       </div>

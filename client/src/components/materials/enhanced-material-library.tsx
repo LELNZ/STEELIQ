@@ -849,12 +849,15 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         <p className="font-medium">
                           {(() => {
                             // Use unified calculation system for display consistency
-                            if (material.width && material.depth && material.category) {
+                            if (material.width && material.category) {
                               const dimensions = {
                                 width: parseFloat(material.width),
-                                depth: parseFloat(material.depth),
-                                webThickness: material.webTw ? parseFloat(material.webTw.toString()) : 0,
-                                flangeThickness: material.flangeTf ? parseFloat(material.flangeTf.toString()) : 0
+                                depth: material.depth ? parseFloat(material.depth) : parseFloat(material.width),
+                                webThickness: material.webTw ? parseFloat(material.webTw.toString()) : (material.thickness ? parseFloat(material.thickness.toString()) : 0),
+                                flangeThickness: material.flangeTf ? parseFloat(material.flangeTf.toString()) : (material.thickness ? parseFloat(material.thickness.toString()) : 0),
+                                thickness: material.thickness ? parseFloat(material.thickness.toString()) : 0,
+                                width1: material.width1 ? parseFloat(material.width1.toString()) : undefined,
+                                width2: material.width2 ? parseFloat(material.width2.toString()) : undefined
                               };
                               
                               const result = calculateUnifiedSurfaceArea(
