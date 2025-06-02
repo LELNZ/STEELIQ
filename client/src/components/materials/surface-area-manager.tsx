@@ -285,14 +285,23 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
         webThickness: dimensions.webThickness || 0,
         flangeThickness: dimensions.flangeThickness || 0,
         diameter: dimensions.outerDiameter || 0,
+        outerDiameter: dimensions.outerDiameter || 0,
         thickness: dimensions.thickness || 0
       };
+      
+      console.log('Round material calculation:', {
+        category: material.category,
+        dimensions: unifiedDimensions,
+        coatingConfig
+      });
       
       const result = calculateUnifiedSurfaceArea(
         material.category || '',
         unifiedDimensions,
         coatingConfig
       );
+      
+      console.log('Calculation result:', result);
       
       // Convert m²/m to actual area for the specified length
       const totalAreaForLength = result.total * (length / 1000);
