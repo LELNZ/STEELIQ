@@ -7,9 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, Image, CheckSquare, Percent } from "lucide-react";
+import { Calculator, Image, CheckSquare, Percent, ChevronDown, ChevronUp } from "lucide-react";
 import { calculateSurfaceArea, calculateSquareBarArea, type SteelDimensions, type SurfaceAreaResult } from "@/lib/surface-area-calculator";
-import { calculateUnifiedSurfaceArea } from "@/lib/unified-surface-area-calculator";
 import type { Material } from "@shared/schema";
 
 // Import dimensional reference images
@@ -370,8 +369,20 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
           <Tabs value={calculationMethod} onValueChange={(value: any) => setCalculationMethod(value)} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="3d" className="flex items-center gap-2">
-                <Image className="w-4 h-4" />
-                3D Interactive
+                <div className="flex items-center gap-2">
+                  <Image className="w-4 h-4" />
+                  3D Interactive
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIs3DCollapsed(!is3DCollapsed);
+                    }}
+                    className="ml-1 p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    {is3DCollapsed ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+                  </button>
+                </div>
               </TabsTrigger>
               <TabsTrigger value="checklist" className="flex items-center gap-2">
                 <CheckSquare className="w-4 h-4" />
