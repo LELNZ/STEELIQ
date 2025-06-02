@@ -10,6 +10,7 @@ export interface MaterialDimensions {
   webThickness: number;
   flangeThickness: number;
   outerDiameter?: number;
+  diameter?: number; // Alternative name for diameter
   thickness?: number;
   width1?: number; // For unequal angles
   width2?: number; // For unequal angles
@@ -38,6 +39,9 @@ export interface SurfaceAreaBreakdown {
     topSurface?: number;
     bottomSurface?: number;
     edges?: number;
+    // Round/pipe specific surfaces
+    outerSurface?: number;
+    innerSurface?: number;
   };
 }
 
@@ -323,6 +327,59 @@ export function calculateFlatPlateArea(
 }
 
 /**
+ * Calculate Round Bar/Pipe surface area
+ * For solid round: external surface = π × diameter per meter
+ * For pipe: external + internal surfaces
+ */
+export function calculateRoundArea(
+  dimensions: MaterialDimensions,
+  coatingType: 'external-only' | 'internal-only' | 'external-internal'
+): SurfaceAreaBreakdown {
+  const { diameter, outerDiameter, thickness } = dimensions;
+  
+  // Use either diameter or outerDiameter
+  const effectiveDiameter = diameter || outerDiameter;
+  
+  if (!effectiveDiameter) {
+    return { external: 0, internal: 0, total: 0, details: {} };
+  }
+  
+  // External surface: π × diameter (mm per meter)
+  const externalSurface = Math.PI * effectiveDiameter; // mm per meter
+  
+  // Internal surface for pipes (if thickness is specified)
+  let internalSurface = 0;
+  if (thickness && thickness > 0) {
+    const innerDiameter = effectiveDiameter - (2 * thickness);
+    if (innerDiameter > 0) {
+      internalSurface = Math.PI * innerDiameter; // mm per meter
+    }
+  }
+  
+  let external = 0;
+  let internal = 0;
+  
+  if (coatingType === 'external-only') {
+    external = externalSurface;
+  } else if (coatingType === 'internal-only') {
+    internal = internalSurface;
+  } else if (coatingType === 'external-internal') {
+    external = externalSurface;
+    internal = internalSurface;
+  }
+  
+  return {
+    external: external / 1000,
+    internal: internal / 1000,
+    total: (external + internal) / 1000,
+    details: {
+      outerSurface: externalSurface / 1000,
+      innerSurface: internalSurface / 1000
+    }
+  };
+}
+
+/**
  * Calculate surface area for any material type
  */
 export function calculateMaterialSurfaceArea(
@@ -344,6 +401,8 @@ export function calculateMaterialSurfaceArea(
     return calculateEqualAngleArea(dimensions, coatingType);
   } else if (categoryLower.includes('flat') || categoryLower.includes('plate')) {
     return calculateFlatPlateArea(dimensions, coatingType);
+  } else if (categoryLower.includes('round') || categoryLower.includes('pipe') || categoryLower.includes('tube')) {
+    return calculateRoundArea(dimensions, coatingType);
   } else {
     // Fallback for other types
     return {
