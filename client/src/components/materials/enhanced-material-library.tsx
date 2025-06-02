@@ -848,14 +848,20 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         <p className="text-muted-foreground">Surface Area</p>
                         <p className="font-medium">
                           {(() => {
-                            // Always calculate for angles to ensure consistency
-                            if (material.category && (material.width || material.width1)) {
+                            // Calculate surface area with proper dimension handling for all material types
+                            if (material.category && (material.width || material.width1 || material.diameter)) {
+                              // Check if it's a round material that needs diameter instead of width
+                              const isRoundMaterial = material.category.toLowerCase().includes('round') || 
+                                                     material.category.toLowerCase().includes('pipe') || 
+                                                     material.category.toLowerCase().includes('reinforc');
+                              
                               const dimensions = {
                                 width: material.width ? parseFloat(material.width) : (material.width1 ? parseFloat(material.width1.toString()) : 0),
                                 depth: material.depth ? parseFloat(material.depth) : (material.width2 ? parseFloat(material.width2.toString()) : (material.width ? parseFloat(material.width) : 0)),
                                 webThickness: material.webTw ? parseFloat(material.webTw.toString()) : (material.thickness ? parseFloat(material.thickness.toString()) : 0),
                                 flangeThickness: material.flangeTf ? parseFloat(material.flangeTf.toString()) : (material.thickness ? parseFloat(material.thickness.toString()) : 0),
                                 thickness: material.thickness ? parseFloat(material.thickness.toString()) : 0,
+                                diameter: isRoundMaterial && material.diameter ? parseFloat(material.diameter.toString()) : undefined,
                                 width1: material.width1 ? parseFloat(material.width1.toString()) : undefined,
                                 width2: material.width2 ? parseFloat(material.width2.toString()) : undefined
                               };
@@ -1578,13 +1584,19 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         // Calculate surface area based on configuration type using unified system
                         let calculatedSurfaceArea = editingMaterial.surfaceAreaPerMeter;
                         
-                        if (value !== 'custom' && editingMaterial.width && editingMaterial.category) {
+                        if (value !== 'custom' && editingMaterial.category) {
+                          // Check if it's a round material that needs diameter instead of width
+                          const isRoundMaterial = editingMaterial.category.toLowerCase().includes('round') || 
+                                                 editingMaterial.category.toLowerCase().includes('pipe') || 
+                                                 editingMaterial.category.toLowerCase().includes('reinforc');
+                          
                           const dimensions = {
-                            width: parseFloat(editingMaterial.width),
-                            depth: editingMaterial.depth ? parseFloat(editingMaterial.depth) : parseFloat(editingMaterial.width),
+                            width: editingMaterial.width ? parseFloat(editingMaterial.width) : 0,
+                            depth: editingMaterial.depth ? parseFloat(editingMaterial.depth) : (editingMaterial.width ? parseFloat(editingMaterial.width) : 0),
                             webThickness: editingMaterial.webTw ? parseFloat(editingMaterial.webTw.toString()) : (editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0),
                             flangeThickness: editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : (editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0),
                             thickness: editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0,
+                            diameter: isRoundMaterial && editingMaterial.diameter ? parseFloat(editingMaterial.diameter.toString()) : undefined,
                             width1: editingMaterial.width1 ? parseFloat(editingMaterial.width1.toString()) : undefined,
                             width2: editingMaterial.width2 ? parseFloat(editingMaterial.width2.toString()) : undefined
                           };
