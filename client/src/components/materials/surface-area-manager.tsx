@@ -78,6 +78,8 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       imageSrc = ubImg;
     } else if (category.includes('uc') || category.includes('universal column')) {
       imageSrc = ucImg;
+    } else if (category.includes('unequal') && category.includes('angle')) {
+      imageSrc = unequalAnglesImg;
     } else if (category.includes('angle')) {
       imageSrc = anglesImg;
     } else if (category.includes('pipe') || category.includes('chs')) {

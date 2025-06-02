@@ -1345,38 +1345,86 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-width">Width (mm)</Label>
-                          <Input
-                            id="edit-width"
-                            type="number"
-                            value={editingMaterial.width?.toString() || ""}
-                            onChange={(e) => setEditingMaterial({...editingMaterial, width: parseFloat(e.target.value) || undefined})}
-                            placeholder="Width"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-thickness">Thickness (mm)</Label>
-                          <Input
-                            id="edit-thickness"
-                            type="number"
-                            value={editingMaterial.thickness?.toString() || ""}
-                            onChange={(e) => setEditingMaterial({...editingMaterial, thickness: parseFloat(e.target.value) || undefined})}
-                            placeholder="Thickness"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-length">Length (mm)</Label>
-                          <Input
-                            id="edit-length"
-                            type="number"
-                            value={editingMaterial.length?.toString() || ""}
-                            onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
-                            placeholder="Length"
-                          />
-                        </div>
-                      </div>
+                      <>
+                        {/* Special form for unequal angles - show W1/W2 */}
+                        {editingMaterial.category?.toLowerCase().includes('unequal') && editingMaterial.category?.toLowerCase().includes('angle') ? (
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-width1">Width 1 / W1 (mm)</Label>
+                              <Input
+                                id="edit-width1"
+                                type="number"
+                                value={editingMaterial.width1?.toString() || ""}
+                                onChange={(e) => setEditingMaterial({...editingMaterial, width1: parseFloat(e.target.value) || undefined})}
+                                placeholder="W1"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-width2">Width 2 / W2 (mm)</Label>
+                              <Input
+                                id="edit-width2"
+                                type="number"
+                                value={editingMaterial.width2?.toString() || ""}
+                                onChange={(e) => setEditingMaterial({...editingMaterial, width2: parseFloat(e.target.value) || undefined})}
+                                placeholder="W2"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-thickness">Thickness (mm)</Label>
+                              <Input
+                                id="edit-thickness"
+                                type="number"
+                                value={editingMaterial.thickness?.toString() || ""}
+                                onChange={(e) => setEditingMaterial({...editingMaterial, thickness: parseFloat(e.target.value) || undefined})}
+                                placeholder="Thickness"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-length">Length (mm)</Label>
+                              <Input
+                                id="edit-length"
+                                type="number"
+                                value={editingMaterial.length?.toString() || ""}
+                                onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
+                                placeholder="Length"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-width">Width (mm)</Label>
+                              <Input
+                                id="edit-width"
+                                type="number"
+                                value={editingMaterial.width?.toString() || ""}
+                                onChange={(e) => setEditingMaterial({...editingMaterial, width: parseFloat(e.target.value) || undefined})}
+                                placeholder="Width"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-thickness">Thickness (mm)</Label>
+                              <Input
+                                id="edit-thickness"
+                                type="number"
+                                value={editingMaterial.thickness?.toString() || ""}
+                                onChange={(e) => setEditingMaterial({...editingMaterial, thickness: parseFloat(e.target.value) || undefined})}
+                                placeholder="Thickness"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-length">Length (mm)</Label>
+                              <Input
+                                id="edit-length"
+                                type="number"
+                                value={editingMaterial.length?.toString() || ""}
+                                onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
+                                placeholder="Length"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </>
                 )}
