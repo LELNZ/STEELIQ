@@ -16,6 +16,8 @@ export interface SteelDimensions {
   webThickness?: number; // mm
   outerDiameter?: number; // mm
   innerDiameter?: number; // mm
+  width1?: number;     // mm - for unequal angles
+  width2?: number;     // mm - for unequal angles
 }
 
 export interface SurfaceAreaResult {

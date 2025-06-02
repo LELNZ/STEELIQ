@@ -47,6 +47,8 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       flangeThickness: material.flangeTf ? Number(material.flangeTf) : undefined,
       webThickness: material.webTw ? Number(material.webTw) : undefined,
       outerDiameter: material.diameter ? Number(material.diameter) : undefined,
+      width1: material.width1 ? Number(material.width1) : undefined,
+      width2: material.width2 ? Number(material.width2) : undefined,
     };
   });
   
@@ -217,12 +219,14 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       areas['external_surface'] = Math.PI * outerDiameter * L / 1000000;
       areas['internal_surface'] = Math.PI * innerDiameter * L / 1000000;
     } else if (category.includes('angle')) {
-      // Angle - L-shaped profile
-      areas['external_leg1'] = w * L / 1000000;
-      areas['external_leg2'] = d * L / 1000000;
-      areas['internal_leg1'] = (w - t) * L / 1000000;
-      areas['internal_leg2'] = (d - t) * L / 1000000;
-      areas['internal_corner'] = (w - t) * L / 1000000; // Corner intersection
+      // Angle - L-shaped profile with 4 selectable surfaces
+      const width1 = dimensions.width1 || w || 0;
+      const width2 = dimensions.width2 || d || w || 0;
+      
+      areas['external_leg1'] = width1 * L / 1000000;
+      areas['external_leg2'] = width2 * L / 1000000;
+      areas['internal_leg1'] = (width1 - t) * L / 1000000;
+      areas['internal_leg2'] = (width2 - t) * L / 1000000;
     } else if (category.includes('flat') || category.includes('plate')) {
       // Flat bar/plate
       areas['external_top'] = w * L / 1000000;
