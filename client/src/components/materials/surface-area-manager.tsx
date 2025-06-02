@@ -388,7 +388,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                           <Input
                             id="width1"
                             type="number"
-                            value={dimensions.width1 || ""}
+                            value={dimensions.width1 ? dimensions.width1.toString() : ""}
                             onChange={(e) => handleDimensionChange("width1", e.target.value)}
                             placeholder="W1"
                           />
@@ -398,7 +398,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                           <Input
                             id="width2"
                             type="number"
-                            value={dimensions.width2 || ""}
+                            value={dimensions.width2 ? dimensions.width2.toString() : ""}
                             onChange={(e) => handleDimensionChange("width2", e.target.value)}
                             placeholder="W2"
                           />

@@ -793,17 +793,17 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             <>
                               <div>
                                 <p className="text-muted-foreground">Width 1 (W1)</p>
-                                <p className="font-medium">{material.width1 ? Number(material.width1).toFixed(0) : 'N/A'}mm</p>
+                                <p className="font-medium">{material.width1 ? parseFloat(material.width1.toString()).toFixed(0) : 'N/A'}mm</p>
                               </div>
                               <div>
                                 <p className="text-muted-foreground">Width 2 (W2)</p>
-                                <p className="font-medium">{material.width2 ? Number(material.width2).toFixed(0) : 'N/A'}mm</p>
+                                <p className="font-medium">{material.width2 ? parseFloat(material.width2.toString()).toFixed(0) : 'N/A'}mm</p>
                               </div>
                             </>
                           ) : (
                             <div>
                               <p className="text-muted-foreground">Width</p>
-                              <p className="font-medium">{material.width ? Number(material.width).toFixed(0) : 'N/A'}mm</p>
+                              <p className="font-medium">{material.width ? parseFloat(material.width.toString()).toFixed(0) : 'N/A'}mm</p>
                             </div>
                           )}
                           {/* Show separate web and flange thickness for structural sections */}
@@ -972,11 +972,11 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                               {/* Special display for unequal angles - show W1/W2 */}
                               {material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle') ? (
                                 <>
-                                  <p className="text-sm">W1: {material.width1 ? Number(material.width1).toFixed(0) : 'N/A'}mm</p>
-                                  <p className="text-sm">W2: {material.width2 ? Number(material.width2).toFixed(0) : 'N/A'}mm</p>
+                                  <p className="text-sm">W1: {material.width1 ? parseFloat(material.width1.toString()).toFixed(0) : 'N/A'}mm</p>
+                                  <p className="text-sm">W2: {material.width2 ? parseFloat(material.width2.toString()).toFixed(0) : 'N/A'}mm</p>
                                 </>
                               ) : (
-                                <p className="text-sm">W: {material.width ? Number(material.width).toFixed(0) : 'N/A'}mm</p>
+                                <p className="text-sm">W: {material.width ? parseFloat(material.width.toString()).toFixed(0) : 'N/A'}mm</p>
                               )}
                               {material.depth && (
                                 <div className="flex items-center gap-1">
@@ -1356,7 +1356,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                               <Input
                                 id="edit-width1"
                                 type="number"
-                                value={editingMaterial.width1?.toString() || ""}
+                                value={editingMaterial.width1 ? parseFloat(editingMaterial.width1.toString()).toFixed(0) : ""}
                                 onChange={(e) => setEditingMaterial({...editingMaterial, width1: parseFloat(e.target.value) || undefined})}
                                 placeholder="W1"
                               />
@@ -1366,7 +1366,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                               <Input
                                 id="edit-width2"
                                 type="number"
-                                value={editingMaterial.width2?.toString() || ""}
+                                value={editingMaterial.width2 ? parseFloat(editingMaterial.width2.toString()).toFixed(0) : ""}
                                 onChange={(e) => setEditingMaterial({...editingMaterial, width2: parseFloat(e.target.value) || undefined})}
                                 placeholder="W2"
                               />
