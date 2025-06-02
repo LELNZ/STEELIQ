@@ -28,6 +28,8 @@ export const materials = pgTable("materials", {
   categoryId: integer("category_id").references(() => materialCategories.id),
   category: text("category"), // Direct category from CSV
   width: decimal("width", { precision: 10, scale: 2 }), // Width (mm)
+  width1: decimal("width1", { precision: 10, scale: 2 }), // Width1/W1 for unequal angles (mm)
+  width2: decimal("width2", { precision: 10, scale: 2 }), // Width2/W2 for unequal angles (mm)
   thickness: decimal("thickness", { precision: 10, scale: 2 }), // Thickness (mm)
   diameter: decimal("diameter", { precision: 10, scale: 2 }), // Diameter (mm)
   depth: decimal("depth", { precision: 10, scale: 2 }), // Depth (mm)
