@@ -848,11 +848,11 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         <p className="text-muted-foreground">Surface Area</p>
                         <p className="font-medium">
                           {(() => {
-                            // Use unified calculation system for display consistency
-                            if (material.width && material.category) {
+                            // Always calculate for angles to ensure consistency
+                            if (material.category && (material.width || material.width1)) {
                               const dimensions = {
-                                width: parseFloat(material.width),
-                                depth: material.depth ? parseFloat(material.depth) : parseFloat(material.width),
+                                width: material.width ? parseFloat(material.width) : (material.width1 ? parseFloat(material.width1.toString()) : 0),
+                                depth: material.depth ? parseFloat(material.depth) : (material.width2 ? parseFloat(material.width2.toString()) : (material.width ? parseFloat(material.width) : 0)),
                                 webThickness: material.webTw ? parseFloat(material.webTw.toString()) : (material.thickness ? parseFloat(material.thickness.toString()) : 0),
                                 flangeThickness: material.flangeTf ? parseFloat(material.flangeTf.toString()) : (material.thickness ? parseFloat(material.thickness.toString()) : 0),
                                 thickness: material.thickness ? parseFloat(material.thickness.toString()) : 0,

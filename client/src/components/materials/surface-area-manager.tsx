@@ -973,16 +973,16 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                             className="cursor-pointer hover:opacity-80 transition-all duration-200"
                             onClick={() => toggleSurface("external_leg_2")} />
                           
-                          {/* Internal Leg 1 - positioned at the inner corner of vertical leg */}
-                          <rect x="84" y="29" width="8" height="50"
+                          {/* Internal Leg 1 - positioned on the right side of vertical leg */}
+                          <rect x="92" y="29" width="4" height="50"
                             fill={selectedSurfaces.includes("internal_leg_1") ? "#10b981" : "url(#unequal-angle-hatch)"}
                             stroke={selectedSurfaces.includes("internal_leg_1") ? "#059669" : "#9ca3af"} 
                             strokeWidth="1"
                             className="cursor-pointer hover:opacity-80 transition-all duration-200"
                             onClick={() => toggleSurface("internal_leg_1")} />
                           
-                          {/* Internal Leg 2 - positioned at the inner corner of horizontal leg */}
-                          <rect x="100" y="83" width="38" height="8"
+                          {/* Internal Leg 2 - positioned on the top side of horizontal leg */}
+                          <rect x="100" y="79" width="38" height="4"
                             fill={selectedSurfaces.includes("internal_leg_2") ? "#10b981" : "url(#unequal-angle-hatch)"}
                             stroke={selectedSurfaces.includes("internal_leg_2") ? "#059669" : "#9ca3af"} 
                             strokeWidth="1"
