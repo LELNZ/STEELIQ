@@ -1558,28 +1558,15 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         let calculatedSurfaceArea = editingMaterial.surfaceAreaPerMeter;
                         
                         if (value !== 'custom' && editingMaterial.width && editingMaterial.category) {
-                          const isAngle = editingMaterial.category.toLowerCase().includes('angle');
-                          
-                          let dimensions;
-                          if (isAngle) {
-                            // For angles, use width1/width2 if available, otherwise derive from width/depth
-                            dimensions = {
-                              width: parseFloat(editingMaterial.width),
-                              depth: editingMaterial.depth ? parseFloat(editingMaterial.depth) : parseFloat(editingMaterial.width),
-                              webThickness: editingMaterial.webTw ? parseFloat(editingMaterial.webTw.toString()) : (editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0),
-                              flangeThickness: editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : (editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0),
-                              width1: editingMaterial.width1 || parseFloat(editingMaterial.width),
-                              width2: editingMaterial.width2 || (editingMaterial.depth ? parseFloat(editingMaterial.depth) : parseFloat(editingMaterial.width)),
-                              thickness: editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0
-                            };
-                          } else {
-                            dimensions = {
-                              width: parseFloat(editingMaterial.width),
-                              depth: editingMaterial.depth ? parseFloat(editingMaterial.depth) : parseFloat(editingMaterial.width),
-                              webThickness: editingMaterial.webTw ? parseFloat(editingMaterial.webTw.toString()) : 0,
-                              flangeThickness: editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : 0
-                            };
-                          }
+                          const dimensions = {
+                            width: parseFloat(editingMaterial.width),
+                            depth: editingMaterial.depth ? parseFloat(editingMaterial.depth) : parseFloat(editingMaterial.width),
+                            webThickness: editingMaterial.webTw ? parseFloat(editingMaterial.webTw.toString()) : (editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0),
+                            flangeThickness: editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : (editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0),
+                            thickness: editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0,
+                            width1: editingMaterial.width1 ? parseFloat(editingMaterial.width1.toString()) : undefined,
+                            width2: editingMaterial.width2 ? parseFloat(editingMaterial.width2.toString()) : undefined
+                          };
                           
                           const result = calculateUnifiedSurfaceArea(
                             editingMaterial.category,
