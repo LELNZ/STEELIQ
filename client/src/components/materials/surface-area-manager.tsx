@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Image, CheckSquare, Percent, ChevronDown, ChevronUp } from "lucide-react";
 import { calculateSurfaceArea, calculateSquareBarArea, type SteelDimensions, type SurfaceAreaResult } from "@/lib/surface-area-calculator";
+import { calculateMaterialSurfaceArea as calculateUnifiedSurfaceArea, type MaterialDimensions } from "@/lib/unified-surface-area-calculator";
 import type { Material } from "@shared/schema";
 
 // Import dimensional reference images
@@ -274,14 +275,46 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   };
 
   const handleCalculate = () => {
-    const areas = calculateIndividualSurfaces();
-    const total = Object.values(areas).reduce((sum, area) => sum + area, 0);
-    setCalculatedArea({
-      externalArea: total,
-      internalArea: 0,
-      totalArea: total,
-      breakdown: {}
-    });
+    const category = material.category?.toLowerCase() || '';
+    
+    // For round materials, use the unified calculator for consistency
+    if (category.includes('round') || category.includes('pipe') || category.includes('reinforc')) {
+      const unifiedDimensions: MaterialDimensions = {
+        width: dimensions.width || 0,
+        depth: dimensions.depth || 0,
+        webThickness: dimensions.webThickness || 0,
+        flangeThickness: dimensions.flangeThickness || 0,
+        diameter: dimensions.outerDiameter || 0,
+        thickness: dimensions.thickness || 0
+      };
+      
+      const result = calculateUnifiedSurfaceArea(
+        material.category || '',
+        unifiedDimensions,
+        coatingConfig
+      );
+      
+      // Convert m²/m to actual area for the specified length
+      const totalAreaForLength = result.total * (length / 1000);
+      
+      setCalculatedArea({
+        externalArea: totalAreaForLength,
+        internalArea: 0,
+        totalArea: totalAreaForLength,
+        breakdown: {}
+      });
+      
+    } else {
+      // For other materials, use the existing individual surfaces calculation
+      const areas = calculateIndividualSurfaces();
+      const total = Object.values(areas).reduce((sum, area) => sum + area, 0);
+      setCalculatedArea({
+        externalArea: total,
+        internalArea: 0,
+        totalArea: total,
+        breakdown: {}
+      });
+    }
   };
 
   const getSurfaceOptions = () => {
