@@ -114,6 +114,12 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
     }
   }, [dimensions, material.category, length]);
 
+  // Initialize surface areas on component mount
+  useEffect(() => {
+    const areas = calculateIndividualSurfaces();
+    setSurfaceAreas(areas);
+  }, []);
+
   const handleDimensionChange = (field: keyof SteelDimensions, value: string) => {
     const numValue = value === "" ? undefined : parseFloat(value);
     setDimensions(prev => ({
@@ -225,10 +231,10 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       const width1 = dimensions.width1 || w || 0;
       const width2 = dimensions.width2 || d || w || 0;
       
-      areas['external_leg1'] = width1 * L / 1000000;
-      areas['external_leg2'] = width2 * L / 1000000;
-      areas['internal_leg1'] = (width1 - t) * L / 1000000;
-      areas['internal_leg2'] = (width2 - t) * L / 1000000;
+      areas['external_leg_1'] = width1 * L / 1000000;
+      areas['external_leg_2'] = width2 * L / 1000000;
+      areas['internal_leg_1'] = (width1 - t) * L / 1000000;
+      areas['internal_leg_2'] = (width2 - t) * L / 1000000;
     } else if (category.includes('flat') || category.includes('plate')) {
       // Flat bar/plate
       areas['external_top'] = w * L / 1000000;
