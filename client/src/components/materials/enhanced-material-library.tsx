@@ -793,11 +793,11 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             <>
                               <div>
                                 <p className="text-muted-foreground">Width 1 (W1)</p>
-                                <p className="font-medium">{material.width1 ? parseFloat(material.width1.toString()).toFixed(0) : 'N/A'}mm</p>
+                                <p className="font-medium">{material.width1 ? parseFloat(String(material.width1)).toFixed(0) : 'N/A'}mm</p>
                               </div>
                               <div>
                                 <p className="text-muted-foreground">Width 2 (W2)</p>
-                                <p className="font-medium">{material.width2 ? parseFloat(material.width2.toString()).toFixed(0) : 'N/A'}mm</p>
+                                <p className="font-medium">{material.width2 ? parseFloat(String(material.width2)).toFixed(0) : 'N/A'}mm</p>
                               </div>
                             </>
                           ) : (
@@ -972,8 +972,8 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                               {/* Special display for unequal angles - show W1/W2 */}
                               {material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle') ? (
                                 <>
-                                  <p className="text-sm">W1: {material.width1 ? parseFloat(material.width1.toString()).toFixed(0) : 'N/A'}mm</p>
-                                  <p className="text-sm">W2: {material.width2 ? parseFloat(material.width2.toString()).toFixed(0) : 'N/A'}mm</p>
+                                  <p className="text-sm">W1: {material.width1 ? parseFloat(String(material.width1)).toFixed(0) : 'N/A'}mm</p>
+                                  <p className="text-sm">W2: {material.width2 ? parseFloat(String(material.width2)).toFixed(0) : 'N/A'}mm</p>
                                 </>
                               ) : (
                                 <p className="text-sm">W: {material.width ? parseFloat(material.width.toString()).toFixed(0) : 'N/A'}mm</p>
