@@ -407,10 +407,10 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                         coatingConfig
                       );
                       
-                      return result.total.toFixed(4);
+                      return result.total.toFixed(3);
                     }
                     // For other materials, use selected surfaces
-                    return getSelectedArea().toFixed(4);
+                    return getSelectedArea().toFixed(3);
                   })()}
                 </div>
               </div>
@@ -1546,7 +1546,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                         </Label>
                       </div>
                       <Badge variant="secondary">
-                        {option.area.toFixed(2)} m²/m
+                        {option.area.toFixed(3)} m²/m
                       </Badge>
                     </div>
                   ))}
@@ -1608,7 +1608,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                   <div className="p-3 bg-secondary/50 rounded-lg">
                     <div className="text-sm text-muted-foreground">Theoretical Total Surface Area</div>
                     <div className="text-lg font-semibold">
-                      {calculatedArea.totalArea.toFixed(2)} m²/m
+                      {calculatedArea.totalArea.toFixed(3)} m²/m
                     </div>
                   </div>
                   
@@ -1631,7 +1631,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                   <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <div className="text-sm text-muted-foreground">Final Surface Area</div>
                     <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                      {(calculatedArea.totalArea * (parseFloat(percentageOverride) || 100) / 100).toFixed(2)} m²/m
+                      {(calculatedArea.totalArea * (parseFloat(percentageOverride) || 100) / 100).toFixed(3)} m²/m
                     </div>
                   </div>
                 </div>
@@ -1664,10 +1664,10 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                       coatingConfig
                     );
                     
-                    return result.total.toFixed(4);
+                    return result.total.toFixed(3);
                   }
                   // For other materials, use selected surfaces
-                  return getSelectedArea().toFixed(2);
+                  return getSelectedArea().toFixed(3);
                 })()} m²/m
               </div>
             </div>
@@ -1697,10 +1697,10 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                       coatingConfig
                     );
                     
-                    return result.total.toFixed(4);
+                    return result.total.toFixed(3);
                   }
                   // For other materials, use selected surfaces
-                  return getSelectedArea().toFixed(2);
+                  return getSelectedArea().toFixed(3);
                 })()} m²/m
               </div>
             </div>
@@ -1710,7 +1710,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
             <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <div className="text-sm text-muted-foreground">Final Surface Area</div>
               <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                {(calculatedArea.totalArea * (parseFloat(percentageOverride) || 100) / 100).toFixed(2)} m²/m
+                {(calculatedArea.totalArea * (parseFloat(percentageOverride) || 100) / 100).toFixed(3)} m²/m
               </div>
             </div>
           )}
