@@ -382,30 +382,10 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   // Surface area update mutation
   const updateSurfaceAreaMutation = useMutation({
     mutationFn: async (data: { id: number; surfaceAreaPerMeter: number }) => {
-      const response = await fetch(`/api/materials/${data.id}/update`, {
+      return await apiRequest(`/api/materials/${data.id}/update`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ surfaceAreaPerMeter: data.surfaceAreaPerMeter.toString() }),
+        body: JSON.stringify({ surfaceAreaPerMeter: data.surfaceAreaPerMeter.toString() })
       });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to update surface area: ${response.status}`);
-      }
-      
-      const responseText = await response.text();
-      console.log('Response text:', responseText);
-      
-      try {
-        const result = JSON.parse(responseText);
-        console.log('Update successful:', result);
-        return result;
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        console.error('Response was:', responseText);
-        throw new Error('Server returned invalid JSON response');
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
@@ -975,7 +955,15 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             </>
                           ) : (
                             <>
-                              <p className="text-sm">W: {material.width || 'N/A'}</p>
+                              {/* Special display for unequal angles - show W1/W2 */}
+                              {material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle') ? (
+                                <>
+                                  <p className="text-sm">W1: {material.width1 || 'N/A'}mm</p>
+                                  <p className="text-sm">W2: {material.width2 || 'N/A'}mm</p>
+                                </>
+                              ) : (
+                                <p className="text-sm">W: {material.width || 'N/A'}mm</p>
+                              )}
                               {material.depth && (
                                 <div className="flex items-center gap-1">
                                   <p className="text-sm">D: {material.depth}mm</p>
