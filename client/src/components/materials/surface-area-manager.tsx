@@ -59,7 +59,6 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   const [calculationMethod, setCalculationMethod] = useState<"3d" | "checklist" | "percentage">("3d");
   const [percentageOverride, setPercentageOverride] = useState("100");
   const [coatingConfig, setCoatingConfig] = useState<"external-only" | "internal-only" | "external-internal">("external-internal");
-  const [is3DCollapsed, setIs3DCollapsed] = useState(false);
 
   // Individual surface areas for detailed breakdown
   const [surfaceAreas, setSurfaceAreas] = useState<Record<string, number>>({});
@@ -369,20 +368,8 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
           <Tabs value={calculationMethod} onValueChange={(value: any) => setCalculationMethod(value)} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="3d" className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <Image className="w-4 h-4" />
-                  3D Interactive
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIs3DCollapsed(!is3DCollapsed);
-                    }}
-                    className="ml-1 p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    {is3DCollapsed ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
-                  </button>
-                </div>
+                <Image className="w-4 h-4" />
+                3D Interactive
               </TabsTrigger>
               <TabsTrigger value="checklist" className="flex items-center gap-2">
                 <CheckSquare className="w-4 h-4" />
