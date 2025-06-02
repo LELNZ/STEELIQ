@@ -788,10 +788,24 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         </>
                       ) : (
                         <>
-                          <div>
-                            <p className="text-muted-foreground">Width</p>
-                            <p className="font-medium">{material.width || 'N/A'}</p>
-                          </div>
+                          {/* Special display for unequal angles - show W1/W2 */}
+                          {material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle') ? (
+                            <>
+                              <div>
+                                <p className="text-muted-foreground">Width 1 (W1)</p>
+                                <p className="font-medium">{material.width1 || 'N/A'}mm</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Width 2 (W2)</p>
+                                <p className="font-medium">{material.width2 || 'N/A'}mm</p>
+                              </div>
+                            </>
+                          ) : (
+                            <div>
+                              <p className="text-muted-foreground">Width</p>
+                              <p className="font-medium">{material.width || 'N/A'}mm</p>
+                            </div>
+                          )}
                           {/* Show separate web and flange thickness for structural sections */}
                           {(material.category?.toLowerCase().includes('channel') || 
                             material.category?.toLowerCase().includes('structural channels') ||
