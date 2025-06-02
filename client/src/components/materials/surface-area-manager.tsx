@@ -815,58 +815,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                     </div>
                   )}
                   
-                  {/* Angle Profile with individual legs */}
-                  {material.category?.toLowerCase().includes('angle') && (
-                    <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <svg width="350" height="250" viewBox="0 0 350 250" className="border rounded">
-                        <rect width="350" height="250" fill="white" />
-                        
-                        {/* External Leg 1 (Horizontal) */}
-                        <rect x="150" y="120" width="120" height="15"
-                          fill={selectedSurfaces.includes("external_leg1") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_leg1")} />
-                        <text x="210" y="115" textAnchor="middle" className="text-xs font-medium">External Leg 1</text>
-                        
-                        {/* External Leg 2 (Vertical) */}
-                        <rect x="150" y="60" width="15" height="120"
-                          fill={selectedSurfaces.includes("external_leg2") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_leg2")} />
-                        <text x="145" y="120" textAnchor="middle" className="text-xs font-medium" transform="rotate(-90 145 120)">Ext Leg 2</text>
-                        
-                        {/* Internal Leg 1 */}
-                        <rect x="170" y="125" width="90" height="8"
-                          fill={selectedSurfaces.includes("internal_leg1") ? "#10b981" : "#f3f4f6"}
-                          stroke="#374151" strokeWidth="1"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("internal_leg1")} />
-                        <text x="215" y="145" textAnchor="middle" className="text-xs">Internal Leg 1</text>
-                        
-                        {/* Internal Leg 2 */}
-                        <rect x="157" y="80" width="8" height="90"
-                          fill={selectedSurfaces.includes("internal_leg2") ? "#10b981" : "#f3f4f6"}
-                          stroke="#374151" strokeWidth="1"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("internal_leg2")} />
-                        <text x="161" y="125" textAnchor="middle" className="text-xs" transform="rotate(-90 161 125)">Int Leg 2</text>
-                        
-                        {/* Internal Corner */}
-                        <rect x="157" y="125" width="13" height="8"
-                          fill={selectedSurfaces.includes("internal_corner") ? "#10b981" : "#f3f4f6"}
-                          stroke="#374151" strokeWidth="1"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("internal_corner")} />
-                        <text x="164" y="155" textAnchor="middle" className="text-xs">Corner</text>
-                        
-                        <text x="210" y="200" textAnchor="middle" className="text-xs text-gray-600">
-                          Angle: {dimensions.width}mm × {dimensions.depth}mm × {dimensions.thickness}mm × {length}mm
-                        </text>
-                      </svg>
-                    </div>
-                  )}
+
                   
                   {/* Equal Angle Profile */}
                   {material.category?.toLowerCase().includes('angle') && !material.category?.toLowerCase().includes('unequal') && (
