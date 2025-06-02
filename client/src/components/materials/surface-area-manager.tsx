@@ -1644,7 +1644,31 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
             <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <div className="text-sm text-muted-foreground">Selected Surface Area</div>
               <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                {getSelectedArea().toFixed(2)} m²/m
+                {(() => {
+                  const category = material.category?.toLowerCase() || '';
+                  // For round materials, show the unified calculation result
+                  if (category.includes('round') || category.includes('pipe') || category.includes('reinforc')) {
+                    const unifiedDimensions: MaterialDimensions = {
+                      width: dimensions.width || 0,
+                      depth: dimensions.depth || 0,
+                      webThickness: dimensions.webThickness || 0,
+                      flangeThickness: dimensions.flangeThickness || 0,
+                      diameter: dimensions.outerDiameter || 0,
+                      outerDiameter: dimensions.outerDiameter || 0,
+                      thickness: dimensions.thickness || 0
+                    };
+                    
+                    const result = calculateUnifiedSurfaceArea(
+                      material.category || '',
+                      unifiedDimensions,
+                      coatingConfig
+                    );
+                    
+                    return result.total.toFixed(4);
+                  }
+                  // For other materials, use selected surfaces
+                  return getSelectedArea().toFixed(2);
+                })()} m²/m
               </div>
             </div>
           )}
@@ -1653,7 +1677,31 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
             <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <div className="text-sm text-muted-foreground">Total Selected Surface Area</div>
               <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                {getSelectedArea().toFixed(2)} m²/m
+                {(() => {
+                  const category = material.category?.toLowerCase() || '';
+                  // For round materials, show the unified calculation result
+                  if (category.includes('round') || category.includes('pipe') || category.includes('reinforc')) {
+                    const unifiedDimensions: MaterialDimensions = {
+                      width: dimensions.width || 0,
+                      depth: dimensions.depth || 0,
+                      webThickness: dimensions.webThickness || 0,
+                      flangeThickness: dimensions.flangeThickness || 0,
+                      diameter: dimensions.outerDiameter || 0,
+                      outerDiameter: dimensions.outerDiameter || 0,
+                      thickness: dimensions.thickness || 0
+                    };
+                    
+                    const result = calculateUnifiedSurfaceArea(
+                      material.category || '',
+                      unifiedDimensions,
+                      coatingConfig
+                    );
+                    
+                    return result.total.toFixed(4);
+                  }
+                  // For other materials, use selected surfaces
+                  return getSelectedArea().toFixed(2);
+                })()} m²/m
               </div>
             </div>
           )}
