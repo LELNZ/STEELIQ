@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Image, CheckSquare, Percent } from "lucide-react";
 import { calculateSurfaceArea, calculateSquareBarArea, type SteelDimensions, type SurfaceAreaResult } from "@/lib/surface-area-calculator";
 import type { Material } from "@shared/schema";
@@ -57,6 +58,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   const [selectedSurfaces, setSelectedSurfaces] = useState<string[]>([]);
   const [calculationMethod, setCalculationMethod] = useState<"3d" | "checklist" | "percentage">("3d");
   const [percentageOverride, setPercentageOverride] = useState("100");
+  const [coatingConfig, setCoatingConfig] = useState<"external-only" | "internal-only" | "external-internal">("external-internal");
 
   // Individual surface areas for detailed breakdown
   const [surfaceAreas, setSurfaceAreas] = useState<Record<string, number>>({});
@@ -119,6 +121,30 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
     const areas = calculateIndividualSurfaces();
     setSurfaceAreas(areas);
   }, []);
+
+  // Handle coating configuration change
+  const handleCoatingConfigChange = (config: "external-only" | "internal-only" | "external-internal") => {
+    setCoatingConfig(config);
+    
+    // Auto-select surfaces based on coating configuration
+    const surfaceKeys = Object.keys(surfaceAreas);
+    let newSelectedSurfaces: string[] = [];
+    
+    if (config === "external-only") {
+      newSelectedSurfaces = surfaceKeys.filter(key => key.includes('external'));
+    } else if (config === "internal-only") {
+      newSelectedSurfaces = surfaceKeys.filter(key => key.includes('internal'));
+    } else if (config === "external-internal") {
+      newSelectedSurfaces = [...surfaceKeys]; // Select all surfaces
+    }
+    
+    setSelectedSurfaces(newSelectedSurfaces);
+    
+    // Recalculate with new selection
+    setTimeout(() => {
+      handleCalculate();
+    }, 100);
+  };
 
   const handleDimensionChange = (field: keyof SteelDimensions, value: string) => {
     const numValue = value === "" ? undefined : parseFloat(value);
@@ -319,6 +345,31 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                 {getDimensionalReference()}
               </CardContent>
             </Card>
+          </div>
+
+          {/* Coating Configuration */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-base font-medium">Surface Area per Meter (m²/m)</Label>
+                <div className="text-lg font-bold text-primary">
+                  {getSelectedArea().toFixed(4)}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="coating-config">Coating Configuration</Label>
+                <Select value={coatingConfig} onValueChange={handleCoatingConfigChange}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="external-only">External Only</SelectItem>
+                    <SelectItem value="internal-only">Internal Only</SelectItem>
+                    <SelectItem value="external-internal">External + Internal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           {/* Calculation Method Tabs */}
