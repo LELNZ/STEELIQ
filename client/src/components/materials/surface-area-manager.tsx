@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Image, CheckSquare, Percent } from "lucide-react";
 import { calculateSurfaceArea, calculateSquareBarArea, type SteelDimensions, type SurfaceAreaResult } from "@/lib/surface-area-calculator";
+import { calculateUnifiedSurfaceArea } from "@/lib/unified-surface-area-calculator";
 import type { Material } from "@shared/schema";
 
 // Import dimensional reference images
@@ -59,6 +60,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   const [calculationMethod, setCalculationMethod] = useState<"3d" | "checklist" | "percentage">("3d");
   const [percentageOverride, setPercentageOverride] = useState("100");
   const [coatingConfig, setCoatingConfig] = useState<"external-only" | "internal-only" | "external-internal">("external-internal");
+  const [is3DCollapsed, setIs3DCollapsed] = useState(false);
 
   // Individual surface areas for detailed breakdown
   const [surfaceAreas, setSurfaceAreas] = useState<Record<string, number>>({});
@@ -325,15 +327,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Current Value Display */}
-          {material.surfaceAreaPerMeter && (
-            <div className="p-3 bg-secondary/50 rounded-lg">
-              <div className="text-sm text-muted-foreground">Current Surface Area</div>
-              <div className="text-lg font-semibold">
-                {Number(material.surfaceAreaPerMeter).toFixed(2)} m²/m
-              </div>
-            </div>
-          )}
+
 
           {/* Dimensional Reference */}
           <div className="mb-6">
