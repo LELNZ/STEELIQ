@@ -11,6 +11,8 @@ export interface MaterialDimensions {
   flangeThickness: number;
   outerDiameter?: number;
   thickness?: number;
+  width1?: number; // For unequal angles
+  width2?: number; // For unequal angles
 }
 
 export interface SurfaceAreaBreakdown {
@@ -27,6 +29,11 @@ export interface SurfaceAreaBreakdown {
     internalFlangeBottomRight?: number;
     externalSurfaces?: number;
     internalSurfaces?: number;
+    // Angle iron specific surfaces
+    externalLeg1?: number;
+    externalLeg2?: number;
+    internalLeg1?: number;
+    internalLeg2?: number;
   };
 }
 
@@ -167,6 +174,100 @@ export function calculateHollowSectionArea(
 }
 
 /**
+ * Calculate Equal Angle surface area with 4 selectable surfaces
+ * External Leg 1, External Leg 2, Internal Leg 1, Internal Leg 2
+ */
+export function calculateEqualAngleArea(
+  dimensions: MaterialDimensions,
+  coatingType: 'external-only' | 'internal-only' | 'external-internal'
+): SurfaceAreaBreakdown {
+  const { width, thickness } = dimensions;
+  
+  if (!width || !thickness) {
+    return { external: 0, internal: 0, total: 0, details: {} };
+  }
+  
+  // External leg surfaces (full width)
+  const externalLeg1 = width; // mm per meter
+  const externalLeg2 = width; // mm per meter
+  
+  // Internal leg surfaces (reduced by thickness)
+  const internalLeg1 = width - thickness; // mm per meter
+  const internalLeg2 = width - thickness; // mm per meter
+  
+  let external = 0;
+  let internal = 0;
+  
+  if (coatingType === 'external-only') {
+    external = externalLeg1 + externalLeg2;
+  } else if (coatingType === 'internal-only') {
+    internal = internalLeg1 + internalLeg2;
+  } else if (coatingType === 'external-internal') {
+    external = externalLeg1 + externalLeg2;
+    internal = internalLeg1 + internalLeg2;
+  }
+  
+  return {
+    external: external / 1000,
+    internal: internal / 1000,
+    total: (external + internal) / 1000,
+    details: {
+      externalLeg1: externalLeg1 / 1000,
+      externalLeg2: externalLeg2 / 1000,
+      internalLeg1: internalLeg1 / 1000,
+      internalLeg2: internalLeg2 / 1000
+    }
+  };
+}
+
+/**
+ * Calculate Unequal Angle surface area with 4 selectable surfaces
+ * Uses width1 (W1) and width2 (W2) dimensions
+ */
+export function calculateUnequalAngleArea(
+  dimensions: MaterialDimensions,
+  coatingType: 'external-only' | 'internal-only' | 'external-internal'
+): SurfaceAreaBreakdown {
+  const { width1, width2, thickness } = dimensions;
+  
+  if (!width1 || !width2 || !thickness) {
+    return { external: 0, internal: 0, total: 0, details: {} };
+  }
+  
+  // External leg surfaces (full width)
+  const externalLeg1 = width1; // mm per meter
+  const externalLeg2 = width2; // mm per meter
+  
+  // Internal leg surfaces (reduced by thickness)
+  const internalLeg1 = width1 - thickness; // mm per meter
+  const internalLeg2 = width2 - thickness; // mm per meter
+  
+  let external = 0;
+  let internal = 0;
+  
+  if (coatingType === 'external-only') {
+    external = externalLeg1 + externalLeg2;
+  } else if (coatingType === 'internal-only') {
+    internal = internalLeg1 + internalLeg2;
+  } else if (coatingType === 'external-internal') {
+    external = externalLeg1 + externalLeg2;
+    internal = internalLeg1 + internalLeg2;
+  }
+  
+  return {
+    external: external / 1000,
+    internal: internal / 1000,
+    total: (external + internal) / 1000,
+    details: {
+      externalLeg1: externalLeg1 / 1000,
+      externalLeg2: externalLeg2 / 1000,
+      internalLeg1: internalLeg1 / 1000,
+      internalLeg2: internalLeg2 / 1000
+    }
+  };
+}
+
+/**
  * Calculate surface area for any material type
  */
 export function calculateMaterialSurfaceArea(
@@ -182,6 +283,10 @@ export function calculateMaterialSurfaceArea(
     return calculateChannelArea(dimensions, coatingType);
   } else if (categoryLower.includes('rhs') || categoryLower.includes('shs') || categoryLower.includes('hollow')) {
     return calculateHollowSectionArea(dimensions, coatingType);
+  } else if (categoryLower.includes('unequal') && categoryLower.includes('angle')) {
+    return calculateUnequalAngleArea(dimensions, coatingType);
+  } else if (categoryLower.includes('angle') || categoryLower.includes('duragal')) {
+    return calculateEqualAngleArea(dimensions, coatingType);
   } else {
     // Fallback for other types
     return {

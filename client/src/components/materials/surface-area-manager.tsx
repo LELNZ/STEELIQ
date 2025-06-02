@@ -12,6 +12,7 @@ import type { Material } from "@shared/schema";
 
 // Import dimensional reference images
 import anglesImg from "@assets/Angles.png";
+import unequalAnglesImg from "@assets/Unequal Angles.png";
 import cattleRailImg from "@assets/Cattle Rail.png";
 import channelImg from "@assets/Channel.png";
 import flatImg from "@assets/Flstd.png";

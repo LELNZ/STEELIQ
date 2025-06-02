@@ -26,7 +26,7 @@ const DIMENSION_IMAGES = {
   "Merchant Bar": {
     "Flats": flatImg,
     "Equal Angles": anglesImg,
-    "Unequal Angles": anglesImg,
+    "Unequal Angles": unequalAnglesImg,
     "Rounds": roundImg,
     "Squares": squareBarImg
   },
