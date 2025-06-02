@@ -34,6 +34,10 @@ export interface SurfaceAreaBreakdown {
     externalLeg2?: number;
     internalLeg1?: number;
     internalLeg2?: number;
+    // Flat/plate specific surfaces
+    topSurface?: number;
+    bottomSurface?: number;
+    edges?: number;
   };
 }
 
@@ -271,6 +275,54 @@ export function calculateUnequalAngleArea(
 }
 
 /**
+ * Calculate Flat/Plate surface area 
+ * For flat materials: top surface + bottom surface + edges
+ */
+export function calculateFlatPlateArea(
+  dimensions: MaterialDimensions,
+  coatingType: 'external-only' | 'internal-only' | 'external-internal'
+): SurfaceAreaBreakdown {
+  const { width, thickness } = dimensions;
+  
+  if (!width || !thickness) {
+    return { external: 0, internal: 0, total: 0, details: {} };
+  }
+  
+  // For flat materials per meter:
+  // Top surface = width (mm) per meter length
+  // Bottom surface = width (mm) per meter length  
+  // Edges = 2 * thickness (mm) per meter length (front and back edges)
+  
+  const topSurface = width; // mm per meter
+  const bottomSurface = width; // mm per meter
+  const edges = 2 * thickness; // mm per meter (front + back edges)
+  
+  let external = 0;
+  let internal = 0;
+  
+  if (coatingType === 'external-only') {
+    external = topSurface + bottomSurface + edges;
+  } else if (coatingType === 'internal-only') {
+    // For flat materials, internal surfaces would be minimal
+    internal = 0;
+  } else if (coatingType === 'external-internal') {
+    external = topSurface + bottomSurface + edges;
+    internal = 0; // Flat materials typically don't have significant internal surfaces
+  }
+  
+  return {
+    external: external / 1000,
+    internal: internal / 1000,
+    total: (external + internal) / 1000,
+    details: {
+      topSurface: topSurface / 1000,
+      bottomSurface: bottomSurface / 1000,
+      edges: edges / 1000
+    }
+  };
+}
+
+/**
  * Calculate surface area for any material type
  */
 export function calculateMaterialSurfaceArea(
@@ -290,6 +342,8 @@ export function calculateMaterialSurfaceArea(
     return calculateUnequalAngleArea(dimensions, coatingType);
   } else if (categoryLower.includes('angle') || categoryLower.includes('duragal')) {
     return calculateEqualAngleArea(dimensions, coatingType);
+  } else if (categoryLower.includes('flat') || categoryLower.includes('plate')) {
+    return calculateFlatPlateArea(dimensions, coatingType);
   } else {
     // Fallback for other types
     return {
