@@ -1524,12 +1524,15 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       step="0.0001"
                       value={(() => {
                         // Display calculated value if dimensions are available, otherwise stored value
-                        if (editingMaterial.width && editingMaterial.depth && editingMaterial.category) {
+                        if (editingMaterial.width && editingMaterial.category) {
                           const dimensions = {
                             width: parseFloat(editingMaterial.width),
-                            depth: parseFloat(editingMaterial.depth),
-                            webThickness: editingMaterial.webTw ? parseFloat(editingMaterial.webTw.toString()) : 0,
-                            flangeThickness: editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : 0
+                            depth: editingMaterial.depth ? parseFloat(editingMaterial.depth) : parseFloat(editingMaterial.width),
+                            webThickness: editingMaterial.webTw ? parseFloat(editingMaterial.webTw.toString()) : (editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0),
+                            flangeThickness: editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : (editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0),
+                            thickness: editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0,
+                            width1: editingMaterial.width1 ? parseFloat(editingMaterial.width1.toString()) : undefined,
+                            width2: editingMaterial.width2 ? parseFloat(editingMaterial.width2.toString()) : undefined
                           };
                           
                           const result = calculateUnifiedSurfaceArea(
@@ -1554,18 +1557,29 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         // Calculate surface area based on configuration type using unified system
                         let calculatedSurfaceArea = editingMaterial.surfaceAreaPerMeter;
                         
-                        if (value !== 'custom' && editingMaterial.width && editingMaterial.depth && editingMaterial.category) {
-                          const width = parseFloat(editingMaterial.width);
-                          const depth = parseFloat(editingMaterial.depth);
-                          const webTw = editingMaterial.webTw ? parseFloat(editingMaterial.webTw.toString()) : 0;
-                          const flangeTf = editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : 0;
+                        if (value !== 'custom' && editingMaterial.width && editingMaterial.category) {
+                          const isAngle = editingMaterial.category.toLowerCase().includes('angle');
                           
-                          const dimensions = {
-                            width,
-                            depth,
-                            webThickness: webTw,
-                            flangeThickness: flangeTf
-                          };
+                          let dimensions;
+                          if (isAngle) {
+                            // For angles, use width1/width2 if available, otherwise derive from width/depth
+                            dimensions = {
+                              width: parseFloat(editingMaterial.width),
+                              depth: editingMaterial.depth ? parseFloat(editingMaterial.depth) : parseFloat(editingMaterial.width),
+                              webThickness: editingMaterial.webTw ? parseFloat(editingMaterial.webTw.toString()) : (editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0),
+                              flangeThickness: editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : (editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0),
+                              width1: editingMaterial.width1 || parseFloat(editingMaterial.width),
+                              width2: editingMaterial.width2 || (editingMaterial.depth ? parseFloat(editingMaterial.depth) : parseFloat(editingMaterial.width)),
+                              thickness: editingMaterial.thickness ? parseFloat(editingMaterial.thickness.toString()) : 0
+                            };
+                          } else {
+                            dimensions = {
+                              width: parseFloat(editingMaterial.width),
+                              depth: editingMaterial.depth ? parseFloat(editingMaterial.depth) : parseFloat(editingMaterial.width),
+                              webThickness: editingMaterial.webTw ? parseFloat(editingMaterial.webTw.toString()) : 0,
+                              flangeThickness: editingMaterial.flangeTf ? parseFloat(editingMaterial.flangeTf.toString()) : 0
+                            };
+                          }
                           
                           const result = calculateUnifiedSurfaceArea(
                             editingMaterial.category,

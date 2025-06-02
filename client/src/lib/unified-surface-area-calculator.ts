@@ -228,7 +228,10 @@ export function calculateUnequalAngleArea(
   dimensions: MaterialDimensions,
   coatingType: 'external-only' | 'internal-only' | 'external-internal'
 ): SurfaceAreaBreakdown {
-  const { width1, width2, thickness } = dimensions;
+  // Use width1/width2 if available, otherwise fallback to width/depth
+  const width1 = dimensions.width1 || dimensions.width;
+  const width2 = dimensions.width2 || dimensions.depth || dimensions.width;
+  const thickness = dimensions.thickness || dimensions.webThickness || dimensions.flangeThickness;
   
   if (!width1 || !width2 || !thickness) {
     return { external: 0, internal: 0, total: 0, details: {} };
