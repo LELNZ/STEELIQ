@@ -387,7 +387,31 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
               <div>
                 <Label className="text-base font-medium">Surface Area per Meter (m²/m)</Label>
                 <div className="text-lg font-bold text-primary">
-                  {getSelectedArea().toFixed(4)}
+                  {(() => {
+                    const category = material.category?.toLowerCase() || '';
+                    // For round materials, show the unified calculation result
+                    if (category.includes('round') || category.includes('pipe') || category.includes('reinforc')) {
+                      const unifiedDimensions: MaterialDimensions = {
+                        width: dimensions.width || 0,
+                        depth: dimensions.depth || 0,
+                        webThickness: dimensions.webThickness || 0,
+                        flangeThickness: dimensions.flangeThickness || 0,
+                        diameter: dimensions.outerDiameter || 0,
+                        outerDiameter: dimensions.outerDiameter || 0,
+                        thickness: dimensions.thickness || 0
+                      };
+                      
+                      const result = calculateUnifiedSurfaceArea(
+                        material.category || '',
+                        unifiedDimensions,
+                        coatingConfig
+                      );
+                      
+                      return result.total.toFixed(4);
+                    }
+                    // For other materials, use selected surfaces
+                    return getSelectedArea().toFixed(4);
+                  })()}
                 </div>
               </div>
               <div className="space-y-2">
