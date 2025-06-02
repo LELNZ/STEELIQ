@@ -47,8 +47,8 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       flangeThickness: material.flangeTf ? Number(material.flangeTf) : undefined,
       webThickness: material.webTw ? Number(material.webTw) : undefined,
       outerDiameter: material.diameter ? Number(material.diameter) : undefined,
-      width1: material.width1 ? Number(material.width1) : undefined,
-      width2: material.width2 ? Number(material.width2) : undefined,
+      width1: material.width1 ? parseFloat(String(material.width1)) : undefined,
+      width2: material.width2 ? parseFloat(String(material.width2)) : undefined,
     };
   });
   
@@ -388,7 +388,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                           <Input
                             id="width1"
                             type="number"
-                            value={dimensions.width1 ? dimensions.width1.toString() : ""}
+                            value={dimensions.width1 ? parseFloat(String(dimensions.width1)).toString() : ""}
                             onChange={(e) => handleDimensionChange("width1", e.target.value)}
                             placeholder="W1"
                           />
@@ -398,7 +398,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                           <Input
                             id="width2"
                             type="number"
-                            value={dimensions.width2 ? dimensions.width2.toString() : ""}
+                            value={dimensions.width2 ? parseFloat(String(dimensions.width2)).toString() : ""}
                             onChange={(e) => handleDimensionChange("width2", e.target.value)}
                             placeholder="W2"
                           />

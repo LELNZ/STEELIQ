@@ -1356,7 +1356,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                               <Input
                                 id="edit-width1"
                                 type="number"
-                                value={editingMaterial.width1 ? parseFloat(editingMaterial.width1.toString()).toFixed(0) : ""}
+                                value={editingMaterial.width1 ? parseFloat(String(editingMaterial.width1)).toFixed(0) : ""}
                                 onChange={(e) => setEditingMaterial({...editingMaterial, width1: parseFloat(e.target.value) || undefined})}
                                 placeholder="W1"
                               />
@@ -1366,7 +1366,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                               <Input
                                 id="edit-width2"
                                 type="number"
-                                value={editingMaterial.width2 ? parseFloat(editingMaterial.width2.toString()).toFixed(0) : ""}
+                                value={editingMaterial.width2 ? parseFloat(String(editingMaterial.width2)).toFixed(0) : ""}
                                 onChange={(e) => setEditingMaterial({...editingMaterial, width2: parseFloat(e.target.value) || undefined})}
                                 placeholder="W2"
                               />
