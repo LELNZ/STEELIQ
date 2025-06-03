@@ -171,9 +171,9 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       // Channel (PFC) - C-shaped profile with separate web and flange thickness
       
       // External surfaces (3)
-      areas['external_flange_top'] = w * L / 1000000; // Full flange width
-      areas['external_flange_bottom'] = w * L / 1000000; // Full flange width
-      areas['external_web'] = d * L / 1000000; // Full web depth
+      areas['external_flange_top'] = w / 1000; // Full flange width per meter
+      areas['external_flange_bottom'] = w / 1000; // Full flange width per meter
+      areas['external_web'] = d / 1000; // Full web depth per meter
       
       // Internal surfaces (3) - calculated using actual geometry
       // Internal flanges: flange width minus web thickness (as specified)
@@ -182,27 +182,27 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       // Internal web: web depth minus both flange thicknesses
       const internalWebDepth = d - (2 * flangeThickness);
       
-      areas['internal_flange_top'] = internalFlangeWidth * L / 1000000;
-      areas['internal_flange_bottom'] = internalFlangeWidth * L / 1000000;
-      areas['internal_web'] = internalWebDepth * L / 1000000;
+      areas['internal_flange_top'] = internalFlangeWidth / 1000;
+      areas['internal_flange_bottom'] = internalFlangeWidth / 1000;
+      areas['internal_web'] = internalWebDepth / 1000;
       
     } else if (category.includes('ub') || category.includes('universal beam')) {
       // Universal Beam - I-shaped profile with separate web and flange thickness
       // External surfaces (no external web - web is internal between flanges)
-      areas['external_flange_top'] = w * L / 1000000;
-      areas['external_flange_bottom'] = w * L / 1000000;
+      areas['external_flange_top'] = w / 1000;
+      areas['external_flange_bottom'] = w / 1000;
       
       // Internal surfaces - UB has internal web surfaces and separated flange portions
       const internalWebDepth = d - (2 * flangeThickness);
-      areas['internal_web_left'] = internalWebDepth * L / 1000000;
-      areas['internal_web_right'] = internalWebDepth * L / 1000000;
+      areas['internal_web_left'] = internalWebDepth / 1000;
+      areas['internal_web_right'] = internalWebDepth / 1000;
       
       // Separated internal flange portions (excluding web thickness)
       const internalFlangePortionWidth = (w - webThickness) / 2;
-      areas['internal_flange_top_left'] = internalFlangePortionWidth * L / 1000000;
-      areas['internal_flange_top_right'] = internalFlangePortionWidth * L / 1000000;
-      areas['internal_flange_bottom_left'] = internalFlangePortionWidth * L / 1000000;
-      areas['internal_flange_bottom_right'] = internalFlangePortionWidth * L / 1000000;
+      areas['internal_flange_top_left'] = internalFlangePortionWidth / 1000;
+      areas['internal_flange_top_right'] = internalFlangePortionWidth / 1000;
+      areas['internal_flange_bottom_left'] = internalFlangePortionWidth / 1000;
+      areas['internal_flange_bottom_right'] = internalFlangePortionWidth / 1000;
       
     } else if (category.includes('uc') || category.includes('universal column')) {
       // Universal Column - H-shaped profile with separate web and flange thickness
@@ -258,16 +258,16 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       const width1 = dimensions.width1 || w || 0;
       const width2 = dimensions.width2 || d || w || 0;
       
-      areas['external_leg_1'] = width1 * L / 1000000;
-      areas['external_leg_2'] = width2 * L / 1000000;
-      areas['internal_leg_1'] = (width1 - t) * L / 1000000;
-      areas['internal_leg_2'] = (width2 - t) * L / 1000000;
+      areas['external_leg_1'] = width1 / 1000;
+      areas['external_leg_2'] = width2 / 1000;
+      areas['internal_leg_1'] = (width1 - t) / 1000;
+      areas['internal_leg_2'] = (width2 - t) / 1000;
     } else if (category.includes('flat') || category.includes('plate')) {
       // Flat bar/plate
-      areas['external_top'] = w * L / 1000000;
-      areas['external_bottom'] = w * L / 1000000;
-      areas['external_edge1'] = t * L / 1000000;
-      areas['external_edge2'] = t * L / 1000000;
+      areas['external_top'] = w / 1000;
+      areas['external_bottom'] = w / 1000;
+      areas['external_edge1'] = t / 1000;
+      areas['external_edge2'] = t / 1000;
     }
     
     setSurfaceAreas(areas);
