@@ -447,10 +447,10 @@ export function calculateMaterialSurfaceArea(
 ): SurfaceAreaBreakdown {
   const categoryLower = category.toLowerCase();
   
-  if (categoryLower.includes('universal') || categoryLower.includes('uc') || categoryLower.includes('ub')) {
-    return calculateUniversalSectionArea(dimensions, coatingType);
-  } else if (categoryLower.includes('channel')) {
+  if (categoryLower.includes('channel') || categoryLower.includes('structural channels')) {
     return calculateChannelArea(dimensions, coatingType);
+  } else if (categoryLower.includes('universal') || categoryLower.includes('uc') || categoryLower.includes('ub')) {
+    return calculateUniversalSectionArea(dimensions, coatingType);
   } else if (categoryLower.includes('rhs') || categoryLower.includes('shs') || categoryLower.includes('hollow')) {
     return calculateHollowSectionArea(dimensions, coatingType);
   } else if (categoryLower.includes('unequal') && categoryLower.includes('angle')) {
