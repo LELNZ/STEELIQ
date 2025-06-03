@@ -292,8 +292,8 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   };
 
   const handleCalculate = () => {
-    // Debug logging for Channel calculation
-    console.log('=== SURFACE AREA CALCULATION DEBUG ===');
+    // Debug logging for Flat material calculation
+    console.log('=== FLAT MATERIAL DEBUG ===');
     console.log('Material:', material.name, material.code);
     console.log('Category:', material.category);
     console.log('Input dimensions:', dimensions);
@@ -370,9 +370,9 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
     const selectedArea = selectedSurfaces.reduce((total, surfaceId) => {
       return total + (surfaceAreas[surfaceId] || 0);
     }, 0);
-    console.log('Green footer calculation - Selected surfaces:', selectedSurfaces);
-    console.log('Green footer calculation - Surface areas:', surfaceAreas);
-    console.log('Green footer calculation - Selected area:', selectedArea);
+    console.log('Green footer - Selected surfaces:', selectedSurfaces);
+    console.log('Green footer - Surface areas:', surfaceAreas);
+    console.log('Green footer - Selected area:', selectedArea);
     return selectedArea;
   };
 
