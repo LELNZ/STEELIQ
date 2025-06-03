@@ -207,52 +207,52 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
     } else if (category.includes('uc') || category.includes('universal column')) {
       // Universal Column - H-shaped profile with separate web and flange thickness
       // External surfaces (no external web - web is internal between flanges)
-      areas['external_flange_top'] = w * L / 1000000;
-      areas['external_flange_bottom'] = w * L / 1000000;
+      areas['external_flange_top'] = w / 1000;
+      areas['external_flange_bottom'] = w / 1000;
       
       // Internal surfaces - UC similar to UB with separated flange portions
       const internalWebDepth = d - (2 * flangeThickness);
-      areas['internal_web_left'] = internalWebDepth * L / 1000000;
-      areas['internal_web_right'] = internalWebDepth * L / 1000000;
+      areas['internal_web_left'] = internalWebDepth / 1000;
+      areas['internal_web_right'] = internalWebDepth / 1000;
       
       // Separated internal flange portions (excluding web thickness)
       const internalFlangePortionWidth = (w - webThickness) / 2;
-      areas['internal_flange_top_left'] = internalFlangePortionWidth * L / 1000000;
-      areas['internal_flange_top_right'] = internalFlangePortionWidth * L / 1000000;
-      areas['internal_flange_bottom_left'] = internalFlangePortionWidth * L / 1000000;
-      areas['internal_flange_bottom_right'] = internalFlangePortionWidth * L / 1000000;
+      areas['internal_flange_top_left'] = internalFlangePortionWidth / 1000;
+      areas['internal_flange_top_right'] = internalFlangePortionWidth / 1000;
+      areas['internal_flange_bottom_left'] = internalFlangePortionWidth / 1000;
+      areas['internal_flange_bottom_right'] = internalFlangePortionWidth / 1000;
     } else if (category.includes('shs') || (category.includes('square') && category.includes('hollow'))) {
       // Square Hollow Section
-      areas['external_top'] = w * L / 1000000;
-      areas['external_bottom'] = w * L / 1000000;
-      areas['external_left'] = w * L / 1000000;
-      areas['external_right'] = w * L / 1000000;
-      areas['internal_top'] = (w - 2 * t) * L / 1000000;
-      areas['internal_bottom'] = (w - 2 * t) * L / 1000000;
-      areas['internal_left'] = (w - 2 * t) * L / 1000000;
-      areas['internal_right'] = (w - 2 * t) * L / 1000000;
+      areas['external_top'] = w / 1000;
+      areas['external_bottom'] = w / 1000;
+      areas['external_left'] = w / 1000;
+      areas['external_right'] = w / 1000;
+      areas['internal_top'] = (w - 2 * t) / 1000;
+      areas['internal_bottom'] = (w - 2 * t) / 1000;
+      areas['internal_left'] = (w - 2 * t) / 1000;
+      areas['internal_right'] = (w - 2 * t) / 1000;
     } else if (category.includes('square') && !category.includes('hollow')) {
       // Solid Square Bar - 4 external faces only
-      areas['external_face1'] = w * L / 1000000;
-      areas['external_face2'] = w * L / 1000000;
-      areas['external_face3'] = w * L / 1000000;
-      areas['external_face4'] = w * L / 1000000;
+      areas['external_face1'] = w / 1000;
+      areas['external_face2'] = w / 1000;
+      areas['external_face3'] = w / 1000;
+      areas['external_face4'] = w / 1000;
     } else if (category.includes('rhs')) {
       // Rectangular Hollow Section
-      areas['external_top'] = w * L / 1000000;
-      areas['external_bottom'] = w * L / 1000000;
-      areas['external_left'] = d * L / 1000000;
-      areas['external_right'] = d * L / 1000000;
-      areas['internal_top'] = (w - 2 * t) * L / 1000000;
-      areas['internal_bottom'] = (w - 2 * t) * L / 1000000;
-      areas['internal_left'] = (d - 2 * t) * L / 1000000;
-      areas['internal_right'] = (d - 2 * t) * L / 1000000;
+      areas['external_top'] = w / 1000;
+      areas['external_bottom'] = w / 1000;
+      areas['external_left'] = d / 1000;
+      areas['external_right'] = d / 1000;
+      areas['internal_top'] = (w - 2 * t) / 1000;
+      areas['internal_bottom'] = (w - 2 * t) / 1000;
+      areas['internal_left'] = (d - 2 * t) / 1000;
+      areas['internal_right'] = (d - 2 * t) / 1000;
     } else if (category.includes('chs') || category.includes('pipe')) {
       // Circular Hollow Section
       const outerDiameter = dimensions.outerDiameter || w || 0;
       const innerDiameter = outerDiameter - 2 * t;
-      areas['external_surface'] = Math.PI * outerDiameter * L / 1000000;
-      areas['internal_surface'] = Math.PI * innerDiameter * L / 1000000;
+      areas['external_surface'] = Math.PI * outerDiameter / 1000;
+      areas['internal_surface'] = Math.PI * innerDiameter / 1000;
     } else if (category.includes('angle')) {
       // Angle - L-shaped profile with 4 selectable surfaces
       const width1 = dimensions.width1 || w || 0;
