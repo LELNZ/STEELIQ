@@ -355,11 +355,18 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   };
 
   const getSurfaceOptions = () => {
-    return Object.entries(surfaceAreas).map(([key, area]) => ({
+    const allSurfaces = Object.entries(surfaceAreas).map(([key, area]) => ({
       id: key,
       label: formatSurfaceLabel(key),
       area: area
     }));
+    
+    // For hollow sections, only show external surfaces (internal surfaces are inaccessible)
+    if (isHollowSection()) {
+      return allSurfaces.filter(surface => surface.id.startsWith('external'));
+    }
+    
+    return allSurfaces;
   };
 
   const formatSurfaceLabel = (key: string) => {
@@ -1493,22 +1500,24 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                         Select All External
                       </Button>
                       
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const internalSurfaces = getSurfaceOptions()
-                            .filter(option => option.id.includes('internal'))
-                            .map(option => option.id);
-                          setSelectedSurfaces(prev => {
-                            const nonInternal = prev.filter(id => !id.includes('internal'));
-                            return [...nonInternal, ...internalSurfaces];
-                          });
-                        }}
-                        className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
-                      >
-                        Select All Internal
-                      </Button>
+                      {!isHollowSection() && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const internalSurfaces = getSurfaceOptions()
+                              .filter(option => option.id.includes('internal'))
+                              .map(option => option.id);
+                            setSelectedSurfaces(prev => {
+                              const nonInternal = prev.filter(id => !id.includes('internal'));
+                              return [...nonInternal, ...internalSurfaces];
+                            });
+                          }}
+                          className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                        >
+                          Select All Internal
+                        </Button>
+                      )}
                       
                       <Button
                         variant="outline"
