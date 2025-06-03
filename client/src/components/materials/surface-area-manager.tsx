@@ -308,13 +308,6 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   };
 
   const handleCalculate = () => {
-    // Debug logging for Flat material calculation
-    console.log('=== FLAT MATERIAL DEBUG ===');
-    console.log('Material:', material.name, material.code);
-    console.log('Category:', material.category);
-    console.log('Input dimensions:', dimensions);
-    console.log('Coating config:', coatingConfig);
-    
     // Use unified calculator for ALL materials for consistency
     const unifiedDimensions: MaterialDimensions = {
       width: dimensions.width || 0,
@@ -328,15 +321,11 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       width2: dimensions.width2 || 0
     };
     
-    console.log('Unified dimensions:', unifiedDimensions);
-    
     const result = calculateUnifiedSurfaceArea(
       material.category || '',
       unifiedDimensions,
       coatingConfig
     );
-    
-    console.log('Unified calculator result:', result);
     
     // Store the per-meter result for individual surface breakdown
     setCalculatedArea({
@@ -348,14 +337,13 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
     
     // Calculate individual surfaces for the 3D display and make them consistent with unified calculator
     const areas = calculateIndividualSurfaces();
-    console.log('Individual surfaces:', areas);
     setSurfaceAreas(areas);
     
     // Auto-select surfaces based on coating configuration to ensure consistency
-    const category = material.category?.toLowerCase() || '';
+    // For hollow sections, only external surfaces are selectable
     let autoSelectedSurfaces: string[] = [];
     
-    if (coatingConfig === 'external-only') {
+    if (coatingConfig === 'external-only' || isHollowSection()) {
       autoSelectedSurfaces = Object.keys(areas).filter(key => key.startsWith('external'));
     } else if (coatingConfig === 'internal-only') {
       autoSelectedSurfaces = Object.keys(areas).filter(key => key.startsWith('internal'));
@@ -363,9 +351,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       autoSelectedSurfaces = Object.keys(areas);
     }
     
-    console.log('Auto-selected surfaces:', autoSelectedSurfaces);
     setSelectedSurfaces(autoSelectedSurfaces);
-    console.log('=== END DEBUG ===');
   };
 
   const getSurfaceOptions = () => {
@@ -386,9 +372,6 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
     const selectedArea = selectedSurfaces.reduce((total, surfaceId) => {
       return total + (surfaceAreas[surfaceId] || 0);
     }, 0);
-    console.log('Green footer - Selected surfaces:', selectedSurfaces);
-    console.log('Green footer - Surface areas:', surfaceAreas);
-    console.log('Green footer - Selected area:', selectedArea);
     return selectedArea;
   };
 
