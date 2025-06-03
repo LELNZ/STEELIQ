@@ -1024,14 +1024,20 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           <div className="flex items-center gap-1">
                             <p className="text-sm font-medium text-blue-600">
                               {(() => {
-                                // Always calculate for angles to ensure consistency
-                                if (material.category && (material.width || material.width1)) {
+                                // Always calculate for consistency, handling round materials properly
+                                if (material.category && (material.width || material.width1 || material.diameter)) {
+                                  const isRoundMaterial = material.category.toLowerCase().includes('round') || 
+                                                         material.category.toLowerCase().includes('pipe') || 
+                                                         material.category.toLowerCase().includes('reinforc');
+                                  
                                   const dimensions = {
                                     width: material.width ? parseFloat(material.width) : (material.width1 ? parseFloat(material.width1.toString()) : 0),
                                     depth: material.depth ? parseFloat(material.depth) : (material.width2 ? parseFloat(material.width2.toString()) : (material.width ? parseFloat(material.width) : 0)),
                                     webThickness: material.webTw ? parseFloat(material.webTw.toString()) : (material.thickness ? parseFloat(material.thickness.toString()) : 0),
                                     flangeThickness: material.flangeTf ? parseFloat(material.flangeTf.toString()) : (material.thickness ? parseFloat(material.thickness.toString()) : 0),
                                     thickness: material.thickness ? parseFloat(material.thickness.toString()) : 0,
+                                    diameter: isRoundMaterial && material.diameter ? parseFloat(material.diameter.toString()) : undefined,
+                                    outerDiameter: isRoundMaterial && material.diameter ? parseFloat(material.diameter.toString()) : undefined,
                                     width1: material.width1 ? parseFloat(material.width1.toString()) : undefined,
                                     width2: material.width2 ? parseFloat(material.width2.toString()) : undefined
                                   };
