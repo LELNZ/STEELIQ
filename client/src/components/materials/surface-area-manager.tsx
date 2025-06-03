@@ -314,9 +314,23 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       breakdown: result.details || {}
     });
     
-    // Also calculate individual surfaces for the 3D display
+    // Calculate individual surfaces for the 3D display and make them consistent with unified calculator
     const areas = calculateIndividualSurfaces();
     setSurfaceAreas(areas);
+    
+    // Auto-select surfaces based on coating configuration to ensure consistency
+    const category = material.category?.toLowerCase() || '';
+    let autoSelectedSurfaces: string[] = [];
+    
+    if (coatingConfig === 'external-only') {
+      autoSelectedSurfaces = Object.keys(areas).filter(key => key.startsWith('external'));
+    } else if (coatingConfig === 'internal-only') {
+      autoSelectedSurfaces = Object.keys(areas).filter(key => key.startsWith('internal'));
+    } else if (coatingConfig === 'external-internal') {
+      autoSelectedSurfaces = Object.keys(areas);
+    }
+    
+    setSelectedSurfaces(autoSelectedSurfaces);
   };
 
   const getSurfaceOptions = () => {
