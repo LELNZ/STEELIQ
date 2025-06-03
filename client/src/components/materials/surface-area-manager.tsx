@@ -8,7 +8,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Image, CheckSquare, Percent, ChevronDown, ChevronUp } from "lucide-react";
-import { calculateSurfaceArea, calculateSquareBarArea, type SteelDimensions, type SurfaceAreaResult } from "@/lib/surface-area-calculator";
 import { calculateMaterialSurfaceArea as calculateUnifiedSurfaceArea, type MaterialDimensions } from "@/lib/unified-surface-area-calculator";
 import type { Material } from "@shared/schema";
 
@@ -36,7 +35,7 @@ interface SurfaceAreaManagerProps {
 }
 
 export default function SurfaceAreaManager({ material, onSave, onClose }: SurfaceAreaManagerProps) {
-  const [dimensions, setDimensions] = useState<SteelDimensions>(() => {
+  const [dimensions, setDimensions] = useState<MaterialDimensions>(() => {
     const category = material.category?.toLowerCase() || '';
     const width = material.width ? Number(material.width) : undefined;
     
@@ -55,7 +54,12 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   });
   
   const [length, setLength] = useState(1000); // Default 1000mm (1 meter)
-  const [calculatedArea, setCalculatedArea] = useState<SurfaceAreaResult | null>(null);
+  const [calculatedArea, setCalculatedArea] = useState<{
+    externalArea: number;
+    internalArea: number;
+    totalArea: number;
+    breakdown: Record<string, number>;
+  } | null>(null);
   const [selectedSurfaces, setSelectedSurfaces] = useState<string[]>([]);
   const [calculationMethod, setCalculationMethod] = useState<"3d" | "checklist" | "percentage">("3d");
   const [percentageOverride, setPercentageOverride] = useState("100");
@@ -147,7 +151,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
     }, 100);
   };
 
-  const handleDimensionChange = (field: keyof SteelDimensions, value: string) => {
+  const handleDimensionChange = (field: keyof MaterialDimensions, value: string) => {
     const numValue = value === "" ? undefined : parseFloat(value);
     setDimensions(prev => ({
       ...prev,

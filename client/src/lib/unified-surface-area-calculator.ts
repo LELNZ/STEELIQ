@@ -5,15 +5,17 @@
  */
 
 export interface MaterialDimensions {
-  width: number;
-  depth: number;
-  webThickness: number;
-  flangeThickness: number;
+  width?: number;
+  depth?: number;
+  webThickness?: number;
+  flangeThickness?: number;
   outerDiameter?: number;
   diameter?: number; // Alternative name for diameter
   thickness?: number;
   width1?: number; // For unequal angles
   width2?: number; // For unequal angles
+  height?: number; // Legacy compatibility
+  flangeWidth?: number; // Legacy compatibility
 }
 
 export interface SurfaceAreaBreakdown {
@@ -109,7 +111,7 @@ export function calculateChannelArea(
   dimensions: MaterialDimensions,
   coatingType: 'external-only' | 'internal-only' | 'external-internal'
 ): SurfaceAreaBreakdown {
-  const { width, depth, webThickness, flangeThickness } = dimensions;
+  const { width = 0, depth = 0, webThickness = 0, flangeThickness = 0 } = dimensions;
   
   // External surfaces: exactly as calculated in surface-area-manager.tsx
   const externalFlangeTop = width; // Full flange width per meter
