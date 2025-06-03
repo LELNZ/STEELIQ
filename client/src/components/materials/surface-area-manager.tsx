@@ -384,34 +384,69 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
           {/* Coating Configuration */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-base font-medium">Surface Area per Meter (m²/m)</Label>
-                <div className="text-lg font-bold text-primary">
-                  {(() => {
-                    const category = material.category?.toLowerCase() || '';
-                    // For round materials, show the unified calculation result
-                    if (category.includes('round') || category.includes('pipe') || category.includes('reinforc')) {
-                      const unifiedDimensions: MaterialDimensions = {
-                        width: dimensions.width || 0,
-                        depth: dimensions.depth || 0,
-                        webThickness: dimensions.webThickness || 0,
-                        flangeThickness: dimensions.flangeThickness || 0,
-                        diameter: dimensions.outerDiameter || 0,
-                        outerDiameter: dimensions.outerDiameter || 0,
-                        thickness: dimensions.thickness || 0
-                      };
-                      
-                      const result = calculateUnifiedSurfaceArea(
-                        material.category || '',
-                        unifiedDimensions,
-                        coatingConfig
-                      );
-                      
-                      return result.total.toFixed(3);
-                    }
-                    // For other materials, use selected surfaces
-                    return getSelectedArea().toFixed(3);
-                  })()}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <Label className="text-base font-medium">Surface Area per Meter (m²/m)</Label>
+                  <div className="text-lg font-bold text-primary">
+                    {(() => {
+                      const category = material.category?.toLowerCase() || '';
+                      // For round materials, show the unified calculation result
+                      if (category.includes('round') || category.includes('pipe') || category.includes('reinforc')) {
+                        const unifiedDimensions: MaterialDimensions = {
+                          width: dimensions.width || 0,
+                          depth: dimensions.depth || 0,
+                          webThickness: dimensions.webThickness || 0,
+                          flangeThickness: dimensions.flangeThickness || 0,
+                          diameter: dimensions.outerDiameter || 0,
+                          outerDiameter: dimensions.outerDiameter || 0,
+                          thickness: dimensions.thickness || 0
+                        };
+                        
+                        const result = calculateUnifiedSurfaceArea(
+                          material.category || '',
+                          unifiedDimensions,
+                          coatingConfig
+                        );
+                        
+                        return result.total.toFixed(3);
+                      }
+                      // For other materials, use selected surfaces
+                      return getSelectedArea().toFixed(3);
+                    })()}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-base font-medium">Total Surface Area for {length}mm</Label>
+                  <div className="text-lg font-bold text-green-600">
+                    {(() => {
+                      const category = material.category?.toLowerCase() || '';
+                      // For round materials, calculate total area
+                      if (category.includes('round') || category.includes('pipe') || category.includes('reinforc')) {
+                        const unifiedDimensions: MaterialDimensions = {
+                          width: dimensions.width || 0,
+                          depth: dimensions.depth || 0,
+                          webThickness: dimensions.webThickness || 0,
+                          flangeThickness: dimensions.flangeThickness || 0,
+                          diameter: dimensions.outerDiameter || 0,
+                          outerDiameter: dimensions.outerDiameter || 0,
+                          thickness: dimensions.thickness || 0
+                        };
+                        
+                        const result = calculateUnifiedSurfaceArea(
+                          material.category || '',
+                          unifiedDimensions,
+                          coatingConfig
+                        );
+                        
+                        const totalArea = result.total * (length / 1000);
+                        return totalArea.toFixed(3);
+                      }
+                      // For other materials, use selected surfaces
+                      const perMeterArea = getSelectedArea();
+                      const totalArea = perMeterArea * (length / 1000);
+                      return totalArea.toFixed(3);
+                    })()} m²
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">
