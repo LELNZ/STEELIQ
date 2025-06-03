@@ -247,12 +247,20 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       areas['internal_bottom'] = (w - 2 * t) / 1000;
       areas['internal_left'] = (d - 2 * t) / 1000;
       areas['internal_right'] = (d - 2 * t) / 1000;
-    } else if (category.includes('chs') || category.includes('pipe')) {
-      // Circular Hollow Section
+    } else if (category.includes('chs') || category.includes('pipe') || category.includes('round') || category.includes('tube')) {
+      // Circular sections - both hollow and solid
       const outerDiameter = dimensions.outerDiameter || w || 0;
-      const innerDiameter = outerDiameter - 2 * t;
+      
+      // External surface (always present)
       areas['external_surface'] = Math.PI * outerDiameter / 1000;
-      areas['internal_surface'] = Math.PI * innerDiameter / 1000;
+      
+      // Internal surface (only for hollow sections with thickness)
+      if (t && t > 0) {
+        const innerDiameter = outerDiameter - 2 * t;
+        if (innerDiameter > 0) {
+          areas['internal_surface'] = Math.PI * innerDiameter / 1000;
+        }
+      }
     } else if (category.includes('angle')) {
       // Angle - L-shaped profile with 4 selectable surfaces
       const width1 = dimensions.width1 || w || 0;
@@ -262,6 +270,10 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       areas['external_leg_2'] = width2 / 1000;
       areas['internal_leg_1'] = (width1 - t) / 1000;
       areas['internal_leg_2'] = (width2 - t) / 1000;
+    } else if (category.includes('round') && !category.includes('pipe') && !category.includes('hollow')) {
+      // Solid Round Bar - only external surface
+      const diameter = dimensions.outerDiameter || w || 0;
+      areas['external_surface'] = Math.PI * diameter / 1000;
     } else if (category.includes('flat') || category.includes('plate')) {
       // Flat bar/plate
       areas['external_top'] = w / 1000;
@@ -1211,33 +1223,107 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                     </div>
                   )}
                   
+                  {/* Solid Round Bar */}
+                  {(material.category?.toLowerCase().includes('round') && 
+                    !material.category?.toLowerCase().includes('pipe') && 
+                    !material.category?.toLowerCase().includes('hollow')) && (
+                    <div className="space-y-4">
+                      <div className="flex justify-center p-8 bg-white dark:bg-gray-900 rounded-lg border">
+                        <svg width="280" height="180" viewBox="0 0 280 180" className="drop-shadow-sm">
+                          {/* Solid Round Bar Profile */}
+                          <circle cx="140" cy="90" r="50"
+                            fill={selectedSurfaces.includes("external_surface") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_surface") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="3"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_surface")} />
+                          
+                          {/* Dimension line */}
+                          <line x1="90" y1="90" x2="190" y2="90" stroke="#6b7280" strokeWidth="1" strokeDasharray="2,2" />
+                          <text x="140" y="108" textAnchor="middle" className="text-xs font-medium fill-gray-700">
+                            External Surface
+                          </text>
+                          <text x="140" y="125" textAnchor="middle" className="text-xs fill-gray-500">
+                            ⌀{dimensions.outerDiameter || dimensions.width}mm
+                          </text>
+                          
+                          <text x="140" y="155" textAnchor="middle" className="text-xs font-semibold fill-gray-800">
+                            Round Bar
+                          </text>
+                          
+                          <text x="140" y="170" textAnchor="middle" className="text-xs fill-gray-500">
+                            ⌀{dimensions.outerDiameter || dimensions.width}mm × {length}mm
+                          </text>
+                        </svg>
+                      </div>
+                      
+                      <div className="flex justify-center space-x-6 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-blue-500 rounded border"></div>
+                          <span>External</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-gray-200 rounded border"></div>
+                          <span>Unselected</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Circular Hollow Section (CHS) */}
                   {(material.category?.toLowerCase().includes('chs') || material.category?.toLowerCase().includes('pipe')) && (
-                    <div className="flex justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <svg width="300" height="200" viewBox="0 0 300 200" className="border rounded">
-                        <rect width="300" height="200" fill="white" />
-                        
-                        {/* External Circle */}
-                        <circle cx="150" cy="100" r="60"
-                          fill={selectedSurfaces.includes("external_surface") ? "#3b82f6" : "#e5e7eb"}
-                          stroke="#374151" strokeWidth="3"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("external_surface")} />
-                        
-                        {/* Internal Circle */}
-                        <circle cx="150" cy="100" r="45"
-                          fill={selectedSurfaces.includes("internal_surface") ? "#10b981" : "#f3f4f6"}
-                          stroke="#374151" strokeWidth="2"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => toggleSurface("internal_surface")} />
-                        
-                        <text x="150" y="75" textAnchor="middle" className="text-xs font-medium">External Surface</text>
-                        <text x="150" y="100" textAnchor="middle" className="text-xs font-medium">Internal Surface</text>
-                        
-                        <text x="150" y="180" textAnchor="middle" className="text-xs text-gray-600">
-                          CHS: ⌀{dimensions.outerDiameter || dimensions.width}mm × {dimensions.thickness}mm × {length}mm
-                        </text>
-                      </svg>
+                    <div className="space-y-4">
+                      <div className="flex justify-center p-8 bg-white dark:bg-gray-900 rounded-lg border">
+                        <svg width="280" height="180" viewBox="0 0 280 180" className="drop-shadow-sm">
+                          <defs>
+                            <pattern id="chs-hatch" patternUnits="userSpaceOnUse" width="4" height="4">
+                              <path d="M 0,4 l 4,-4 M -1,1 l 2,-2 M 3,5 l 2,-2" stroke="#9ca3af" strokeWidth="0.5"/>
+                            </pattern>
+                          </defs>
+                          
+                          {/* External Circle */}
+                          <circle cx="140" cy="90" r="55"
+                            fill={selectedSurfaces.includes("external_surface") ? "#3b82f6" : "#f3f4f6"}
+                            stroke={selectedSurfaces.includes("external_surface") ? "#1d4ed8" : "#d1d5db"} 
+                            strokeWidth="3"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("external_surface")} />
+                          
+                          {/* Internal Circle */}
+                          <circle cx="140" cy="90" r="40"
+                            fill={selectedSurfaces.includes("internal_surface") ? "#10b981" : "url(#chs-hatch)"}
+                            stroke={selectedSurfaces.includes("internal_surface") ? "#059669" : "#9ca3af"} 
+                            strokeWidth="2"
+                            className="cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={() => toggleSurface("internal_surface")} />
+                          
+                          <text x="140" y="75" textAnchor="middle" className="text-xs font-medium fill-gray-700">External Surface</text>
+                          <text x="140" y="90" textAnchor="middle" className="text-xs font-medium fill-gray-700">Internal Surface</text>
+                          
+                          <text x="140" y="155" textAnchor="middle" className="text-xs font-semibold fill-gray-800">
+                            CHS / Pipe
+                          </text>
+                          
+                          <text x="140" y="170" textAnchor="middle" className="text-xs fill-gray-500">
+                            ⌀{dimensions.outerDiameter || dimensions.width}mm × {dimensions.thickness}mm × {length}mm
+                          </text>
+                        </svg>
+                      </div>
+                      
+                      <div className="flex justify-center space-x-6 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-blue-500 rounded border"></div>
+                          <span>External</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-green-500 rounded border"></div>
+                          <span>Internal</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-gray-200 rounded border"></div>
+                          <span>Unselected</span>
+                        </div>
+                      </div>
                     </div>
                   )}
                   
