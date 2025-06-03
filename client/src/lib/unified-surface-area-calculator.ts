@@ -103,7 +103,7 @@ export function calculateUniversalSectionArea(
 }
 
 /**
- * Calculate Channel surface area using exact geometry
+ * Calculate Channel surface area using exact geometry - MATCHES surface-area-manager.tsx logic
  */
 export function calculateChannelArea(
   dimensions: MaterialDimensions,
@@ -111,15 +111,19 @@ export function calculateChannelArea(
 ): SurfaceAreaBreakdown {
   const { width, depth, webThickness, flangeThickness } = dimensions;
   
-  // External surfaces: web + 2 flanges
-  const externalWeb = depth;
-  const externalFlanges = 2 * width;
-  const externalTotal = externalWeb + externalFlanges;
+  // External surfaces: exactly as calculated in surface-area-manager.tsx
+  const externalFlangeTop = width; // Full flange width per meter
+  const externalFlangeBottom = width; // Full flange width per meter  
+  const externalWeb = depth; // Full web depth per meter
+  const externalTotal = externalFlangeTop + externalFlangeBottom + externalWeb;
   
-  // Internal surfaces: reduced dimensions
-  const internalFlangeWidth = width - webThickness;
-  const internalWebDepth = depth - (2 * flangeThickness);
-  const internalTotal = internalWebDepth + (2 * internalFlangeWidth);
+  // Internal surfaces: exactly as calculated in surface-area-manager.tsx
+  const internalFlangeWidth = width - webThickness; // Flange width minus web thickness
+  const internalWebDepth = depth - (2 * flangeThickness); // Web depth minus both flange thicknesses
+  const internalFlangeTop = internalFlangeWidth;
+  const internalFlangeBottom = internalFlangeWidth;
+  const internalWeb = internalWebDepth;
+  const internalTotal = internalFlangeTop + internalFlangeBottom + internalWeb;
   
   let external = 0;
   let internal = 0;
