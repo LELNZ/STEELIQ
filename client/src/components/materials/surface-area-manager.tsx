@@ -180,8 +180,9 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       areas['external_web'] = d / 1000; // Full web depth per meter
       
       // Internal surfaces (3) - calculated using actual geometry
-      // Internal flanges: flange width minus web thickness (as specified)
-      const internalFlangeWidth = w - webThickness;
+      // Internal flanges: flange width minus web thickness (use same value as unified calculator)
+      const actualWebThickness = dimensions.webThickness || t || 0;
+      const internalFlangeWidth = w - actualWebThickness;
       
       // Internal web: web depth minus both flange thicknesses
       const internalWebDepth = d - (2 * flangeThickness);
