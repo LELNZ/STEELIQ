@@ -275,55 +275,36 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   };
 
   const handleCalculate = () => {
-    const category = material.category?.toLowerCase() || '';
+    // Use unified calculator for ALL materials for consistency
+    const unifiedDimensions: MaterialDimensions = {
+      width: dimensions.width || 0,
+      depth: dimensions.depth || 0,
+      webThickness: dimensions.webThickness || 0,
+      flangeThickness: dimensions.flangeThickness || 0,
+      diameter: dimensions.outerDiameter || 0,
+      outerDiameter: dimensions.outerDiameter || 0,
+      thickness: dimensions.thickness || 0,
+      width1: dimensions.width1 || 0,
+      width2: dimensions.width2 || 0
+    };
     
-    // For round materials, use the unified calculator for consistency
-    if (category.includes('round') || category.includes('pipe') || category.includes('reinforc')) {
-      const unifiedDimensions: MaterialDimensions = {
-        width: dimensions.width || 0,
-        depth: dimensions.depth || 0,
-        webThickness: dimensions.webThickness || 0,
-        flangeThickness: dimensions.flangeThickness || 0,
-        diameter: dimensions.outerDiameter || 0,
-        outerDiameter: dimensions.outerDiameter || 0,
-        thickness: dimensions.thickness || 0
-      };
-      
-      console.log('Round material calculation:', {
-        category: material.category,
-        dimensions: unifiedDimensions,
-        coatingConfig
-      });
-      
-      const result = calculateUnifiedSurfaceArea(
-        material.category || '',
-        unifiedDimensions,
-        coatingConfig
-      );
-      
-      console.log('Calculation result:', result);
-      
-      // Convert m²/m to actual area for the specified length
-      const totalAreaForLength = result.total * (length / 1000);
-      
-      setCalculatedArea({
-        externalArea: totalAreaForLength,
-        internalArea: 0,
-        totalArea: totalAreaForLength,
-        breakdown: {}
-      });
-      
-    } else {
-      // For other materials, use the existing individual surfaces calculation
-      const areas = calculateIndividualSurfaces();
-      const total = Object.values(areas).reduce((sum, area) => sum + area, 0);
-      setCalculatedArea({
-        externalArea: total,
-        internalArea: 0,
-        totalArea: total,
-        breakdown: {}
-      });
-    }
+    const result = calculateUnifiedSurfaceArea(
+      material.category || '',
+      unifiedDimensions,
+      coatingConfig
+    );
+    
+    // Store the per-meter result for individual surface breakdown
+    setCalculatedArea({
+      externalArea: result.external,
+      internalArea: result.internal,
+      totalArea: result.total,
+      breakdown: result.details || {}
+    });
+    
+    // Also calculate individual surfaces for the 3D display
+    const areas = calculateIndividualSurfaces();
+    setSurfaceAreas(areas);
   };
 
   const getSurfaceOptions = () => {
@@ -388,31 +369,26 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                 <Label className="text-base font-medium">Surface Area for {length}mm length</Label>
                 <div className="text-lg font-bold text-primary">
                   {(() => {
-                    const category = material.category?.toLowerCase() || '';
-                    // For round materials, show the unified calculation result multiplied by length
-                    if (category.includes('round') || category.includes('pipe') || category.includes('reinforc')) {
-                      const unifiedDimensions: MaterialDimensions = {
-                        width: dimensions.width || 0,
-                        depth: dimensions.depth || 0,
-                        webThickness: dimensions.webThickness || 0,
-                        flangeThickness: dimensions.flangeThickness || 0,
-                        diameter: dimensions.outerDiameter || 0,
-                        outerDiameter: dimensions.outerDiameter || 0,
-                        thickness: dimensions.thickness || 0
-                      };
-                      
-                      const result = calculateUnifiedSurfaceArea(
-                        material.category || '',
-                        unifiedDimensions,
-                        coatingConfig
-                      );
-                      
-                      const totalArea = result.total * (length / 1000);
-                      return totalArea.toFixed(3);
-                    }
-                    // For other materials, use selected surfaces multiplied by length
-                    const perMeterArea = getSelectedArea();
-                    const totalArea = perMeterArea * (length / 1000);
+                    // Use unified calculator for ALL materials
+                    const unifiedDimensions: MaterialDimensions = {
+                      width: dimensions.width || 0,
+                      depth: dimensions.depth || 0,
+                      webThickness: dimensions.webThickness || 0,
+                      flangeThickness: dimensions.flangeThickness || 0,
+                      diameter: dimensions.outerDiameter || 0,
+                      outerDiameter: dimensions.outerDiameter || 0,
+                      thickness: dimensions.thickness || 0,
+                      width1: dimensions.width1 || 0,
+                      width2: dimensions.width2 || 0
+                    };
+                    
+                    const result = calculateUnifiedSurfaceArea(
+                      material.category || '',
+                      unifiedDimensions,
+                      coatingConfig
+                    );
+                    
+                    const totalArea = result.total * (length / 1000);
                     return totalArea.toFixed(3);
                   })()} m²
                 </div>
@@ -1648,31 +1624,26 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
               <div className="text-sm text-muted-foreground">Selected Surface Area for {length}mm</div>
               <div className="text-xl font-bold text-green-600 dark:text-green-400">
                 {(() => {
-                  const category = material.category?.toLowerCase() || '';
-                  // For round materials, show the unified calculation result multiplied by length
-                  if (category.includes('round') || category.includes('pipe') || category.includes('reinforc')) {
-                    const unifiedDimensions: MaterialDimensions = {
-                      width: dimensions.width || 0,
-                      depth: dimensions.depth || 0,
-                      webThickness: dimensions.webThickness || 0,
-                      flangeThickness: dimensions.flangeThickness || 0,
-                      diameter: dimensions.outerDiameter || 0,
-                      outerDiameter: dimensions.outerDiameter || 0,
-                      thickness: dimensions.thickness || 0
-                    };
-                    
-                    const result = calculateUnifiedSurfaceArea(
-                      material.category || '',
-                      unifiedDimensions,
-                      coatingConfig
-                    );
-                    
-                    const totalArea = result.total * (length / 1000);
-                    return totalArea.toFixed(3);
-                  }
-                  // For other materials, use selected surfaces multiplied by length
-                  const perMeterArea = getSelectedArea();
-                  const totalArea = perMeterArea * (length / 1000);
+                  // Use unified calculator for ALL materials
+                  const unifiedDimensions: MaterialDimensions = {
+                    width: dimensions.width || 0,
+                    depth: dimensions.depth || 0,
+                    webThickness: dimensions.webThickness || 0,
+                    flangeThickness: dimensions.flangeThickness || 0,
+                    diameter: dimensions.outerDiameter || 0,
+                    outerDiameter: dimensions.outerDiameter || 0,
+                    thickness: dimensions.thickness || 0,
+                    width1: dimensions.width1 || 0,
+                    width2: dimensions.width2 || 0
+                  };
+                  
+                  const result = calculateUnifiedSurfaceArea(
+                    material.category || '',
+                    unifiedDimensions,
+                    coatingConfig
+                  );
+                  
+                  const totalArea = result.total * (length / 1000);
                   return totalArea.toFixed(3);
                 })()} m²
               </div>
@@ -1684,31 +1655,26 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
               <div className="text-sm text-muted-foreground">Total Selected Surface Area for {length}mm</div>
               <div className="text-xl font-bold text-green-600 dark:text-green-400">
                 {(() => {
-                  const category = material.category?.toLowerCase() || '';
-                  // For round materials, show the unified calculation result multiplied by length
-                  if (category.includes('round') || category.includes('pipe') || category.includes('reinforc')) {
-                    const unifiedDimensions: MaterialDimensions = {
-                      width: dimensions.width || 0,
-                      depth: dimensions.depth || 0,
-                      webThickness: dimensions.webThickness || 0,
-                      flangeThickness: dimensions.flangeThickness || 0,
-                      diameter: dimensions.outerDiameter || 0,
-                      outerDiameter: dimensions.outerDiameter || 0,
-                      thickness: dimensions.thickness || 0
-                    };
-                    
-                    const result = calculateUnifiedSurfaceArea(
-                      material.category || '',
-                      unifiedDimensions,
-                      coatingConfig
-                    );
-                    
-                    const totalArea = result.total * (length / 1000);
-                    return totalArea.toFixed(3);
-                  }
-                  // For other materials, use selected surfaces multiplied by length
-                  const perMeterArea = getSelectedArea();
-                  const totalArea = perMeterArea * (length / 1000);
+                  // Use unified calculator for ALL materials
+                  const unifiedDimensions: MaterialDimensions = {
+                    width: dimensions.width || 0,
+                    depth: dimensions.depth || 0,
+                    webThickness: dimensions.webThickness || 0,
+                    flangeThickness: dimensions.flangeThickness || 0,
+                    diameter: dimensions.outerDiameter || 0,
+                    outerDiameter: dimensions.outerDiameter || 0,
+                    thickness: dimensions.thickness || 0,
+                    width1: dimensions.width1 || 0,
+                    width2: dimensions.width2 || 0
+                  };
+                  
+                  const result = calculateUnifiedSurfaceArea(
+                    material.category || '',
+                    unifiedDimensions,
+                    coatingConfig
+                  );
+                  
+                  const totalArea = result.total * (length / 1000);
                   return totalArea.toFixed(3);
                 })()} m²
               </div>
