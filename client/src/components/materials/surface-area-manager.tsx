@@ -63,7 +63,23 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   const [selectedSurfaces, setSelectedSurfaces] = useState<string[]>([]);
   const [calculationMethod, setCalculationMethod] = useState<"3d" | "checklist" | "percentage">("3d");
   const [percentageOverride, setPercentageOverride] = useState("100");
-  const [coatingConfig, setCoatingConfig] = useState<"external-only" | "internal-only" | "external-internal">("external-internal");
+  // Check if material is a hollow section (internal surfaces are inaccessible for coating)
+  const isHollowSection = () => {
+    const category = material.category?.toLowerCase() || '';
+    return category.includes('shs') || 
+           category.includes('rhs') || 
+           category.includes('hollow') ||
+           category.includes('cattle') || 
+           category.includes('chs') || 
+           category.includes('pipe') || 
+           category.includes('tube') || 
+           category.includes('seamless') ||
+           category.includes('round');
+  };
+
+  const [coatingConfig, setCoatingConfig] = useState<"external-only" | "internal-only" | "external-internal">(
+    isHollowSection() ? "external-only" : "external-internal"
+  );
 
   // Individual surface areas for detailed breakdown
   const [surfaceAreas, setSurfaceAreas] = useState<Record<string, number>>({});
@@ -450,8 +466,8 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="external-only">External Only</SelectItem>
-                    <SelectItem value="internal-only">Internal Only</SelectItem>
-                    <SelectItem value="external-internal">External + Internal</SelectItem>
+                    {!isHollowSection() && <SelectItem value="internal-only">Internal Only</SelectItem>}
+                    {!isHollowSection() && <SelectItem value="external-internal">External + Internal</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>

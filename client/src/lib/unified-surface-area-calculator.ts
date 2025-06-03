@@ -162,30 +162,18 @@ export function calculateHollowSectionArea(
   // External: 4 sides (or 2 × width + 2 × depth for RHS)
   const externalPerimeter = 2 * (width + (depth || width));
   
-  // Internal: reduced by wall thickness
-  const internalWidth = width - (2 * (thickness || 0));
-  const internalDepth = (depth || width) - (2 * (thickness || 0));
-  const internalPerimeter = 2 * (internalWidth + internalDepth);
-  
-  let external = 0;
-  let internal = 0;
-  
-  if (coatingType === 'external-only') {
-    external = externalPerimeter;
-  } else if (coatingType === 'internal-only') {
-    internal = internalPerimeter;
-  } else if (coatingType === 'external-internal') {
-    external = externalPerimeter;
-    internal = internalPerimeter;
-  }
+  // For hollow sections, internal surfaces are inaccessible for coating
+  // Only external surfaces are calculated
+  const external = externalPerimeter;
+  const internal = 0; // Always 0 for hollow sections
   
   return {
     external: external / 1000,
-    internal: internal / 1000,
-    total: (external + internal) / 1000,
+    internal: 0, // Internal surfaces are inaccessible
+    total: external / 1000,
     details: {
-      externalSurfaces: externalPerimeter / 1000,
-      internalSurfaces: internalPerimeter / 1000
+      externalSurfaces: external / 1000,
+      internalSurfaces: 0
     }
   };
 }
@@ -405,34 +393,18 @@ export function calculateRoundArea(
   // External surface: π × diameter (mm per meter)
   const externalSurface = Math.PI * effectiveDiameter; // mm per meter
   
-  // Internal surface for pipes (if thickness is specified)
-  let internalSurface = 0;
-  if (thickness && thickness > 0) {
-    const innerDiameter = effectiveDiameter - (2 * thickness);
-    if (innerDiameter > 0) {
-      internalSurface = Math.PI * innerDiameter; // mm per meter
-    }
-  }
-  
-  let external = 0;
-  let internal = 0;
-  
-  if (coatingType === 'external-only') {
-    external = externalSurface;
-  } else if (coatingType === 'internal-only') {
-    internal = internalSurface;
-  } else if (coatingType === 'external-internal') {
-    external = externalSurface;
-    internal = internalSurface;
-  }
+  // For round hollow sections/pipes, internal surfaces are inaccessible for coating
+  // Only external surfaces are calculated
+  const external = externalSurface;
+  const internal = 0; // Always 0 for round hollow sections
   
   return {
     external: external / 1000,
-    internal: internal / 1000,
-    total: (external + internal) / 1000,
+    internal: 0, // Internal surfaces are inaccessible
+    total: external / 1000,
     details: {
-      outerSurface: externalSurface / 1000,
-      innerSurface: internalSurface / 1000
+      outerSurface: external / 1000,
+      innerSurface: 0
     }
   };
 }
