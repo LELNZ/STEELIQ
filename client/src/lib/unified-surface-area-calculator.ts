@@ -453,14 +453,14 @@ export function calculateMaterialSurfaceArea(
     return calculateUniversalSectionArea(dimensions, coatingType);
   } else if (categoryLower.includes('rhs') || categoryLower.includes('shs') || categoryLower.includes('hollow')) {
     return calculateHollowSectionArea(dimensions, coatingType);
+  } else if (categoryLower.includes('flat') || categoryLower.includes('plate')) {
+    return calculateFlatPlateArea(dimensions, coatingType);
   } else if (categoryLower.includes('unequal') && categoryLower.includes('angle')) {
     return calculateUnequalAngleArea(dimensions, coatingType);
   } else if (categoryLower.includes('angle') || categoryLower.includes('duragal')) {
     return calculateEqualAngleArea(dimensions, coatingType);
   } else if (categoryLower.includes('square') || categoryLower.includes('sq ')) {
     return calculateSquareBarArea(dimensions, coatingType);
-  } else if (categoryLower.includes('flat') || categoryLower.includes('plate')) {
-    return calculateFlatPlateArea(dimensions, coatingType);
   } else if (categoryLower.includes('round') || categoryLower.includes('pipe') || categoryLower.includes('tube')) {
     return calculateRoundArea(dimensions, coatingType);
   } else {
