@@ -291,6 +291,13 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   };
 
   const handleCalculate = () => {
+    // Debug logging for Channel calculation
+    console.log('=== SURFACE AREA CALCULATION DEBUG ===');
+    console.log('Material:', material.name, material.code);
+    console.log('Category:', material.category);
+    console.log('Input dimensions:', dimensions);
+    console.log('Coating config:', coatingConfig);
+    
     // Use unified calculator for ALL materials for consistency
     const unifiedDimensions: MaterialDimensions = {
       width: dimensions.width || 0,
@@ -304,11 +311,15 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       width2: dimensions.width2 || 0
     };
     
+    console.log('Unified dimensions:', unifiedDimensions);
+    
     const result = calculateUnifiedSurfaceArea(
       material.category || '',
       unifiedDimensions,
       coatingConfig
     );
+    
+    console.log('Unified calculator result:', result);
     
     // Store the per-meter result for individual surface breakdown
     setCalculatedArea({
@@ -320,6 +331,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
     
     // Calculate individual surfaces for the 3D display and make them consistent with unified calculator
     const areas = calculateIndividualSurfaces();
+    console.log('Individual surfaces:', areas);
     setSurfaceAreas(areas);
     
     // Auto-select surfaces based on coating configuration to ensure consistency
@@ -334,7 +346,9 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
       autoSelectedSurfaces = Object.keys(areas);
     }
     
+    console.log('Auto-selected surfaces:', autoSelectedSurfaces);
     setSelectedSurfaces(autoSelectedSurfaces);
+    console.log('=== END DEBUG ===');
   };
 
   const getSurfaceOptions = () => {
@@ -352,9 +366,13 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   };
 
   const getSelectedArea = () => {
-    return selectedSurfaces.reduce((total, surfaceId) => {
+    const selectedArea = selectedSurfaces.reduce((total, surfaceId) => {
       return total + (surfaceAreas[surfaceId] || 0);
     }, 0);
+    console.log('Green footer calculation - Selected surfaces:', selectedSurfaces);
+    console.log('Green footer calculation - Surface areas:', surfaceAreas);
+    console.log('Green footer calculation - Selected area:', selectedArea);
+    return selectedArea;
   };
 
   const toggleSurface = (surfaceId: string) => {
