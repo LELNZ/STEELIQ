@@ -42,6 +42,9 @@ export interface SurfaceAreaBreakdown {
     // Round/pipe specific surfaces
     outerSurface?: number;
     innerSurface?: number;
+    // Square bar specific surfaces
+    leftSurface?: number;
+    rightSurface?: number;
   };
 }
 
@@ -279,6 +282,55 @@ export function calculateUnequalAngleArea(
 }
 
 /**
+ * Calculate Square Bar surface area
+ * For square bars: 4 sides of equal width per meter length
+ */
+export function calculateSquareBarArea(
+  dimensions: MaterialDimensions,
+  coatingType: 'external-only' | 'internal-only' | 'external-internal'
+): SurfaceAreaBreakdown {
+  const { width, depth } = dimensions;
+  
+  // For square bars, use width as the side dimension
+  // If depth is not provided, assume it equals width (true square)
+  const sideWidth = width;
+  const sideDepth = depth || width;
+  
+  if (!sideWidth) {
+    return { external: 0, internal: 0, total: 0, details: {} };
+  }
+  
+  // For square bars per meter:
+  // 4 sides = 2 * (width + depth) per meter length
+  const perimeter = 2 * (sideWidth + sideDepth); // mm per meter
+  
+  let external = 0;
+  let internal = 0;
+  
+  if (coatingType === 'external-only') {
+    external = perimeter;
+  } else if (coatingType === 'internal-only') {
+    // Solid square bars have no internal surfaces
+    internal = 0;
+  } else if (coatingType === 'external-internal') {
+    external = perimeter;
+    internal = 0; // Solid square bars have no internal surfaces
+  }
+  
+  return {
+    external: external / 1000,
+    internal: internal / 1000,
+    total: (external + internal) / 1000,
+    details: {
+      topSurface: sideWidth / 1000,
+      bottomSurface: sideWidth / 1000,
+      leftSurface: sideDepth / 1000,
+      rightSurface: sideDepth / 1000
+    }
+  };
+}
+
+/**
  * Calculate Flat/Plate surface area 
  * For flat materials: top surface + bottom surface + edges
  */
@@ -399,6 +451,8 @@ export function calculateMaterialSurfaceArea(
     return calculateUnequalAngleArea(dimensions, coatingType);
   } else if (categoryLower.includes('angle') || categoryLower.includes('duragal')) {
     return calculateEqualAngleArea(dimensions, coatingType);
+  } else if (categoryLower.includes('square') || categoryLower.includes('sq ')) {
+    return calculateSquareBarArea(dimensions, coatingType);
   } else if (categoryLower.includes('flat') || categoryLower.includes('plate')) {
     return calculateFlatPlateArea(dimensions, coatingType);
   } else if (categoryLower.includes('round') || categoryLower.includes('pipe') || categoryLower.includes('tube')) {
