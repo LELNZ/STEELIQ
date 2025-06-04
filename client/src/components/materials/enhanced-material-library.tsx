@@ -390,8 +390,9 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   // Surface area update mutation
   const updateSurfaceAreaMutation = useMutation({
     mutationFn: async (data: { id: number; surfaceAreaPerMeter: number }) => {
-      return await apiRequest(`/api/materials/${data.id}/update`, "POST", { 
-        surfaceAreaPerMeter: data.surfaceAreaPerMeter.toString() 
+      return await apiRequest(`/api/materials/${data.id}/update`, {
+        method: "POST",
+        body: JSON.stringify({ surfaceAreaPerMeter: data.surfaceAreaPerMeter.toString() })
       });
     },
     onSuccess: () => {
@@ -811,7 +812,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             <>
                               <div>
                                 <p className="text-muted-foreground">Depth (D)</p>
-                                <p className="font-medium">{material.depth ? parseFloat(material.depth.toString()).toFixed(0) : 'N/A'}mm</p>
+                                <p className="font-medium">{material.height ? parseFloat(material.height.toString()).toFixed(0) : 'N/A'}mm</p>
                               </div>
                               <div>
                                 <p className="text-muted-foreground">Width (B)</p>
@@ -1318,7 +1319,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         id="edit-diameter"
                         type="number"
                         value={editingMaterial.diameter?.toString() || ""}
-                        onChange={(e) => setEditingMaterial({...editingMaterial, diameter: e.target.value || null})}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, diameter: e.target.value ? parseFloat(e.target.value) : undefined})}
                         placeholder="Diameter"
                       />
                     </div>
@@ -1330,7 +1331,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         id="edit-thickness"
                         type="number"
                         value={editingMaterial.thickness?.toString() || ""}
-                        onChange={(e) => setEditingMaterial({...editingMaterial, thickness: e.target.value || null})}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, thickness: e.target.value ? parseFloat(e.target.value) : undefined})}
                         placeholder={editingMaterial.category?.toLowerCase().includes('pipe') ? 'Wall Thickness' : 'Thickness'}
                       />
                     </div>
@@ -1340,7 +1341,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         id="edit-length"
                         type="number"
                         value={editingMaterial.length?.toString() || ""}
-                        onChange={(e) => setEditingMaterial({...editingMaterial, length: e.target.value || null})}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
                         placeholder="Length"
                       />
                     </div>
@@ -1362,7 +1363,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             id="edit-width"
                             type="number"
                             value={editingMaterial.width?.toString() || ""}
-                            onChange={(e) => setEditingMaterial({...editingMaterial, width: e.target.value || null})}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, width: parseFloat(e.target.value) || undefined})}
                             placeholder="Width"
                           />
                         </div>
@@ -1372,7 +1373,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             id="edit-depth"
                             type="number"
                             value={editingMaterial.depth?.toString() || ""}
-                            onChange={(e) => setEditingMaterial({...editingMaterial, depth: e.target.value || null})}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, depth: parseFloat(e.target.value) || undefined})}
                             placeholder="Depth"
                           />
                         </div>
@@ -1382,7 +1383,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             id="edit-web-thickness"
                             type="number"
                             value={editingMaterial.webTw?.toString() || ""}
-                            onChange={(e) => setEditingMaterial({...editingMaterial, webTw: e.target.value || null})}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, webTw: parseFloat(e.target.value) || undefined})}
                             placeholder="Web Thickness"
                           />
                         </div>
@@ -1392,7 +1393,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             id="edit-flange-thickness"
                             type="number"
                             value={editingMaterial.flangeTf?.toString() || ""}
-                            onChange={(e) => setEditingMaterial({...editingMaterial, flangeTf: e.target.value || null})}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, flangeTf: parseFloat(e.target.value) || undefined})}
                             placeholder="Flange Thickness"
                           />
                         </div>
@@ -1408,7 +1409,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                 id="edit-width1"
                                 type="number"
                                 value={editingMaterial.width1 ? parseFloat(String(editingMaterial.width1)).toFixed(0) : ""}
-                                onChange={(e) => setEditingMaterial({...editingMaterial, width1: e.target.value || null})}
+                                onChange={(e) => setEditingMaterial({...editingMaterial, width1: parseFloat(e.target.value) || undefined})}
                                 placeholder="W1"
                               />
                             </div>
@@ -1418,7 +1419,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                 id="edit-width2"
                                 type="number"
                                 value={editingMaterial.width2 ? parseFloat(String(editingMaterial.width2)).toFixed(0) : ""}
-                                onChange={(e) => setEditingMaterial({...editingMaterial, width2: e.target.value || null})}
+                                onChange={(e) => setEditingMaterial({...editingMaterial, width2: parseFloat(e.target.value) || undefined})}
                                 placeholder="W2"
                               />
                             </div>
