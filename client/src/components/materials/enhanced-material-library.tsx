@@ -36,6 +36,7 @@ import squareBarImg from "@assets/Square Bar.png";
 // Updated UB/UC images - force refresh
 import ubImg from "@assets/Universal Beam.png";
 import ucImg from "@assets/Universal Column.png";
+import dhsPurlinImg from "@assets/Purlin DHS.png";
 
 interface EnhancedMaterialLibraryProps {
   searchQuery: string;
@@ -73,7 +74,8 @@ const DIMENSION_IMAGES = {
   "Purlins": {
     "C Purlins": channelImg,
     "Z Purlins": channelImg,
-    "Sigma Purlins": channelImg
+    "Sigma Purlins": channelImg,
+    "DHS Purlins": dhsPurlinImg
   },
   "Pipe": {
     "Seamless Line Pipe": pipeImg,
