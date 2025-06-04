@@ -1418,7 +1418,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                 id="edit-width2"
                                 type="number"
                                 value={editingMaterial.width2 ? parseFloat(String(editingMaterial.width2)).toFixed(0) : ""}
-                                onChange={(e) => setEditingMaterial({...editingMaterial, width2: parseFloat(e.target.value) || undefined})}
+                                onChange={(e) => setEditingMaterial({...editingMaterial, width2: e.target.value || null})}
                                 placeholder="W2"
                               />
                             </div>
