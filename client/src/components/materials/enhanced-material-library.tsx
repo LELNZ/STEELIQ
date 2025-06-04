@@ -1340,7 +1340,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         id="edit-length"
                         type="number"
                         value={editingMaterial.length?.toString() || ""}
-                        onChange={(e) => setEditingMaterial({...editingMaterial, length: parseFloat(e.target.value) || undefined})}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, length: e.target.value || null})}
                         placeholder="Length"
                       />
                     </div>
@@ -1362,7 +1362,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             id="edit-width"
                             type="number"
                             value={editingMaterial.width?.toString() || ""}
-                            onChange={(e) => setEditingMaterial({...editingMaterial, width: parseFloat(e.target.value) || undefined})}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, width: e.target.value || null})}
                             placeholder="Width"
                           />
                         </div>
@@ -1372,7 +1372,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             id="edit-depth"
                             type="number"
                             value={editingMaterial.depth?.toString() || ""}
-                            onChange={(e) => setEditingMaterial({...editingMaterial, depth: parseFloat(e.target.value) || undefined})}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, depth: e.target.value || null})}
                             placeholder="Depth"
                           />
                         </div>
@@ -1382,7 +1382,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             id="edit-web-thickness"
                             type="number"
                             value={editingMaterial.webTw?.toString() || ""}
-                            onChange={(e) => setEditingMaterial({...editingMaterial, webTw: parseFloat(e.target.value) || undefined})}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, webTw: e.target.value || null})}
                             placeholder="Web Thickness"
                           />
                         </div>
@@ -1392,7 +1392,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             id="edit-flange-thickness"
                             type="number"
                             value={editingMaterial.flangeTf?.toString() || ""}
-                            onChange={(e) => setEditingMaterial({...editingMaterial, flangeTf: parseFloat(e.target.value) || undefined})}
+                            onChange={(e) => setEditingMaterial({...editingMaterial, flangeTf: e.target.value || null})}
                             placeholder="Flange Thickness"
                           />
                         </div>
@@ -1408,7 +1408,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                 id="edit-width1"
                                 type="number"
                                 value={editingMaterial.width1 ? parseFloat(String(editingMaterial.width1)).toFixed(0) : ""}
-                                onChange={(e) => setEditingMaterial({...editingMaterial, width1: parseFloat(e.target.value) || undefined})}
+                                onChange={(e) => setEditingMaterial({...editingMaterial, width1: e.target.value || null})}
                                 placeholder="W1"
                               />
                             </div>
