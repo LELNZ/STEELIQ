@@ -808,6 +808,17 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                 <p className="font-medium">{material.width2 ? parseFloat(String(material.width2)).toFixed(0) : 'N/A'}mm</p>
                               </div>
                             </>
+                          ) : material.category?.toLowerCase().includes('dhs') ? (
+                            <>
+                              <div>
+                                <p className="text-muted-foreground">Depth (D)</p>
+                                <p className="font-medium">{material.height ? parseFloat(material.height.toString()).toFixed(0) : 'N/A'}mm</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Width (B)</p>
+                                <p className="font-medium">{material.width ? parseFloat(material.width.toString()).toFixed(0) : 'N/A'}mm</p>
+                              </div>
+                            </>
                           ) : (
                             <div>
                               <p className="text-muted-foreground">Width</p>
