@@ -117,7 +117,7 @@ const CATEGORY_STRUCTURE = {
     description: "Pre-galvanized steel sections"
   },
   "Purlins": {
-    subcategories: ["C Purlins", "Z Purlins", "Sigma Purlins"],
+    subcategories: ["C Purlins", "Z Purlins", "Sigma Purlins", "DHS Purlins"],
     description: "Structural purlins for roofing and cladding"
   },
   "Pipe": {
@@ -272,6 +272,12 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
       else if (name.includes('primed')) categories.push('Primed Pipe');
       else categories.push('Galvanised Pipe');
     }
+
+    // Purlins
+    if (name.includes('dhs') && name.includes('purlin') || category.includes('dhs purlins')) categories.push('DHS Purlins');
+    if (name.includes('c purlin') || category.includes('c purlins')) categories.push('C Purlins');
+    if (name.includes('z purlin') || category.includes('z purlins')) categories.push('Z Purlins');
+    if (name.includes('sigma purlin') || category.includes('sigma purlins')) categories.push('Sigma Purlins');
 
     // Reinforcing (check early to prevent duplicates)
     if (name.includes('mesh')) {
