@@ -812,7 +812,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             <>
                               <div>
                                 <p className="text-muted-foreground">Depth (D)</p>
-                                <p className="font-medium">{material.height ? parseFloat(material.height.toString()).toFixed(0) : 'N/A'}mm</p>
+                                <p className="font-medium">{material.depth ? parseFloat(material.depth.toString()).toFixed(0) : 'N/A'}mm</p>
                               </div>
                               <div>
                                 <p className="text-muted-foreground">Width (B)</p>
