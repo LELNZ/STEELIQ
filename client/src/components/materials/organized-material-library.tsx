@@ -165,10 +165,10 @@ export default function OrganizedMaterialLibrary({
                           <p className="font-medium">{material.diameter}mm</p>
                         </div>
                       )}
-                      {material.height && (
+                      {material.depth && (
                         <div>
-                          <p className="text-muted-foreground">Height</p>
-                          <p className="font-medium">{material.height}mm</p>
+                          <p className="text-muted-foreground">Depth</p>
+                          <p className="font-medium">{material.depth}mm</p>
                         </div>
                       )}
                     </div>

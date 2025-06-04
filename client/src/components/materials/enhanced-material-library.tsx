@@ -390,9 +390,8 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   // Surface area update mutation
   const updateSurfaceAreaMutation = useMutation({
     mutationFn: async (data: { id: number; surfaceAreaPerMeter: number }) => {
-      return await apiRequest(`/api/materials/${data.id}/update`, {
-        method: "POST",
-        body: JSON.stringify({ surfaceAreaPerMeter: data.surfaceAreaPerMeter.toString() })
+      return await apiRequest(`/api/materials/${data.id}/update`, "POST", { 
+        surfaceAreaPerMeter: data.surfaceAreaPerMeter.toString() 
       });
     },
     onSuccess: () => {
@@ -1319,7 +1318,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         id="edit-diameter"
                         type="number"
                         value={editingMaterial.diameter?.toString() || ""}
-                        onChange={(e) => setEditingMaterial({...editingMaterial, diameter: e.target.value ? parseFloat(e.target.value) : undefined})}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, diameter: e.target.value || null})}
                         placeholder="Diameter"
                       />
                     </div>
@@ -1331,7 +1330,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         id="edit-thickness"
                         type="number"
                         value={editingMaterial.thickness?.toString() || ""}
-                        onChange={(e) => setEditingMaterial({...editingMaterial, thickness: e.target.value ? parseFloat(e.target.value) : undefined})}
+                        onChange={(e) => setEditingMaterial({...editingMaterial, thickness: e.target.value || null})}
                         placeholder={editingMaterial.category?.toLowerCase().includes('pipe') ? 'Wall Thickness' : 'Thickness'}
                       />
                     </div>

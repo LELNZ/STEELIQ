@@ -113,7 +113,7 @@ export default function BulkCatalogueImport({ open, onOpenChange }: BulkCatalogu
                 width: material.width?.toString(),
                 thickness: material.thickness?.toString(),
                 diameter: material.diameter?.toString(),
-                height: material.height?.toString(),
+                depth: material.height?.toString(),
                 length: material.length?.toString(),
                 weightPerMeter: material.weightPerMeter?.toString(),
                 grade: material.grade,
