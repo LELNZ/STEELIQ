@@ -601,8 +601,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/suppliers/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      console.log(`Updating supplier ID: ${id}`);
+      console.log("Request body:", JSON.stringify(req.body, null, 2));
+      
       const supplierData = insertSupplierSchema.partial().parse(req.body);
+      console.log("Parsed supplier data:", JSON.stringify(supplierData, null, 2));
+      
       const supplier = await storage.updateSupplier(id, supplierData);
+      console.log("Updated supplier result:", JSON.stringify(supplier, null, 2));
+      
       if (!supplier) {
         return res.status(404).json({ error: "Supplier not found" });
       }
@@ -610,6 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating supplier:", error);
       if (error instanceof z.ZodError) {
+        console.error("Zod validation errors:", error.errors);
         return res.status(400).json({ error: "Invalid supplier data", details: error.errors });
       }
       res.status(500).json({ error: "Failed to update supplier" });
