@@ -101,6 +101,12 @@ export default function SupplierContactsPage() {
     select: (data) => Array.isArray(data) ? data : []
   });
 
+  // Fetch all contacts for sidebar counts
+  const { data: allContacts = [] } = useQuery({
+    queryKey: ["/api/supplier-contacts"],
+    select: (data) => Array.isArray(data) ? data : []
+  });
+
   // Fetch contacts for selected supplier
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ["/api/supplier-contacts", selectedSupplierId],
@@ -511,7 +517,7 @@ export default function SupplierContactsPage() {
                 >
                   <div className="font-medium">{supplier.name}</div>
                   <div className="text-sm text-muted-foreground">
-                    {(contacts as SupplierContact[]).filter((c: SupplierContact) => c.supplierId === supplier.id).length} contacts
+                    {(allContacts as SupplierContact[]).filter((c: SupplierContact) => c.supplierId === supplier.id).length} contacts
                   </div>
                 </button>
               ))}
