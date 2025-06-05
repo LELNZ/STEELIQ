@@ -161,6 +161,95 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // CSV Export and Template Download Functions
+  const handleExportCSV = () => {
+    const csvHeaders = [
+      'Category', 'Code', 'Name', 'Width (mm)', 'Width1 (mm)', 'Width2 (mm)', 
+      'Thickness (mm)', 'Diameter (mm)', 'Depth (mm)', 'Flange Thickness (mm)', 
+      'Web Thickness (mm)', 'Length (mm)', 'Weight (kg/m)', 'Length Options (m)', 
+      'Grade', 'Standard', 'Coating', 'Price per kg ($)', 'Price per m ($)', 
+      'Surface Area (m²/m)', 'Supplier', 'Active'
+    ];
+    
+    const csvData = filteredMaterials.map((material: Material) => [
+      material.category || '',
+      material.code || '',
+      material.name || '',
+      material.width || '',
+      material.width1 || '',
+      material.width2 || '',
+      material.thickness || '',
+      material.diameter || '',
+      material.depth || '',
+      material.flangeTf || '',
+      material.webTw || '',
+      material.length || '',
+      material.weightPerMeter || '',
+      material.lengthOptions || '',
+      material.grade || '',
+      material.standard || '',
+      material.coating || '',
+      material.pricePerKg || '',
+      material.pricePerMeter || '',
+      material.surfaceAreaPerMeter || '',
+      material.supplier || '',
+      material.isActive ? 'true' : 'false'
+    ]);
+    
+    const csvContent = [csvHeaders, ...csvData]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `lateral_engineering_materials_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Export Complete",
+      description: `Exported ${filteredMaterials.length} materials to CSV`,
+    });
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateHeaders = [
+      'Category', 'Code', 'Name', 'Width (mm)', 'Width1 (mm)', 'Width2 (mm)', 
+      'Thickness (mm)', 'Diameter (mm)', 'Depth (mm)', 'Flange Thickness (mm)', 
+      'Web Thickness (mm)', 'Length (mm)', 'Weight (kg/m)', 'Length Options (m)', 
+      'Grade', 'Standard', 'Coating', 'Price per kg ($)', 'Price per m ($)', 
+      'Surface Area (m²/m)', 'Supplier', 'Available Lengths (m)', 'Sheet Size (mm)', 
+      'Outside Diameter (mm)', 'Inside Diameter (mm)', 'Corner Radius (mm)', 
+      'Wall Thickness (mm)', 'Nominal Size', 'Finish Options', 'Mass per Unit (kg)', 'Active'
+    ];
+    
+    const sampleRows = [
+      templateHeaders,
+      ['Flats', 'SF02505', 'Mild Steel Flat 25x5mm', '25.00', '', '', '5.00', '', '', '', '', '6000', '0.980', '6.0', 'G300', 'AS/NZS 3679.1-300', '', '', '', '', 'ASMUSS', '6.0', '', '', '', '', '', '', '', '', 'true'],
+      ['Equal Angles', 'SA05006', 'Mild Steel Equal Angle 50x50x6mm', '50.00', '', '', '6.00', '', '', '', '', '6000', '4.460', '6.0,9.0', 'G300', 'AS/NZS 3679.1-300', '', '', '', '', 'ASMUSS', '6.0,9.0', '', '', '', '', '', '', '', '', 'true'],
+      ['Universal Beams', 'SUB150014', 'Universal Beam 150x75x14mm', '75.00', '', '', '', '', '150.00', '7.00', '5.00', '6000', '14.000', '6.0,9.0', 'G300SO', 'AS3679.1', '', '', '', '0.590', 'ASMUSS', '6.0,9.0', '', '', '', '', '', '', '', '', 'true']
+    ];
+    
+    const csvContent = sampleRows
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'lateral_engineering_material_import_template.csv';
+    link.click();
+    window.URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Template Downloaded",
+      description: "CSV import template with sample data downloaded",
+    });
+  };
+
   // Bulk surface area calculation mutation
   const bulkCalculateSurfaceAreaMutation = useMutation({
     mutationFn: async () => {
@@ -479,7 +568,19 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
       {/* Quick-Click Category Navigation */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold">Steel Catalogue Categories</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold">Steel Catalogue Categories</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleExportCSV} variant="outline" size="sm">
+                <Package className="w-4 h-4 mr-2" />
+                Export CSV
+              </Button>
+              <Button onClick={handleDownloadTemplate} variant="outline" size="sm">
+                <Package className="w-4 h-4 mr-2" />
+                Download Template
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* All Category and Main Category Quick-Click Buttons - Horizontal Layout */}
@@ -878,6 +979,12 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       <p className="text-muted-foreground">Weight</p>
                       <p className="font-medium">{material.weightPerMeter || 0} kg/m</p>
                     </div>
+                    {cardSize !== "tiny" && (
+                      <div>
+                        <p className="text-muted-foreground">Supplier</p>
+                        <p className="font-medium">{material.supplier || 'Unknown'}</p>
+                      </div>
+                    )}
                     {cardSize !== "tiny" && (
                       <div>
                         <p className="text-muted-foreground">Surface Area</p>
