@@ -198,18 +198,28 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   const [supplierSearchText, setSupplierSearchText] = useState("");
   const supplierDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside or pressing ESC
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(event.target as Node)) {
         setSupplierDropdownOpen(false);
+        setSupplierSearchText("");
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && supplierDropdownOpen) {
+        setSupplierDropdownOpen(false);
+        setSupplierSearchText("");
       }
     }
 
     if (supplierDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleKeyDown);
       };
     }
   }, [supplierDropdownOpen]);
@@ -1923,22 +1933,41 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       </Button>
                       
                       {supplierDropdownOpen && (
-                        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-[300px] overflow-auto">
-                          <div className="p-2 border-b">
-                            <Input
-                              placeholder="Search suppliers..."
-                              value={supplierSearchText}
-                              onChange={(e) => setSupplierSearchText(e.target.value)}
-                              className="w-full"
-                            />
+                        <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-[320px] overflow-hidden animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95">
+                          {/* Search Header */}
+                          <div className="p-3 border-b border-gray-100 bg-gray-50/50">
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <Input
+                                placeholder="Search suppliers..."
+                                value={supplierSearchText}
+                                onChange={(e) => setSupplierSearchText(e.target.value)}
+                                className="pl-10 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                                autoFocus
+                              />
+                            </div>
                           </div>
-                          <div className="max-h-[250px] overflow-y-auto">
-                            {filteredSuppliers.map((supplier) => (
+                          
+                          {/* Results Count */}
+                          {supplierSearchText && (
+                            <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50/30 border-b border-gray-100">
+                              {filteredSuppliers.length} supplier{filteredSuppliers.length !== 1 ? 's' : ''} found
+                            </div>
+                          )}
+                          
+                          {/* Supplier List */}
+                          <div className="max-h-[220px] overflow-y-auto">
+                            {filteredSuppliers.map((supplier, index) => (
                               <div
                                 key={supplier.id}
-                                className="flex items-center cursor-pointer hover:bg-gray-100 p-3 border-b last:border-b-0"
+                                className={`group flex items-center cursor-pointer transition-all duration-150 p-3 
+                                  ${editingMaterial.supplier === supplier.name 
+                                    ? 'bg-blue-50 border-l-4 border-blue-500' 
+                                    : 'hover:bg-gray-50 border-l-4 border-transparent'
+                                  }
+                                  ${index !== filteredSuppliers.length - 1 ? 'border-b border-gray-100' : ''}
+                                `}
                                 onClick={() => {
-                                  console.log("Direct click - Setting supplier to:", supplier.name);
                                   setEditingMaterial({
                                     ...editingMaterial, 
                                     supplier: supplier.name
@@ -1947,21 +1976,60 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                   setSupplierSearchText("");
                                 }}
                               >
-                                <Check
-                                  className={`mr-2 h-4 w-4 ${
-                                    editingMaterial.supplier === supplier.name ? "opacity-100" : "opacity-0"
-                                  }`}
-                                />
-                                <div className="flex items-center gap-2">
-                                  <Building2 className="w-4 h-4" />
-                                  {supplier.name}
+                                <div className="flex items-center flex-1 min-w-0">
+                                  <div className={`mr-3 p-1.5 rounded-full transition-colors
+                                    ${editingMaterial.supplier === supplier.name 
+                                      ? 'bg-blue-100 text-blue-600' 
+                                      : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200'
+                                    }`}>
+                                    <Building2 className="w-4 h-4" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className={`font-medium truncate transition-colors
+                                      ${editingMaterial.supplier === supplier.name 
+                                        ? 'text-blue-900' 
+                                        : 'text-gray-900 group-hover:text-gray-800'
+                                      }`}>
+                                      {supplier.name}
+                                    </div>
+                                    {supplier.address && (
+                                      <div className="text-xs text-gray-500 truncate mt-0.5">
+                                        {supplier.city ? `${supplier.city}` : supplier.address}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <Check
+                                    className={`ml-2 h-4 w-4 transition-all duration-200 ${
+                                      editingMaterial.supplier === supplier.name 
+                                        ? "opacity-100 text-blue-600 scale-110" 
+                                        : "opacity-0 scale-90"
+                                    }`}
+                                  />
                                 </div>
                               </div>
                             ))}
+                            
+                            {/* Empty State */}
                             {filteredSuppliers.length === 0 && (
-                              <div className="p-3 text-center text-muted-foreground">No suppliers found</div>
+                              <div className="flex flex-col items-center justify-center py-8 px-4">
+                                <Building2 className="w-8 h-8 text-gray-300 mb-2" />
+                                <div className="text-sm text-gray-500 font-medium">No suppliers found</div>
+                                <div className="text-xs text-gray-400 mt-1">
+                                  {supplierSearchText ? 'Try adjusting your search' : 'No suppliers available'}
+                                </div>
+                              </div>
                             )}
                           </div>
+                          
+                          {/* Footer hint */}
+                          {filteredSuppliers.length > 0 && (
+                            <div className="px-3 py-2 bg-gray-50/50 border-t border-gray-100">
+                              <div className="text-xs text-gray-400 flex items-center justify-between">
+                                <span>Click to select supplier</span>
+                                <span className="font-mono">ESC to close</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
