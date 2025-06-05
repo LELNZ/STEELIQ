@@ -22,7 +22,8 @@ import { useToast } from "@/hooks/use-toast";
 
 // Schema definitions for suppliers and contacts
 const supplierSchema = z.object({
-  name: z.string().min(1, "Company/Supplier name is required"),
+  name: z.string().min(1, "Contact name is required"),
+  company: z.string().min(1, "Company/Supplier name is required"),
   email: z.string().email("Valid email required").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
@@ -48,6 +49,7 @@ type SupplierFormData = z.infer<typeof supplierSchema>;
 interface Supplier {
   id: number;
   name: string;
+  company: string;
   email?: string;
   phone?: string;
   address?: string;
@@ -297,6 +299,7 @@ export default function ContactsPage() {
     resolver: zodResolver(supplierSchema),
     defaultValues: {
       name: "",
+      company: "",
       email: "",
       phone: "",
       address: "",
@@ -336,6 +339,7 @@ export default function ContactsPage() {
     setSelectedSupplier(supplier);
     form.reset({
       name: supplier.name,
+      company: supplier.company,
       email: supplier.email || "",
       phone: supplier.phone || "",
       address: supplier.address || "",
@@ -445,7 +449,7 @@ export default function ContactsPage() {
                     
                     <FormField
                       control={form.control}
-                      name="name"
+                      name="company"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-medium text-foreground">
@@ -454,6 +458,25 @@ export default function ContactsPage() {
                           <FormControl>
                             <Input
                               placeholder="Enter company or supplier name"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium text-foreground">
+                            Primary Contact Name <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter primary contact person name"
                               {...field}
                             />
                           </FormControl>
