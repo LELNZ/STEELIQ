@@ -823,7 +823,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     : 'hover:border-gray-300 dark:hover:border-gray-600'
                 } ${cardSize === "tiny" ? "text-xs" : cardSize === "small" ? "text-sm" : ""}`}
               >
-                <CardHeader className={cardSize === "tiny" ? "pb-2 px-3 pt-3" : cardSize === "small" ? "pb-2" : "pb-3"}>
+                <CardHeader className={cardSize === "tiny" ? "pb-1 px-2 pt-2" : cardSize === "small" ? "pb-2 px-3 pt-3" : "pb-2 px-4 pt-4"}>
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-2 flex-1">
                       <Checkbox
@@ -892,8 +892,8 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                   </div>
                 </CardHeader>
                 
-                <CardContent className={`space-y-2 ${
-                  cardSize === "tiny" ? "px-3 pb-3" : cardSize === "small" ? "space-y-3" : "space-y-4"
+                <CardContent className={`${
+                  cardSize === "tiny" ? "px-2 pb-2 space-y-1" : cardSize === "small" ? "px-3 pb-3 space-y-2" : "px-4 pb-4 space-y-3"
                 }`}>
                   {cardSize !== "tiny" && (
                     <div className="grid grid-cols-2 gap-2 text-sm">
@@ -987,26 +987,26 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     </div>
                   )}
 
-                  <div className={`${cardSize === "tiny" ? "space-y-2" : "grid grid-cols-2 gap-3"}`}>
+                  <div className={`${cardSize === "tiny" ? "space-y-1" : "grid grid-cols-2 gap-2"}`}>
                     {cardSize !== "tiny" && (
-                      <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Grade</p>
+                      <div className="bg-gray-50 dark:bg-gray-800/50 p-2 rounded">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Grade</p>
                         <p className="font-semibold text-gray-900 dark:text-gray-100">{material.grade || 'Standard'}</p>
                       </div>
                     )}
-                    <div className={`${cardSize === "tiny" ? "text-center bg-blue-50 dark:bg-blue-900/20 p-2 rounded" : "bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg"}`}>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Weight</p>
+                    <div className={`${cardSize === "tiny" ? "text-center bg-blue-50 dark:bg-blue-900/20 p-1.5 rounded" : "bg-gray-50 dark:bg-gray-800/50 p-2 rounded"}`}>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Weight</p>
                       <p className="font-semibold text-gray-900 dark:text-gray-100">{material.weightPerMeter || 0} kg/m</p>
                     </div>
                     {cardSize !== "tiny" && (
-                      <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Supplier</p>
+                      <div className="bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Supplier</p>
                         <p className="font-semibold text-indigo-700 dark:text-indigo-300">{material.supplier || 'Unknown'}</p>
                       </div>
                     )}
                     {cardSize !== "tiny" && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg col-span-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Surface Area</p>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded col-span-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Surface Area</p>
                         <p className="font-semibold text-blue-700 dark:text-blue-300">
                           {(() => {
                             // Calculate surface area with proper dimension handling for all material types
@@ -1046,18 +1046,27 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                   </div>
 
                   {cardSize !== "tiny" && (
-                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                    <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded border border-green-200 dark:border-green-700">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Price</p>
-                          <p className="font-bold text-lg text-green-700 dark:text-green-300">
-                            {material.pricePerMeter 
-                              ? `$${material.pricePerMeter}/m`
-                              : material.pricePerKg
-                              ? `$${material.pricePerKg}/kg`
-                              : 'Contact for Quote'
-                            }
-                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Price</p>
+                          <div className="space-y-0.5">
+                            {material.pricePerMeter && (
+                              <p className="font-bold text-sm text-green-700 dark:text-green-300">
+                                ${material.pricePerMeter}/m
+                              </p>
+                            )}
+                            {material.pricePerKg && (
+                              <p className="font-bold text-sm text-green-700 dark:text-green-300">
+                                ${material.pricePerKg}/kg
+                              </p>
+                            )}
+                            {!material.pricePerMeter && !material.pricePerKg && (
+                              <p className="font-bold text-sm text-green-700 dark:text-green-300">
+                                Contact for Quote
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
                       
@@ -1108,28 +1117,28 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         size="sm"
                         className="flex-shrink-0"
                       />
-                      <div className="flex-1 grid grid-cols-8 gap-4 items-center">
+                      <div className="flex-1 grid grid-cols-9 gap-3 items-center">
                         <div className="col-span-2">
                           <div className="flex flex-col">
-                            <p className="font-semibold text-gray-900 dark:text-gray-100">{material.name}</p>
-                            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">{material.code}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{material.category}</p>
+                            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{material.name}</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{material.code}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{material.category}</p>
                           </div>
                           {/* Available Lengths for List View */}
                           {material.lengthOptions && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {material.lengthOptions.split(';').slice(0, 3).map((length, index) => (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {material.lengthOptions.split(';').slice(0, 2).map((length, index) => (
                                 <Badge 
                                   key={index} 
                                   variant="secondary" 
-                                  className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700"
+                                  className="text-xs px-1 py-0 bg-gray-100 dark:bg-gray-700"
                                 >
                                   {length.trim()}m
                                 </Badge>
                               ))}
-                              {material.lengthOptions.split(';').length > 3 && (
-                                <Badge variant="outline" className="text-xs px-2 py-0.5">
-                                  +{material.lengthOptions.split(';').length - 3}
+                              {material.lengthOptions.split(';').length > 2 && (
+                                <Badge variant="outline" className="text-xs px-1 py-0">
+                                  +{material.lengthOptions.split(';').length - 2}
                                 </Badge>
                               )}
                             </div>
@@ -1277,46 +1286,59 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">{material.supplier || 'Unknown'}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">Supplier</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-green-600 dark:text-green-400">
-                            {material.pricePerMeter 
-                              ? `$${material.pricePerMeter}/m`
-                              : material.pricePerKg
-                              ? `$${material.pricePerKg}/kg`
-                              : 'N/A'
-                            }
-                          </p>
+                        <div className="text-center">
+                          <div className="space-y-0.5">
+                            {material.pricePerMeter && (
+                              <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                                ${material.pricePerMeter}/m
+                              </p>
+                            )}
+                            {material.pricePerKg && (
+                              <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                                ${material.pricePerKg}/kg
+                              </p>
+                            )}
+                            {!material.pricePerMeter && !material.pricePerKg && (
+                              <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                                Quote
+                              </p>
+                            )}
+                          </div>
                           <p className="text-xs text-gray-500 dark:text-gray-400">Price</p>
                         </div>
                       </div>
                     </div>
-                    <div className="flex space-x-1 ml-4">
+                    <div className="flex flex-col space-y-1 ml-2">
                       <Button 
                         variant="ghost" 
                         size="sm"
                         onClick={() => setSurfaceAreaMaterial(material)}
                         title="Calculate Surface Area"
+                        className="h-6 w-8 p-0"
                       >
-                        <Calculator className="w-4 h-4" />
+                        <Calculator className="w-3 h-3" />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="sm"
                         onClick={() => setEditingMaterial(material)}
+                        title="Edit Material"
+                        className="h-6 w-8 p-0"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-3 h-3" />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-500 hover:text-red-700 h-6 w-8 p-0"
                         onClick={() => {
                           if (confirm(`Are you sure you want to delete ${material.name}?`)) {
                             deleteSelectedMutation.mutate([material.id]);
                           }
                         }}
+                        title="Delete Material"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
                   </div>
