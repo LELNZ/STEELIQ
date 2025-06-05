@@ -212,6 +212,29 @@ export default function SupplierContactsPage() {
     setIsEditDialogOpen(true);
   };
 
+  const handleAddContact = () => {
+    setSelectedContact(null);
+    form.reset({
+      supplierId: selectedSupplierId || 0,
+      firstName: "",
+      lastName: "",
+      position: "",
+      department: "",
+      email: "",
+      phonePrimary: "",
+      phoneMobile: "",
+      phoneDirect: "",
+      isPrimaryContact: false,
+      isAccountsContact: false,
+      isTechnicalContact: false,
+      isSalesContact: false,
+      preferredContactMethod: "email",
+      notes: "",
+      isActive: true
+    });
+    setIsAddDialogOpen(true);
+  };
+
   const filteredContacts = contacts.filter(contact =>
     `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
     contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -242,7 +265,7 @@ export default function SupplierContactsPage() {
           {selectedSupplierId && (
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button onClick={handleAddContact}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Contact
                 </Button>
