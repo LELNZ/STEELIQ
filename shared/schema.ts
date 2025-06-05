@@ -175,6 +175,69 @@ export const optimizationSimulations = pgTable("optimization_simulations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Suppliers - professional supplier management
+export const suppliers = pgTable("suppliers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  company: text("company").notNull(),
+  type: text("type").notNull().default("supplier"), // supplier, vendor, client, user
+  email: text("email"),
+  phone: text("phone"),
+  mobile: text("mobile"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  postcode: text("postcode"),
+  country: text("country").default("Australia"),
+  abnTaxId: text("abn_tax_id"),
+  paymentTerms: text("payment_terms"), // 30 days, 7 days, COD, etc.
+  accountManager: text("account_manager"),
+  leadTimeStandard: integer("lead_time_standard"), // days
+  leadTimeRush: integer("lead_time_rush"), // days
+  minimumOrderValue: decimal("minimum_order_value", { precision: 10, scale: 2 }),
+  deliveryAreas: text("delivery_areas"), // JSON array or comma-separated
+  certifications: text("certifications"), // ISO, AS/NZS standards
+  qualityRating: decimal("quality_rating", { precision: 3, scale: 2 }), // 1-5 rating
+  reliabilityRating: decimal("reliability_rating", { precision: 3, scale: 2 }), // 1-5 rating
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Material Suppliers - linking materials to suppliers with pricing and history
+export const materialSuppliers = pgTable("material_suppliers", {
+  id: serial("id").primaryKey(),
+  materialId: integer("material_id").references(() => materials.id).notNull(),
+  supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
+  isPrimary: boolean("is_primary").default(false), // favorite/primary supplier
+  pricePerMeter: decimal("price_per_meter", { precision: 10, scale: 2 }),
+  pricePerKg: decimal("price_per_kg", { precision: 10, scale: 2 }),
+  currency: text("currency").default("AUD"),
+  validFrom: timestamp("valid_from").defaultNow().notNull(),
+  validUntil: timestamp("valid_until"),
+  leadTime: integer("lead_time"), // days override for this material
+  minimumQuantity: decimal("minimum_quantity", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Supplier Price History - historical tracking for all price changes
+export const supplierPriceHistory = pgTable("supplier_price_history", {
+  id: serial("id").primaryKey(),
+  materialSupplierId: integer("material_supplier_id").references(() => materialSuppliers.id).notNull(),
+  pricePerMeter: decimal("price_per_meter", { precision: 10, scale: 2 }),
+  pricePerKg: decimal("price_per_kg", { precision: 10, scale: 2 }),
+  currency: text("currency").default("AUD"),
+  effectiveDate: timestamp("effective_date").defaultNow().notNull(),
+  priceChangeReason: text("price_change_reason"), // market_change, volume_discount, promotion, etc.
+  enteredBy: integer("entered_by").references(() => users.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // PDF Export Configuration table
 export const pdfExportConfigs = pgTable("pdf_export_configs", {
   id: serial("id").primaryKey(),
@@ -364,6 +427,34 @@ export const materialsRelations = relations(materials, ({ one, many }) => ({
   jobMaterials: many(jobMaterials),
   cuttingPlans: many(cuttingPlans),
   surfaceAreaConfigs: many(surfaceAreaConfigs),
+  materialSuppliers: many(materialSuppliers),
+}));
+
+export const suppliersRelations = relations(suppliers, ({ many }) => ({
+  materialSuppliers: many(materialSuppliers),
+}));
+
+export const materialSuppliersRelations = relations(materialSuppliers, ({ one, many }) => ({
+  material: one(materials, {
+    fields: [materialSuppliers.materialId],
+    references: [materials.id],
+  }),
+  supplier: one(suppliers, {
+    fields: [materialSuppliers.supplierId],
+    references: [suppliers.id],
+  }),
+  priceHistory: many(supplierPriceHistory),
+}));
+
+export const supplierPriceHistoryRelations = relations(supplierPriceHistory, ({ one }) => ({
+  materialSupplier: one(materialSuppliers, {
+    fields: [supplierPriceHistory.materialSupplierId],
+    references: [materialSuppliers.id],
+  }),
+  enteredByUser: one(users, {
+    fields: [supplierPriceHistory.enteredBy],
+    references: [users.id],
+  }),
 }));
 
 export const coatingSystemsRelations = relations(coatingSystems, ({ many }) => ({
@@ -515,9 +606,35 @@ export const insertSurfaceAreaConfigSchema = createInsertSchema(surfaceAreaConfi
   createdAt: true,
 });
 
+export const insertSupplierSchema = createInsertSchema(suppliers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMaterialSupplierSchema = createInsertSchema(materialSuppliers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSupplierPriceHistorySchema = createInsertSchema(supplierPriceHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Supplier = typeof suppliers.$inferSelect;
+export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+
+export type MaterialSupplier = typeof materialSuppliers.$inferSelect;
+export type InsertMaterialSupplier = z.infer<typeof insertMaterialSupplierSchema>;
+
+export type SupplierPriceHistory = typeof supplierPriceHistory.$inferSelect;
+export type InsertSupplierPriceHistory = z.infer<typeof insertSupplierPriceHistorySchema>;
 
 export type MaterialCategory = typeof materialCategories.$inferSelect;
 export type InsertMaterialCategory = z.infer<typeof insertMaterialCategorySchema>;

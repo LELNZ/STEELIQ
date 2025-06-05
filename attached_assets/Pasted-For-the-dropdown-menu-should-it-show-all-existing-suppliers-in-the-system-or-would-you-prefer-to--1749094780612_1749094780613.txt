@@ -1,0 +1,26 @@
+For the dropdown menu - should it show all existing suppliers in the system, or would you prefer to also allow adding new suppliers directly from the dropdown? show existing suppliers in system - all new suppliers need to be entered from the edit details menu
+
+Should materials be able to have multiple suppliers simultaneously, or just track multiple suppliers over time? yes each material can be purchased from multiple suppliers so each supplier needs a price attributed to it, this will allow the user to compare quickly for estimation purposes.
+
+How should multiple suppliers display in the card/list views - show the primary/current supplier, or show "Multiple Suppliers" when there are several? Show primary/current supplier - allow user to favorite a suppler for that material that will become the primary supplier with all other suppliers in the drop down menu and edit details form. 
+
+
+Price Tracking & History:
+4. When a user adds a new supplier with pricing, should this become the "active" supplier for that material, or should they be able to designate which supplier is primary? yes allow the user to designate
+
+For the price history tracking, what information should be stored: supplier name, price per meter, price per kg, date added, and any other details? yes those will do.
+Should users be able to edit or delete historical price entries, or keep them as read-only for audit purposes? allow specific users with the correct permissions to edit.
+
+UI Implementation:
+7. For the edit materials form, would you prefer:
+
+A separate "Manage Suppliers" button that opens a dedicated modal/section?
+An expandable section within the current edit form?
+A tabbed interface with "Details" and "Suppliers" tabs? i like this idea - allow those suppliers to also have a main (Contacts) page on the main menu with sub cataory i.e Vendors, Suppliers, Clients, Users. ( can you make this for me, ask any question required to create this interface, i want the suppliers details to be kept here and connected to the Suppliers tab)
+
+Should the supplier dropdown be searchable for large supplier lists? not right now.
+Do you want to track additional supplier information like contact details, lead times, minimum orders, etc., or just focus on pricing for now? yes all forms of professional and industry leading details. please advise how we set this up.
+
+
+Data Structure:
+10. Should each supplier-material combination track both price/m and price/kg independently, or use the same pricing structure as the main material? track these - the price/m and price/kg should be calculated by the price entered in either field for example if shs50x50x5 is $10/m and 1 meter = 5kg then the price/kg should be automatically updated - ask me any questions to ensure this function works correctly. 
