@@ -189,8 +189,8 @@ export const optimizationSimulations = pgTable("optimization_simulations", {
 // Suppliers - professional supplier management with NZ requirements
 export const suppliers = pgTable("suppliers", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  company: text("company").notNull(),
+  name: text("name").notNull(), // Primary company/supplier name
+  company: text("company").notNull(), // Duplicate for compatibility
   type: text("type").notNull().default("supplier"), // supplier, vendor, client, user
   address: text("address"),
   city: text("city"),
@@ -262,6 +262,140 @@ export const supplierPriceHistory = pgTable("supplier_price_history", {
   priceChangeReason: text("price_change_reason"), // market_change, volume_discount, promotion, etc.
   enteredBy: integer("entered_by").references(() => users.id),
   notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// Purchase Orders - comprehensive PO management
+export const purchaseOrders = pgTable("purchase_orders", {
+  id: serial("id").primaryKey(),
+  poNumber: text("po_number").notNull().unique(),
+  supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
+  jobId: integer("job_id").references(() => jobs.id),
+  status: text("status").notNull().default("draft"), // draft, sent, acknowledged, partial, completed, cancelled
+  orderDate: timestamp("order_date").defaultNow().notNull(),
+  requestedDeliveryDate: timestamp("requested_delivery_date"),
+  confirmedDeliveryDate: timestamp("confirmed_delivery_date"),
+  actualDeliveryDate: timestamp("actual_delivery_date"),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }),
+  gstAmount: decimal("gst_amount", { precision: 10, scale: 2 }),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }),
+  currency: text("currency").default("NZD"),
+  deliveryAddress: text("delivery_address"),
+  specialInstructions: text("special_instructions"),
+  paymentTerms: text("payment_terms"),
+  createdBy: integer("created_by").references(() => users.id),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// Purchase Order Items - line items for POs
+export const purchaseOrderItems = pgTable("purchase_order_items", {
+  id: serial("id").primaryKey(),
+  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id).notNull(),
+  materialId: integer("material_id").references(() => materials.id),
+  description: text("description").notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  lineTotal: decimal("line_total", { precision: 10, scale: 2 }).notNull(),
+  receivedQuantity: decimal("received_quantity", { precision: 10, scale: 2 }).default("0"),
+  unit: text("unit").default("m"), // m, kg, each, etc.
+  deliveryDate: timestamp("delivery_date"),
+  notes: text("notes"),
+})
+
+// Invoices - supplier invoices and client invoices
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  type: text("type").notNull(), // purchase (from supplier), sales (to client)
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  jobId: integer("job_id").references(() => jobs.id),
+  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id),
+  status: text("status").notNull().default("draft"), // draft, sent, overdue, paid, cancelled
+  invoiceDate: timestamp("invoice_date").defaultNow().notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  paidDate: timestamp("paid_date"),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+  gstAmount: decimal("gst_amount", { precision: 10, scale: 2 }),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
+  paidAmount: decimal("paid_amount", { precision: 12, scale: 2 }).default("0"),
+  currency: text("currency").default("NZD"),
+  paymentTerms: text("payment_terms"),
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// Quotes - customer quotes and supplier quotes
+export const quotes = pgTable("quotes", {
+  id: serial("id").primaryKey(),
+  quoteNumber: text("quote_number").notNull().unique(),
+  type: text("type").notNull(), // supplier_quote, customer_quote
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  jobId: integer("job_id").references(() => jobs.id),
+  status: text("status").notNull().default("draft"), // draft, sent, accepted, rejected, expired
+  quoteDate: timestamp("quote_date").defaultNow().notNull(),
+  expiryDate: timestamp("expiry_date"),
+  acceptedDate: timestamp("accepted_date"),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }),
+  gstAmount: decimal("gst_amount", { precision: 10, scale: 2 }),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }),
+  currency: text("currency").default("NZD"),
+  notes: text("notes"),
+  termsConditions: text("terms_conditions"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// Payment Records - track all payments
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  paymentNumber: text("payment_number").notNull().unique(),
+  invoiceId: integer("invoice_id").references(() => invoices.id),
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  paymentMethod: text("payment_method"), // bank_transfer, cheque, credit_card, cash
+  paymentDate: timestamp("payment_date").defaultNow().notNull(),
+  referenceNumber: text("reference_number"),
+  bankReference: text("bank_reference"),
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// Contact Performance Metrics
+export const contactPerformance = pgTable("contact_performance", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
+  period: text("period").notNull(), // monthly, quarterly, yearly
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  totalOrders: integer("total_orders").default(0),
+  totalValue: decimal("total_value", { precision: 12, scale: 2 }).default("0"),
+  onTimeDeliveries: integer("on_time_deliveries").default(0),
+  qualityIssues: integer("quality_issues").default(0),
+  averageDeliveryTime: decimal("average_delivery_time", { precision: 5, scale: 2 }), // days
+  performanceScore: decimal("performance_score", { precision: 3, scale: 2 }), // 1-5 rating
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// Document Management
+export const contactDocuments = pgTable("contact_documents", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
+  documentType: text("document_type").notNull(), // contract, certification, insurance, tax_invoice, delivery_note
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type"),
+  description: text("description"),
+  expiryDate: timestamp("expiry_date"),
+  isActive: boolean("is_active").default(true),
+  uploadedBy: integer("uploaded_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -650,6 +784,44 @@ export const insertSupplierPriceHistorySchema = createInsertSchema(supplierPrice
   createdAt: true,
 });
 
+export const insertSupplierContactSchema = createInsertSchema(supplierContacts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPurchaseOrderItemSchema = createInsertSchema(purchaseOrderItems).omit({
+  id: true,
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertQuoteSchema = createInsertSchema(quotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertContactDocumentSchema = createInsertSchema(contactDocuments).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -662,6 +834,27 @@ export type InsertMaterialSupplier = z.infer<typeof insertMaterialSupplierSchema
 
 export type SupplierPriceHistory = typeof supplierPriceHistory.$inferSelect;
 export type InsertSupplierPriceHistory = z.infer<typeof insertSupplierPriceHistorySchema>;
+
+export type SupplierContact = typeof supplierContacts.$inferSelect;
+export type InsertSupplierContact = z.infer<typeof insertSupplierContactSchema>;
+
+export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
+
+export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
+export type InsertPurchaseOrderItem = z.infer<typeof insertPurchaseOrderItemSchema>;
+
+export type Invoice = typeof invoices.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+
+export type Quote = typeof quotes.$inferSelect;
+export type InsertQuote = z.infer<typeof insertQuoteSchema>;
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+
+export type ContactDocument = typeof contactDocuments.$inferSelect;
+export type InsertContactDocument = z.infer<typeof insertContactDocumentSchema>;
 
 export type MaterialCategory = typeof materialCategories.$inferSelect;
 export type InsertMaterialCategory = z.infer<typeof insertMaterialCategorySchema>;

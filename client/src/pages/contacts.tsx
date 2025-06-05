@@ -23,10 +23,8 @@ import { AddressSearch } from "@/components/ui/address-search";
 
 // Schema definitions for suppliers and contacts
 const supplierSchema = z.object({
-  name: z.string().min(1, "Contact name is required"),
+  name: z.string().min(1, "Company/Supplier name is required"),
   company: z.string().min(1, "Company/Supplier name is required"),
-  email: z.string().email("Valid email required").optional().or(z.literal("")),
-  phone: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   postcode: z.string().optional(),
@@ -43,6 +41,15 @@ const supplierSchema = z.object({
   standardsCompliance: z.string().optional(),
   notes: z.string().optional(),
   isActive: z.boolean().default(true)
+});
+
+const contactSchema = z.object({
+  name: z.string().min(1, "Contact name is required"),
+  email: z.string().email("Valid email required").optional().or(z.literal("")),
+  mobile: z.string().optional(),
+  title: z.string().optional(),
+  department: z.string().optional(),
+  isPrimary: z.boolean().default(false)
 });
 
 type SupplierFormData = z.infer<typeof supplierSchema>;
@@ -334,7 +341,7 @@ export default function ContactsPage() {
                     
                     <FormField
                       control={form.control}
-                      name="company"
+                      name="name"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-medium text-foreground">
@@ -344,25 +351,11 @@ export default function ContactsPage() {
                             <Input
                               placeholder="Enter company or supplier name"
                               {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-foreground">
-                            Primary Contact Name <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter primary contact person name"
-                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                // Keep company field in sync for compatibility
+                                form.setValue("company", e.target.value);
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
