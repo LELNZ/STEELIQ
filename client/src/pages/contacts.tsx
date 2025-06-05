@@ -164,11 +164,7 @@ export default function ContactsPage() {
   // Add supplier mutation
   const addSupplierMutation = useMutation({
     mutationFn: async (data: SupplierFormData) => {
-      return apiRequest("/api/suppliers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
+      return apiRequest("/api/suppliers", "POST", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
@@ -183,11 +179,7 @@ export default function ContactsPage() {
   // Update supplier mutation
   const updateSupplierMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<SupplierFormData> }) => {
-      return apiRequest(`/api/suppliers/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
+      return apiRequest(`/api/suppliers/${id}`, "PATCH", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
@@ -203,7 +195,7 @@ export default function ContactsPage() {
   // Delete supplier mutation
   const deleteSupplierMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/suppliers/${id}`, { method: "DELETE" });
+      return apiRequest(`/api/suppliers/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
@@ -350,22 +342,428 @@ export default function ContactsPage() {
                 Add Supplier
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Add New Supplier</DialogTitle>
-                <DialogDescription>
-                  Enter comprehensive supplier information for material sourcing and procurement management.
+                <DialogTitle className="text-xl font-semibold text-foreground flex items-center">
+                  <Building2 className="w-5 h-5 mr-2 text-blue-600" />
+                  Add New Supplier
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  Create a comprehensive supplier profile with business details and contacts
                 </DialogDescription>
               </DialogHeader>
-              <SupplierForm
-                form={form}
-                onSubmit={onSubmit}
-                isLoading={addSupplierMutation.isPending}
-                onCancel={() => {
-                  setIsAddDialogOpen(false);
-                  form.reset();
-                }}
-              />
+              
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+                  {/* Company Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-foreground border-b pb-2">Company Information</h3>
+                    
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium text-foreground">
+                            Company/Supplier Name <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter company or supplier name"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Address Information with Smart Search */}
+                    <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem className="relative">
+                          <FormLabel className="text-sm font-medium text-foreground">
+                            Address
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                placeholder="Start typing address (e.g., 123 Queen Street, Auckland)..."
+                                {...field}
+                                onChange={(e) => handleAddressChange(e.target.value, form)}
+                                className="pr-8"
+                              />
+                              {isSearchingAddress && (
+                                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                                  <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                                </div>
+                              )}
+                              
+                              {/* Address Suggestions Dropdown */}
+                              {showAddressSuggestions && addressSuggestions.length > 0 && (
+                                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                  {addressSuggestions.map((suggestion, index) => (
+                                    <div
+                                      key={index}
+                                      className="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                                      onClick={() => selectAddress(suggestion, form)}
+                                    >
+                                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {suggestion.display_name}
+                                      </div>
+                                      {suggestion.postcode && (
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                          Postcode: {suggestion.postcode}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="city"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium text-foreground">
+                              City
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Enter city"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="postcode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium text-foreground">
+                              Postcode
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="0000"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* NZ Business Registration */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="nzbn"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium text-foreground">
+                              NZBN
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="9429000000000"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="gstNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium text-foreground">
+                              GST Number
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="123-456-789"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="companyNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium text-foreground">
+                              Company Number
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="1234567"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* Business Terms */}
+                    <FormField
+                      control={form.control}
+                      name="paymentTerms"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium text-foreground">
+                            Payment Terms
+                          </FormLabel>
+                          <FormControl>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select payment terms" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="COD">Cash on Delivery</SelectItem>
+                                <SelectItem value="7 days">7 days</SelectItem>
+                                <SelectItem value="14 days">14 days</SelectItem>
+                                <SelectItem value="30 days">30 days</SelectItem>
+                                <SelectItem value="45 days">45 days</SelectItem>
+                                <SelectItem value="60 days">60 days</SelectItem>
+                                <SelectItem value="90 days">90 days</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Additional Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-foreground border-b pb-2">Additional Information</h3>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone</FormLabel>
+                            <FormControl>
+                              <Input placeholder="+64 9 123 4567" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="contact@supplier.co.nz" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="accountManager"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Account Manager</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Smith" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="leadTimeStandard"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Standard Lead Time (days)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                {...field} 
+                                onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="leadTimeExpress"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Express Lead Time (days)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                {...field} 
+                                onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="minimumOrderQuantity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Minimum Order Quantity</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              {...field} 
+                              onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="deliveryAreas"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Delivery Areas</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Auckland, Hamilton, Tauranga..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="certifications"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Certifications</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="ISO 9001, AS/NZS 3679..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="standardsCompliance"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Standards Compliance</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="AS/NZS 3679, AS/NZS 1163..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Notes</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Additional notes..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="isActive"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Active Supplier</FormLabel>
+                            <div className="text-sm text-muted-foreground">
+                              Enable this supplier for material sourcing and pricing
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-4 border-t">
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      onClick={() => {
+                        setIsAddDialogOpen(false);
+                        form.reset();
+                      }}
+                      disabled={addSupplierMutation.isPending}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit"
+                      disabled={addSupplierMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {addSupplierMutation.isPending ? "Adding..." : "Add Supplier"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
         </div>
