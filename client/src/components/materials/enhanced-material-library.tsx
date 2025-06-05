@@ -195,6 +195,23 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   
   // Supplier dropdown state for searchable functionality
   const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
+  const supplierDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(event.target as Node)) {
+        setSupplierDropdownOpen(false);
+      }
+    }
+
+    if (supplierDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [supplierDropdownOpen]);
 
   // Free address search using OpenStreetMap Nominatim
   // TODO: Google Maps Places API integration available for future use
@@ -1878,70 +1895,82 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       <Building2 className="w-4 h-4" />
                       Primary Supplier
                     </Label>
-                    <Popover open={supplierDropdownOpen} onOpenChange={setSupplierDropdownOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={supplierDropdownOpen}
-                          className="w-full justify-between"
-                        >
-                          {editingMaterial.supplier ? (
-                            <div className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4" />
-                              {editingMaterial.supplier}
-                            </div>
-                          ) : (
-                            "Select primary supplier"
-                          )}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[300px] p-0" align="start">
-                        <Command>
-                          <CommandInput placeholder="Search suppliers..." />
-                          <CommandList>
-                            <CommandEmpty>No suppliers found.</CommandEmpty>
-                            <CommandGroup>
-                              {suppliers.map((supplier) => (
-                                <CommandItem
-                                  key={supplier.id}
-                                  value={supplier.name}
-                                  onSelect={(currentValue) => {
-                                    // Find the actual supplier name (currentValue is lowercased)
-                                    const selectedSupplier = suppliers.find(s => 
-                                      s.name.toLowerCase() === currentValue.toLowerCase()
-                                    );
-                                    
-                                    if (selectedSupplier) {
-                                      setEditingMaterial({
-                                        ...editingMaterial, 
-                                        supplier: selectedSupplier.name
-                                      });
+                    <div className="relative" ref={supplierDropdownRef}>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={supplierDropdownOpen}
+                        className="w-full justify-between"
+                        onClick={() => setSupplierDropdownOpen(!supplierDropdownOpen)}
+                      >
+                        {editingMaterial.supplier ? (
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4" />
+                            {editingMaterial.supplier}
+                          </div>
+                        ) : (
+                          "Select primary supplier"
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                      
+                      {supplierDropdownOpen && (
+                        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-[300px] overflow-auto">
+                          <Command>
+                            <CommandInput placeholder="Search suppliers..." className="border-0" />
+                            <CommandList>
+                              <CommandEmpty>No suppliers found.</CommandEmpty>
+                              <CommandGroup>
+                                {suppliers.map((supplier) => (
+                                  <CommandItem
+                                    key={supplier.id}
+                                    value={supplier.name}
+                                    onSelect={(currentValue) => {
+                                      console.log("onSelect triggered with value:", currentValue);
+                                      console.log("Available suppliers:", suppliers.map(s => s.name));
+                                      console.log("Current editing material:", editingMaterial);
                                       
-                                      // Auto-update pricing from primary supplier if available
-                                      console.log("Selected supplier:", selectedSupplier);
-                                    }
-                                    
-                                    setSupplierDropdownOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={`mr-2 h-4 w-4 ${
-                                      editingMaterial.supplier === supplier.name ? "opacity-100" : "opacity-0"
-                                    }`}
-                                  />
-                                  <div className="flex items-center gap-2">
-                                    <Building2 className="w-4 h-4" />
-                                    {supplier.name}
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                                      // Find the actual supplier name (currentValue is lowercased)
+                                      const selectedSupplier = suppliers.find(s => 
+                                        s.name.toLowerCase() === currentValue.toLowerCase()
+                                      );
+                                      
+                                      console.log("Found supplier:", selectedSupplier);
+                                      
+                                      if (selectedSupplier) {
+                                        console.log("Setting supplier to:", selectedSupplier.name);
+                                        setEditingMaterial({
+                                          ...editingMaterial, 
+                                          supplier: selectedSupplier.name
+                                        });
+                                        
+                                        // Auto-update pricing from primary supplier if available
+                                        console.log("Selected supplier:", selectedSupplier);
+                                      } else {
+                                        console.log("No supplier found for value:", currentValue);
+                                      }
+                                      
+                                      setSupplierDropdownOpen(false);
+                                    }}
+                                    className="cursor-pointer hover:bg-gray-100"
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${
+                                        editingMaterial.supplier === supplier.name ? "opacity-100" : "opacity-0"
+                                      }`}
+                                    />
+                                    <div className="flex items-center gap-2">
+                                      <Building2 className="w-4 h-4" />
+                                      {supplier.name}
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-2">
