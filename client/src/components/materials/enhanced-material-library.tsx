@@ -195,6 +195,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   
   // Supplier dropdown state for searchable functionality
   const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
+  const [supplierSearchText, setSupplierSearchText] = useState("");
   const supplierDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -445,6 +446,13 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   // Fetch suppliers for dropdown
   const { data: suppliers = [] } = useQuery<Supplier[]>({
     queryKey: ["/api/suppliers"],
+  });
+
+  // Filter suppliers based on search text
+  const filteredSuppliers = suppliers.filter(supplier => {
+    if (!supplierSearchText) return true;
+    const searchLower = supplierSearchText.toLowerCase();
+    return supplier.name.toLowerCase().includes(searchLower);
   });
 
   // Streamlined material categorization logic
@@ -1916,58 +1924,44 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       
                       {supplierDropdownOpen && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-[300px] overflow-auto">
-                          <Command>
-                            <CommandInput placeholder="Search suppliers..." className="border-0" />
-                            <CommandList>
-                              <CommandEmpty>No suppliers found.</CommandEmpty>
-                              <CommandGroup>
-                                {suppliers.map((supplier) => (
-                                  <CommandItem
-                                    key={supplier.id}
-                                    value={supplier.name}
-                                    onSelect={(currentValue) => {
-                                      console.log("onSelect triggered with value:", currentValue);
-                                      console.log("Available suppliers:", suppliers.map(s => s.name));
-                                      console.log("Current editing material:", editingMaterial);
-                                      
-                                      // Find the actual supplier name (currentValue is lowercased)
-                                      const selectedSupplier = suppliers.find(s => 
-                                        s.name.toLowerCase() === currentValue.toLowerCase()
-                                      );
-                                      
-                                      console.log("Found supplier:", selectedSupplier);
-                                      
-                                      if (selectedSupplier) {
-                                        console.log("Setting supplier to:", selectedSupplier.name);
-                                        setEditingMaterial({
-                                          ...editingMaterial, 
-                                          supplier: selectedSupplier.name
-                                        });
-                                        
-                                        // Auto-update pricing from primary supplier if available
-                                        console.log("Selected supplier:", selectedSupplier);
-                                      } else {
-                                        console.log("No supplier found for value:", currentValue);
-                                      }
-                                      
-                                      setSupplierDropdownOpen(false);
-                                    }}
-                                    className="cursor-pointer hover:bg-gray-100"
-                                  >
-                                    <Check
-                                      className={`mr-2 h-4 w-4 ${
-                                        editingMaterial.supplier === supplier.name ? "opacity-100" : "opacity-0"
-                                      }`}
-                                    />
-                                    <div className="flex items-center gap-2">
-                                      <Building2 className="w-4 h-4" />
-                                      {supplier.name}
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
+                          <div className="p-2 border-b">
+                            <Input
+                              placeholder="Search suppliers..."
+                              value={supplierSearchText}
+                              onChange={(e) => setSupplierSearchText(e.target.value)}
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="max-h-[250px] overflow-y-auto">
+                            {filteredSuppliers.map((supplier) => (
+                              <div
+                                key={supplier.id}
+                                className="flex items-center cursor-pointer hover:bg-gray-100 p-3 border-b last:border-b-0"
+                                onClick={() => {
+                                  console.log("Direct click - Setting supplier to:", supplier.name);
+                                  setEditingMaterial({
+                                    ...editingMaterial, 
+                                    supplier: supplier.name
+                                  });
+                                  setSupplierDropdownOpen(false);
+                                  setSupplierSearchText("");
+                                }}
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    editingMaterial.supplier === supplier.name ? "opacity-100" : "opacity-0"
+                                  }`}
+                                />
+                                <div className="flex items-center gap-2">
+                                  <Building2 className="w-4 h-4" />
+                                  {supplier.name}
+                                </div>
+                              </div>
+                            ))}
+                            {filteredSuppliers.length === 0 && (
+                              <div className="p-3 text-center text-muted-foreground">No suppliers found</div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
