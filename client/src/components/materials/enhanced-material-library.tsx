@@ -817,8 +817,10 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
             {filteredMaterials.map((material: Material) => (
               <Card 
                 key={material.id} 
-                className={`hover:shadow-md transition-all ${
-                  selectedMaterials.has(material.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                className={`hover:shadow-lg transition-all duration-200 border-gray-200 dark:border-gray-700 ${
+                  selectedMaterials.has(material.id) 
+                    ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20 border-blue-300' 
+                    : 'hover:border-gray-300 dark:hover:border-gray-600'
                 } ${cardSize === "tiny" ? "text-xs" : cardSize === "small" ? "text-sm" : ""}`}
               >
                 <CardHeader className={cardSize === "tiny" ? "pb-2 px-3 pt-3" : cardSize === "small" ? "pb-2" : "pb-3"}>
@@ -837,16 +839,23 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         className="flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <CardTitle className={`font-semibold text-foreground leading-tight ${
+                        <CardTitle className={`font-semibold text-gray-900 dark:text-gray-100 leading-tight ${
                           cardSize === "tiny" ? "text-xs" : cardSize === "small" ? "text-sm" : "text-lg"
                         }`}>
                           <span className="line-clamp-2">{material.name}</span>
                         </CardTitle>
-                        <Badge variant="outline" className={`mt-1 ${
-                          cardSize === "tiny" ? "text-xs px-1 py-0" : cardSize === "small" ? "text-xs" : ""
-                        }`}>
-                          {material.code}
-                        </Badge>
+                        <div className="flex flex-col gap-1 mt-2">
+                          <Badge variant="secondary" className={`self-start bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 ${
+                            cardSize === "tiny" ? "text-xs px-2 py-0.5" : cardSize === "small" ? "text-xs px-2 py-1" : "text-sm px-3 py-1"
+                          }`}>
+                            {material.code}
+                          </Badge>
+                          <p className={`text-gray-500 dark:text-gray-400 ${
+                            cardSize === "tiny" ? "text-xs" : "text-sm"
+                          }`}>
+                            {material.category}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     {cardSize !== "tiny" && (
@@ -978,27 +987,27 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     </div>
                   )}
 
-                  <div className={`${cardSize === "tiny" ? "space-y-1" : "grid grid-cols-2 gap-2"}`}>
+                  <div className={`${cardSize === "tiny" ? "space-y-2" : "grid grid-cols-2 gap-3"}`}>
                     {cardSize !== "tiny" && (
-                      <div>
-                        <p className="text-muted-foreground">Grade</p>
-                        <p className="font-medium">{material.grade || 'Standard'}</p>
+                      <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Grade</p>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">{material.grade || 'Standard'}</p>
                       </div>
                     )}
-                    <div className={cardSize === "tiny" ? "text-center" : "text-right"}>
-                      <p className="text-muted-foreground">Weight</p>
-                      <p className="font-medium">{material.weightPerMeter || 0} kg/m</p>
+                    <div className={`${cardSize === "tiny" ? "text-center bg-blue-50 dark:bg-blue-900/20 p-2 rounded" : "bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg"}`}>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Weight</p>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">{material.weightPerMeter || 0} kg/m</p>
                     </div>
                     {cardSize !== "tiny" && (
-                      <div>
-                        <p className="text-muted-foreground">Supplier</p>
-                        <p className="font-medium">{material.supplier || 'Unknown'}</p>
+                      <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Supplier</p>
+                        <p className="font-semibold text-indigo-700 dark:text-indigo-300">{material.supplier || 'Unknown'}</p>
                       </div>
                     )}
                     {cardSize !== "tiny" && (
-                      <div>
-                        <p className="text-muted-foreground">Surface Area</p>
-                        <p className="font-medium">
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg col-span-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Surface Area</p>
+                        <p className="font-semibold text-blue-700 dark:text-blue-300">
                           {(() => {
                             // Calculate surface area with proper dimension handling for all material types
                             if (material.category && (material.width || material.width1 || material.diameter)) {
@@ -1037,16 +1046,16 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                   </div>
 
                   {cardSize !== "tiny" && (
-                    <div className="space-y-2">
+                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-muted-foreground">Price</p>
-                          <p className="font-medium">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Price</p>
+                          <p className="font-bold text-lg text-green-700 dark:text-green-300">
                             {material.pricePerMeter 
                               ? `$${material.pricePerMeter}/m`
                               : material.pricePerKg
                               ? `$${material.pricePerKg}/kg`
-                              : 'N/A'
+                              : 'Contact for Quote'
                             }
                           </p>
                         </div>
@@ -1099,22 +1108,30 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         size="sm"
                         className="flex-shrink-0"
                       />
-                      <div className="flex-1 grid grid-cols-7 gap-4 items-center">
+                      <div className="flex-1 grid grid-cols-8 gap-4 items-center">
                         <div className="col-span-2">
-                          <p className="font-semibold">{material.name}</p>
-                          <p className="text-sm text-muted-foreground">{material.code}</p>
+                          <div className="flex flex-col">
+                            <p className="font-semibold text-gray-900 dark:text-gray-100">{material.name}</p>
+                            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">{material.code}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{material.category}</p>
+                          </div>
                           {/* Available Lengths for List View */}
                           {material.lengthOptions && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {material.lengthOptions.split(';').map((length, index) => (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {material.lengthOptions.split(';').slice(0, 3).map((length, index) => (
                                 <Badge 
                                   key={index} 
-                                  variant="outline" 
-                                  className="text-xs px-1 py-0"
+                                  variant="secondary" 
+                                  className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700"
                                 >
                                   {length.trim()}m
                                 </Badge>
                               ))}
+                              {material.lengthOptions.split(';').length > 3 && (
+                                <Badge variant="outline" className="text-xs px-2 py-0.5">
+                                  +{material.lengthOptions.split(';').length - 3}
+                                </Badge>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1248,14 +1265,20 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             </TooltipProvider>
                           </div>
                         </div>
-                        <div>
-                          <p className="text-sm">{material.grade || 'Standard'}</p>
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{material.weightPerMeter || 0}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">kg/m</p>
                         </div>
-                        <div>
-                          <p className="text-sm">{material.supplier || 'Unknown'}</p>
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{material.grade || 'Standard'}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Grade</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">{material.supplier || 'Unknown'}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Supplier</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium">
+                          <p className="text-sm font-semibold text-green-600 dark:text-green-400">
                             {material.pricePerMeter 
                               ? `$${material.pricePerMeter}/m`
                               : material.pricePerKg
@@ -1263,6 +1286,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                               : 'N/A'
                             }
                           </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Price</p>
                         </div>
                       </div>
                     </div>
