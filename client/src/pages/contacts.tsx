@@ -178,9 +178,15 @@ export default function ContactsPage() {
 
   const onSubmit = (data: SupplierFormData) => {
     console.log('Form submission data:', data);
+    console.log('Selected supplier:', selectedSupplier);
+    console.log('Form errors:', form.formState.errors);
+    console.log('Form is valid:', form.formState.isValid);
+    
     if (selectedSupplier) {
+      console.log('Attempting to update supplier with ID:', selectedSupplier.id);
       updateSupplierMutation.mutate({ id: selectedSupplier.id, data });
     } else {
+      console.log('Attempting to add new supplier');
       addSupplierMutation.mutate(data);
     }
   };
