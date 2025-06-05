@@ -20,7 +20,18 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
-  return await res.json();
+  
+  // Handle responses with no content (like DELETE operations)
+  if (res.status === 204 || res.headers.get("content-length") === "0") {
+    return null;
+  }
+  
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return await res.json();
+  }
+  
+  return await res.text();
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
