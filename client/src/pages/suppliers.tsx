@@ -80,6 +80,36 @@ export default function SuppliersPage() {
     }
   };
 
+  // Convert database supplier to form data format
+  const convertSupplierToFormData = (supplier: Supplier): Partial<SupplierFormData> => {
+    return {
+      name: supplier.name,
+      company: supplier.company,
+      address: supplier.address || "",
+      city: supplier.city || "",
+      postcode: supplier.postcode || "",
+      country: supplier.country || "New Zealand",
+      nzbn: supplier.nzbn || "",
+      gstNumber: supplier.gstNumber || "",
+      companyNumber: supplier.companyNumber || "",
+      website: supplier.website || "",
+      phone: supplier.phone || "",
+      email: supplier.email || "",
+      paymentTerms: supplier.paymentTerms || "30 days",
+      accountManager: supplier.accountManager || "",
+      leadTimeStandard: supplier.leadTimeStandard || 7,
+      leadTimeExpress: supplier.leadTimeExpress || 3,
+      minimumOrderQuantity: Number(supplier.minimumOrderQuantity) || 0,
+      minimumOrderValue: Number(supplier.minimumOrderValue) || 0,
+      deliveryAreas: supplier.deliveryAreas || "",
+      certifications: supplier.certifications || "",
+      standardsCompliance: supplier.standardsCompliance || "",
+      notes: supplier.notes || "",
+      isActive: supplier.isActive ?? true,
+      isPreferredSupplier: supplier.isPreferredSupplier ?? false,
+    };
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 pt-6">
       <div className="flex items-center justify-between">
@@ -256,7 +286,7 @@ export default function SuppliersPage() {
           {editingSupplier && (
             <SupplierForm
               mode="edit"
-              initialData={editingSupplier}
+              initialData={convertSupplierToFormData(editingSupplier)}
               onSubmit={handleUpdateSupplier}
               onCancel={() => setEditingSupplier(null)}
               isLoading={isLoading}
