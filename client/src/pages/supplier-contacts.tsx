@@ -110,7 +110,7 @@ export default function SupplierContactsPage() {
   // Fetch contacts for selected supplier
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ["/api/supplier-contacts", selectedSupplierId],
-    queryFn: () => selectedSupplierId ? `/api/supplier-contacts?supplierId=${selectedSupplierId}` : "/api/supplier-contacts",
+    queryFn: () => fetch(`/api/supplier-contacts?supplierId=${selectedSupplierId}`).then(res => res.json()),
     enabled: !!selectedSupplierId,
     select: (data) => Array.isArray(data) ? data : []
   });
