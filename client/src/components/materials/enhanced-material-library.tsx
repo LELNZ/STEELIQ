@@ -1798,7 +1798,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="edit-price-meter" className="flex items-center gap-1">
-                        Price per Meter (AUD)
+                        Price per Meter (NZD)
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>
@@ -1839,7 +1839,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edit-price-kg" className="flex items-center gap-1">
-                        Price per Kg (AUD)
+                        Price per Kg (NZD)
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>
@@ -1880,7 +1880,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edit-ton-rate" className="flex items-center gap-1">
-                        Ton Rate (AUD)
+                        Ton Rate (NZD)
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>

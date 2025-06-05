@@ -453,7 +453,7 @@ export class DatabaseStorage implements IStorage {
 
   // Supplier Management Implementation
   async getSuppliers(): Promise<Supplier[]> {
-    return await db.select().from(suppliers).where(eq(suppliers.isActive, true)).orderBy(asc(suppliers.name));
+    return await db.select().from(suppliers).orderBy(asc(suppliers.name));
   }
 
   async getSupplier(id: number): Promise<Supplier | undefined> {
