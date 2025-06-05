@@ -6,18 +6,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus, Calculator, Info } from "lucide-react";
+import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus, Calculator, Info, Building2, DollarSign } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { LoadingSpinner, LoadingOverlay, LoadingState } from "@/components/ui/loading-spinner";
 import { MaterialTypeIndicator, MaterialIcon } from "./material-icons";
 import SurfaceAreaManager from "./surface-area-manager";
-import { Material } from "@shared/schema";
+import { Material, Supplier } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { calculateMaterialSurfaceArea } from "@/lib/surface-area-calculator";
 import { calculateMaterialSurfaceArea as calculateUnifiedSurfaceArea } from "@/lib/unified-surface-area-calculator";
+import { 
+  calculatePricePerKg, 
+  calculatePricePerMeter, 
+  calculateTonRate, 
+  calculatePricePerKgFromTonRate,
+  autoCalculatePrices,
+  formatCurrency 
+} from "@/lib/price-calculator";
 
 // Import dimensional reference images
 import anglesImg from "@assets/Angles.png";
@@ -311,6 +319,11 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
 
   const { data: materials = [], isLoading } = useQuery({
     queryKey: ["/api/materials"],
+  });
+
+  // Fetch suppliers for dropdown
+  const { data: suppliers = [] } = useQuery<Supplier[]>({
+    queryKey: ["/api/suppliers"],
   });
 
   // Streamlined material categorization logic
@@ -1710,13 +1723,52 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-supplier">Supplier</Label>
-                    <Input
-                      id="edit-supplier"
-                      value={editingMaterial.supplier || ""}
-                      onChange={(e) => setEditingMaterial({...editingMaterial, supplier: e.target.value})}
-                      placeholder="e.g., ASMUSS"
-                    />
+                    <Label htmlFor="edit-supplier" className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4" />
+                      Primary Supplier
+                    </Label>
+                    <Select 
+                      value={editingMaterial.supplier || ""} 
+                      onValueChange={(value) => {
+                        if (value === "add-new") {
+                          // Handle adding new supplier
+                          const newSupplier = prompt("Enter new supplier name:");
+                          if (newSupplier) {
+                            setEditingMaterial({...editingMaterial, supplier: newSupplier});
+                          }
+                        } else {
+                          setEditingMaterial({...editingMaterial, supplier: value});
+                          
+                          // Auto-update pricing from primary supplier if available
+                          const selectedSupplier = suppliers.find(s => s.name === value);
+                          if (selectedSupplier) {
+                            // Find supplier's pricing for this material
+                            // This would be implemented when we have material-supplier relationships
+                            console.log("Selected supplier:", selectedSupplier);
+                          }
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select or add supplier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {suppliers.map((supplier) => (
+                          <SelectItem key={supplier.id} value={supplier.name}>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-4 h-4" />
+                              {supplier.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="add-new">
+                          <div className="flex items-center gap-2 text-blue-600">
+                            <Plus className="w-4 h-4" />
+                            Add New Supplier
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="space-y-2">
