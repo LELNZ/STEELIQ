@@ -98,13 +98,15 @@ export default function SupplierContactsPage() {
   // Fetch suppliers
   const { data: suppliers = [] } = useQuery({
     queryKey: ["/api/suppliers"],
+    select: (data) => Array.isArray(data) ? data : []
   });
 
   // Fetch contacts for selected supplier
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ["/api/supplier-contacts", selectedSupplierId],
     queryFn: () => selectedSupplierId ? `/api/supplier-contacts?supplierId=${selectedSupplierId}` : "/api/supplier-contacts",
-    enabled: !!selectedSupplierId
+    enabled: !!selectedSupplierId,
+    select: (data) => Array.isArray(data) ? data : []
   });
 
   // Add contact mutation
@@ -496,7 +498,7 @@ export default function SupplierContactsPage() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="space-y-1">
-              {suppliers.map((supplier) => (
+              {(suppliers as Supplier[]).map((supplier: Supplier) => (
                 <button
                   key={supplier.id}
                   onClick={() => setSelectedSupplierId(supplier.id)}
@@ -506,7 +508,7 @@ export default function SupplierContactsPage() {
                 >
                   <div className="font-medium">{supplier.name}</div>
                   <div className="text-sm text-muted-foreground">
-                    {contacts.filter(c => c.supplierId === supplier.id).length} contacts
+                    {(contacts as SupplierContact[]).filter((c: SupplierContact) => c.supplierId === supplier.id).length} contacts
                   </div>
                 </button>
               ))}
@@ -520,7 +522,7 @@ export default function SupplierContactsPage() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">
-                  {suppliers.find(s => s.id === selectedSupplierId)?.name} Contacts
+                  {(suppliers as Supplier[]).find((s: Supplier) => s.id === selectedSupplierId)?.name} Contacts
                 </h2>
                 <Input
                   placeholder="Search contacts..."
@@ -544,7 +546,7 @@ export default function SupplierContactsPage() {
                 </Card>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
-                  {filteredContacts.map((contact) => (
+                  {filteredContacts.map((contact: SupplierContact) => (
                     <Card key={contact.id} className="hover:shadow-md transition-shadow">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
