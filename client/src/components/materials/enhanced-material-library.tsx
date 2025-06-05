@@ -36,7 +36,7 @@ import squareBarImg from "@assets/Square Bar.png";
 // Updated UB/UC images - force refresh
 import ubImg from "@assets/Universal Beam.png";
 import ucImg from "@assets/Universal Column.png";
-import dhsPurlinImg from "@assets/Purlin DHS.png";
+import dhsPurlinImg from "@assets/Purlin DHS_1749087134236.png";
 
 interface EnhancedMaterialLibraryProps {
   searchQuery: string;
