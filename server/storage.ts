@@ -1,7 +1,7 @@
 import { 
   users, materials, materialCategories, inventory, jobs, jobMaterials, 
   cuttingPlans, cutSequences, remnants, optimizationSimulations, coatingSystems, surfaceAreaConfigs,
-  suppliers, materialSuppliers, supplierPriceHistory,
+  suppliers, materialSuppliers, supplierPriceHistory, supplierContacts,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
@@ -623,31 +623,34 @@ export class DatabaseStorage implements IStorage {
 
   // Supplier Contacts Implementation
   async getSupplierContacts(supplierId?: number | null): Promise<any[]> {
-    const query = db.select().from(sql`supplier_contacts`);
-    
     if (supplierId) {
-      return await query.where(sql`supplier_id = ${supplierId}`).orderBy(sql`first_name, last_name`);
+      return await db.select().from(supplierContacts)
+        .where(eq(supplierContacts.supplierId, supplierId))
+        .orderBy(supplierContacts.firstName, supplierContacts.lastName);
     }
     
-    return await query.orderBy(sql`first_name, last_name`);
+    return await db.select().from(supplierContacts)
+      .orderBy(supplierContacts.firstName, supplierContacts.lastName);
   }
 
   async createSupplierContact(contact: any): Promise<any> {
-    const [createdContact] = await db.insert(sql`supplier_contacts`).values(contact).returning();
+    const [createdContact] = await db.insert(supplierContacts)
+      .values(contact)
+      .returning();
     return createdContact;
   }
 
   async updateSupplierContact(id: number, contact: any): Promise<any> {
     const [updatedContact] = await db
-      .update(sql`supplier_contacts`)
-      .set({ ...contact, updated_at: new Date() })
-      .where(sql`id = ${id}`)
+      .update(supplierContacts)
+      .set({ ...contact, updatedAt: new Date() })
+      .where(eq(supplierContacts.id, id))
       .returning();
     return updatedContact;
   }
 
   async deleteSupplierContact(id: number): Promise<void> {
-    await db.delete(sql`supplier_contacts`).where(sql`id = ${id}`);
+    await db.delete(supplierContacts).where(eq(supplierContacts.id, id));
   }
 }
 

@@ -279,6 +279,12 @@ export default function ContactsPage() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
+          <Button variant="outline" asChild>
+            <Link href="/supplier-contacts">
+              <Contact className="h-4 w-4 mr-2" />
+              Manage Contacts
+            </Link>
+          </Button>
           <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
             setIsAddDialogOpen(open);
             if (open) {
