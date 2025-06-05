@@ -11,13 +11,16 @@ import { Users, Building2, Plus, Edit, Trash2, Search, Phone, Mail, MapPin, Cale
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { SupplierForm, type SupplierFormData } from "@/components/forms/supplier-form";
-import type { Supplier } from "@shared/schema";
+import { ClientForm, type ClientFormData } from "@/components/forms/client-form";
+import type { Supplier, Client } from "@shared/schema";
 
 export default function ContactsPage() {
   const [activeTab, setActiveTab] = useState("suppliers");
   const [searchQuery, setSearchQuery] = useState("");
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreateClientDialogOpen, setIsCreateClientDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
   const [isLoading, setIsLoading] = useState(false);

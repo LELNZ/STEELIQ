@@ -186,6 +186,54 @@ export const optimizationSimulations = pgTable("optimization_simulations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Clients - customer/client management with professional requirements
+export const clients = pgTable("clients", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // Primary company/client name
+  company: text("company").notNull(), // Company name
+  type: text("type").notNull().default("client"), // client, customer, contractor
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  postcode: text("postcode"),
+  country: text("country").default("New Zealand"),
+  nzbn: text("nzbn"), // New Zealand Business Number
+  gstNumber: text("gst_number"),
+  website: text("website"),
+  industry: text("industry"),
+  customerSince: timestamp("customer_since"),
+  creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }),
+  paymentTerms: text("payment_terms").default("30 days"),
+  discountRate: decimal("discount_rate", { precision: 5, scale: 2 }).default("0"),
+  isActive: boolean("is_active").default(true),
+  preferredCurrency: text("preferred_currency").default("NZD"),
+  notes: text("notes"),
+  internalReference: text("internal_reference"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Client Contacts - multiple contacts per client
+export const clientContacts = pgTable("client_contacts", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").references(() => clients.id).notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  title: text("title"),
+  department: text("department"),
+  email: text("email"),
+  mobile: text("mobile"),
+  workPhone: text("work_phone"),
+  directPhone: text("direct_phone"),
+  isPrimary: boolean("is_primary").default(false),
+  canPlaceOrders: boolean("can_place_orders").default(false),
+  canReceiveInvoices: boolean("can_receive_invoices").default(false),
+  isActive: boolean("is_active").default(true),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Suppliers - professional supplier management with NZ requirements
 export const suppliers = pgTable("suppliers", {
   id: serial("id").primaryKey(),
@@ -716,6 +764,17 @@ export const remnantsRelations = relations(remnants, ({ one }) => ({
   }),
 }));
 
+export const clientsRelations = relations(clients, ({ many }) => ({
+  contacts: many(clientContacts),
+}));
+
+export const clientContactsRelations = relations(clientContacts, ({ one }) => ({
+  client: one(clients, {
+    fields: [clientContacts.clientId],
+    references: [clients.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -834,9 +893,27 @@ export const insertContactDocumentSchema = createInsertSchema(contactDocuments).
   createdAt: true,
 });
 
+export const insertClientSchema = createInsertSchema(clients).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertClientContactSchema = createInsertSchema(clientContacts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Client = typeof clients.$inferSelect;
+export type InsertClient = z.infer<typeof insertClientSchema>;
+
+export type ClientContact = typeof clientContacts.$inferSelect;
+export type InsertClientContact = z.infer<typeof insertClientContactSchema>;
 
 export type Supplier = typeof suppliers.$inferSelect;
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
