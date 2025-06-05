@@ -507,6 +507,35 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
     },
   });
 
+  const addSupplierMutation = useMutation({
+    mutationFn: async (supplierData: any) => {
+      const response = await fetch("/api/suppliers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(supplierData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Failed to add supplier: ${errorData}`);
+      }
+      
+      return response.json();
+    },
+    onSuccess: (newSupplier) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      setShowAddSupplierDialog(false);
+      setNewSupplierData({ name: "", company: "", email: "", phone: "", paymentTerms: "30 days" });
+      if (editingMaterial) {
+        setEditingMaterial({...editingMaterial, supplier: newSupplier.name});
+      }
+      toast({ title: "Supplier added successfully" });
+    },
+    onError: (error) => {
+      toast({ title: "Error adding supplier", description: error.message, variant: "destructive" });
+    }
+  });
+
   // Surface area update mutation
   const updateSurfaceAreaMutation = useMutation({
     mutationFn: async (data: { id: number; surfaceAreaPerMeter: number }) => {
@@ -2141,6 +2170,141 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Add New Supplier Dialog */}
+      <Dialog open={showAddSupplierDialog} onOpenChange={setShowAddSupplierDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-foreground flex items-center">
+              <Building2 className="w-5 h-5 mr-2 text-blue-600" />
+              Add New Supplier
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Enter supplier information to add them to your supplier database
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="supplier-name" className="text-sm font-medium text-foreground">
+                Supplier Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="supplier-name"
+                value={newSupplierData.name}
+                onChange={(e) => setNewSupplierData({...newSupplierData, name: e.target.value})}
+                placeholder="Enter supplier name"
+                className="w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="supplier-company" className="text-sm font-medium text-foreground">
+                Company Name
+              </Label>
+              <Input
+                id="supplier-company"
+                value={newSupplierData.company}
+                onChange={(e) => setNewSupplierData({...newSupplierData, company: e.target.value})}
+                placeholder="Enter company name"
+                className="w-full"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="supplier-email" className="text-sm font-medium text-foreground">
+                  Email
+                </Label>
+                <Input
+                  id="supplier-email"
+                  type="email"
+                  value={newSupplierData.email}
+                  onChange={(e) => setNewSupplierData({...newSupplierData, email: e.target.value})}
+                  placeholder="email@company.com"
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="supplier-phone" className="text-sm font-medium text-foreground">
+                  Phone
+                </Label>
+                <Input
+                  id="supplier-phone"
+                  value={newSupplierData.phone}
+                  onChange={(e) => setNewSupplierData({...newSupplierData, phone: e.target.value})}
+                  placeholder="Phone number"
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="supplier-terms" className="text-sm font-medium text-foreground">
+                Payment Terms
+              </Label>
+              <Select 
+                value={newSupplierData.paymentTerms} 
+                onValueChange={(value) => setNewSupplierData({...newSupplierData, paymentTerms: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7 days">7 days</SelectItem>
+                  <SelectItem value="14 days">14 days</SelectItem>
+                  <SelectItem value="30 days">30 days</SelectItem>
+                  <SelectItem value="60 days">60 days</SelectItem>
+                  <SelectItem value="90 days">90 days</SelectItem>
+                  <SelectItem value="Cash on delivery">Cash on delivery</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowAddSupplierDialog(false);
+                setNewSupplierData({ name: "", company: "", email: "", phone: "", paymentTerms: "30 days" });
+              }}
+              disabled={addSupplierMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (newSupplierData.name.trim()) {
+                  addSupplierMutation.mutate({
+                    name: newSupplierData.name.trim(),
+                    company: newSupplierData.company.trim(),
+                    email: newSupplierData.email.trim(),
+                    phone: newSupplierData.phone.trim(),
+                    paymentTerms: newSupplierData.paymentTerms,
+                    type: "supplier"
+                  });
+                }
+              }}
+              disabled={!newSupplierData.name.trim() || addSupplierMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {addSupplierMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Supplier
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
