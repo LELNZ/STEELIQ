@@ -38,6 +38,17 @@ export default function ContactsPage() {
     }
   });
 
+  // Fetch clients
+  const { data: clients = [], isLoading: clientsLoading } = useQuery({
+    queryKey: ["/api/clients"],
+    queryFn: async () => {
+      const response = await fetch("/api/clients");
+      if (!response.ok) throw new Error("Failed to fetch clients");
+      return response.json();
+    },
+    retry: false // Don't retry if endpoint doesn't exist yet
+  });
+
   // Create supplier mutation
   const createSupplierMutation = useMutation({
     mutationFn: async (supplierData: SupplierFormData) => {
@@ -98,6 +109,63 @@ export default function ContactsPage() {
     setIsLoading(true);
     try {
       await updateSupplierMutation.mutateAsync({ ...data, id: editingSupplier.id });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Create client mutation
+  const createClientMutation = useMutation({
+    mutationFn: async (clientData: ClientFormData) => {
+      return apiRequest("POST", "/api/clients", clientData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      setIsCreateClientDialogOpen(false);
+      toast({ title: "Client created successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error creating client", 
+        description: error.message || "An error occurred",
+        variant: "destructive" 
+      });
+    }
+  });
+
+  // Update client mutation
+  const updateClientMutation = useMutation({
+    mutationFn: async (clientData: ClientFormData & { id: number }) => {
+      return apiRequest("PUT", `/api/clients/${clientData.id}`, clientData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      setEditingClient(null);
+      toast({ title: "Client updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error updating client", 
+        description: error.message || "An error occurred",
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleCreateClient = async (data: ClientFormData) => {
+    setIsLoading(true);
+    try {
+      await createClientMutation.mutateAsync(data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateClient = async (data: ClientFormData) => {
+    if (!editingClient) return;
+    setIsLoading(true);
+    try {
+      await updateClientMutation.mutateAsync({ ...data, id: editingClient.id });
     } finally {
       setIsLoading(false);
     }
@@ -296,6 +364,120 @@ export default function ContactsPage() {
           )}
         </TabsContent>
 
+        <TabsContent value="clients" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="relative w-96">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search clients..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button onClick={() => setIsCreateClientDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Client
+            </Button>
+          </div>
+
+          {clientsLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="p-6">
+                  <div className="animate-pulse space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {clients.length === 0 ? (
+                <div className="col-span-full text-center py-12">
+                  <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Clients Found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Start by adding your first client to the system
+                  </p>
+                  <Button onClick={() => setIsCreateClientDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add First Client
+                  </Button>
+                </div>
+              ) : (
+                clients.map((client: Client) => (
+                  <Card key={client.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1 flex-1">
+                          <CardTitle className="text-lg">{client.name}</CardTitle>
+                          <CardDescription className="flex items-center gap-2">
+                            <Badge variant="secondary" className="text-xs">
+                              {client.type.charAt(0).toUpperCase() + client.type.slice(1)}
+                            </Badge>
+                            {client.industry && (
+                              <span className="text-sm text-muted-foreground">• {client.industry}</span>
+                            )}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingClient(client)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              toast({ title: "Client deletion will be available soon" });
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-2 text-sm">
+                        {client.address && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <MapPin className="h-3 w-3" />
+                            <span className="truncate">{client.address}, {client.city}</span>
+                          </div>
+                        )}
+                        {client.paymentTerms && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            <span>Payment: {client.paymentTerms}</span>
+                          </div>
+                        )}
+                        {client.creditLimit && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <DollarSign className="h-3 w-3" />
+                            <span>Credit Limit: ${parseFloat(client.creditLimit).toLocaleString()}</span>
+                          </div>
+                        )}
+                        {client.customerSince && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            <span>Since: {new Date(client.customerSince).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          )}
+        </TabsContent>
+
         <TabsContent value="contacts" className="space-y-4">
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
@@ -344,6 +526,46 @@ export default function ContactsPage() {
               onCancel={() => setEditingSupplier(null)}
               isLoading={isLoading}
               supplierId={editingSupplier.id}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Client Dialog */}
+      <Dialog open={isCreateClientDialogOpen} onOpenChange={setIsCreateClientDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Users className="h-5 w-5" />
+              <span>Add New Client</span>
+            </DialogTitle>
+          </DialogHeader>
+          <ClientForm
+            mode="create"
+            onSubmit={handleCreateClient}
+            onCancel={() => setIsCreateClientDialogOpen(false)}
+            isLoading={isLoading}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Client Dialog */}
+      <Dialog open={!!editingClient} onOpenChange={() => setEditingClient(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Users className="h-5 w-5" />
+              Edit Client - {editingClient?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {editingClient && (
+            <ClientForm
+              mode="edit"
+              initialData={editingClient}
+              onSubmit={handleUpdateClient}
+              onCancel={() => setEditingClient(null)}
+              isLoading={isLoading}
+              clientId={editingClient.id}
             />
           )}
         </DialogContent>
