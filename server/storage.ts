@@ -120,9 +120,9 @@ export interface IStorage {
   createSupplierPriceHistory(priceHistory: InsertSupplierPriceHistory): Promise<SupplierPriceHistory>;
 
   // Supplier Contacts
-  getSupplierContacts(supplierId?: number | null): Promise<any[]>;
-  createSupplierContact(contact: any): Promise<any>;
-  updateSupplierContact(id: number, contact: any): Promise<any>;
+  getSupplierContacts(supplierId?: number | null): Promise<SupplierContact[]>;
+  createSupplierContact(contact: InsertSupplierContact): Promise<SupplierContact>;
+  updateSupplierContact(id: number, contact: Partial<InsertSupplierContact>): Promise<SupplierContact | undefined>;
   deleteSupplierContact(id: number): Promise<void>;
 }
 
@@ -633,14 +633,14 @@ export class DatabaseStorage implements IStorage {
       .orderBy(supplierContacts.firstName, supplierContacts.lastName);
   }
 
-  async createSupplierContact(contact: any): Promise<any> {
+  async createSupplierContact(contact: InsertSupplierContact): Promise<SupplierContact> {
     const [createdContact] = await db.insert(supplierContacts)
       .values(contact)
       .returning();
     return createdContact;
   }
 
-  async updateSupplierContact(id: number, contact: any): Promise<any> {
+  async updateSupplierContact(id: number, contact: Partial<InsertSupplierContact>): Promise<SupplierContact | undefined> {
     const [updatedContact] = await db
       .update(supplierContacts)
       .set({ ...contact, updatedAt: new Date() })
