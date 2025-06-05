@@ -200,15 +200,21 @@ export const suppliers = pgTable("suppliers", {
   nzbn: text("nzbn"), // New Zealand Business Number
   gstNumber: text("gst_number"), // GST registration number
   companyNumber: text("company_number"), // NZ company registration number
+  website: text("website"), // Company website
+  phone: text("phone"), // Primary phone number
+  email: text("email"), // Primary email address
   paymentTerms: text("payment_terms").default("30 days"), // 30 days, 7 days, COD, etc.
   accountManager: text("account_manager"),
-  leadTimeStandard: integer("lead_time_standard"), // days
-  leadTimeRush: integer("lead_time_rush"), // days
-  minimumOrderValue: decimal("minimum_order_value", { precision: 10, scale: 2 }),
+  leadTimeStandard: integer("lead_time_standard").default(7), // days
+  leadTimeExpress: integer("lead_time_express").default(3), // days (renamed from leadTimeRush)
+  minimumOrderQuantity: decimal("minimum_order_quantity", { precision: 10, scale: 2 }).default("0"),
+  minimumOrderValue: decimal("minimum_order_value", { precision: 10, scale: 2 }).default("0"),
   deliveryAreas: text("delivery_areas"), // JSON array or comma-separated
   certifications: text("certifications"), // ISO, AS/NZS standards
+  standardsCompliance: text("standards_compliance"), // Additional standards compliance
   qualityRating: decimal("quality_rating", { precision: 3, scale: 2 }), // 1-5 rating
   reliabilityRating: decimal("reliability_rating", { precision: 3, scale: 2 }), // 1-5 rating
+  isPreferredSupplier: boolean("is_preferred_supplier").default(false), // Preferred supplier status
   notes: text("notes"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
