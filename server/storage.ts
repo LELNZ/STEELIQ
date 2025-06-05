@@ -9,7 +9,7 @@ import {
   type Remnant, type InsertRemnant, type OptimizationSimulation, type InsertOptimizationSimulation,
   type CoatingSystem, type InsertCoatingSystem, type SurfaceAreaConfig, type InsertSurfaceAreaConfig,
   type Supplier, type InsertSupplier, type MaterialSupplier, type InsertMaterialSupplier,
-  type SupplierPriceHistory, type InsertSupplierPriceHistory
+  type SupplierPriceHistory, type InsertSupplierPriceHistory, type SupplierContact, type InsertSupplierContact
 } from "@shared/schema";
 import { desc, eq, lt, asc, like, and, or, sql } from "drizzle-orm";
 import { db } from "./db";
@@ -622,7 +622,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Supplier Contacts Implementation
-  async getSupplierContacts(supplierId?: number | null): Promise<any[]> {
+  async getSupplierContacts(supplierId?: number | null): Promise<SupplierContact[]> {
     if (supplierId) {
       return await db.select().from(supplierContacts)
         .where(eq(supplierContacts.supplierId, supplierId))
