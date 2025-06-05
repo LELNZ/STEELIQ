@@ -96,6 +96,25 @@ export interface IStorage {
   getSurfaceAreaConfigs(materialId: number): Promise<SurfaceAreaConfig[]>;
   createSurfaceAreaConfig(config: InsertSurfaceAreaConfig): Promise<SurfaceAreaConfig>;
   updateSurfaceAreaConfig(id: number, config: Partial<InsertSurfaceAreaConfig>): Promise<SurfaceAreaConfig>;
+
+  // Supplier Management
+  getSuppliers(): Promise<Supplier[]>;
+  getSupplier(id: number): Promise<Supplier | undefined>;
+  createSupplier(supplier: InsertSupplier): Promise<Supplier>;
+  updateSupplier(id: number, supplier: Partial<InsertSupplier>): Promise<Supplier>;
+  deleteSupplier(id: number): Promise<boolean>;
+
+  // Material-Supplier Relationships
+  getMaterialSuppliers(materialId: number): Promise<(MaterialSupplier & { supplier: Supplier })[]>;
+  getMaterialSupplierById(id: number): Promise<(MaterialSupplier & { material: Material, supplier: Supplier }) | undefined>;
+  createMaterialSupplier(materialSupplier: InsertMaterialSupplier): Promise<MaterialSupplier>;
+  updateMaterialSupplier(id: number, materialSupplier: Partial<InsertMaterialSupplier>): Promise<MaterialSupplier>;
+  deleteMaterialSupplier(id: number): Promise<boolean>;
+  setPrimarySupplier(id: number): Promise<MaterialSupplier>;
+
+  // Price History
+  getSupplierPriceHistory(materialSupplierId: number): Promise<(SupplierPriceHistory & { enteredByUser: User })[]>;
+  createSupplierPriceHistory(priceHistory: InsertSupplierPriceHistory): Promise<SupplierPriceHistory>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -414,6 +433,170 @@ export class DatabaseStorage implements IStorage {
       .where(eq(surfaceAreaConfigs.id, id))
       .returning();
     return updatedConfig;
+  }
+
+  // Supplier Management Implementation
+  async getSuppliers(): Promise<Supplier[]> {
+    return await db.select().from(suppliers).where(eq(suppliers.isActive, true)).orderBy(asc(suppliers.name));
+  }
+
+  async getSupplier(id: number): Promise<Supplier | undefined> {
+    const [supplier] = await db.select().from(suppliers).where(and(eq(suppliers.id, id), eq(suppliers.isActive, true)));
+    return supplier || undefined;
+  }
+
+  async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
+    const [createdSupplier] = await db.insert(suppliers).values(supplier).returning();
+    return createdSupplier;
+  }
+
+  async updateSupplier(id: number, supplier: Partial<InsertSupplier>): Promise<Supplier> {
+    const [updatedSupplier] = await db.update(suppliers)
+      .set({ ...supplier, updatedAt: new Date() })
+      .where(eq(suppliers.id, id))
+      .returning();
+    return updatedSupplier;
+  }
+
+  async deleteSupplier(id: number): Promise<boolean> {
+    const result = await db.update(suppliers)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(suppliers.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Material-Supplier Relationships Implementation
+  async getMaterialSuppliers(materialId: number): Promise<(MaterialSupplier & { supplier: Supplier })[]> {
+    const result = await db
+      .select({
+        id: materialSuppliers.id,
+        materialId: materialSuppliers.materialId,
+        supplierId: materialSuppliers.supplierId,
+        isPrimary: materialSuppliers.isPrimary,
+        pricePerMeter: materialSuppliers.pricePerMeter,
+        pricePerKg: materialSuppliers.pricePerKg,
+        currency: materialSuppliers.currency,
+        validFrom: materialSuppliers.validFrom,
+        validUntil: materialSuppliers.validUntil,
+        leadTime: materialSuppliers.leadTime,
+        minimumQuantity: materialSuppliers.minimumQuantity,
+        notes: materialSuppliers.notes,
+        isActive: materialSuppliers.isActive,
+        createdAt: materialSuppliers.createdAt,
+        updatedAt: materialSuppliers.updatedAt,
+        supplier: suppliers
+      })
+      .from(materialSuppliers)
+      .innerJoin(suppliers, eq(materialSuppliers.supplierId, suppliers.id))
+      .where(and(
+        eq(materialSuppliers.materialId, materialId),
+        eq(materialSuppliers.isActive, true),
+        eq(suppliers.isActive, true)
+      ))
+      .orderBy(desc(materialSuppliers.isPrimary), asc(suppliers.name));
+    
+    return result as (MaterialSupplier & { supplier: Supplier })[];
+  }
+
+  async getMaterialSupplierById(id: number): Promise<(MaterialSupplier & { material: Material, supplier: Supplier }) | undefined> {
+    const [result] = await db
+      .select({
+        id: materialSuppliers.id,
+        materialId: materialSuppliers.materialId,
+        supplierId: materialSuppliers.supplierId,
+        isPrimary: materialSuppliers.isPrimary,
+        pricePerMeter: materialSuppliers.pricePerMeter,
+        pricePerKg: materialSuppliers.pricePerKg,
+        currency: materialSuppliers.currency,
+        validFrom: materialSuppliers.validFrom,
+        validUntil: materialSuppliers.validUntil,
+        leadTime: materialSuppliers.leadTime,
+        minimumQuantity: materialSuppliers.minimumQuantity,
+        notes: materialSuppliers.notes,
+        isActive: materialSuppliers.isActive,
+        createdAt: materialSuppliers.createdAt,
+        updatedAt: materialSuppliers.updatedAt,
+        material: materials,
+        supplier: suppliers
+      })
+      .from(materialSuppliers)
+      .innerJoin(materials, eq(materialSuppliers.materialId, materials.id))
+      .innerJoin(suppliers, eq(materialSuppliers.supplierId, suppliers.id))
+      .where(eq(materialSuppliers.id, id));
+    
+    return result as (MaterialSupplier & { material: Material, supplier: Supplier }) || undefined;
+  }
+
+  async createMaterialSupplier(materialSupplier: InsertMaterialSupplier): Promise<MaterialSupplier> {
+    const [createdMaterialSupplier] = await db.insert(materialSuppliers).values(materialSupplier).returning();
+    return createdMaterialSupplier;
+  }
+
+  async updateMaterialSupplier(id: number, materialSupplier: Partial<InsertMaterialSupplier>): Promise<MaterialSupplier> {
+    const [updatedMaterialSupplier] = await db.update(materialSuppliers)
+      .set({ ...materialSupplier, updatedAt: new Date() })
+      .where(eq(materialSuppliers.id, id))
+      .returning();
+    return updatedMaterialSupplier;
+  }
+
+  async deleteMaterialSupplier(id: number): Promise<boolean> {
+    const result = await db.update(materialSuppliers)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(materialSuppliers.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async setPrimarySupplier(id: number): Promise<MaterialSupplier> {
+    // Get the material supplier to find the material
+    const materialSupplier = await this.getMaterialSupplierById(id);
+    if (!materialSupplier) {
+      throw new Error("Material supplier not found");
+    }
+
+    // First, unset all primary suppliers for this material
+    await db.update(materialSuppliers)
+      .set({ isPrimary: false, updatedAt: new Date() })
+      .where(eq(materialSuppliers.materialId, materialSupplier.materialId));
+
+    // Then set this supplier as primary
+    const [updatedMaterialSupplier] = await db.update(materialSuppliers)
+      .set({ isPrimary: true, updatedAt: new Date() })
+      .where(eq(materialSuppliers.id, id))
+      .returning();
+    
+    return updatedMaterialSupplier;
+  }
+
+  // Price History Implementation
+  async getSupplierPriceHistory(materialSupplierId: number): Promise<(SupplierPriceHistory & { enteredByUser: User })[]> {
+    const result = await db
+      .select({
+        id: supplierPriceHistory.id,
+        materialSupplierId: supplierPriceHistory.materialSupplierId,
+        pricePerMeter: supplierPriceHistory.pricePerMeter,
+        pricePerKg: supplierPriceHistory.pricePerKg,
+        currency: supplierPriceHistory.currency,
+        effectiveDate: supplierPriceHistory.effectiveDate,
+        priceChangeReason: supplierPriceHistory.priceChangeReason,
+        enteredBy: supplierPriceHistory.enteredBy,
+        notes: supplierPriceHistory.notes,
+        createdAt: supplierPriceHistory.createdAt,
+        enteredByUser: users
+      })
+      .from(supplierPriceHistory)
+      .leftJoin(users, eq(supplierPriceHistory.enteredBy, users.id))
+      .where(eq(supplierPriceHistory.materialSupplierId, materialSupplierId))
+      .orderBy(desc(supplierPriceHistory.effectiveDate));
+    
+    return result as (SupplierPriceHistory & { enteredByUser: User })[];
+  }
+
+  async createSupplierPriceHistory(priceHistory: InsertSupplierPriceHistory): Promise<SupplierPriceHistory> {
+    const [createdPriceHistory] = await db.insert(supplierPriceHistory).values(priceHistory).returning();
+    return createdPriceHistory;
   }
 }
 
