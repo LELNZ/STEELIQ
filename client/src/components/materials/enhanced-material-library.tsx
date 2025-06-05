@@ -1897,7 +1897,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-full p-0" align="start">
+                      <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[300px] p-0" align="start">
                         <Command>
                           <CommandInput placeholder="Search suppliers..." />
                           <CommandList>
@@ -1908,14 +1908,18 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                   key={supplier.id}
                                   value={supplier.name}
                                   onSelect={(currentValue) => {
-                                    setEditingMaterial({
-                                      ...editingMaterial, 
-                                      supplier: currentValue === editingMaterial.supplier ? "" : currentValue
-                                    });
+                                    // Find the actual supplier name (currentValue is lowercased)
+                                    const selectedSupplier = suppliers.find(s => 
+                                      s.name.toLowerCase() === currentValue.toLowerCase()
+                                    );
                                     
-                                    // Auto-update pricing from primary supplier if available
-                                    const selectedSupplier = suppliers.find(s => s.name === currentValue);
                                     if (selectedSupplier) {
+                                      setEditingMaterial({
+                                        ...editingMaterial, 
+                                        supplier: selectedSupplier.name
+                                      });
+                                      
+                                      // Auto-update pricing from primary supplier if available
                                       console.log("Selected supplier:", selectedSupplier);
                                     }
                                     
