@@ -24,7 +24,12 @@ export const supplierFormSchema = z.object({
   nzbn: z.string().optional(),
   gstNumber: z.string().optional(),
   companyNumber: z.string().optional(),
-  website: z.string().url("Please enter a valid website URL").optional().or(z.literal("")),
+  website: z.string().optional().refine((val) => {
+    if (!val || val === "") return true;
+    // Allow URLs with or without protocol
+    const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+    return urlPattern.test(val);
+  }, "Please enter a valid website URL"),
   phone: z.string().optional(),
   email: z.string().email("Please enter a valid email address").optional().or(z.literal("")),
   paymentTerms: z.string().default("30 days"),
