@@ -58,8 +58,6 @@ interface Supplier {
   id: number;
   name: string;
   company: string;
-  email?: string;
-  phone?: string;
   address?: string;
   city?: string;
   postcode?: string;
@@ -228,11 +226,9 @@ export default function ContactsPage() {
 
   const exportSuppliers = () => {
     const csvData = [
-      ["Company/Supplier Name", "Email", "Phone", "Address", "City", "Postcode", "NZBN", "GST Number", "Company Number", "Payment Terms", "Account Manager", "Lead Time (Standard)", "Lead Time (Express)", "Min Order Qty", "Delivery Areas", "Certifications", "Standards", "Notes", "Active"],
+      ["Company/Supplier Name", "Address", "City", "Postcode", "NZBN", "GST Number", "Company Number", "Payment Terms", "Account Manager", "Lead Time (Standard)", "Lead Time (Express)", "Min Order Qty", "Delivery Areas", "Certifications", "Standards", "Notes", "Active"],
       ...filteredSuppliers.map(supplier => [
         supplier.name,
-        supplier.email || "",
-        supplier.phone || "",
         supplier.address || "",
         supplier.city || "",
         supplier.postcode || "",
@@ -289,8 +285,6 @@ export default function ContactsPage() {
               form.reset({
                 name: "",
                 company: "",
-                email: "",
-                phone: "",
                 address: "",
                 city: "",
                 postcode: "",
@@ -506,36 +500,6 @@ export default function ContactsPage() {
                   {/* Additional Information */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-foreground border-b pb-2">Additional Information</h3>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone</FormLabel>
-                            <FormControl>
-                              <Input placeholder="+64 9 123 4567" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="contact@supplier.co.nz" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
 
                     <FormField
                       control={form.control}
@@ -759,18 +723,6 @@ export default function ContactsPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-3">
-                  {supplier.email && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="truncate">{supplier.email}</span>
-                    </div>
-                  )}
-                  {supplier.phone && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{supplier.phone}</span>
-                    </div>
-                  )}
                   {supplier.paymentTerms && (
                     <div className="flex items-center gap-2 text-sm">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -1015,35 +967,7 @@ export default function ContactsPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground border-b pb-2">Additional Information</h3>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="+64 9 123 4567" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="contact@supplier.co.nz" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
 
                 <FormField
                   control={form.control}
