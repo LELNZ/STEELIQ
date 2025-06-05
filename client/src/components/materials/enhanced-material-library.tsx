@@ -1784,32 +1784,162 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                 </div>
               </div>
 
-              {/* Pricing */}
+              {/* Advanced Pricing with Automatic Calculations */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground border-b pb-2">Pricing</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-price-meter">Price per Meter (NZD)</Label>
-                    <Input
-                      id="edit-price-meter"
-                      type="number"
-                      step="0.01"
-                      value={editingMaterial.pricePerMeter || ""}
-                      onChange={(e) => setEditingMaterial({...editingMaterial, pricePerMeter: parseFloat(e.target.value) || undefined})}
-                      placeholder="Price per meter"
-                    />
+                <h3 className="text-lg font-semibold text-foreground border-b pb-2 flex items-center gap-2">
+                  <DollarSign className="w-5 h-5" />
+                  Advanced Pricing Calculator
+                </h3>
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-700 mb-2">
+                    <Calculator className="w-4 h-4 inline mr-1" />
+                    Enter any pricing value - other fields will auto-calculate using weight per meter
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-price-meter" className="flex items-center gap-1">
+                        Price per Meter (AUD)
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="w-3 h-3 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Linear pricing - cost per meter of material</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
+                      <Input
+                        id="edit-price-meter"
+                        type="number"
+                        step="0.01"
+                        value={editingMaterial.pricePerMeter?.toString() || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value && editingMaterial.weightPerMeter) {
+                            const priceM = parseFloat(value);
+                            const weightM = parseFloat(editingMaterial.weightPerMeter.toString());
+                            const priceKg = calculatePricePerKg(priceM, weightM);
+                            const tonRate = calculateTonRate(parseFloat(priceKg));
+                            
+                            setEditingMaterial({
+                              ...editingMaterial, 
+                              pricePerMeter: priceM,
+                              pricePerKg: parseFloat(priceKg),
+                              tonRate: parseFloat(tonRate)
+                            });
+                          } else {
+                            setEditingMaterial({...editingMaterial, pricePerMeter: value ? parseFloat(value) : undefined});
+                          }
+                        }}
+                        placeholder="0.00"
+                        className="bg-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-price-kg" className="flex items-center gap-1">
+                        Price per Kg (AUD)
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="w-3 h-3 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Weight-based pricing - cost per kilogram</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
+                      <Input
+                        id="edit-price-kg"
+                        type="number"
+                        step="0.01"
+                        value={editingMaterial.pricePerKg?.toString() || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value && editingMaterial.weightPerMeter) {
+                            const priceKg = parseFloat(value);
+                            const weightM = parseFloat(editingMaterial.weightPerMeter.toString());
+                            const priceM = calculatePricePerMeter(priceKg, weightM);
+                            const tonRate = calculateTonRate(priceKg);
+                            
+                            setEditingMaterial({
+                              ...editingMaterial, 
+                              pricePerKg: priceKg,
+                              pricePerMeter: parseFloat(priceM),
+                              tonRate: parseFloat(tonRate)
+                            });
+                          } else {
+                            setEditingMaterial({...editingMaterial, pricePerKg: value ? parseFloat(value) : undefined});
+                          }
+                        }}
+                        placeholder="0.00"
+                        className="bg-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-ton-rate" className="flex items-center gap-1">
+                        Ton Rate (AUD)
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="w-3 h-3 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Bulk pricing - cost per metric tonne</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
+                      <Input
+                        id="edit-ton-rate"
+                        type="number"
+                        step="0.01"
+                        value={editingMaterial.tonRate?.toString() || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value && editingMaterial.weightPerMeter) {
+                            const tonRate = parseFloat(value);
+                            const priceKg = calculatePricePerKgFromTonRate(tonRate);
+                            const weightM = parseFloat(editingMaterial.weightPerMeter.toString());
+                            const priceM = calculatePricePerMeter(parseFloat(priceKg), weightM);
+                            
+                            setEditingMaterial({
+                              ...editingMaterial, 
+                              tonRate: tonRate,
+                              pricePerKg: parseFloat(priceKg),
+                              pricePerMeter: parseFloat(priceM)
+                            });
+                          } else {
+                            setEditingMaterial({...editingMaterial, tonRate: value ? parseFloat(value) : undefined});
+                          }
+                        }}
+                        placeholder="0.00"
+                        className="bg-white"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-price-kg">Price per Kg (NZD)</Label>
-                    <Input
-                      id="edit-price-kg"
-                      type="number"
-                      step="0.01"
-                      value={editingMaterial.pricePerKg || ""}
-                      onChange={(e) => setEditingMaterial({...editingMaterial, pricePerKg: parseFloat(e.target.value) || undefined})}
-                      placeholder="Price per kg"
-                    />
-                  </div>
+                  {editingMaterial.weightPerMeter && (
+                    <div className="mt-3 pt-3 border-t border-blue-200">
+                      <p className="text-xs text-blue-600">
+                        Weight: {editingMaterial.weightPerMeter} kg/m | 
+                        {editingMaterial.pricePerMeter && editingMaterial.pricePerKg && editingMaterial.tonRate && (
+                          <span className="ml-1">
+                            Calculations: {formatCurrency(editingMaterial.pricePerMeter)}/m = {formatCurrency(editingMaterial.pricePerKg)}/kg = {formatCurrency(editingMaterial.tonRate)}/t
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                  {!editingMaterial.weightPerMeter && (
+                    <div className="mt-3 pt-3 border-t border-orange-200 bg-orange-50 p-2 rounded">
+                      <p className="text-xs text-orange-600">
+                        <AlertTriangle className="w-3 h-3 inline mr-1" />
+                        Weight per meter required for automatic price calculations
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
