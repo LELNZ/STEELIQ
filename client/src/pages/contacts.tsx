@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,12 +22,15 @@ import { useToast } from "@/hooks/use-toast";
 
 // Schema definitions for suppliers and contacts
 const supplierSchema = z.object({
-  name: z.string().min(1, "Supplier name is required"),
-  company: z.string().optional(),
+  name: z.string().min(1, "Company/Supplier name is required"),
   email: z.string().email("Valid email required").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
-  abnTaxId: z.string().optional(),
+  city: z.string().optional(),
+  postcode: z.string().optional(),
+  nzbn: z.string().optional(),
+  gstNumber: z.string().optional(),
+  companyNumber: z.string().optional(),
   paymentTerms: z.string().optional(),
   accountManager: z.string().optional(),
   leadTimeStandard: z.number().min(0).optional(),
@@ -45,11 +48,14 @@ type SupplierFormData = z.infer<typeof supplierSchema>;
 interface Supplier {
   id: number;
   name: string;
-  company?: string;
   email?: string;
   phone?: string;
   address?: string;
-  abnTaxId?: string;
+  city?: string;
+  postcode?: string;
+  nzbn?: string;
+  gstNumber?: string;
+  companyNumber?: string;
   paymentTerms?: string;
   accountManager?: string;
   leadTimeStandard?: number;
@@ -60,6 +66,7 @@ interface Supplier {
   standardsCompliance?: string;
   notes?: string;
   isActive: boolean;
+  type?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -72,8 +79,77 @@ export default function ContactsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
 
+  // Address search functionality
+  const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const addressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Free address search using OpenStreetMap Nominatim (matching material library implementation)
+  const searchAddresses = async (query: string) => {
+    if (query.length < 3) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      return;
+    }
+
+    setIsSearchingAddress(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?` +
+        `q=${encodeURIComponent(query)}&` +
+        `countrycodes=nz&` +
+        `format=json&` +
+        `addressdetails=1&` +
+        `limit=5&` +
+        `extratags=1`
+      );
+      
+      if (response.ok) {
+        const results = await response.json();
+        const formattedSuggestions = results.map((result: any) => ({
+          display_name: result.display_name,
+          address: result.address,
+          full_address: result.display_name,
+          postcode: result.address?.postcode || '',
+          city: result.address?.city || result.address?.town || result.address?.suburb || '',
+          state: result.address?.state || '',
+          country: result.address?.country || ''
+        }));
+        
+        setAddressSuggestions(formattedSuggestions);
+        setShowAddressSuggestions(true);
+      }
+    } catch (error) {
+      console.error('Address search error:', error);
+      setAddressSuggestions([]);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  };
+
+  const handleAddressChange = (value: string, form: any) => {
+    form.setValue('address', value);
+    
+    if (addressTimeoutRef.current) {
+      clearTimeout(addressTimeoutRef.current);
+    }
+    
+    addressTimeoutRef.current = setTimeout(() => {
+      searchAddresses(value);
+    }, 300);
+  };
+
+  const selectAddress = (suggestion: any, form: any) => {
+    form.setValue('address', suggestion.full_address);
+    form.setValue('city', suggestion.city);
+    form.setValue('postcode', suggestion.postcode);
+    setShowAddressSuggestions(false);
+    setAddressSuggestions([]);
+  };
 
   // Fetch suppliers
   const { data: suppliers = [], isLoading } = useQuery({
