@@ -156,8 +156,6 @@ export default function ContactsPage() {
     defaultValues: {
       name: "",
       company: "",
-      email: "",
-      phone: "",
       address: "",
       city: "",
       postcode: "",
@@ -180,8 +178,7 @@ export default function ContactsPage() {
   // Filter suppliers based on search
   const filteredSuppliers = suppliers.filter(supplier =>
     supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    supplier.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    supplier.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    supplier.company.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const onSubmit = (data: SupplierFormData) => {
@@ -204,8 +201,6 @@ export default function ContactsPage() {
     form.reset({
       name: supplier.name,
       company: supplier.company,
-      email: supplier.email || "",
-      phone: supplier.phone || "",
       address: supplier.address || "",
       city: supplier.city || "",
       postcode: supplier.postcode || "",
