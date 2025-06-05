@@ -150,16 +150,19 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
 
   const handleEdit = (contact: Contact) => {
     setEditingContact(contact);
-    editForm.reset({
-      firstName: contact.firstName,
-      lastName: contact.lastName,
-      email: contact.email || "",
-      mobile: contact.mobile || "",
-      phone: contact.phone || "",
-      title: contact.title || "",
-      department: contact.department || "",
-      isPrimary: contact.isPrimary
-    });
+    // Force form to update with contact data
+    setTimeout(() => {
+      editForm.reset({
+        firstName: contact.firstName || "",
+        lastName: contact.lastName || "",
+        email: contact.email || "",
+        mobile: contact.mobile || "",
+        phone: contact.phone || "",
+        title: contact.title || "",
+        department: contact.department || "",
+        isPrimary: contact.isPrimary || false
+      });
+    }, 100);
     setIsEditDialogOpen(true);
   };
 
@@ -722,7 +725,7 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
                     <FormItem>
                       <FormLabel>Department</FormLabel>
                       <FormControl>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select department" />
                           </SelectTrigger>
