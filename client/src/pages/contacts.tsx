@@ -848,49 +848,12 @@ export default function ContactsPage() {
                   control={form.control}
                   name="address"
                   render={({ field }) => (
-                    <FormItem className="relative">
-                      <FormLabel className="text-sm font-medium text-foreground">
-                        Address
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            placeholder="Start typing address (e.g., 123 Queen Street, Auckland)..."
-                            {...field}
-                            onChange={(e) => handleAddressChange(e.target.value, form)}
-                            className="pr-8"
-                          />
-                          {isSearchingAddress && (
-                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                              <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
-                            </div>
-                          )}
-                          
-                          {/* Address Suggestions Dropdown */}
-                          {showAddressSuggestions && addressSuggestions.length > 0 && (
-                            <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                              {addressSuggestions.map((suggestion, index) => (
-                                <div
-                                  key={index}
-                                  className="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
-                                  onClick={() => selectAddress(suggestion, form)}
-                                >
-                                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {suggestion.display_name}
-                                  </div>
-                                  {suggestion.postcode && (
-                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                      Postcode: {suggestion.postcode}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                    <AddressSearch
+                      field={field}
+                      form={form}
+                      label="Address"
+                      placeholder="Start typing address (e.g., 123 Queen Street, Auckland)..."
+                    />
                   )}
                 />
 
