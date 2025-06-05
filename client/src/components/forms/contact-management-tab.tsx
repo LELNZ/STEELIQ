@@ -149,21 +149,21 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
   });
 
   const handleEdit = (contact: Contact) => {
+    console.log("Editing contact:", contact);
     setEditingContact(contact);
-    // Force form to update with contact data
-    setTimeout(() => {
-      editForm.reset({
-        firstName: contact.firstName || "",
-        lastName: contact.lastName || "",
-        email: contact.email || "",
-        mobile: contact.mobile || "",
-        phone: contact.phone || "",
-        title: contact.title || "",
-        department: contact.department || "",
-        isPrimary: contact.isPrimary || false
-      });
-    }, 100);
     setIsEditDialogOpen(true);
+    
+    // Reset form with contact data immediately
+    editForm.reset({
+      firstName: contact.firstName || "",
+      lastName: contact.lastName || "",
+      email: contact.email || "",
+      mobile: contact.mobile || "",
+      phone: contact.phone || "",
+      title: contact.title || "",
+      department: contact.department || "",
+      isPrimary: contact.isPrimary || false
+    });
   };
 
   const handleAddSubmit = (data: ContactFormData) => {
@@ -294,15 +294,29 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
                     />
                   </div>
 
+                  <FormField
+                    control={addForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={addForm.control}
-                      name="email"
+                      name="mobile"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel>Mobile</FormLabel>
                           <FormControl>
-                            <Input type="email" {...field} />
+                            <Input {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -311,10 +325,10 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
 
                     <FormField
                       control={addForm.control}
-                      name="mobile"
+                      name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Mobile</FormLabel>
+                          <FormLabel>Office Phone</FormLabel>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
@@ -673,15 +687,29 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
                 />
               </div>
 
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={editForm.control}
-                  name="email"
+                  name="mobile"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Mobile</FormLabel>
                       <FormControl>
-                        <Input type="email" {...field} />
+                        <Input {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -690,10 +718,10 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
 
                 <FormField
                   control={editForm.control}
-                  name="mobile"
+                  name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Mobile</FormLabel>
+                      <FormLabel>Office Phone</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
