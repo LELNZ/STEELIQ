@@ -1013,8 +1013,18 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             </>
                           ) : (
                             <>
-                              {/* Special display for unequal angles - show W1/W2 */}
-                              {material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle') ? (
+                              {/* Special display for sheet metal materials in tiny view */}
+                              {(material.category?.toLowerCase().includes('sheet') || 
+                                material.category?.toLowerCase().includes('plate') ||
+                                material.name.toLowerCase().includes('sheet') ||
+                                material.name.toLowerCase().includes('plate')) ? (
+                                <>
+                                  <p className="text-sm">W: {material.width ? parseFloat(material.width.toString()).toFixed(0) : 'N/A'}mm</p>
+                                  <p className="text-sm">L: {material.length ? parseFloat(material.length.toString()).toFixed(0) : 'N/A'}mm</p>
+                                  <p className="text-sm">T: {material.thickness || 'N/A'}mm</p>
+                                </>
+                              ) : /* Special display for unequal angles - show W1/W2 */
+                              material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle') ? (
                                 <>
                                   <p className="text-sm">W1: {material.width1 ? parseFloat(String(material.width1)).toFixed(0) : 'N/A'}mm</p>
                                   <p className="text-sm">W2: {material.width2 ? parseFloat(String(material.width2)).toFixed(0) : 'N/A'}mm</p>
@@ -1022,7 +1032,10 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                               ) : (
                                 <p className="text-sm">W: {material.width ? parseFloat(material.width.toString()).toFixed(0) : 'N/A'}mm</p>
                               )}
-                              {material.depth && (
+                              {!(material.category?.toLowerCase().includes('sheet') || 
+                                material.category?.toLowerCase().includes('plate') ||
+                                material.name.toLowerCase().includes('sheet') ||
+                                material.name.toLowerCase().includes('plate')) && material.depth && (
                                 <div className="flex items-center gap-1">
                                   <p className="text-sm">D: {material.depth}mm</p>
                                   <TooltipProvider>
@@ -1038,7 +1051,11 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                 </div>
                               )}
                               {/* Show separate web and flange thickness for structural sections */}
-                              {(material.category?.toLowerCase().includes('channel') || 
+                              {!(material.category?.toLowerCase().includes('sheet') || 
+                                material.category?.toLowerCase().includes('plate') ||
+                                material.name.toLowerCase().includes('sheet') ||
+                                material.name.toLowerCase().includes('plate')) &&
+                               (material.category?.toLowerCase().includes('channel') || 
                                 material.category?.toLowerCase().includes('structural channels') ||
                                 material.category?.toLowerCase().includes('universal beam') ||
                                 material.category?.toLowerCase().includes('universal column')) ? (
@@ -1046,9 +1063,13 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                   <p className="text-sm">Web: {material.webTw || 'N/A'}mm</p>
                                   <p className="text-sm">Flange: {material.flangeTf || 'N/A'}mm</p>
                                 </>
-                              ) : (
+                              ) : !(material.category?.toLowerCase().includes('sheet') || 
+                                    material.category?.toLowerCase().includes('plate') ||
+                                    material.name.toLowerCase().includes('sheet') ||
+                                    material.name.toLowerCase().includes('plate')) &&
+                                   !(material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle')) ? (
                                 <p className="text-sm">T: {material.thickness || 'N/A'}</p>
-                              )}
+                              ) : null}
                             </>
                           )}
                         </div>
