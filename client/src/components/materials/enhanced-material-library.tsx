@@ -1956,14 +1956,14 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                           )}
                           
                           {/* Supplier List */}
-                          <div className="max-h-[220px] overflow-y-auto">
+                          <div className="max-h-[240px] overflow-y-auto">
                             {filteredSuppliers.map((supplier, index) => (
                               <div
                                 key={supplier.id}
-                                className={`group flex items-center cursor-pointer transition-all duration-150 p-3 
+                                className={`group flex items-center cursor-pointer transition-all duration-150 px-3 py-2
                                   ${editingMaterial.supplier === supplier.name 
-                                    ? 'bg-blue-50 border-l-4 border-blue-500' 
-                                    : 'hover:bg-gray-50 border-l-4 border-transparent'
+                                    ? 'bg-blue-50 border-l-3 border-blue-500' 
+                                    : 'hover:bg-gray-50 border-l-3 border-transparent'
                                   }
                                   ${index !== filteredSuppliers.length - 1 ? 'border-b border-gray-100' : ''}
                                 `}
@@ -1977,32 +1977,32 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                 }}
                               >
                                 <div className="flex items-center flex-1 min-w-0">
-                                  <div className={`mr-3 p-1.5 rounded-full transition-colors
+                                  <div className={`mr-2.5 p-1 rounded-md transition-colors
                                     ${editingMaterial.supplier === supplier.name 
                                       ? 'bg-blue-100 text-blue-600' 
                                       : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200'
                                     }`}>
-                                    <Building2 className="w-4 h-4" />
+                                    <Building2 className="w-3.5 h-3.5" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <div className={`font-medium truncate transition-colors
+                                    <div className={`text-sm font-medium truncate transition-colors leading-tight
                                       ${editingMaterial.supplier === supplier.name 
                                         ? 'text-blue-900' 
                                         : 'text-gray-900 group-hover:text-gray-800'
                                       }`}>
                                       {supplier.name}
                                     </div>
-                                    {supplier.address && (
-                                      <div className="text-xs text-gray-500 truncate mt-0.5">
-                                        {supplier.city ? `${supplier.city}` : supplier.address}
+                                    {supplier.city && (
+                                      <div className="text-xs text-gray-500 truncate leading-tight">
+                                        {supplier.city}
                                       </div>
                                     )}
                                   </div>
                                   <Check
-                                    className={`ml-2 h-4 w-4 transition-all duration-200 ${
+                                    className={`ml-2 h-3.5 w-3.5 transition-all duration-200 ${
                                       editingMaterial.supplier === supplier.name 
-                                        ? "opacity-100 text-blue-600 scale-110" 
-                                        : "opacity-0 scale-90"
+                                        ? "opacity-100 text-blue-600" 
+                                        : "opacity-0"
                                     }`}
                                   />
                                 </div>
