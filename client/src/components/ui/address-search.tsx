@@ -49,7 +49,21 @@ export function AddressSearch({ field, form, label = "Address", placeholder = "S
       
       if (response.ok) {
         const data = await response.json();
-        if (data.predictions) {
+        
+        if (data.error_message) {
+          // Show Google API configuration error to user
+          setAddressSuggestions([{
+            display_name: "Google Places API Configuration Required",
+            main_text: "API Setup Needed",
+            secondary_text: "Please configure Google Places API (New) with valid credentials",
+            fallback: true,
+            error: true
+          }]);
+          setShowAddressSuggestions(true);
+          return;
+        }
+        
+        if (data.predictions && data.predictions.length > 0) {
           const formattedSuggestions = data.predictions.map((prediction: any) => ({
             place_id: prediction.place_id,
             display_name: prediction.description,
@@ -60,48 +74,32 @@ export function AddressSearch({ field, form, label = "Address", placeholder = "S
           
           setAddressSuggestions(formattedSuggestions);
           setShowAddressSuggestions(true);
+        } else {
+          // No results found
+          setAddressSuggestions([{
+            display_name: "No addresses found for your search",
+            main_text: "Try a different search term",
+            secondary_text: "Enter street name, suburb, or city",
+            fallback: true
+          }]);
+          setShowAddressSuggestions(true);
         }
       } else {
-        // Fallback to OpenStreetMap if Google API fails
-        await searchAddressesFallback(query);
+        throw new Error(`API request failed: ${response.status}`);
       }
     } catch (error) {
       console.error('Google Places API error:', error);
-      // Fallback to OpenStreetMap
-      await searchAddressesFallback(query);
+      // Show error state instead of fallback
+      setAddressSuggestions([{
+        display_name: "Address search temporarily unavailable",
+        main_text: "Please enter address manually",
+        secondary_text: "Google Places API connection failed",
+        fallback: true,
+        error: true
+      }]);
+      setShowAddressSuggestions(true);
     } finally {
       setIsSearchingAddress(false);
-    }
-  };
-
-  // Fallback address search using OpenStreetMap
-  const searchAddressesFallback = async (query: string) => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?` +
-        `q=${encodeURIComponent(query)}&` +
-        `countrycodes=nz&` +
-        `format=json&` +
-        `addressdetails=1&` +
-        `limit=5`
-      );
-      
-      if (response.ok) {
-        const results = await response.json();
-        const formattedSuggestions = results.map((result: any) => ({
-          display_name: result.display_name,
-          address: result.address,
-          fallback: true,
-          postcode: result.address?.postcode || '',
-          city: result.address?.city || result.address?.town || result.address?.suburb || ''
-        }));
-        
-        setAddressSuggestions(formattedSuggestions);
-        setShowAddressSuggestions(true);
-      }
-    } catch (error) {
-      console.error('Fallback address search error:', error);
-      setAddressSuggestions([]);
     }
   };
 
@@ -118,6 +116,11 @@ export function AddressSearch({ field, form, label = "Address", placeholder = "S
   };
 
   const selectAddress = async (suggestion: AddressSuggestion) => {
+    // Don't allow selection of error states
+    if (suggestion.error) {
+      return;
+    }
+    
     if (suggestion.place_id) {
       // Google Places API - get detailed address information
       try {
@@ -157,13 +160,8 @@ export function AddressSearch({ field, form, label = "Address", placeholder = "S
         // Fallback to basic suggestion data
         form.setValue('address', suggestion.display_name);
       }
-    } else if (suggestion.fallback) {
-      // OpenStreetMap fallback data
-      form.setValue('address', suggestion.display_name);
-      form.setValue('city', suggestion.city);
-      form.setValue('postcode', suggestion.postcode);
     } else {
-      // Default handling
+      // Manual address entry
       form.setValue('address', suggestion.display_name);
     }
     
