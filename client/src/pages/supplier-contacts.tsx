@@ -98,33 +98,18 @@ export default function SupplierContactsPage() {
   // Fetch suppliers
   const { data: suppliers = [] } = useQuery({
     queryKey: ["/api/suppliers"],
-    queryFn: async () => {
-      const response = await fetch("/api/suppliers");
-      if (!response.ok) throw new Error("Failed to fetch suppliers");
-      return response.json() as Supplier[];
-    }
   });
 
   // Fetch contacts for selected supplier
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ["/api/supplier-contacts", selectedSupplierId],
-    queryFn: async () => {
-      if (!selectedSupplierId) return [];
-      const response = await fetch(`/api/supplier-contacts?supplierId=${selectedSupplierId}`);
-      if (!response.ok) throw new Error("Failed to fetch contacts");
-      return response.json() as SupplierContact[];
-    },
+    queryFn: () => selectedSupplierId ? `/api/supplier-contacts?supplierId=${selectedSupplierId}` : "/api/supplier-contacts",
     enabled: !!selectedSupplierId
   });
 
   // Add contact mutation
   const addContactMutation = useMutation({
-    mutationFn: async (data: ContactFormData) => {
-      return apiRequest("/api/supplier-contacts", {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
-    },
+    mutationFn: (data: ContactFormData) => apiRequest("/api/supplier-contacts", "POST", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts"] });
       setIsAddDialogOpen(false);
@@ -137,12 +122,8 @@ export default function SupplierContactsPage() {
 
   // Update contact mutation
   const updateContactMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: ContactFormData }) => {
-      return apiRequest(`/api/supplier-contacts/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data)
-      });
-    },
+    mutationFn: ({ id, data }: { id: number; data: ContactFormData }) => 
+      apiRequest(`/api/supplier-contacts/${id}`, "PATCH", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts"] });
       setIsEditDialogOpen(false);
@@ -156,9 +137,7 @@ export default function SupplierContactsPage() {
 
   // Delete contact mutation
   const deleteContactMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return apiRequest(`/api/supplier-contacts/${id}`, { method: "DELETE" });
-    },
+    mutationFn: (id: number) => apiRequest(`/api/supplier-contacts/${id}`, "DELETE"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts"] });
       toast({ title: "Contact deleted successfully" });
