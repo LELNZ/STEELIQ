@@ -280,7 +280,35 @@ export default function ContactsPage() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+            setIsAddDialogOpen(open);
+            if (open) {
+              // Reset form to default values when opening add dialog
+              form.reset({
+                name: "",
+                company: "",
+                email: "",
+                phone: "",
+                address: "",
+                city: "",
+                postcode: "",
+                nzbn: "",
+                gstNumber: "",
+                companyNumber: "",
+                paymentTerms: "30 days",
+                accountManager: "",
+                leadTimeStandard: 7,
+                leadTimeExpress: 3,
+                minimumOrderQuantity: 0,
+                deliveryAreas: "",
+                certifications: "",
+                standardsCompliance: "",
+                notes: "",
+                isActive: true
+              });
+              setSelectedSupplier(null);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
