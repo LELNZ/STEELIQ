@@ -118,6 +118,12 @@ export interface IStorage {
   // Price History
   getSupplierPriceHistory(materialSupplierId: number): Promise<(SupplierPriceHistory & { enteredByUser: User })[]>;
   createSupplierPriceHistory(priceHistory: InsertSupplierPriceHistory): Promise<SupplierPriceHistory>;
+
+  // Supplier Contacts
+  getSupplierContacts(supplierId?: number | null): Promise<any[]>;
+  createSupplierContact(contact: any): Promise<any>;
+  updateSupplierContact(id: number, contact: any): Promise<any>;
+  deleteSupplierContact(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {

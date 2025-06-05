@@ -598,6 +598,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Supplier Contacts routes
+  app.get("/api/supplier-contacts", async (req, res) => {
+    try {
+      const supplierId = req.query.supplierId ? parseInt(req.query.supplierId as string) : null;
+      const contacts = await storage.getSupplierContacts(supplierId);
+      res.json(contacts);
+    } catch (error) {
+      console.error("Error fetching supplier contacts:", error);
+      res.status(500).json({ error: "Failed to fetch supplier contacts" });
+    }
+  });
+
+  app.post("/api/supplier-contacts", async (req, res) => {
+    try {
+      const contactData = req.body;
+      const contact = await storage.createSupplierContact(contactData);
+      res.status(201).json(contact);
+    } catch (error) {
+      console.error("Error creating supplier contact:", error);
+      res.status(500).json({ error: "Failed to create supplier contact" });
+    }
+  });
+
+  app.patch("/api/supplier-contacts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const contactData = req.body;
+      const contact = await storage.updateSupplierContact(id, contactData);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      res.json(contact);
+    } catch (error) {
+      console.error("Error updating supplier contact:", error);
+      res.status(500).json({ error: "Failed to update supplier contact" });
+    }
+  });
+
+  app.delete("/api/supplier-contacts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteSupplierContact(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting supplier contact:", error);
+      res.status(500).json({ error: "Failed to delete supplier contact" });
+    }
+  });
+
   app.patch("/api/suppliers/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
