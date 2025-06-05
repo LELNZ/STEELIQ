@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus, Calculator, Info, Building2, DollarSign } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus, Calculator, Info, Building2, DollarSign, Check, ChevronsUpDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -190,6 +192,9 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const addressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Supplier dropdown state for searchable functionality
+  const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
 
   // Free address search using OpenStreetMap Nominatim
   // TODO: Google Maps Places API integration available for future use
@@ -1873,44 +1878,66 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       <Building2 className="w-4 h-4" />
                       Primary Supplier
                     </Label>
-                    <Select 
-                      value={editingMaterial.supplier || ""} 
-                      onValueChange={(value) => {
-                        if (value === "add-new") {
-                          setShowAddSupplierDialog(true);
-                        } else {
-                          setEditingMaterial({...editingMaterial, supplier: value});
-                          
-                          // Auto-update pricing from primary supplier if available
-                          const selectedSupplier = suppliers.find(s => s.name === value);
-                          if (selectedSupplier) {
-                            // Find supplier's pricing for this material
-                            // This would be implemented when we have material-supplier relationships
-                            console.log("Selected supplier:", selectedSupplier);
-                          }
-                        }
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select or add supplier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {suppliers.map((supplier) => (
-                          <SelectItem key={supplier.id} value={supplier.name}>
+                    <Popover open={supplierDropdownOpen} onOpenChange={setSupplierDropdownOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={supplierDropdownOpen}
+                          className="w-full justify-between"
+                        >
+                          {editingMaterial.supplier ? (
                             <div className="flex items-center gap-2">
                               <Building2 className="w-4 h-4" />
-                              {supplier.name}
+                              {editingMaterial.supplier}
                             </div>
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="add-new">
-                          <div className="flex items-center gap-2 text-blue-600">
-                            <Plus className="w-4 h-4" />
-                            Add New Supplier
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                          ) : (
+                            "Select primary supplier"
+                          )}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search suppliers..." />
+                          <CommandList>
+                            <CommandEmpty>No suppliers found.</CommandEmpty>
+                            <CommandGroup>
+                              {suppliers.map((supplier) => (
+                                <CommandItem
+                                  key={supplier.id}
+                                  value={supplier.name}
+                                  onSelect={(currentValue) => {
+                                    setEditingMaterial({
+                                      ...editingMaterial, 
+                                      supplier: currentValue === editingMaterial.supplier ? "" : currentValue
+                                    });
+                                    
+                                    // Auto-update pricing from primary supplier if available
+                                    const selectedSupplier = suppliers.find(s => s.name === currentValue);
+                                    if (selectedSupplier) {
+                                      console.log("Selected supplier:", selectedSupplier);
+                                    }
+                                    
+                                    setSupplierDropdownOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${
+                                      editingMaterial.supplier === supplier.name ? "opacity-100" : "opacity-0"
+                                    }`}
+                                  />
+                                  <div className="flex items-center gap-2">
+                                    <Building2 className="w-4 h-4" />
+                                    {supplier.name}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
                 <div className="space-y-2">
