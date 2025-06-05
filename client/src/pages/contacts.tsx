@@ -88,7 +88,7 @@ export default function ContactsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Free address search using OpenStreetMap Nominatim (matching material library implementation)
+  // Google Places API address search for accurate results matching Google Maps
   const searchAddresses = async (query: string) => {
     if (query.length < 3) {
       setAddressSuggestions([]);
@@ -98,14 +98,50 @@ export default function ContactsPage() {
 
     setIsSearchingAddress(true);
     try {
+      // Use server-side proxy to protect API key
+      const response = await fetch('/api/places/autocomplete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: query })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.predictions) {
+          const formattedSuggestions = data.predictions.map((prediction: any) => ({
+            place_id: prediction.place_id,
+            display_name: prediction.description,
+            structured_formatting: prediction.structured_formatting,
+            main_text: prediction.structured_formatting?.main_text || '',
+            secondary_text: prediction.structured_formatting?.secondary_text || ''
+          }));
+          
+          setAddressSuggestions(formattedSuggestions);
+          setShowAddressSuggestions(true);
+        }
+      } else {
+        // Fallback to OpenStreetMap if Google API fails
+        await searchAddressesFallback(query);
+      }
+    } catch (error) {
+      console.error('Google Places API error:', error);
+      // Fallback to OpenStreetMap
+      await searchAddressesFallback(query);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  };
+
+  // Fallback address search using OpenStreetMap
+  const searchAddressesFallback = async (query: string) => {
+    try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?` +
         `q=${encodeURIComponent(query)}&` +
         `countrycodes=nz&` +
         `format=json&` +
         `addressdetails=1&` +
-        `limit=5&` +
-        `extratags=1`
+        `limit=5`
       );
       
       if (response.ok) {
@@ -113,21 +149,17 @@ export default function ContactsPage() {
         const formattedSuggestions = results.map((result: any) => ({
           display_name: result.display_name,
           address: result.address,
-          full_address: result.display_name,
+          fallback: true,
           postcode: result.address?.postcode || '',
-          city: result.address?.city || result.address?.town || result.address?.suburb || '',
-          state: result.address?.state || '',
-          country: result.address?.country || ''
+          city: result.address?.city || result.address?.town || result.address?.suburb || ''
         }));
         
         setAddressSuggestions(formattedSuggestions);
         setShowAddressSuggestions(true);
       }
     } catch (error) {
-      console.error('Address search error:', error);
+      console.error('Fallback address search error:', error);
       setAddressSuggestions([]);
-    } finally {
-      setIsSearchingAddress(false);
     }
   };
 
@@ -143,10 +175,62 @@ export default function ContactsPage() {
     }, 300);
   };
 
-  const selectAddress = (suggestion: any, form: any) => {
-    form.setValue('address', suggestion.full_address);
-    form.setValue('city', suggestion.city);
-    form.setValue('postcode', suggestion.postcode);
+  const selectAddress = async (suggestion: any, form: any) => {
+    if (suggestion.place_id) {
+      // Google Places API - get detailed address information
+      try {
+        const response = await fetch('/api/places/details', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ place_id: suggestion.place_id })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.result) {
+            const addressComponents = data.result.address_components;
+            const formattedAddress = data.result.formatted_address;
+            
+            // Extract address components
+            let streetNumber = '';
+            let route = '';
+            let locality = '';
+            let postalCode = '';
+            
+            addressComponents.forEach((component: any) => {
+              const types = component.types;
+              if (types.includes('street_number')) {
+                streetNumber = component.long_name;
+              } else if (types.includes('route')) {
+                route = component.long_name;
+              } else if (types.includes('locality') || types.includes('administrative_area_level_2')) {
+                locality = component.long_name;
+              } else if (types.includes('postal_code')) {
+                postalCode = component.long_name;
+              }
+            });
+            
+            // Set form values with accurate Google data
+            form.setValue('address', formattedAddress);
+            form.setValue('city', locality);
+            form.setValue('postcode', postalCode);
+          }
+        }
+      } catch (error) {
+        console.error('Error getting place details:', error);
+        // Fallback to basic suggestion data
+        form.setValue('address', suggestion.display_name);
+      }
+    } else if (suggestion.fallback) {
+      // OpenStreetMap fallback data
+      form.setValue('address', suggestion.display_name);
+      form.setValue('city', suggestion.city);
+      form.setValue('postcode', suggestion.postcode);
+    } else {
+      // Default handling
+      form.setValue('address', suggestion.display_name);
+    }
+    
     setShowAddressSuggestions(false);
     setAddressSuggestions([]);
   };

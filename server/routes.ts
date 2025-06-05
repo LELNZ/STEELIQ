@@ -770,6 +770,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Google Places API proxy endpoint for secure address search
+  app.post("/api/places/autocomplete", async (req, res) => {
+    try {
+      const { input } = req.body;
+      
+      if (!input || input.length < 3) {
+        return res.status(400).json({ error: "Input query must be at least 3 characters" });
+      }
+
+      const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Google Places API key not configured" });
+      }
+
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?` +
+        `input=${encodeURIComponent(input)}&` +
+        `components=country:nz&` +
+        `types=address&` +
+        `key=${apiKey}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Google Places API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Google Places API error:", error);
+      res.status(500).json({ error: "Failed to search addresses" });
+    }
+  });
+
+  // Google Places API place details endpoint for getting full address information
+  app.post("/api/places/details", async (req, res) => {
+    try {
+      const { place_id } = req.body;
+      
+      if (!place_id) {
+        return res.status(400).json({ error: "Place ID is required" });
+      }
+
+      const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Google Places API key not configured" });
+      }
+
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/details/json?` +
+        `place_id=${encodeURIComponent(place_id)}&` +
+        `fields=address_components,formatted_address&` +
+        `key=${apiKey}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Google Places API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Google Places API details error:", error);
+      res.status(500).json({ error: "Failed to get place details" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
