@@ -192,6 +192,11 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   const addressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Free address search using OpenStreetMap Nominatim
+  // TODO: Google Maps Places API integration available for future use
+  // Replace OpenStreetMap with Google Places API by:
+  // 1. Adding GOOGLE_PLACES_API_KEY to environment
+  // 2. Using Google Places Autocomplete API endpoint
+  // 3. Enhanced address parsing with Google's superior data quality
   const searchAddresses = async (query: string) => {
     if (query.length < 3) {
       setAddressSuggestions([]);
@@ -2345,17 +2350,45 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                 </div>
               </div>
 
-              {/* Address Information */}
-              <div className="space-y-2">
+              {/* Address Information with Smart Search */}
+              <div className="space-y-2 relative">
                 <Label htmlFor="supplier-address" className="text-sm font-medium text-foreground">
                   Address
                 </Label>
-                <Input
-                  id="supplier-address"
-                  value={newSupplierData.address}
-                  onChange={(e) => setNewSupplierData({...newSupplierData, address: e.target.value})}
-                  placeholder="Enter street address"
-                />
+                <div className="relative">
+                  <Input
+                    id="supplier-address"
+                    value={newSupplierData.address}
+                    onChange={(e) => handleAddressChange(e.target.value)}
+                    placeholder="Start typing address (e.g., 123 Queen Street, Auckland)..."
+                    className="pr-8"
+                  />
+                  {isSearchingAddress && (
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                    </div>
+                  )}
+                  
+                  {/* Address Suggestions Dropdown */}
+                  {showAddressSuggestions && addressSuggestions.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {addressSuggestions.map((suggestion, index) => (
+                        <div
+                          key={index}
+                          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                          onClick={() => selectAddress(suggestion)}
+                        >
+                          <div className="font-medium text-foreground">{suggestion.display_name}</div>
+                          {suggestion.city && suggestion.postcode && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {suggestion.city} {suggestion.postcode}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -2564,7 +2597,6 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                 setShowAddSupplierDialog(false);
                 setNewSupplierData({
                   name: "",
-                  company: "",
                   address: "",
                   city: "",
                   postcode: "",
@@ -2589,10 +2621,9 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
             </Button>
             <Button 
               onClick={() => {
-                if (newSupplierData.name.trim() && newSupplierData.company.trim()) {
+                if (newSupplierData.name.trim()) {
                   addSupplierMutation.mutate({
                     name: newSupplierData.name.trim(),
-                    company: newSupplierData.company.trim(),
                     address: newSupplierData.address.trim(),
                     city: newSupplierData.city.trim(),
                     postcode: newSupplierData.postcode.trim(),
@@ -2605,7 +2636,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                   });
                 }
               }}
-              disabled={!newSupplierData.name.trim() || !newSupplierData.company.trim() || addSupplierMutation.isPending}
+              disabled={!newSupplierData.name.trim() || addSupplierMutation.isPending}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {addSupplierMutation.isPending ? (
