@@ -146,6 +146,7 @@ export default function SupplierFormDemo() {
                   onSubmit={handleEditSubmit}
                   onCancel={() => setIsEditDialogOpen(false)}
                   isLoading={isLoading}
+                  supplierId={1}
                 />
               </DialogContent>
             </Dialog>
