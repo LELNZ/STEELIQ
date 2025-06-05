@@ -13,9 +13,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { LoadingSpinner, LoadingOverlay, LoadingState } from "@/components/ui/loading-spinner";
 import { MaterialTypeIndicator, MaterialIcon } from "./material-icons";
 import SurfaceAreaManager from "./surface-area-manager";
-import { Material, Supplier } from "@shared/schema";
+import { Material, Supplier, SupplierFormData } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { SupplierForm } from "@/components/forms/supplier-form";
 import { calculateMaterialSurfaceArea } from "@/lib/surface-area-calculator";
 import { calculateMaterialSurfaceArea as calculateUnifiedSurfaceArea } from "@/lib/unified-surface-area-calculator";
 import { 
@@ -166,103 +167,24 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [surfaceAreaMaterial, setSurfaceAreaMaterial] = useState<Material | null>(null);
   const [showAddSupplierDialog, setShowAddSupplierDialog] = useState(false);
-  const [newSupplierData, setNewSupplierData] = useState({
-    name: "",
-    address: "",
-    city: "",
-    postcode: "",
-    nzbn: "",
-    gstNumber: "",
-    companyNumber: "",
-    paymentTerms: "30 days",
-    contacts: [{
-      name: "",
-      title: "",
-      email: "",
-      phone: "",
-      mobile: "",
-      department: "Sales",
-      isPrimary: true
-    }]
-  });
+  const [isSupplierLoading, setIsSupplierLoading] = useState(false);
 
-  const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
-  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
-  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
-  const addressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Free address search using OpenStreetMap Nominatim
-  // TODO: Google Maps Places API integration available for future use
-  // Replace OpenStreetMap with Google Places API by:
-  // 1. Adding GOOGLE_PLACES_API_KEY to environment
-  // 2. Using Google Places Autocomplete API endpoint
-  // 3. Enhanced address parsing with Google's superior data quality
-  const searchAddresses = async (query: string) => {
-    if (query.length < 3) {
-      setAddressSuggestions([]);
-      setShowAddressSuggestions(false);
-      return;
-    }
 
-    setIsSearchingAddress(true);
+  // Handle supplier creation
+  const handleCreateSupplier = async (data: SupplierFormData) => {
+    setIsSupplierLoading(true);
     try {
-      // Use Nominatim (OpenStreetMap) for free geocoding - focus on New Zealand
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?` +
-        `q=${encodeURIComponent(query)}&` +
-        `countrycodes=nz&` +
-        `format=json&` +
-        `addressdetails=1&` +
-        `limit=5&` +
-        `extratags=1`
-      );
-      
-      if (response.ok) {
-        const results = await response.json();
-        const formattedSuggestions = results.map((result: any) => ({
-          display_name: result.display_name,
-          address: result.address,
-          full_address: result.display_name,
-          postcode: result.address?.postcode || '',
-          city: result.address?.city || result.address?.town || result.address?.suburb || '',
-          state: result.address?.state || '',
-          country: result.address?.country || ''
-        }));
-        
-        setAddressSuggestions(formattedSuggestions);
-        setShowAddressSuggestions(true);
+      const response = await apiRequest("POST", "/api/suppliers", data);
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      setShowAddSupplierDialog(false);
+      if (editingMaterial) {
+        setEditingMaterial({...editingMaterial, supplier: response.name});
       }
-    } catch (error) {
-      console.error('Address search error:', error);
-      setAddressSuggestions([]);
+      toast({ title: "Supplier added successfully" });
     } finally {
-      setIsSearchingAddress(false);
+      setIsSupplierLoading(false);
     }
-  };
-
-  const handleAddressChange = (value: string) => {
-    setNewSupplierData({...newSupplierData, address: value});
-    
-    // Clear existing timeout
-    if (addressTimeoutRef.current) {
-      clearTimeout(addressTimeoutRef.current);
-    }
-    
-    // Set new timeout for search
-    addressTimeoutRef.current = setTimeout(() => {
-      searchAddresses(value);
-    }, 300); // 300ms delay
-  };
-
-  const selectAddress = (suggestion: any) => {
-    setNewSupplierData({
-      ...newSupplierData,
-      address: suggestion.full_address,
-      city: suggestion.city,
-      postcode: suggestion.postcode
-    });
-    setShowAddressSuggestions(false);
-    setAddressSuggestions([]);
   };
   
   const { toast } = useToast();
@@ -2281,18 +2203,23 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
         </Dialog>
       )}
 
-      {/* Enhanced Add New Supplier Dialog */}
+      {/* Add New Supplier Dialog */}
       <Dialog open={showAddSupplierDialog} onOpenChange={setShowAddSupplierDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-foreground flex items-center">
-              <Building2 className="w-5 h-5 mr-2 text-blue-600" />
-              Add New Supplier
+            <DialogTitle className="flex items-center space-x-2">
+              <Building2 className="h-5 w-5" />
+              <span>Add New Supplier</span>
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Create a comprehensive supplier profile with business details and contacts
-            </DialogDescription>
           </DialogHeader>
+          <SupplierForm
+            mode="create"
+            onSubmit={handleCreateSupplier}
+            onCancel={() => setShowAddSupplierDialog(false)}
+            isLoading={isSupplierLoading}
+          />
+        </DialogContent>
+      </Dialog>
           
           <div className="space-y-6 py-4">
             {/* Company Information */}
