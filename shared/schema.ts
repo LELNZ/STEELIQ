@@ -186,22 +186,21 @@ export const optimizationSimulations = pgTable("optimization_simulations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Suppliers - professional supplier management
+// Suppliers - professional supplier management with NZ requirements
 export const suppliers = pgTable("suppliers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   company: text("company").notNull(),
   type: text("type").notNull().default("supplier"), // supplier, vendor, client, user
-  email: text("email"),
-  phone: text("phone"),
-  mobile: text("mobile"),
   address: text("address"),
   city: text("city"),
   state: text("state"),
   postcode: text("postcode"),
-  country: text("country").default("Australia"),
-  abnTaxId: text("abn_tax_id"),
-  paymentTerms: text("payment_terms"), // 30 days, 7 days, COD, etc.
+  country: text("country").default("New Zealand"),
+  nzbn: text("nzbn"), // New Zealand Business Number
+  gstNumber: text("gst_number"), // GST registration number
+  companyNumber: text("company_number"), // NZ company registration number
+  paymentTerms: text("payment_terms").default("30 days"), // 30 days, 7 days, COD, etc.
   accountManager: text("account_manager"),
   leadTimeStandard: integer("lead_time_standard"), // days
   leadTimeRush: integer("lead_time_rush"), // days
@@ -216,6 +215,23 @@ export const suppliers = pgTable("suppliers", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Supplier Contacts - multiple contacts per supplier
+export const supplierContacts = pgTable("supplier_contacts", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
+  name: text("name").notNull(),
+  title: text("title"), // Sales Manager, Account Manager, etc.
+  email: text("email"),
+  phone: text("phone"),
+  mobile: text("mobile"),
+  isPrimary: boolean("is_primary").default(false),
+  department: text("department"), // Sales, Accounts, Technical, etc.
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Material Suppliers - linking materials to suppliers with pricing and history
 export const materialSuppliers = pgTable("material_suppliers", {
   id: serial("id").primaryKey(),
@@ -224,7 +240,7 @@ export const materialSuppliers = pgTable("material_suppliers", {
   isPrimary: boolean("is_primary").default(false), // favorite/primary supplier
   pricePerMeter: decimal("price_per_meter", { precision: 10, scale: 2 }),
   pricePerKg: decimal("price_per_kg", { precision: 10, scale: 2 }),
-  currency: text("currency").default("AUD"),
+  currency: text("currency").default("NZD"),
   validFrom: timestamp("valid_from").defaultNow().notNull(),
   validUntil: timestamp("valid_until"),
   leadTime: integer("lead_time"), // days override for this material

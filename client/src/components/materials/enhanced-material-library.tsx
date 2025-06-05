@@ -169,9 +169,22 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   const [newSupplierData, setNewSupplierData] = useState({
     name: "",
     company: "",
-    email: "",
-    phone: "",
-    paymentTerms: "30 days"
+    address: "",
+    city: "",
+    postcode: "",
+    nzbn: "",
+    gstNumber: "",
+    companyNumber: "",
+    paymentTerms: "30 days",
+    contacts: [{
+      name: "",
+      title: "",
+      email: "",
+      phone: "",
+      mobile: "",
+      department: "Sales",
+      isPrimary: true
+    }]
   });
   
   const { toast } = useToast();
@@ -525,7 +538,26 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
     onSuccess: (newSupplier) => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
       setShowAddSupplierDialog(false);
-      setNewSupplierData({ name: "", company: "", email: "", phone: "", paymentTerms: "30 days" });
+      setNewSupplierData({
+        name: "",
+        company: "",
+        address: "",
+        city: "",
+        postcode: "",
+        nzbn: "",
+        gstNumber: "",
+        companyNumber: "",
+        paymentTerms: "30 days",
+        contacts: [{
+          name: "",
+          title: "",
+          email: "",
+          phone: "",
+          mobile: "",
+          department: "Sales",
+          isPrimary: true
+        }]
+      });
       if (editingMaterial) {
         setEditingMaterial({...editingMaterial, supplier: newSupplier.name});
       }
@@ -2124,7 +2156,8 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       webTw: editingMaterial.webTw !== undefined && editingMaterial.webTw !== null && editingMaterial.webTw !== '' ? String(editingMaterial.webTw) : null,
                       flangeTf: editingMaterial.flangeTf !== undefined && editingMaterial.flangeTf !== null && editingMaterial.flangeTf !== '' ? String(editingMaterial.flangeTf) : null,
                       surfaceAreaPerMeter: editingMaterial.surfaceAreaPerMeter,
-                      coatingConfig: editingMaterial.coatingConfig
+                      coatingConfig: editingMaterial.coatingConfig,
+                      supplier: editingMaterial.supplier
                     }
                   });
                 }}
@@ -2171,95 +2204,298 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
         </Dialog>
       )}
 
-      {/* Add New Supplier Dialog */}
+      {/* Enhanced Add New Supplier Dialog */}
       <Dialog open={showAddSupplierDialog} onOpenChange={setShowAddSupplierDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-foreground flex items-center">
               <Building2 className="w-5 h-5 mr-2 text-blue-600" />
               Add New Supplier
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Enter supplier information to add them to your supplier database
+              Create a comprehensive supplier profile with business details and contacts
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="supplier-name" className="text-sm font-medium text-foreground">
-                Supplier Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="supplier-name"
-                value={newSupplierData.name}
-                onChange={(e) => setNewSupplierData({...newSupplierData, name: e.target.value})}
-                placeholder="Enter supplier name"
-                className="w-full"
-              />
-            </div>
+          <div className="space-y-6 py-4">
+            {/* Company Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-foreground border-b pb-2">Company Information</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="supplier-name" className="text-sm font-medium text-foreground">
+                    Supplier Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="supplier-name"
+                    value={newSupplierData.name}
+                    onChange={(e) => setNewSupplierData({...newSupplierData, name: e.target.value})}
+                    placeholder="Enter supplier name"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="supplier-company" className="text-sm font-medium text-foreground">
-                Company Name
-              </Label>
-              <Input
-                id="supplier-company"
-                value={newSupplierData.company}
-                onChange={(e) => setNewSupplierData({...newSupplierData, company: e.target.value})}
-                placeholder="Enter company name"
-                className="w-full"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="supplier-company" className="text-sm font-medium text-foreground">
+                    Company Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="supplier-company"
+                    value={newSupplierData.company}
+                    onChange={(e) => setNewSupplierData({...newSupplierData, company: e.target.value})}
+                    placeholder="Enter company name"
+                  />
+                </div>
+              </div>
 
-            <div className="grid grid-cols-2 gap-3">
+              {/* NZ Business Registration */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="supplier-nzbn" className="text-sm font-medium text-foreground">
+                    NZBN
+                  </Label>
+                  <Input
+                    id="supplier-nzbn"
+                    value={newSupplierData.nzbn}
+                    onChange={(e) => setNewSupplierData({...newSupplierData, nzbn: e.target.value})}
+                    placeholder="9429000000000"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="supplier-gst" className="text-sm font-medium text-foreground">
+                    GST Number
+                  </Label>
+                  <Input
+                    id="supplier-gst"
+                    value={newSupplierData.gstNumber}
+                    onChange={(e) => setNewSupplierData({...newSupplierData, gstNumber: e.target.value})}
+                    placeholder="123-456-789"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="supplier-company-num" className="text-sm font-medium text-foreground">
+                    Company Number
+                  </Label>
+                  <Input
+                    id="supplier-company-num"
+                    value={newSupplierData.companyNumber}
+                    onChange={(e) => setNewSupplierData({...newSupplierData, companyNumber: e.target.value})}
+                    placeholder="1234567"
+                  />
+                </div>
+              </div>
+
+              {/* Address Information */}
               <div className="space-y-2">
-                <Label htmlFor="supplier-email" className="text-sm font-medium text-foreground">
-                  Email
+                <Label htmlFor="supplier-address" className="text-sm font-medium text-foreground">
+                  Address
                 </Label>
                 <Input
-                  id="supplier-email"
-                  type="email"
-                  value={newSupplierData.email}
-                  onChange={(e) => setNewSupplierData({...newSupplierData, email: e.target.value})}
-                  placeholder="email@company.com"
-                  className="w-full"
+                  id="supplier-address"
+                  value={newSupplierData.address}
+                  onChange={(e) => setNewSupplierData({...newSupplierData, address: e.target.value})}
+                  placeholder="Enter street address"
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="supplier-city" className="text-sm font-medium text-foreground">
+                    City
+                  </Label>
+                  <Input
+                    id="supplier-city"
+                    value={newSupplierData.city}
+                    onChange={(e) => setNewSupplierData({...newSupplierData, city: e.target.value})}
+                    placeholder="Enter city"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="supplier-postcode" className="text-sm font-medium text-foreground">
+                    Postcode
+                  </Label>
+                  <Input
+                    id="supplier-postcode"
+                    value={newSupplierData.postcode}
+                    onChange={(e) => setNewSupplierData({...newSupplierData, postcode: e.target.value})}
+                    placeholder="0000"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="supplier-phone" className="text-sm font-medium text-foreground">
-                  Phone
+                <Label htmlFor="supplier-terms" className="text-sm font-medium text-foreground">
+                  Payment Terms
                 </Label>
-                <Input
-                  id="supplier-phone"
-                  value={newSupplierData.phone}
-                  onChange={(e) => setNewSupplierData({...newSupplierData, phone: e.target.value})}
-                  placeholder="Phone number"
-                  className="w-full"
-                />
+                <Select 
+                  value={newSupplierData.paymentTerms} 
+                  onValueChange={(value) => setNewSupplierData({...newSupplierData, paymentTerms: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7 days">7 days</SelectItem>
+                    <SelectItem value="14 days">14 days</SelectItem>
+                    <SelectItem value="30 days">30 days</SelectItem>
+                    <SelectItem value="60 days">60 days</SelectItem>
+                    <SelectItem value="90 days">90 days</SelectItem>
+                    <SelectItem value="Cash on delivery">Cash on delivery</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="supplier-terms" className="text-sm font-medium text-foreground">
-                Payment Terms
-              </Label>
-              <Select 
-                value={newSupplierData.paymentTerms} 
-                onValueChange={(value) => setNewSupplierData({...newSupplierData, paymentTerms: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7 days">7 days</SelectItem>
-                  <SelectItem value="14 days">14 days</SelectItem>
-                  <SelectItem value="30 days">30 days</SelectItem>
-                  <SelectItem value="60 days">60 days</SelectItem>
-                  <SelectItem value="90 days">90 days</SelectItem>
-                  <SelectItem value="Cash on delivery">Cash on delivery</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Contact Information */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-foreground border-b pb-2 flex-1">Contact Information</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setNewSupplierData({
+                      ...newSupplierData,
+                      contacts: [...newSupplierData.contacts, {
+                        name: "",
+                        title: "",
+                        email: "",
+                        phone: "",
+                        mobile: "",
+                        department: "Sales",
+                        isPrimary: false
+                      }]
+                    });
+                  }}
+                  className="ml-4"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Contact
+                </Button>
+              </div>
+
+              {newSupplierData.contacts.map((contact, index) => (
+                <div key={index} className="border rounded-lg p-4 space-y-3 bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-foreground">
+                      Contact {index + 1} {contact.isPrimary && <span className="text-blue-600">(Primary)</span>}
+                    </h4>
+                    {newSupplierData.contacts.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const updatedContacts = newSupplierData.contacts.filter((_, i) => i !== index);
+                          setNewSupplierData({...newSupplierData, contacts: updatedContacts});
+                        }}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-muted-foreground">Name</Label>
+                      <Input
+                        value={contact.name}
+                        onChange={(e) => {
+                          const updatedContacts = [...newSupplierData.contacts];
+                          updatedContacts[index].name = e.target.value;
+                          setNewSupplierData({...newSupplierData, contacts: updatedContacts});
+                        }}
+                        placeholder="Contact name"
+                        className="h-8"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-muted-foreground">Title</Label>
+                      <Input
+                        value={contact.title}
+                        onChange={(e) => {
+                          const updatedContacts = [...newSupplierData.contacts];
+                          updatedContacts[index].title = e.target.value;
+                          setNewSupplierData({...newSupplierData, contacts: updatedContacts});
+                        }}
+                        placeholder="Job title"
+                        className="h-8"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-muted-foreground">Email</Label>
+                      <Input
+                        type="email"
+                        value={contact.email}
+                        onChange={(e) => {
+                          const updatedContacts = [...newSupplierData.contacts];
+                          updatedContacts[index].email = e.target.value;
+                          setNewSupplierData({...newSupplierData, contacts: updatedContacts});
+                        }}
+                        placeholder="email@company.com"
+                        className="h-8"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-muted-foreground">Phone</Label>
+                      <Input
+                        value={contact.phone}
+                        onChange={(e) => {
+                          const updatedContacts = [...newSupplierData.contacts];
+                          updatedContacts[index].phone = e.target.value;
+                          setNewSupplierData({...newSupplierData, contacts: updatedContacts});
+                        }}
+                        placeholder="Office phone"
+                        className="h-8"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-muted-foreground">Mobile</Label>
+                      <Input
+                        value={contact.mobile}
+                        onChange={(e) => {
+                          const updatedContacts = [...newSupplierData.contacts];
+                          updatedContacts[index].mobile = e.target.value;
+                          setNewSupplierData({...newSupplierData, contacts: updatedContacts});
+                        }}
+                        placeholder="Mobile phone"
+                        className="h-8"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-muted-foreground">Department</Label>
+                      <Select 
+                        value={contact.department}
+                        onValueChange={(value) => {
+                          const updatedContacts = [...newSupplierData.contacts];
+                          updatedContacts[index].department = value;
+                          setNewSupplierData({...newSupplierData, contacts: updatedContacts});
+                        }}
+                      >
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Sales">Sales</SelectItem>
+                          <SelectItem value="Accounts">Accounts</SelectItem>
+                          <SelectItem value="Technical">Technical</SelectItem>
+                          <SelectItem value="Management">Management</SelectItem>
+                          <SelectItem value="Customer Service">Customer Service</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -2268,7 +2504,26 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
               variant="outline" 
               onClick={() => {
                 setShowAddSupplierDialog(false);
-                setNewSupplierData({ name: "", company: "", email: "", phone: "", paymentTerms: "30 days" });
+                setNewSupplierData({
+                  name: "",
+                  company: "",
+                  address: "",
+                  city: "",
+                  postcode: "",
+                  nzbn: "",
+                  gstNumber: "",
+                  companyNumber: "",
+                  paymentTerms: "30 days",
+                  contacts: [{
+                    name: "",
+                    title: "",
+                    email: "",
+                    phone: "",
+                    mobile: "",
+                    department: "Sales",
+                    isPrimary: true
+                  }]
+                });
               }}
               disabled={addSupplierMutation.isPending}
             >
@@ -2276,18 +2531,23 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
             </Button>
             <Button 
               onClick={() => {
-                if (newSupplierData.name.trim()) {
+                if (newSupplierData.name.trim() && newSupplierData.company.trim()) {
                   addSupplierMutation.mutate({
                     name: newSupplierData.name.trim(),
                     company: newSupplierData.company.trim(),
-                    email: newSupplierData.email.trim(),
-                    phone: newSupplierData.phone.trim(),
+                    address: newSupplierData.address.trim(),
+                    city: newSupplierData.city.trim(),
+                    postcode: newSupplierData.postcode.trim(),
+                    nzbn: newSupplierData.nzbn.trim(),
+                    gstNumber: newSupplierData.gstNumber.trim(),
+                    companyNumber: newSupplierData.companyNumber.trim(),
                     paymentTerms: newSupplierData.paymentTerms,
-                    type: "supplier"
+                    type: "supplier",
+                    contacts: newSupplierData.contacts.filter(c => c.name.trim())
                   });
                 }
               }}
-              disabled={!newSupplierData.name.trim() || addSupplierMutation.isPending}
+              disabled={!newSupplierData.name.trim() || !newSupplierData.company.trim() || addSupplierMutation.isPending}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {addSupplierMutation.isPending ? (
