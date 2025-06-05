@@ -14,6 +14,7 @@ interface AddressSuggestion {
   fallback?: boolean;
   postcode?: string;
   city?: string;
+  error?: boolean;
 }
 
 interface AddressSearchProps {
@@ -194,7 +195,11 @@ export function AddressSearch({ field, form, label = "Address", placeholder = "S
               {addressSuggestions.map((suggestion, index) => (
                 <div
                   key={suggestion.place_id || index}
-                  className="px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                  className={`px-4 py-3 border-b border-gray-100 dark:border-gray-600 last:border-b-0 ${
+                    suggestion.error 
+                      ? 'bg-red-50 dark:bg-red-900/20 cursor-not-allowed' 
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer'
+                  }`}
                   onClick={() => selectAddress(suggestion)}
                 >
                   {suggestion.place_id ? (
@@ -210,20 +215,28 @@ export function AddressSearch({ field, form, label = "Address", placeholder = "S
                         Google Maps Verified
                       </div>
                     </div>
+                  ) : suggestion.error ? (
+                    // Error state format
+                    <div>
+                      <div className="text-sm font-medium text-red-700 dark:text-red-300">
+                        {suggestion.main_text}
+                      </div>
+                      <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                        {suggestion.secondary_text}
+                      </div>
+                    </div>
                   ) : (
-                    // OpenStreetMap fallback format
+                    // Manual entry or informational format
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {suggestion.display_name}
+                        {suggestion.main_text || suggestion.display_name}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {suggestion.secondary_text}
                       </div>
                       {suggestion.postcode && (
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           Postcode: {suggestion.postcode}
-                        </div>
-                      )}
-                      {suggestion.fallback && (
-                        <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                          Fallback Data
                         </div>
                       )}
                     </div>
