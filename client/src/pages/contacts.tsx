@@ -1,219 +1,763 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { 
-  Building2, 
-  Users, 
-  UserCheck, 
-  Truck, 
-  Search, 
-  Plus,
-  Phone,
-  Mail,
-  MapPin,
-  Star,
-  Edit,
-  Trash2
-} from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
-import { Supplier } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Separator } from "@/components/ui/separator";
+import { Users, Building2, Plus, Edit, Trash2, Upload, Download, Search, Phone, Mail, MapPin, Calendar, DollarSign, Clock, Truck } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+
+// Schema definitions for suppliers and contacts
+const supplierSchema = z.object({
+  name: z.string().min(1, "Supplier name is required"),
+  company: z.string().optional(),
+  email: z.string().email("Valid email required").optional().or(z.literal("")),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  abnTaxId: z.string().optional(),
+  paymentTerms: z.string().optional(),
+  accountManager: z.string().optional(),
+  leadTimeStandard: z.number().min(0).optional(),
+  leadTimeExpress: z.number().min(0).optional(),
+  minimumOrderQuantity: z.number().min(0).optional(),
+  deliveryAreas: z.string().optional(),
+  certifications: z.string().optional(),
+  standardsCompliance: z.string().optional(),
+  notes: z.string().optional(),
+  isActive: z.boolean().default(true)
+});
+
+type SupplierFormData = z.infer<typeof supplierSchema>;
+
+interface Supplier {
+  id: number;
+  name: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  abnTaxId?: string;
+  paymentTerms?: string;
+  accountManager?: string;
+  leadTimeStandard?: number;
+  leadTimeExpress?: number;
+  minimumOrderQuantity?: number;
+  deliveryAreas?: string;
+  certifications?: string;
+  standardsCompliance?: string;
+  notes?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export default function ContactsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState<string>("suppliers");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
 
-  // Fetch suppliers data
-  const { data: suppliers = [], isLoading } = useQuery<Supplier[]>({
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Fetch suppliers
+  const { data: suppliers = [], isLoading } = useQuery({
     queryKey: ["/api/suppliers"],
+    queryFn: async () => {
+      const response = await fetch("/api/suppliers");
+      if (!response.ok) throw new Error("Failed to fetch suppliers");
+      return response.json() as Supplier[];
+    }
   });
 
-  const filteredSuppliers = suppliers.filter(supplier => 
-    supplier.type === selectedType &&
-    (supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     supplier.company.toLowerCase().includes(searchTerm.toLowerCase()))
+  // Add supplier mutation
+  const addSupplierMutation = useMutation({
+    mutationFn: async (data: SupplierFormData) => {
+      return apiRequest("/api/suppliers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      setIsAddDialogOpen(false);
+      toast({ title: "Supplier added successfully" });
+    },
+    onError: (error) => {
+      toast({ title: "Error adding supplier", description: error.message, variant: "destructive" });
+    }
+  });
+
+  // Update supplier mutation
+  const updateSupplierMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<SupplierFormData> }) => {
+      return apiRequest(`/api/suppliers/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      setIsEditDialogOpen(false);
+      setSelectedSupplier(null);
+      toast({ title: "Supplier updated successfully" });
+    },
+    onError: (error) => {
+      toast({ title: "Error updating supplier", description: error.message, variant: "destructive" });
+    }
+  });
+
+  // Delete supplier mutation
+  const deleteSupplierMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/suppliers/${id}`, { method: "DELETE" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      setIsDeleteDialogOpen(false);
+      setSupplierToDelete(null);
+      toast({ title: "Supplier deleted successfully" });
+    },
+    onError: (error) => {
+      toast({ title: "Error deleting supplier", description: error.message, variant: "destructive" });
+    }
+  });
+
+  // Form for adding/editing suppliers
+  const form = useForm<SupplierFormData>({
+    resolver: zodResolver(supplierSchema),
+    defaultValues: {
+      name: "",
+      company: "",
+      email: "",
+      phone: "",
+      address: "",
+      abnTaxId: "",
+      paymentTerms: "30 days",
+      accountManager: "",
+      leadTimeStandard: 7,
+      leadTimeExpress: 3,
+      minimumOrderQuantity: 0,
+      deliveryAreas: "",
+      certifications: "",
+      standardsCompliance: "",
+      notes: "",
+      isActive: true
+    }
+  });
+
+  // Filter suppliers based on search
+  const filteredSuppliers = suppliers.filter(supplier =>
+    supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    supplier.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    supplier.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getContactTypeIcon = (type: string) => {
-    switch(type) {
-      case "suppliers": return <Building2 className="w-5 h-5" />;
-      case "vendors": return <Truck className="w-5 h-5" />;
-      case "clients": return <Users className="w-5 h-5" />;
-      case "users": return <UserCheck className="w-5 h-5" />;
-      default: return <Building2 className="w-5 h-5" />;
+  const onSubmit = (data: SupplierFormData) => {
+    if (selectedSupplier) {
+      updateSupplierMutation.mutate({ id: selectedSupplier.id, data });
+    } else {
+      addSupplierMutation.mutate(data);
     }
   };
 
-  const getContactTypeName = (type: string) => {
-    switch(type) {
-      case "suppliers": return "Suppliers";
-      case "vendors": return "Vendors";
-      case "clients": return "Clients";
-      case "users": return "System Users";
-      default: return "Suppliers";
-    }
+  const handleEdit = (supplier: Supplier) => {
+    setSelectedSupplier(supplier);
+    form.reset({
+      name: supplier.name,
+      company: supplier.company || "",
+      email: supplier.email || "",
+      phone: supplier.phone || "",
+      address: supplier.address || "",
+      abnTaxId: supplier.abnTaxId || "",
+      paymentTerms: supplier.paymentTerms || "30 days",
+      accountManager: supplier.accountManager || "",
+      leadTimeStandard: supplier.leadTimeStandard || 7,
+      leadTimeExpress: supplier.leadTimeExpress || 3,
+      minimumOrderQuantity: supplier.minimumOrderQuantity || 0,
+      deliveryAreas: supplier.deliveryAreas || "",
+      certifications: supplier.certifications || "",
+      standardsCompliance: supplier.standardsCompliance || "",
+      notes: supplier.notes || "",
+      isActive: supplier.isActive
+    });
+    setIsEditDialogOpen(true);
   };
 
-  const getContactTypeDescription = (type: string) => {
-    switch(type) {
-      case "suppliers": return "Material suppliers and steel distributors";
-      case "vendors": return "Service vendors and contractors";
-      case "clients": return "Customer contacts and project managers";
-      case "users": return "Internal system users and staff";
-      default: return "Material suppliers and steel distributors";
-    }
+  const handleDelete = (supplier: Supplier) => {
+    setSupplierToDelete(supplier);
+    setIsDeleteDialogOpen(true);
   };
+
+  const exportSuppliers = () => {
+    const csvData = [
+      ["Name", "Company", "Email", "Phone", "Address", "ABN/Tax ID", "Payment Terms", "Account Manager", "Lead Time (Standard)", "Lead Time (Express)", "Min Order Qty", "Delivery Areas", "Certifications", "Standards", "Notes", "Active"],
+      ...filteredSuppliers.map(supplier => [
+        supplier.name,
+        supplier.company || "",
+        supplier.email || "",
+        supplier.phone || "",
+        supplier.address || "",
+        supplier.abnTaxId || "",
+        supplier.paymentTerms || "",
+        supplier.accountManager || "",
+        supplier.leadTimeStandard || "",
+        supplier.leadTimeExpress || "",
+        supplier.minimumOrderQuantity || "",
+        supplier.deliveryAreas || "",
+        supplier.certifications || "",
+        supplier.standardsCompliance || "",
+        supplier.notes || "",
+        supplier.isActive ? "Yes" : "No"
+      ])
+    ];
+
+    const csvContent = csvData.map(row => row.map(field => `"${field}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `suppliers_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Loading contacts...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto p-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Contacts</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage suppliers, vendors, clients, and system users
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">Contacts Management</h1>
+          <p className="text-muted-foreground">Manage suppliers, clients, and business contacts</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Contact
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={exportSuppliers} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Supplier
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add New Supplier</DialogTitle>
+                <DialogDescription>
+                  Enter comprehensive supplier information for material sourcing and procurement management.
+                </DialogDescription>
+              </DialogHeader>
+              <SupplierForm
+                form={form}
+                onSubmit={onSubmit}
+                isLoading={addSupplierMutation.isPending}
+                onCancel={() => {
+                  setIsAddDialogOpen(false);
+                  form.reset();
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <Tabs value={selectedType} onValueChange={setSelectedType} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="suppliers" className="space-y-6">
+        <TabsList>
           <TabsTrigger value="suppliers" className="flex items-center gap-2">
-            <Building2 className="w-4 h-4" />
+            <Building2 className="h-4 w-4" />
             Suppliers
           </TabsTrigger>
           <TabsTrigger value="clients" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
+            <Users className="h-4 w-4" />
             Clients
-          </TabsTrigger>
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <UserCheck className="w-4 h-4" />
-            System Users
           </TabsTrigger>
         </TabsList>
 
-        <div className="mt-6">
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <TabsContent value="suppliers" className="space-y-6">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder={`Search ${getContactTypeName(selectedType).toLowerCase()}...`}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                placeholder="Search suppliers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
               />
             </div>
+            <Badge variant="secondary">
+              {filteredSuppliers.length} suppliers
+            </Badge>
           </div>
 
-          <TabsContent value={selectedType} className="mt-0">
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  {getContactTypeIcon(selectedType)}
-                  <div>
-                    <CardTitle className="text-xl">{getContactTypeName(selectedType)}</CardTitle>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {getContactTypeDescription(selectedType)}
-                    </p>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredSuppliers.map((supplier) => (
+              <Card key={supplier.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{supplier.name}</CardTitle>
+                      {supplier.company && (
+                        <CardDescription className="text-sm font-medium text-muted-foreground">
+                          {supplier.company}
+                        </CardDescription>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => handleEdit(supplier)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => handleDelete(supplier)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  {supplier.email && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span className="truncate">{supplier.email}</span>
+                    </div>
+                  )}
+                  {supplier.phone && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>{supplier.phone}</span>
+                    </div>
+                  )}
+                  {supplier.paymentTerms && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <span>{supplier.paymentTerms}</span>
+                    </div>
+                  )}
+                  {supplier.leadTimeStandard && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>{supplier.leadTimeStandard} days lead time</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between pt-2">
+                    <Badge variant={supplier.isActive ? "default" : "secondary"}>
+                      {supplier.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                    {supplier.accountManager && (
+                      <span className="text-xs text-muted-foreground">
+                        AM: {supplier.accountManager}
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {filteredSuppliers.length === 0 && (
+            <div className="text-center py-12">
+              <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No suppliers found</h3>
+              <p className="text-muted-foreground mb-4">
+                {searchQuery ? "No suppliers match your search criteria." : "Get started by adding your first supplier."}
+              </p>
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Supplier
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="clients" className="space-y-6">
+          <div className="text-center py-12">
+            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Client Management</h3>
+            <p className="text-muted-foreground mb-4">
+              Client management functionality will be implemented in the next phase.
+            </p>
+            <Button disabled>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Client (Coming Soon)
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Edit Supplier Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Supplier</DialogTitle>
+            <DialogDescription>
+              Update supplier information and business details.
+            </DialogDescription>
+          </DialogHeader>
+          <SupplierForm
+            form={form}
+            onSubmit={onSubmit}
+            isLoading={updateSupplierMutation.isPending}
+            onCancel={() => {
+              setIsEditDialogOpen(false);
+              setSelectedSupplier(null);
+              form.reset();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Supplier</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{supplierToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => supplierToDelete && deleteSupplierMutation.mutate(supplierToDelete.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+interface SupplierFormProps {
+  form: any;
+  onSubmit: (data: SupplierFormData) => void;
+  isLoading: boolean;
+  onCancel: () => void;
+}
+
+function SupplierForm({ form, onSubmit, isLoading, onCancel }: SupplierFormProps) {
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Basic Information</h3>
+            
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Supplier Name *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="ASMUSS Steel Distributors" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="company"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="ASMUSS Pty Ltd" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="sales@asmuss.com.au" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input placeholder="+61 7 3123 4567" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Street address, city, state, postal code" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Business Details */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Business Details</h3>
+
+            <FormField
+              control={form.control}
+              name="abnTaxId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ABN / Tax ID</FormLabel>
+                  <FormControl>
+                    <Input placeholder="12 345 678 901" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="paymentTerms"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Terms</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment terms" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="7 days">7 days</SelectItem>
+                      <SelectItem value="14 days">14 days</SelectItem>
+                      <SelectItem value="30 days">30 days</SelectItem>
+                      <SelectItem value="45 days">45 days</SelectItem>
+                      <SelectItem value="60 days">60 days</SelectItem>
+                      <SelectItem value="COD">Cash on Delivery</SelectItem>
+                      <SelectItem value="Prepaid">Prepaid</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="accountManager"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Account Manager</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Smith" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="leadTimeStandard"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Standard Lead Time (days)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="leadTimeExpress"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Express Lead Time (days)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="minimumOrderQuantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Minimum Order Quantity (NZD)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Additional Information */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Additional Information</h3>
+          
+          <FormField
+            control={form.control}
+            name="deliveryAreas"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Delivery Areas</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Auckland, Wellington, Christchurch, etc." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="certifications"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Certifications</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="ISO 9001, AS/NZS 4600, etc." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="standardsCompliance"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Standards Compliance</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="NZS 3404, AS/NZS 3679, etc." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notes</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Additional notes and comments" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="isActive"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Active Supplier</FormLabel>
+                  <div className="text-sm text-muted-foreground">
+                    Enable this supplier for material sourcing and pricing
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="text-gray-600 dark:text-gray-400 mt-2">Loading contacts...</p>
-                  </div>
-                ) : filteredSuppliers.length === 0 ? (
-                  <div className="text-center py-12">
-                    {getContactTypeIcon(selectedType)}
-                    <p className="text-gray-600 dark:text-gray-400 mt-4">
-                      {searchTerm ? 
-                        `No ${getContactTypeName(selectedType).toLowerCase()} found matching "${searchTerm}"` :
-                        `No ${getContactTypeName(selectedType).toLowerCase()} added yet`
-                      }
-                    </p>
-                    <Button className="mt-4 bg-blue-600 hover:bg-blue-700">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add First {selectedType === "suppliers" ? "Supplier" : selectedType === "vendors" ? "Vendor" : selectedType === "clients" ? "Client" : "User"}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid gap-4">
-                    {filteredSuppliers.map((contact) => (
-                      <Card key={contact.id} className="border-l-4 border-l-blue-500">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-                                  {contact.name}
-                                </h3>
-                                <Badge variant="secondary" className="text-xs">
-                                  {contact.company}
-                                </Badge>
-                                {contact.qualityRating && Number(contact.qualityRating) >= 4 && (
-                                  <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                                    <Star className="w-3 h-3 mr-1 fill-current" />
-                                    {contact.qualityRating}/5
-                                  </Badge>
-                                )}
-                              </div>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                {contact.email && (
-                                  <div className="flex items-center text-gray-600 dark:text-gray-400">
-                                    <Mail className="w-4 h-4 mr-2 text-blue-500" />
-                                    {contact.email}
-                                  </div>
-                                )}
-                                {contact.phone && (
-                                  <div className="flex items-center text-gray-600 dark:text-gray-400">
-                                    <Phone className="w-4 h-4 mr-2 text-green-500" />
-                                    {contact.phone}
-                                  </div>
-                                )}
-                                {contact.city && (
-                                  <div className="flex items-center text-gray-600 dark:text-gray-400">
-                                    <MapPin className="w-4 h-4 mr-2 text-red-500" />
-                                    {contact.city}, {contact.state}
-                                  </div>
-                                )}
-                              </div>
-
-                              {contact.paymentTerms && (
-                                <div className="mt-3">
-                                  <Badge variant="outline" className="text-xs">
-                                    Payment: {contact.paymentTerms}
-                                  </Badge>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex gap-2 ml-4">
-                              <Button variant="ghost" size="sm">
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
         </div>
-      </Tabs>
-    </div>
+
+        <Separator />
+
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? "Saving..." : "Save Supplier"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }

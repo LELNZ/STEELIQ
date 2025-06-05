@@ -457,7 +457,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSupplier(id: number): Promise<Supplier | undefined> {
-    const [supplier] = await db.select().from(suppliers).where(and(eq(suppliers.id, id), eq(suppliers.isActive, true)));
+    const [supplier] = await db.select().from(suppliers).where(eq(suppliers.id, id));
     return supplier || undefined;
   }
 
