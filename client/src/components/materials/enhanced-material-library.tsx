@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -168,7 +168,6 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   const [showAddSupplierDialog, setShowAddSupplierDialog] = useState(false);
   const [newSupplierData, setNewSupplierData] = useState({
     name: "",
-    company: "",
     address: "",
     city: "",
     postcode: "",
@@ -186,6 +185,80 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
       isPrimary: true
     }]
   });
+
+  const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const addressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Free address search using OpenStreetMap Nominatim
+  const searchAddresses = async (query: string) => {
+    if (query.length < 3) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      return;
+    }
+
+    setIsSearchingAddress(true);
+    try {
+      // Use Nominatim (OpenStreetMap) for free geocoding - focus on New Zealand
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?` +
+        `q=${encodeURIComponent(query)}&` +
+        `countrycodes=nz&` +
+        `format=json&` +
+        `addressdetails=1&` +
+        `limit=5&` +
+        `extratags=1`
+      );
+      
+      if (response.ok) {
+        const results = await response.json();
+        const formattedSuggestions = results.map((result: any) => ({
+          display_name: result.display_name,
+          address: result.address,
+          full_address: result.display_name,
+          postcode: result.address?.postcode || '',
+          city: result.address?.city || result.address?.town || result.address?.suburb || '',
+          state: result.address?.state || '',
+          country: result.address?.country || ''
+        }));
+        
+        setAddressSuggestions(formattedSuggestions);
+        setShowAddressSuggestions(true);
+      }
+    } catch (error) {
+      console.error('Address search error:', error);
+      setAddressSuggestions([]);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  };
+
+  const handleAddressChange = (value: string) => {
+    setNewSupplierData({...newSupplierData, address: value});
+    
+    // Clear existing timeout
+    if (addressTimeoutRef.current) {
+      clearTimeout(addressTimeoutRef.current);
+    }
+    
+    // Set new timeout for search
+    addressTimeoutRef.current = setTimeout(() => {
+      searchAddresses(value);
+    }, 300); // 300ms delay
+  };
+
+  const selectAddress = (suggestion: any) => {
+    setNewSupplierData({
+      ...newSupplierData,
+      address: suggestion.full_address,
+      city: suggestion.city,
+      postcode: suggestion.postcode
+    });
+    setShowAddressSuggestions(false);
+    setAddressSuggestions([]);
+  };
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -540,7 +613,6 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
       setShowAddSupplierDialog(false);
       setNewSupplierData({
         name: "",
-        company: "",
         address: "",
         city: "",
         postcode: "",
@@ -2222,30 +2294,16 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground border-b pb-2">Company Information</h3>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="supplier-name" className="text-sm font-medium text-foreground">
-                    Supplier Name <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="supplier-name"
-                    value={newSupplierData.name}
-                    onChange={(e) => setNewSupplierData({...newSupplierData, name: e.target.value})}
-                    placeholder="Enter supplier name"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="supplier-company" className="text-sm font-medium text-foreground">
-                    Company Name <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="supplier-company"
-                    value={newSupplierData.company}
-                    onChange={(e) => setNewSupplierData({...newSupplierData, company: e.target.value})}
-                    placeholder="Enter company name"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplier-company-name" className="text-sm font-medium text-foreground">
+                  Company/Supplier Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="supplier-company-name"
+                  value={newSupplierData.name}
+                  onChange={(e) => setNewSupplierData({...newSupplierData, name: e.target.value})}
+                  placeholder="Enter company or supplier name"
+                />
               </div>
 
               {/* NZ Business Registration */}
