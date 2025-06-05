@@ -171,7 +171,10 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
       'Surface Area (m²/m)', 'Supplier', 'Active'
     ];
     
-    const csvData = filteredMaterials.map((material: Material) => [
+    // Use all materials when "All Categories" is selected, otherwise use filtered materials
+    const materialsToExport = selectedCategory === "all" ? materials : filteredMaterials;
+    
+    const csvData = (materialsToExport as Material[]).map((material: Material) => [
       material.category || '',
       material.code || '',
       material.name || '',
@@ -197,20 +200,27 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
     ]);
     
     const csvContent = [csvHeaders, ...csvData]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .map(row => row.map((cell: any) => `"${cell}"`).join(','))
       .join('\n');
+    
+    // Generate filename based on selected category
+    const categoryName = selectedCategory === "all" 
+      ? "All_Categories" 
+      : selectedCategory.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+    const date = new Date().toISOString().split('T')[0];
+    const filename = `Materials_${categoryName}_${date}.csv`;
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `lateral_engineering_materials_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = filename;
     link.click();
     window.URL.revokeObjectURL(url);
     
     toast({
       title: "Export Complete",
-      description: `Exported ${filteredMaterials.length} materials to CSV`,
+      description: `Exported ${(materialsToExport as Material[]).length} materials to ${filename}`,
     });
   };
 
@@ -1241,6 +1251,9 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         <div>
                           <p className="text-sm">{material.grade || 'Standard'}</p>
                         </div>
+                        <div>
+                          <p className="text-sm">{material.supplier || 'Unknown'}</p>
+                        </div>
                         <div className="text-right">
                           <p className="text-sm font-medium">
                             {material.pricePerMeter 
@@ -1631,7 +1644,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
               {/* Specifications */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground border-b pb-2">Specifications</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="edit-grade">Steel Grade</Label>
                     <Input
@@ -1648,6 +1661,15 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       value={editingMaterial.standard || ""}
                       onChange={(e) => setEditingMaterial({...editingMaterial, standard: e.target.value})}
                       placeholder="e.g., AS/NZS 3679.1"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-supplier">Supplier</Label>
+                    <Input
+                      id="edit-supplier"
+                      value={editingMaterial.supplier || ""}
+                      onChange={(e) => setEditingMaterial({...editingMaterial, supplier: e.target.value})}
+                      placeholder="e.g., ASMUSS"
                     />
                   </div>
                 </div>
