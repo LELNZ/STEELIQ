@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,9 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
-import { Link } from "wouter";
+import { ContactManagementTab } from "./contact-management-tab";
 
 // Unified supplier validation schema
 export const supplierFormSchema = z.object({
@@ -58,6 +60,8 @@ export function SupplierForm({
   mode,
   supplierId
 }: SupplierFormProps) {
+  const [activeTab, setActiveTab] = useState("details");
+  
   const form = useForm<SupplierFormData>({
     resolver: zodResolver(supplierFormSchema),
     defaultValues: {
@@ -96,25 +100,28 @@ export function SupplierForm({
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {/* Company Information Section */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between pb-2 border-b">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">Company Information</h3>
-            </div>
-            {mode === "edit" && supplierId && (
-              <Link 
-                href={`/supplier-contacts?supplier=${supplierId}`}
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
-              >
-                <Users className="h-4 w-4" />
-                Manage Contacts
-              </Link>
-            )}
-          </div>
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="details" className="flex items-center gap-2">
+          <Building2 className="h-4 w-4" />
+          Supplier Details
+        </TabsTrigger>
+        <TabsTrigger value="contacts" className="flex items-center gap-2" disabled={mode === "create"}>
+          <Users className="h-4 w-4" />
+          Contacts
+          {mode === "create" && <span className="text-xs">(Save first)</span>}
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="details" className="mt-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            {/* Company Information Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 pb-2 border-b">
+                <Building2 className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold">Company Information</h3>
+              </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
@@ -621,7 +628,16 @@ export function SupplierForm({
             )}
           </Button>
         </div>
-      </form>
-    </Form>
+          </form>
+        </Form>
+      </TabsContent>
+
+      <TabsContent value="contacts" className="mt-6">
+        <ContactManagementTab 
+          supplierId={supplierId} 
+          supplierName={initialData?.name || form.watch("name")}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }
