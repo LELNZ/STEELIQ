@@ -91,6 +91,7 @@ export default function SupplierContactsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [supplierSearchQuery, setSupplierSearchQuery] = useState("");
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -239,6 +240,11 @@ export default function SupplierContactsPage() {
     `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
     contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     contact.position?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredSuppliers = (suppliers as Supplier[]).filter(supplier =>
+    supplier.name.toLowerCase().includes(supplierSearchQuery.toLowerCase()) ||
+    supplier.company?.toLowerCase().includes(supplierSearchQuery.toLowerCase())
   );
 
   const getContactRoles = (contact: SupplierContact) => {
@@ -528,9 +534,15 @@ export default function SupplierContactsPage() {
               Suppliers
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-3">
+            <Input
+              placeholder="Search suppliers..."
+              value={supplierSearchQuery}
+              onChange={(e) => setSupplierSearchQuery(e.target.value)}
+              className="mb-3"
+            />
             <div className="space-y-1">
-              {(suppliers as Supplier[]).map((supplier: Supplier) => (
+              {filteredSuppliers.map((supplier: Supplier) => (
                 <button
                   key={supplier.id}
                   onClick={() => setSelectedSupplierId(supplier.id)}
