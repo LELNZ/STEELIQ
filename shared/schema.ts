@@ -219,13 +219,19 @@ export const suppliers = pgTable("suppliers", {
 export const supplierContacts = pgTable("supplier_contacts", {
   id: serial("id").primaryKey(),
   supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
-  name: text("name").notNull(),
-  title: text("title"), // Sales Manager, Account Manager, etc.
-  email: text("email"),
-  phone: text("phone"),
-  mobile: text("mobile"),
-  isPrimary: boolean("is_primary").default(false),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  position: text("position"), // Sales Manager, Account Manager, etc.
   department: text("department"), // Sales, Accounts, Technical, etc.
+  email: text("email"),
+  phonePrimary: text("phone_primary"),
+  phoneMobile: text("phone_mobile"),
+  phoneDirect: text("phone_direct"),
+  isPrimaryContact: boolean("is_primary_contact").default(false),
+  isAccountsContact: boolean("is_accounts_contact").default(false),
+  isTechnicalContact: boolean("is_technical_contact").default(false),
+  isSalesContact: boolean("is_sales_contact").default(false),
+  preferredContactMethod: text("preferred_contact_method").default("email"),
   notes: text("notes"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
