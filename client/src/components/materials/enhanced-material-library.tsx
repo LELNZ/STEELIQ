@@ -165,6 +165,14 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   const [cardSize, setCardSize] = useState<"normal" | "small" | "tiny">("normal");
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [surfaceAreaMaterial, setSurfaceAreaMaterial] = useState<Material | null>(null);
+  const [showAddSupplierDialog, setShowAddSupplierDialog] = useState(false);
+  const [newSupplierData, setNewSupplierData] = useState({
+    name: "",
+    company: "",
+    email: "",
+    phone: "",
+    paymentTerms: "30 days"
+  });
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -1731,11 +1739,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       value={editingMaterial.supplier || ""} 
                       onValueChange={(value) => {
                         if (value === "add-new") {
-                          // Handle adding new supplier
-                          const newSupplier = prompt("Enter new supplier name:");
-                          if (newSupplier) {
-                            setEditingMaterial({...editingMaterial, supplier: newSupplier});
-                          }
+                          setShowAddSupplierDialog(true);
                         } else {
                           setEditingMaterial({...editingMaterial, supplier: value});
                           
