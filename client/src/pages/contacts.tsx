@@ -122,6 +122,7 @@ export default function ContactsPage() {
       toast({ title: "Supplier updated successfully" });
     },
     onError: (error) => {
+      console.error("Update supplier error:", error);
       toast({ title: "Error updating supplier", description: error.message, variant: "destructive" });
     }
   });
