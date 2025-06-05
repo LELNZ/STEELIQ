@@ -114,6 +114,7 @@ export default function SupplierContactsPage() {
     mutationFn: (data: ContactFormData) => apiRequest("/api/supplier-contacts", "POST", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts", selectedSupplierId] });
       setIsAddDialogOpen(false);
       toast({ title: "Contact added successfully" });
     },
@@ -128,6 +129,7 @@ export default function SupplierContactsPage() {
       apiRequest(`/api/supplier-contacts/${id}`, "PATCH", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts", selectedSupplierId] });
       setIsEditDialogOpen(false);
       setSelectedContact(null);
       toast({ title: "Contact updated successfully" });
@@ -142,6 +144,7 @@ export default function SupplierContactsPage() {
     mutationFn: (id: number) => apiRequest(`/api/supplier-contacts/${id}`, "DELETE"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts", selectedSupplierId] });
       toast({ title: "Contact deleted successfully" });
     },
     onError: (error) => {
