@@ -205,9 +205,8 @@ export function SupplierForm({
                   <FormLabel>Street Address</FormLabel>
                   <FormControl>
                     <AddressSearch
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      onAddressSelect={handleAddressSelect}
+                      field={field}
+                      form={form}
                       placeholder="Enter street address"
                     />
                   </FormControl>
