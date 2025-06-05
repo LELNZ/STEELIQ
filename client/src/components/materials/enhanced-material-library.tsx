@@ -796,8 +796,27 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                         </>
                       ) : (
                         <>
-                          {/* Special display for unequal angles - show W1/W2 */}
-                          {material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle') ? (
+                          {/* Special display for sheet metal materials - show width, length, thickness */}
+                          {(material.category?.toLowerCase().includes('sheet') || 
+                            material.category?.toLowerCase().includes('plate') ||
+                            material.name.toLowerCase().includes('sheet') ||
+                            material.name.toLowerCase().includes('plate')) ? (
+                            <>
+                              <div>
+                                <p className="text-muted-foreground">Width</p>
+                                <p className="font-medium">{material.width ? parseFloat(material.width.toString()).toFixed(0) : 'N/A'}mm</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Length</p>
+                                <p className="font-medium">{material.length ? parseFloat(material.length.toString()).toFixed(0) : 'N/A'}mm</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Thickness</p>
+                                <p className="font-medium">{material.thickness || 'N/A'}mm</p>
+                              </div>
+                            </>
+                          ) : /* Special display for unequal angles - show W1/W2 */
+                          material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle') ? (
                             <>
                               <div>
                                 <p className="text-muted-foreground">Width 1 (W1)</p>
@@ -815,7 +834,11 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                             </div>
                           )}
                           {/* Show separate web and flange thickness for structural sections */}
-                          {(material.category?.toLowerCase().includes('channel') || 
+                          {!(material.category?.toLowerCase().includes('sheet') || 
+                            material.category?.toLowerCase().includes('plate') ||
+                            material.name.toLowerCase().includes('sheet') ||
+                            material.name.toLowerCase().includes('plate')) && 
+                           (material.category?.toLowerCase().includes('channel') || 
                             material.category?.toLowerCase().includes('structural channels') ||
                             material.category?.toLowerCase().includes('universal beam') ||
                             material.category?.toLowerCase().includes('universal column')) ? (
@@ -829,12 +852,16 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                                 <p className="font-medium">{material.flangeTf || 'N/A'}mm</p>
                               </div>
                             </>
-                          ) : (
+                          ) : !(material.category?.toLowerCase().includes('sheet') || 
+                                material.category?.toLowerCase().includes('plate') ||
+                                material.name.toLowerCase().includes('sheet') ||
+                                material.name.toLowerCase().includes('plate')) &&
+                               !(material.category?.toLowerCase().includes('unequal') && material.category?.toLowerCase().includes('angle')) ? (
                             <div>
                               <p className="text-muted-foreground">Thickness</p>
                               <p className="font-medium">{material.thickness || 'N/A'}</p>
                             </div>
-                          )}
+                          ) : null}
                         </>
                       )}
                     </div>
