@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Users, Building2, Plus, Edit, Trash2, Search, Phone, Mail, MapPin, Calendar, DollarSign, Clock, Truck } from "lucide-react";
+import { Users, Building2, Plus, Edit, Trash2, Search, Phone, Mail, MapPin, Calendar, DollarSign, Clock, Truck, Contact } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { SupplierForm, type SupplierFormData } from "@/components/forms/supplier-form";
@@ -154,9 +154,13 @@ export default function ContactsPage() {
             <Building2 className="h-4 w-4" />
             <span>Suppliers</span>
           </TabsTrigger>
-          <TabsTrigger value="contacts" className="space-x-2">
+          <TabsTrigger value="clients" className="space-x-2">
             <Users className="h-4 w-4" />
-            <span>Contacts</span>
+            <span>Clients</span>
+          </TabsTrigger>
+          <TabsTrigger value="contacts" className="space-x-2">
+            <Phone className="h-4 w-4" />
+            <span>Individual Contacts</span>
           </TabsTrigger>
         </TabsList>
 
