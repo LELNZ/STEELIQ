@@ -1,0 +1,54 @@
+{
+  "analysis_date": "2025-06-05",
+  "catalogue_source": "ASMUSS Steel Catalogue PDF",
+  "summary": {
+    "total_materials_checked": 8,
+    "materials_matched": 8,
+    "discrepancies_found": 3,
+    "accuracy_percentage": "100.0"
+  },
+  "supplier_distribution": {
+    "asmussCount": 435,
+    "unknownCount": 0,
+    "totalActive": 435
+  },
+  "discrepancies": {
+    "flats": [],
+    "universal_beams": [
+      {
+        "code": "SUB150014",
+        "category": "Universal Beams",
+        "issues": [
+          "depth: DB=75.00, Ref=150",
+          "width: DB=150.00, Ref=75",
+          "surfaceArea: DB=NULL, Ref=0.59"
+        ]
+      },
+      {
+        "code": "SUB200030",
+        "category": "Universal Beams",
+        "issues": [
+          "depth: DB=134.00, Ref=207",
+          "width: DB=207.00, Ref=134",
+          "surfaceArea: DB=NULL, Ref=0.91"
+        ]
+      },
+      {
+        "code": "SUB360057",
+        "category": "Universal Beams",
+        "issues": [
+          "depth: DB=172.00, Ref=359",
+          "width: DB=359.00, Ref=172",
+          "surfaceArea: DB=NULL, Ref=1.36"
+        ]
+      }
+    ]
+  },
+  "recommendations": [
+    "Update supplier field for all ASMUSS materials (COMPLETED)",
+    "Verify surface area calculations for Universal Beams",
+    "Add standard and grade information from catalogue",
+    "Include length options data for material planning",
+    "Implement CSV import/export templates for future updates"
+  ]
+}
