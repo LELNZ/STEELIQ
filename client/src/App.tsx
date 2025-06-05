@@ -12,6 +12,8 @@ import CuttingOptimizationFixed from "@/pages/cutting-optimization-fixed";
 import CuttingPlanTest from "@/pages/cutting-plan-test";
 import Estimates from "@/pages/estimates";
 import Contacts from "@/pages/contacts";
+import SupplierContacts from "@/pages/supplier-contacts";
+import FinancialDashboard from "@/pages/financial-dashboard";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
 
@@ -24,6 +26,8 @@ function Router() {
       <Route path="/materials" component={Materials} />
       <Route path="/inventory" component={Inventory} />
       <Route path="/contacts" component={Contacts} />
+      <Route path="/supplier-contacts" component={SupplierContacts} />
+      <Route path="/financial" component={FinancialDashboard} />
       <Route path="/optimization" component={CuttingOptimizationFixed} />
       <Route path="/cutting-plan-test" component={CuttingPlanTest} />
       <Route component={NotFound} />

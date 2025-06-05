@@ -620,6 +620,35 @@ export class DatabaseStorage implements IStorage {
     const [createdPriceHistory] = await db.insert(supplierPriceHistory).values(priceHistory).returning();
     return createdPriceHistory;
   }
+
+  // Supplier Contacts Implementation
+  async getSupplierContacts(supplierId?: number | null): Promise<any[]> {
+    const query = db.select().from(sql`supplier_contacts`);
+    
+    if (supplierId) {
+      return await query.where(sql`supplier_id = ${supplierId}`).orderBy(sql`first_name, last_name`);
+    }
+    
+    return await query.orderBy(sql`first_name, last_name`);
+  }
+
+  async createSupplierContact(contact: any): Promise<any> {
+    const [createdContact] = await db.insert(sql`supplier_contacts`).values(contact).returning();
+    return createdContact;
+  }
+
+  async updateSupplierContact(id: number, contact: any): Promise<any> {
+    const [updatedContact] = await db
+      .update(sql`supplier_contacts`)
+      .set({ ...contact, updated_at: new Date() })
+      .where(sql`id = ${id}`)
+      .returning();
+    return updatedContact;
+  }
+
+  async deleteSupplierContact(id: number): Promise<void> {
+    await db.delete(sql`supplier_contacts`).where(sql`id = ${id}`);
+  }
 }
 
 export const storage = new DatabaseStorage();
