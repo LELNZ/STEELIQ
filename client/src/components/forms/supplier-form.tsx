@@ -111,10 +111,10 @@ export function SupplierForm({
           <Building2 className="h-4 w-4" />
           Supplier Details
         </TabsTrigger>
-        <TabsTrigger value="contacts" className="flex items-center gap-2" disabled={mode === "create"}>
+        <TabsTrigger value="contacts" className="flex items-center gap-2" disabled={!form.watch("name") && !form.watch("company")}>
           <Users className="h-4 w-4" />
           Contacts
-          {mode === "create" && <span className="text-xs">(Save first)</span>}
+          {(!form.watch("name") && !form.watch("company")) && <span className="text-xs">(Enter name first)</span>}
         </TabsTrigger>
       </TabsList>
 
