@@ -71,11 +71,8 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
 
   // Add contact mutation
   const addContactMutation = useMutation({
-    mutationFn: async (contactData: ContactFormData) => {
-      return apiRequest("POST", "/api/supplier-contacts", {
-        ...contactData,
-        supplierId
-      });
+    mutationFn: async (contactData: any) => {
+      return apiRequest("POST", "/api/supplier-contacts", contactData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts"] });
@@ -90,7 +87,7 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
 
   // Update contact mutation
   const updateContactMutation = useMutation({
-    mutationFn: async (contactData: ContactFormData & { id: number }) => {
+    mutationFn: async (contactData: any) => {
       return apiRequest("PATCH", `/api/supplier-contacts/${contactData.id}`, contactData);
     },
     onSuccess: () => {
@@ -205,7 +202,7 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
     deleteContactMutation.mutate(contactId);
   };
 
-  const primaryContact = contacts.find((contact: Contact) => contact.isPrimary);
+  const primaryContact = contacts.find((contact: Contact) => contact.isPrimaryContact);
   const contactCount = contacts.length;
 
   if (!supplierId) {
@@ -549,15 +546,15 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
                         <span className="font-medium">
                           {contact.firstName} {contact.lastName}
                         </span>
-                        {contact.isPrimary && (
+                        {contact.isPrimaryContact && (
                           <Star className="h-3 w-3 text-yellow-500 fill-current" />
                         )}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {contact.title} {contact.title && contact.department && "•"} {contact.department}
+                        {contact.position} {contact.position && contact.department && "•"} {contact.department}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {contact.email} {contact.email && contact.mobile && "•"} {contact.mobile}
+                        {contact.email} {contact.email && contact.phoneMobile && "•"} {contact.phoneMobile}
                       </div>
                     </div>
                     <div className="flex space-x-1">
@@ -620,12 +617,12 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
                       <td className="p-3 font-medium">
                         {contact.firstName} {contact.lastName}
                       </td>
-                      <td className="p-3 text-muted-foreground">{contact.title || "—"}</td>
+                      <td className="p-3 text-muted-foreground">{contact.position || "—"}</td>
                       <td className="p-3 text-muted-foreground">{contact.department || "—"}</td>
                       <td className="p-3 text-muted-foreground">{contact.email || "—"}</td>
-                      <td className="p-3 text-muted-foreground">{contact.mobile || "—"}</td>
+                      <td className="p-3 text-muted-foreground">{contact.phoneMobile || "—"}</td>
                       <td className="p-3">
-                        {contact.isPrimary && (
+                        {contact.isPrimaryContact && (
                           <Star className="h-4 w-4 text-yellow-500 fill-current" />
                         )}
                       </td>
