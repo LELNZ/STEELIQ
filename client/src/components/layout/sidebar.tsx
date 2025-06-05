@@ -12,7 +12,8 @@ import {
   Settings,
   Users,
   Slice,
-  FileText
+  FileText,
+  Building2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,6 +26,7 @@ const navigation = [
       { name: "Estimates & Quotes", href: "/estimates", icon: FileText, badge: "2", badgeVariant: "info" },
       { name: "Material Library", href: "/materials", icon: Package },
       { name: "Inventory", href: "/inventory", icon: Warehouse, badge: "3", badgeVariant: "warning" },
+      { name: "Contacts", href: "/contacts", icon: Building2 },
       { name: "Optimization", href: "/optimization", icon: Zap },
     ],
   },

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -468,6 +468,203 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching optimization simulation:", error);
       res.status(500).json({ error: "Failed to fetch optimization simulation" });
+    }
+  });
+
+  // Supplier management routes
+  app.get("/api/suppliers", async (req, res) => {
+    try {
+      const suppliers = await storage.getSuppliers();
+      res.json(suppliers);
+    } catch (error) {
+      console.error("Error fetching suppliers:", error);
+      res.status(500).json({ error: "Failed to fetch suppliers" });
+    }
+  });
+
+  app.post("/api/suppliers", async (req, res) => {
+    try {
+      const supplierData = insertSupplierSchema.parse(req.body);
+      const supplier = await storage.createSupplier(supplierData);
+      res.status(201).json(supplier);
+    } catch (error) {
+      console.error("Error creating supplier:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid supplier data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create supplier" });
+    }
+  });
+
+  app.patch("/api/suppliers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const supplierData = insertSupplierSchema.partial().parse(req.body);
+      const supplier = await storage.updateSupplier(id, supplierData);
+      if (!supplier) {
+        return res.status(404).json({ error: "Supplier not found" });
+      }
+      res.json(supplier);
+    } catch (error) {
+      console.error("Error updating supplier:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid supplier data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update supplier" });
+    }
+  });
+
+  app.delete("/api/suppliers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteSupplier(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Supplier not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting supplier:", error);
+      res.status(500).json({ error: "Failed to delete supplier" });
+    }
+  });
+
+  // Material-supplier relationships
+  app.get("/api/materials/:materialId/suppliers", async (req, res) => {
+    try {
+      const materialId = parseInt(req.params.materialId);
+      const materialSuppliers = await storage.getMaterialSuppliers(materialId);
+      res.json(materialSuppliers);
+    } catch (error) {
+      console.error("Error fetching material suppliers:", error);
+      res.status(500).json({ error: "Failed to fetch material suppliers" });
+    }
+  });
+
+  app.post("/api/materials/:materialId/suppliers", async (req, res) => {
+    try {
+      const materialId = parseInt(req.params.materialId);
+      const materialSupplierData = insertMaterialSupplierSchema.parse({
+        ...req.body,
+        materialId
+      });
+      
+      // Calculate complementary price if only one is provided
+      const material = await storage.getMaterial(materialId);
+      if (material?.weightPerMeter) {
+        const weightPerMeter = parseFloat(material.weightPerMeter.toString());
+        if (materialSupplierData.pricePerMeter && !materialSupplierData.pricePerKg) {
+          materialSupplierData.pricePerKg = (parseFloat(materialSupplierData.pricePerMeter.toString()) / weightPerMeter).toFixed(2);
+        } else if (materialSupplierData.pricePerKg && !materialSupplierData.pricePerMeter) {
+          materialSupplierData.pricePerMeter = (parseFloat(materialSupplierData.pricePerKg.toString()) * weightPerMeter).toFixed(2);
+        }
+      }
+      
+      const materialSupplier = await storage.createMaterialSupplier(materialSupplierData);
+      
+      // Create price history entry
+      await storage.createSupplierPriceHistory({
+        materialSupplierId: materialSupplier.id,
+        pricePerMeter: materialSupplierData.pricePerMeter,
+        pricePerKg: materialSupplierData.pricePerKg,
+        currency: materialSupplierData.currency || "AUD",
+        effectiveDate: new Date(),
+        priceChangeReason: "initial_entry",
+        enteredBy: 1, // TODO: Get from session
+      });
+      
+      res.status(201).json(materialSupplier);
+    } catch (error) {
+      console.error("Error creating material supplier:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid material supplier data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create material supplier" });
+    }
+  });
+
+  app.patch("/api/material-suppliers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const materialSupplierData = insertMaterialSupplierSchema.partial().parse(req.body);
+      
+      // Get existing material supplier to calculate price changes
+      const existing = await storage.getMaterialSupplierById(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Material supplier not found" });
+      }
+      
+      // Calculate complementary price if updated
+      if (existing.material?.weightPerMeter) {
+        const weightPerMeter = parseFloat(existing.material.weightPerMeter.toString());
+        if (materialSupplierData.pricePerMeter && !materialSupplierData.pricePerKg) {
+          materialSupplierData.pricePerKg = (parseFloat(materialSupplierData.pricePerMeter.toString()) / weightPerMeter).toFixed(2);
+        } else if (materialSupplierData.pricePerKg && !materialSupplierData.pricePerMeter) {
+          materialSupplierData.pricePerMeter = (parseFloat(materialSupplierData.pricePerKg.toString()) * weightPerMeter).toFixed(2);
+        }
+      }
+      
+      const materialSupplier = await storage.updateMaterialSupplier(id, materialSupplierData);
+      
+      // Create price history entry if prices changed
+      if (materialSupplierData.pricePerMeter || materialSupplierData.pricePerKg) {
+        await storage.createSupplierPriceHistory({
+          materialSupplierId: id,
+          pricePerMeter: materialSupplierData.pricePerMeter || existing.pricePerMeter,
+          pricePerKg: materialSupplierData.pricePerKg || existing.pricePerKg,
+          currency: materialSupplierData.currency || existing.currency || "AUD",
+          effectiveDate: new Date(),
+          priceChangeReason: "price_update",
+          enteredBy: 1, // TODO: Get from session
+        });
+      }
+      
+      res.json(materialSupplier);
+    } catch (error) {
+      console.error("Error updating material supplier:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid material supplier data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update material supplier" });
+    }
+  });
+
+  app.delete("/api/material-suppliers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteMaterialSupplier(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Material supplier not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting material supplier:", error);
+      res.status(500).json({ error: "Failed to delete material supplier" });
+    }
+  });
+
+  // Price history routes
+  app.get("/api/material-suppliers/:id/price-history", async (req, res) => {
+    try {
+      const materialSupplierId = parseInt(req.params.id);
+      const priceHistory = await storage.getSupplierPriceHistory(materialSupplierId);
+      res.json(priceHistory);
+    } catch (error) {
+      console.error("Error fetching supplier price history:", error);
+      res.status(500).json({ error: "Failed to fetch supplier price history" });
+    }
+  });
+
+  app.post("/api/material-suppliers/:id/set-primary", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const materialSupplier = await storage.setPrimarySupplier(id);
+      if (!materialSupplier) {
+        return res.status(404).json({ error: "Material supplier not found" });
+      }
+      res.json(materialSupplier);
+    } catch (error) {
+      console.error("Error setting primary supplier:", error);
+      res.status(500).json({ error: "Failed to set primary supplier" });
     }
   });
 

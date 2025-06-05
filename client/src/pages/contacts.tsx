@@ -161,7 +161,7 @@ export default function ContactsPage() {
                                 <Badge variant="secondary" className="text-xs">
                                   {contact.company}
                                 </Badge>
-                                {contact.qualityRating && contact.qualityRating >= 4 && (
+                                {contact.qualityRating && Number(contact.qualityRating) >= 4 && (
                                   <Badge variant="outline" className="text-yellow-600 border-yellow-600">
                                     <Star className="w-3 h-3 mr-1 fill-current" />
                                     {contact.qualityRating}/5

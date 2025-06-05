@@ -1,12 +1,15 @@
 import { 
   users, materials, materialCategories, inventory, jobs, jobMaterials, 
   cuttingPlans, cutSequences, remnants, optimizationSimulations, coatingSystems, surfaceAreaConfigs,
+  suppliers, materialSuppliers, supplierPriceHistory,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
   type CuttingPlan, type InsertCuttingPlan, type CutSequence, type InsertCutSequence,
   type Remnant, type InsertRemnant, type OptimizationSimulation, type InsertOptimizationSimulation,
-  type CoatingSystem, type InsertCoatingSystem, type SurfaceAreaConfig, type InsertSurfaceAreaConfig
+  type CoatingSystem, type InsertCoatingSystem, type SurfaceAreaConfig, type InsertSurfaceAreaConfig,
+  type Supplier, type InsertSupplier, type MaterialSupplier, type InsertMaterialSupplier,
+  type SupplierPriceHistory, type InsertSupplierPriceHistory
 } from "@shared/schema";
 import { desc, eq, lt, asc, like, and, or, sql } from "drizzle-orm";
 import { db } from "./db";
