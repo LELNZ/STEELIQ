@@ -796,10 +796,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           body: JSON.stringify({
             input: input,
-            locationRestriction: {
-              country: "nz"
-            },
-            includedPrimaryTypes: ["address"],
             languageCode: "en"
           })
         }
