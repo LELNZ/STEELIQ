@@ -425,7 +425,7 @@ export function calculateMaterialSurfaceArea(
     return calculateUniversalSectionArea(dimensions, coatingType);
   } else if (categoryLower.includes('rhs') || categoryLower.includes('shs') || categoryLower.includes('hollow')) {
     return calculateHollowSectionArea(dimensions, coatingType);
-  } else if (categoryLower.includes('flat') || categoryLower.includes('plate')) {
+  } else if (categoryLower.includes('flat') || categoryLower.includes('plate') || categoryLower.includes('sheet')) {
     return calculateFlatPlateArea(dimensions, coatingType);
   } else if (categoryLower.includes('unequal') && categoryLower.includes('angle')) {
     return calculateUnequalAngleArea(dimensions, coatingType);
