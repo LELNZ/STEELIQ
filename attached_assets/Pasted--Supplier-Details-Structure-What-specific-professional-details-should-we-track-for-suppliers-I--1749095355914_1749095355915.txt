@@ -1,0 +1,35 @@
+
+
+Supplier Details Structure: What specific professional details should we track for suppliers? I'm thinking:
+
+Basic: Name, Company, Email, Phone, Address - yes
+Business: ABN/Tax ID, Payment Terms, Account Manager - yes
+Operational: Lead Times, Minimum Order Quantities, Delivery Areas - yes
+Quality: Certifications, Standards Compliance - yes
+
+
+Price Calculation Logic: For the automatic price/m ↔ price/kg calculation: 
+
+Should we use the material's weightPerMeter field for conversion? yes please run a sceniro to ensure this works accurately, also allow user to enter a manual ton rate. 
+When a user enters price/m, calculate price/kg = price/m ÷ weightPerMeter
+When a user enters price/kg, calculate price/m = price/kg × weightPerMeter
+Is this correct? yes
+
+
+User Permissions: For editing historical price entries, should I:
+
+Add a simple admin/user role system? yes
+Use session-based permissions for now?
+What determines if a user has "correct permissions"? when the principle user (all permissions) creates a user, they are assigned a permission. Please create a user based login engine/system and allow for multiple user with basic, planning, accounting, full etc make suggestions based on current leading industry systems.
+
+
+Primary Supplier Logic: Should the primary supplier's pricing automatically populate the main material's price fields, or keep them separate? when the primary suppler is selected update material price accordingly.
+
+
+Contacts Page Categories: For the main menu Contacts page with subcategories (Vendors, Suppliers, Clients, Users):
+
+Should "Suppliers" and "Vendors" be separate categories or the same? same
+What's the difference between Suppliers and Vendors in your workflow? sorry they are the same - please suggest any additional categories.
+Should Users refer to system users or customer contacts? system users/employees
+
+as per the original strategic plan we will eventually create a full JMS so building this into the system now will work well. 

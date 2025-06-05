@@ -82,14 +82,10 @@ export default function ContactsPage() {
       </div>
 
       <Tabs value={selectedType} onValueChange={setSelectedType} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="suppliers" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             Suppliers
-          </TabsTrigger>
-          <TabsTrigger value="vendors" className="flex items-center gap-2">
-            <Truck className="w-4 h-4" />
-            Vendors
           </TabsTrigger>
           <TabsTrigger value="clients" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
@@ -97,7 +93,7 @@ export default function ContactsPage() {
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <UserCheck className="w-4 h-4" />
-            Users
+            System Users
           </TabsTrigger>
         </TabsList>
 

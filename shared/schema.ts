@@ -3,14 +3,25 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table
+// Users table with comprehensive permission system
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
-  role: text("role").notNull().default("operator"),
+  email: text("email"),
+  phone: text("phone"),
+  role: text("role").notNull().default("basic"), // basic, planning, accounting, supervisor, admin, full
+  permissions: jsonb("permissions"), // Detailed permissions object
+  department: text("department"), // fabrication, office, management, etc.
+  employeeId: text("employee_id"),
+  isActive: boolean("is_active").default(true),
+  lastLogin: timestamp("last_login"),
+  passwordResetToken: text("password_reset_token"),
+  passwordResetExpiry: timestamp("password_reset_expiry"),
+  createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Material categories and types
