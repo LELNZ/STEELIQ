@@ -26,7 +26,6 @@ const navigation = [
       { name: "Estimates & Quotes", href: "/estimates", icon: FileText, badge: "2", badgeVariant: "info" },
       { name: "Material Library", href: "/materials", icon: Package },
       { name: "Inventory", href: "/inventory", icon: Warehouse, badge: "3", badgeVariant: "warning" },
-      { name: "Suppliers", href: "/suppliers", icon: Building2 },
       { name: "Contacts", href: "/contacts", icon: Users },
       { name: "Financial", href: "/financial", icon: DollarSign },
       { name: "Optimization", href: "/optimization", icon: Zap },
