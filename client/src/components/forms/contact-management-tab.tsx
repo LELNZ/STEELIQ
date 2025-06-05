@@ -36,11 +36,12 @@ interface Contact {
   firstName: string;
   lastName: string;
   email?: string;
-  mobile?: string;
-  phone?: string;
-  title?: string;
+  phoneMobile?: string;
+  phonePrimary?: string;
+  phoneDirect?: string;
+  position?: string;
   department?: string;
-  isPrimary: boolean;
+  isPrimaryContact: boolean;
 }
 
 interface ContactManagementTabProps {
@@ -153,26 +154,50 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
     setEditingContact(contact);
     setIsEditDialogOpen(true);
     
-    // Reset form with contact data immediately
+    // Reset form with contact data mapped from database fields
     editForm.reset({
       firstName: contact.firstName || "",
       lastName: contact.lastName || "",
       email: contact.email || "",
-      mobile: contact.mobile || "",
-      phone: contact.phone || "",
-      title: contact.title || "",
+      mobile: contact.phoneMobile || "",
+      phone: contact.phonePrimary || "",
+      title: contact.position || "",
       department: contact.department || "",
-      isPrimary: contact.isPrimary || false
+      isPrimary: contact.isPrimaryContact || false
     });
   };
 
   const handleAddSubmit = (data: ContactFormData) => {
-    addContactMutation.mutate(data);
+    // Map form data to database schema for creating new contact
+    const mappedData = {
+      supplierId: supplierId!,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phoneMobile: data.mobile,
+      phonePrimary: data.phone,
+      position: data.title,
+      department: data.department,
+      isPrimaryContact: data.isPrimary
+    };
+    addContactMutation.mutate(mappedData);
   };
 
   const handleEditSubmit = (data: ContactFormData) => {
     if (editingContact) {
-      updateContactMutation.mutate({ ...data, id: editingContact.id });
+      // Map form data to database schema
+      const mappedData = {
+        id: editingContact.id,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phoneMobile: data.mobile,
+        phonePrimary: data.phone,
+        position: data.title,
+        department: data.department,
+        isPrimaryContact: data.isPrimary
+      };
+      updateContactMutation.mutate(mappedData);
     }
   };
 
@@ -441,7 +466,7 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {contacts.map((contact: Contact) => (
                 <Card key={contact.id} className="relative">
-                  {contact.isPrimary && (
+                  {contact.isPrimaryContact && (
                     <div className="absolute top-2 right-2">
                       <Star className="h-4 w-4 text-yellow-500 fill-current" />
                     </div>
@@ -451,8 +476,8 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
                       <User className="h-4 w-4 text-blue-600" />
                       {contact.firstName} {contact.lastName}
                     </CardTitle>
-                    {contact.title && (
-                      <p className="text-sm text-muted-foreground">{contact.title}</p>
+                    {contact.position && (
+                      <p className="text-sm text-muted-foreground">{contact.position}</p>
                     )}
                   </CardHeader>
                   <CardContent className="space-y-2">
@@ -462,10 +487,10 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
                         <span className="truncate">{contact.email}</span>
                       </div>
                     )}
-                    {contact.mobile && (
+                    {contact.phoneMobile && (
                       <div className="flex items-center gap-2 text-sm">
                         <Phone className="h-3 w-3 text-muted-foreground" />
-                        <span>{contact.mobile}</span>
+                        <span>{contact.phoneMobile}</span>
                       </div>
                     )}
                     {contact.department && (
