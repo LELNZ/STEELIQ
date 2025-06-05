@@ -90,7 +90,7 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
   // Update contact mutation
   const updateContactMutation = useMutation({
     mutationFn: async (contactData: ContactFormData & { id: number }) => {
-      return apiRequest("PUT", `/api/supplier-contacts/${contactData.id}`, contactData);
+      return apiRequest("PATCH", `/api/supplier-contacts/${contactData.id}`, contactData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts"] });
