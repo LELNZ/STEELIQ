@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle } from "lucide-react";
+import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle, Award } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactManagementTab } from "./contact-management-tab";
 import { MultiLocationManager } from "@/components/ui/multi-location-manager";
@@ -107,7 +107,7 @@ export function ClientForm({
       email: "",
       paymentTerms: "30 days",
       projectManager: "",
-      creditLimit: "0",
+      creditLimit: 0,
       discountRate: "0",
       industry: "",
       type: "client",
@@ -571,7 +571,7 @@ export function ClientForm({
                   <FormControl>
                     <AddressSearch
                       placeholder="Enter street address"
-                      onAddressSelect={handleAddressSelect}
+                      onSelect={handleAddressSelect}
                       initialValue={field.value}
                       onChange={field.onChange}
                     />
