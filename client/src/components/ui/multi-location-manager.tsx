@@ -10,6 +10,7 @@ import { MapPin, Plus, Trash2, Building2, Clock, Phone, Mail, Save, Check, Alert
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactSearch } from "@/components/ui/contact-search";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 interface Location {
   id: string;
@@ -54,6 +55,7 @@ export function MultiLocationManager({
   onPreferredLocationChange,
   initialLocations = []
 }: MultiLocationManagerProps) {
+  const { toast } = useToast();
   const [savedLocations, setSavedLocations] = useState<Location[]>([]);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [showNewLocationForm, setShowNewLocationForm] = useState(false);
@@ -100,45 +102,109 @@ export function MultiLocationManager({
 
 
 
-  const handleSaveLocation = (location: Location) => {
-    console.log("Saving location:", location);
+  const handleSaveLocation = async (location: Location) => {
+    console.log("Saving location to database:", location);
     
     // Validate required fields
     if (!location.locationName.trim() || !location.address.trim()) {
-      alert("Please enter a location name and address");
+      toast({
+        title: "Validation Error",
+        description: "Please enter a location name and address",
+        variant: "destructive"
+      });
       return;
     }
 
-    const updatedLocation = {
-      ...location,
-      isSaved: true,
-      isEditing: false
-    };
+    try {
+      // Prepare location data for API
+      const locationData = {
+        ...(entityType === "supplier" ? { supplierId: entityId } : { clientId: entityId }),
+        locationType: location.locationType,
+        locationName: location.locationName,
+        address: location.address,
+        city: location.city || "",
+        postcode: location.postcode || "",
+        country: location.country || "",
+        contactPerson: location.contactPerson || "",
+        phone: location.phone || "",
+        email: location.email || "",
+        operatingHours: location.operatingHours || "",
+        specialInstructions: location.specialInstructions || "",
+        isActive: true,
+        isPreferred: savedLocations.length === 0 // First location becomes preferred
+      };
 
-    // If this is the first location, make it preferred automatically
-    if (savedLocations.length === 0) {
-      updatedLocation.isPreferred = true;
-    }
+      console.log("Sending location data to API:", locationData);
 
-    // Update or add to saved locations
-    const existingIndex = savedLocations.findIndex(loc => loc.id === location.id);
-    let newSavedLocations;
-    
-    if (existingIndex >= 0) {
-      newSavedLocations = [...savedLocations];
-      newSavedLocations[existingIndex] = updatedLocation;
-    } else {
-      newSavedLocations = [...savedLocations, updatedLocation];
-    }
+      // Save to database
+      const apiEndpoint = entityType === "supplier" ? "supplier-locations" : "client-locations";
+      let response;
+      
+      if (location.isSaved && location.id) {
+        // Update existing location
+        response = await fetch(`/api/${apiEndpoint}/${location.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(locationData)
+        });
+      } else {
+        // Create new location
+        response = await fetch(`/api/${apiEndpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(locationData)
+        });
+      }
 
-    setSavedLocations(newSavedLocations);
-    setEditingLocation(null);
-    setShowNewLocationForm(false);
-    onLocationsChange?.(newSavedLocations);
-    
-    // If this became the preferred location, notify parent
-    if (updatedLocation.isPreferred) {
-      onPreferredLocationChange?.(updatedLocation);
+      if (!response.ok) {
+        throw new Error(`Failed to save location: ${response.status}`);
+      }
+
+      const savedLocation = await response.json();
+      console.log("Location saved successfully:", savedLocation);
+
+      // Update local state
+      const updatedLocation = {
+        ...location,
+        id: savedLocation.id || location.id,
+        isSaved: true,
+        isEditing: false,
+        isPreferred: locationData.isPreferred
+      };
+
+      // Update or add to saved locations
+      const existingIndex = savedLocations.findIndex(loc => loc.id === location.id);
+      let newSavedLocations;
+      
+      if (existingIndex >= 0) {
+        newSavedLocations = [...savedLocations];
+        newSavedLocations[existingIndex] = updatedLocation;
+      } else {
+        newSavedLocations = [...savedLocations, updatedLocation];
+      }
+
+      setSavedLocations(newSavedLocations);
+      setEditingLocation(null);
+      setShowNewLocationForm(false);
+      onLocationsChange?.(newSavedLocations);
+      
+      // If this became the preferred location, notify parent
+      if (updatedLocation.isPreferred) {
+        onPreferredLocationChange?.(updatedLocation);
+      }
+
+      toast({
+        title: "Location Saved",
+        description: `${location.locationName} has been saved successfully`
+      });
+
+    } catch (error) {
+      console.error("Error saving location:", error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save location. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -409,60 +475,88 @@ export function MultiLocationManager({
               </div>
             </div>
 
-            {/* Address - Compact */}
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Address</label>
-              <div className="relative">
-                <AddressSearch
-                  field={{
-                    value: editingLocation.address,
-                    onChange: (value: string) => updateEditingLocation("address", value)
-                  }}
-                  form={createAddressFormHandler()}
-                  placeholder="Enter address"
-                />
+            {/* Address Section - Enhanced with proper field population */}
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Address</label>
+                <div className="relative">
+                  <AddressSearch
+                    field={{
+                      value: editingLocation.address || "",
+                      onChange: (value: string) => {
+                        console.log("Address field onChange:", value);
+                        updateEditingLocation("address", value);
+                      }
+                    }}
+                    form={{
+                      setValue: (field: string, value: string) => {
+                        console.log("Google Places setValue:", field, "=", value);
+                        if (field === "address") {
+                          updateEditingLocation("address", value);
+                        } else if (field === "city") {
+                          updateEditingLocation("city", value);
+                        } else if (field === "postcode") {
+                          updateEditingLocation("postcode", value);
+                        } else if (field === "country") {
+                          updateEditingLocation("country", value);
+                        }
+                      }
+                    }}
+                    placeholder="Search for address..."
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* City, Postcode, Country - Compact */}
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">City</label>
-                <Input
-                  className="h-8"
-                  placeholder="City"
-                  value={editingLocation.city}
-                  onChange={(e) => updateEditingLocation("city", e.target.value)}
-                />
-              </div>
-              
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Postcode</label>
-                <Input
-                  className="h-8"
-                  placeholder="Postcode"
-                  value={editingLocation.postcode}
-                  onChange={(e) => updateEditingLocation("postcode", e.target.value)}
-                />
-              </div>
-              
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Country</label>
-                <Select
-                  value={editingLocation.country}
-                  onValueChange={(value) => updateEditingLocation("country", value)}
-                >
-                  <SelectTrigger className="h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="New Zealand">New Zealand</SelectItem>
-                    <SelectItem value="Australia">Australia</SelectItem>
-                    <SelectItem value="United States">United States</SelectItem>
-                    <SelectItem value="United Kingdom">United Kingdom</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* City, Postcode, Country - Enhanced with proper state binding */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">City</label>
+                  <Input
+                    className="h-8"
+                    placeholder="City"
+                    value={editingLocation.city || ""}
+                    onChange={(e) => {
+                      console.log("City manual input:", e.target.value);
+                      updateEditingLocation("city", e.target.value);
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Postcode</label>
+                  <Input
+                    className="h-8"
+                    placeholder="Postcode"
+                    value={editingLocation.postcode || ""}
+                    onChange={(e) => {
+                      console.log("Postcode manual input:", e.target.value);
+                      updateEditingLocation("postcode", e.target.value);
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Country</label>
+                  <Select
+                    value={editingLocation.country || ""}
+                    onValueChange={(value) => {
+                      console.log("Country selection:", value);
+                      updateEditingLocation("country", value);
+                    }}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="New Zealand">New Zealand</SelectItem>
+                      <SelectItem value="Australia">Australia</SelectItem>
+                      <SelectItem value="United States">United States</SelectItem>
+                      <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                      <SelectItem value="Canada">Canada</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
