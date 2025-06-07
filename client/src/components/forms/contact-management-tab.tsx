@@ -300,13 +300,18 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   const handleSetAsPreferred = (contact: Contact) => {
     console.log("Setting preferred contact:", contact);
     if (onPreferredContactChange) {
-      // Prioritize mobile number over phone number
-      const preferredPhone = contact.mobile || contact.phoneMobile || contact.phone || contact.workPhone || contact.phonePrimary || "";
+      // Prioritize mobile number over phone number based on entity type
+      let preferredPhone = "";
+      if (entityType === "supplier") {
+        preferredPhone = contact.phoneMobile || contact.phonePrimary || "";
+      } else {
+        preferredPhone = contact.mobile || contact.workPhone || "";
+      }
       
       // Create contact object with prioritized mobile number
       const preferredContact = {
         ...contact,
-        phone: preferredPhone // This will be used to populate the main form
+        preferredPhone // Add the prioritized phone number
       };
       
       console.log("Preferred contact with prioritized mobile:", preferredContact);
