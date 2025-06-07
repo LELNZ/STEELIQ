@@ -633,13 +633,7 @@ export function SupplierForm({
           </div>
         </CollapsibleSection>
 
-        {/* Financial & Commercial Terms */}
-        <div className="form-section section-financial">
-          <div className="form-section-header">
-            <DollarSign className="form-section-icon" />
-            <h3 className="form-section-title">Financial & Commercial Terms</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="financial" icon={DollarSign} title="Financial & Commercial Terms">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField
               control={form.control}
@@ -758,15 +752,9 @@ export function SupplierForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Operational Requirements */}
-        <div className="form-section section-operational">
-          <div className="form-section-header">
-            <Settings className="form-section-icon" />
-            <h3 className="form-section-title">Operational Requirements</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="operational" icon={Settings} title="Operational Requirements">
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -818,15 +806,9 @@ export function SupplierForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Lead Times & Order Requirements */}
-        <div className="form-section section-leadtimes">
-          <div className="form-section-header">
-            <Clock className="form-section-icon" />
-            <h3 className="form-section-title">Lead Times & Order Requirements</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="leadtimes" icon={Clock} title="Lead Times & Order Requirements">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -904,15 +886,9 @@ export function SupplierForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Quality & Compliance */}
-        <div className="form-section section-quality">
-          <div className="form-section-header">
-            <Award className="form-section-icon" />
-            <h3 className="form-section-title">Quality & Compliance</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="quality" icon={Award} title="Quality & Compliance">
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -950,15 +926,9 @@ export function SupplierForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Additional Information Section */}
-        <div className="form-section section-additional">
-          <div className="form-section-header">
-            <FileText className="form-section-icon" />
-            <h3 className="form-section-title">Additional Information</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="additional" icon={FileText} title="Additional Information">
           <FormField
             control={form.control}
             name="notes"
@@ -976,15 +946,9 @@ export function SupplierForm({
               </FormItem>
             )}
           />
-        </div>
+        </CollapsibleSection>
 
-        {/* Status Settings Section */}
-        <div className="form-section section-status">
-          <div className="form-section-header">
-            <Shield className="form-section-icon" />
-            <h3 className="form-section-title">Status Settings</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="status" icon={Settings} title="Status Settings">
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -1028,7 +992,7 @@ export function SupplierForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Form Actions */}
         <div className="flex justify-end space-x-3 pt-6 border-t">
