@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactManagementTab } from "./contact-management-tab";
+import { MultiLocationManager } from "@/components/ui/multi-location-manager";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -247,6 +248,11 @@ export function SupplierForm({
         <TabsTrigger value="details" className="flex items-center gap-2 transition-all duration-200">
           <Building2 className="h-4 w-4" />
           Supplier Details
+        </TabsTrigger>
+        <TabsTrigger value="locations" className="flex items-center gap-2 transition-all duration-200" disabled={!hasCompanyName}>
+          <MapPin className="h-4 w-4" />
+          Locations
+          {!hasCompanyName && <span className="text-xs text-muted-foreground">(Enter name first)</span>}
         </TabsTrigger>
         <TabsTrigger value="contacts" className="flex items-center gap-2 transition-all duration-200" disabled={!hasCompanyName}>
           <Users className="h-4 w-4" />
@@ -829,6 +835,13 @@ export function SupplierForm({
         </div>
           </form>
         </Form>
+      </TabsContent>
+
+      <TabsContent value="locations" className="mt-6">
+        <MultiLocationManager 
+          entityType="supplier"
+          entityId={autoSavedSupplierId || supplierId}
+        />
       </TabsContent>
 
       <TabsContent value="contacts" className="mt-6">

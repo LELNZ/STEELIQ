@@ -251,6 +251,11 @@ export function ClientForm({
           <Building2 className="h-4 w-4" />
           Client Details
         </TabsTrigger>
+        <TabsTrigger value="locations" className="flex items-center gap-2 transition-all duration-200" disabled={!hasCompanyName}>
+          <MapPin className="h-4 w-4" />
+          Locations
+          {!hasCompanyName && <span className="text-xs text-muted-foreground">(Enter name first)</span>}
+        </TabsTrigger>
         <TabsTrigger value="contacts" className="flex items-center gap-2 transition-all duration-200" disabled={!hasCompanyName}>
           <Users className="h-4 w-4" />
           Contacts
@@ -975,6 +980,13 @@ export function ClientForm({
             </div>
           </form>
         </Form>
+      </TabsContent>
+
+      <TabsContent value="locations" className="mt-6">
+        <MultiLocationManager 
+          entityType="client"
+          entityId={autoSavedClientId || clientId}
+        />
       </TabsContent>
 
       <TabsContent value="contacts" className="mt-6">
