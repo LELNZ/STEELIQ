@@ -41,11 +41,20 @@ export const clientFormSchema = z.object({
   creditLimit: z.number().min(0, "Credit limit must be 0 or greater").default(0),
   discountRate: z.string().default("0"),
   industry: z.string().optional(),
-  type: z.enum(["client", "prospect"]).default("client"),
+  type: z.string().default("client"),
   preferredCurrency: z.string().default("NZD"),
   billingSchedule: z.string().optional(),
   deliveryInstructions: z.string().optional(),
   specialRequirements: z.string().optional(),
+  // Adding supplier form fields for comprehensive data collection
+  leadTimeStandard: z.number().min(0, "Lead time must be 0 or greater").default(7),
+  leadTimeExpress: z.number().min(0, "Express lead time must be 0 or greater").default(3),
+  minimumOrderQuantity: z.number().min(0, "Minimum order quantity must be 0 or greater").default(0),
+  minimumOrderValue: z.number().min(0, "Minimum order value must be 0 or greater").default(0),
+  deliveryAreas: z.string().optional(),
+  certifications: z.string().optional(),
+  standardsCompliance: z.string().optional(),
+  accountManager: z.string().optional(),
   notes: z.string().optional(),
   internalReference: z.string().optional(),
   isActive: z.boolean().default(true),
@@ -105,6 +114,14 @@ export function ClientForm({
       billingSchedule: "",
       deliveryInstructions: "",
       specialRequirements: "",
+      leadTimeStandard: 7,
+      leadTimeExpress: 3,
+      minimumOrderQuantity: 0,
+      minimumOrderValue: 0,
+      deliveryAreas: "",
+      certifications: "",
+      standardsCompliance: "",
+      accountManager: "",
       notes: "",
       internalReference: "",
       isActive: true,
@@ -333,6 +350,18 @@ export function ClientForm({
                     <SelectContent>
                       <SelectItem value="client">Client</SelectItem>
                       <SelectItem value="prospect">Prospect</SelectItem>
+                      <SelectItem value="main_contractor">Main Contractor</SelectItem>
+                      <SelectItem value="subcontractor">Subcontractor</SelectItem>
+                      <SelectItem value="property_developer">Property Developer</SelectItem>
+                      <SelectItem value="architect">Architect</SelectItem>
+                      <SelectItem value="engineer">Engineer</SelectItem>
+                      <SelectItem value="government">Government/Council</SelectItem>
+                      <SelectItem value="commercial">Commercial Entity</SelectItem>
+                      <SelectItem value="residential">Residential Client</SelectItem>
+                      <SelectItem value="industrial">Industrial Client</SelectItem>
+                      <SelectItem value="infrastructure">Infrastructure Project</SelectItem>
+                      <SelectItem value="consultant">Consultant</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

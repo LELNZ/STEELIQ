@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 export const supplierFormSchema = z.object({
   name: z.string().min(1, "Company/Supplier name is required"),
   company: z.string().optional(),
+  type: z.string().default("vendor"),
   address: z.string().optional(),
   city: z.string().optional(),
   postcode: z.string().optional(),
@@ -278,6 +279,38 @@ export function SupplierForm({
                   <FormLabel>Legal Company Name</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter legal company name (optional)" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Supplier Type *</FormLabel>
+                  <FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select supplier type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vendor">Vendor/Supplier</SelectItem>
+                        <SelectItem value="manufacturer">Manufacturer</SelectItem>
+                        <SelectItem value="distributor">Distributor</SelectItem>
+                        <SelectItem value="subcontractor">Subcontractor</SelectItem>
+                        <SelectItem value="main_contractor">Main Contractor</SelectItem>
+                        <SelectItem value="specialist_contractor">Specialist Contractor</SelectItem>
+                        <SelectItem value="equipment_hire">Equipment Hire</SelectItem>
+                        <SelectItem value="materials_supplier">Materials Supplier</SelectItem>
+                        <SelectItem value="steel_fabricator">Steel Fabricator</SelectItem>
+                        <SelectItem value="transport_logistics">Transport & Logistics</SelectItem>
+                        <SelectItem value="consultant">Consultant/Professional Services</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
