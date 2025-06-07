@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle } from "lucide-react";
+import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle, Settings, Award } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactManagementTab } from "./contact-management-tab";
 import { MultiLocationManager } from "@/components/ui/multi-location-manager";
@@ -38,7 +38,7 @@ export const supplierFormSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email("Please enter a valid email address").optional().or(z.literal("")),
   paymentTerms: z.string().default("30 days"),
-  projectManager: z.string().optional(),
+  assignedProjectManager: z.string().optional(),
   creditLimit: z.number().min(0, "Credit limit must be 0 or greater").default(0),
   discountRate: z.string().default("0"),
   industry: z.string().optional(),
@@ -57,7 +57,6 @@ export const supplierFormSchema = z.object({
   standardsCompliance: z.string().optional(),
   accountManager: z.string().optional(),
   notes: z.string().optional(),
-  internalReference: z.string().optional(),
   isActive: z.boolean().default(true),
   isPreferredSupplier: z.boolean().default(false)
 });
@@ -502,7 +501,7 @@ export function SupplierForm({
         <div className="form-section section-registration">
           <div className="form-section-header">
             <Shield className="form-section-icon" />
-            <h3 className="form-section-title">Business Registration</h3>
+            <h3 className="form-section-title">Registration & Legal Information</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -550,14 +549,52 @@ export function SupplierForm({
           </div>
         </div>
 
-        {/* Commercial Terms Section */}
-        <div className="form-section section-financial">
+        {/* Contact Information */}
+        <div className="form-section section-contact">
           <div className="form-section-header">
-            <DollarSign className="form-section-icon" />
-            <h3 className="form-section-title">Commercial Terms</h3>
+            <Users className="form-section-icon" />
+            <h3 className="form-section-title">Contact Information</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="+64 9 123 4567" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input placeholder="contact@company.com" type="email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Financial & Commercial Terms */}
+        <div className="form-section section-financial">
+          <div className="form-section-header">
+            <DollarSign className="form-section-icon" />
+            <h3 className="form-section-title">Financial & Commercial Terms</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField
               control={form.control}
               name="paymentTerms"
@@ -567,7 +604,7 @@ export function SupplierForm({
                   <FormControl>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select payment terms" />
+                        <SelectValue placeholder="30 days" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="COD">Cash on Delivery</SelectItem>
@@ -587,10 +624,35 @@ export function SupplierForm({
 
             <FormField
               control={form.control}
-              name="minimumOrderValue"
+              name="preferredCurrency"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Minimum Order Value ($)</FormLabel>
+                  <FormLabel>Preferred Currency</FormLabel>
+                  <FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="NZD (New Zealand Dollar)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NZD">NZD (New Zealand Dollar)</SelectItem>
+                        <SelectItem value="AUD">AUD (Australian Dollar)</SelectItem>
+                        <SelectItem value="USD">USD (US Dollar)</SelectItem>
+                        <SelectItem value="GBP">GBP (British Pound)</SelectItem>
+                        <SelectItem value="EUR">EUR (Euro)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="creditLimit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Credit Limit</FormLabel>
                   <FormControl>
                     <Input 
                       type="number" 
@@ -606,16 +668,89 @@ export function SupplierForm({
 
             <FormField
               control={form.control}
-              name="minimumOrderQuantity"
+              name="discountRate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Minimum Order Quantity</FormLabel>
+                  <FormLabel>Discount Rate (%)</FormLabel>
                   <FormControl>
                     <Input 
                       type="number" 
                       placeholder="0" 
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="assignedProjectManager"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assigned Project Manager</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Project manager name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="billingSchedule"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Billing Schedule</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Monthly, Per Project" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Operational Requirements */}
+        <div className="form-section section-operational">
+          <div className="form-section-header">
+            <Settings className="form-section-icon" />
+            <h3 className="form-section-title">Operational Requirements</h3>
+          </div>
+
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="deliveryInstructions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Delivery Instructions</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Specific delivery requirements, timing preferences, site access details..."
+                      className="min-h-[100px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="specialRequirements"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Special Requirements</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Quality standards, certifications, packaging requirements..."
+                      className="min-h-[100px]"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -639,11 +774,11 @@ export function SupplierForm({
           </div>
         </div>
 
-        {/* Lead Times Section */}
-        <div className="form-section section-operational">
+        {/* Lead Times & Order Requirements */}
+        <div className="form-section section-lead-times">
           <div className="form-section-header">
             <Clock className="form-section-icon" />
-            <h3 className="form-section-title">Lead Times</h3>
+            <h3 className="form-section-title">Lead Times & Order Requirements</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -684,13 +819,51 @@ export function SupplierForm({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="minimumOrderQuantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Minimum Order Quantity</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="0" 
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="minimumOrderValue"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Minimum Order Value ($)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="0" 
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 
-        {/* Quality & Compliance Section */}
+        {/* Quality & Compliance */}
         <div className="form-section section-compliance">
           <div className="form-section-header">
-            <Package className="form-section-icon" />
+            <Award className="form-section-icon" />
             <h3 className="form-section-title">Quality & Compliance</h3>
           </div>
 

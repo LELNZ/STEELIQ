@@ -479,27 +479,24 @@ export function ClientForm({
           </div>
 
           <div className="space-y-4">
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Street Address</h4>
-              <FormField
-                control={form.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address</FormLabel>
-                    <FormControl>
-                      <AddressSearch
-                        placeholder="Enter street address"
-                        onAddressSelect={handleAddressSelect}
-                        initialValue={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Street Address</FormLabel>
+                  <FormControl>
+                    <AddressSearch
+                      placeholder="Enter street address"
+                      onAddressSelect={handleAddressSelect}
+                      initialValue={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
