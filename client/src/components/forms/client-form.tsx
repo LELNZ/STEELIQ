@@ -7,20 +7,49 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Building2, Users, Calendar, DollarSign, AlertTriangle } from "lucide-react";
+import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle } from "lucide-react";
+import { AddressSearch } from "@/components/ui/address-search";
 import { ContactManagementTab } from "./contact-management-tab";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { insertClientSchema } from "@shared/schema";
-import type { Client } from "@shared/schema";
 
-// Form schema extending the insert schema with additional validation
-export const clientFormSchema = insertClientSchema.extend({
-  paymentTerms: z.string().min(1, "Payment terms are required"),
-  preferredCurrency: z.string().min(1, "Currency is required"),
+// Form validation schema
+export const clientFormSchema = z.object({
+  name: z.string().min(1, "Company/Client name is required"),
+  company: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  postcode: z.string().optional(),
+  country: z.string().default("New Zealand"),
+  nzbn: z.string().optional(),
+  gstNumber: z.string().optional(),
+  companyNumber: z.string().optional(),
+  website: z.string().optional().refine((val) => {
+    if (!val || val === "") return true;
+    // Allow URLs with or without protocol
+    const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+    return urlPattern.test(val);
+  }, "Please enter a valid website URL"),
+  phone: z.string().optional(),
+  email: z.string().email("Please enter a valid email address").optional().or(z.literal("")),
+  paymentTerms: z.string().default("30 days"),
+  projectManager: z.string().optional(),
+  creditLimit: z.number().min(0, "Credit limit must be 0 or greater").default(0),
+  discountRate: z.string().default("0"),
+  industry: z.string().optional(),
+  type: z.enum(["client", "prospect"]).default("client"),
+  preferredCurrency: z.string().default("NZD"),
+  billingSchedule: z.string().optional(),
+  deliveryInstructions: z.string().optional(),
+  specialRequirements: z.string().optional(),
+  notes: z.string().optional(),
+  internalReference: z.string().optional(),
+  isActive: z.boolean().default(true),
+  isPreferredClient: z.boolean().default(false)
 });
 
 export type ClientFormData = z.infer<typeof clientFormSchema>;
@@ -56,49 +85,66 @@ export function ClientForm({
     defaultValues: {
       name: "",
       company: "",
-      type: "client",
       address: "",
       city: "",
-      state: "",
       postcode: "",
       country: "New Zealand",
       nzbn: "",
       gstNumber: "",
+      companyNumber: "",
       website: "",
-      industry: "",
+      phone: "",
+      email: "",
       paymentTerms: "30 days",
-      preferredCurrency: "NZD",
+      projectManager: "",
+      creditLimit: 0,
       discountRate: "0",
+      industry: "",
+      type: "client",
+      preferredCurrency: "NZD",
+      billingSchedule: "",
+      deliveryInstructions: "",
+      specialRequirements: "",
       notes: "",
       internalReference: "",
-      ...initialData,
-    },
+      isActive: true,
+      isPreferredClient: false,
+      ...initialData
+    }
   });
 
   // Auto-save mutation for creating clients
   const autoSaveMutation = useMutation({
     mutationFn: async (data: ClientFormData) => {
-      // Prepare minimal data for auto-save - name and company are both required
+      // Prepare minimal data for auto-save - just name is required
       const autoSaveData = {
         name: data.name,
         company: data.company || data.name, // Use name as company if company is empty
         type: data.type || "client",
         paymentTerms: data.paymentTerms || "30 days",
         preferredCurrency: data.preferredCurrency || "NZD",
+        // Only include other fields if they have actual values
         ...(data.address && { address: data.address }),
         ...(data.city && { city: data.city }),
-        ...(data.state && { state: data.state }),
         ...(data.postcode && { postcode: data.postcode }),
-        ...(data.country && { country: data.country }),
+        country: data.country || "New Zealand",
         ...(data.nzbn && { nzbn: data.nzbn }),
         ...(data.gstNumber && { gstNumber: data.gstNumber }),
+        ...(data.companyNumber && { companyNumber: data.companyNumber }),
+        ...(data.website && { website: data.website }),
+        ...(data.phone && { phone: data.phone }),
+        ...(data.email && { email: data.email }),
         ...(data.projectManager && { projectManager: data.projectManager }),
+        creditLimit: data.creditLimit || 0,
+        discountRate: data.discountRate || "0",
         ...(data.industry && { industry: data.industry }),
-        ...(data.creditLimit && { creditLimit: data.creditLimit }),
-        ...(data.discountRate && { discountRate: data.discountRate }),
+        ...(data.billingSchedule && { billingSchedule: data.billingSchedule }),
+        ...(data.deliveryInstructions && { deliveryInstructions: data.deliveryInstructions }),
+        ...(data.specialRequirements && { specialRequirements: data.specialRequirements }),
         ...(data.notes && { notes: data.notes }),
         ...(data.internalReference && { internalReference: data.internalReference }),
-        isActive: true
+        isActive: data.isActive ?? true,
+        isPreferredClient: data.isPreferredClient ?? false
       };
       
       return await apiRequest("POST", "/api/clients", autoSaveData);
@@ -127,22 +173,22 @@ export function ClientForm({
     }
   });
 
-  // Watch for client name changes to enable contacts tab
-  const clientName = form.watch("name");
-  const hasClientName = clientName && clientName.trim().length > 0;
+  // Watch for company name changes to enable contacts tab
+  const companyName = form.watch("name");
+  const hasCompanyName = companyName && companyName.trim().length > 0;
 
   // Check if basic required fields are filled for auto-save
   const validateBasicFields = () => {
-    return hasClientName;
+    return hasCompanyName;
   };
 
   // Handle tab change with auto-save logic
   const handleTabChange = async (tabValue: string) => {
     if (tabValue === "contacts" && mode === "create" && !autoSavedClientId && !hasAutoSaved) {
-      if (!hasClientName) {
+      if (!hasCompanyName) {
         toast({
-          title: "Client Name Required",
-          description: "Please enter a client name before accessing contacts.",
+          title: "Company Name Required",
+          description: "Please enter a company name before accessing contacts.",
           variant: "destructive",
         });
         return;
@@ -158,17 +204,26 @@ export function ClientForm({
         return;
       }
 
+      // Auto-save the client before switching to contacts
       try {
         const formData = form.getValues();
         await autoSaveMutation.mutateAsync(formData);
         setActiveTab(tabValue);
+        setShowValidationWarning(false);
       } catch (error) {
-        // Error is already handled in onError
-        console.error("Auto-save failed:", error);
+        // Error handling is done in mutation onError
+        return;
       }
     } else {
       setActiveTab(tabValue);
+      setShowValidationWarning(false);
     }
+  };
+
+  const handleAddressSelect = (addressData: any) => {
+    form.setValue("address", addressData.formatted_address || "");
+    form.setValue("city", addressData.locality || "");
+    form.setValue("postcode", addressData.postal_code || "");
   };
 
   return (
@@ -178,19 +233,20 @@ export function ClientForm({
           <Building2 className="h-4 w-4" />
           Client Details
         </TabsTrigger>
-        <TabsTrigger value="contacts" className="flex items-center gap-2" disabled={!hasClientName}>
+        <TabsTrigger value="contacts" className="flex items-center gap-2" disabled={!hasCompanyName}>
           <Users className="h-4 w-4" />
           Contacts
-          {!hasClientName && <span className="text-xs">(Enter name first)</span>}
+          {!hasCompanyName && <span className="text-xs">(Enter name first)</span>}
           {autoSaveMutation.isPending && <span className="text-xs">(Saving...)</span>}
         </TabsTrigger>
       </TabsList>
 
+      {/* Validation Warning */}
       {showValidationWarning && (
         <Alert className="mt-4">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Please enter a client name before accessing the contacts tab.
+            Please complete both company name and legal company name fields before adding contacts.
           </AlertDescription>
         </Alert>
       )}
@@ -205,377 +261,527 @@ export function ClientForm({
                 <h3 className="text-lg font-semibold">Company Information</h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company/Client Name *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter company or client name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company/Client Name *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter company or client name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="company"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Legal Company Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Legal company name (if different)" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="company"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Legal Company Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter legal company name (optional)" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Client Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select client type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="client">Client</SelectItem>
-                          <SelectItem value="customer">Customer</SelectItem>
-                          <SelectItem value="contractor">Contractor</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="website"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Website</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://www.example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="industry"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Industry</FormLabel>
+            <FormField
+              control={form.control}
+              name="industry"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Industry</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Construction, Manufacturing" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Client Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select client type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="client">Client</SelectItem>
+                      <SelectItem value="prospect">Prospect</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="internalReference"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Internal Reference</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Internal client reference/code" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Registration & Legal Information */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <Shield className="h-5 w-5 text-green-600" />
+            <h3 className="text-lg font-semibold">Registration & Legal Information</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField
+              control={form.control}
+              name="nzbn"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>NZBN (New Zealand Business Number)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="13-digit NZBN" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="gstNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>GST Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="GST registration number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="companyNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Company registration number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Address Information */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <MapPin className="h-5 w-5 text-red-600" />
+            <h3 className="text-lg font-semibold">Address Information</h3>
+          </div>
+
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <AddressSearch
+                      placeholder="Search for address or enter manually"
+                      onAddressSelect={handleAddressSelect}
+                      initialValue={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City</FormLabel>
+                    <FormControl>
+                      <Input placeholder="City" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="postcode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Postcode</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Postcode" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="country"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <Input placeholder="Construction, Manufacturing, etc." {...field} />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select country" />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                      <SelectContent>
+                        <SelectItem value="New Zealand">New Zealand</SelectItem>
+                        <SelectItem value="Australia">Australia</SelectItem>
+                        <SelectItem value="United States">United States</SelectItem>
+                        <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                        <SelectItem value="Canada">Canada</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
+          </div>
+        </div>
 
-            {/* Contact Information Section */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 pb-2 border-b">
-                <Building2 className="h-5 w-5 text-green-600" />
-                <h3 className="text-lg font-semibold">Address & Contact</h3>
-              </div>
+        {/* Contact Information */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <Users className="h-5 w-5 text-purple-600" />
+            <h3 className="text-lg font-semibold">Contact Information</h3>
+          </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Street address" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="+64 9 123 4567" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl>
-                        <Input placeholder="City" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input placeholder="contact@company.com" type="email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
 
-                <FormField
-                  control={form.control}
-                  name="state"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>State/Region</FormLabel>
-                      <FormControl>
-                        <Input placeholder="State or region" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+        {/* Financial & Commercial Terms */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <DollarSign className="h-5 w-5 text-green-600" />
+            <h3 className="text-lg font-semibold">Financial & Commercial Terms</h3>
+          </div>
 
-                <FormField
-                  control={form.control}
-                  name="postcode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Postcode</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Postcode" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <FormField
+              control={form.control}
+              name="paymentTerms"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Terms</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment terms" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="COD">Cash on Delivery (COD)</SelectItem>
+                      <SelectItem value="7 days">7 days</SelectItem>
+                      <SelectItem value="14 days">14 days</SelectItem>
+                      <SelectItem value="30 days">30 days</SelectItem>
+                      <SelectItem value="45 days">45 days</SelectItem>
+                      <SelectItem value="60 days">60 days</SelectItem>
+                      <SelectItem value="90 days">90 days</SelectItem>
+                      <SelectItem value="Custom">Custom Terms</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="country"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Country</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Country" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="preferredCurrency"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Preferred Currency</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select currency" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="NZD">NZD (New Zealand Dollar)</SelectItem>
+                      <SelectItem value="AUD">AUD (Australian Dollar)</SelectItem>
+                      <SelectItem value="USD">USD (US Dollar)</SelectItem>
+                      <SelectItem value="EUR">EUR (Euro)</SelectItem>
+                      <SelectItem value="GBP">GBP (British Pound)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="website"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Website</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://www.example.co.nz" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+            <FormField
+              control={form.control}
+              name="creditLimit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Credit Limit</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="0" 
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="discountRate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Discount Rate (%)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="projectManager"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assigned Project Manager</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Project manager name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="billingSchedule"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Billing Schedule</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Monthly, Per Project" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Operational Requirements */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <Package className="h-5 w-5 text-orange-600" />
+            <h3 className="text-lg font-semibold">Operational Requirements</h3>
+          </div>
+
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="deliveryInstructions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Delivery Instructions</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Specific delivery requirements, timing preferences, site access details..."
+                      className="resize-none"
+                      rows={3}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="specialRequirements"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Special Requirements</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Quality standards, certifications, packaging requirements..."
+                      className="resize-none"
+                      rows={3}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Additional Information */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <FileText className="h-5 w-5 text-gray-600" />
+            <h3 className="text-lg font-semibold">Additional Information</h3>
+          </div>
+
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Internal Notes</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Internal notes about this client (not visible to client)..."
+                      className="resize-none"
+                      rows={4}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Active Client</FormLabel>
+                      <div className="text-sm text-muted-foreground">
+                        Enable this client for new projects and quotations
+                      </div>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="isPreferredClient"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Preferred Client</FormLabel>
+                      <div className="text-sm text-muted-foreground">
+                        Mark as preferred for priority treatment and special rates
+                      </div>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             </div>
+          </div>
+        </div>
 
-            {/* Business Details Section */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 pb-2 border-b">
-                <DollarSign className="h-5 w-5 text-orange-600" />
-                <h3 className="text-lg font-semibold">Business & Financial Details</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="nzbn"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>NZBN</FormLabel>
-                      <FormControl>
-                        <Input placeholder="New Zealand Business Number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="gstNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>GST Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="GST registration number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="paymentTerms"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payment Terms</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select payment terms" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="7 days">7 days</SelectItem>
-                          <SelectItem value="14 days">14 days</SelectItem>
-                          <SelectItem value="30 days">30 days</SelectItem>
-                          <SelectItem value="45 days">45 days</SelectItem>
-                          <SelectItem value="60 days">60 days</SelectItem>
-                          <SelectItem value="90 days">90 days</SelectItem>
-                          <SelectItem value="COD">Cash on Delivery</SelectItem>
-                          <SelectItem value="Prepaid">Prepaid</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="preferredCurrency"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preferred Currency</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select currency" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="NZD">NZD - New Zealand Dollar</SelectItem>
-                          <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
-                          <SelectItem value="USD">USD - US Dollar</SelectItem>
-                          <SelectItem value="EUR">EUR - Euro</SelectItem>
-                          <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="creditLimit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Credit Limit</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.01"
-                          placeholder="0.00" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="discountRate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Discount Rate (%)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.01"
-                          placeholder="0.00" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Additional Information Section */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 pb-2 border-b">
-                <Calendar className="h-5 w-5 text-purple-600" />
-                <h3 className="text-lg font-semibold">Additional Information</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="internalReference"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Internal Reference</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Internal client reference code" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="customerSince"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Customer Since</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="date"
-                          {...field} 
-                          value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
-                          onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>Notes</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Additional notes about this client..."
-                          className="min-h-[100px]"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end space-x-4 pt-6 border-t">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={onCancel}
-                disabled={isLoading}
-              >
+            <div className="flex justify-end space-x-4 pt-6">
+              <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel
               </Button>
-              <Button 
-                type="submit"
-                disabled={isLoading}
-                className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]"
-              >
-                {isLoading ? (
-                  mode === "create" ? "Creating..." : "Updating..."
-                ) : (
-                  mode === "create" ? "Create Client" : "Update Client"
-                )}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : mode === "create" ? "Create Client" : "Update Client"}
               </Button>
             </div>
           </form>
@@ -583,19 +789,14 @@ export function ClientForm({
       </TabsContent>
 
       <TabsContent value="contacts" className="mt-6">
-        {(autoSavedClientId || clientId) ? (
-          <ContactManagementTab
+        {(autoSavedClientId || clientId) && (
+          <ContactManagementTab 
             entityId={autoSavedClientId || clientId!}
             entityType="client"
-            entityName={clientName}
+            entityName={form.getValues("name")}
             mode={mode}
+            autoMarkAsPrimary={mode === "create"}
           />
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Please enter a client name first to manage contacts</p>
-            <p className="text-sm">The client will be auto-saved when you switch to this tab</p>
-          </div>
         )}
       </TabsContent>
     </Tabs>
