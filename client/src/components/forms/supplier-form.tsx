@@ -74,6 +74,7 @@ export function SupplierForm({
   const [activeTab, setActiveTab] = useState("details");
   const [autoSavedSupplierId, setAutoSavedSupplierId] = useState<number | undefined>(supplierId);
   const [showValidationWarning, setShowValidationWarning] = useState(false);
+  const [hasAutoSaved, setHasAutoSaved] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -144,6 +145,7 @@ export function SupplierForm({
     },
     onSuccess: (data) => {
       setAutoSavedSupplierId(data.id);
+      setHasAutoSaved(true);
       onSupplierCreated?.(data.id);
       toast({
         title: "Supplier Auto-Saved",
@@ -176,7 +178,7 @@ export function SupplierForm({
 
   // Handle tab change with auto-save logic
   const handleTabChange = async (tabValue: string) => {
-    if (tabValue === "contacts" && mode === "create" && !autoSavedSupplierId) {
+    if (tabValue === "contacts" && mode === "create" && !autoSavedSupplierId && !hasAutoSaved) {
       if (!hasCompanyName) {
         toast({
           title: "Company Name Required",
@@ -188,6 +190,11 @@ export function SupplierForm({
 
       if (!validateBasicFields()) {
         setShowValidationWarning(true);
+        return;
+      }
+
+      // Prevent multiple auto-saves
+      if (autoSaveMutation.isPending) {
         return;
       }
 
