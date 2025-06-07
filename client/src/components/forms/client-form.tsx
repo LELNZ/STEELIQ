@@ -490,7 +490,6 @@ export function ClientForm({
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address</FormLabel>
                   <FormControl>
                     <AddressSearch
                       field={field}
