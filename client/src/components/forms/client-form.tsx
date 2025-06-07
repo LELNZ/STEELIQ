@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactManagementTab } from "./contact-management-tab";
+import { MultiLocationManager } from "@/components/ui/multi-location-manager";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
