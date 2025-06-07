@@ -71,16 +71,21 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   const apiEndpoint = entityType === "supplier" ? "supplier-contacts" : "client-contacts";
   const queryParam = entityType === "supplier" ? "supplierId" : "clientId";
   
-  const { data: contacts = [], isLoading } = useQuery({
-    queryKey: [`/api/${apiEndpoint}`, entityId],
+  const contactsQuery = useQuery({
+    queryKey: [apiEndpoint, entityId],
     queryFn: async () => {
       console.log(`Fetching contacts: ${apiEndpoint} for ${entityType} ID ${entityId}`);
       const response = await apiRequest("GET", `/api/${apiEndpoint}?${queryParam}=${entityId}`);
       console.log(`Contacts response:`, response);
       return Array.isArray(response) ? response : [];
     },
-    enabled: !!entityId
+    enabled: !!entityId,
+    staleTime: 0, // Always refetch
+    gcTime: 0 // Don't cache
   });
+
+  const contacts = contactsQuery.data || [];
+  const isLoading = contactsQuery.isLoading;
 
   // Add contact mutation
   const addContactMutation = useMutation({
@@ -100,7 +105,8 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
       return apiRequest("POST", `/api/${apiEndpoint}`, contactData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`, entityId] });
+      queryClient.invalidateQueries({ queryKey: [apiEndpoint, entityId] });
+      queryClient.refetchQueries({ queryKey: [apiEndpoint, entityId] });
       setIsAddDialogOpen(false);
       addForm.reset();
       toast({ 
@@ -119,7 +125,8 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
       return apiRequest("PATCH", `/api/${apiEndpoint}/${contactData.id}`, contactData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`, entityId] });
+      queryClient.invalidateQueries({ queryKey: [apiEndpoint, entityId] });
+      queryClient.refetchQueries({ queryKey: [apiEndpoint, entityId] });
       setIsEditDialogOpen(false);
       setEditingContact(null);
       editForm.reset();
@@ -139,13 +146,14 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
       return result;
     },
     onSuccess: () => {
-      console.log(`Invalidating query: ["/api/${apiEndpoint}", ${entityId}]`);
-      console.log(`Current query cache keys:`, queryClient.getQueryCache().getAll().map(q => q.queryKey));
+      console.log(`Delete successful - invalidating query: [${apiEndpoint}, ${entityId}]`);
       
-      // Force refetch with multiple invalidation approaches
-      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`, entityId] });
-      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`] });
-      queryClient.refetchQueries({ queryKey: [`/api/${apiEndpoint}`, entityId] });
+      // Use consistent query key format and force refetch
+      queryClient.invalidateQueries({ queryKey: [apiEndpoint, entityId] });
+      queryClient.refetchQueries({ queryKey: [apiEndpoint, entityId] });
+      
+      // Force component re-render by refetching the specific query
+      contactsQuery.refetch();
       
       toast({ title: "Contact deleted successfully" });
     },
