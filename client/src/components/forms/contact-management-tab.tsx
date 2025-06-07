@@ -74,14 +74,10 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   const contactsQuery = useQuery({
     queryKey: [apiEndpoint, entityId],
     queryFn: async () => {
-      console.log(`Fetching contacts: ${apiEndpoint} for ${entityType} ID ${entityId}`);
       const response = await apiRequest("GET", `/api/${apiEndpoint}?${queryParam}=${entityId}`);
-      console.log(`Contacts response:`, response);
       return Array.isArray(response) ? response : [];
     },
-    enabled: !!entityId,
-    staleTime: 0, // Always refetch
-    gcTime: 0 // Don't cache
+    enabled: !!entityId
   });
 
   const contacts = contactsQuery.data || [];
@@ -277,7 +273,6 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   };
 
   const handleDelete = (contactId: number) => {
-    console.log(`HandleDelete called for contact ID ${contactId}, entityType: ${entityType}, entityId: ${entityId}`);
     deleteContactMutation.mutate(contactId);
   };
 

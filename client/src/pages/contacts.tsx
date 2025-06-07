@@ -895,7 +895,7 @@ export default function ContactsPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {clients.map((client: Client) => (
+                        {filteredClients.map((client: Client) => (
                           <TableRow key={client.id}>
                             <TableCell className="font-medium">{client.name}</TableCell>
                             <TableCell>
