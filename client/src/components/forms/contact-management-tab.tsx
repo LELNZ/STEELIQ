@@ -32,16 +32,21 @@ type ContactFormData = z.infer<typeof contactSchema>;
 
 interface Contact {
   id: number;
-  supplierId: number;
+  supplierId?: number;
+  clientId?: number;
   firstName: string;
   lastName: string;
   email?: string;
   phoneMobile?: string;
   phonePrimary?: string;
   phoneDirect?: string;
+  mobile?: string;
+  workPhone?: string;
   position?: string;
+  title?: string;
   department?: string;
-  isPrimaryContact: boolean;
+  isPrimaryContact?: boolean;
+  isPrimary?: boolean;
 }
 
 interface ContactManagementTabProps {
@@ -188,15 +193,22 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   const handleAddSubmit = (data: ContactFormData) => {
     // Map form data to database schema for creating new contact
     const mappedData = {
-      supplierId: supplierId!,
+      ...(entityType === "supplier" ? { supplierId: entityId } : { clientId: entityId }),
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
-      phoneMobile: data.mobile,
-      phonePrimary: data.phone,
-      position: data.title,
-      department: data.department,
-      isPrimaryContact: data.isPrimary
+      ...(entityType === "supplier" ? {
+        phoneMobile: data.mobile,
+        phonePrimary: data.phone,
+        position: data.title,
+        isPrimaryContact: data.isPrimary
+      } : {
+        mobile: data.mobile,
+        workPhone: data.phone,
+        title: data.title,
+        isPrimary: data.isPrimary
+      }),
+      department: data.department
     };
     addContactMutation.mutate(mappedData);
   };
@@ -209,11 +221,18 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
-        phoneMobile: data.mobile,
-        phonePrimary: data.phone,
-        position: data.title,
-        department: data.department,
-        isPrimaryContact: data.isPrimary
+        ...(entityType === "supplier" ? {
+          phoneMobile: data.mobile,
+          phonePrimary: data.phone,
+          position: data.title,
+          isPrimaryContact: data.isPrimary
+        } : {
+          mobile: data.mobile,
+          workPhone: data.phone,
+          title: data.title,
+          isPrimary: data.isPrimary
+        }),
+        department: data.department
       };
       updateContactMutation.mutate(mappedData);
     }
@@ -223,15 +242,17 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
     deleteContactMutation.mutate(contactId);
   };
 
-  const primaryContact = contacts.find((contact: Contact) => contact.isPrimaryContact);
+  const primaryContact = contacts.find((contact: Contact) => 
+    entityType === "supplier" ? contact.isPrimaryContact : contact.isPrimary
+  );
   const contactCount = contacts.length;
 
-  if (!supplierId) {
+  if (!entityId) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
         <div className="text-center">
           <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Save the supplier first to manage contacts</p>
+          <p>Save the {entityType} first to manage contacts</p>
         </div>
       </div>
     );
@@ -251,9 +272,9 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
               </Badge>
             )}
           </h3>
-          {supplierName && (
+          {entityName && (
             <p className="text-sm text-muted-foreground">
-              Managing contacts for {supplierName}
+              Managing contacts for {entityName}
             </p>
           )}
           {primaryContact && (
