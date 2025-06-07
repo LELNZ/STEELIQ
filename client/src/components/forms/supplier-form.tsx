@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactManagementTab } from "./contact-management-tab";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 // Unified supplier validation schema
 export const supplierFormSchema = z.object({
@@ -55,6 +59,7 @@ interface SupplierFormProps {
   isLoading?: boolean;
   mode: "create" | "edit";
   supplierId?: number;
+  onSupplierCreated?: (supplierId: number) => void;
 }
 
 export function SupplierForm({ 
@@ -63,9 +68,14 @@ export function SupplierForm({
   onCancel, 
   isLoading = false, 
   mode,
-  supplierId
+  supplierId,
+  onSupplierCreated
 }: SupplierFormProps) {
   const [activeTab, setActiveTab] = useState("details");
+  const [autoSavedSupplierId, setAutoSavedSupplierId] = useState<number | undefined>(supplierId);
+  const [showValidationWarning, setShowValidationWarning] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const form = useForm<SupplierFormData>({
     resolver: zodResolver(supplierFormSchema),
@@ -98,6 +108,75 @@ export function SupplierForm({
     }
   });
 
+  // Auto-save mutation for creating suppliers
+  const autoSaveMutation = useMutation({
+    mutationFn: async (data: SupplierFormData) => {
+      return await apiRequest("/api/suppliers", "POST", data);
+    },
+    onSuccess: (data) => {
+      setAutoSavedSupplierId(data.id);
+      onSupplierCreated?.(data.id);
+      toast({
+        title: "Supplier Auto-Saved",
+        description: "Basic supplier information has been saved. You can now add contacts.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+    },
+    onError: (error) => {
+      console.error("Auto-save failed:", error);
+      toast({
+        title: "Auto-Save Failed",
+        description: "Failed to save supplier. Please check required fields.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Watch for company name changes to enable contacts tab
+  const companyName = form.watch("name");
+  const legalName = form.watch("company");
+  const hasCompanyName = (companyName && companyName.trim().length > 0) || (legalName && legalName.trim().length > 0);
+
+  // Check if basic required fields are filled for auto-save
+  const validateBasicFields = () => {
+    const values = form.getValues();
+    const hasBasicInfo = values.name && values.company;
+    return hasBasicInfo;
+  };
+
+  // Handle tab change with auto-save logic
+  const handleTabChange = async (tabValue: string) => {
+    if (tabValue === "contacts" && mode === "create" && !autoSavedSupplierId) {
+      if (!hasCompanyName) {
+        toast({
+          title: "Company Name Required",
+          description: "Please enter a company name before accessing contacts.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!validateBasicFields()) {
+        setShowValidationWarning(true);
+        return;
+      }
+
+      // Auto-save the supplier before switching to contacts
+      try {
+        const formData = form.getValues();
+        await autoSaveMutation.mutateAsync(formData);
+        setActiveTab(tabValue);
+        setShowValidationWarning(false);
+      } catch (error) {
+        // Error handling is done in mutation onError
+        return;
+      }
+    } else {
+      setActiveTab(tabValue);
+      setShowValidationWarning(false);
+    }
+  };
+
   const handleAddressSelect = (addressData: any) => {
     form.setValue("address", addressData.formatted_address || "");
     form.setValue("city", addressData.locality || "");
@@ -105,18 +184,29 @@ export function SupplierForm({
   };
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="details" className="flex items-center gap-2">
           <Building2 className="h-4 w-4" />
           Supplier Details
         </TabsTrigger>
-        <TabsTrigger value="contacts" className="flex items-center gap-2" disabled={!form.watch("name") && !form.watch("company")}>
+        <TabsTrigger value="contacts" className="flex items-center gap-2" disabled={!hasCompanyName}>
           <Users className="h-4 w-4" />
           Contacts
-          {(!form.watch("name") && !form.watch("company")) && <span className="text-xs">(Enter name first)</span>}
+          {!hasCompanyName && <span className="text-xs">(Enter name first)</span>}
+          {autoSaveMutation.isPending && <span className="text-xs">(Saving...)</span>}
         </TabsTrigger>
       </TabsList>
+
+      {/* Validation Warning */}
+      {showValidationWarning && (
+        <Alert className="mt-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Please complete both company name and legal company name fields before adding contacts.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <TabsContent value="details" className="mt-6">
         <Form {...form}>
@@ -638,10 +728,11 @@ export function SupplierForm({
       </TabsContent>
 
       <TabsContent value="contacts" className="mt-6">
-        {form.watch("name") || form.watch("company") ? (
+        {hasCompanyName ? (
           <ContactManagementTab 
-            supplierId={supplierId} 
+            supplierId={autoSavedSupplierId || supplierId} 
             supplierName={form.watch("name") || form.watch("company")}
+            autoMarkAsPrimary={true}
           />
         ) : (
           <div className="text-center py-8 text-muted-foreground">

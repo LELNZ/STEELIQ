@@ -47,6 +47,7 @@ interface Contact {
 interface ContactManagementTabProps {
   supplierId?: number;
   supplierName?: string;
+  autoMarkAsPrimary?: boolean;
 }
 
 type ViewMode = "grid" | "list" | "table";
