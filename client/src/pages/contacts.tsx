@@ -9,7 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Users, Building2, Plus, Edit, Trash2, Search, Phone, Mail, MapPin, Calendar, DollarSign, Clock, Truck, Contact, Grid3X3, List, Table as TableIcon } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Users, Building2, Plus, Edit, Trash2, Search, Phone, Mail, MapPin, Calendar, DollarSign, Clock, Truck, Contact, Grid3X3, List, Table as TableIcon, Upload, Download, FileSpreadsheet, CheckCircle, AlertCircle, Info, FileText } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { SupplierForm, type SupplierFormData } from "@/components/forms/supplier-form";
@@ -17,6 +21,15 @@ import { ClientForm, type ClientFormData } from "@/components/forms/client-form"
 import type { Supplier, Client } from "@shared/schema";
 
 type ViewMode = "card" | "list" | "table";
+
+interface ImportResult {
+  success: boolean;
+  processed: number;
+  created: number;
+  updated?: number;
+  skipped?: number;
+  errors?: string[];
+}
 
 export default function ContactsPage() {
   const [activeTab, setActiveTab] = useState("suppliers");
@@ -30,6 +43,11 @@ export default function ContactsPage() {
   const [isDeleteClientDialogOpen, setIsDeleteClientDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Import/Export state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importResults, setImportResults] = useState<ImportResult | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   // View modes for each tab
   const [suppliersViewMode, setSuppliersViewMode] = useState<ViewMode>("card");
@@ -230,6 +248,64 @@ export default function ContactsPage() {
     },
     onError: (error: any) => {
       toast({ title: "Error deleting client", description: error.message, variant: "destructive" });
+    }
+  });
+
+  // Import/Export mutations
+  const importSuppliersMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/import-export/import/suppliers', {
+        method: 'POST',
+        body: formData
+      });
+      if (!response.ok) throw new Error('Failed to import suppliers');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setImportResults(data);
+      setSelectedFile(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      toast({
+        title: "Import Completed",
+        description: `Processed ${data.processed} suppliers. Created: ${data.created}, Updated: ${data.updated || 0}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Failed to import suppliers",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const importContactsMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/import-export/import/contacts', {
+        method: 'POST',
+        body: formData
+      });
+      if (!response.ok) throw new Error('Failed to import contacts');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setImportResults(data);
+      setSelectedFile(null);
+      toast({
+        title: "Import Completed",
+        description: `Processed ${data.processed} contacts. Created: ${data.created}, Skipped: ${data.skipped || 0}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Failed to import contacts",
+        variant: "destructive",
+      });
     }
   });
 
