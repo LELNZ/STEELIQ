@@ -356,160 +356,193 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                 Add Contact
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>Add New Contact</DialogTitle>
               </DialogHeader>
               <Form {...addForm}>
-                <form onSubmit={addForm.handleSubmit(handleAddSubmit)} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={addForm.control}
-                      name="firstName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>First Name *</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={addForm.control}
-                      name="lastName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Last Name *</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <form onSubmit={addForm.handleSubmit(handleAddSubmit)} className="space-y-3">
+                  {/* Personal Information */}
+                  <div className="space-y-3">
+                    <div className="border-b border-border pb-2">
+                      <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Personal Information
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={addForm.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">First Name *</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-9" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={addForm.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">Last Name *</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-9" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
 
-                  <FormField
-                    control={addForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Contact Information */}
+                  <div className="space-y-3">
+                    <div className="border-b border-border pb-2">
+                      <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        Contact Information
+                      </h4>
+                    </div>
                     <FormField
                       control={addForm.control}
-                      name="mobile"
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Mobile</FormLabel>
+                          <FormLabel className="text-sm font-medium">Email</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input type="email" {...field} className="h-9" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
-                    <FormField
-                      control={addForm.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Office Phone</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={addForm.control}
+                        name="mobile"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">Mobile</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-9" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={addForm.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">Office Phone</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-9" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={addForm.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Title</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={addForm.control}
-                      name="department"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Department</FormLabel>
-                          <FormControl>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select department" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Sales">Sales</SelectItem>
-                                <SelectItem value="Purchasing">Purchasing</SelectItem>
-                                <SelectItem value="Engineering">Engineering</SelectItem>
-                                <SelectItem value="Quality">Quality</SelectItem>
-                                <SelectItem value="Operations">Operations</SelectItem>
-                                <SelectItem value="Finance">Finance</SelectItem>
-                                <SelectItem value="Management">Management</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  {/* Professional Information */}
+                  <div className="space-y-3">
+                    <div className="border-b border-border pb-2">
+                      <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                        <Building className="h-4 w-4" />
+                        Professional Information
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={addForm.control}
+                        name="title"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">Title</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-9" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={addForm.control}
+                        name="department"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">Department</FormLabel>
+                            <FormControl>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <SelectTrigger className="h-9">
+                                  <SelectValue placeholder="Select department" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Sales">Sales</SelectItem>
+                                  <SelectItem value="Purchasing">Purchasing</SelectItem>
+                                  <SelectItem value="Engineering">Engineering</SelectItem>
+                                  <SelectItem value="Quality">Quality</SelectItem>
+                                  <SelectItem value="Operations">Operations</SelectItem>
+                                  <SelectItem value="Finance">Finance</SelectItem>
+                                  <SelectItem value="Management">Management</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
 
-                  <FormField
-                    control={addForm.control}
-                    name="isPrimary"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                        <div className="space-y-0.5">
-                          <FormLabel>Primary Contact</FormLabel>
-                          <div className="text-sm text-muted-foreground">
-                            Set as main contact for this supplier
+                  {/* Settings */}
+                  <div className="space-y-3">
+                    <div className="border-b border-border pb-2">
+                      <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                        <Star className="h-4 w-4" />
+                        Settings
+                      </h4>
+                    </div>
+                    <FormField
+                      control={addForm.control}
+                      name="isPrimary"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-sm font-medium">Primary Contact</FormLabel>
+                            <div className="text-xs text-muted-foreground">
+                              Set as main contact for this {entityType}
+                            </div>
                           </div>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                  <div className="flex justify-end space-x-2">
+                  <div className="flex justify-end gap-3 pt-3 border-t border-border">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setIsAddDialogOpen(false)}
                       disabled={addContactMutation.isPending}
+                      className="h-9"
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={addContactMutation.isPending}>
+                    <Button type="submit" disabled={addContactMutation.isPending} className="h-9">
                       {addContactMutation.isPending ? "Adding..." : "Add Contact"}
                     </Button>
                   </div>
