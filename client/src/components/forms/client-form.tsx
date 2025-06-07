@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle, Settings, Award, Scale, CheckCircle } from "lucide-react";
+import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle, Settings, Award, Scale, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactManagementTab } from "./contact-management-tab";
 import { MultiLocationManager } from "@/components/ui/multi-location-manager";
@@ -87,6 +87,26 @@ export function ClientForm({
   const [autoSavedClientId, setAutoSavedClientId] = useState<number | undefined>(clientId);
   const [showValidationWarning, setShowValidationWarning] = useState(false);
   const [hasAutoSaved, setHasAutoSaved] = useState(false);
+  
+  // Collapsible sections state - all sections start collapsed except Company Information (which is always open)
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    address: true,
+    registration: true,
+    contact: true,
+    financial: true,
+    operational: true,
+    leadtimes: true,
+    quality: true,
+    additional: true,
+    status: true
+  });
+
+  const toggleSection = (sectionKey: string) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -242,6 +262,50 @@ export function ClientForm({
     form.setValue("address", addressData.formatted_address || "");
     form.setValue("city", addressData.locality || "");
     form.setValue("postcode", addressData.postal_code || "");
+  };
+
+  // Collapsible Section Component
+  const CollapsibleSection = ({ 
+    sectionKey, 
+    icon: Icon, 
+    title, 
+    children, 
+    className = "form-section",
+    alwaysOpen = false 
+  }: {
+    sectionKey: string;
+    icon: any;
+    title: string;
+    children: React.ReactNode;
+    className?: string;
+    alwaysOpen?: boolean;
+  }) => {
+    const isCollapsed = !alwaysOpen && collapsedSections[sectionKey];
+    
+    return (
+      <div className={`${className} section-${sectionKey}`}>
+        <div 
+          className={`form-section-header ${!alwaysOpen ? 'cursor-pointer hover:bg-muted/50 rounded-md transition-colors' : ''}`}
+          onClick={!alwaysOpen ? () => toggleSection(sectionKey) : undefined}
+        >
+          <Icon className="form-section-icon" />
+          <h3 className="form-section-title flex-1">{title}</h3>
+          {!alwaysOpen && (
+            isCollapsed ? 
+              <ChevronDown className="h-5 w-5 text-muted-foreground" /> : 
+              <ChevronUp className="h-5 w-5 text-muted-foreground" />
+          )}
+        </div>
+        
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'
+        }`}>
+          <div className="pt-2">
+            {children}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -419,13 +483,7 @@ export function ClientForm({
           </div>
         </div>
 
-        {/* Address Information */}
-        <div className="form-section section-address">
-          <div className="form-section-header">
-            <MapPin className="form-section-icon" />
-            <h3 className="form-section-title">Address Information</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="address" icon={MapPin} title="Address Information">
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -500,15 +558,9 @@ export function ClientForm({
               />
             </div>
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Registration & Legal Information */}
-        <div className="form-section section-registration">
-          <div className="form-section-header">
-            <Shield className="form-section-icon" />
-            <h3 className="form-section-title">Registration & Legal Information</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="registration" icon={Shield} title="Registration & Legal Information">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField
               control={form.control}
@@ -552,7 +604,7 @@ export function ClientForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Contact Information */}
         <div className="form-section section-contact">
