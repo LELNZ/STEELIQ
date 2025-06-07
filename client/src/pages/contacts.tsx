@@ -244,23 +244,23 @@ export default function ContactsPage() {
       name: client.name,
       company: client.company || "",
       type: client.type,
-      address: client.address || "",
-      city: client.city || "",
-      state: client.state || "",
-      postcode: client.postcode || "",
+      address: client.address || undefined,
+      city: client.city || undefined,
+      state: client.state || undefined,
+      postcode: client.postcode || undefined,
       country: client.country || "New Zealand",
-      nzbn: client.nzbn || "",
-      gstNumber: client.gstNumber || "",
-      website: client.website || "",
-      industry: client.industry || "",
+      nzbn: client.nzbn || undefined,
+      gstNumber: client.gstNumber || undefined,
+      website: client.website || undefined,
+      industry: client.industry || undefined,
       customerSince: client.customerSince ? new Date(client.customerSince) : undefined,
       creditLimit: String(client.creditLimit || 0),
       paymentTerms: client.paymentTerms || "30 days",
       discountRate: client.discountRate || "0.00",
       isActive: client.isActive ?? true,
       preferredCurrency: client.preferredCurrency || "NZD",
-      notes: client.notes || "",
-      internalReference: client.internalReference || "",
+      notes: client.notes || undefined,
+      internalReference: client.internalReference || undefined,
     };
   };
 
@@ -753,7 +753,7 @@ export default function ContactsPage() {
                   {/* Card View */}
                   {clientsViewMode === "card" && (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {clients.map((client: Client) => (
+                      {filteredClients.map((client: Client) => (
                         <Card key={client.id} className="hover:shadow-md transition-shadow">
                           <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
@@ -780,7 +780,8 @@ export default function ContactsPage() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => {
-                                    toast({ title: "Client deletion will be available soon" });
+                                    setClientToDelete(client);
+                                    setIsDeleteClientDialogOpen(true);
                                   }}
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -824,7 +825,7 @@ export default function ContactsPage() {
                   {/* List View */}
                   {clientsViewMode === "list" && (
                     <div className="space-y-2">
-                      {clients.map((client: Client) => (
+                      {filteredClients.map((client: Client) => (
                         <div key={client.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                           <div className="flex items-center space-x-4">
                             <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -868,7 +869,8 @@ export default function ContactsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                toast({ title: "Client deletion will be available soon" });
+                                setClientToDelete(client);
+                                setIsDeleteClientDialogOpen(true);
                               }}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -919,7 +921,8 @@ export default function ContactsPage() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => {
-                                    toast({ title: "Client deletion will be available soon" });
+                                    setClientToDelete(client);
+                                    setIsDeleteClientDialogOpen(true);
                                   }}
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -1069,7 +1072,7 @@ export default function ContactsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Supplier Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1082,6 +1085,27 @@ export default function ContactsPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => supplierToDelete && deleteSupplierMutation.mutate(supplierToDelete.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Client Confirmation Dialog */}
+      <AlertDialog open={isDeleteClientDialogOpen} onOpenChange={setIsDeleteClientDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{clientToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => clientToDelete && deleteClientMutation.mutate(clientToDelete.id)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
