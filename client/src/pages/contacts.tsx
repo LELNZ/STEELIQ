@@ -104,6 +104,11 @@ export default function ContactsPage() {
     }
   };
 
+  const handleSupplierCreated = (supplierId: number) => {
+    // Auto-save callback - supplier has been created and can be used for contacts
+    queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+  };
+
   const handleUpdateSupplier = async (data: SupplierFormData) => {
     if (!editingSupplier) return;
     setIsLoading(true);
@@ -505,6 +510,7 @@ export default function ContactsPage() {
             onSubmit={handleCreateSupplier}
             onCancel={() => setIsCreateDialogOpen(false)}
             isLoading={isLoading}
+            onSupplierCreated={handleSupplierCreated}
           />
         </DialogContent>
       </Dialog>

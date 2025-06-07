@@ -52,7 +52,7 @@ interface ContactManagementTabProps {
 
 type ViewMode = "grid" | "list" | "table";
 
-export function ContactManagementTab({ supplierId, supplierName }: ContactManagementTabProps) {
+export function ContactManagementTab({ supplierId, supplierName, autoMarkAsPrimary = false }: ContactManagementTabProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
@@ -73,13 +73,20 @@ export function ContactManagementTab({ supplierId, supplierName }: ContactManage
   // Add contact mutation
   const addContactMutation = useMutation({
     mutationFn: async (contactData: any) => {
+      // Auto-mark as primary if enabled and no existing contacts
+      if (autoMarkAsPrimary && contacts.length === 0) {
+        contactData.isPrimaryContact = true;
+      }
       return apiRequest("POST", "/api/supplier-contacts", contactData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts"] });
       setIsAddDialogOpen(false);
       addForm.reset();
-      toast({ title: "Contact added successfully" });
+      toast({ 
+        title: "Contact added successfully",
+        description: autoMarkAsPrimary && contacts.length === 0 ? "Contact marked as primary" : undefined
+      });
     },
     onError: (error) => {
       toast({ title: "Error adding contact", description: error.message, variant: "destructive" });
