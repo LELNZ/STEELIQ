@@ -98,6 +98,84 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground;
   }
+
+  /* Form section styling */
+  .form-section {
+    @apply bg-card border border-border rounded-lg p-6 shadow-sm;
+  }
+
+  .form-section-header {
+    @apply flex items-center gap-3 pb-4 mb-6 border-b border-border;
+  }
+
+  .form-section-icon {
+    @apply h-5 w-5 p-1 rounded-md text-white;
+  }
+
+  .form-section-title {
+    @apply text-lg font-semibold text-foreground;
+  }
+
+  /* Section color themes */
+  .section-company .form-section-icon {
+    @apply bg-blue-600;
+  }
+
+  .section-legal .form-section-icon {
+    @apply bg-green-600;
+  }
+
+  .section-address .form-section-icon {
+    @apply bg-red-500;
+  }
+
+  .section-contact .form-section-icon {
+    @apply bg-purple-600;
+  }
+
+  .section-financial .form-section-icon {
+    @apply bg-emerald-600;
+  }
+
+  .section-operational .form-section-icon {
+    @apply bg-orange-500;
+  }
+
+  .section-additional .form-section-icon {
+    @apply bg-gray-600;
+  }
+
+  /* Enhanced form inputs */
+  .enhanced-input {
+    @apply transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary;
+  }
+
+  /* Contact management styling */
+  .contact-card {
+    @apply bg-card border border-border rounded-lg p-4 hover:shadow-md transition-all duration-200 hover:border-primary/30;
+  }
+
+  .contact-card-header {
+    @apply flex items-center justify-between mb-3;
+  }
+
+  .contact-primary-badge {
+    @apply bg-primary text-primary-foreground px-2 py-1 rounded-md text-xs font-medium;
+  }
+
+  .contact-actions {
+    @apply flex items-center gap-1;
+  }
+
+  /* Tab styling */
+  .enhanced-tabs .data-[state=active] {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  /* Alert enhancements */
+  .form-alert {
+    @apply border-l-4 border-l-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200;
+  }
 }
 
 @layer components {
