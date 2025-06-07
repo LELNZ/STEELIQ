@@ -959,6 +959,12 @@ export const insertClientContactSchema = createInsertSchema(clientContacts).omit
   updatedAt: true,
 });
 
+export const insertLocationSchema = createInsertSchema(locations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -980,6 +986,9 @@ export type InsertSupplierPriceHistory = z.infer<typeof insertSupplierPriceHisto
 
 export type SupplierContact = typeof supplierContacts.$inferSelect;
 export type InsertSupplierContact = z.infer<typeof insertSupplierContactSchema>;
+
+export type Location = typeof locations.$inferSelect;
+export type InsertLocation = z.infer<typeof insertLocationSchema>;
 
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
 export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
