@@ -775,7 +775,7 @@ export function SupplierForm({
         </div>
 
         {/* Lead Times & Order Requirements */}
-        <div className="form-section section-lead-times">
+        <div className="form-section section-leadtimes">
           <div className="form-section-header">
             <Clock className="form-section-icon" />
             <h3 className="form-section-title">Lead Times & Order Requirements</h3>
@@ -861,7 +861,7 @@ export function SupplierForm({
         </div>
 
         {/* Quality & Compliance */}
-        <div className="form-section section-compliance">
+        <div className="form-section section-quality">
           <div className="form-section-header">
             <Award className="form-section-icon" />
             <h3 className="form-section-title">Quality & Compliance</h3>
