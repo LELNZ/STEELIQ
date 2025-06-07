@@ -18,14 +18,26 @@ interface AddressSuggestion {
 }
 
 interface AddressSearchProps {
-  field: any;
-  form: any;
-  label?: string;
   placeholder?: string;
+  onSelect?: (addressData: any) => void;
+  initialValue?: string;
+  onChange?: (...event: any[]) => void;
+  field?: any;
+  form?: any;
+  label?: string;
   required?: boolean;
 }
 
-export function AddressSearch({ field, form, label = "Address", placeholder = "Start typing address...", required = false }: AddressSearchProps) {
+export function AddressSearch({ 
+  placeholder = "Start typing address...", 
+  onSelect, 
+  initialValue = "", 
+  onChange, 
+  field, 
+  form, 
+  label = "Address", 
+  required = false 
+}: AddressSearchProps) {
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
