@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, Calendar, DollarSign } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Building2, Users, Calendar, DollarSign, AlertTriangle } from "lucide-react";
+import { ContactManagementTab } from "./contact-management-tab";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { insertClientSchema } from "@shared/schema";
 import type { Client } from "@shared/schema";
 
@@ -27,6 +32,7 @@ interface ClientFormProps {
   isLoading?: boolean;
   mode: "create" | "edit";
   clientId?: number;
+  onClientCreated?: (clientId: number) => void;
 }
 
 export function ClientForm({ 
@@ -35,9 +41,15 @@ export function ClientForm({
   onCancel, 
   isLoading = false, 
   mode,
-  clientId
+  clientId,
+  onClientCreated
 }: ClientFormProps) {
   const [activeTab, setActiveTab] = useState("details");
+  const [autoSavedClientId, setAutoSavedClientId] = useState<number | undefined>(clientId);
+  const [showValidationWarning, setShowValidationWarning] = useState(false);
+  const [hasAutoSaved, setHasAutoSaved] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientFormSchema),
@@ -63,19 +75,128 @@ export function ClientForm({
     },
   });
 
+  // Auto-save mutation for creating clients
+  const autoSaveMutation = useMutation({
+    mutationFn: async (data: ClientFormData) => {
+      // Prepare minimal data for auto-save - just name is required
+      const autoSaveData = {
+        name: data.name,
+        // Only include other fields if they have actual values
+        ...(data.company && { company: data.company }),
+        type: data.type || "client",
+        ...(data.address && { address: data.address }),
+        ...(data.city && { city: data.city }),
+        ...(data.state && { state: data.state }),
+        ...(data.postcode && { postcode: data.postcode }),
+        ...(data.country && { country: data.country }),
+        ...(data.nzbn && { nzbn: data.nzbn }),
+        ...(data.gstNumber && { gstNumber: data.gstNumber }),
+        ...(data.phone && { phone: data.phone }),
+        ...(data.email && { email: data.email }),
+        paymentTerms: data.paymentTerms || "30 days",
+        preferredCurrency: data.preferredCurrency || "NZD",
+        ...(data.projectManager && { projectManager: data.projectManager }),
+        ...(data.industry && { industry: data.industry }),
+        ...(data.creditLimit && { creditLimit: data.creditLimit }),
+        ...(data.discountRate && { discountRate: data.discountRate }),
+        ...(data.notes && { notes: data.notes }),
+        ...(data.internalReference && { internalReference: data.internalReference }),
+        isActive: true
+      };
+      
+      return await apiRequest("POST", "/api/clients", autoSaveData);
+    },
+    onSuccess: (data) => {
+      setAutoSavedClientId(data.id);
+      setHasAutoSaved(true);
+      onClientCreated?.(data.id);
+      toast({
+        title: "Client Auto-Saved",
+        description: "Basic client information has been saved. You can now add contacts.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+    },
+    onError: (error: any) => {
+      let errorMessage = "Failed to save client. Please check required fields.";
+      if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Auto-Save Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Watch for client name changes to enable contacts tab
+  const clientName = form.watch("name");
+  const hasClientName = clientName && clientName.trim().length > 0;
+
+  // Check if basic required fields are filled for auto-save
+  const validateBasicFields = () => {
+    return hasClientName;
+  };
+
+  // Handle tab change with auto-save logic
+  const handleTabChange = async (tabValue: string) => {
+    if (tabValue === "contacts" && mode === "create" && !autoSavedClientId && !hasAutoSaved) {
+      if (!hasClientName) {
+        toast({
+          title: "Client Name Required",
+          description: "Please enter a client name before accessing contacts.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!validateBasicFields()) {
+        setShowValidationWarning(true);
+        return;
+      }
+
+      // Prevent multiple auto-saves
+      if (autoSaveMutation.isPending) {
+        return;
+      }
+
+      try {
+        const formData = form.getValues();
+        await autoSaveMutation.mutateAsync(formData);
+        setActiveTab(tabValue);
+      } catch (error) {
+        // Error is already handled in onError
+        console.error("Auto-save failed:", error);
+      }
+    } else {
+      setActiveTab(tabValue);
+    }
+  };
+
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="details" className="flex items-center gap-2">
           <Building2 className="h-4 w-4" />
           Client Details
         </TabsTrigger>
-        <TabsTrigger value="contacts" className="flex items-center gap-2" disabled={!form.watch("name") && !form.watch("company")}>
+        <TabsTrigger value="contacts" className="flex items-center gap-2" disabled={!hasClientName}>
           <Users className="h-4 w-4" />
           Contacts
-          {(!form.watch("name") && !form.watch("company")) && <span className="text-xs">(Enter name first)</span>}
+          {!hasClientName && <span className="text-xs">(Enter name first)</span>}
+          {autoSaveMutation.isPending && <span className="text-xs">(Saving...)</span>}
         </TabsTrigger>
       </TabsList>
+
+      {showValidationWarning && (
+        <Alert className="mt-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Please enter a client name before accessing the contacts tab.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <TabsContent value="details" className="mt-6">
         <Form {...form}>

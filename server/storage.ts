@@ -132,6 +132,13 @@ export interface IStorage {
   createClientContact(contact: InsertClientContact): Promise<ClientContact>;
   updateClientContact(id: number, contact: Partial<InsertClientContact>): Promise<ClientContact | undefined>;
   deleteClientContact(id: number): Promise<void>;
+
+  // Client Management
+  getClients(): Promise<Client[]>;
+  getClient(id: number): Promise<Client | undefined>;
+  createClient(client: InsertClient): Promise<Client>;
+  updateClient(id: number, client: Partial<InsertClient>): Promise<Client>;
+  deleteClient(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
