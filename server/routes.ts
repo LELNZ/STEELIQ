@@ -1,11 +1,64 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
+import multer from 'multer';
+import csv from 'csv-parser';
+import { Readable } from 'stream';
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure multer for file uploads
+  const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  });
+
+  // Import/Export validation schemas
+  const supplierImportSchema = z.object({
+    name: z.string().min(1, "Company name is required"),
+    company: z.string().optional(),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    postcode: z.string().optional(),
+    country: z.string().default("New Zealand"),
+    nzbn: z.string().optional(),
+    gstNumber: z.string().optional(),
+    companyNumber: z.string().optional(),
+    website: z.string().optional(),
+    phone: z.string().optional(),
+    email: z.string().email().optional().or(z.literal("")),
+    paymentTerms: z.string().default("30 days"),
+    assignedProjectManager: z.string().optional(),
+    creditLimit: z.string().transform(val => val ? parseFloat(val) : 0),
+    discountRate: z.string().default("0"),
+    industry: z.string().optional(),
+    type: z.string().default("vendor"),
+    preferredCurrency: z.string().default("NZD"),
+    isActive: z.string().transform(val => val.toLowerCase() === 'true').default(true)
+  });
+
+  const contactImportSchema = z.object({
+    supplierName: z.string().optional(),
+    clientName: z.string().optional(),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    position: z.string().optional(),
+    department: z.string().optional(),
+    email: z.string().email().optional().or(z.literal("")),
+    phonePrimary: z.string().optional(),
+    phoneMobile: z.string().optional(),
+    phoneDirect: z.string().optional(),
+    isPrimaryContact: z.string().transform(val => val?.toLowerCase() === 'true').default(false),
+    isAccountsContact: z.string().transform(val => val?.toLowerCase() === 'true').default(false),
+    isTechnicalContact: z.string().transform(val => val?.toLowerCase() === 'true').default(false),
+    isSalesContact: z.string().transform(val => val?.toLowerCase() === 'true').default(false),
+    preferredContactMethod: z.string().default("email"),
+    notes: z.string().optional(),
+    isActive: z.string().transform(val => val?.toLowerCase() === 'true').default(true)
+  });
+
   // Jobs routes
   app.get("/api/jobs", async (req, res) => {
     try {
@@ -1039,6 +1092,361 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Google Places API details error:", error);
       res.status(500).json({ error: "Failed to get place details" });
+    }
+  });
+
+  // Import/Export Routes
+  
+  // Generate CSV template for suppliers
+  app.get("/api/import-export/template/suppliers", async (req, res) => {
+    try {
+      const headers = [
+        'name', 'company', 'address', 'city', 'postcode', 'country',
+        'nzbn', 'gstNumber', 'companyNumber', 'website', 'phone', 'email',
+        'paymentTerms', 'assignedProjectManager', 'creditLimit', 'discountRate',
+        'industry', 'type', 'preferredCurrency', 'isActive'
+      ];
+
+      const sampleData = [
+        'ACME Steel Ltd', 'ACME Steel Limited', '123 Industrial Way', 'Auckland', '1010', 'New Zealand',
+        '9429041234567', '123-456-789', 'NZCP123456', 'https://acmesteel.co.nz', '+64 9 123 4567', 'sales@acmesteel.co.nz',
+        '30 days', 'John Smith', '50000', '2.5', 'Steel Manufacturing', 'vendor', 'NZD', 'true'
+      ];
+
+      const csvContent = [
+        headers.join(','),
+        sampleData.map(field => `"${field}"`).join(',')
+      ].join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=supplier_import_template.csv');
+      res.send(csvContent);
+    } catch (error) {
+      console.error('Error generating supplier template:', error);
+      res.status(500).json({ error: 'Failed to generate template' });
+    }
+  });
+
+  // Generate CSV template for contacts
+  app.get("/api/import-export/template/contacts", async (req, res) => {
+    try {
+      const headers = [
+        'supplierName', 'clientName', 'firstName', 'lastName', 'position', 'department',
+        'email', 'phonePrimary', 'phoneMobile', 'phoneDirect',
+        'isPrimaryContact', 'isAccountsContact', 'isTechnicalContact', 'isSalesContact',
+        'preferredContactMethod', 'notes', 'isActive'
+      ];
+
+      const sampleData = [
+        'ACME Steel Ltd', '', 'Sarah', 'Johnson', 'Sales Manager', 'Sales',
+        'sarah.johnson@acmesteel.co.nz', '+64 9 123 4567', '+64 21 987 6543', '+64 9 123 4568',
+        'true', 'false', 'false', 'true', 'email', 'Primary sales contact for steel products', 'true'
+      ];
+
+      const csvContent = [
+        headers.join(','),
+        sampleData.map(field => `"${field}"`).join(',')
+      ].join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=contact_import_template.csv');
+      res.send(csvContent);
+    } catch (error) {
+      console.error('Error generating contact template:', error);
+      res.status(500).json({ error: 'Failed to generate template' });
+    }
+  });
+
+  // Export suppliers to CSV
+  app.get("/api/import-export/export/suppliers", async (req, res) => {
+    try {
+      const suppliers = await storage.getAllSuppliers();
+      
+      const headers = [
+        'id', 'name', 'company', 'address', 'city', 'postcode', 'country',
+        'nzbn', 'gstNumber', 'companyNumber', 'website', 'phone', 'email',
+        'paymentTerms', 'assignedProjectManager', 'creditLimit', 'discountRate',
+        'industry', 'type', 'preferredCurrency', 'isActive', 'createdAt', 'updatedAt'
+      ];
+
+      const csvRows = [headers.join(',')];
+      
+      for (const supplier of suppliers) {
+        const row = [
+          supplier.id,
+          supplier.name || '',
+          supplier.company || '',
+          supplier.address || '',
+          supplier.city || '',
+          supplier.postcode || '',
+          supplier.country || '',
+          supplier.nzbn || '',
+          supplier.gstNumber || '',
+          supplier.companyNumber || '',
+          supplier.website || '',
+          supplier.phone || '',
+          supplier.email || '',
+          supplier.paymentTerms || '',
+          supplier.assignedProjectManager || '',
+          supplier.creditLimit || 0,
+          supplier.discountRate || '',
+          supplier.industry || '',
+          supplier.type || '',
+          supplier.preferredCurrency || '',
+          supplier.isActive !== false,
+          supplier.createdAt?.toISOString() || '',
+          supplier.updatedAt?.toISOString() || ''
+        ];
+        csvRows.push(row.map(field => `"${field}"`).join(','));
+      }
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `suppliers_export_${timestamp}.csv`;
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+      res.send(csvRows.join('\n'));
+    } catch (error) {
+      console.error('Error exporting suppliers:', error);
+      res.status(500).json({ error: 'Failed to export suppliers' });
+    }
+  });
+
+  // Export contacts to CSV
+  app.get("/api/import-export/export/contacts", async (req, res) => {
+    try {
+      const { entityType } = req.query;
+      
+      let contacts: any[] = [];
+      let suppliers: any[] = [];
+      let clients: any[] = [];
+
+      if (!entityType || entityType === 'supplier') {
+        const supplierContacts = await storage.getAllSupplierContacts();
+        suppliers = await storage.getAllSuppliers();
+        contacts = contacts.concat(supplierContacts.map((contact: any) => ({
+          ...contact,
+          entityType: 'supplier',
+          entityName: suppliers.find(s => s.id === contact.supplierId)?.name || ''
+        })));
+      }
+
+      if (!entityType || entityType === 'client') {
+        const clientContacts = await storage.getAllClientContacts();
+        clients = await storage.getAllClients();
+        contacts = contacts.concat(clientContacts.map((contact: any) => ({
+          ...contact,
+          entityType: 'client',
+          entityName: clients.find(c => c.id === contact.clientId)?.name || ''
+        })));
+      }
+
+      const headers = [
+        'id', 'entityType', 'entityName', 'firstName', 'lastName', 'position', 'department',
+        'email', 'phonePrimary', 'phoneMobile', 'phoneDirect',
+        'isPrimaryContact', 'isAccountsContact', 'isTechnicalContact', 'isSalesContact',
+        'preferredContactMethod', 'notes', 'isActive', 'createdAt', 'updatedAt'
+      ];
+
+      const csvRows = [headers.join(',')];
+      
+      for (const contact of contacts) {
+        const row = [
+          contact.id,
+          contact.entityType,
+          contact.entityName,
+          contact.firstName || '',
+          contact.lastName || '',
+          contact.position || contact.title || '',
+          contact.department || '',
+          contact.email || '',
+          contact.phonePrimary || contact.workPhone || '',
+          contact.phoneMobile || contact.mobile || '',
+          contact.phoneDirect || '',
+          contact.isPrimaryContact || contact.isPrimary || false,
+          contact.isAccountsContact || false,
+          contact.isTechnicalContact || false,
+          contact.isSalesContact || false,
+          contact.preferredContactMethod || 'email',
+          contact.notes || '',
+          contact.isActive !== false,
+          contact.createdAt?.toISOString() || '',
+          contact.updatedAt?.toISOString() || ''
+        ];
+        csvRows.push(row.map(field => `"${field}"`).join(','));
+      }
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `contacts_export_${timestamp}.csv`;
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+      res.send(csvRows.join('\n'));
+    } catch (error) {
+      console.error('Error exporting contacts:', error);
+      res.status(500).json({ error: 'Failed to export contacts' });
+    }
+  });
+
+  // Import suppliers from CSV
+  app.post("/api/import-export/import/suppliers", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const results: any[] = [];
+      const errors: string[] = [];
+      let processed = 0;
+      let created = 0;
+      let updated = 0;
+
+      const stream = Readable.from(req.file.buffer);
+      
+      await new Promise((resolve, reject) => {
+        stream
+          .pipe(csv())
+          .on('data', (data) => results.push(data))
+          .on('end', resolve)
+          .on('error', reject);
+      });
+
+      for (const [index, row] of results.entries()) {
+        try {
+          processed++;
+          const validatedData = supplierImportSchema.parse(row);
+          
+          // Check if supplier exists by name
+          const existingSupplier = await storage.getSupplierByName(validatedData.name);
+          
+          if (existingSupplier) {
+            // Update existing supplier
+            await storage.updateSupplier(existingSupplier.id, validatedData);
+            updated++;
+          } else {
+            // Create new supplier
+            await storage.createSupplier(validatedData);
+            created++;
+          }
+        } catch (error) {
+          errors.push(`Row ${index + 2}: ${error instanceof Error ? error.message : 'Invalid data'}`);
+        }
+      }
+
+      res.json({
+        success: true,
+        processed,
+        created,
+        updated,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      console.error('Error importing suppliers:', error);
+      res.status(500).json({ error: 'Failed to import suppliers' });
+    }
+  });
+
+  // Import contacts from CSV
+  app.post("/api/import-export/import/contacts", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const results: any[] = [];
+      const errors: string[] = [];
+      let processed = 0;
+      let created = 0;
+      let skipped = 0;
+
+      const stream = Readable.from(req.file.buffer);
+      
+      await new Promise((resolve, reject) => {
+        stream
+          .pipe(csv())
+          .on('data', (data) => results.push(data))
+          .on('end', resolve)
+          .on('error', reject);
+      });
+
+      for (const [index, row] of results.entries()) {
+        try {
+          processed++;
+          const validatedData = contactImportSchema.parse(row);
+          
+          let entityId: number | null = null;
+          let entityType: 'supplier' | 'client' = 'supplier';
+
+          // Find the supplier or client
+          if (validatedData.supplierName) {
+            const supplier = await storage.getSupplierByName(validatedData.supplierName);
+            if (supplier) {
+              entityId = supplier.id;
+              entityType = 'supplier';
+            }
+          } else if (validatedData.clientName) {
+            const client = await storage.getClientByName(validatedData.clientName);
+            if (client) {
+              entityId = client.id;
+              entityType = 'client';
+            }
+          }
+
+          if (!entityId) {
+            errors.push(`Row ${index + 2}: Could not find ${validatedData.supplierName || validatedData.clientName}`);
+            skipped++;
+            continue;
+          }
+
+          // Create contact data based on entity type
+          const contactData = {
+            firstName: validatedData.firstName,
+            lastName: validatedData.lastName,
+            position: validatedData.position,
+            department: validatedData.department,
+            email: validatedData.email,
+            phonePrimary: validatedData.phonePrimary,
+            phoneMobile: validatedData.phoneMobile,
+            phoneDirect: validatedData.phoneDirect,
+            isPrimaryContact: validatedData.isPrimaryContact,
+            isAccountsContact: validatedData.isAccountsContact,
+            isTechnicalContact: validatedData.isTechnicalContact,
+            isSalesContact: validatedData.isSalesContact,
+            preferredContactMethod: validatedData.preferredContactMethod,
+            notes: validatedData.notes,
+            isActive: validatedData.isActive
+          };
+
+          if (entityType === 'supplier') {
+            await storage.createSupplierContact({ ...contactData, supplierId: entityId });
+          } else {
+            await storage.createClientContact({ 
+              ...contactData, 
+              clientId: entityId,
+              title: contactData.position,
+              workPhone: contactData.phonePrimary,
+              mobile: contactData.phoneMobile,
+              isPrimary: contactData.isPrimaryContact
+            });
+          }
+          
+          created++;
+        } catch (error) {
+          errors.push(`Row ${index + 2}: ${error instanceof Error ? error.message : 'Invalid data'}`);
+          skipped++;
+        }
+      }
+
+      res.json({
+        success: true,
+        processed,
+        created,
+        skipped,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      console.error('Error importing contacts:', error);
+      res.status(500).json({ error: 'Failed to import contacts' });
     }
   });
 
