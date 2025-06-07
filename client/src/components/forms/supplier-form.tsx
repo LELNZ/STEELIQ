@@ -765,16 +765,19 @@ export function SupplierForm({
       </TabsContent>
 
       <TabsContent value="contacts" className="mt-6">
-        {hasCompanyName ? (
-          <ContactManagementTab 
-            supplierId={autoSavedSupplierId || supplierId} 
-            supplierName={form.watch("name") || form.watch("company")}
+        {(autoSavedSupplierId || supplierId) ? (
+          <ContactManagementTab
+            entityId={autoSavedSupplierId || supplierId!}
+            entityType="supplier"
+            entityName={form.watch("name") || form.watch("company")}
+            mode={mode}
             autoMarkAsPrimary={true}
           />
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Please enter a supplier/company name first to manage contacts</p>
+            <p>Please enter a supplier name first to manage contacts</p>
+            <p className="text-sm">The supplier will be auto-saved when you switch to this tab</p>
           </div>
         )}
       </TabsContent>
