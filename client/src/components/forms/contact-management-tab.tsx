@@ -55,11 +55,12 @@ interface ContactManagementTabProps {
   entityName?: string;
   mode?: "create" | "edit";
   autoMarkAsPrimary?: boolean;
+  onPreferredContactChange?: (contact: Contact | null) => void;
 }
 
 type ViewMode = "grid" | "list" | "table";
 
-export function ContactManagementTab({ entityId, entityType, entityName, mode = "create", autoMarkAsPrimary = false }: ContactManagementTabProps) {
+export function ContactManagementTab({ entityId, entityType, entityName, mode = "create", autoMarkAsPrimary = false, onPreferredContactChange }: ContactManagementTabProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);

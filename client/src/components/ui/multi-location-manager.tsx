@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MapPin, Plus, Trash2, Building2, Clock, Phone, Mail, Save, Check, AlertCircle, Edit, MoreVertical, Star } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
+import { ContactSearch } from "@/components/ui/contact-search";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface Location {
@@ -243,6 +244,12 @@ export function MultiLocationManager({
                         {location.locationType === "primary" && (
                           <Badge variant="default" className="text-xs">Primary</Badge>
                         )}
+                        {location.isPreferred && (
+                          <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                            <Star className="h-3 w-3 fill-current" />
+                            Preferred
+                          </Badge>
+                        )}
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -251,6 +258,12 @@ export function MultiLocationManager({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {!location.isPreferred && (
+                            <DropdownMenuItem onClick={() => handleSetPreferred(location.id)}>
+                              <Star className="h-4 w-4 mr-2" />
+                              Set as Preferred
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => handleEditLocation(location)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Edit
@@ -408,11 +421,20 @@ export function MultiLocationManager({
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Contact</label>
-                <Input
-                  className="h-8"
-                  placeholder="Contact name"
+                <ContactSearch
+                  entityType={entityType}
+                  entityId={entityId}
                   value={editingLocation.contactPerson}
-                  onChange={(e) => updateEditingLocation("contactPerson", e.target.value)}
+                  onChange={(contact) => {
+                    if (contact) {
+                      updateEditingLocation("contactPerson", contact.name);
+                      updateEditingLocation("phone", contact.phoneMobile || contact.mobile || contact.phonePrimary || contact.workPhone || "");
+                      updateEditingLocation("email", contact.email || "");
+                    } else {
+                      updateEditingLocation("contactPerson", "");
+                    }
+                  }}
+                  placeholder="Search contacts..."
                 />
               </div>
               

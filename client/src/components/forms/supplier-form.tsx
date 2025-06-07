@@ -1036,6 +1036,19 @@ export function SupplierForm({
         <MultiLocationManager 
           entityType="supplier"
           entityId={autoSavedSupplierId || supplierId}
+          onPreferredLocationChange={(location) => {
+            if (location) {
+              // Update main supplier address fields with preferred location
+              form.setValue("address", location.address);
+              form.setValue("city", location.city);
+              form.setValue("postcode", location.postcode);
+              form.setValue("country", location.country);
+              toast({
+                title: "Address Updated",
+                description: `Supplier address updated to match preferred location: ${location.locationName}`,
+              });
+            }
+          }}
         />
       </TabsContent>
 
