@@ -300,6 +300,12 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
     deleteContactMutation.mutate(contactId);
   };
 
+  const handleSetAsPreferred = (contact: Contact) => {
+    if (onPreferredContactChange) {
+      onPreferredContactChange(contact);
+    }
+  };
+
   const primaryContact = contacts.find((contact: Contact) => 
     entityType === "supplier" ? contact.isPrimaryContact : contact.isPrimary
   );
@@ -629,38 +635,30 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                       </Badge>
                     )}
                     <div className="flex justify-end space-x-1 pt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(contact)}
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-3 w-3 text-red-500" />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Contact</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete {contact.firstName} {contact.lastName}?
-                              This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(contact.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleSetAsPreferred(contact)}>
+                            <Star className="h-4 w-4 mr-2" />
+                            Set as Preferred
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(contact)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDelete(contact.id)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </CardContent>
                 </Card>

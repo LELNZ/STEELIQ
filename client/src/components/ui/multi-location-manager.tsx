@@ -142,6 +142,8 @@ export function MultiLocationManager({
     }
   };
 
+
+
   const handleEditLocation = (location: Location) => {
     setEditingLocation({ ...location, isEditing: true });
     setShowNewLocationForm(true);
@@ -152,6 +154,12 @@ export function MultiLocationManager({
       const newSavedLocations = savedLocations.filter(loc => loc.id !== locationId);
       setSavedLocations(newSavedLocations);
       onLocationsChange?.(newSavedLocations);
+      
+      // If deleted location was preferred, clear preferred status
+      const deletedLocation = savedLocations.find(loc => loc.id === locationId);
+      if (deletedLocation?.isPreferred) {
+        onPreferredLocationChange?.(null);
+      }
     }
   };
 
