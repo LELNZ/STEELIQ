@@ -208,20 +208,43 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
 
   const handleEdit = (contact: Contact) => {
     console.log("Editing contact:", contact);
+    console.log("Entity type:", entityType);
     setEditingContact(contact);
-    setIsEditDialogOpen(true);
     
-    // Reset form with contact data mapped from database fields
-    editForm.reset({
-      firstName: contact.firstName || "",
-      lastName: contact.lastName || "",
-      email: contact.email || "",
-      mobile: contact.phoneMobile || "",
-      phone: contact.phonePrimary || "",
-      title: contact.position || "",
-      department: contact.department || "",
-      isPrimary: contact.isPrimaryContact || false
-    });
+    // Reset form with contact data mapped from database fields - different mapping for suppliers vs clients
+    let formData;
+    if (entityType === "supplier") {
+      formData = {
+        firstName: contact.firstName || "",
+        lastName: contact.lastName || "",
+        email: contact.email || "",
+        mobile: contact.phoneMobile || "",
+        phone: contact.phonePrimary || "",
+        title: contact.position || "",
+        department: contact.department || "",
+        isPrimary: contact.isPrimaryContact || false
+      };
+    } else {
+      // Client contact mapping
+      formData = {
+        firstName: contact.firstName || "",
+        lastName: contact.lastName || "",
+        email: contact.email || "",
+        mobile: contact.mobile || "",
+        phone: contact.workPhone || "",
+        title: contact.title || "",
+        department: contact.department || "",
+        isPrimary: contact.isPrimary || false
+      };
+    }
+    
+    console.log("Form data being set:", formData);
+    editForm.reset(formData);
+    
+    // Set dialog open after form reset to ensure it's properly populated
+    setTimeout(() => {
+      setIsEditDialogOpen(true);
+    }, 0);
   };
 
   const handleAddSubmit = (data: ContactFormData) => {
