@@ -863,7 +863,7 @@ export function ClientForm({
         </div>
 
         {/* Lead Times & Order Requirements */}
-        <div className="form-section section-operational">
+        <div className="form-section section-leadtimes">
           <div className="form-section-header">
             <Clock className="form-section-icon" />
             <h3 className="form-section-title">Lead Times & Order Requirements</h3>

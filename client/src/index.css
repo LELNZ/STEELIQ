@@ -145,6 +145,26 @@
     @apply bg-gray-600;
   }
 
+  .section-registration .form-section-icon {
+    @apply bg-indigo-600;
+  }
+
+  .section-quality .form-section-icon {
+    @apply bg-teal-600;
+  }
+
+  .section-compliance .form-section-icon {
+    @apply bg-teal-600;
+  }
+
+  .section-status .form-section-icon {
+    @apply bg-slate-600;
+  }
+
+  .section-leadtimes .form-section-icon {
+    @apply bg-amber-600;
+  }
+
   /* Enhanced form inputs */
   .enhanced-input {
     @apply transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary;
