@@ -6,13 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Users, Building2, Plus, Edit, Trash2, Search, Phone, Mail, MapPin, Calendar, DollarSign, Clock, Truck, Contact } from "lucide-react";
+import { Users, Building2, Plus, Edit, Trash2, Search, Phone, Mail, MapPin, Calendar, DollarSign, Clock, Truck, Contact, Grid3X3, List, Table as TableIcon } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { SupplierForm, type SupplierFormData } from "@/components/forms/supplier-form";
 import { ClientForm, type ClientFormData } from "@/components/forms/client-form";
 import type { Supplier, Client } from "@shared/schema";
+
+type ViewMode = "card" | "list" | "table";
 
 export default function ContactsPage() {
   const [activeTab, setActiveTab] = useState("suppliers");
@@ -24,6 +28,11 @@ export default function ContactsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // View modes for each tab
+  const [suppliersViewMode, setSuppliersViewMode] = useState<ViewMode>("card");
+  const [clientsViewMode, setClientsViewMode] = useState<ViewMode>("card");
+  const [contactsViewMode, setContactsViewMode] = useState<ViewMode>("card");
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -251,40 +260,212 @@ export default function ContactsPage() {
                 className="pl-10"
               />
             </div>
-            <Button 
-              onClick={() => setIsCreateDialogOpen(true)}
-              className="space-x-2"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add Supplier</span>
-            </Button>
+            <div className="flex items-center space-x-4">
+              <ToggleGroup 
+                type="single" 
+                value={suppliersViewMode} 
+                onValueChange={(value) => value && setSuppliersViewMode(value as ViewMode)}
+                className="border rounded-md"
+              >
+                <ToggleGroupItem value="card" aria-label="Card view">
+                  <Grid3X3 className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="list" aria-label="List view">
+                  <List className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="table" aria-label="Table view">
+                  <TableIcon className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <Button 
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="space-x-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add Supplier</span>
+              </Button>
+            </div>
           </div>
 
           {suppliersLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-4 bg-muted rounded w-3/4"></div>
-                    <div className="h-3 bg-muted rounded w-1/2"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="h-3 bg-muted rounded"></div>
-                      <div className="h-3 bg-muted rounded w-2/3"></div>
+            suppliersViewMode === "table" ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...Array(6)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><div className="h-4 bg-muted rounded w-24 animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded w-32 animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded w-40 animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded w-28 animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded w-20 animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded w-16 animate-pulse"></div></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className={suppliersViewMode === "card" ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3" : "space-y-2"}>
+                {[...Array(6)].map((_, i) => (
+                  suppliersViewMode === "card" ? (
+                    <Card key={i} className="animate-pulse">
+                      <CardHeader>
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                        <div className="h-3 bg-muted rounded w-1/2"></div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="h-3 bg-muted rounded"></div>
+                          <div className="h-3 bg-muted rounded w-2/3"></div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div key={i} className="flex items-center justify-between p-4 border rounded-lg animate-pulse">
+                      <div className="flex items-center space-x-4">
+                        <div className="h-10 w-10 bg-muted rounded-full"></div>
+                        <div className="space-y-2">
+                          <div className="h-4 bg-muted rounded w-32"></div>
+                          <div className="h-3 bg-muted rounded w-24"></div>
+                        </div>
+                      </div>
+                      <div className="h-8 w-16 bg-muted rounded"></div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  )
+                ))}
+              </div>
+            )
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredSuppliers.map((supplier: Supplier) => (
-                <Card key={supplier.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{supplier.name}</CardTitle>
-                      <div className="flex space-x-1">
+            <>
+              {/* Card View */}
+              {suppliersViewMode === "card" && (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredSuppliers.map((supplier: Supplier) => (
+                    <Card key={supplier.id} className="hover:shadow-md transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{supplier.name}</CardTitle>
+                          <div className="flex space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingSupplier(supplier)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSupplierToDelete(supplier);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                        <CardDescription>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant={supplier.isActive ? "default" : "secondary"}>
+                              {supplier.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                            {supplier.isPreferredSupplier && (
+                              <Badge variant="outline">Preferred</Badge>
+                            )}
+                          </div>
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {supplier.email && (
+                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                            <Mail className="h-3 w-3" />
+                            <span>{supplier.email}</span>
+                          </div>
+                        )}
+                        {supplier.phone && (
+                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                            <Phone className="h-3 w-3" />
+                            <span>{supplier.phone}</span>
+                          </div>
+                        )}
+                        {supplier.city && (
+                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                            <MapPin className="h-3 w-3" />
+                            <span>{supplier.city}, {supplier.country || "New Zealand"}</span>
+                          </div>
+                        )}
+                        {supplier.paymentTerms && (
+                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                            <DollarSign className="h-3 w-3" />
+                            <span>{supplier.paymentTerms}</span>
+                          </div>
+                        )}
+                        {supplier.leadTimeStandard && (
+                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            <span>{supplier.leadTimeStandard} days standard</span>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {/* List View */}
+              {suppliersViewMode === "list" && (
+                <div className="space-y-2">
+                  {filteredSuppliers.map((supplier: Supplier) => (
+                    <div key={supplier.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
+                          <Building2 className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-medium">{supplier.name}</h3>
+                            <span className="text-sm text-muted-foreground">•</span>
+                            <span className="text-sm text-muted-foreground">{supplier.company}</span>
+                            <Badge variant={supplier.isActive ? "default" : "secondary"} className="ml-2">
+                              {supplier.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                            {supplier.isPreferredSupplier && (
+                              <Badge variant="outline">Preferred</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                            {supplier.email && (
+                              <div className="flex items-center space-x-1">
+                                <Mail className="h-3 w-3" />
+                                <span>{supplier.email}</span>
+                              </div>
+                            )}
+                            {supplier.phone && (
+                              <div className="flex items-center space-x-1">
+                                <Phone className="h-3 w-3" />
+                                <span>{supplier.phone}</span>
+                              </div>
+                            )}
+                            {supplier.city && (
+                              <div className="flex items-center space-x-1">
+                                <MapPin className="h-3 w-3" />
+                                <span>{supplier.city}, {supplier.country || "New Zealand"}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-1">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -300,56 +481,90 @@ export default function ContactsPage() {
                             setIsDeleteDialogOpen(true);
                           }}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </div>
-                    <CardDescription>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={supplier.isActive ? "default" : "secondary"}>
-                          {supplier.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                        {supplier.isPreferredSupplier && (
-                          <Badge variant="outline">Preferred</Badge>
-                        )}
-                      </div>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {supplier.email && (
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        <span>{supplier.email}</span>
-                      </div>
-                    )}
-                    {supplier.phone && (
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <Phone className="h-3 w-3" />
-                        <span>{supplier.phone}</span>
-                      </div>
-                    )}
-                    {supplier.city && (
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        <span>{supplier.city}, {supplier.country || "New Zealand"}</span>
-                      </div>
-                    )}
-                    {supplier.paymentTerms && (
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <DollarSign className="h-3 w-3" />
-                        <span>{supplier.paymentTerms}</span>
-                      </div>
-                    )}
-                    {supplier.leadTimeStandard && (
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>{supplier.leadTimeStandard} days standard</span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Table View */}
+              {suppliersViewMode === "table" && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Company</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSuppliers.map((supplier: Supplier) => (
+                      <TableRow key={supplier.id}>
+                        <TableCell className="font-medium">{supplier.name}</TableCell>
+                        <TableCell>{supplier.company}</TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {supplier.email && (
+                              <div className="flex items-center space-x-1 text-sm">
+                                <Mail className="h-3 w-3" />
+                                <span>{supplier.email}</span>
+                              </div>
+                            )}
+                            {supplier.phone && (
+                              <div className="flex items-center space-x-1 text-sm">
+                                <Phone className="h-3 w-3" />
+                                <span>{supplier.phone}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {supplier.city && (
+                            <span>{supplier.city}, {supplier.country || "New Zealand"}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-1">
+                            <Badge variant={supplier.isActive ? "default" : "secondary"}>
+                              {supplier.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                            {supplier.isPreferredSupplier && (
+                              <Badge variant="outline">Preferred</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingSupplier(supplier)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSupplierToDelete(supplier);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </>
           )}
 
           {!suppliersLoading && filteredSuppliers.length === 0 && (
@@ -380,106 +595,289 @@ export default function ContactsPage() {
                 className="pl-10"
               />
             </div>
-            <Button onClick={() => setIsCreateClientDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Client
-            </Button>
+            <div className="flex items-center space-x-4">
+              <ToggleGroup 
+                type="single" 
+                value={clientsViewMode} 
+                onValueChange={(value) => value && setClientsViewMode(value as ViewMode)}
+                className="border rounded-md"
+              >
+                <ToggleGroupItem value="card" aria-label="Card view">
+                  <Grid3X3 className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="list" aria-label="List view">
+                  <List className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="table" aria-label="Table view">
+                  <TableIcon className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <Button onClick={() => setIsCreateClientDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Client
+              </Button>
+            </div>
           </div>
 
           {clientsLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="p-6">
-                  <div className="animate-pulse space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+            clientsViewMode === "table" ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Industry</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Payment Terms</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...Array(6)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><div className="h-4 bg-muted rounded w-24 animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded w-20 animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded w-32 animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded w-28 animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded w-24 animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded w-16 animate-pulse"></div></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className={clientsViewMode === "card" ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3" : "space-y-2"}>
+                {[...Array(6)].map((_, i) => (
+                  clientsViewMode === "card" ? (
+                    <Card key={i} className="animate-pulse">
+                      <CardHeader>
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                        <div className="h-3 bg-muted rounded w-1/2"></div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="h-3 bg-muted rounded"></div>
+                          <div className="h-3 bg-muted rounded w-2/3"></div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div key={i} className="flex items-center justify-between p-4 border rounded-lg animate-pulse">
+                      <div className="flex items-center space-x-4">
+                        <div className="h-10 w-10 bg-muted rounded-full"></div>
+                        <div className="space-y-2">
+                          <div className="h-4 bg-muted rounded w-32"></div>
+                          <div className="h-3 bg-muted rounded w-24"></div>
+                        </div>
+                      </div>
+                      <div className="h-8 w-16 bg-muted rounded"></div>
+                    </div>
+                  )
+                ))}
+              </div>
+            )
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <>
               {clients.length === 0 ? (
-                <div className="col-span-full text-center py-12">
-                  <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Clients Found</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Start by adding your first client to the system
-                  </p>
-                  <Button onClick={() => setIsCreateClientDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add First Client
-                  </Button>
-                </div>
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No clients found</h3>
+                    <p className="text-muted-foreground text-center mb-4">
+                      Get started by adding your first client.
+                    </p>
+                    <Button onClick={() => setIsCreateClientDialogOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Client
+                    </Button>
+                  </CardContent>
+                </Card>
               ) : (
-                clients.map((client: Client) => (
-                  <Card key={client.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1 flex-1">
-                          <CardTitle className="text-lg">{client.name}</CardTitle>
-                          <CardDescription className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-xs">
-                              {client.type.charAt(0).toUpperCase() + client.type.slice(1)}
-                            </Badge>
-                            {client.industry && (
-                              <span className="text-sm text-muted-foreground">• {client.industry}</span>
-                            )}
-                          </CardDescription>
+                <>
+                  {/* Card View */}
+                  {clientsViewMode === "card" && (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {clients.map((client: Client) => (
+                        <Card key={client.id} className="hover:shadow-md transition-shadow">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1 flex-1">
+                                <CardTitle className="text-lg">{client.name}</CardTitle>
+                                <CardDescription className="flex items-center gap-2">
+                                  <Badge variant="secondary" className="text-xs">
+                                    {client.type.charAt(0).toUpperCase() + client.type.slice(1)}
+                                  </Badge>
+                                  {client.industry && (
+                                    <span className="text-sm text-muted-foreground">• {client.industry}</span>
+                                  )}
+                                </CardDescription>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingClient(client)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    toast({ title: "Client deletion will be available soon" });
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            <div className="space-y-2 text-sm">
+                              {client.address && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <MapPin className="h-3 w-3" />
+                                  <span className="truncate">{client.address}, {client.city}</span>
+                                </div>
+                              )}
+                              {client.paymentTerms && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>Payment: {client.paymentTerms}</span>
+                                </div>
+                              )}
+                              {client.creditLimit && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <DollarSign className="h-3 w-3" />
+                                  <span>Credit Limit: ${parseFloat(client.creditLimit).toLocaleString()}</span>
+                                </div>
+                              )}
+                              {client.customerSince && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <Clock className="h-3 w-3" />
+                                  <span>Since: {new Date(client.customerSince).toLocaleDateString()}</span>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* List View */}
+                  {clientsViewMode === "list" && (
+                    <div className="space-y-2">
+                      {clients.map((client: Client) => (
+                        <div key={client.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center space-x-4">
+                            <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <Users className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center space-x-2">
+                                <h3 className="font-medium">{client.name}</h3>
+                                <Badge variant="secondary" className="text-xs">
+                                  {client.type.charAt(0).toUpperCase() + client.type.slice(1)}
+                                </Badge>
+                                {client.industry && (
+                                  <span className="text-sm text-muted-foreground">• {client.industry}</span>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                {client.address && (
+                                  <div className="flex items-center space-x-1">
+                                    <MapPin className="h-3 w-3" />
+                                    <span>{client.address}, {client.city}</span>
+                                  </div>
+                                )}
+                                {client.paymentTerms && (
+                                  <div className="flex items-center space-x-1">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>{client.paymentTerms}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingClient(client)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                toast({ title: "Client deletion will be available soon" });
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditingClient(client)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              toast({ title: "Client deletion will be available soon" });
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="space-y-2 text-sm">
-                        {client.address && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <MapPin className="h-3 w-3" />
-                            <span className="truncate">{client.address}, {client.city}</span>
-                          </div>
-                        )}
-                        {client.paymentTerms && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            <span>Payment: {client.paymentTerms}</span>
-                          </div>
-                        )}
-                        {client.creditLimit && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <DollarSign className="h-3 w-3" />
-                            <span>Credit Limit: ${parseFloat(client.creditLimit).toLocaleString()}</span>
-                          </div>
-                        )}
-                        {client.customerSince && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            <span>Since: {new Date(client.customerSince).toLocaleDateString()}</span>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Table View */}
+                  {clientsViewMode === "table" && (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Industry</TableHead>
+                          <TableHead>Location</TableHead>
+                          <TableHead>Payment Terms</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {clients.map((client: Client) => (
+                          <TableRow key={client.id}>
+                            <TableCell className="font-medium">{client.name}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="text-xs">
+                                {client.type.charAt(0).toUpperCase() + client.type.slice(1)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{client.industry || "-"}</TableCell>
+                            <TableCell>
+                              {client.address ? `${client.address}, ${client.city}` : "-"}
+                            </TableCell>
+                            <TableCell>{client.paymentTerms || "-"}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end space-x-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingClient(client)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    toast({ title: "Client deletion will be available soon" });
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </>
               )}
-            </div>
+            </>
           )}
         </TabsContent>
 
