@@ -78,12 +78,13 @@ export function ClientForm({
   // Auto-save mutation for creating clients
   const autoSaveMutation = useMutation({
     mutationFn: async (data: ClientFormData) => {
-      // Prepare minimal data for auto-save - just name is required
+      // Prepare minimal data for auto-save - name and company are both required
       const autoSaveData = {
         name: data.name,
-        // Only include other fields if they have actual values
-        ...(data.company && { company: data.company }),
+        company: data.company || data.name, // Use name as company if company is empty
         type: data.type || "client",
+        paymentTerms: data.paymentTerms || "30 days",
+        preferredCurrency: data.preferredCurrency || "NZD",
         ...(data.address && { address: data.address }),
         ...(data.city && { city: data.city }),
         ...(data.state && { state: data.state }),
@@ -91,10 +92,6 @@ export function ClientForm({
         ...(data.country && { country: data.country }),
         ...(data.nzbn && { nzbn: data.nzbn }),
         ...(data.gstNumber && { gstNumber: data.gstNumber }),
-        ...(data.phone && { phone: data.phone }),
-        ...(data.email && { email: data.email }),
-        paymentTerms: data.paymentTerms || "30 days",
-        preferredCurrency: data.preferredCurrency || "NZD",
         ...(data.projectManager && { projectManager: data.projectManager }),
         ...(data.industry && { industry: data.industry }),
         ...(data.creditLimit && { creditLimit: data.creditLimit }),
