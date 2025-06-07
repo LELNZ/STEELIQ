@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MapPin, Plus, Trash2, Building2, Clock, Phone, Mail, Save, Check, AlertCircle, Edit, MoreVertical } from "lucide-react";
+import { MapPin, Plus, Trash2, Building2, Clock, Phone, Mail, Save, Check, AlertCircle, Edit, MoreVertical, Star } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -26,12 +26,14 @@ interface Location {
   isActive: boolean;
   isSaved: boolean;
   isEditing: boolean;
+  isPreferred: boolean;
 }
 
 interface MultiLocationManagerProps {
   entityType: "supplier" | "client";
   entityId?: number;
   onLocationsChange?: (locations: Location[]) => void;
+  onPreferredLocationChange?: (location: Location | null) => void;
   initialLocations?: Location[];
 }
 
@@ -48,6 +50,7 @@ export function MultiLocationManager({
   entityType, 
   entityId, 
   onLocationsChange,
+  onPreferredLocationChange,
   initialLocations = []
 }: MultiLocationManagerProps) {
   const [savedLocations, setSavedLocations] = useState<Location[]>([]);
@@ -69,13 +72,28 @@ export function MultiLocationManager({
     specialInstructions: "",
     isActive: true,
     isSaved: false,
-    isEditing: true
+    isEditing: true,
+    isPreferred: false
   });
 
   const handleAddNewLocation = () => {
     const newLocation = createNewLocation();
     setEditingLocation(newLocation);
     setShowNewLocationForm(true);
+  };
+
+  const handleSetPreferred = (locationId: string) => {
+    const newSavedLocations = savedLocations.map(loc => ({
+      ...loc,
+      isPreferred: loc.id === locationId
+    }));
+    
+    setSavedLocations(newSavedLocations);
+    onLocationsChange?.(newSavedLocations);
+    
+    // Notify parent about preferred location change
+    const preferredLocation = newSavedLocations.find(loc => loc.isPreferred);
+    onPreferredLocationChange?.(preferredLocation || null);
   };
 
   const handleSaveLocation = (location: Location) => {
@@ -93,6 +111,11 @@ export function MultiLocationManager({
       isEditing: false
     };
 
+    // If this is the first location, make it preferred automatically
+    if (savedLocations.length === 0) {
+      updatedLocation.isPreferred = true;
+    }
+
     // Update or add to saved locations
     const existingIndex = savedLocations.findIndex(loc => loc.id === location.id);
     let newSavedLocations;
@@ -108,6 +131,11 @@ export function MultiLocationManager({
     setEditingLocation(null);
     setShowNewLocationForm(false);
     onLocationsChange?.(newSavedLocations);
+    
+    // If this became the preferred location, notify parent
+    if (updatedLocation.isPreferred) {
+      onPreferredLocationChange?.(updatedLocation);
+    }
   };
 
   const handleEditLocation = (location: Location) => {
@@ -322,15 +350,16 @@ export function MultiLocationManager({
             {/* Address - Compact */}
             <div>
               <label className="text-xs font-medium text-muted-foreground">Address</label>
-              <AddressSearch
-                field={{
-                  value: editingLocation.address,
-                  onChange: (value: string) => updateEditingLocation("address", value)
-                }}
-                form={createAddressFormHandler()}
-                placeholder="Enter address"
-                className="h-8"
-              />
+              <div className="h-8">
+                <AddressSearch
+                  field={{
+                    value: editingLocation.address,
+                    onChange: (value: string) => updateEditingLocation("address", value)
+                  }}
+                  form={createAddressFormHandler()}
+                  placeholder="Enter address"
+                />
+              </div>
             </div>
 
             {/* City, Postcode, Country - Compact */}
