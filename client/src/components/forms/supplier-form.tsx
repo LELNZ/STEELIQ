@@ -17,7 +17,35 @@ import { ContactManagementTab } from "./contact-management-tab";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-// Unified supplier validation schema
+// Minimal validation schema for auto-save functionality
+export const supplierAutoSaveSchema = z.object({
+  name: z.string().min(1, "Company/Supplier name is required"),
+  company: z.string().min(1, "Company name is required"),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  postcode: z.string().optional(),
+  country: z.string().default("New Zealand"),
+  nzbn: z.string().optional(),
+  gstNumber: z.string().optional(),
+  companyNumber: z.string().optional(),
+  website: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  paymentTerms: z.string().default("30 days"),
+  accountManager: z.string().optional(),
+  leadTimeStandard: z.number().default(7),
+  leadTimeExpress: z.number().default(3),
+  minimumOrderQuantity: z.number().default(0),
+  minimumOrderValue: z.number().default(0),
+  deliveryAreas: z.string().optional(),
+  certifications: z.string().optional(),
+  standardsCompliance: z.string().optional(),
+  notes: z.string().optional(),
+  isActive: z.boolean().default(true),
+  isPreferredSupplier: z.boolean().default(false)
+});
+
+// Full validation schema for form submission
 export const supplierFormSchema = z.object({
   name: z.string().min(1, "Company/Supplier name is required"),
   company: z.string().min(1, "Company name is required"),
@@ -111,7 +139,9 @@ export function SupplierForm({
   // Auto-save mutation for creating suppliers
   const autoSaveMutation = useMutation({
     mutationFn: async (data: SupplierFormData) => {
-      return await apiRequest("/api/suppliers", "POST", data);
+      // Use minimal validation for auto-save - only require company name
+      const autoSaveData = supplierAutoSaveSchema.parse(data);
+      return await apiRequest("/api/suppliers", "POST", autoSaveData);
     },
     onSuccess: (data) => {
       setAutoSavedSupplierId(data.id);
@@ -140,8 +170,8 @@ export function SupplierForm({
   // Check if basic required fields are filled for auto-save
   const validateBasicFields = () => {
     const values = form.getValues();
-    const hasBasicInfo = values.name && values.company;
-    return hasBasicInfo;
+    // For auto-save, only require that company name is filled
+    return hasCompanyName;
   };
 
   // Handle tab change with auto-save logic
@@ -164,7 +194,15 @@ export function SupplierForm({
       // Auto-save the supplier before switching to contacts
       try {
         const formData = form.getValues();
-        await autoSaveMutation.mutateAsync(formData);
+        
+        // Ensure both name and company fields are populated for auto-save
+        const autoSaveData = {
+          ...formData,
+          name: formData.name || formData.company,
+          company: formData.company || formData.name,
+        };
+        
+        await autoSaveMutation.mutateAsync(autoSaveData);
         setActiveTab(tabValue);
         setShowValidationWarning(false);
       } catch (error) {
