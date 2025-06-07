@@ -945,6 +945,12 @@ export const insertClientSchema = createInsertSchema(clients).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  creditLimit: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  leadTimeStandard: z.union([z.string(), z.number()]).transform(val => Number(val)).optional(),
+  leadTimeExpress: z.union([z.string(), z.number()]).transform(val => Number(val)).optional(),
+  minimumOrderQuantity: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  minimumOrderValue: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
 });
 
 export const insertClientContactSchema = createInsertSchema(clientContacts).omit({

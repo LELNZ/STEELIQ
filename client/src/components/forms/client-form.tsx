@@ -340,7 +340,7 @@ export function ClientForm({
 
       <TabsContent value="details" className="mt-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => onSubmit(data as ClientFormData))} className="space-y-8">
+          <form onSubmit={form.handleSubmit((data) => onSubmit(data as ClientFormData))} className="space-y-4">
             {/* Company Information Section */}
             <div className="form-section section-company">
               <div className="form-section-header">
