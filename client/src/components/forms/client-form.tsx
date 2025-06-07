@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle, Award } from "lucide-react";
+import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle, Settings, Award } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactManagementTab } from "./contact-management-tab";
 import { MultiLocationManager } from "@/components/ui/multi-location-manager";
@@ -503,7 +503,7 @@ export function ClientForm({
         </div>
 
         {/* Registration & Legal Information */}
-        <div className="form-section section-legal">
+        <div className="form-section section-registration">
           <div className="form-section-header">
             <Shield className="form-section-icon" />
             <h3 className="form-section-title">Registration & Legal Information</h3>
@@ -1020,34 +1020,43 @@ export function ClientForm({
                 </FormItem>
               )}
             />
+          </div>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Active Client</FormLabel>
-                      <div className="text-sm text-muted-foreground">
-                        Enable this client for new projects and quotations
-                      </div>
+        {/* Status Settings Section */}
+        <div className="form-section section-status">
+          <div className="form-section-header">
+            <Settings className="form-section-icon" />
+            <h3 className="form-section-title">Status Settings</h3>
+          </div>
+
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active Client</FormLabel>
+                    <div className="text-sm text-muted-foreground">
+                      Enable this client for new projects and quotations
                     </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="isPreferredClient"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+            <FormField
+              control={form.control}
+              name="isPreferredClient"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">Preferred Client</FormLabel>
                       <div className="text-sm text-muted-foreground">
@@ -1063,7 +1072,6 @@ export function ClientForm({
                   </FormItem>
                 )}
               />
-            </div>
           </div>
         </div>
 
