@@ -567,10 +567,10 @@ export function SupplierForm({
         </div>
 
         {/* Lead Times Section */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <Clock className="h-5 w-5 text-orange-600" />
-            <h3 className="text-lg font-semibold">Lead Times</h3>
+        <div className="form-section section-operational">
+          <div className="form-section-header">
+            <Clock className="form-section-icon" />
+            <h3 className="form-section-title">Lead Times</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -661,10 +661,10 @@ export function SupplierForm({
         </div>
 
         {/* Additional Information Section */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <FileText className="h-5 w-5 text-gray-600" />
-            <h3 className="text-lg font-semibold">Additional Information</h3>
+        <div className="form-section section-additional">
+          <div className="form-section-header">
+            <FileText className="form-section-icon" />
+            <h3 className="form-section-title">Additional Information</h3>
           </div>
 
           <FormField
@@ -687,10 +687,10 @@ export function SupplierForm({
         </div>
 
         {/* Status Settings Section */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <Shield className="h-5 w-5 text-green-600" />
-            <h3 className="text-lg font-semibold">Status Settings</h3>
+        <div className="form-section section-status">
+          <div className="form-section-header">
+            <Shield className="form-section-icon" />
+            <h3 className="form-section-title">Status Settings</h3>
           </div>
 
           <div className="space-y-4">
