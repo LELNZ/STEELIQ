@@ -698,6 +698,37 @@ export class DatabaseStorage implements IStorage {
   async deleteClientContact(id: number): Promise<void> {
     await db.delete(clientContacts).where(eq(clientContacts.id, id));
   }
+
+  // Client Management Implementation
+  async getClients(): Promise<Client[]> {
+    return await db.select().from(clients).orderBy(clients.name);
+  }
+
+  async getClient(id: number): Promise<Client | undefined> {
+    const [client] = await db.select().from(clients).where(eq(clients.id, id));
+    return client || undefined;
+  }
+
+  async createClient(client: InsertClient): Promise<Client> {
+    const [createdClient] = await db.insert(clients)
+      .values(client)
+      .returning();
+    return createdClient;
+  }
+
+  async updateClient(id: number, client: Partial<InsertClient>): Promise<Client> {
+    const [updatedClient] = await db
+      .update(clients)
+      .set({ ...client, updatedAt: new Date() })
+      .where(eq(clients.id, id))
+      .returning();
+    return updatedClient;
+  }
+
+  async deleteClient(id: number): Promise<boolean> {
+    const result = await db.delete(clients).where(eq(clients.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
 }
 
 export const storage = new DatabaseStorage();

@@ -586,16 +586,18 @@ export function ClientForm({
       </TabsContent>
 
       <TabsContent value="contacts" className="mt-6">
-        {form.watch("name") || form.watch("company") ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Client contact management will be available here</p>
-            <p className="text-sm">Client: {form.watch("name") || form.watch("company")}</p>
-          </div>
+        {(autoSavedClientId || clientId) ? (
+          <ContactManagementTab
+            entityId={autoSavedClientId || clientId!}
+            entityType="client"
+            entityName={clientName}
+            mode={mode}
+          />
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Please enter a client/company name first to manage contacts</p>
+            <p>Please enter a client name first to manage contacts</p>
+            <p className="text-sm">The client will be auto-saved when you switch to this tab</p>
           </div>
         )}
       </TabsContent>
