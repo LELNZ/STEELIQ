@@ -137,29 +137,46 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
     }
   });
 
-  // Delete contact mutation
+  // Delete contact mutation with comprehensive refresh
   const deleteContactMutation = useMutation({
     mutationFn: async (contactId: number) => {
       console.log(`Deleting ${entityType} contact ID ${contactId} via ${apiEndpoint}`);
-      const result = await apiRequest("DELETE", `/api/${apiEndpoint}/${contactId}`);
-      console.log(`Delete result:`, result);
-      return result;
+      
+      // Make the delete request
+      const response = await fetch(`/api/${apiEndpoint}/${contactId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete contact: ${response.status}`);
+      }
+      
+      console.log(`Delete successful - status: ${response.status}`);
+      return { success: true };
     },
-    onSuccess: () => {
-      console.log(`Delete successful - invalidating query: [${apiEndpoint}, ${entityId}]`);
+    onSuccess: async () => {
+      console.log(`Refreshing contacts for ${entityType} ID ${entityId}`);
       
-      // Use consistent query key format and force refetch
-      queryClient.invalidateQueries({ queryKey: [apiEndpoint, entityId] });
-      queryClient.refetchQueries({ queryKey: [apiEndpoint, entityId] });
+      // Multiple refresh strategies to ensure UI updates
+      await queryClient.invalidateQueries({ queryKey: [apiEndpoint, entityId] });
+      await queryClient.refetchQueries({ queryKey: [apiEndpoint, entityId] });
+      await contactsQuery.refetch();
       
-      // Force component re-render by refetching the specific query
-      contactsQuery.refetch();
+      // Force a complete cache reset for this query
+      queryClient.removeQueries({ queryKey: [apiEndpoint, entityId] });
       
       toast({ title: "Contact deleted successfully" });
     },
     onError: (error) => {
       console.error(`Delete error:`, error);
-      toast({ title: "Error deleting contact", description: error.message, variant: "destructive" });
+      toast({ 
+        title: "Error deleting contact", 
+        description: error.message, 
+        variant: "destructive" 
+      });
     }
   });
 
