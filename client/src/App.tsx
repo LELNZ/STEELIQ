@@ -14,6 +14,7 @@ import Estimates from "@/pages/estimates";
 import Contacts from "@/pages/contacts";
 import Suppliers from "@/pages/suppliers";
 import SupplierContacts from "@/pages/supplier-contacts";
+import ImportExport from "@/pages/import-export";
 
 import FinancialDashboard from "@/pages/financial-dashboard";
 import Sidebar from "@/components/layout/sidebar";
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/contacts" component={Contacts} />
       <Route path="/suppliers" component={Suppliers} />
       <Route path="/supplier-contacts" component={SupplierContacts} />
+      <Route path="/import-export" component={ImportExport} />
 
       <Route path="/financial" component={FinancialDashboard} />
       <Route path="/optimization" component={CuttingOptimizationFixed} />

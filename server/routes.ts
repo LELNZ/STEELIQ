@@ -50,13 +50,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     phonePrimary: z.string().optional(),
     phoneMobile: z.string().optional(),
     phoneDirect: z.string().optional(),
-    isPrimaryContact: z.string().transform(val => val?.toLowerCase() === 'true').default(false),
-    isAccountsContact: z.string().transform(val => val?.toLowerCase() === 'true').default(false),
-    isTechnicalContact: z.string().transform(val => val?.toLowerCase() === 'true').default(false),
-    isSalesContact: z.string().transform(val => val?.toLowerCase() === 'true').default(false),
+    isPrimaryContact: z.string().transform(val => val?.toLowerCase() === 'true').optional(),
+    isAccountsContact: z.string().transform(val => val?.toLowerCase() === 'true').optional(),
+    isTechnicalContact: z.string().transform(val => val?.toLowerCase() === 'true').optional(),
+    isSalesContact: z.string().transform(val => val?.toLowerCase() === 'true').optional(),
     preferredContactMethod: z.string().default("email"),
     notes: z.string().optional(),
-    isActive: z.string().transform(val => val?.toLowerCase() === 'true').default(true)
+    isActive: z.string().transform(val => val?.toLowerCase() === 'true').optional()
   });
 
   // Jobs routes

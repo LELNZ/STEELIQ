@@ -13,7 +13,8 @@ import {
   Users,
   Slice,
   FileText,
-  Building2
+  Building2,
+  Upload
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -27,6 +28,7 @@ const navigation = [
       { name: "Material Library", href: "/materials", icon: Package },
       { name: "Inventory", href: "/inventory", icon: Warehouse, badge: "3", badgeVariant: "warning" },
       { name: "Contacts", href: "/contacts", icon: Users },
+      { name: "Import/Export", href: "/import-export", icon: Upload },
       { name: "Financial", href: "/financial", icon: DollarSign },
       { name: "Optimization", href: "/optimization", icon: Zap },
     ],
