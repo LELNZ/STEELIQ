@@ -363,7 +363,7 @@ export function MultiLocationManager({
             {/* Address - Compact */}
             <div>
               <label className="text-xs font-medium text-muted-foreground">Address</label>
-              <div className="h-8">
+              <div className="relative">
                 <AddressSearch
                   field={{
                     value: editingLocation.address,

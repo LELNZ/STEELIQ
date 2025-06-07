@@ -7,7 +7,9 @@ import { User, Phone, Mail, ChevronDown } from "lucide-react";
 
 interface Contact {
   id: number;
-  name: string;
+  firstName: string;
+  lastName: string;
+  name?: string;
   title?: string;
   position?: string;
   phoneMobile?: string;
@@ -35,20 +37,30 @@ export function ContactSearch({ entityType, entityId, value, onChange, placehold
   // Fetch contacts for the entity
   const { data: contacts = [] } = useQuery({
     queryKey: [`/api/${entityType}s/${entityId}/contacts`],
+    queryFn: async () => {
+      const apiEndpoint = entityType === "supplier" ? "supplier-contacts" : "client-contacts";
+      const queryParam = entityType === "supplier" ? "supplierId" : "clientId";
+      const response = await fetch(`/api/${apiEndpoint}?${queryParam}=${entityId}`);
+      if (!response.ok) throw new Error('Failed to fetch contacts');
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    },
     enabled: !!entityId
   });
 
   useEffect(() => {
+    const contactsArray = Array.isArray(contacts) ? contacts : [];
     if (searchTerm.trim()) {
-      const filtered = contacts.filter((contact: Contact) =>
-        contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (contact.title || contact.position || "").toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      const filtered = contactsArray.filter((contact: Contact) => {
+        const name = `${contact.firstName || ''} ${contact.lastName || ''}`.trim();
+        return name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               (contact.title || contact.position || "").toLowerCase().includes(searchTerm.toLowerCase());
+      });
       setFilteredContacts(filtered);
       setShowSuggestions(filtered.length > 0);
     } else {
-      setFilteredContacts(contacts);
+      setFilteredContacts(contactsArray);
       setShowSuggestions(false);
     }
   }, [searchTerm, contacts]);
@@ -62,14 +74,16 @@ export function ContactSearch({ entityType, entityId, value, onChange, placehold
   };
 
   const handleContactSelect = (contact: Contact) => {
-    setSearchTerm(contact.name);
+    const contactName = `${contact.firstName || ''} ${contact.lastName || ''}`.trim();
+    setSearchTerm(contactName || '');
     setShowSuggestions(false);
     onChange(contact);
   };
 
   const handleInputFocus = () => {
-    if (contacts.length > 0) {
-      setFilteredContacts(contacts);
+    const contactsArray = Array.isArray(contacts) ? contacts : [];
+    if (contactsArray.length > 0) {
+      setFilteredContacts(contactsArray);
       setShowSuggestions(true);
     }
   };
