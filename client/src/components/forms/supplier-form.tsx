@@ -474,11 +474,11 @@ export function SupplierForm({
           </div>
         </div>
 
-        {/* Business Details Section */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <Shield className="h-5 w-5 text-purple-600" />
-            <h3 className="text-lg font-semibold">Business Registration</h3>
+        {/* Business Registration Section */}
+        <div className="form-section section-registration">
+          <div className="form-section-header">
+            <Shield className="form-section-icon" />
+            <h3 className="form-section-title">Business Registration</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
