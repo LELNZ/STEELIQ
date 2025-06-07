@@ -238,7 +238,7 @@ export const clientContacts = pgTable("client_contacts", {
 export const suppliers = pgTable("suppliers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(), // Primary company/supplier name
-  company: text("company").notNull(), // Duplicate for compatibility
+  company: text("company"), // Legal company name (optional)
   type: text("type").notNull().default("supplier"), // supplier, vendor, client, user
   address: text("address"),
   city: text("city"),

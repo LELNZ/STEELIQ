@@ -17,10 +17,10 @@ import { ContactManagementTab } from "./contact-management-tab";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-// Minimal validation schema for auto-save functionality
+// Minimal validation schema for auto-save functionality - only requires company name
 export const supplierAutoSaveSchema = z.object({
-  name: z.string().min(1, "Company/Supplier name is required"),
-  company: z.string().min(1, "Company name is required"),
+  name: z.string().min(1, "Company name is required"),
+  company: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   postcode: z.string().optional(),
@@ -48,7 +48,7 @@ export const supplierAutoSaveSchema = z.object({
 // Full validation schema for form submission
 export const supplierFormSchema = z.object({
   name: z.string().min(1, "Company/Supplier name is required"),
-  company: z.string().min(1, "Company name is required"),
+  company: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   postcode: z.string().optional(),
@@ -164,13 +164,10 @@ export function SupplierForm({
 
   // Watch for company name changes to enable contacts tab
   const companyName = form.watch("name");
-  const legalName = form.watch("company");
-  const hasCompanyName = (companyName && companyName.trim().length > 0) || (legalName && legalName.trim().length > 0);
+  const hasCompanyName = companyName && companyName.trim().length > 0;
 
   // Check if basic required fields are filled for auto-save
   const validateBasicFields = () => {
-    const values = form.getValues();
-    // For auto-save, only require that company name is filled
     return hasCompanyName;
   };
 
@@ -195,11 +192,10 @@ export function SupplierForm({
       try {
         const formData = form.getValues();
         
-        // Ensure both name and company fields are populated for auto-save
+        // Prepare minimal data for auto-save - just use the company name
         const autoSaveData = {
           ...formData,
-          name: formData.name || formData.company,
-          company: formData.company || formData.name,
+          company: formData.name, // Use the name field as company name
         };
         
         await autoSaveMutation.mutateAsync(autoSaveData);
@@ -276,9 +272,9 @@ export function SupplierForm({
               name="company"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Legal Company Name *</FormLabel>
+                  <FormLabel>Legal Company Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter legal company name" {...field} />
+                    <Input placeholder="Enter legal company name (optional)" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
