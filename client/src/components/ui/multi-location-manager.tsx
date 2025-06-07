@@ -140,17 +140,22 @@ export function MultiLocationManager({
   // Custom form setValue function for AddressSearch
   const createAddressFormHandler = () => ({
     setValue: (field: string, value: string) => {
-      console.log("Address form setValue:", { field, value });
+      console.log("MultiLocationManager setValue called:", { field, value, hasEditingLocation: !!editingLocation });
       if (editingLocation) {
+        const updatedLocation = { ...editingLocation };
+        
         if (field === "address") {
-          updateEditingLocation("address", value);
+          updatedLocation.address = value;
         } else if (field === "city") {
-          updateEditingLocation("city", value);
+          updatedLocation.city = value;
         } else if (field === "postcode") {
-          updateEditingLocation("postcode", value);
+          updatedLocation.postcode = value;
         } else if (field === "country") {
-          updateEditingLocation("country", value);
+          updatedLocation.country = value;
         }
+        
+        console.log("Updating location with:", { field, value, updatedLocation });
+        setEditingLocation(updatedLocation);
       }
     }
   });
@@ -278,23 +283,23 @@ export function MultiLocationManager({
               {editingLocation.isSaved ? "Edit Location" : "Add New Location"}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Location Type and Name */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="space-y-3">
+            {/* Location Type and Name - Compact */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium">Location Type</label>
+                <label className="text-xs font-medium text-muted-foreground">Type</label>
                 <Select
                   value={editingLocation.locationType}
                   onValueChange={(value) => updateEditingLocation("locationType", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-8">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {locationTypes.map(type => (
                       <SelectItem key={type.value} value={type.value}>
                         <div className="flex items-center gap-2">
-                          <type.icon className="h-4 w-4" />
+                          <type.icon className="h-3 w-3" />
                           {type.label}
                         </div>
                       </SelectItem>
@@ -304,33 +309,36 @@ export function MultiLocationManager({
               </div>
               
               <div>
-                <label className="text-sm font-medium">Location Name</label>
+                <label className="text-xs font-medium text-muted-foreground">Name</label>
                 <Input
-                  placeholder="e.g., Head Office, Auckland Warehouse"
+                  className="h-8"
+                  placeholder="Location name"
                   value={editingLocation.locationName}
                   onChange={(e) => updateEditingLocation("locationName", e.target.value)}
                 />
               </div>
             </div>
 
-            {/* Address */}
+            {/* Address - Compact */}
             <div>
-              <label className="text-sm font-medium">Street Address</label>
+              <label className="text-xs font-medium text-muted-foreground">Address</label>
               <AddressSearch
                 field={{
                   value: editingLocation.address,
                   onChange: (value: string) => updateEditingLocation("address", value)
                 }}
                 form={createAddressFormHandler()}
-                placeholder="Enter street address"
+                placeholder="Enter address"
+                className="h-8"
               />
             </div>
 
-            {/* City, Postcode, Country */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* City, Postcode, Country - Compact */}
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-sm font-medium">City</label>
+                <label className="text-xs font-medium text-muted-foreground">City</label>
                 <Input
+                  className="h-8"
                   placeholder="City"
                   value={editingLocation.city}
                   onChange={(e) => updateEditingLocation("city", e.target.value)}
@@ -338,8 +346,9 @@ export function MultiLocationManager({
               </div>
               
               <div>
-                <label className="text-sm font-medium">Postcode</label>
+                <label className="text-xs font-medium text-muted-foreground">Postcode</label>
                 <Input
+                  className="h-8"
                   placeholder="Postcode"
                   value={editingLocation.postcode}
                   onChange={(e) => updateEditingLocation("postcode", e.target.value)}
@@ -347,12 +356,12 @@ export function MultiLocationManager({
               </div>
               
               <div>
-                <label className="text-sm font-medium">Country</label>
+                <label className="text-xs font-medium text-muted-foreground">Country</label>
                 <Select
                   value={editingLocation.country}
                   onValueChange={(value) => updateEditingLocation("country", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-8">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -366,14 +375,12 @@ export function MultiLocationManager({
               </div>
             </div>
 
-            {/* Contact Information */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Contact Information - Compact */}
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-sm font-medium flex items-center gap-1">
-                  <Phone className="h-3 w-3" />
-                  Contact Person
-                </label>
+                <label className="text-xs font-medium text-muted-foreground">Contact</label>
                 <Input
+                  className="h-8"
                   placeholder="Contact name"
                   value={editingLocation.contactPerson}
                   onChange={(e) => updateEditingLocation("contactPerson", e.target.value)}
@@ -381,50 +388,44 @@ export function MultiLocationManager({
               </div>
               
               <div>
-                <label className="text-sm font-medium flex items-center gap-1">
-                  <Phone className="h-3 w-3" />
-                  Phone
-                </label>
+                <label className="text-xs font-medium text-muted-foreground">Phone</label>
                 <Input
-                  placeholder="Phone number"
+                  className="h-8"
+                  placeholder="Phone"
                   value={editingLocation.phone}
                   onChange={(e) => updateEditingLocation("phone", e.target.value)}
                 />
               </div>
               
               <div>
-                <label className="text-sm font-medium flex items-center gap-1">
-                  <Mail className="h-3 w-3" />
-                  Email
-                </label>
+                <label className="text-xs font-medium text-muted-foreground">Email</label>
                 <Input
+                  className="h-8"
                   type="email"
-                  placeholder="Email address"
+                  placeholder="Email"
                   value={editingLocation.email}
                   onChange={(e) => updateEditingLocation("email", e.target.value)}
                 />
               </div>
             </div>
 
-            {/* Operating Hours and Special Instructions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Operating Hours and Instructions - Compact */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  Operating Hours
-                </label>
+                <label className="text-xs font-medium text-muted-foreground">Hours</label>
                 <Input
-                  placeholder="e.g., Mon-Fri 8:00-17:00"
+                  className="h-8"
+                  placeholder="Mon-Fri 8:00-17:00"
                   value={editingLocation.operatingHours}
                   onChange={(e) => updateEditingLocation("operatingHours", e.target.value)}
                 />
               </div>
               
               <div>
-                <label className="text-sm font-medium">Special Instructions</label>
-                <Textarea
-                  placeholder="Delivery instructions, access codes, etc."
-                  className="min-h-[60px]"
+                <label className="text-xs font-medium text-muted-foreground">Instructions</label>
+                <Input
+                  className="h-8"
+                  placeholder="Special instructions"
                   value={editingLocation.specialInstructions}
                   onChange={(e) => updateEditingLocation("specialInstructions", e.target.value)}
                 />
