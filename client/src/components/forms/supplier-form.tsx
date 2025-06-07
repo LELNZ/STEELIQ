@@ -111,8 +111,6 @@ export function SupplierForm({
   // Auto-save mutation for creating suppliers
   const autoSaveMutation = useMutation({
     mutationFn: async (data: SupplierFormData) => {
-      console.log("Auto-save starting with form data:", data);
-      
       // Prepare minimal data for auto-save - just name is required
       const autoSaveData = {
         name: data.name,
@@ -142,10 +140,7 @@ export function SupplierForm({
         isPreferredSupplier: data.isPreferredSupplier ?? false
       };
       
-      console.log("Auto-save payload:", autoSaveData);
-      const result = await apiRequest("/api/suppliers", "POST", autoSaveData);
-      console.log("Auto-save successful:", result);
-      return result;
+      return await apiRequest("POST", "/api/suppliers", autoSaveData);
     },
     onSuccess: (data) => {
       setAutoSavedSupplierId(data.id);
@@ -157,16 +152,9 @@ export function SupplierForm({
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
     },
     onError: (error: any) => {
-      console.error("Auto-save failed with error:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
-      
       let errorMessage = "Failed to save supplier. Please check required fields.";
       if (error?.message) {
         errorMessage = error.message;
-      } else if (error?.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error?.response?.data?.details) {
-        errorMessage = `Validation error: ${JSON.stringify(error.response.data.details)}`;
       }
       
       toast({
@@ -206,14 +194,10 @@ export function SupplierForm({
       // Auto-save the supplier before switching to contacts
       try {
         const formData = form.getValues();
-        console.log("Starting auto-save with form data:", formData);
-        console.log("Company name validation:", hasCompanyName, companyName);
-        
         await autoSaveMutation.mutateAsync(formData);
         setActiveTab(tabValue);
         setShowValidationWarning(false);
       } catch (error) {
-        console.error("Auto-save catch block error:", error);
         // Error handling is done in mutation onError
         return;
       }
