@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MapPin, Plus, Trash2, Building2, Clock, Phone, Mail, Save, Check, AlertCircle, Edit, MoreVertical, Star } from "lucide-react";
+import { MapPin, Plus, Trash2, Building2, Clock, Phone, Mail, Save, Check, AlertCircle, Edit, MoreVertical, Star, Grid3X3, List, Table } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactSearch } from "@/components/ui/contact-search";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -57,6 +57,7 @@ export function MultiLocationManager({
   const [savedLocations, setSavedLocations] = useState<Location[]>([]);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [showNewLocationForm, setShowNewLocationForm] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "table">("grid");
 
   const createNewLocation = (): Location => ({
     id: Date.now().toString(),
@@ -96,6 +97,8 @@ export function MultiLocationManager({
     const preferredLocation = newSavedLocations.find(loc => loc.isPreferred);
     onPreferredLocationChange?.(preferredLocation || null);
   };
+
+
 
   const handleSaveLocation = (location: Location) => {
     console.log("Saving location:", location);
@@ -213,14 +216,47 @@ export function MultiLocationManager({
           <h3 className="text-lg font-semibold">Locations & Addresses</h3>
           <Badge variant="secondary">{savedLocations.length} location{savedLocations.length !== 1 ? 's' : ''}</Badge>
         </div>
-        <Button
-          onClick={handleAddNewLocation}
-          className="flex items-center gap-2"
-          disabled={showNewLocationForm}
-        >
-          <Plus className="h-4 w-4" />
-          Add Location
-        </Button>
+        
+        <div className="flex items-center gap-2">
+          {/* View Mode Toggle */}
+          {savedLocations.length > 0 && (
+            <div className="flex border rounded-md">
+              <Button
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className="rounded-r-none"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="rounded-none border-x"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                className="rounded-l-none"
+              >
+                <Table className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          
+          <Button
+            onClick={handleAddNewLocation}
+            className="flex items-center gap-2"
+            disabled={showNewLocationForm}
+          >
+            <Plus className="h-4 w-4" />
+            Add Location
+          </Button>
+        </div>
       </div>
 
       {/* Saved Locations */}

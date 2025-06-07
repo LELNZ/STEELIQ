@@ -121,7 +121,9 @@ export function ContactSearch({ entityType, entityId, value, onChange, placehold
                   <User className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{contact.name}</span>
+                      <span className="font-medium">
+                        {`${contact.firstName || ''} ${contact.lastName || ''}`.trim()}
+                      </span>
                       {(contact.isPrimary || contact.isPrimaryContact) && (
                         <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                           Primary
