@@ -1060,6 +1060,18 @@ export function SupplierForm({
             entityName={form.watch("name") || form.watch("company")}
             mode={mode}
             autoMarkAsPrimary={true}
+            onPreferredContactChange={(contact) => {
+              if (contact) {
+                // Update main supplier contact fields with preferred contact
+                const contactName = `${contact.firstName} ${contact.lastName}`;
+                form.setValue("phone", contact.phoneMobile || contact.mobile || contact.phonePrimary || contact.workPhone || "");
+                form.setValue("email", contact.email || "");
+                toast({
+                  title: "Contact Updated",
+                  description: `Supplier contact updated to preferred contact: ${contactName}`,
+                });
+              }
+            }}
           />
         ) : (
           <div className="text-center py-8 text-muted-foreground">
