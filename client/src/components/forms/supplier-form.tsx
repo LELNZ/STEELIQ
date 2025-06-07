@@ -37,6 +37,7 @@ export const supplierFormSchema = z.object({
   }, "Please enter a valid website URL"),
   phone: z.string().optional(),
   email: z.string().email("Please enter a valid email address").optional().or(z.literal("")),
+  industry: z.string().optional(),
   paymentTerms: z.string().default("30 days"),
   accountManager: z.string().optional(),
   leadTimeStandard: z.number().min(0, "Lead time must be 0 or greater").default(7),
@@ -94,6 +95,7 @@ export function SupplierForm({
       website: "",
       phone: "",
       email: "",
+      industry: "",
       paymentTerms: "30 days",
       accountManager: "",
       leadTimeStandard: 7,
@@ -353,6 +355,20 @@ export function SupplierForm({
                   <FormLabel>Phone Number</FormLabel>
                   <FormControl>
                     <Input placeholder="+64 9 123 4567" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="industry"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Industry</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Construction, Manufacturing" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

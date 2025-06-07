@@ -382,6 +382,20 @@ export function ClientForm({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="accountManager"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Account Manager</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Assigned account manager name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 
@@ -869,20 +883,6 @@ export function ClientForm({
                       className="min-h-[80px]"
                       {...field} 
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="accountManager"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account Manager</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Assigned account manager name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
