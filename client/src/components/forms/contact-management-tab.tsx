@@ -98,7 +98,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
       return apiRequest("POST", `/api/${apiEndpoint}`, contactData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`, entityId] });
       setIsAddDialogOpen(false);
       addForm.reset();
       toast({ 
