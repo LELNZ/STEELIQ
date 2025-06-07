@@ -222,11 +222,11 @@ export function ClientForm({
 
   // Handle tab change with auto-save logic
   const handleTabChange = async (tabValue: string) => {
-    if (tabValue === "contacts" && mode === "create" && !autoSavedClientId && !hasAutoSaved) {
+    if ((tabValue === "contacts" || tabValue === "locations") && mode === "create" && !autoSavedClientId && !hasAutoSaved) {
       if (!hasCompanyName) {
         toast({
           title: "Company Name Required",
-          description: "Please enter a company name before accessing contacts.",
+          description: `Please enter a company name before accessing ${tabValue}.`,
           variant: "destructive",
         });
         return;
@@ -242,7 +242,7 @@ export function ClientForm({
         return;
       }
 
-      // Auto-save the client before switching to contacts
+      // Auto-save the client before switching to contacts or locations
       try {
         const formData = form.getValues();
         await autoSaveMutation.mutateAsync(formData);
@@ -309,22 +309,35 @@ export function ClientForm({
   };
 
   return (
-    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full enhanced-tabs">
-      <TabsList className="grid w-full grid-cols-2 mb-6">
-        <TabsTrigger value="details" className="flex items-center gap-2 transition-all duration-200">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+      <TabsList className="grid w-full grid-cols-3 mb-6 h-12 bg-muted/50 border border-border/50">
+        <TabsTrigger 
+          value="details" 
+          className="flex items-center gap-2 h-10 px-4 text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/50"
+        >
           <Building2 className="h-4 w-4" />
           Client Details
         </TabsTrigger>
-        <TabsTrigger value="locations" className="flex items-center gap-2 transition-all duration-200" disabled={!hasCompanyName}>
+        <TabsTrigger 
+          value="locations" 
+          className="flex items-center gap-2 h-10 px-4 text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/50 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!hasCompanyName}
+        >
           <MapPin className="h-4 w-4" />
-          Locations
-          {!hasCompanyName && <span className="text-xs text-muted-foreground">(Enter name first)</span>}
+          <span className="hidden sm:inline">Locations</span>
+          <span className="sm:hidden">Locations</span>
+          {!hasCompanyName && <span className="hidden lg:inline text-xs text-muted-foreground ml-1">(Enter name first)</span>}
         </TabsTrigger>
-        <TabsTrigger value="contacts" className="flex items-center gap-2 transition-all duration-200" disabled={!hasCompanyName}>
+        <TabsTrigger 
+          value="contacts" 
+          className="flex items-center gap-2 h-10 px-4 text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/50 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!hasCompanyName}
+        >
           <Users className="h-4 w-4" />
-          Contacts
-          {!hasCompanyName && <span className="text-xs text-muted-foreground">(Enter name first)</span>}
-          {autoSaveMutation.isPending && <span className="text-xs text-primary animate-pulse">(Saving...)</span>}
+          <span className="hidden sm:inline">Contacts</span>
+          <span className="sm:hidden">Contacts</span>
+          {!hasCompanyName && <span className="hidden lg:inline text-xs text-muted-foreground ml-1">(Enter name first)</span>}
+          {autoSaveMutation.isPending && <span className="text-xs text-primary animate-pulse ml-1">(Saving...)</span>}
         </TabsTrigger>
       </TabsList>
 
