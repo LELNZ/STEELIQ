@@ -261,6 +261,50 @@ export function SupplierForm({
     form.setValue("postcode", addressData.postal_code || "");
   };
 
+  // Collapsible Section Component
+  const CollapsibleSection = ({ 
+    sectionKey, 
+    icon: Icon, 
+    title, 
+    children, 
+    className = "form-section",
+    alwaysOpen = false 
+  }: {
+    sectionKey: string;
+    icon: any;
+    title: string;
+    children: React.ReactNode;
+    className?: string;
+    alwaysOpen?: boolean;
+  }) => {
+    const isCollapsed = !alwaysOpen && collapsedSections[sectionKey];
+    
+    return (
+      <div className={`${className} section-${sectionKey}`}>
+        <div 
+          className={`form-section-header ${!alwaysOpen ? 'cursor-pointer hover:bg-muted/50 rounded-md transition-colors' : ''}`}
+          onClick={!alwaysOpen ? () => toggleSection(sectionKey) : undefined}
+        >
+          <Icon className="form-section-icon" />
+          <h3 className="form-section-title flex-1">{title}</h3>
+          {!alwaysOpen && (
+            isCollapsed ? 
+              <ChevronDown className="h-5 w-5 text-muted-foreground" /> : 
+              <ChevronUp className="h-5 w-5 text-muted-foreground" />
+          )}
+        </div>
+        
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'
+        }`}>
+          <div className="pt-2">
+            {children}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full enhanced-tabs">
       <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -434,13 +478,7 @@ export function SupplierForm({
           </div>
         </div>
 
-        {/* Address Information Section */}
-        <div className="form-section section-address">
-          <div className="form-section-header">
-            <MapPin className="form-section-icon" />
-            <h3 className="form-section-title">Address Information</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="address" icon={MapPin} title="Address Information">
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -515,15 +553,9 @@ export function SupplierForm({
               />
             </div>
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Business Registration Section */}
-        <div className="form-section section-registration">
-          <div className="form-section-header">
-            <Shield className="form-section-icon" />
-            <h3 className="form-section-title">Registration & Legal Information</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="registration" icon={Shield} title="Registration & Legal Information">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField
               control={form.control}
@@ -567,15 +599,9 @@ export function SupplierForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Contact Information */}
-        <div className="form-section section-contact">
-          <div className="form-section-header">
-            <Users className="form-section-icon" />
-            <h3 className="form-section-title">Contact Information</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="contact" icon={Users} title="Contact Information">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -605,7 +631,7 @@ export function SupplierForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Financial & Commercial Terms */}
         <div className="form-section section-financial">
