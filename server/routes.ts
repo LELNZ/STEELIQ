@@ -647,6 +647,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Client Contacts routes
+  app.get("/api/client-contacts", async (req, res) => {
+    try {
+      const clientId = req.query.clientId ? parseInt(req.query.clientId as string) : null;
+      const contacts = await storage.getClientContacts(clientId);
+      res.json(contacts);
+    } catch (error) {
+      console.error("Error fetching client contacts:", error);
+      res.status(500).json({ error: "Failed to fetch client contacts" });
+    }
+  });
+
+  app.post("/api/client-contacts", async (req, res) => {
+    try {
+      const contactData = req.body;
+      const contact = await storage.createClientContact(contactData);
+      res.status(201).json(contact);
+    } catch (error) {
+      console.error("Error creating client contact:", error);
+      res.status(500).json({ error: "Failed to create client contact" });
+    }
+  });
+
+  app.patch("/api/client-contacts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const contactData = req.body;
+      const contact = await storage.updateClientContact(id, contactData);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      res.json(contact);
+    } catch (error) {
+      console.error("Error updating client contact:", error);
+      res.status(500).json({ error: "Failed to update client contact" });
+    }
+  });
+
+  app.delete("/api/client-contacts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteClientContact(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting client contact:", error);
+      res.status(500).json({ error: "Failed to delete client contact" });
+    }
+  });
+
   app.patch("/api/suppliers/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);

@@ -2,6 +2,7 @@ import {
   users, materials, materialCategories, inventory, jobs, jobMaterials, 
   cuttingPlans, cutSequences, remnants, optimizationSimulations, coatingSystems, surfaceAreaConfigs,
   suppliers, materialSuppliers, supplierPriceHistory, supplierContacts,
+  clients, clientContacts,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
@@ -9,7 +10,8 @@ import {
   type Remnant, type InsertRemnant, type OptimizationSimulation, type InsertOptimizationSimulation,
   type CoatingSystem, type InsertCoatingSystem, type SurfaceAreaConfig, type InsertSurfaceAreaConfig,
   type Supplier, type InsertSupplier, type MaterialSupplier, type InsertMaterialSupplier,
-  type SupplierPriceHistory, type InsertSupplierPriceHistory, type SupplierContact, type InsertSupplierContact
+  type SupplierPriceHistory, type InsertSupplierPriceHistory, type SupplierContact, type InsertSupplierContact,
+  type Client, type InsertClient, type ClientContact, type InsertClientContact
 } from "@shared/schema";
 import { desc, eq, lt, asc, like, and, or, sql } from "drizzle-orm";
 import { db } from "./db";
@@ -124,6 +126,12 @@ export interface IStorage {
   createSupplierContact(contact: InsertSupplierContact): Promise<SupplierContact>;
   updateSupplierContact(id: number, contact: Partial<InsertSupplierContact>): Promise<SupplierContact | undefined>;
   deleteSupplierContact(id: number): Promise<void>;
+
+  // Client Contacts
+  getClientContacts(clientId?: number | null): Promise<ClientContact[]>;
+  createClientContact(contact: InsertClientContact): Promise<ClientContact>;
+  updateClientContact(id: number, contact: Partial<InsertClientContact>): Promise<ClientContact | undefined>;
+  deleteClientContact(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -650,6 +658,38 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSupplierContact(id: number): Promise<void> {
     await db.delete(supplierContacts).where(eq(supplierContacts.id, id));
+  }
+
+  // Client Contacts Implementation
+  async getClientContacts(clientId?: number | null): Promise<ClientContact[]> {
+    if (clientId) {
+      return await db.select().from(clientContacts)
+        .where(eq(clientContacts.clientId, clientId))
+        .orderBy(clientContacts.firstName, clientContacts.lastName);
+    }
+    
+    return await db.select().from(clientContacts)
+      .orderBy(clientContacts.firstName, clientContacts.lastName);
+  }
+
+  async createClientContact(contact: InsertClientContact): Promise<ClientContact> {
+    const [createdContact] = await db.insert(clientContacts)
+      .values(contact)
+      .returning();
+    return createdContact;
+  }
+
+  async updateClientContact(id: number, contact: Partial<InsertClientContact>): Promise<ClientContact | undefined> {
+    const [updatedContact] = await db
+      .update(clientContacts)
+      .set({ ...contact, updatedAt: new Date() })
+      .where(eq(clientContacts.id, id))
+      .returning();
+    return updatedContact;
+  }
+
+  async deleteClientContact(id: number): Promise<void> {
+    await db.delete(clientContacts).where(eq(clientContacts.id, id));
   }
 }
 
