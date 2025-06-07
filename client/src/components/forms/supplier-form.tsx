@@ -664,10 +664,10 @@ export function SupplierForm({
         </div>
 
         {/* Quality & Compliance Section */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <Package className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold">Quality & Compliance</h3>
+        <div className="form-section section-compliance">
+          <div className="form-section-header">
+            <Package className="form-section-icon" />
+            <h3 className="form-section-title">Quality & Compliance</h3>
           </div>
 
           <div className="space-y-4">

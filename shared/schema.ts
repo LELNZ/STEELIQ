@@ -287,6 +287,28 @@ export const suppliers = pgTable("suppliers", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Location Management - multiple locations per supplier/client
+export const locations = pgTable("locations", {
+  id: serial("id").primaryKey(),
+  entityType: text("entity_type").notNull(), // 'supplier' or 'client'
+  entityId: integer("entity_id").notNull(), // supplier_id or client_id
+  locationType: text("location_type").default("primary"), // primary, warehouse, office, billing
+  locationName: text("location_name"), // Optional name for the location
+  address: text("address").notNull(),
+  city: text("city"),
+  state: text("state"),
+  postcode: text("postcode"),
+  country: text("country").default("New Zealand"),
+  contactPerson: text("contact_person"),
+  phone: text("phone"),
+  email: text("email"),
+  operatingHours: text("operating_hours"),
+  specialInstructions: text("special_instructions"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Supplier Contacts - multiple contacts per supplier
 export const supplierContacts = pgTable("supplier_contacts", {
   id: serial("id").primaryKey(),
