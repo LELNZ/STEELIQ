@@ -319,29 +319,29 @@ export function ClientForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Client Type *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
+                  <FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select client type" />
                       </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="client">Client</SelectItem>
-                      <SelectItem value="prospect">Prospect</SelectItem>
-                      <SelectItem value="main_contractor">Main Contractor</SelectItem>
-                      <SelectItem value="subcontractor">Subcontractor</SelectItem>
-                      <SelectItem value="property_developer">Property Developer</SelectItem>
-                      <SelectItem value="architect">Architect</SelectItem>
-                      <SelectItem value="engineer">Engineer</SelectItem>
-                      <SelectItem value="government">Government/Council</SelectItem>
-                      <SelectItem value="commercial">Commercial Entity</SelectItem>
-                      <SelectItem value="residential">Residential Client</SelectItem>
-                      <SelectItem value="industrial">Industrial Client</SelectItem>
-                      <SelectItem value="infrastructure">Infrastructure Project</SelectItem>
-                      <SelectItem value="consultant">Consultant</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                      <SelectContent>
+                        <SelectItem value="client">Client</SelectItem>
+                        <SelectItem value="prospect">Prospect</SelectItem>
+                        <SelectItem value="main_contractor">Main Contractor</SelectItem>
+                        <SelectItem value="subcontractor">Subcontractor</SelectItem>
+                        <SelectItem value="property_developer">Property Developer</SelectItem>
+                        <SelectItem value="architect">Architect</SelectItem>
+                        <SelectItem value="engineer">Engineer</SelectItem>
+                        <SelectItem value="government">Government/Council</SelectItem>
+                        <SelectItem value="commercial">Commercial Entity</SelectItem>
+                        <SelectItem value="residential">Residential Client</SelectItem>
+                        <SelectItem value="industrial">Industrial Client</SelectItem>
+                        <SelectItem value="infrastructure">Infrastructure Project</SelectItem>
+                        <SelectItem value="consultant">Consultant</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -368,7 +368,7 @@ export function ClientForm({
                 <FormItem>
                   <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="contact@company.com" {...field} />
+                    <Input placeholder="contact@company.com" type="email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -405,26 +405,12 @@ export function ClientForm({
 
             <FormField
               control={form.control}
-              name="internalReference"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Internal Reference</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Internal client reference/code" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="accountManager"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Account Manager</FormLabel>
                   <FormControl>
-                    <Input placeholder="Assigned account manager name" {...field} />
+                    <Input placeholder="Primary account manager name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
