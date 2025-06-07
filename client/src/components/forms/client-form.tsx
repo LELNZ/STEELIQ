@@ -90,7 +90,7 @@ export function ClientForm({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const form = useForm<ClientFormData>({
+  const form = useForm({
     resolver: zodResolver(clientFormSchema),
     defaultValues: {
       name: "",
@@ -276,7 +276,7 @@ export function ClientForm({
 
       <TabsContent value="details" className="mt-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit((data) => onSubmit(data as ClientFormData))} className="space-y-8">
             {/* Company Information Section */}
             <div className="form-section section-company">
               <div className="form-section-header">

@@ -89,7 +89,7 @@ export function SupplierForm({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const form = useForm<SupplierFormData>({
+  const form = useForm({
     resolver: zodResolver(supplierFormSchema),
     defaultValues: {
       name: "",
@@ -105,7 +105,7 @@ export function SupplierForm({
       phone: "",
       email: "",
       paymentTerms: "30 days",
-      projectManager: "",
+      assignedProjectManager: "",
       creditLimit: 0,
       discountRate: "0",
       industry: "",
@@ -123,7 +123,7 @@ export function SupplierForm({
       standardsCompliance: "",
       accountManager: "",
       notes: "",
-      internalReference: "",
+
       isActive: true,
       isPreferredSupplier: false,
       ...initialData
@@ -273,7 +273,7 @@ export function SupplierForm({
 
       <TabsContent value="details" className="mt-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit((data) => onSubmit(data as SupplierFormData))} className="space-y-8">
             {/* Company Information Section */}
             <div className="form-section section-company">
               <div className="form-section-header">
