@@ -1000,11 +1000,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Google Places API key not configured" });
       }
 
-      // Use legacy Places API for autocomplete (more reliable)
+      // Use new Places API (New) format
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${apiKey}`,
+        `https://places.googleapis.com/v1/places:autocomplete`,
         {
-          method: 'GET'
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': apiKey,
+            'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormat'
+          },
+          body: JSON.stringify({
+            input: input,
+            languageCode: "en"
+          })
         }
       );
 
@@ -1014,12 +1023,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const data = await response.json();
       
-      if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-        throw new Error(`Google Places API status: ${data.status}`);
-      }
-      
-      // Data is already in the correct format for legacy API
-      const convertedData = data;
+      // Convert new API format to legacy format for frontend compatibility
+      const convertedData = {
+        predictions: data.suggestions?.map((suggestion: any) => ({
+          place_id: suggestion.placePrediction?.placeId,
+          description: suggestion.placePrediction?.text?.text,
+          structured_formatting: {
+            main_text: suggestion.placePrediction?.structuredFormat?.mainText?.text || '',
+            secondary_text: suggestion.placePrediction?.structuredFormat?.secondaryText?.text || ''
+          }
+        })) || [],
+        status: "OK"
+      };
       
       res.json(convertedData);
     } catch (error) {
@@ -1042,11 +1057,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Google Places API key not configured" });
       }
 
-      // Use legacy Places API for place details (more reliable)
+      // Use new Places API (New) format for place details
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(place_id)}&fields=address_components,formatted_address&key=${apiKey}`,
+        `https://places.googleapis.com/v1/places/${encodeURIComponent(place_id)}`,
         {
-          method: 'GET'
+          method: 'GET',
+          headers: {
+            'X-Goog-Api-Key': apiKey,
+            'X-Goog-FieldMask': 'addressComponents,formattedAddress'
+          }
         }
       );
 
@@ -1056,12 +1075,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const data = await response.json();
       
-      if (data.status !== 'OK') {
-        throw new Error(`Google Places API status: ${data.status}`);
-      }
-      
-      // Data is already in the correct format for legacy API
-      const convertedData = data;
+      // Convert new API format to legacy format for frontend compatibility
+      const convertedData = {
+        result: {
+          address_components: data.addressComponents?.map((component: any) => ({
+            long_name: component.longText,
+            short_name: component.shortText,
+            types: component.types
+          })) || [],
+          formatted_address: data.formattedAddress
+        },
+        status: "OK"
+      };
       
       res.json(convertedData);
     } catch (error) {
