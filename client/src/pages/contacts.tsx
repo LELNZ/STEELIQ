@@ -27,6 +27,8 @@ export default function ContactsPage() {
   const [isCreateClientDialogOpen, setIsCreateClientDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
+  const [isDeleteClientDialogOpen, setIsDeleteClientDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
   // View modes for each tab
@@ -189,7 +191,7 @@ export default function ContactsPage() {
   const convertSupplierToFormData = (supplier: Supplier): Partial<SupplierFormData> => {
     return {
       name: supplier.name,
-      company: supplier.company,
+      company: supplier.company || "",
       address: supplier.address || "",
       city: supplier.city || "",
       postcode: supplier.postcode || "",
@@ -215,11 +217,65 @@ export default function ContactsPage() {
     };
   };
 
+  // Delete client mutation
+  const deleteClientMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/clients/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      setIsDeleteClientDialogOpen(false);
+      setClientToDelete(null);
+      toast({ title: "Client deleted successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error deleting client", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const handleClientCreated = (clientId: number) => {
+    // Auto-save callback - client has been created and can be used for contacts
+    queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+  };
+
+  // Convert database client to form data format
+  const convertClientToFormData = (client: Client): Partial<ClientFormData> => {
+    return {
+      name: client.name,
+      company: client.company || "",
+      type: client.type,
+      address: client.address || "",
+      city: client.city || "",
+      state: client.state || "",
+      postcode: client.postcode || "",
+      country: client.country || "New Zealand",
+      nzbn: client.nzbn || "",
+      gstNumber: client.gstNumber || "",
+      website: client.website || "",
+      industry: client.industry || "",
+      customerSince: client.customerSince ? new Date(client.customerSince) : undefined,
+      creditLimit: String(client.creditLimit || 0),
+      paymentTerms: client.paymentTerms || "30 days",
+      discountRate: client.discountRate || "0.00",
+      isActive: client.isActive ?? true,
+      preferredCurrency: client.preferredCurrency || "NZD",
+      notes: client.notes || "",
+      internalReference: client.internalReference || "",
+    };
+  };
+
   // Filter suppliers based on search query
   const filteredSuppliers = suppliers.filter((supplier: Supplier) =>
     supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    supplier.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (supplier.company && supplier.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (supplier.email && supplier.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  // Filter clients based on search query
+  const filteredClients = clients.filter((client: Client) =>
+    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (client.company && client.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (client.industry && client.industry.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -1002,11 +1058,12 @@ export default function ContactsPage() {
           {editingClient && (
             <ClientForm
               mode="edit"
-              initialData={editingClient}
+              initialData={convertClientToFormData(editingClient)}
               onSubmit={handleUpdateClient}
               onCancel={() => setEditingClient(null)}
               isLoading={isLoading}
               clientId={editingClient.id}
+              onClientCreated={handleClientCreated}
             />
           )}
         </DialogContent>
