@@ -203,6 +203,7 @@ export function MultiLocationManager({
                     }}
                     form={{
                       setValue: (field: string, value: string) => {
+                        if (field === "address") updateLocation(location.id, "address", value);
                         if (field === "city") updateLocation(location.id, "city", value);
                         if (field === "postcode") updateLocation(location.id, "postcode", value);
                         if (field === "country") updateLocation(location.id, "country", value);
