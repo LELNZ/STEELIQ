@@ -12,7 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Plus, User, Mail, Phone, Trash2, Edit, Star, Users, Grid3X3, List, Table, Building } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, User, Mail, Phone, Trash2, Edit, Star, Users, Grid3X3, List, Table, Building, MoreVertical } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -296,14 +297,30 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
     }
   };
 
-  const handleDelete = (contactId: number) => {
-    deleteContactMutation.mutate(contactId);
+  const handleSetAsPreferred = (contact: Contact) => {
+    console.log("Setting preferred contact:", contact);
+    if (onPreferredContactChange) {
+      // Prioritize mobile number over phone number
+      const preferredPhone = contact.mobile || contact.phoneMobile || contact.phone || contact.workPhone || contact.phonePrimary || "";
+      
+      // Create contact object with prioritized mobile number
+      const preferredContact = {
+        ...contact,
+        phone: preferredPhone // This will be used to populate the main form
+      };
+      
+      console.log("Preferred contact with prioritized mobile:", preferredContact);
+      onPreferredContactChange(preferredContact);
+      
+      toast({ 
+        title: "Preferred contact updated", 
+        description: `${contact.firstName} ${contact.lastName} is now the preferred contact` 
+      });
+    }
   };
 
-  const handleSetAsPreferred = (contact: Contact) => {
-    if (onPreferredContactChange) {
-      onPreferredContactChange(contact);
-    }
+  const handleDelete = (contactId: number) => {
+    deleteContactMutation.mutate(contactId);
   };
 
   const primaryContact = contacts.find((contact: Contact) => 

@@ -182,20 +182,25 @@ export function MultiLocationManager({
     setValue: (field: string, value: string) => {
       console.log("MultiLocationManager setValue called:", { field, value, hasEditingLocation: !!editingLocation });
       if (editingLocation) {
-        const updatedLocation = { ...editingLocation };
-        
-        if (field === "address") {
-          updatedLocation.address = value;
-        } else if (field === "city") {
-          updatedLocation.city = value;
-        } else if (field === "postcode") {
-          updatedLocation.postcode = value;
-        } else if (field === "country") {
-          updatedLocation.country = value;
-        }
-        
-        console.log("Updating location with:", { field, value, updatedLocation });
-        setEditingLocation(updatedLocation);
+        setEditingLocation(prev => {
+          if (!prev) return prev;
+          
+          console.log("Previous location state:", prev);
+          const updatedLocation = { ...prev };
+          
+          if (field === "address") {
+            updatedLocation.address = value;
+          } else if (field === "city") {
+            updatedLocation.city = value;
+          } else if (field === "postcode") {
+            updatedLocation.postcode = value;
+          } else if (field === "country") {
+            updatedLocation.country = value;
+          }
+          
+          console.log("New location state:", updatedLocation);
+          return updatedLocation;
+        });
       }
     }
   });
