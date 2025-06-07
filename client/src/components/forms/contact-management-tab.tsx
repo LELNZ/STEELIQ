@@ -74,7 +74,9 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: [`/api/${apiEndpoint}`, entityId],
     queryFn: async () => {
+      console.log(`Fetching contacts: ${apiEndpoint} for ${entityType} ID ${entityId}`);
       const response = await apiRequest("GET", `/api/${apiEndpoint}?${queryParam}=${entityId}`);
+      console.log(`Contacts response:`, response);
       return Array.isArray(response) ? response : [];
     },
     enabled: !!entityId
@@ -131,13 +133,18 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   // Delete contact mutation
   const deleteContactMutation = useMutation({
     mutationFn: async (contactId: number) => {
-      return apiRequest("DELETE", `/api/${apiEndpoint}/${contactId}`);
+      console.log(`Deleting ${entityType} contact ID ${contactId} via ${apiEndpoint}`);
+      const result = await apiRequest("DELETE", `/api/${apiEndpoint}/${contactId}`);
+      console.log(`Delete result:`, result);
+      return result;
     },
     onSuccess: () => {
+      console.log(`Invalidating query: ["/api/${apiEndpoint}", ${entityId}]`);
       queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`, entityId] });
       toast({ title: "Contact deleted successfully" });
     },
     onError: (error) => {
+      console.error(`Delete error:`, error);
       toast({ title: "Error deleting contact", description: error.message, variant: "destructive" });
     }
   });
@@ -239,6 +246,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   };
 
   const handleDelete = (contactId: number) => {
+    console.log(`HandleDelete called for contact ID ${contactId}, entityType: ${entityType}, entityId: ${entityId}`);
     deleteContactMutation.mutate(contactId);
   };
 
