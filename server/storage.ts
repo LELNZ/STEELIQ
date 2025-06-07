@@ -140,6 +140,13 @@ export interface IStorage {
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: number, client: Partial<InsertClient>): Promise<Client>;
   deleteClient(id: number): Promise<boolean>;
+
+  // Location Management
+  getLocations(entityType: 'supplier' | 'client', entityId: number): Promise<Location[]>;
+  getLocation(id: number): Promise<Location | undefined>;
+  createLocation(location: InsertLocation): Promise<Location>;
+  updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location>;
+  deleteLocation(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -736,6 +743,42 @@ export class DatabaseStorage implements IStorage {
     
     // Then delete the client
     const result = await db.delete(clients).where(eq(clients.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Location Management
+  async getLocations(entityType: 'supplier' | 'client', entityId: number): Promise<Location[]> {
+    return await db.select().from(locations).where(
+      and(
+        eq(locations.entityType, entityType),
+        eq(locations.entityId, entityId)
+      )
+    );
+  }
+
+  async getLocation(id: number): Promise<Location | undefined> {
+    const [location] = await db.select().from(locations).where(eq(locations.id, id));
+    return location || undefined;
+  }
+
+  async createLocation(location: InsertLocation): Promise<Location> {
+    const [createdLocation] = await db.insert(locations)
+      .values(location)
+      .returning();
+    return createdLocation;
+  }
+
+  async updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location> {
+    const [updatedLocation] = await db
+      .update(locations)
+      .set({ ...location, updatedAt: new Date() })
+      .where(eq(locations.id, id))
+      .returning();
+    return updatedLocation;
+  }
+
+  async deleteLocation(id: number): Promise<boolean> {
+    const result = await db.delete(locations).where(eq(locations.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 }

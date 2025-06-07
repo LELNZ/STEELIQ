@@ -1450,6 +1450,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Supplier Locations
+  app.get('/api/supplier-locations/:supplierId', async (req, res) => {
+    try {
+      const supplierId = parseInt(req.params.supplierId);
+      const locations = await storage.getLocations('supplier', supplierId);
+      res.json(locations);
+    } catch (error) {
+      console.error('Error fetching supplier locations:', error);
+      res.status(500).json({ error: 'Failed to fetch supplier locations' });
+    }
+  });
+
+  app.post('/api/supplier-locations', async (req, res) => {
+    try {
+      const location = await storage.createLocation({
+        ...req.body,
+        entityType: 'supplier'
+      });
+      res.json(location);
+    } catch (error) {
+      console.error('Error creating supplier location:', error);
+      res.status(500).json({ error: 'Failed to create supplier location' });
+    }
+  });
+
+  app.put('/api/supplier-locations/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const location = await storage.updateLocation(id, req.body);
+      res.json(location);
+    } catch (error) {
+      console.error('Error updating supplier location:', error);
+      res.status(500).json({ error: 'Failed to update supplier location' });
+    }
+  });
+
+  app.delete('/api/supplier-locations/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteLocation(id);
+      res.json({ success });
+    } catch (error) {
+      console.error('Error deleting supplier location:', error);
+      res.status(500).json({ error: 'Failed to delete supplier location' });
+    }
+  });
+
+  // Client Locations
+  app.get('/api/client-locations/:clientId', async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.clientId);
+      const locations = await storage.getLocations('client', clientId);
+      res.json(locations);
+    } catch (error) {
+      console.error('Error fetching client locations:', error);
+      res.status(500).json({ error: 'Failed to fetch client locations' });
+    }
+  });
+
+  app.post('/api/client-locations', async (req, res) => {
+    try {
+      const location = await storage.createLocation({
+        ...req.body,
+        entityType: 'client'
+      });
+      res.json(location);
+    } catch (error) {
+      console.error('Error creating client location:', error);
+      res.status(500).json({ error: 'Failed to create client location' });
+    }
+  });
+
+  app.put('/api/client-locations/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const location = await storage.updateLocation(id, req.body);
+      res.json(location);
+    } catch (error) {
+      console.error('Error updating client location:', error);
+      res.status(500).json({ error: 'Failed to update client location' });
+    }
+  });
+
+  app.delete('/api/client-locations/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteLocation(id);
+      res.json({ success });
+    } catch (error) {
+      console.error('Error deleting client location:', error);
+      res.status(500).json({ error: 'Failed to delete client location' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
