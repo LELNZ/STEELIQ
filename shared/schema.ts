@@ -268,6 +268,7 @@ export const suppliers = pgTable("suppliers", {
   website: text("website"), // Company website
   phone: text("phone"), // Primary phone number
   email: text("email"), // Primary email address
+  industry: text("industry"), // Industry sector
   paymentTerms: text("payment_terms").default("30 days"), // 30 days, 7 days, COD, etc.
   accountManager: text("account_manager"),
   leadTimeStandard: integer("lead_time_standard").default(7), // days
