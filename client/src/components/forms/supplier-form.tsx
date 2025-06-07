@@ -111,34 +111,41 @@ export function SupplierForm({
   // Auto-save mutation for creating suppliers
   const autoSaveMutation = useMutation({
     mutationFn: async (data: SupplierFormData) => {
-      // Prepare minimal data for auto-save
+      console.log("Auto-save starting with form data:", data);
+      
+      // Prepare minimal data for auto-save - just name is required
       const autoSaveData = {
         name: data.name,
-        company: data.company || undefined,
-        address: data.address || undefined,
-        city: data.city || undefined,
-        postcode: data.postcode || undefined,
+        // Only include other fields if they have actual values
+        ...(data.company && { company: data.company }),
+        ...(data.address && { address: data.address }),
+        ...(data.city && { city: data.city }),
+        ...(data.postcode && { postcode: data.postcode }),
         country: data.country || "New Zealand",
-        nzbn: data.nzbn || undefined,
-        gstNumber: data.gstNumber || undefined,
-        companyNumber: data.companyNumber || undefined,
-        website: data.website || undefined,
-        phone: data.phone || undefined,
-        email: data.email || undefined,
+        ...(data.nzbn && { nzbn: data.nzbn }),
+        ...(data.gstNumber && { gstNumber: data.gstNumber }),
+        ...(data.companyNumber && { companyNumber: data.companyNumber }),
+        ...(data.website && { website: data.website }),
+        ...(data.phone && { phone: data.phone }),
+        ...(data.email && { email: data.email }),
         paymentTerms: data.paymentTerms || "30 days",
-        accountManager: data.accountManager || undefined,
+        ...(data.accountManager && { accountManager: data.accountManager }),
         leadTimeStandard: data.leadTimeStandard || 7,
         leadTimeExpress: data.leadTimeExpress || 3,
         minimumOrderQuantity: data.minimumOrderQuantity || 0,
         minimumOrderValue: data.minimumOrderValue || 0,
-        deliveryAreas: data.deliveryAreas || undefined,
-        certifications: data.certifications || undefined,
-        standardsCompliance: data.standardsCompliance || undefined,
-        notes: data.notes || undefined,
+        ...(data.deliveryAreas && { deliveryAreas: data.deliveryAreas }),
+        ...(data.certifications && { certifications: data.certifications }),
+        ...(data.standardsCompliance && { standardsCompliance: data.standardsCompliance }),
+        ...(data.notes && { notes: data.notes }),
         isActive: data.isActive ?? true,
         isPreferredSupplier: data.isPreferredSupplier ?? false
       };
-      return await apiRequest("/api/suppliers", "POST", autoSaveData);
+      
+      console.log("Auto-save payload:", autoSaveData);
+      const result = await apiRequest("/api/suppliers", "POST", autoSaveData);
+      console.log("Auto-save successful:", result);
+      return result;
     },
     onSuccess: (data) => {
       setAutoSavedSupplierId(data.id);
@@ -149,11 +156,22 @@ export function SupplierForm({
       });
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
     },
-    onError: (error) => {
-      console.error("Auto-save failed:", error);
+    onError: (error: any) => {
+      console.error("Auto-save failed with error:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      
+      let errorMessage = "Failed to save supplier. Please check required fields.";
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.response?.data?.details) {
+        errorMessage = `Validation error: ${JSON.stringify(error.response.data.details)}`;
+      }
+      
       toast({
         title: "Auto-Save Failed",
-        description: "Failed to save supplier. Please check required fields.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -188,10 +206,14 @@ export function SupplierForm({
       // Auto-save the supplier before switching to contacts
       try {
         const formData = form.getValues();
+        console.log("Starting auto-save with form data:", formData);
+        console.log("Company name validation:", hasCompanyName, companyName);
+        
         await autoSaveMutation.mutateAsync(formData);
         setActiveTab(tabValue);
         setShowValidationWarning(false);
       } catch (error) {
+        console.error("Auto-save catch block error:", error);
         // Error handling is done in mutation onError
         return;
       }
