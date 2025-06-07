@@ -163,19 +163,25 @@ export function AddressSearch({
             });
             
             // Set form values with accurate Google data
-            form.setValue('address', formattedAddress);
-            form.setValue('city', locality);
-            form.setValue('postcode', postalCode);
+            if (form?.setValue) {
+              form.setValue('address', formattedAddress);
+              form.setValue('city', locality);
+              form.setValue('postcode', postalCode);
+            }
           }
         }
       } catch (error) {
         console.error('Error getting place details:', error);
         // Fallback to basic suggestion data
-        form.setValue('address', suggestion.display_name);
+        if (form?.setValue) {
+          form.setValue('address', suggestion.display_name);
+        }
       }
     } else {
       // Manual address entry
-      form.setValue('address', suggestion.display_name);
+      if (form?.setValue) {
+        form.setValue('address', suggestion.display_name);
+      }
     }
     
     setShowAddressSuggestions(false);
