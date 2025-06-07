@@ -606,13 +606,7 @@ export function ClientForm({
           </div>
         </CollapsibleSection>
 
-        {/* Contact Information */}
-        <div className="form-section section-contact">
-          <div className="form-section-header">
-            <Users className="form-section-icon" />
-            <h3 className="form-section-title">Contact Information</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="contact" icon={Users} title="Contact Information">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -642,15 +636,9 @@ export function ClientForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Financial & Commercial Terms */}
-        <div className="form-section section-financial">
-          <div className="form-section-header">
-            <DollarSign className="form-section-icon" />
-            <h3 className="form-section-title">Financial & Commercial Terms</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="financial" icon={DollarSign} title="Financial & Commercial Terms">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <FormField
               control={form.control}
@@ -766,15 +754,9 @@ export function ClientForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Operational Requirements */}
-        <div className="form-section section-operational">
-          <div className="form-section-header">
-            <Package className="form-section-icon" />
-            <h3 className="form-section-title">Operational Requirements</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="operational" icon={Package} title="Operational Requirements">
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -827,15 +809,9 @@ export function ClientForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Lead Times & Order Requirements */}
-        <div className="form-section section-leadtimes">
-          <div className="form-section-header">
-            <Clock className="form-section-icon" />
-            <h3 className="form-section-title">Lead Times & Order Requirements</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="leadtimes" icon={Clock} title="Lead Times & Order Requirements">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -913,15 +889,9 @@ export function ClientForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Quality & Compliance */}
-        <div className="form-section section-quality">
-          <div className="form-section-header">
-            <Award className="form-section-icon" />
-            <h3 className="form-section-title">Quality & Compliance</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="quality" icon={Award} title="Quality & Compliance">
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -959,15 +929,9 @@ export function ClientForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Additional Information */}
-        <div className="form-section section-additional">
-          <div className="form-section-header">
-            <FileText className="form-section-icon" />
-            <h3 className="form-section-title">Additional Information</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="additional" icon={FileText} title="Additional Information">
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -988,15 +952,9 @@ export function ClientForm({
               )}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        {/* Status Settings Section */}
-        <div className="form-section section-status">
-          <div className="form-section-header">
-            <Settings className="form-section-icon" />
-            <h3 className="form-section-title">Status Settings</h3>
-          </div>
-
+        <CollapsibleSection sectionKey="status" icon={Settings} title="Status Settings">
           <div className="space-y-4">
             <FormField
               control={form.control}
@@ -1040,7 +998,7 @@ export function ClientForm({
                 )}
               />
           </div>
-        </div>
+        </CollapsibleSection>
 
             <div className="flex justify-end space-x-4 pt-6">
               <Button type="button" variant="outline" onClick={onCancel}>

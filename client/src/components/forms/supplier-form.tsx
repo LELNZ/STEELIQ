@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle, Settings, Award, Scale, CheckCircle } from "lucide-react";
+import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle, Settings, Award, Scale, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactManagementTab } from "./contact-management-tab";
 import { MultiLocationManager } from "@/components/ui/multi-location-manager";
@@ -86,6 +86,26 @@ export function SupplierForm({
   const [autoSavedSupplierId, setAutoSavedSupplierId] = useState<number | undefined>(supplierId);
   const [showValidationWarning, setShowValidationWarning] = useState(false);
   const [hasAutoSaved, setHasAutoSaved] = useState(false);
+  
+  // Collapsible sections state - all sections start collapsed except Company Information (which is always open)
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    address: true,
+    registration: true,
+    contact: true,
+    financial: true,
+    operational: true,
+    leadtimes: true,
+    quality: true,
+    additional: true,
+    status: true
+  });
+
+  const toggleSection = (sectionKey: string) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
