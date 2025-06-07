@@ -221,23 +221,23 @@ export function SupplierForm({
   };
 
   return (
-    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="details" className="flex items-center gap-2">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full enhanced-tabs">
+      <TabsList className="grid w-full grid-cols-2 mb-6">
+        <TabsTrigger value="details" className="flex items-center gap-2 transition-all duration-200">
           <Building2 className="h-4 w-4" />
           Supplier Details
         </TabsTrigger>
-        <TabsTrigger value="contacts" className="flex items-center gap-2" disabled={!hasCompanyName}>
+        <TabsTrigger value="contacts" className="flex items-center gap-2 transition-all duration-200" disabled={!hasCompanyName}>
           <Users className="h-4 w-4" />
           Contacts
-          {!hasCompanyName && <span className="text-xs">(Enter name first)</span>}
-          {autoSaveMutation.isPending && <span className="text-xs">(Saving...)</span>}
+          {!hasCompanyName && <span className="text-xs text-muted-foreground">(Enter name first)</span>}
+          {autoSaveMutation.isPending && <span className="text-xs text-primary animate-pulse">(Saving...)</span>}
         </TabsTrigger>
       </TabsList>
 
       {/* Validation Warning */}
       {showValidationWarning && (
-        <Alert className="mt-4">
+        <Alert className="mt-4 form-alert">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             Please complete both company name and legal company name fields before adding contacts.
@@ -249,10 +249,10 @@ export function SupplierForm({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {/* Company Information Section */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 pb-2 border-b">
-                <Building2 className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold">Company Information</h3>
+            <div className="form-section section-company">
+              <div className="form-section-header">
+                <Building2 className="form-section-icon" />
+                <h3 className="form-section-title">Company Information</h3>
               </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -343,10 +343,10 @@ export function SupplierForm({
         </div>
 
         {/* Address Information Section */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <MapPin className="h-5 w-5 text-green-600" />
-            <h3 className="text-lg font-semibold">Address Information</h3>
+        <div className="form-section section-address">
+          <div className="form-section-header">
+            <MapPin className="form-section-icon" />
+            <h3 className="form-section-title">Address Information</h3>
           </div>
 
           <div className="space-y-4">
@@ -478,10 +478,10 @@ export function SupplierForm({
         </div>
 
         {/* Commercial Terms Section */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <DollarSign className="h-5 w-5 text-green-600" />
-            <h3 className="text-lg font-semibold">Commercial Terms</h3>
+        <div className="form-section section-financial">
+          <div className="form-section-header">
+            <DollarSign className="form-section-icon" />
+            <h3 className="form-section-title">Commercial Terms</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

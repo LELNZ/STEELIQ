@@ -656,10 +656,10 @@ export function ClientForm({
         </div>
 
         {/* Operational Requirements */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <Package className="h-5 w-5 text-orange-600" />
-            <h3 className="text-lg font-semibold">Operational Requirements</h3>
+        <div className="form-section section-operational">
+          <div className="form-section-header">
+            <Package className="form-section-icon" />
+            <h3 className="form-section-title">Operational Requirements</h3>
           </div>
 
           <div className="space-y-4">
@@ -704,10 +704,10 @@ export function ClientForm({
         </div>
 
         {/* Additional Information */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <FileText className="h-5 w-5 text-gray-600" />
-            <h3 className="text-lg font-semibold">Additional Information</h3>
+        <div className="form-section section-additional">
+          <div className="form-section-header">
+            <FileText className="form-section-icon" />
+            <h3 className="form-section-title">Additional Information</h3>
           </div>
 
           <div className="space-y-4">
