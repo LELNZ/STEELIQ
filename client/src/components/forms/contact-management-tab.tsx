@@ -45,14 +45,16 @@ interface Contact {
 }
 
 interface ContactManagementTabProps {
-  supplierId?: number;
-  supplierName?: string;
+  entityId: number;
+  entityType: "supplier" | "client";
+  entityName?: string;
+  mode?: "create" | "edit";
   autoMarkAsPrimary?: boolean;
 }
 
 type ViewMode = "grid" | "list" | "table";
 
-export function ContactManagementTab({ supplierId, supplierName, autoMarkAsPrimary = false }: ContactManagementTabProps) {
+export function ContactManagementTab({ entityId, entityType, entityName, mode = "create", autoMarkAsPrimary = false }: ContactManagementTabProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
@@ -60,14 +62,17 @@ export function ContactManagementTab({ supplierId, supplierName, autoMarkAsPrima
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch contacts for this supplier
+  // Fetch contacts for this entity (supplier or client)
+  const apiEndpoint = entityType === "supplier" ? "supplier-contacts" : "client-contacts";
+  const queryParam = entityType === "supplier" ? "supplierId" : "clientId";
+  
   const { data: contacts = [], isLoading } = useQuery({
-    queryKey: ["/api/supplier-contacts", supplierId],
+    queryKey: [`/api/${apiEndpoint}`, entityId],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/supplier-contacts?supplierId=${supplierId}`);
+      const response = await apiRequest("GET", `/api/${apiEndpoint}?${queryParam}=${entityId}`);
       return Array.isArray(response) ? response : [];
     },
-    enabled: !!supplierId
+    enabled: !!entityId
   });
 
   // Add contact mutation
@@ -77,10 +82,18 @@ export function ContactManagementTab({ supplierId, supplierName, autoMarkAsPrima
       if (autoMarkAsPrimary && contacts.length === 0) {
         contactData.isPrimaryContact = true;
       }
-      return apiRequest("POST", "/api/supplier-contacts", contactData);
+      
+      // Add the correct entity ID field
+      if (entityType === "supplier") {
+        contactData.supplierId = entityId;
+      } else {
+        contactData.clientId = entityId;
+      }
+      
+      return apiRequest("POST", `/api/${apiEndpoint}`, contactData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`] });
       setIsAddDialogOpen(false);
       addForm.reset();
       toast({ 
@@ -96,10 +109,10 @@ export function ContactManagementTab({ supplierId, supplierName, autoMarkAsPrima
   // Update contact mutation
   const updateContactMutation = useMutation({
     mutationFn: async (contactData: any) => {
-      return apiRequest("PATCH", `/api/supplier-contacts/${contactData.id}`, contactData);
+      return apiRequest("PATCH", `/api/${apiEndpoint}/${contactData.id}`, contactData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`] });
       setIsEditDialogOpen(false);
       setEditingContact(null);
       editForm.reset();
@@ -113,10 +126,10 @@ export function ContactManagementTab({ supplierId, supplierName, autoMarkAsPrima
   // Delete contact mutation
   const deleteContactMutation = useMutation({
     mutationFn: async (contactId: number) => {
-      return apiRequest("DELETE", `/api/supplier-contacts/${contactId}`);
+      return apiRequest("DELETE", `/api/${apiEndpoint}/${contactId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/supplier-contacts"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`] });
       toast({ title: "Contact deleted successfully" });
     },
     onError: (error) => {
