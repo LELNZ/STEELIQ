@@ -419,6 +419,89 @@ export function ClientForm({
           </div>
         </div>
 
+        {/* Address Information */}
+        <div className="form-section section-address">
+          <div className="form-section-header">
+            <MapPin className="form-section-icon" />
+            <h3 className="form-section-title">Address Information</h3>
+          </div>
+
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Street Address</FormLabel>
+                  <FormControl>
+                    <AddressSearch
+                      field={field}
+                      form={form}
+                      placeholder="Enter street address"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City</FormLabel>
+                    <FormControl>
+                      <Input placeholder="City" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="postcode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Postcode</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Postcode" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="country"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <FormControl>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="New Zealand">New Zealand</SelectItem>
+                          <SelectItem value="Australia">Australia</SelectItem>
+                          <SelectItem value="United States">United States</SelectItem>
+                          <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Registration & Legal Information */}
         <div className="form-section section-legal">
           <div className="form-section-header">
@@ -432,9 +515,9 @@ export function ClientForm({
               name="nzbn"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>NZBN (New Zealand Business Number)</FormLabel>
+                  <FormLabel>NZBN</FormLabel>
                   <FormControl>
-                    <Input placeholder="13-digit NZBN" {...field} />
+                    <Input placeholder="New Zealand Business Number" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -868,7 +951,7 @@ export function ClientForm({
         {/* Quality & Compliance */}
         <div className="form-section section-quality">
           <div className="form-section-header">
-            <Shield className="form-section-icon" />
+            <Award className="form-section-icon" />
             <h3 className="form-section-title">Quality & Compliance</h3>
           </div>
 

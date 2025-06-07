@@ -918,10 +918,10 @@ export function SupplierForm({
             name="notes"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Notes</FormLabel>
+                <FormLabel>Internal Notes</FormLabel>
                 <FormControl>
                   <Textarea 
-                    placeholder="Additional notes, special instructions, or comments"
+                    placeholder="Internal notes about this supplier (not visible to supplier)..."
                     className="min-h-[100px]"
                     {...field} 
                   />
