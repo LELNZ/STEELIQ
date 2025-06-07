@@ -843,6 +843,7 @@ export const insertSupplierSchema = createInsertSchema(suppliers).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
+  company: z.string().optional(), // Make company field optional for auto-save
   leadTimeStandard: z.union([z.string(), z.number()]).transform(val => Number(val)).optional(),
   leadTimeExpress: z.union([z.string(), z.number()]).transform(val => Number(val)).optional(),
   minimumOrderQuantity: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),

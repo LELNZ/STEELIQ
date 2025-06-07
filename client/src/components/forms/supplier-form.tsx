@@ -17,35 +17,7 @@ import { ContactManagementTab } from "./contact-management-tab";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-// Minimal validation schema for auto-save functionality - only requires company name
-export const supplierAutoSaveSchema = z.object({
-  name: z.string().min(1, "Company name is required"),
-  company: z.string().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  postcode: z.string().optional(),
-  country: z.string().default("New Zealand"),
-  nzbn: z.string().optional(),
-  gstNumber: z.string().optional(),
-  companyNumber: z.string().optional(),
-  website: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().optional(),
-  paymentTerms: z.string().default("30 days"),
-  accountManager: z.string().optional(),
-  leadTimeStandard: z.number().default(7),
-  leadTimeExpress: z.number().default(3),
-  minimumOrderQuantity: z.number().default(0),
-  minimumOrderValue: z.number().default(0),
-  deliveryAreas: z.string().optional(),
-  certifications: z.string().optional(),
-  standardsCompliance: z.string().optional(),
-  notes: z.string().optional(),
-  isActive: z.boolean().default(true),
-  isPreferredSupplier: z.boolean().default(false)
-});
-
-// Full validation schema for form submission
+// Form validation schema
 export const supplierFormSchema = z.object({
   name: z.string().min(1, "Company/Supplier name is required"),
   company: z.string().optional(),
@@ -139,8 +111,33 @@ export function SupplierForm({
   // Auto-save mutation for creating suppliers
   const autoSaveMutation = useMutation({
     mutationFn: async (data: SupplierFormData) => {
-      // Use minimal validation for auto-save - only require company name
-      const autoSaveData = supplierAutoSaveSchema.parse(data);
+      // Prepare minimal data for auto-save
+      const autoSaveData = {
+        name: data.name,
+        company: data.company || undefined,
+        address: data.address || undefined,
+        city: data.city || undefined,
+        postcode: data.postcode || undefined,
+        country: data.country || "New Zealand",
+        nzbn: data.nzbn || undefined,
+        gstNumber: data.gstNumber || undefined,
+        companyNumber: data.companyNumber || undefined,
+        website: data.website || undefined,
+        phone: data.phone || undefined,
+        email: data.email || undefined,
+        paymentTerms: data.paymentTerms || "30 days",
+        accountManager: data.accountManager || undefined,
+        leadTimeStandard: data.leadTimeStandard || 7,
+        leadTimeExpress: data.leadTimeExpress || 3,
+        minimumOrderQuantity: data.minimumOrderQuantity || 0,
+        minimumOrderValue: data.minimumOrderValue || 0,
+        deliveryAreas: data.deliveryAreas || undefined,
+        certifications: data.certifications || undefined,
+        standardsCompliance: data.standardsCompliance || undefined,
+        notes: data.notes || undefined,
+        isActive: data.isActive ?? true,
+        isPreferredSupplier: data.isPreferredSupplier ?? false
+      };
       return await apiRequest("/api/suppliers", "POST", autoSaveData);
     },
     onSuccess: (data) => {
@@ -191,14 +188,7 @@ export function SupplierForm({
       // Auto-save the supplier before switching to contacts
       try {
         const formData = form.getValues();
-        
-        // Prepare minimal data for auto-save - just use the company name
-        const autoSaveData = {
-          ...formData,
-          company: formData.name, // Use the name field as company name
-        };
-        
-        await autoSaveMutation.mutateAsync(autoSaveData);
+        await autoSaveMutation.mutateAsync(formData);
         setActiveTab(tabValue);
         setShowValidationWarning(false);
       } catch (error) {
