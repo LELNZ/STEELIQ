@@ -842,6 +842,13 @@ export const insertSupplierSchema = createInsertSchema(suppliers).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  leadTimeStandard: z.union([z.string(), z.number()]).transform(val => Number(val)).optional(),
+  leadTimeExpress: z.union([z.string(), z.number()]).transform(val => Number(val)).optional(),
+  minimumOrderQuantity: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  minimumOrderValue: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  qualityRating: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  reliabilityRating: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
 });
 
 export const insertMaterialSupplierSchema = createInsertSchema(materialSuppliers).omit({
