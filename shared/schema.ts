@@ -190,8 +190,8 @@ export const optimizationSimulations = pgTable("optimization_simulations", {
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(), // Primary company/client name
-  company: text("company").notNull(), // Company name
-  type: text("type").notNull().default("client"), // client, customer, contractor
+  company: text("company"), // Company name (optional like supplier)
+  type: text("type").notNull().default("client"), // client, prospect, main_contractor, etc.
   address: text("address"),
   city: text("city"),
   state: text("state"),
@@ -199,13 +199,30 @@ export const clients = pgTable("clients", {
   country: text("country").default("New Zealand"),
   nzbn: text("nzbn"), // New Zealand Business Number
   gstNumber: text("gst_number"),
+  companyNumber: text("company_number"), // NZ company registration number
   website: text("website"),
+  phone: text("phone"), // Primary phone number
+  email: text("email"), // Primary email address
   industry: text("industry"),
   customerSince: timestamp("customer_since"),
   creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }),
   paymentTerms: text("payment_terms").default("30 days"),
-  discountRate: decimal("discount_rate", { precision: 5, scale: 2 }).default("0"),
+  discountRate: text("discount_rate").default("0"), // Changed to text for consistency
+  projectManager: text("project_manager"), // Assigned project manager
+  accountManager: text("account_manager"), // Account manager (matching supplier)
+  billingSchedule: text("billing_schedule"), // Monthly, Per Project, etc.
+  deliveryInstructions: text("delivery_instructions"),
+  specialRequirements: text("special_requirements"),
+  // Adding comprehensive supplier-matching fields
+  leadTimeStandard: integer("lead_time_standard").default(7), // days
+  leadTimeExpress: integer("lead_time_express").default(3), // days
+  minimumOrderQuantity: decimal("minimum_order_quantity", { precision: 10, scale: 2 }).default("0"),
+  minimumOrderValue: decimal("minimum_order_value", { precision: 10, scale: 2 }).default("0"),
+  deliveryAreas: text("delivery_areas"), // Service areas
+  certifications: text("certifications"), // Client certifications/requirements
+  standardsCompliance: text("standards_compliance"), // Standards they require
   isActive: boolean("is_active").default(true),
+  isPreferredClient: boolean("is_preferred_client").default(false),
   preferredCurrency: text("preferred_currency").default("NZD"),
   notes: text("notes"),
   internalReference: text("internal_reference"),

@@ -106,7 +106,7 @@ export function ClientForm({
       email: "",
       paymentTerms: "30 days",
       projectManager: "",
-      creditLimit: 0,
+      creditLimit: "0",
       discountRate: "0",
       industry: "",
       type: "client",
@@ -724,6 +724,165 @@ export function ClientForm({
                       rows={3}
                       {...field}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="deliveryAreas"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Delivery Areas</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Auckland, Wellington, Christchurch" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Lead Times & Order Requirements */}
+        <div className="form-section section-operational">
+          <div className="form-section-header">
+            <Clock className="form-section-icon" />
+            <h3 className="form-section-title">Lead Times & Order Requirements</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="leadTimeStandard"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Standard Lead Time (days)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="7" 
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="leadTimeExpress"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Express Lead Time (days)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="3" 
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="minimumOrderQuantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Minimum Order Quantity</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="0" 
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="minimumOrderValue"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Minimum Order Value ($)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="0" 
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Quality & Compliance */}
+        <div className="form-section section-quality">
+          <div className="form-section-header">
+            <Shield className="form-section-icon" />
+            <h3 className="form-section-title">Quality & Compliance</h3>
+          </div>
+
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="certifications"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Certifications</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="ISO 9001, AS/NZS 3678, etc."
+                      className="min-h-[80px]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="standardsCompliance"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Standards Compliance</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Australian Standards, New Zealand Standards, etc."
+                      className="min-h-[80px]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="accountManager"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Account Manager</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Assigned account manager name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
