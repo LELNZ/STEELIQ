@@ -129,12 +129,18 @@ export function AddressSearch({
   };
 
   const selectAddress = async (suggestion: AddressSuggestion) => {
+    console.log("📍 AddressSearch selectAddress called with:", suggestion);
+    console.log("📍 Form object available:", !!form);
+    console.log("📍 Form setValue function:", !!form?.setValue);
+    
     // Don't allow selection of error states
     if (suggestion.error) {
+      console.log("📍 Suggestion has error, returning");
       return;
     }
     
     if (suggestion.place_id) {
+      console.log("📍 Getting place details for place_id:", suggestion.place_id);
       // Google Places API - get detailed address information
       try {
         const response = await fetch('/api/places/details', {
@@ -145,9 +151,14 @@ export function AddressSearch({
         
         if (response.ok) {
           const data = await response.json();
+          console.log("📍 Place details response:", data);
+          
           if (data.result) {
             const addressComponents = data.result.address_components;
             const formattedAddress = data.result.formatted_address;
+            
+            console.log("📍 Formatted address:", formattedAddress);
+            console.log("📍 Address components:", addressComponents);
             
             // Extract address components
             let locality = '';
@@ -162,25 +173,53 @@ export function AddressSearch({
               }
             });
             
+            console.log("📍 Extracted - City:", locality, "Postcode:", postalCode);
+            
             // Set form values with accurate Google data
             if (form?.setValue) {
+              console.log("📍 Setting form values:");
+              console.log("  - address:", formattedAddress);
+              console.log("  - city:", locality);
+              console.log("  - postcode:", postalCode);
+              
               form.setValue('address', formattedAddress);
               form.setValue('city', locality);
               form.setValue('postcode', postalCode);
+              
+              console.log("📍 Form setValue calls completed");
+            } else {
+              console.log("📍 ERROR: No form.setValue function available!");
             }
+            
+            // Also call field onChange if available
+            if (field?.onChange) {
+              console.log("📍 Calling field.onChange with:", formattedAddress);
+              field.onChange(formattedAddress);
+            }
+          } else {
+            console.log("📍 No result in place details response");
           }
+        } else {
+          console.log("📍 Place details request failed:", response.status);
         }
       } catch (error) {
-        console.error('Error getting place details:', error);
+        console.error('📍 Error getting place details:', error);
         // Fallback to basic suggestion data
         if (form?.setValue) {
           form.setValue('address', suggestion.display_name);
         }
+        if (field?.onChange) {
+          field.onChange(suggestion.display_name);
+        }
       }
     } else {
+      console.log("📍 No place_id, using display_name:", suggestion.display_name);
       // Manual address entry
       if (form?.setValue) {
         form.setValue('address', suggestion.display_name);
+      }
+      if (field?.onChange) {
+        field.onChange(suggestion.display_name);
       }
     }
     

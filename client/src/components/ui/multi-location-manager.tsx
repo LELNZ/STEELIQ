@@ -97,9 +97,11 @@ export function MultiLocationManager({
   };
 
   const updateLocation = (id: string, field: keyof Location, value: any) => {
+    console.log("🏢 MultiLocationManager updateLocation called:", { id, field, value });
     const updatedLocations = locations.map(loc => 
       loc.id === id ? { ...loc, [field]: value } : loc
     );
+    console.log("🏢 Updated locations:", updatedLocations);
     setLocations(updatedLocations);
     onLocationsChange?.(updatedLocations);
   };
@@ -203,10 +205,23 @@ export function MultiLocationManager({
                     }}
                     form={{
                       setValue: (field: string, value: string) => {
-                        if (field === "address") updateLocation(location.id, "address", value);
-                        if (field === "city") updateLocation(location.id, "city", value);
-                        if (field === "postcode") updateLocation(location.id, "postcode", value);
-                        if (field === "country") updateLocation(location.id, "country", value);
+                        console.log("🏢 MultiLocationManager form.setValue called:", { field, value, locationId: location.id });
+                        if (field === "address") {
+                          console.log("🏢 Setting address field");
+                          updateLocation(location.id, "address", value);
+                        }
+                        if (field === "city") {
+                          console.log("🏢 Setting city field");
+                          updateLocation(location.id, "city", value);
+                        }
+                        if (field === "postcode") {
+                          console.log("🏢 Setting postcode field");
+                          updateLocation(location.id, "postcode", value);
+                        }
+                        if (field === "country") {
+                          console.log("🏢 Setting country field");
+                          updateLocation(location.id, "country", value);
+                        }
                       }
                     }}
                     placeholder="Enter street address"
