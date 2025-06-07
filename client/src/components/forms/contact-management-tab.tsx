@@ -117,7 +117,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
       return apiRequest("PATCH", `/api/${apiEndpoint}/${contactData.id}`, contactData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`, entityId] });
       setIsEditDialogOpen(false);
       setEditingContact(null);
       editForm.reset();
@@ -134,7 +134,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
       return apiRequest("DELETE", `/api/${apiEndpoint}/${contactId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`, entityId] });
       toast({ title: "Contact deleted successfully" });
     },
     onError: (error) => {
