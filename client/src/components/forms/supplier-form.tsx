@@ -87,9 +87,9 @@ export function SupplierForm({
   const [showValidationWarning, setShowValidationWarning] = useState(false);
   const [hasAutoSaved, setHasAutoSaved] = useState(false);
   
-  // Collapsible sections state - all sections start collapsed except Company Information (which is always open)
+  // Collapsible sections state - Address Information and Company Information start expanded
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
-    address: true,
+    address: false,
     registration: true,
     contact: true,
     financial: true,
