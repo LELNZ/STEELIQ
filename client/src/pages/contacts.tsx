@@ -882,12 +882,49 @@ export default function ContactsPage() {
         </TabsContent>
 
         <TabsContent value="contacts" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="relative w-96">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search contacts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex items-center space-x-4">
+              <ToggleGroup 
+                type="single" 
+                value={contactsViewMode} 
+                onValueChange={(value) => value && setContactsViewMode(value as ViewMode)}
+                className="border rounded-md"
+              >
+                <ToggleGroupItem value="card" aria-label="Card view">
+                  <Grid3X3 className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="list" aria-label="List view">
+                  <List className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="table" aria-label="Table view">
+                  <TableIcon className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <Button className="space-x-2" disabled>
+                <Plus className="h-4 w-4" />
+                <span>Add Contact</span>
+              </Button>
+            </div>
+          </div>
+
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <Users className="h-12 w-12 text-muted-foreground mb-4" />
+              <Contact className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">Individual Contacts</h3>
               <p className="text-muted-foreground text-center mb-4">
                 Individual contact management will be available soon. Currently, contacts are managed within each supplier.
+              </p>
+              <p className="text-sm text-muted-foreground text-center">
+                The view switcher above is ready for when individual contacts are implemented.
               </p>
             </CardContent>
           </Card>
