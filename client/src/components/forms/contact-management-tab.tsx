@@ -140,7 +140,13 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
     },
     onSuccess: () => {
       console.log(`Invalidating query: ["/api/${apiEndpoint}", ${entityId}]`);
+      console.log(`Current query cache keys:`, queryClient.getQueryCache().getAll().map(q => q.queryKey));
+      
+      // Force refetch with multiple invalidation approaches
       queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`, entityId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/${apiEndpoint}`] });
+      queryClient.refetchQueries({ queryKey: [`/api/${apiEndpoint}`, entityId] });
+      
       toast({ title: "Contact deleted successfully" });
     },
     onError: (error) => {
