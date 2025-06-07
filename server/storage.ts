@@ -496,6 +496,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteSupplier(id: number): Promise<boolean> {
+    // First delete all associated contacts
+    await db.delete(supplierContacts).where(eq(supplierContacts.supplierId, id));
+    
+    // Then delete the supplier
     const result = await db.delete(suppliers)
       .where(eq(suppliers.id, id))
       .returning();
@@ -726,6 +730,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteClient(id: number): Promise<boolean> {
+    // First delete all associated contacts
+    await db.delete(clientContacts).where(eq(clientContacts.clientId, id));
+    
+    // Then delete the client
     const result = await db.delete(clients).where(eq(clients.id, id));
     return (result.rowCount ?? 0) > 0;
   }
