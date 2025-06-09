@@ -352,91 +352,239 @@ export function MultiLocationManager({
       {savedLocations.length > 0 && (
         <div className="space-y-4">
           <h4 className="text-md font-medium text-muted-foreground">Saved Locations</h4>
-          <div className="grid gap-4">
-            {savedLocations.map((location) => {
-              const typeInfo = getLocationTypeInfo(location.locationType);
-              const TypeIcon = typeInfo.icon;
-              
-              return (
-                <Card key={location.id} className="relative">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <TypeIcon className="h-4 w-4" />
-                        <CardTitle className="text-base">
-                          {location.locationName || typeInfo.label}
-                        </CardTitle>
-                        {location.locationType === "primary" && (
-                          <Badge variant="default" className="text-xs">Primary</Badge>
-                        )}
-                        {location.isPreferred && (
-                          <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                            <Star className="h-3 w-3 fill-current" />
-                            Preferred
-                          </Badge>
-                        )}
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {!location.isPreferred && (
-                            <DropdownMenuItem onClick={() => handleSetPreferred(location.id)}>
-                              <Star className="h-4 w-4 mr-2" />
-                              Set as Preferred
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => handleEditLocation(location)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteLocation(location.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-3 w-3 text-muted-foreground" />
-                        <span>{location.address}</span>
-                      </div>
-                      {(location.city || location.postcode) && (
+          {viewMode === "table" ? (
+            <div className="rounded-md border">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left p-3 text-sm font-medium">Location</th>
+                    <th className="text-left p-3 text-sm font-medium">Address</th>
+                    <th className="text-left p-3 text-sm font-medium">Contact</th>
+                    <th className="text-left p-3 text-sm font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {savedLocations.map((location) => {
+                    const typeInfo = getLocationTypeInfo(location.locationType);
+                    const TypeIcon = typeInfo.icon;
+                    
+                    return (
+                      <tr key={location.id} className="border-b hover:bg-muted/50">
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <TypeIcon className="h-4 w-4" />
+                            <div>
+                              <div className="font-medium">
+                                {location.locationName || typeInfo.label}
+                              </div>
+                              <div className="flex gap-1 mt-1">
+                                {location.locationType === "primary" && (
+                                  <Badge variant="default" className="text-xs">Primary</Badge>
+                                )}
+                                {location.isPreferred && (
+                                  <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                    <Star className="h-3 w-3 fill-current" />
+                                    Preferred
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="text-sm">
+                            <div>{location.address}</div>
+                            {(location.city || location.postcode) && (
+                              <div className="text-muted-foreground">
+                                {[location.city, location.postcode].filter(Boolean).join(", ")}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="text-sm">
+                            {location.contactPerson && <div>{location.contactPerson}</div>}
+                            {location.phone && <div className="text-muted-foreground">{location.phone}</div>}
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {!location.isPreferred && (
+                                <DropdownMenuItem onClick={() => handleSetPreferred(location.id)}>
+                                  <Star className="h-4 w-4 mr-2" />
+                                  Set as Preferred
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => handleEditLocation(location)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDeleteLocation(location.id)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className={`gap-4 ${
+              viewMode === "grid" ? "grid grid-cols-1 lg:grid-cols-2" :
+              "space-y-3"
+            }`}>
+              {savedLocations.map((location) => {
+                const typeInfo = getLocationTypeInfo(location.locationType);
+                const TypeIcon = typeInfo.icon;
+                
+                return viewMode === "list" ? (
+                  <div key={location.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <TypeIcon className="h-4 w-4" />
+                      <div>
                         <div className="flex items-center gap-2">
-                          <div className="h-3 w-3" /> {/* Spacer */}
-                          <span className="text-muted-foreground">
-                            {[location.city, location.postcode].filter(Boolean).join(", ")}
+                          <span className="font-medium">
+                            {location.locationName || typeInfo.label}
                           </span>
+                          {location.locationType === "primary" && (
+                            <Badge variant="default" className="text-xs">Primary</Badge>
+                          )}
+                          {location.isPreferred && (
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-current" />
+                              Preferred
+                            </Badge>
+                          )}
                         </div>
-                      )}
-                      {location.contactPerson && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-3 w-3 text-muted-foreground" />
-                          <span>{location.contactPerson}</span>
-                          {location.phone && <span className="text-muted-foreground">• {location.phone}</span>}
+                        <div className="text-sm text-muted-foreground">
+                          {location.address}
+                          {(location.city || location.postcode) && (
+                            <span> • {[location.city, location.postcode].filter(Boolean).join(", ")}</span>
+                          )}
                         </div>
-                      )}
-                      {location.operatingHours && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          <span>{location.operatingHours}</span>
-                        </div>
-                      )}
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {!location.isPreferred && (
+                          <DropdownMenuItem onClick={() => handleSetPreferred(location.id)}>
+                            <Star className="h-4 w-4 mr-2" />
+                            Set as Preferred
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => handleEditLocation(location)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteLocation(location.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ) : (
+                  <Card key={location.id} className="relative">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <TypeIcon className="h-4 w-4" />
+                          <CardTitle className="text-base">
+                            {location.locationName || typeInfo.label}
+                          </CardTitle>
+                          {location.locationType === "primary" && (
+                            <Badge variant="default" className="text-xs">Primary</Badge>
+                          )}
+                          {location.isPreferred && (
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-current" />
+                              Preferred
+                            </Badge>
+                          )}
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {!location.isPreferred && (
+                              <DropdownMenuItem onClick={() => handleSetPreferred(location.id)}>
+                                <Star className="h-4 w-4 mr-2" />
+                                Set as Preferred
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => handleEditLocation(location)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteLocation(location.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-3 w-3 text-muted-foreground" />
+                          <span>{location.address}</span>
+                        </div>
+                        {(location.city || location.postcode) && (
+                          <div className="flex items-center gap-2">
+                            <div className="h-3 w-3" /> {/* Spacer */}
+                            <span className="text-muted-foreground">
+                              {[location.city, location.postcode].filter(Boolean).join(", ")}
+                            </span>
+                          </div>
+                        )}
+                        {location.contactPerson && (
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            <span>{location.contactPerson}</span>
+                            {location.phone && <span className="text-muted-foreground">• {location.phone}</span>}
+                          </div>
+                        )}
+                        {location.operatingHours && (
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3 w-3 text-muted-foreground" />
+                            <span>{location.operatingHours}</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -502,10 +650,12 @@ export function MultiLocationManager({
                       setValue: (field: string, value: string) => {
                         console.log("Google Places setValue:", field, "=", value);
                         if (field === "address") {
+                          updateEditingLocation("address", value);
                           updateEditingLocation("addressLine1", value);
                         } else if (field === "city") {
                           updateEditingLocation("city", value);
                         } else if (field === "postcode") {
+                          updateEditingLocation("postcode", value);
                           updateEditingLocation("postalCode", value);
                         } else if (field === "country") {
                           updateEditingLocation("country", value);
