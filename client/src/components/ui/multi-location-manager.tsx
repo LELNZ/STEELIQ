@@ -17,14 +17,18 @@ interface Location {
   locationType: string;
   locationName: string;
   address: string;
+  addressLine1: string;
+  addressLine2: string;
   city: string;
   postcode: string;
+  postalCode: string;
   country: string;
   contactPerson: string;
   phone: string;
   email: string;
   operatingHours: string;
   specialInstructions: string;
+  notes: string;
   isActive: boolean;
   isSaved: boolean;
   isEditing: boolean;
@@ -66,14 +70,18 @@ export function MultiLocationManager({
     locationType: "other",
     locationName: "",
     address: "",
+    addressLine1: "",
+    addressLine2: "",
     city: "",
     postcode: "",
+    postalCode: "",
     country: "New Zealand",
     contactPerson: "",
     phone: "",
     email: "",
     operatingHours: "",
     specialInstructions: "",
+    notes: "",
     isActive: true,
     isSaved: false,
     isEditing: true,
@@ -118,20 +126,22 @@ export function MultiLocationManager({
     try {
       // Prepare location data for API
       const locationData = {
-        ...(entityType === "supplier" ? { supplierId: entityId } : { clientId: entityId }),
+        entityId: entityId,
+        entityType: entityType,
         locationType: location.locationType,
         locationName: location.locationName,
-        address: location.address,
+        addressLine1: location.address || location.addressLine1 || "",
+        addressLine2: location.addressLine2 || "",
         city: location.city || "",
-        postcode: location.postcode || "",
-        country: location.country || "",
+        postalCode: location.postcode || location.postalCode || "",
+        country: location.country || "New Zealand",
         contactPerson: location.contactPerson || "",
         phone: location.phone || "",
         email: location.email || "",
-        operatingHours: location.operatingHours || "",
-        specialInstructions: location.specialInstructions || "",
-        isActive: true,
-        isPreferred: savedLocations.length === 0 // First location becomes preferred
+        notes: location.specialInstructions || location.notes || "",
+        isPrimary: savedLocations.length === 0, // First location becomes primary
+        isBillingAddress: false,
+        isShippingAddress: false
       };
 
       console.log("Sending location data to API:", locationData);
@@ -169,7 +179,7 @@ export function MultiLocationManager({
         id: savedLocation.id || location.id,
         isSaved: true,
         isEditing: false,
-        isPreferred: locationData.isPreferred
+        isPreferred: locationData.isPrimary
       };
 
       // Update or add to saved locations
@@ -492,11 +502,11 @@ export function MultiLocationManager({
                       setValue: (field: string, value: string) => {
                         console.log("Google Places setValue:", field, "=", value);
                         if (field === "address") {
-                          updateEditingLocation("address", value);
+                          updateEditingLocation("addressLine1", value);
                         } else if (field === "city") {
                           updateEditingLocation("city", value);
                         } else if (field === "postcode") {
-                          updateEditingLocation("postcode", value);
+                          updateEditingLocation("postalCode", value);
                         } else if (field === "country") {
                           updateEditingLocation("country", value);
                         }
