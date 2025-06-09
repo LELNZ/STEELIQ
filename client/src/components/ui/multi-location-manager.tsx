@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -64,6 +64,60 @@ export function MultiLocationManager({
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [showNewLocationForm, setShowNewLocationForm] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list" | "table">("grid");
+
+  // Load existing locations when component mounts or entityId changes
+  useEffect(() => {
+    const loadExistingLocations = async () => {
+      if (!entityId) return;
+      
+      try {
+        const endpoint = entityType === "supplier" ? "supplier-locations" : "client-locations";
+        const response = await fetch(`/api/${endpoint}?entityId=${entityId}`);
+        
+        if (response.ok) {
+          const locations = await response.json();
+          console.log("Loaded existing locations:", locations);
+          
+          // Transform database locations to component format
+          const transformedLocations = locations.map((loc: any) => ({
+            id: loc.id.toString(),
+            locationType: loc.locationType || "other",
+            locationName: loc.locationName || "",
+            address: loc.addressLine1 || "",
+            addressLine1: loc.addressLine1 || "",
+            addressLine2: loc.addressLine2 || "",
+            city: loc.city || "",
+            postcode: loc.postalCode || "",
+            postalCode: loc.postalCode || "",
+            country: loc.country || "New Zealand",
+            contactPerson: loc.contactPerson || "",
+            phone: loc.phone || "",
+            email: loc.email || "",
+            operatingHours: loc.operatingHours || "",
+            specialInstructions: loc.specialInstructions || "",
+            notes: loc.notes || "",
+            isActive: loc.isActive !== false,
+            isSaved: true,
+            isEditing: false,
+            isPreferred: loc.isPrimary || false
+          }));
+          
+          setSavedLocations(transformedLocations);
+          onLocationsChange?.(transformedLocations);
+          
+          // Set preferred location
+          const preferredLocation = transformedLocations.find((loc: Location) => loc.isPreferred);
+          if (preferredLocation) {
+            onPreferredLocationChange?.(preferredLocation);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading existing locations:", error);
+      }
+    };
+
+    loadExistingLocations();
+  }, [entityId, entityType]);
 
   const createNewLocation = (): Location => ({
     id: Date.now().toString(),
@@ -253,33 +307,7 @@ export function MultiLocationManager({
     }
   };
 
-  // Custom form setValue function for AddressSearch
-  const createAddressFormHandler = () => ({
-    setValue: (field: string, value: string) => {
-      console.log("MultiLocationManager setValue called:", { field, value, hasEditingLocation: !!editingLocation });
-      if (editingLocation) {
-        setEditingLocation(prev => {
-          if (!prev) return prev;
-          
-          console.log("Previous location state:", prev);
-          const updatedLocation = { ...prev };
-          
-          if (field === "address") {
-            updatedLocation.address = value;
-          } else if (field === "city") {
-            updatedLocation.city = value;
-          } else if (field === "postcode") {
-            updatedLocation.postcode = value;
-          } else if (field === "country") {
-            updatedLocation.country = value;
-          }
-          
-          console.log("New location state:", updatedLocation);
-          return updatedLocation;
-        });
-      }
-    }
-  });
+
 
   const getLocationTypeInfo = (type: string) => {
     return locationTypes.find(lt => lt.value === type) || locationTypes[0];
@@ -649,17 +677,33 @@ export function MultiLocationManager({
                     form={{
                       setValue: (field: string, value: string) => {
                         console.log("Google Places setValue:", field, "=", value);
-                        if (field === "address") {
-                          updateEditingLocation("address", value);
-                          updateEditingLocation("addressLine1", value);
-                        } else if (field === "city") {
-                          updateEditingLocation("city", value);
-                        } else if (field === "postcode") {
-                          updateEditingLocation("postcode", value);
-                          updateEditingLocation("postalCode", value);
-                        } else if (field === "country") {
-                          updateEditingLocation("country", value);
+                        console.log("Current editingLocation:", editingLocation);
+                        
+                        if (!editingLocation) {
+                          console.warn("No editingLocation available for setValue");
+                          return;
                         }
+                        
+                        setEditingLocation(prev => {
+                          if (!prev) return prev;
+                          
+                          const updated = { ...prev };
+                          
+                          if (field === "address") {
+                            updated.address = value;
+                            updated.addressLine1 = value;
+                          } else if (field === "city") {
+                            updated.city = value;
+                          } else if (field === "postcode") {
+                            updated.postcode = value;
+                            updated.postalCode = value;
+                          } else if (field === "country") {
+                            updated.country = value;
+                          }
+                          
+                          console.log("Updated location state:", updated);
+                          return updated;
+                        });
                       }
                     }}
                     placeholder="Search for address..."
