@@ -256,9 +256,32 @@ export function SupplierForm({
   };
 
   const handleAddressSelect = (addressData: any) => {
+    console.log("Address data received:", addressData);
+    
+    // Extract address components from Google Places API response
+    const components = addressData.address_components || [];
+    let city = "";
+    let postcode = "";
+    
+    components.forEach((component: any) => {
+      const types = component.types;
+      if (types.includes("locality") || types.includes("administrative_area_level_2")) {
+        city = component.long_name;
+      }
+      if (types.includes("postal_code")) {
+        postcode = component.long_name;
+      }
+    });
+    
     form.setValue("address", addressData.formatted_address || "");
-    form.setValue("city", addressData.locality || "");
-    form.setValue("postcode", addressData.postal_code || "");
+    form.setValue("city", city || addressData.locality || "");
+    form.setValue("postcode", postcode || addressData.postal_code || "");
+    
+    console.log("Updated form values:", {
+      address: addressData.formatted_address,
+      city: city,
+      postcode: postcode
+    });
   };
 
   // Collapsible Section Component
