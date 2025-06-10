@@ -17,6 +17,7 @@ import {
   Copy,
   Trash2
 } from "lucide-react";
+import { ActionIcons } from "@/components/ui/action-icons";
 
 interface Estimate {
   id: string;
@@ -234,20 +235,21 @@ export default function EstimatesPage() {
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                <ActionIcons
+                  onView={() => console.log('View estimate:', estimate.id)}
+                  onEdit={() => console.log('Edit estimate:', estimate.id)}
+                  onCopy={() => console.log('Copy estimate:', estimate.id)}
+                  onDelete={() => {
+                    if (confirm(`Are you sure you want to delete estimate ${estimate.number}?`)) {
+                      console.log('Delete estimate:', estimate.id);
+                    }
+                  }}
+                  viewTitle="View Estimate"
+                  editTitle="Edit Estimate"
+                  copyTitle="Copy Estimate"
+                  deleteTitle="Delete Estimate"
+                  compact={false}
+                />
               </div>
             </CardContent>
           </Card>

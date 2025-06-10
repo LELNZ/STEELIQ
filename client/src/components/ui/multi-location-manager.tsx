@@ -10,6 +10,7 @@ import { MapPin, Plus, Trash2, Building2, Clock, Phone, Mail, Save, Check, Alert
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactSearch } from "@/components/ui/contact-search";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ActionIcons } from "@/components/ui/action-icons";
 import { useToast } from "@/hooks/use-toast";
 
 interface Location {
@@ -494,32 +495,25 @@ export function MultiLocationManager({
                           </div>
                         </td>
                         <td className="p-3">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {!location.isPreferred && (
-                                <DropdownMenuItem onClick={() => handleSetPreferred(location.id)}>
-                                  <Star className="h-4 w-4 mr-2" />
-                                  Set as Preferred
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem onClick={() => handleEditLocation(location)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteLocation(location.id)}
-                                className="text-destructive"
+                          <div className="flex items-center gap-2">
+                            {!location.isPreferred && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleSetPreferred(location.id)}
+                                title="Set as Preferred"
                               >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                <Star className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <ActionIcons
+                              onEdit={() => handleEditLocation(location)}
+                              onDelete={() => handleDeleteLocation(location.id)}
+                              editTitle="Edit Location"
+                              deleteTitle="Delete Location"
+                              compact={true}
+                            />
+                          </div>
                         </td>
                       </tr>
                     );
@@ -563,32 +557,25 @@ export function MultiLocationManager({
                         </div>
                       </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {!location.isPreferred && (
-                          <DropdownMenuItem onClick={() => handleSetPreferred(location.id)}>
-                            <Star className="h-4 w-4 mr-2" />
-                            Set as Preferred
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => handleEditLocation(location)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDeleteLocation(location.id)}
-                          className="text-destructive"
+                    <div className="flex items-center gap-2">
+                      {!location.isPreferred && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleSetPreferred(location.id)}
+                          title="Set as Preferred"
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <Star className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <ActionIcons
+                        onEdit={() => handleEditLocation(location)}
+                        onDelete={() => handleDeleteLocation(location.id)}
+                        editTitle="Edit Location"
+                        deleteTitle="Delete Location"
+                        compact={true}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <Card key={location.id} className="relative">
@@ -609,32 +596,25 @@ export function MultiLocationManager({
                             </Badge>
                           )}
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {!location.isPreferred && (
-                              <DropdownMenuItem onClick={() => handleSetPreferred(location.id)}>
-                                <Star className="h-4 w-4 mr-2" />
-                                Set as Preferred
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => handleEditLocation(location)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleDeleteLocation(location.id)}
-                              className="text-destructive"
+                        <div className="flex items-center gap-2">
+                          {!location.isPreferred && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleSetPreferred(location.id)}
+                              title="Set as Preferred"
                             >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <Star className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <ActionIcons
+                            onEdit={() => handleEditLocation(location)}
+                            onDelete={() => handleDeleteLocation(location.id)}
+                            editTitle="Edit Location"
+                            deleteTitle="Delete Location"
+                            compact={true}
+                          />
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
