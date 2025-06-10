@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Users, Building2, Plus, Edit, Trash2, Search, Phone, Mail, MapPin, Calendar, DollarSign, Clock, Truck, Contact, Grid3X3, List, Table as TableIcon, Upload, Download, FileSpreadsheet, CheckCircle, AlertCircle, Info, FileText } from "lucide-react";
+import { ActionIcons } from "@/components/ui/action-icons";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { SupplierForm, type SupplierFormData } from "@/components/forms/supplier-form";
@@ -575,25 +576,16 @@ export default function ContactsPage() {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg">{supplier.name}</CardTitle>
-                          <div className="flex space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingSupplier(supplier)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSupplierToDelete(supplier);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
+                          <ActionIcons
+                            onEdit={() => setEditingSupplier(supplier)}
+                            onDelete={() => {
+                              setSupplierToDelete(supplier);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                            editTitle="Edit Supplier"
+                            deleteTitle="Delete Supplier"
+                            compact={false}
+                          />
                         </div>
                         <CardDescription>
                           <div className="flex items-center space-x-2">
@@ -760,25 +752,16 @@ export default function ContactsPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingSupplier(supplier)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSupplierToDelete(supplier);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
+                          <ActionIcons
+                            onEdit={() => setEditingSupplier(supplier)}
+                            onDelete={() => {
+                              setSupplierToDelete(supplier);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                            editTitle="Edit Supplier"
+                            deleteTitle="Delete Supplier"
+                            compact={false}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}

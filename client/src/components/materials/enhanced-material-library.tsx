@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus, Calculator, Info, Building2, DollarSign, Check, ChevronsUpDown } from "lucide-react";
+import { ActionIcons } from "@/components/ui/action-icons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -1517,28 +1518,16 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
                       >
                         <Calculator className="w-3 h-3" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => setEditingMaterial(material)}
-                        title="Edit Material"
-                        className="h-6 w-8 p-0"
-                      >
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-red-500 hover:text-red-700 h-6 w-8 p-0"
-                        onClick={() => {
+                      <ActionIcons
+                        onEdit={() => setEditingMaterial(material)}
+                        onDelete={() => {
                           if (confirm(`Are you sure you want to delete ${material.name}?`)) {
                             deleteSelectedMutation.mutate([material.id]);
                           }
                         }}
-                        title="Delete Material"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                        editTitle="Edit Material"
+                        deleteTitle="Delete Material"
+                      />
                     </div>
                   </div>
                 </CardContent>

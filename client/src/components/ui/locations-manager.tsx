@@ -449,32 +449,16 @@ export function LocationsManager({ entityType, entityId, onLocationChange }: Loc
                         </div>
                       </td>
                       <td className="p-3">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {!location.isPrimary && (
-                              <DropdownMenuItem onClick={() => handleSetPrimary(location.id)}>
-                                <Star className="h-4 w-4 mr-2" />
-                                Set as Primary
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => handleEditLocation(location)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleDeleteLocation(location.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <ActionIcons
+                          onEdit={() => handleEditLocation(location)}
+                          onDelete={() => {
+                            if (confirm(`Are you sure you want to delete ${location.locationName}? This action cannot be undone.`)) {
+                              handleDeleteLocation(location.id);
+                            }
+                          }}
+                          editTitle="Edit Location"
+                          deleteTitle="Delete Location"
+                        />
                       </td>
                     </tr>
                   );
