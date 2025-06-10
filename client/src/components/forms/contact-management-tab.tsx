@@ -328,6 +328,9 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   });
 
   const handleSetAsPrimary = (contact: Contact) => {
+    console.log("Setting as primary:", contact);
+    console.log("Entity type:", entityType);
+    console.log("Contact ID:", contact.id);
     setPrimaryContactMutation.mutate(contact.id);
   };
 
