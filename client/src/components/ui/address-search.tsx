@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -42,6 +42,21 @@ export function AddressSearch({
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const addressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Click outside handler to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShowAddressSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Google Places API address search for accurate results matching Google Maps
   const searchAddresses = async (query: string) => {
@@ -233,20 +248,11 @@ export function AddressSearch({
         {label} {required && <span className="text-red-500">*</span>}
       </FormLabel>
       <FormControl>
-        <div className="relative">
+        <div ref={containerRef} className="relative">
           <Input
             placeholder={placeholder}
             {...field}
             onChange={(e) => handleAddressChange(e.target.value)}
-            onBlur={(e) => {
-              // Don't hide if the related target is within our suggestions dropdown
-              const relatedTarget = e.relatedTarget as HTMLElement;
-              if (!relatedTarget || !relatedTarget.closest('[data-address-dropdown]')) {
-                setTimeout(() => {
-                  setShowAddressSuggestions(false);
-                }, 150);
-              }
-            }}
             onFocus={() => {
               if (addressSuggestions.length > 0) {
                 setShowAddressSuggestions(true);
@@ -271,12 +277,17 @@ export function AddressSearch({
                       ? 'bg-red-50 dark:bg-red-900/20 cursor-not-allowed' 
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer'
                   }`}
-                  onMouseDown={(e) => {
+                  onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    console.log("Dropdown item clicked:", suggestion);
                     if (!suggestion.error && !suggestion.fallback) {
                       selectAddress(suggestion);
                     }
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                   }}
                 >
                   {suggestion.place_id ? (
