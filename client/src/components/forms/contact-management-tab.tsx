@@ -301,6 +301,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   const setPrimaryContactMutation = useMutation({
     mutationFn: async (contactId: number) => {
       const endpoint = entityType === "supplier" ? "supplier-contacts" : "client-contacts";
+      console.log(`Making API call to: /api/${endpoint}/${contactId}/set-primary`);
       return await apiRequest(`/api/${endpoint}/${contactId}/set-primary`, "PATCH");
     },
     onSuccess: async () => {
@@ -638,50 +639,32 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {contacts.map((contact: Contact) => (
                 <Card key={contact.id} className="relative">
-                  <div className="absolute top-2 right-2">
-                    {(entityType === "supplier" ? contact.isPrimaryContact : contact.isPrimary) ? (
-                      <Star className="h-5 w-5 text-yellow-500 fill-current" />
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSetAsPrimary(contact)}
-                        title="Set as Primary"
-                        disabled={setPrimaryContactMutation.isPending}
-                        className="h-7 w-7 p-0 hover:bg-yellow-50"
-                      >
-                        <Star className="h-4 w-4 text-gray-400 hover:text-yellow-500" />
-                      </Button>
-                    )}
-                  </div>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <User className="h-4 w-4 text-blue-600" />
-                      {contact.firstName} {contact.lastName}
-                    </CardTitle>
-                    {contact.position && (
-                      <p className="text-sm text-muted-foreground">{contact.position}</p>
-                    )}
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {contact.email && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Mail className="h-3 w-3 text-muted-foreground" />
-                        <span className="truncate">{contact.email}</span>
-                      </div>
-                    )}
-                    {contact.phoneMobile && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Phone className="h-3 w-3 text-muted-foreground" />
-                        <span>{contact.phoneMobile}</span>
-                      </div>
-                    )}
-                    {contact.department && (
-                      <Badge variant="outline" className="text-xs">
-                        {contact.department}
-                      </Badge>
-                    )}
-                    <div className="flex justify-end items-center gap-2 pt-2">
+                  <CardContent className="p-4">
+                    {/* Star icon in top right corner */}
+                    <div className="absolute top-3 right-3">
+                      {(entityType === "supplier" ? contact.isPrimaryContact : contact.isPrimary) ? (
+                        <Star className="h-5 w-5 text-yellow-500 fill-current" />
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("Star clicked for contact:", contact);
+                            handleSetAsPrimary(contact);
+                          }}
+                          title="Set as Primary"
+                          disabled={setPrimaryContactMutation.isPending}
+                          className="h-7 w-7 p-0 hover:bg-yellow-50"
+                        >
+                          <Star className="h-4 w-4 text-gray-400 hover:text-yellow-500" />
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {/* Action icons positioned under the star */}
+                    <div className="absolute top-12 right-2">
                       <ActionIcons
                         onEdit={() => handleEdit(contact)}
                         onDelete={() => handleDelete(contact.id)}
@@ -689,6 +672,42 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                         deleteTitle="Delete Contact"
                         compact={true}
                       />
+                    </div>
+                    
+                    {/* Content with padding to avoid overlap */}
+                    <div className="pr-16">
+                      <div className="flex items-center gap-2 mb-2">
+                        <User className="h-4 w-4 text-blue-600" />
+                        <h4 className="font-medium text-base">
+                          {contact.firstName} {contact.lastName}
+                        </h4>
+                      </div>
+                      
+                      {contact.position && (
+                        <p className="text-sm text-muted-foreground mb-2">{contact.position}</p>
+                      )}
+                      
+                      <div className="space-y-1">
+                        {contact.email && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="h-3 w-3 text-muted-foreground" />
+                            <span className="truncate">{contact.email}</span>
+                          </div>
+                        )}
+                        
+                        {contact.phoneMobile && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            <span>{contact.phoneMobile}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {contact.department && (
+                        <Badge variant="outline" className="text-xs mt-2">
+                          {contact.department}
+                        </Badge>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -789,7 +808,12 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleSetAsPrimary(contact)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log("Table star clicked for contact:", contact);
+                              handleSetAsPrimary(contact);
+                            }}
                             title="Set as Primary"
                             disabled={setPrimaryContactMutation.isPending}
                             className="h-6 w-6 p-0 hover:bg-yellow-50"
