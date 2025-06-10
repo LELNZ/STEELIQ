@@ -577,7 +577,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                           <div className="space-y-0.5">
                             <FormLabel className="text-sm font-medium">Primary Contact</FormLabel>
                             <div className="text-xs text-muted-foreground">
-                              {primaryContact !== null && !field.value ? 
+                              {primaryContact && !field.value ? 
                                 `Another contact is already primary for this ${entityType}` : 
                                 `Set as main contact for this ${entityType}`
                               }
@@ -587,7 +587,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                             <Switch
                               checked={field.value}
                               onCheckedChange={field.onChange}
-                              disabled={!field.value && primaryContact !== null}
+                              disabled={!field.value && !!primaryContact}
                             />
                           </FormControl>
                         </FormItem>
@@ -944,7 +944,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                     <div className="space-y-0.5">
                       <FormLabel>Primary Contact</FormLabel>
                       <div className="text-sm text-muted-foreground">
-                        {primaryContact !== null && !field.value && primaryContact.id !== editingContact?.id ? 
+                        {primaryContact && !field.value && primaryContact.id !== editingContact?.id ? 
                           `Another contact is already primary for this ${entityType}` : 
                           `Set as main contact for this ${entityType}`
                         }
@@ -954,7 +954,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                       <Switch
                         checked={field.value}
                         onCheckedChange={field.onChange}
-                        disabled={!field.value && primaryContact !== null && primaryContact.id !== editingContact?.id}
+                        disabled={!field.value && !!primaryContact && primaryContact.id !== editingContact?.id}
                       />
                     </FormControl>
                   </FormItem>
