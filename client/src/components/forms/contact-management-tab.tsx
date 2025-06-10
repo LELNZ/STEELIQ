@@ -297,31 +297,38 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
     }
   };
 
-  const handleSetAsPreferred = (contact: Contact) => {
-    console.log("Setting preferred contact:", contact);
-    if (onPreferredContactChange) {
-      // Prioritize mobile number over phone number based on entity type
-      let preferredPhone = "";
+  // Set primary contact mutation
+  const setPrimaryContactMutation = useMutation({
+    mutationFn: async (contactId: number) => {
+      const endpoint = entityType === "supplier" ? "supplier-contacts" : "client-contacts";
+      return await apiRequest(`/api/${endpoint}/${contactId}/set-primary`, "PATCH");
+    },
+    onSuccess: async () => {
+      // Refresh contacts list
+      await queryClient.invalidateQueries({ queryKey: [apiEndpoint, entityId] });
+      await contactsQuery.refetch();
+      
+      // Refresh the parent entity to update main contact fields
       if (entityType === "supplier") {
-        preferredPhone = contact.phoneMobile || contact.phonePrimary || "";
+        await queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
       } else {
-        preferredPhone = contact.mobile || contact.workPhone || "";
+        await queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       }
       
-      // Create contact object with prioritized mobile number
-      const preferredContact = {
-        ...contact,
-        preferredPhone // Add the prioritized phone number
-      };
-      
-      console.log("Preferred contact with prioritized mobile:", preferredContact);
-      onPreferredContactChange(preferredContact);
-      
+      toast({ title: "Primary contact updated successfully" });
+    },
+    onError: (error) => {
+      console.error("Set primary contact error:", error);
       toast({ 
-        title: "Preferred contact updated", 
-        description: `${contact.firstName} ${contact.lastName} is now the preferred contact` 
+        title: "Error setting primary contact", 
+        description: error.message, 
+        variant: "destructive" 
       });
     }
+  });
+
+  const handleSetAsPrimary = (contact: Contact) => {
+    setPrimaryContactMutation.mutate(contact.id);
   };
 
   const handleDelete = (contactId: number) => {
@@ -657,14 +664,23 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                       </Badge>
                     )}
                     <div className="flex justify-end items-center gap-2 pt-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleSetAsPreferred(contact)}
-                        title="Set as Preferred"
-                      >
-                        <Star className="h-4 w-4" />
-                      </Button>
+                      {!contact.isPrimaryContact && !contact.isPrimary && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleSetAsPrimary(contact)}
+                          title="Set as Primary"
+                          disabled={setPrimaryContactMutation.isPending}
+                        >
+                          <Star className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {(contact.isPrimaryContact || contact.isPrimary) && (
+                        <Badge variant="default" className="text-xs">
+                          <Star className="h-3 w-3 mr-1 fill-current" />
+                          Primary
+                        </Badge>
+                      )}
                       <ActionIcons
                         onEdit={() => handleEdit(contact)}
                         onDelete={() => handleDelete(contact.id)}

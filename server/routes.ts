@@ -700,6 +700,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/supplier-contacts/:id/set-primary", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const contact = await storage.setPrimarySupplierContact(id);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      res.json(contact);
+    } catch (error) {
+      console.error("Error setting primary supplier contact:", error);
+      res.status(500).json({ error: "Failed to set primary supplier contact" });
+    }
+  });
+
   // Client Contacts routes
   app.get("/api/client-contacts", async (req, res) => {
     try {
