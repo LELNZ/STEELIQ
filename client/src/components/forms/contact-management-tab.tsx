@@ -307,12 +307,14 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
     onSuccess: async (data, contactId) => {
       // Refresh contacts list
       await queryClient.invalidateQueries({ queryKey: [apiEndpoint, entityId] });
-      await contactsQuery.refetch();
+      const refreshedData = await contactsQuery.refetch();
       
       // Find the newly set primary contact and call the callback
-      const updatedContact = contacts.find(c => c.id === contactId);
-      if (updatedContact && onPreferredContactChange) {
-        onPreferredContactChange(updatedContact);
+      const updatedContacts = refreshedData.data || [];
+      const primaryContact = updatedContacts.find(c => c.isPrimaryContact || c.isPrimary);
+      
+      if (primaryContact && onPreferredContactChange) {
+        onPreferredContactChange(primaryContact);
       }
       
       // Refresh the parent entity to update main contact fields
