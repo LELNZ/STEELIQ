@@ -186,6 +186,16 @@ export function AddressSearch({
             if (field?.onChange) {
               field.onChange(formattedAddress);
             }
+            
+            // Call onSelect callback with detailed address data
+            if (onSelect) {
+              onSelect({
+                address: formattedAddress,
+                city: locality,
+                postcode: postalCode,
+                country: 'New Zealand' // Default for NZ addresses
+              });
+            }
           }
         }
       } catch (error) {
