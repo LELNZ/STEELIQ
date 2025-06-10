@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Plus, User, Mail, Phone, Trash2, Edit, Star, Users, Grid3X3, List, Table, Building, MoreVertical } from "lucide-react";
+import { ActionIcons } from "@/components/ui/action-icons";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -780,40 +781,16 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                         )}
                       </td>
                       <td className="p-3">
-                        <div className="flex space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(contact)}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <Trash2 className="h-3 w-3 text-red-500" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Contact</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete {contact.firstName} {contact.lastName}?
-                                  This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(contact.id)}
-                                  className="bg-red-600 hover:bg-red-700"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+                        <ActionIcons
+                          onEdit={() => handleEdit(contact)}
+                          onDelete={() => {
+                            if (confirm(`Are you sure you want to delete ${contact.firstName} ${contact.lastName}? This action cannot be undone.`)) {
+                              handleDelete(contact.id);
+                            }
+                          }}
+                          editTitle="Edit Contact"
+                          deleteTitle="Delete Contact"
+                        />
                       </td>
                     </tr>
                   ))}
