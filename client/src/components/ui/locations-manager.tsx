@@ -60,15 +60,7 @@ export function LocationsManager({ entityType, entityId, onLocationChange }: Loc
     }
   }, [entityId, entityType]);
 
-  // Auto-refresh locations every 2 seconds when form is not shown
-  useEffect(() => {
-    if (entityId && !showForm) {
-      const interval = setInterval(() => {
-        loadLocations();
-      }, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [entityId, showForm]);
+  // Remove aggressive auto-refresh that was causing errors
 
   const loadLocations = async () => {
     if (!entityId) return;
@@ -108,14 +100,21 @@ export function LocationsManager({ entityType, entityId, onLocationChange }: Loc
         }));
         
         setLocations(transformedLocations);
+      } else {
+        console.log("No locations found or API error:", response.status);
+        setLocations([]);
       }
     } catch (error) {
       console.error("Error loading locations:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load locations",
-        variant: "destructive"
-      });
+      setLocations([]);
+      // Only show error toast for actual network errors, not empty results
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        toast({
+          title: "Connection Error",
+          description: "Could not connect to server. Please check your connection.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -207,10 +206,8 @@ export function LocationsManager({ entityType, entityId, onLocationChange }: Loc
       const savedLocation = await response.json();
       console.log("Location saved:", savedLocation);
 
-      // Force reload locations to ensure UI consistency
-      setTimeout(async () => {
-        await loadLocations();
-      }, 100);
+      // Immediately reload locations once after successful save
+      await loadLocations();
       
       setEditingLocation(null);
       setShowForm(false);
