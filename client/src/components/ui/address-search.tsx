@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -42,21 +42,6 @@ export function AddressSearch({
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const addressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Click outside handler to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setShowAddressSuggestions(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   // Google Places API address search for accurate results matching Google Maps
   const searchAddresses = async (query: string) => {
@@ -144,20 +129,12 @@ export function AddressSearch({
   };
 
   const selectAddress = async (suggestion: AddressSuggestion) => {
-    console.log("selectAddress called with:", suggestion);
-    
     // Don't allow selection of error states
-    if (suggestion.error || suggestion.fallback) {
-      console.log("Skipping error/fallback suggestion");
+    if (suggestion.error) {
       return;
     }
     
-    // Hide dropdown immediately
-    setShowAddressSuggestions(false);
-    setAddressSuggestions([]);
-    
     if (suggestion.place_id) {
-      console.log("Processing Google Places selection...");
       // Google Places API - get detailed address information
       try {
         const response = await fetch('/api/places/details', {
@@ -187,59 +164,52 @@ export function AddressSearch({
               }
             });
             
-            console.log("Extracted address data:", { 
+            console.log("Setting address fields:", { 
               address: formattedAddress, 
               city: locality, 
               postcode: postalCode 
             });
             
-            // Update the input field value
-            if (field?.onChange) {
-              field.onChange(formattedAddress);
+            // Set form values with accurate Google data
+            if (form?.setValue) {
+              form.setValue('address', formattedAddress);
+              if (locality) form.setValue('city', locality);
+              if (postalCode) form.setValue('postcode', postalCode);
+              console.log("Form setValue calls completed with:", { 
+                address: formattedAddress, 
+                city: locality, 
+                postcode: postalCode 
+              });
             }
             
-            // Call onSelect callback with detailed address data
-            if (onSelect) {
-              console.log("Calling onSelect callback...");
-              onSelect({
-                address: formattedAddress,
-                city: locality,
-                postcode: postalCode,
-                country: 'New Zealand'
-              });
+            // Also call field onChange if available
+            if (field?.onChange) {
+              field.onChange(formattedAddress);
             }
           }
         }
       } catch (error) {
         console.error('Error getting place details:', error);
         // Fallback to basic suggestion data
+        if (form?.setValue) {
+          form.setValue('address', suggestion.display_name);
+        }
         if (field?.onChange) {
           field.onChange(suggestion.display_name);
-        }
-        if (onSelect) {
-          onSelect({
-            address: suggestion.display_name,
-            city: '',
-            postcode: '',
-            country: 'New Zealand'
-          });
         }
       }
     } else {
       // Manual address entry
-      console.log("Processing manual address entry...");
+      if (form?.setValue) {
+        form.setValue('address', suggestion.display_name);
+      }
       if (field?.onChange) {
         field.onChange(suggestion.display_name);
       }
-      if (onSelect) {
-        onSelect({
-          address: suggestion.display_name,
-          city: '',
-          postcode: '',
-          country: 'New Zealand'
-        });
-      }
     }
+    
+    setShowAddressSuggestions(false);
+    setAddressSuggestions([]);
   };
 
   return (
@@ -248,16 +218,11 @@ export function AddressSearch({
         {label} {required && <span className="text-red-500">*</span>}
       </FormLabel>
       <FormControl>
-        <div ref={containerRef} className="relative">
+        <div className="relative">
           <Input
             placeholder={placeholder}
             {...field}
             onChange={(e) => handleAddressChange(e.target.value)}
-            onFocus={() => {
-              if (addressSuggestions.length > 0) {
-                setShowAddressSuggestions(true);
-              }
-            }}
             className="pr-8"
           />
           {isSearchingAddress && (
@@ -268,29 +233,19 @@ export function AddressSearch({
           
           {/* Address Suggestions Dropdown */}
           {showAddressSuggestions && addressSuggestions.length > 0 && (
-            <div className="absolute z-[9999] w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+            <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
               {addressSuggestions.map((suggestion, index) => (
                 <div
                   key={suggestion.place_id || index}
                   className={`px-4 py-3 border-b border-gray-100 dark:border-gray-600 last:border-b-0 ${
-                    suggestion.error || suggestion.fallback
+                    suggestion.error 
                       ? 'bg-red-50 dark:bg-red-900/20 cursor-not-allowed' 
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer'
                   }`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log("Dropdown item clicked:", suggestion);
-                    if (!suggestion.error && !suggestion.fallback) {
-                      selectAddress(suggestion);
-                    }
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
+                  onClick={() => selectAddress(suggestion)}
                 >
                   {suggestion.place_id ? (
+                    // Google Places API format
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {suggestion.main_text}
@@ -303,6 +258,7 @@ export function AddressSearch({
                       </div>
                     </div>
                   ) : suggestion.error ? (
+                    // Error state format
                     <div>
                       <div className="text-sm font-medium text-red-700 dark:text-red-300">
                         {suggestion.main_text}
@@ -312,6 +268,7 @@ export function AddressSearch({
                       </div>
                     </div>
                   ) : (
+                    // Manual entry or informational format
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {suggestion.main_text || suggestion.display_name}

@@ -676,23 +676,6 @@ export function LocationsManager({ entityType, entityId, onLocationChange }: Loc
                     }
                   }
                 }}
-                onSelect={(addressData) => {
-                  console.log("Address selected:", addressData);
-                  if (addressData.address) {
-                    updateEditingLocation("address", addressData.address);
-                    updateEditingLocation("addressLine1", addressData.address);
-                  }
-                  if (addressData.city) {
-                    updateEditingLocation("city", addressData.city);
-                  }
-                  if (addressData.postcode) {
-                    updateEditingLocation("postcode", addressData.postcode);
-                    updateEditingLocation("postalCode", addressData.postcode);
-                  }
-                  if (addressData.country) {
-                    updateEditingLocation("country", addressData.country);
-                  }
-                }}
                 placeholder="Search for address..."
               />
             </div>
