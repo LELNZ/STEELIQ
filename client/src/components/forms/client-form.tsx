@@ -1052,6 +1052,19 @@ export function ClientForm({
             entityName={form.getValues("name")}
             mode={mode}
             autoMarkAsPrimary={mode === "create"}
+            onPreferredContactChange={(contact) => {
+              if (contact) {
+                // Update main client contact fields with preferred contact
+                const contactName = `${contact.firstName} ${contact.lastName}`;
+                form.setValue("phone", contact.phoneMobile || contact.mobile || contact.phonePrimary || contact.workPhone || "");
+                form.setValue("email", contact.email || "");
+                form.setValue("accountManager", contactName);
+                toast({
+                  title: "Primary Contact Updated",
+                  description: `Client details updated with primary contact: ${contactName}`,
+                });
+              }
+            }}
           />
         )}
       </TabsContent>

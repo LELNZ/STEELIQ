@@ -1089,9 +1089,10 @@ export function SupplierForm({
                 const contactName = `${contact.firstName} ${contact.lastName}`;
                 form.setValue("phone", contact.phoneMobile || contact.mobile || contact.phonePrimary || contact.workPhone || "");
                 form.setValue("email", contact.email || "");
+                form.setValue("accountManager", contactName);
                 toast({
-                  title: "Contact Updated",
-                  description: `Supplier contact updated to preferred contact: ${contactName}`,
+                  title: "Primary Contact Updated",
+                  description: `Supplier details updated with primary contact: ${contactName}`,
                 });
               }
             }}

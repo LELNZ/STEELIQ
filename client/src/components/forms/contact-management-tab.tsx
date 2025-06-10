@@ -304,10 +304,16 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
       console.log(`Making API call to: /api/${endpoint}/${contactId}/set-primary`);
       return await apiRequest("PATCH", `/api/${endpoint}/${contactId}/set-primary`);
     },
-    onSuccess: async () => {
+    onSuccess: async (data, contactId) => {
       // Refresh contacts list
       await queryClient.invalidateQueries({ queryKey: [apiEndpoint, entityId] });
       await contactsQuery.refetch();
+      
+      // Find the newly set primary contact and call the callback
+      const updatedContact = contacts.find(c => c.id === contactId);
+      if (updatedContact && onPreferredContactChange) {
+        onPreferredContactChange(updatedContact);
+      }
       
       // Refresh the parent entity to update main contact fields
       if (entityType === "supplier") {
