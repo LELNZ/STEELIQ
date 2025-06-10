@@ -302,7 +302,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
     mutationFn: async (contactId: number) => {
       const endpoint = entityType === "supplier" ? "supplier-contacts" : "client-contacts";
       console.log(`Making API call to: /api/${endpoint}/${contactId}/set-primary`);
-      return await apiRequest(`/api/${endpoint}/${contactId}/set-primary`, "PATCH");
+      return await apiRequest("PATCH", `/api/${endpoint}/${contactId}/set-primary`);
     },
     onSuccess: async () => {
       // Refresh contacts list
@@ -655,10 +655,6 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            alert("Grid star clicked!");
-                            console.log("=== STAR BUTTON CLICKED ===");
-                            console.log("Grid view star clicked for contact:", contact);
-                            console.log("Event:", e);
                             handleSetAsPrimary(contact);
                           }}
                           title="Set as Primary"
@@ -818,9 +814,6 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              alert("Table star clicked!");
-                              console.log("=== TABLE STAR BUTTON CLICKED ===");
-                              console.log("Table star clicked for contact:", contact);
                               handleSetAsPrimary(contact);
                             }}
                             title="Set as Primary"
