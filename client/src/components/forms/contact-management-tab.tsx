@@ -329,9 +329,13 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   });
 
   const handleSetAsPrimary = (contact: Contact) => {
-    console.log("Setting as primary:", contact);
+    console.log("=== SET AS PRIMARY CLICKED ===");
+    console.log("Contact:", contact);
     console.log("Entity type:", entityType);
     console.log("Contact ID:", contact.id);
+    console.log("Is supplier primary?", contact.isPrimaryContact);
+    console.log("Is client primary?", contact.isPrimary);
+    console.log("Current primary status:", entityType === "supplier" ? contact.isPrimaryContact : contact.isPrimary);
     setPrimaryContactMutation.mutate(contact.id);
   };
 
@@ -651,7 +655,10 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            console.log("Star clicked for contact:", contact);
+                            alert("Grid star clicked!");
+                            console.log("=== STAR BUTTON CLICKED ===");
+                            console.log("Grid view star clicked for contact:", contact);
+                            console.log("Event:", e);
                             handleSetAsPrimary(contact);
                           }}
                           title="Set as Primary"
@@ -811,6 +818,8 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
+                              alert("Table star clicked!");
+                              console.log("=== TABLE STAR BUTTON CLICKED ===");
                               console.log("Table star clicked for contact:", contact);
                               handleSetAsPrimary(contact);
                             }}
