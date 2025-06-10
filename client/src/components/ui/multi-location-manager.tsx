@@ -65,6 +65,56 @@ export function MultiLocationManager({
   const [showNewLocationForm, setShowNewLocationForm] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list" | "table">("grid");
 
+  // Function to refresh locations from database
+  const refreshLocations = async () => {
+    if (!entityId) return;
+    
+    try {
+      const endpoint = entityType === "supplier" ? "supplier-locations" : "client-locations";
+      const response = await fetch(`/api/${endpoint}?entityId=${entityId}`);
+      
+      if (response.ok) {
+        const locations = await response.json();
+        console.log("Refreshed locations from database:", locations);
+        
+        // Transform database locations to component format
+        const transformedLocations = locations.map((loc: any) => ({
+          id: loc.id.toString(),
+          locationType: loc.locationType || "other",
+          locationName: loc.locationName || "",
+          address: loc.addressLine1 || "",
+          addressLine1: loc.addressLine1 || "",
+          addressLine2: loc.addressLine2 || "",
+          city: loc.city || "",
+          postcode: loc.postalCode || "",
+          postalCode: loc.postalCode || "",
+          country: loc.country || "New Zealand",
+          contactPerson: loc.contactPerson || "",
+          phone: loc.phone || "",
+          email: loc.email || "",
+          operatingHours: loc.operatingHours || "",
+          specialInstructions: loc.specialInstructions || "",
+          notes: loc.notes || "",
+          isActive: loc.isActive !== false,
+          isSaved: true,
+          isEditing: false,
+          isPreferred: loc.isPrimary || false
+        }));
+        
+        setSavedLocations(transformedLocations);
+        onLocationsChange?.(transformedLocations);
+        
+        // Set preferred location
+        const preferredLocation = transformedLocations.find((loc: Location) => loc.isPreferred);
+        if (preferredLocation) {
+          onPreferredLocationChange?.(preferredLocation);
+        }
+      }
+    } catch (error) {
+      console.error("Error refreshing locations:", error);
+    }
+  };
+
   // Load existing locations when component mounts or entityId changes
   useEffect(() => {
     const loadExistingLocations = async () => {
@@ -230,20 +280,25 @@ export function MultiLocationManager({
       // Update local state
       const updatedLocation = {
         ...location,
-        id: savedLocation.id || location.id,
+        id: savedLocation.id ? savedLocation.id.toString() : location.id,
         isSaved: true,
         isEditing: false,
         isPreferred: locationData.isPrimary
       };
 
       // Update or add to saved locations
-      const existingIndex = savedLocations.findIndex(loc => loc.id === location.id);
+      // For new locations (temp IDs), always add to the list
+      // For existing locations, find by database ID
+      const existingIndex = location.isSaved ? 
+        savedLocations.findIndex(loc => loc.id === location.id) : -1;
       let newSavedLocations;
       
       if (existingIndex >= 0) {
+        // Update existing location
         newSavedLocations = [...savedLocations];
         newSavedLocations[existingIndex] = updatedLocation;
       } else {
+        // Add new location
         newSavedLocations = [...savedLocations, updatedLocation];
       }
 
@@ -256,6 +311,9 @@ export function MultiLocationManager({
       if (updatedLocation.isPreferred) {
         onPreferredLocationChange?.(updatedLocation);
       }
+
+      // Force re-render to show the new location immediately
+      console.log("Location saved and added to UI successfully");
 
       toast({
         title: "Location Saved",
