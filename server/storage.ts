@@ -127,12 +127,14 @@ export interface IStorage {
   createSupplierContact(contact: InsertSupplierContact): Promise<SupplierContact>;
   updateSupplierContact(id: number, contact: Partial<InsertSupplierContact>): Promise<SupplierContact | undefined>;
   deleteSupplierContact(id: number): Promise<void>;
+  setPrimarySupplierContact(id: number): Promise<SupplierContact | undefined>;
 
   // Client Contacts
   getClientContacts(clientId?: number | null): Promise<ClientContact[]>;
   createClientContact(contact: InsertClientContact): Promise<ClientContact>;
   updateClientContact(id: number, contact: Partial<InsertClientContact>): Promise<ClientContact | undefined>;
   deleteClientContact(id: number): Promise<void>;
+  setPrimaryClientContact(id: number): Promise<ClientContact | undefined>;
 
   // Client Management
   getClients(): Promise<Client[]>;
@@ -679,6 +681,37 @@ export class DatabaseStorage implements IStorage {
     await db.delete(supplierContacts).where(eq(supplierContacts.id, id));
   }
 
+  async setPrimarySupplierContact(id: number): Promise<SupplierContact | undefined> {
+    // First get the contact to find the supplier ID
+    const [contact] = await db.select().from(supplierContacts).where(eq(supplierContacts.id, id));
+    if (!contact) return undefined;
+
+    // Set all other contacts for this supplier to non-primary
+    await db.update(supplierContacts)
+      .set({ isPrimaryContact: false, updatedAt: new Date() })
+      .where(eq(supplierContacts.supplierId, contact.supplierId));
+
+    // Set this contact as primary
+    const [updatedContact] = await db.update(supplierContacts)
+      .set({ isPrimaryContact: true, updatedAt: new Date() })
+      .where(eq(supplierContacts.id, id))
+      .returning();
+
+    // Update supplier with primary contact details
+    if (updatedContact) {
+      await db.update(suppliers)
+        .set({
+          contactName: `${updatedContact.firstName} ${updatedContact.lastName}`,
+          contactEmail: updatedContact.email || '',
+          contactPhone: updatedContact.phonePrimary || updatedContact.phoneMobile || '',
+          updatedAt: new Date()
+        })
+        .where(eq(suppliers.id, contact.supplierId));
+    }
+
+    return updatedContact;
+  }
+
   // Client Contacts Implementation
   async getClientContacts(clientId?: number | null): Promise<ClientContact[]> {
     if (clientId) {
@@ -709,6 +742,37 @@ export class DatabaseStorage implements IStorage {
 
   async deleteClientContact(id: number): Promise<void> {
     await db.delete(clientContacts).where(eq(clientContacts.id, id));
+  }
+
+  async setPrimaryClientContact(id: number): Promise<ClientContact | undefined> {
+    // First get the contact to find the client ID
+    const [contact] = await db.select().from(clientContacts).where(eq(clientContacts.id, id));
+    if (!contact) return undefined;
+
+    // Set all other contacts for this client to non-primary
+    await db.update(clientContacts)
+      .set({ isPrimary: false, updatedAt: new Date() })
+      .where(eq(clientContacts.clientId, contact.clientId));
+
+    // Set this contact as primary
+    const [updatedContact] = await db.update(clientContacts)
+      .set({ isPrimary: true, updatedAt: new Date() })
+      .where(eq(clientContacts.id, id))
+      .returning();
+
+    // Update client with primary contact details
+    if (updatedContact) {
+      await db.update(clients)
+        .set({
+          contactName: `${updatedContact.firstName} ${updatedContact.lastName}`,
+          contactEmail: updatedContact.email || '',
+          contactPhone: updatedContact.mobile || updatedContact.workPhone || '',
+          updatedAt: new Date()
+        })
+        .where(eq(clients.id, contact.clientId));
+    }
+
+    return updatedContact;
   }
 
   // Client Management Implementation

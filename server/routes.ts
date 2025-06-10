@@ -763,6 +763,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/client-contacts/:id/set-primary", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const contact = await storage.setPrimaryClientContact(id);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      res.json(contact);
+    } catch (error) {
+      console.error("Error setting primary client contact:", error);
+      res.status(500).json({ error: "Failed to set primary client contact" });
+    }
+  });
+
   // Client Management routes
   app.get("/api/clients", async (req, res) => {
     try {
