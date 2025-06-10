@@ -19,7 +19,7 @@ export const users = pgTable("users", {
   lastLogin: timestamp("last_login"),
   passwordResetToken: text("password_reset_token"),
   passwordResetExpiry: timestamp("password_reset_expiry"),
-  createdBy: integer("created_by").references(() => users.id),
+  createdBy: integer("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -75,7 +75,7 @@ export const inventory = pgTable("inventory", {
   expiryDate: timestamp("expiry_date"),
   qrCode: text("qr_code"),
   isRemnant: boolean("is_remnant").default(false),
-  parentInventoryId: integer("parent_inventory_id").references(() => inventory.id),
+  parentInventoryId: integer("parent_inventory_id"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
