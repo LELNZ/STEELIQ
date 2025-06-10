@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, MapPin, DollarSign, Clock, Package, Shield, FileText, Users, Grid3X3, List, Table, AlertTriangle, Settings, Award, Scale, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactManagementTab } from "./contact-management-tab";
-import { MultiLocationManager } from "@/components/ui/multi-location-manager";
+import { LocationsManager } from "@/components/ui/locations-manager";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -1056,19 +1056,19 @@ export function SupplierForm({
       </TabsContent>
 
       <TabsContent value="locations" className="mt-6">
-        <MultiLocationManager 
+        <LocationsManager 
           entityType="supplier"
           entityId={autoSavedSupplierId || supplierId}
-          onPreferredLocationChange={(location) => {
+          onLocationChange={(location) => {
             if (location) {
-              // Update main supplier address fields with preferred location
+              // Update main supplier address fields with primary location
               form.setValue("address", location.address);
               form.setValue("city", location.city);
               form.setValue("postcode", location.postcode);
               form.setValue("country", location.country);
               toast({
                 title: "Address Updated",
-                description: `Supplier address updated to match preferred location: ${location.locationName}`,
+                description: `Supplier address updated to match primary location: ${location.locationName}`,
               });
             }
           }}
