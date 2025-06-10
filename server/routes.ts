@@ -1451,6 +1451,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Supplier Locations
+  app.get('/api/supplier-locations', async (req, res) => {
+    try {
+      const entityId = parseInt(req.query.entityId as string);
+      if (!entityId) {
+        return res.status(400).json({ error: 'entityId query parameter is required' });
+      }
+      const locations = await storage.getLocations('supplier', entityId);
+      res.json(locations);
+    } catch (error) {
+      console.error('Error fetching supplier locations:', error);
+      res.status(500).json({ error: 'Failed to fetch supplier locations' });
+    }
+  });
+
   app.get('/api/supplier-locations/:supplierId', async (req, res) => {
     try {
       const supplierId = parseInt(req.params.supplierId);
@@ -1498,6 +1512,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Client Locations
+  app.get('/api/client-locations', async (req, res) => {
+    try {
+      const entityId = parseInt(req.query.entityId as string);
+      if (!entityId) {
+        return res.status(400).json({ error: 'entityId query parameter is required' });
+      }
+      const locations = await storage.getLocations('client', entityId);
+      res.json(locations);
+    } catch (error) {
+      console.error('Error fetching client locations:', error);
+      res.status(500).json({ error: 'Failed to fetch client locations' });
+    }
+  });
+
   app.get('/api/client-locations/:clientId', async (req, res) => {
     try {
       const clientId = parseInt(req.params.clientId);

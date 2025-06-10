@@ -206,8 +206,10 @@ export function LocationsManager({ entityType, entityId, onLocationChange }: Loc
       const savedLocation = await response.json();
       console.log("Location saved:", savedLocation);
 
-      // Immediately reload locations once after successful save
-      await loadLocations();
+      // Immediately reload locations after successful save with a small delay
+      setTimeout(async () => {
+        await loadLocations();
+      }, 100);
       
       setEditingLocation(null);
       setShowForm(false);
