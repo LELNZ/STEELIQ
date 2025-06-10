@@ -635,11 +635,22 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {contacts.map((contact: Contact) => (
                 <Card key={contact.id} className="relative">
-                  {contact.isPrimaryContact && (
-                    <div className="absolute top-2 right-2">
-                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                    </div>
-                  )}
+                  <div className="absolute top-2 right-2">
+                    {(entityType === "supplier" ? contact.isPrimaryContact : contact.isPrimary) ? (
+                      <Star className="h-5 w-5 text-yellow-500 fill-current" />
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSetAsPrimary(contact)}
+                        title="Set as Primary"
+                        disabled={setPrimaryContactMutation.isPending}
+                        className="h-7 w-7 p-0 hover:bg-yellow-50"
+                      >
+                        <Star className="h-4 w-4 text-gray-400 hover:text-yellow-500" />
+                      </Button>
+                    )}
+                  </div>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base flex items-center gap-2">
                       <User className="h-4 w-4 text-blue-600" />
@@ -668,23 +679,6 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                       </Badge>
                     )}
                     <div className="flex justify-end items-center gap-2 pt-2">
-                      {!contact.isPrimaryContact && !contact.isPrimary && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleSetAsPrimary(contact)}
-                          title="Set as Primary"
-                          disabled={setPrimaryContactMutation.isPending}
-                        >
-                          <Star className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {(contact.isPrimaryContact || contact.isPrimary) && (
-                        <Badge variant="default" className="text-xs">
-                          <Star className="h-3 w-3 mr-1 fill-current" />
-                          Primary
-                        </Badge>
-                      )}
                       <ActionIcons
                         onEdit={() => handleEdit(contact)}
                         onDelete={() => handleDelete(contact.id)}
@@ -786,8 +780,19 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                       <td className="p-3 text-muted-foreground">{contact.email || "—"}</td>
                       <td className="p-3 text-muted-foreground">{contact.phoneMobile || "—"}</td>
                       <td className="p-3">
-                        {contact.isPrimaryContact && (
+                        {(entityType === "supplier" ? contact.isPrimaryContact : contact.isPrimary) ? (
                           <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSetAsPrimary(contact)}
+                            title="Set as Primary"
+                            disabled={setPrimaryContactMutation.isPending}
+                            className="h-6 w-6 p-0 hover:bg-yellow-50"
+                          >
+                            <Star className="h-3 w-3 text-gray-400 hover:text-yellow-500" />
+                          </Button>
                         )}
                       </td>
                       <td className="p-3">
