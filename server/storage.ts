@@ -682,34 +682,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setPrimarySupplierContact(id: number): Promise<SupplierContact | undefined> {
-    // First get the contact to find the supplier ID
-    const [contact] = await db.select().from(supplierContacts).where(eq(supplierContacts.id, id));
-    if (!contact) return undefined;
+    return await db.transaction(async (tx) => {
+      // First get the contact to find the supplier ID
+      const [contact] = await tx.select().from(supplierContacts).where(eq(supplierContacts.id, id));
+      if (!contact) return undefined;
 
-    // Set all other contacts for this supplier to non-primary
-    await db.update(supplierContacts)
-      .set({ isPrimaryContact: false, updatedAt: new Date() })
-      .where(eq(supplierContacts.supplierId, contact.supplierId));
+      // Set all contacts for this supplier to non-primary in a single operation
+      await tx.update(supplierContacts)
+        .set({ isPrimaryContact: false, updatedAt: new Date() })
+        .where(eq(supplierContacts.supplierId, contact.supplierId));
 
-    // Set this contact as primary
-    const [updatedContact] = await db.update(supplierContacts)
-      .set({ isPrimaryContact: true, updatedAt: new Date() })
-      .where(eq(supplierContacts.id, id))
-      .returning();
+      // Set this specific contact as primary
+      const [updatedContact] = await tx.update(supplierContacts)
+        .set({ isPrimaryContact: true, updatedAt: new Date() })
+        .where(eq(supplierContacts.id, id))
+        .returning();
 
-    // Update supplier with primary contact details
-    if (updatedContact) {
-      await db.update(suppliers)
-        .set({
-          contactName: `${updatedContact.firstName} ${updatedContact.lastName}`,
-          email: updatedContact.email || '',
-          phone: updatedContact.phoneMobile || updatedContact.phonePrimary || '',
-          updatedAt: new Date()
-        })
-        .where(eq(suppliers.id, contact.supplierId));
-    }
+      // Update supplier with primary contact details
+      if (updatedContact) {
+        await tx.update(suppliers)
+          .set({
+            contactName: `${updatedContact.firstName} ${updatedContact.lastName}`,
+            email: updatedContact.email || '',
+            phone: updatedContact.phoneMobile || updatedContact.phonePrimary || '',
+            updatedAt: new Date()
+          })
+          .where(eq(suppliers.id, contact.supplierId));
+      }
 
-    return updatedContact;
+      return updatedContact;
+    });
   }
 
   // Client Contacts Implementation
@@ -745,34 +747,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setPrimaryClientContact(id: number): Promise<ClientContact | undefined> {
-    // First get the contact to find the client ID
-    const [contact] = await db.select().from(clientContacts).where(eq(clientContacts.id, id));
-    if (!contact) return undefined;
+    return await db.transaction(async (tx) => {
+      // First get the contact to find the client ID
+      const [contact] = await tx.select().from(clientContacts).where(eq(clientContacts.id, id));
+      if (!contact) return undefined;
 
-    // Set all other contacts for this client to non-primary
-    await db.update(clientContacts)
-      .set({ isPrimary: false, updatedAt: new Date() })
-      .where(eq(clientContacts.clientId, contact.clientId));
+      // Set all contacts for this client to non-primary in a single operation
+      await tx.update(clientContacts)
+        .set({ isPrimary: false, updatedAt: new Date() })
+        .where(eq(clientContacts.clientId, contact.clientId));
 
-    // Set this contact as primary
-    const [updatedContact] = await db.update(clientContacts)
-      .set({ isPrimary: true, updatedAt: new Date() })
-      .where(eq(clientContacts.id, id))
-      .returning();
+      // Set this specific contact as primary
+      const [updatedContact] = await tx.update(clientContacts)
+        .set({ isPrimary: true, updatedAt: new Date() })
+        .where(eq(clientContacts.id, id))
+        .returning();
 
-    // Update client with primary contact details
-    if (updatedContact) {
-      await db.update(clients)
-        .set({
-          contactName: `${updatedContact.firstName} ${updatedContact.lastName}`,
-          email: updatedContact.email || '',
-          phone: updatedContact.mobile || updatedContact.workPhone || '',
-          updatedAt: new Date()
-        })
-        .where(eq(clients.id, contact.clientId));
-    }
+      // Update client with primary contact details
+      if (updatedContact) {
+        await tx.update(clients)
+          .set({
+            contactName: `${updatedContact.firstName} ${updatedContact.lastName}`,
+            email: updatedContact.email || '',
+            phone: updatedContact.mobile || updatedContact.workPhone || '',
+            updatedAt: new Date()
+          })
+          .where(eq(clients.id, contact.clientId));
+      }
 
-    return updatedContact;
+      return updatedContact;
+    });
   }
 
   // Client Management Implementation
