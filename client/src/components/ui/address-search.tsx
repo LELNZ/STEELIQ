@@ -173,9 +173,13 @@ export function AddressSearch({
             // Set form values with accurate Google data
             if (form?.setValue) {
               form.setValue('address', formattedAddress);
-              form.setValue('city', locality);
-              form.setValue('postcode', postalCode);
-              console.log("Form setValue calls completed");
+              if (locality) form.setValue('city', locality);
+              if (postalCode) form.setValue('postcode', postalCode);
+              console.log("Form setValue calls completed with:", { 
+                address: formattedAddress, 
+                city: locality, 
+                postcode: postalCode 
+              });
             }
             
             // Also call field onChange if available

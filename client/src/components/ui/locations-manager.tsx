@@ -60,13 +60,27 @@ export function LocationsManager({ entityType, entityId, onLocationChange }: Loc
     }
   }, [entityId, entityType]);
 
+  // Auto-refresh locations every 2 seconds when form is not shown
+  useEffect(() => {
+    if (entityId && !showForm) {
+      const interval = setInterval(() => {
+        loadLocations();
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [entityId, showForm]);
+
   const loadLocations = async () => {
     if (!entityId) return;
     
     setLoading(true);
     try {
       const endpoint = entityType === "supplier" ? "supplier-locations" : "client-locations";
-      const response = await fetch(`/api/${endpoint}?entityId=${entityId}`);
+      const response = await fetch(`/api/${endpoint}?entityId=${entityId}`, {
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -193,8 +207,10 @@ export function LocationsManager({ entityType, entityId, onLocationChange }: Loc
       const savedLocation = await response.json();
       console.log("Location saved:", savedLocation);
 
-      // Reload locations to ensure UI consistency
-      await loadLocations();
+      // Force reload locations to ensure UI consistency
+      setTimeout(async () => {
+        await loadLocations();
+      }, 100);
       
       setEditingLocation(null);
       setShowForm(false);
