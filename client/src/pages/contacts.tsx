@@ -679,23 +679,16 @@ export default function ContactsPage() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingSupplier(supplier)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
+                        <ActionIcons
+                          onEdit={() => setEditingSupplier(supplier)}
+                          onDelete={() => {
                             setSupplierToDelete(supplier);
                             setIsDeleteDialogOpen(true);
                           }}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                          editTitle="Edit Supplier"
+                          deleteTitle="Delete Supplier"
+                          compact={false}
+                        />
                       </div>
                     </div>
                   ))}
@@ -916,25 +909,16 @@ export default function ContactsPage() {
                                   )}
                                 </CardDescription>
                               </div>
-                              <div className="flex items-center space-x-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setEditingClient(client)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setClientToDelete(client);
-                                    setIsDeleteClientDialogOpen(true);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              <ActionIcons
+                                onEdit={() => setEditingClient(client)}
+                                onDelete={() => {
+                                  setClientToDelete(client);
+                                  setIsDeleteClientDialogOpen(true);
+                                }}
+                                editTitle="Edit Client"
+                                deleteTitle="Delete Client"
+                                compact={false}
+                              />
                             </div>
                           </CardHeader>
                           <CardContent className="pt-0">
@@ -1005,25 +989,16 @@ export default function ContactsPage() {
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingClient(client)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setClientToDelete(client);
-                                setIsDeleteClientDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <ActionIcons
+                            onEdit={() => setEditingClient(client)}
+                            onDelete={() => {
+                              setClientToDelete(client);
+                              setIsDeleteClientDialogOpen(true);
+                            }}
+                            editTitle="Edit Client"
+                            deleteTitle="Delete Client"
+                            compact={false}
+                          />
                         </div>
                       ))}
                     </div>
@@ -1057,25 +1032,16 @@ export default function ContactsPage() {
                             </TableCell>
                             <TableCell>{client.paymentTerms || "-"}</TableCell>
                             <TableCell className="text-right">
-                              <div className="flex items-center justify-end space-x-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setEditingClient(client)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setClientToDelete(client);
-                                    setIsDeleteClientDialogOpen(true);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              <ActionIcons
+                              onEdit={() => setEditingClient(client)}
+                              onDelete={() => {
+                                setClientToDelete(client);
+                                setIsDeleteClientDialogOpen(true);
+                              }}
+                              editTitle="Edit Client"
+                              deleteTitle="Delete Client"
+                              compact={false}
+                            />
                             </TableCell>
                           </TableRow>
                         ))}
