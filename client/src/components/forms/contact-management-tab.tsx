@@ -577,13 +577,17 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                           <div className="space-y-0.5">
                             <FormLabel className="text-sm font-medium">Primary Contact</FormLabel>
                             <div className="text-xs text-muted-foreground">
-                              Set as main contact for this {entityType}
+                              {primaryContact !== null && !field.value ? 
+                                `Another contact is already primary for this ${entityType}` : 
+                                `Set as main contact for this ${entityType}`
+                              }
                             </div>
                           </div>
                           <FormControl>
                             <Switch
                               checked={field.value}
                               onCheckedChange={field.onChange}
+                              disabled={!field.value && primaryContact !== null}
                             />
                           </FormControl>
                         </FormItem>
@@ -940,13 +944,17 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                     <div className="space-y-0.5">
                       <FormLabel>Primary Contact</FormLabel>
                       <div className="text-sm text-muted-foreground">
-                        Set as main contact for this supplier
+                        {primaryContact !== null && !field.value && primaryContact.id !== editingContact?.id ? 
+                          `Another contact is already primary for this ${entityType}` : 
+                          `Set as main contact for this ${entityType}`
+                        }
                       </div>
                     </div>
                     <FormControl>
                       <Switch
                         checked={field.value}
                         onCheckedChange={field.onChange}
+                        disabled={!field.value && primaryContact !== null && primaryContact.id !== editingContact?.id}
                       />
                     </FormControl>
                   </FormItem>
