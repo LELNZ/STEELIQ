@@ -133,7 +133,7 @@ export function ActionIcons({
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex flex-col items-center gap-0">
       {primaryActions}
       
       {showDropdown && secondaryActions.length > 0 && (
