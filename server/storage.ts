@@ -702,8 +702,8 @@ export class DatabaseStorage implements IStorage {
       await db.update(suppliers)
         .set({
           contactName: `${updatedContact.firstName} ${updatedContact.lastName}`,
-          contactEmail: updatedContact.email || '',
-          contactPhone: updatedContact.phonePrimary || updatedContact.phoneMobile || '',
+          email: updatedContact.email || '',
+          phone: updatedContact.phoneMobile || updatedContact.phonePrimary || '',
           updatedAt: new Date()
         })
         .where(eq(suppliers.id, contact.supplierId));
@@ -765,8 +765,8 @@ export class DatabaseStorage implements IStorage {
       await db.update(clients)
         .set({
           contactName: `${updatedContact.firstName} ${updatedContact.lastName}`,
-          contactEmail: updatedContact.email || '',
-          contactPhone: updatedContact.mobile || updatedContact.workPhone || '',
+          email: updatedContact.email || '',
+          phone: updatedContact.mobile || updatedContact.workPhone || '',
           updatedAt: new Date()
         })
         .where(eq(clients.id, contact.clientId));

@@ -203,6 +203,7 @@ export const clients = pgTable("clients", {
   website: text("website"),
   phone: text("phone"), // Primary phone number
   email: text("email"), // Primary email address
+  contactName: text("contact_name"), // Primary contact person name
   industry: text("industry"),
   customerSince: timestamp("customer_since"),
   creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }),
@@ -268,6 +269,7 @@ export const suppliers = pgTable("suppliers", {
   website: text("website"), // Company website
   phone: text("phone"), // Primary phone number
   email: text("email"), // Primary email address
+  contactName: text("contact_name"), // Primary contact person name
   industry: text("industry"), // Industry sector
   paymentTerms: text("payment_terms").default("30 days"), // 30 days, 7 days, COD, etc.
   accountManager: text("account_manager"),
