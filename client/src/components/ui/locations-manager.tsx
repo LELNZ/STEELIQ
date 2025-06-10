@@ -78,28 +78,35 @@ export function LocationsManager({ entityType, entityId, onLocationChange }: Loc
         const data = await response.json();
         console.log("Loaded locations:", data);
         
-        const transformedLocations = data.map((loc: any) => ({
-          id: loc.id.toString(),
-          locationType: loc.locationType || "other",
-          locationName: loc.locationName || "",
-          address: loc.addressLine1 || "",
-          addressLine1: loc.addressLine1 || "",
-          addressLine2: loc.addressLine2 || "",
-          city: loc.city || "",
-          postcode: loc.postalCode || "",
-          postalCode: loc.postalCode || "",
-          country: loc.country || "New Zealand",
-          contactPerson: loc.contactPerson || "",
-          phone: loc.phone || "",
-          email: loc.email || "",
-          operatingHours: loc.operatingHours || "",
-          specialInstructions: loc.specialInstructions || "",
-          notes: loc.notes || "",
-          isActive: loc.isActive !== false,
-          isPrimary: loc.isPrimary || false
-        }));
+        const transformedLocations = data.map((loc: any) => {
+          console.log("Transforming location:", loc);
+          const transformed = {
+            id: loc.id.toString(),
+            locationType: loc.locationType || "other",
+            locationName: loc.locationName || "",
+            address: loc.addressLine1 || "",
+            addressLine1: loc.addressLine1 || "",
+            addressLine2: loc.addressLine2 || "",
+            city: loc.city || "",
+            postcode: loc.postalCode || "",
+            postalCode: loc.postalCode || "",
+            country: loc.country || "New Zealand",
+            contactPerson: loc.contactPerson || "",
+            phone: loc.phone || "",
+            email: loc.email || "",
+            operatingHours: loc.operatingHours || "",
+            specialInstructions: loc.specialInstructions || "",
+            notes: loc.notes || "",
+            isActive: true, // Default to active - don't filter out locations
+            isPrimary: loc.isPrimary || false
+          };
+          console.log("Transformed location:", transformed);
+          return transformed;
+        });
         
+        console.log("Setting locations state with:", transformedLocations.length, "items");
         setLocations(transformedLocations);
+        console.log("Locations state updated");
       } else {
         console.log("No locations found or API error:", response.status);
         setLocations([]);
@@ -388,6 +395,7 @@ export function LocationsManager({ entityType, entityId, onLocationChange }: Loc
       </div>
 
       {/* Locations Display */}
+      {console.log("Render check - locations.length:", locations.length, "locations:", locations)}
       {locations.length > 0 ? (
         viewMode === "table" ? (
           <div className="rounded-md border">

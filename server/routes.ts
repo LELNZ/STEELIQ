@@ -1452,12 +1452,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Supplier Locations
   app.get('/api/supplier-locations', async (req, res) => {
+    console.log('=== SUPPLIER LOCATIONS ENDPOINT HIT ===');
+    console.log('Query params:', req.query);
+    console.log('Entity ID:', req.query.entityId);
+    
     try {
       const entityId = parseInt(req.query.entityId as string);
+      console.log('Parsed entityId:', entityId);
+      
       if (!entityId) {
+        console.log('Missing entityId, returning 400');
         return res.status(400).json({ error: 'entityId query parameter is required' });
       }
+      
+      console.log('Calling storage.getLocations with:', 'supplier', entityId);
       const locations = await storage.getLocations('supplier', entityId);
+      console.log('Retrieved locations:', locations.length, 'items');
+      console.log('Location data:', locations);
+      
       res.json(locations);
     } catch (error) {
       console.error('Error fetching supplier locations:', error);
