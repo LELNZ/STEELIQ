@@ -129,8 +129,10 @@ export function AddressSearch({
   };
 
   const selectAddress = async (suggestion: AddressSuggestion) => {
+    console.log("selectAddress called with:", suggestion);
     // Don't allow selection of error states
     if (suggestion.error) {
+      console.log("Skipping error suggestion");
       return;
     }
     
@@ -233,6 +235,17 @@ export function AddressSearch({
             placeholder={placeholder}
             {...field}
             onChange={(e) => handleAddressChange(e.target.value)}
+            onBlur={(e) => {
+              // Delay hiding suggestions to allow for clicks
+              setTimeout(() => {
+                setShowAddressSuggestions(false);
+              }, 200);
+            }}
+            onFocus={() => {
+              if (addressSuggestions.length > 0) {
+                setShowAddressSuggestions(true);
+              }
+            }}
             className="pr-8"
           />
           {isSearchingAddress && (
@@ -243,7 +256,7 @@ export function AddressSearch({
           
           {/* Address Suggestions Dropdown */}
           {showAddressSuggestions && addressSuggestions.length > 0 && (
-            <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+            <div className="absolute z-[9999] w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
               {addressSuggestions.map((suggestion, index) => (
                 <div
                   key={suggestion.place_id || index}
@@ -252,7 +265,19 @@ export function AddressSearch({
                       ? 'bg-red-50 dark:bg-red-900/20 cursor-not-allowed' 
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer'
                   }`}
-                  onClick={() => selectAddress(suggestion)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    if (!suggestion.error) {
+                      selectAddress(suggestion);
+                    }
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!suggestion.error) {
+                      selectAddress(suggestion);
+                    }
+                  }}
                 >
                   {suggestion.place_id ? (
                     // Google Places API format
