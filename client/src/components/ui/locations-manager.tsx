@@ -4,11 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Plus, Trash2, Building2, Warehouse, Truck, CreditCard, Edit, MoreVertical, Star, Grid3X3, List, Table, Save, X } from "lucide-react";
+import { MapPin, Plus, Trash2, Building2, Warehouse, Truck, CreditCard, Edit, Star, Grid3X3, List, Table, Save, X } from "lucide-react";
 import { ActionIcons } from "@/components/ui/action-icons";
 import { AddressSearch } from "@/components/ui/address-search";
 import { ContactSearch } from "@/components/ui/contact-search";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
 import { useToast } from "@/hooks/use-toast";
 
 interface Location {
@@ -496,32 +496,25 @@ export function LocationsManager({ entityType, entityId, onLocationChange }: Loc
                       </div>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {!location.isPrimary && (
-                        <DropdownMenuItem onClick={() => handleSetPrimary(location.id)}>
-                          <Star className="h-4 w-4 mr-2" />
-                          Set as Primary
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => handleEditLocation(location)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteLocation(location.id)}
-                        className="text-destructive"
+                  <div className="flex items-center gap-2">
+                    {!location.isPrimary && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleSetPrimary(location.id)}
+                        title="Set as Primary"
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <Star className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <ActionIcons
+                      onEdit={() => handleEditLocation(location)}
+                      onDelete={() => handleDeleteLocation(location.id)}
+                      editTitle="Edit Location"
+                      deleteTitle="Delete Location"
+                      compact={true}
+                    />
+                  </div>
                 </div>
               ) : (
                 <Card key={location.id}>
@@ -537,32 +530,25 @@ export function LocationsManager({ entityType, entityId, onLocationChange }: Loc
                           </Badge>
                         )}
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {!location.isPrimary && (
-                            <DropdownMenuItem onClick={() => handleSetPrimary(location.id)}>
-                              <Star className="h-4 w-4 mr-2" />
-                              Set as Primary
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => handleEditLocation(location)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteLocation(location.id)}
-                            className="text-destructive"
+                      <div className="flex items-center gap-2">
+                        {!location.isPrimary && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleSetPrimary(location.id)}
+                            title="Set as Primary"
                           >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <Star className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <ActionIcons
+                          onEdit={() => handleEditLocation(location)}
+                          onDelete={() => handleDeleteLocation(location.id)}
+                          editTitle="Edit Location"
+                          deleteTitle="Delete Location"
+                          compact={true}
+                        />
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">

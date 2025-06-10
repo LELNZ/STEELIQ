@@ -12,8 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, User, Mail, Phone, Trash2, Edit, Star, Users, Grid3X3, List, Table, Building, MoreVertical } from "lucide-react";
+import { Plus, User, Mail, Phone, Trash2, Edit, Star, Users, Grid3X3, List, Table, Building } from "lucide-react";
 import { ActionIcons } from "@/components/ui/action-icons";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -657,31 +656,22 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                         {contact.department}
                       </Badge>
                     )}
-                    <div className="flex justify-end space-x-1 pt-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleSetAsPreferred(contact)}>
-                            <Star className="h-4 w-4 mr-2" />
-                            Set as Preferred
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(contact)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDelete(contact.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <div className="flex justify-end items-center gap-2 pt-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleSetAsPreferred(contact)}
+                        title="Set as Preferred"
+                      >
+                        <Star className="h-4 w-4" />
+                      </Button>
+                      <ActionIcons
+                        onEdit={() => handleEdit(contact)}
+                        onDelete={() => handleDelete(contact.id)}
+                        editTitle="Edit Contact"
+                        deleteTitle="Delete Contact"
+                        compact={true}
+                      />
                     </div>
                   </CardContent>
                 </Card>
