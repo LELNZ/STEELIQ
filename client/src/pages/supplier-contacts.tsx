@@ -31,6 +31,7 @@ import {
   Calendar,
   MapPin
 } from "lucide-react";
+import { ActionIcons } from "@/components/ui/action-icons";
 
 const contactSchema = z.object({
   supplierId: z.number(),
@@ -605,18 +606,13 @@ export default function SupplierContactsPage() {
                               <CardDescription>{contact.position}</CardDescription>
                             )}
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Button size="sm" variant="ghost" onClick={() => handleEdit(contact)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              onClick={() => deleteContactMutation.mutate(contact.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <ActionIcons
+                            onEdit={() => handleEdit(contact)}
+                            onDelete={() => deleteContactMutation.mutate(contact.id)}
+                            editTitle="Edit Contact"
+                            deleteTitle="Delete Contact"
+                            compact={true}
+                          />
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
