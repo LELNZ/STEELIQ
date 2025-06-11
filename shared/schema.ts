@@ -1051,3 +1051,168 @@ export type InsertCoatingSystem = z.infer<typeof insertCoatingSystemSchema>;
 
 export type SurfaceAreaConfig = typeof surfaceAreaConfigs.$inferSelect;
 export type InsertSurfaceAreaConfig = z.infer<typeof insertSurfaceAreaConfigSchema>;
+
+// Estimation System Tables
+export const estimationProjects = pgTable("estimation_projects", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  clientId: integer("client_id").references(() => clients.id),
+  status: text("status").notNull().default("draft"), // draft, in_progress, completed, sent, accepted, declined
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).default("0"),
+  margin: decimal("margin", { precision: 5, scale: 2 }).default("0"),
+  overheadPercentage: decimal("overhead_percentage", { precision: 5, scale: 2 }).default("15"),
+  deliveryDate: timestamp("delivery_date"),
+  estimatedHours: decimal("estimated_hours", { precision: 8, scale: 2 }),
+  projectData: jsonb("project_data"), // Complete estimation data structure
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const estimationMaterials = pgTable("estimation_materials", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  materialId: integer("material_id").references(() => materials.id),
+  materialCode: text("material_code").notNull(),
+  materialName: text("material_name").notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(),
+  unitCost: decimal("unit_cost", { precision: 10, scale: 4 }).notNull(),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
+  wasteFactor: decimal("waste_factor", { precision: 5, scale: 2 }).default("5"), // percentage
+  handlingTime: decimal("handling_time", { precision: 6, scale: 2 }).default("0"), // minutes
+  handlingCost: decimal("handling_cost", { precision: 10, scale: 2 }).default("0"),
+  supplier: text("supplier"),
+  leadTime: integer("lead_time"), // days
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const estimationLabor = pgTable("estimation_labor", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  category: text("category").notNull(), // workshop, onsite, subcontractor
+  type: text("type").notNull(), // fabrication, welding, assembly, finishing, etc.
+  description: text("description").notNull(),
+  hours: decimal("hours", { precision: 8, scale: 2 }).notNull(),
+  hourlyRate: decimal("hourly_rate", { precision: 8, scale: 2 }).notNull(),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
+  skillLevel: text("skill_level"), // apprentice, tradesman, supervisor, specialist
+  crew: integer("crew").default(1), // number of people
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const estimationEquipment = pgTable("estimation_equipment", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  equipment: text("equipment").notNull(),
+  type: text("type").notNull(), // inhouse, rental
+  duration: decimal("duration", { precision: 8, scale: 2 }).notNull(),
+  unit: text("unit").notNull().default("hours"), // hours, days, weeks
+  rate: decimal("rate", { precision: 10, scale: 2 }).notNull(),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
+  operator: text("operator"), // included, additional
+  fuel: boolean("fuel").default(false),
+  delivery: boolean("delivery").default(false),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const estimationConsumables = pgTable("estimation_consumables", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  item: text("item").notNull(),
+  category: text("category"), // welding, cutting, finishing, fasteners, etc.
+  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(),
+  unit: text("unit").notNull(),
+  unitCost: decimal("unit_cost", { precision: 10, scale: 4 }).notNull(),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
+  supplier: text("supplier"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const estimationTemplates = pgTable("estimation_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category"), // material_rates, labor_rates, equipment_rates, etc.
+  templateData: jsonb("template_data").notNull(),
+  isDefault: boolean("is_default").default(false),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const aiEstimationHistory = pgTable("ai_estimation_history", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  inputData: jsonb("input_data").notNull(),
+  aiSuggestions: jsonb("ai_suggestions").notNull(),
+  accuracyScore: decimal("accuracy_score", { precision: 5, scale: 2 }),
+  actualCost: decimal("actual_cost", { precision: 12, scale: 2 }),
+  feedback: text("feedback"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Estimation insert schemas
+export const insertEstimationProjectSchema = createInsertSchema(estimationProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEstimationMaterialSchema = createInsertSchema(estimationMaterials).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEstimationLaborSchema = createInsertSchema(estimationLabor).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEstimationEquipmentSchema = createInsertSchema(estimationEquipment).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEstimationConsumableSchema = createInsertSchema(estimationConsumables).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEstimationTemplateSchema = createInsertSchema(estimationTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAiEstimationHistorySchema = createInsertSchema(aiEstimationHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Estimation types
+export type EstimationProject = typeof estimationProjects.$inferSelect;
+export type InsertEstimationProject = z.infer<typeof insertEstimationProjectSchema>;
+
+export type EstimationMaterial = typeof estimationMaterials.$inferSelect;
+export type InsertEstimationMaterial = z.infer<typeof insertEstimationMaterialSchema>;
+
+export type EstimationLabor = typeof estimationLabor.$inferSelect;
+export type InsertEstimationLabor = z.infer<typeof insertEstimationLaborSchema>;
+
+export type EstimationEquipment = typeof estimationEquipment.$inferSelect;
+export type InsertEstimationEquipment = z.infer<typeof insertEstimationEquipmentSchema>;
+
+export type EstimationConsumable = typeof estimationConsumables.$inferSelect;
+export type InsertEstimationConsumable = z.infer<typeof insertEstimationConsumableSchema>;
+
+export type EstimationTemplate = typeof estimationTemplates.$inferSelect;
+export type InsertEstimationTemplate = z.infer<typeof insertEstimationTemplateSchema>;
+
+export type AiEstimationHistory = typeof aiEstimationHistory.$inferSelect;
+export type InsertAiEstimationHistory = z.infer<typeof insertAiEstimationHistorySchema>;
