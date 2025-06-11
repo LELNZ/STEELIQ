@@ -14,7 +14,9 @@ import {
   Slice,
   FileText,
   Building2,
-  Upload
+  Upload,
+  Calculator,
+  Bot
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,6 +27,7 @@ const navigation = [
       { name: "Dashboard", href: "/", icon: LayoutDashboard },
       { name: "Jobs & Cutting", href: "/jobs", icon: Briefcase, badge: "12" },
       { name: "Estimates & Quotes", href: "/estimates", icon: FileText, badge: "2", badgeVariant: "info" },
+      { name: "AI Estimation Engine", href: "/estimation", icon: Bot, badge: "NEW", badgeVariant: "success" },
       { name: "Material Library", href: "/materials", icon: Package },
       { name: "Inventory", href: "/inventory", icon: Warehouse, badge: "3", badgeVariant: "warning" },
       { name: "Contacts", href: "/contacts", icon: Users },

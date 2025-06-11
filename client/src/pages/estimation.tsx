@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { MaterialsTab } from "@/components/estimation/materials-tab";
 
 // Types for estimation system
 interface EstimationProject {
@@ -536,8 +537,7 @@ function EstimationWorkspace({
   );
 }
 
-// Import the comprehensive materials tab
-import { MaterialsTab } from "@/components/estimation/materials-tab";
+
 
 // Labor estimation tab with industry-standard rates
 function LaborTab({ labor, onUpdate }: { labor: LaborCost[]; onUpdate: (labor: LaborCost[]) => void }) {

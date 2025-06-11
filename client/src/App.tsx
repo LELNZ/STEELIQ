@@ -11,6 +11,7 @@ import Inventory from "@/pages/inventory";
 import CuttingOptimizationFixed from "@/pages/cutting-optimization-fixed";
 import CuttingPlanTest from "@/pages/cutting-plan-test";
 import Estimates from "@/pages/estimates";
+import EstimationPage from "@/pages/estimation";
 import Contacts from "@/pages/contacts";
 import Suppliers from "@/pages/suppliers";
 import SupplierContacts from "@/pages/supplier-contacts";
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/jobs" component={Jobs} />
       <Route path="/estimates" component={Estimates} />
+      <Route path="/estimation" component={EstimationPage} />
       <Route path="/materials" component={Materials} />
       <Route path="/inventory" component={Inventory} />
       <Route path="/contacts" component={Contacts} />
