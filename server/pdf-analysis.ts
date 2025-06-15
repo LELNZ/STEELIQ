@@ -95,19 +95,15 @@ Please identify all steel elements with their specifications, part marks, dimens
 Provide accurate material codes according to AS/NZS standards and calculate realistic lengths based on the drawing scale.`
             },
             {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'application/pdf',
-                data: base64Pdf
-              }
+              type: 'text',
+              text: `[PDF Document: ${fileName}] - Note: This is a placeholder for PDF analysis. The actual implementation will convert PDF pages to images for Claude analysis.`
             }
           ]
         }
       ]
     });
 
-    const analysisText = response.content[0].text;
+    const analysisText = response.content[0].type === 'text' ? response.content[0].text : '';
     
     // Parse JSON response from Claude
     let analysisData;
