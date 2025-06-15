@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, numeric, date } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -997,6 +997,188 @@ export type InsertSupplierContact = z.infer<typeof insertSupplierContactSchema>;
 
 export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
+
+// PDF Drawing Analysis Tables
+export const drawingAnalysis = pgTable("drawing_analysis", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size").notNull(),
+  pageCount: integer("page_count").notNull(),
+  drawingType: text("drawing_type").notNull(), // structural_plan, elevation, section, shop_drawing
+  analysisStatus: text("analysis_status").notNull().default("pending"), // pending, processing, completed, failed
+  confidence: numeric("confidence"), // AI confidence score 0-1
+  extractedElements: jsonb("extracted_elements"), // JSON array of detected elements
+  reviewNotes: text("review_notes"),
+  uploadedBy: text("uploaded_by"),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  analyzedAt: timestamp("analyzed_at"),
+});
+
+export const steelElements = pgTable("steel_elements", {
+  id: serial("id").primaryKey(),
+  drawingId: integer("drawing_id").references(() => drawingAnalysis.id),
+  partMark: text("part_mark").notNull(), // S1, B1, C1, etc.
+  elementType: text("element_type").notNull(), // beam, column, purlin, brace, connection
+  materialCode: text("material_code"), // 310UB40.4, 200UC52.2, etc.
+  materialId: integer("material_id").references(() => materials.id),
+  length: numeric("length"), // in mm
+  quantity: integer("quantity").default(1),
+  pageNumber: integer("page_number").notNull(),
+  coordinates: jsonb("coordinates"), // {x, y, width, height} for PDF highlighting
+  dimensions: jsonb("dimensions"), // extracted dimensions {width, depth, thickness}
+  connections: jsonb("connections"), // connection details
+  weldDetails: jsonb("weld_details"), // weld specifications
+  status: text("status").default("detected"), // detected, reviewed, approved, flagged
+  notes: text("notes"),
+  detectedAt: timestamp("detected_at").defaultNow(),
+});
+
+export const connectionDetails = pgTable("connection_details", {
+  id: serial("id").primaryKey(),
+  elementId: integer("element_id").references(() => steelElements.id),
+  connectionType: text("connection_type").notNull(), // bolted, welded, base_plate
+  boltDetails: jsonb("bolt_details"), // {diameter, grade, quantity, spacing}
+  weldDetails: jsonb("weld_details"), // {type, size, length, preparation}
+  plateDetails: jsonb("plate_details"), // {thickness, dimensions, grade}
+  laborTime: decimal("labor_time"), // calculated labor hours
+  workshopRate: decimal("workshop_rate").default("80"), // $/hour
+  siteRate: decimal("site_rate").default("120"), // $/hour
+  location: text("location").default("workshop"), // workshop, site
+});
+
+export const aiCuttingOptimization = pgTable("ai_cutting_optimization", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  materialType: text("material_type").notNull(), // linear, sheet, angle
+  stockLength: integer("stock_length").notNull(), // standard lengths 6000, 9000, 12000
+  cutList: jsonb("cut_list").notNull(), // array of required cuts with angles
+  optimization: jsonb("optimization"), // optimized nesting solution
+  wastePercentage: decimal("waste_percentage"),
+  totalStock: integer("total_stock"), // pieces of stock required
+  algorithm: text("algorithm").default("genetic"), // genetic, simulated_annealing, ml
+  efficiency: decimal("efficiency"), // 0-1 score
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const globalConfiguration = pgTable("global_configuration", {
+  id: serial("id").primaryKey(),
+  category: text("category").notNull(), // labor_rates, material_handling, equipment
+  subcategory: text("subcategory"), // workshop, site, crane, manual
+  name: text("name").notNull(),
+  value: text("value").notNull(),
+  unit: text("unit"), // minutes, dollars, percentage
+  description: text("description"),
+  isEditable: boolean("is_editable").default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const qualityControl = pgTable("quality_control", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  elementId: integer("element_id").references(() => steelElements.id),
+  issueType: text("issue_type").notNull(), // unrecognized, dimension_conflict, missing_info
+  severity: text("severity").default("medium"), // low, medium, high, critical
+  description: text("description").notNull(),
+  recommendation: text("recommendation"),
+  status: text("status").default("open"), // open, reviewing, resolved
+  flaggedAt: timestamp("flagged_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const complianceDocuments = pgTable("compliance_documents", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  documentType: text("document_type").notNull(), // mill_certificate, heat_number, cc2_cc3
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(),
+  heatNumber: text("heat_number"),
+  grade: text("grade"),
+  supplier: text("supplier"),
+  expiryDate: date("expiry_date"),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+});
+
+// Enhanced estimation tables
+export const enhancedEstimationMaterials = pgTable("enhanced_estimation_materials", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id).notNull(),
+  materialId: integer("material_id").references(() => materials.id),
+  materialCode: text("material_code").notNull(),
+  materialName: text("material_name").notNull(),
+  quantity: real("quantity").notNull(),
+  unit: text("unit").notNull().default("m"),
+  unitCost: real("unit_cost").notNull().default(0),
+  totalCost: real("total_cost").notNull().default(0),
+  wasteFactor: real("waste_factor").notNull().default(0.05), // 5%
+  adjustedQuantity: real("adjusted_quantity"),
+  handlingTime: real("handling_time").notNull().default(0), // minutes
+  handlingCost: real("handling_cost").notNull().default(0),
+  handlingCategory: text("handling_category").default("manual"), // crane, heavy_manual, medium_lift, light
+  supplier: text("supplier"),
+  leadTime: integer("lead_time"), // days
+  notes: text("notes"),
+  aiSuggested: boolean("ai_suggested").default(false),
+  elementIds: jsonb("element_ids"), // array of steel_elements.id
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const enhancedEstimationLabor = pgTable("enhanced_estimation_labor", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id).notNull(),
+  category: text("category").notNull(), // workshop, onsite, subcontractor
+  subcategory: text("subcategory").notNull(), // fabrication, welding, assembly, loading, coatings, erection, demolition
+  description: text("description").notNull(),
+  hours: real("hours").notNull().default(0),
+  rate: real("rate").notNull().default(0), // per hour
+  totalCost: real("total_cost").notNull().default(0),
+  location: text("location").default("workshop"), // workshop, site
+  skillLevel: text("skill_level").default("standard"), // apprentice, standard, senior, specialist
+  notes: text("notes"),
+  elementIds: jsonb("element_ids"), // related steel elements
+});
+
+export const enhancedEstimationEquipment = pgTable("enhanced_estimation_equipment", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id).notNull(),
+  equipmentType: text("equipment_type").notNull(), // inhouse, rental
+  category: text("category").notNull(), // truck, hiab, crane, generator, plasma, welding
+  name: text("name").notNull(),
+  hours: real("hours").notNull().default(0),
+  rate: real("rate").notNull().default(0), // per hour
+  totalCost: real("total_cost").notNull().default(0),
+  fuelCost: real("fuel_cost").default(0),
+  operatorCost: real("operator_cost").default(0),
+  notes: text("notes"),
+});
+
+export const enhancedEstimationConsumables = pgTable("enhanced_estimation_consumables", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id).notNull(),
+  category: text("category").notNull(), // welding, cutting, grinding, fasteners, gas, paint
+  itemType: text("item_type").notNull(), // welding_rod, cutting_disc, bolt, paint, etc.
+  specification: text("specification"), // 7018, M20x80, etc.
+  quantity: real("quantity").notNull().default(0),
+  unit: text("unit").notNull(), // kg, pieces, litres
+  unitCost: real("unit_cost").notNull().default(0),
+  totalCost: real("total_cost").notNull().default(0),
+  notes: text("notes"),
+});
+
+// PDF Analysis Types
+export type DrawingAnalysis = typeof drawingAnalysis.$inferSelect;
+export type SteelElement = typeof steelElements.$inferSelect;
+export type ConnectionDetail = typeof connectionDetails.$inferSelect;
+export type AiCuttingOptimization = typeof aiCuttingOptimization.$inferSelect;
+export type GlobalConfiguration = typeof globalConfiguration.$inferSelect;
+export type QualityControl = typeof qualityControl.$inferSelect;
+export type ComplianceDocument = typeof complianceDocuments.$inferSelect;
+
+// Enhanced Estimation Types
+export type EnhancedEstimationMaterial = typeof enhancedEstimationMaterials.$inferSelect;
+export type EnhancedEstimationLabor = typeof enhancedEstimationLabor.$inferSelect;
+export type EnhancedEstimationEquipment = typeof enhancedEstimationEquipment.$inferSelect;
+export type EnhancedEstimationConsumable = typeof enhancedEstimationConsumables.$inferSelect;
 
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
 export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;

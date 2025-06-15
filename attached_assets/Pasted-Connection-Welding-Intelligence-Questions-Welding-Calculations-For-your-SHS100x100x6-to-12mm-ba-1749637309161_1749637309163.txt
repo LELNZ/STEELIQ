@@ -1,0 +1,56 @@
+Connection & Welding Intelligence Questions:
+Welding Calculations: For your SHS100x100x6 to 12mm baseplate example:
+
+Should the system auto-detect fillet weld sizes based on thinner material (6mm governs)? NO the system needs to auto-detect the engineers specification in the sheet details. If there is no weld size allocated scan the information provided and present this to the user for user review and to implement a weld size detail - make suggestion as to when would be the best time in the process to review these requirements and how.
+For complex connections (beam-to-column with stiffeners), should it calculate each weld segment separately? YES we need to capture all extra labour requirement
+Should it recognize prep requirements (bevels, backing strips) from drawing symbols? YES again this will effect labour time
+
+
+Connection Time Factors: Beyond the 15min/1000mm welding rate:
+
+Drilling time for bolted connections (per hole by diameter)? 10mins per hole upto 50mm over that 15min per hole - make these times and rates user editable.
+Cutting/coping time for beam ends? YES - suggest best way to allocate value to this function i.e upto 12mm plate 15min per 1000mm of cut/cope length ensure these values can be user editable
+Fitting and assembly time for complex connections? YES - workshop assembly or site assembly categorization required
+
+
+
+Drawing Convention Learning:
+This means recognizing your company's specific practices:
+
+How you typically detail connections
+Your preferred part marking systems
+Standard notes and abbreviations you use
+Typical construction details you repeat across projects
+
+
+Cut Optimization Integration:
+Since you have an existing cutting optimization engine, should the PDF take-off:
+
+Export material lists in the same format your optimizer expects? YES
+Include nesting priorities (urgency, material grade compatibility)? YES
+Flag materials that need special handling (long pieces, heavy sections)? YES 
+ - i would like you to create your own Cutting optimisation engine based on you AI and create a sepearte page for comparasion with the engine i created then we can select what one works best.
+
+
+Industry Innovation Suggestions:
+1. Real-Time Cost Tracking: As materials are identified, show running cost estimates - YES
+2. Clash Detection: Flag overlapping or conflicting elements between drawings - YES
+3. Specification Compliance: Auto-check against AS/NZS standards for minimum sizes/grades - YES
+4. Fabrication Sequence Intelligence: Suggest optimal workshop workflow based on dependencies - YES
+5. Weight Distribution Analysis: Calculate crane requirements and lifting points - YES
+6. Material Optimization: Suggest standard length purchases to minimize waste - YES
+
+Implementation Priority:
+I recommend this sequence:
+
+Core PDF Analysis Engine with steel element recognition - yes
+Interactive highlighting and clickable navigation - yes
+Material quantity extraction and catalog integration - yes
+Welding/connection calculations with labor rates - yes
+Integration with your existing estimation and cutting systems - yes
+Advanced features (learning, compliance checking) - yes
+
+
+Should I proceed with implementing the complete system starting with the PDF analysis engine and material take-off capabilities, then integrate all the missing estimation features you identified earlier? Before proceeding show me a detailed breakdown of all that we have just planned for reference. 
+
+Ask any additional questions for clarification 

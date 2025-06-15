@@ -1,0 +1,216 @@
+AI-Assisted Estimation Engine — Specification Document
+
+I. System Architecture Diagram
+
+Layers:
+
+Input Layer:
+
+File Upload (PDF, DXF, DWG, IFC, RVT)
+
+Project Metadata (Stage, Type, Scale)
+
+Preprocessing Layer:
+
+OCR Engine (Tesseract)
+
+Drawing Parser (DXFParser, IfcOpenShell)
+
+AI Classifier (YOLOv8, LayoutLM)
+
+Extraction Engine:
+
+Symbol Detection
+
+Profile Tagging
+
+Dimension Parsing
+
+Estimation Logic Core:
+
+Material Take-Off Generator
+
+Pricing Engine
+
+Labour Estimation
+
+Phase Breakdown Engine
+
+User Interface Layer:
+
+Interactive Drawing Viewer (React + Fabric.js or Autodesk Viewer)
+
+Editable Estimator Table
+
+Comment + Review System
+
+Output Layer:
+
+PDF Quote Builder
+
+Excel MTO Export
+
+DXF/NC Export for CNC
+
+Audit Trail
+
+Database Layer:
+
+Job Records
+
+Material Library
+
+Rate Tables
+
+Revision History
+
+II. Estimation Flowchart
+
+Upload Project Files
+
+[PDF / CAD / BIM Files] ➝ Document Storage
+
+Parse & Classify
+
+OCR Text ➝ Title block, legends
+
+Geometry Parsing ➝ Sections, Profiles, Symbols
+
+Drawing Grouping ➝ Per Level / Grid
+
+Element Detection
+
+AI Detection ➝ Identify beams, columns, plates, bolts
+
+Extract ➝ Lengths, Tags, Locations, Count
+
+Generate MTO Table
+
+Grouped by Profile & Floor
+
+Auto-add waste factors
+
+Editable fields
+
+Apply Pricing Logic
+
+Match against Rate Table
+
+Add Markups, Risk, Labour
+
+Phase Structuring
+
+User or AI Assigns Stages
+
+Outputs Cost Breakdown per Phase
+
+User Review
+
+Interactive Drawing Viewer (Linked to MTO)
+
+Comments, Edits, Revisions
+
+Export & Deliverables
+
+PDF Summary
+
+CSV/Excel MTO
+
+CNC Output
+
+Audit Trail
+
+III. Specification Document
+
+1. Inputs:
+
+Accepted File Types: PDF, DWG, DXF, IFC, RVT
+
+Project Type: Residential / Commercial / Industrial
+
+Scope: Structural Steel, Architectural Metalwork, Sub-assemblies, Site Install
+
+2. Outputs:
+
+Material Take-Off (Editable)
+
+Labour Hours Breakdown
+
+Costing per Unit, Phase, Total
+
+Quote PDF
+
+Audit Log & Versioning
+
+CNC-ready formats
+
+3. Features:
+
+Smart Drawing Classification
+
+OCR & Vector Analysis
+
+Profile Detection & Mapping
+
+Surface Area / Weight Calculations
+
+Cost Estimation Engine (Materials + Labour)
+
+Staging/Phase Logic
+
+Editable, Shareable MTO Interface
+
+Drawing Click-through Links
+
+Change Tracking (Rev A to Rev B)
+
+Export Templates
+
+4. AI Models & Tools:
+
+OCR: Tesseract or Azure Computer Vision
+
+Drawing Analysis: DXFParser, IfcOpenShell
+
+AI Detection: YOLOv8, Detectron2
+
+Frontend: React, Fabric.js, Autodesk Viewer
+
+Backend: Python FastAPI + Node.js
+
+Data: PostgreSQL, S3
+
+5. Roadmap:
+
+Phase 1: MVP – PDF/IFC to MTO + Viewer
+
+Phase 2: Rate Matching + Quote Builder
+
+Phase 3: Phase Tracking + Multi-user Review
+
+Phase 4: Historical Benchmarking + Revision Delta AI
+
+Phase 5: BIM Full Integration + CNC DXF Output
+
+IV. Developer Task Breakdown
+
+Phase 1: MVP — Drawing Input to MTO Table
+
+
+
+Phase 2: Rate Matching & Pricing Engine
+
+
+
+Phase 3: Phase/Stage Breakdown + Workflow Logic
+
+
+
+Phase 4: Collaboration, Review & Version Control
+
+
+
+Phase 5: CNC Export + BIM Integration
+
+
+

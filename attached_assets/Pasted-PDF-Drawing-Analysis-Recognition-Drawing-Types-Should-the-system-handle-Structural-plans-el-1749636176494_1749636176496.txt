@@ -1,0 +1,110 @@
+PDF Drawing Analysis & Recognition
+Drawing Types: Should the system handle:
+
+Structural plans, elevations, sections, details? yes all aspects of a architectural and structural plan - I can upload a plan for you to evaluate as a starting point for  is system. 
+Shop drawings vs construction drawings? yes both - advise best practice i.e automated or user select type of upload.
+Multi-page drawing sets with cross-references? yes minimum 100page capability. 
+
+
+Steel Element Recognition: Beyond beams/columns/purlins, should it identify:
+
+Connections (bolted/welded details)? YES - with welded connection calculate the weld length and weld type (i.e shs100x100x6 to a 12mm baseplate requires a 6FWAR = 100mm+100mm+100mm+100mmm (the 4 side of the shs) = 400mm weld length of a 6mm fillet weld all around with a labour rate of 15mins per 1000mm @ $80ph as a default workshop rate however a site rate would be 15min per 1000mm at $120ph. - ask me if you need anymore clarification.
+Bracing systems (wind bracing, stability bracing)? YES and detail the type of bracing required. 
+Base plates, anchor bolts, stiffeners? YES - and all details of that component i.e the dimensions length,width,height,thichness, bolt sizes, stiffener sizes and types and profiles. - ask any more questions for clarity. 
+Gusset plates, cleats, brackets? YES
+Handrails, stairs, platforms? YES - this will need specifications i.e oveall dimensions + detailed dimensions and requiement + standards and building codes to consider. 
+
+
+Part Identification & Numbering
+Naming Conventions: Should the system:
+
+Auto-generate part marks (S1, S2, B1, B2) or read existing ones? Read existing part lables, highlight on the pdf and allow a clickable function for the user to be taken quickly to that part on the specific page etc. 
+Handle different drawing standards (AS/NZS, AISC, BS)? YES - LETS focus on AS/NZS to start with, then add the other standards after we have a working iteration of AS/NZS. 
+Recognize assembly vs piece marks? YES - this is especially important with shop drawings.
+Cross-reference between drawing sheets? YES - it is common to have a plan or elevation view with a part and detail reference to another page/sheet.
+
+
+
+Steel Section Recognition: Can it identify:
+
+Universal beams (310UB40.4) vs columns (200UC52.2)? YES need to be able to identify every type of material
+Welded sections, built-up members? YES - and specify those details, with clickable link for user quick reference
+Hollow sections (RHS, CHS, SHS)? YES
+Angles, channels, flats from your 602-item catalog? YES and any additional materials that are not in the library - mark with a NOTE that we need to create a new material in the library.
+
+
+
+Measurement & Calculation Intelligence
+Length Calculations: Should it:
+
+Account for connection allowances (bolt holes, cope cuts)? YES - assign a time/labour value to each connection - ask questions to clarify these specifics
+Calculate actual vs theoretical lengths? YES - use the sheet scale to get as close to as possible 
+Handle sloped members and complex geometry? YES
+Include cutting lists with end preparations? YES - suggest how this should be generated, or we have created a cut optimization engine in this app - this will be especially important for shop drawings
+
+
+
+Quantity Extraction: Can it handle:
+
+Repetitive elements ("typical bay - repeat 5 times")? YES
+Phased construction with separate material lists? YES
+Alternative details and optional items? YES
+
+
+Interactive PDF Features
+Highlighting System: Should highlighted items show:
+
+Color-coded by material type/size? color code by Beam, Column, Purlin, etc
+Hover information (size, length, weight)? YES
+Status indicators (counted/uncounted/flagged)? YES
+
+
+
+Review Interface: For clickable links, should each item display:
+
+3D visualization of the member? NO - go to page/sheet
+Cut/fabrication details? YES
+Connection requirements? YES
+Material specifications and grades? YES
+
+
+
+Integration with Estimation System
+Workflow Connection: Should the take-off:
+
+Auto-populate your materials tab with quantities? YES allow user to review and edit
+Apply standard fabrication factors (drilling, welding time)? YES allow user to review and edit
+Include handling classifications by weight? YES
+Generate cutting optimization requirements? YES - suggest best practice, review the cut optimization engine we have already created and compare. 
+
+
+
+
+Quality Control: Should it flag:
+
+Unrecognized elements for manual review? YES
+Dimension conflicts or missing information? YES
+Non-standard sections not in your catalog? YES
+
+
+
+Advanced Features
+AI Learning: Should the system:
+
+Learn from your corrections to improve accuracy? YES
+Remember your specific drawing conventions? what does this mean?
+Suggest similar past projects for comparison? NO
+
+
+
+Compliance Integration: Can it extract:
+
+Steel grades and specifications? YES
+Connection details for structural calculations? YES
+Drawing revision tracking? YES
+
+
+
+This would create a powerful workflow: PDF Upload → AI Analysis → Interactive Review → Material Quantities → Cost Estimation → Job Creation.
+
+Which aspects should I prioritize for the initial implementation?

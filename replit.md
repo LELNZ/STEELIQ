@@ -1,0 +1,119 @@
+# Lateral Engineering Steel Fabrication Management System
+
+## Overview
+
+This is a comprehensive steel fabrication business management system built for Lateral Engineering Limited, designed to optimize steel cutting operations, material library management, and job estimation workflows. The application serves as a complete JMS (Job Management System) with cutting optimization, inventory tracking, and supplier management capabilities.
+
+## System Architecture
+
+### Frontend Architecture
+- **Framework**: React 18 with TypeScript
+- **Routing**: Wouter for lightweight client-side routing
+- **State Management**: TanStack Query for server state management
+- **UI Components**: Radix UI with custom Tailwind CSS styling
+- **Form Handling**: React Hook Form with Zod validation
+- **Build Tool**: Vite for fast development and optimized builds
+
+### Backend Architecture
+- **Runtime**: Node.js with Express.js server
+- **Database**: PostgreSQL with Drizzle ORM for type-safe database operations
+- **API Pattern**: RESTful API with structured error handling
+- **File Processing**: Multer for CSV import/export functionality
+- **Authentication**: bcrypt for password hashing
+
+### Data Storage Solutions
+- **Primary Database**: Neon PostgreSQL (serverless)
+- **ORM**: Drizzle with comprehensive schema definitions
+- **Migration System**: Drizzle Kit for database schema management
+- **Connection Pooling**: Neon serverless pooling with WebSocket support
+
+## Key Components
+
+### Material Library System
+- **Comprehensive Catalogue**: 602+ steel materials covering SHS, RHS, Flats, Angles, Rounds, Universal Beams/Columns
+- **Standards Compliance**: AS/NZS 3679.1-300, AS/NZS 1163, API 5L, ASTM specifications
+- **Dimensional Tracking**: Width, thickness, diameter, depth, flange/web dimensions
+- **Surface Area Calculations**: Automated calculations for coating/painting estimates
+- **Weight Management**: kg/m calculations for pricing and logistics
+
+### Cutting Optimization Engine
+- **1D Linear Optimization**: Minimizes waste with 2.4mm kerf width + 0.5mm user error margin
+- **Remnant Management**: Tracks reusable pieces >500mm with QR/barcode labeling
+- **Multi-Algorithm Support**: First Fit Decreasing, Best Fit, and custom algorithms
+- **Angle Cut Support**: Configurable start/end angles for precision cutting
+- **Visual Planning**: Interactive cutting plans with measurement indicators
+
+### Inventory Management
+- **Real-time Tracking**: Current stock levels with automated low-stock alerts
+- **Mill Certificate Tracking**: Heat numbers and quality certifications
+- **Location Management**: Multiple storage location support
+- **Job Material Planning**: Direct integration with cutting plans
+
+### Supplier & Contact Management
+- **Standardized Forms**: Consistent data entry across supplier and client contacts
+- **Payment Terms Tracking**: 30-day standard with customizable terms
+- **Price History**: Historical pricing data with trend analysis
+- **Import/Export**: CSV-based bulk data operations
+
+## Data Flow
+
+### Material Selection → Optimization → Cutting Plans
+1. User selects materials from comprehensive library
+2. Defines cut requirements with lengths and quantities
+3. System calculates optimal cutting patterns
+4. Generates visual cutting plans with waste minimization
+5. Updates inventory based on material consumption
+
+### Job Management Workflow
+1. Project creation with client details
+2. Material takeoff and cost estimation
+3. Cutting optimization and planning
+4. Job execution tracking
+5. Completion and invoicing
+
+### Pricing Integration
+- **Dynamic Pricing**: Automatic price/kg ↔ price/m conversion using weight data
+- **Supplier Integration**: Multi-supplier pricing with comparison tools
+- **Cost Tracking**: Real-time project cost monitoring
+
+## External Dependencies
+
+### Core Dependencies
+- **Database**: @neondatabase/serverless for PostgreSQL connectivity
+- **ORM**: drizzle-orm with drizzle-kit for migrations
+- **UI Framework**: @radix-ui components for accessible interface
+- **Validation**: zod for runtime type checking
+- **HTTP Client**: Built-in fetch with TanStack Query caching
+
+### Development Tools
+- **TypeScript**: Full type safety across frontend and backend
+- **Tailwind CSS**: Utility-first styling with custom design system
+- **ESBuild**: Fast bundling for production builds
+- **tsx**: TypeScript execution for development
+
+## Deployment Strategy
+
+### Development Environment
+- **Runtime**: Node.js 20 with hot module replacement
+- **Database**: Neon serverless PostgreSQL
+- **Port Configuration**: Local 5000, external 80
+- **File Processing**: In-memory upload handling
+
+### Production Deployment
+- **Platform**: Replit autoscale deployment
+- **Build Process**: Vite build + ESBuild server bundling
+- **Database**: Neon production instance with connection pooling
+- **Static Assets**: Served via Express with proper caching headers
+
+### Environment Configuration
+- **DATABASE_URL**: Neon connection string (required)
+- **NODE_ENV**: Development/production mode switching
+- **Port Mapping**: Automatic scaling based on demand
+
+## Changelog
+
+- June 15, 2025. Initial setup
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
