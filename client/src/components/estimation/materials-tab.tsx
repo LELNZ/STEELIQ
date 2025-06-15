@@ -108,6 +108,30 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
     }
   });
 
+  // Update individual material field for inline editing
+  const updateMaterialField = (materialId: string, field: keyof MaterialCost, value: any) => {
+    const updatedMaterials = materials.map(material => {
+      if (material.id === materialId) {
+        return { ...material, [field]: value };
+      }
+      return material;
+    });
+    onUpdate(updatedMaterials);
+  };
+
+  // Recalculate material total cost
+  const recalculateMaterial = (materialId: string) => {
+    const updatedMaterials = materials.map(material => {
+      if (material.id === materialId) {
+        const adjustedQuantity = material.quantity * (1 + material.wasteFactor / 100);
+        const newTotalCost = adjustedQuantity * material.unitCost + material.handlingCost;
+        return { ...material, totalCost: newTotalCost };
+      }
+      return material;
+    });
+    onUpdate(updatedMaterials);
+  };
+
   // Add new material to estimation
   const addMaterial = (materialData: Partial<MaterialCost>) => {
     const newMaterial: MaterialCost = {
@@ -321,9 +345,18 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                   <TableRow key={material.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{material.materialName}</p>
+                        <Input
+                          value={material.materialName}
+                          onChange={(e) => updateMaterialField(material.id, 'materialName', e.target.value)}
+                          className="font-medium border-0 p-1 min-w-40"
+                        />
                         {material.supplier && (
-                          <p className="text-sm text-muted-foreground">{material.supplier}</p>
+                          <Input
+                            value={material.supplier || ''}
+                            onChange={(e) => updateMaterialField(material.id, 'supplier', e.target.value)}
+                            placeholder="Supplier"
+                            className="text-sm text-muted-foreground border-0 p-1 mt-1"
+                          />
                         )}
                         {material.aiSuggested && (
                           <Badge variant="secondary" className="text-xs mt-1">
@@ -333,35 +366,104 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-sm">{material.materialCode}</TableCell>
-                    <TableCell>{material.quantity} {material.unit}</TableCell>
-                    <TableCell>${material.unitCost.toFixed(2)}</TableCell>
-                    <TableCell>{material.wasteFactor}%</TableCell>
                     <TableCell>
-                      <div className="text-sm">
-                        <p>{material.handlingTime}min</p>
-                        <p className="text-muted-foreground">${material.handlingCost.toFixed(2)}</p>
+                      <Input
+                        value={material.materialCode}
+                        onChange={(e) => updateMaterialField(material.id, 'materialCode', e.target.value)}
+                        className="font-mono text-sm w-24 border-0 p-1"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          value={material.quantity}
+                          onChange={(e) => {
+                            const newQuantity = parseFloat(e.target.value) || 0;
+                            updateMaterialField(material.id, 'quantity', newQuantity);
+                            recalculateMaterial(material.id);
+                          }}
+                          className="w-20 border-0 p-1"
+                        />
+                        <Input
+                          value={material.unit || 'm'}
+                          onChange={(e) => updateMaterialField(material.id, 'unit', e.target.value)}
+                          className="w-12 border-0 p-1"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={material.unitCost}
+                        onChange={(e) => {
+                          const newUnitCost = parseFloat(e.target.value) || 0;
+                          updateMaterialField(material.id, 'unitCost', newUnitCost);
+                          recalculateMaterial(material.id);
+                        }}
+                        className="w-24 border-0 p-1"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={material.wasteFactor}
+                        onChange={(e) => {
+                          const newWasteFactor = parseFloat(e.target.value) || 0;
+                          updateMaterialField(material.id, 'wasteFactor', newWasteFactor);
+                          recalculateMaterial(material.id);
+                        }}
+                        className="w-16 border-0 p-1"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm space-y-1">
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            value={material.handlingTime}
+                            onChange={(e) => {
+                              const newTime = parseFloat(e.target.value) || 0;
+                              updateMaterialField(material.id, 'handlingTime', newTime);
+                              recalculateMaterial(material.id);
+                            }}
+                            className="w-16 border-0 p-1 text-xs"
+                          />
+                          <span className="text-xs">min</span>
+                        </div>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={material.handlingCost}
+                          onChange={(e) => {
+                            const newCost = parseFloat(e.target.value) || 0;
+                            updateMaterialField(material.id, 'handlingCost', newCost);
+                            recalculateMaterial(material.id);
+                          }}
+                          className="w-20 border-0 p-1 text-xs text-muted-foreground"
+                        />
                       </div>
                     </TableCell>
                     <TableCell className="font-semibold">${material.totalCost.toFixed(2)}</TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
                         <Button
                           size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingMaterial(material);
-                            setIsEditDialogOpen(true);
-                          }}
+                          variant="ghost"
+                          onClick={() => recalculateMaterial(material.id)}
+                          title="Recalculate total"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Calculator className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="ghost"
                           onClick={() => removeMaterial(material.id)}
+                          title="Remove material"
                         >
-                          <Trash2 className="h-4 w-4 text-red-600" />
+                          <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
                       </div>
                     </TableCell>
