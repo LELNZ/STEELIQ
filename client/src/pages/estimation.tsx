@@ -124,22 +124,9 @@ export default function EstimationPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch existing estimation projects with demo project
+  // Fetch existing estimation projects
   const { data: projects = [] } = useQuery<EstimationProject[]>({
     queryKey: ["/api/estimations"],
-    placeholderData: [{
-      id: 1,
-      name: "Commercial Warehouse Steel Frame",
-      description: "40m x 20m warehouse with 8m ceiling height for Stryde Construction",
-      clientId: 12,
-      clientName: "Stryde Construction",
-      status: 'in_progress' as const,
-      totalCost: 53303,
-      margin: 20,
-      deliveryDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }]
   });
 
   // Fetch materials for AI assistance

@@ -1578,6 +1578,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Estimation Projects API
+  app.get("/api/estimations", async (req, res) => {
+    try {
+      const demoProject = {
+        id: 1,
+        name: "Commercial Warehouse Steel Frame",
+        description: "40m x 20m warehouse with 8m ceiling height for Stryde Construction",
+        clientId: 12,
+        clientName: "Stryde Construction",
+        status: 'in_progress',
+        totalCost: 53303,
+        margin: 20,
+        deliveryDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      res.json([demoProject]);
+    } catch (error) {
+      console.error("Error fetching estimations:", error);
+      res.status(500).json({ error: "Failed to fetch estimations" });
+    }
+  });
+
+  app.post("/api/estimations", async (req, res) => {
+    try {
+      const projectData = {
+        id: Date.now(),
+        ...req.body,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      res.status(201).json(projectData);
+    } catch (error) {
+      console.error("Error creating estimation:", error);
+      res.status(500).json({ error: "Failed to create estimation" });
+    }
+  });
+
   app.post('/api/client-locations', async (req, res) => {
     try {
       const location = await storage.createLocation({
