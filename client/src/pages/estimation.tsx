@@ -813,7 +813,7 @@ function EquipmentTab({ equipment, onUpdate }: { equipment: EquipmentCost[]; onU
                         <Input
                           value={item.equipment}
                           onChange={(e) => updateEquipmentItem(item.id, { equipment: e.target.value })}
-                          className="font-medium"
+                          className="font-medium border-0 px-1 py-0 h-6"
                         />
                       </TableCell>
                       <TableCell>
@@ -839,7 +839,7 @@ function EquipmentTab({ equipment, onUpdate }: { equipment: EquipmentCost[]; onU
                             const newCost = newDuration * item.rate;
                             updateEquipmentItem(item.id, { duration: newDuration, totalCost: newCost });
                           }}
-                          className="w-20"
+                          className="w-20 border-0 px-1 py-0 h-6"
                         />
                       </TableCell>
                       <TableCell>
@@ -865,7 +865,7 @@ function EquipmentTab({ equipment, onUpdate }: { equipment: EquipmentCost[]; onU
                             const newCost = item.duration * newRate;
                             updateEquipmentItem(item.id, { rate: newRate, totalCost: newCost });
                           }}
-                          className="w-24"
+                          className="w-24 border-0 px-1 py-0 h-6"
                         />
                       </TableCell>
                       <TableCell className="font-semibold">

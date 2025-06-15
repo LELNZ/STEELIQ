@@ -348,14 +348,14 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                         <Input
                           value={material.materialName}
                           onChange={(e) => updateMaterialField(material.id, 'materialName', e.target.value)}
-                          className="font-medium border-0 p-1 min-w-40"
+                          className="font-medium border-0 px-1 py-0 min-w-40 h-6"
                         />
                         {material.supplier && (
                           <Input
                             value={material.supplier || ''}
                             onChange={(e) => updateMaterialField(material.id, 'supplier', e.target.value)}
                             placeholder="Supplier"
-                            className="text-sm text-muted-foreground border-0 p-1 mt-1"
+                            className="text-sm text-muted-foreground border-0 px-1 py-0 mt-1 h-5"
                           />
                         )}
                         {material.aiSuggested && (
@@ -370,7 +370,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                       <Input
                         value={material.materialCode}
                         onChange={(e) => updateMaterialField(material.id, 'materialCode', e.target.value)}
-                        className="font-mono text-sm w-24 border-0 p-1"
+                        className="font-mono text-sm w-24 border-0 px-1 py-0 h-6"
                       />
                     </TableCell>
                     <TableCell>
@@ -383,12 +383,12 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                             updateMaterialField(material.id, 'quantity', newQuantity);
                             recalculateMaterial(material.id);
                           }}
-                          className="w-20 border-0 p-1"
+                          className="w-20 border-0 px-1 py-0 h-6"
                         />
                         <Input
                           value={material.unit || 'm'}
                           onChange={(e) => updateMaterialField(material.id, 'unit', e.target.value)}
-                          className="w-12 border-0 p-1"
+                          className="w-12 border-0 px-1 py-0 h-6"
                         />
                       </div>
                     </TableCell>
@@ -402,7 +402,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                           updateMaterialField(material.id, 'unitCost', newUnitCost);
                           recalculateMaterial(material.id);
                         }}
-                        className="w-24 border-0 p-1"
+                        className="w-24 border-0 px-1 py-0 h-6"
                       />
                     </TableCell>
                     <TableCell>
@@ -415,7 +415,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                           updateMaterialField(material.id, 'wasteFactor', newWasteFactor);
                           recalculateMaterial(material.id);
                         }}
-                        className="w-16 border-0 p-1"
+                        className="w-16 border-0 px-1 py-0 h-6"
                       />
                     </TableCell>
                     <TableCell>
@@ -429,7 +429,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                               updateMaterialField(material.id, 'handlingTime', newTime);
                               recalculateMaterial(material.id);
                             }}
-                            className="w-16 border-0 p-1 text-xs"
+                            className="w-16 border-0 px-1 py-0 text-xs h-5"
                           />
                           <span className="text-xs">min</span>
                         </div>
@@ -442,7 +442,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                             updateMaterialField(material.id, 'handlingCost', newCost);
                             recalculateMaterial(material.id);
                           }}
-                          className="w-20 border-0 p-1 text-xs text-muted-foreground"
+                          className="w-20 border-0 px-1 py-0 text-xs text-muted-foreground h-5"
                         />
                       </div>
                     </TableCell>
