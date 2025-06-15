@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Calculator, 
   Zap, 
@@ -28,7 +29,8 @@ import {
   Save,
   Plus,
   AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  Info
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -787,7 +789,20 @@ function EquipmentTab({ equipment, onUpdate }: { equipment: EquipmentCost[]; onU
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Equipment & Machinery</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Equipment & Machinery
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Construction equipment, machinery, and tools required for the project.<br/>
+                    Includes cranes, welding equipment, cutting tools, and specialized machinery.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </CardTitle>
             <div className="text-2xl font-bold">${totalEquipmentCost.toLocaleString()}</div>
           </div>
         </CardHeader>
@@ -933,7 +948,20 @@ function ConsumablesTab({ consumables, onUpdate }: { consumables: ConsumableCost
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Consumables & Supplies</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Consumables & Supplies
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Welding electrodes, cutting discs, gas, consumables, and supplies.<br/>
+                    Includes safety equipment, protective gear, and project-specific materials.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </CardTitle>
             <div className="text-2xl font-bold">${totalConsumablesCost.toLocaleString()}</div>
           </div>
         </CardHeader>
@@ -1115,31 +1143,97 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Cost Breakdown Analysis</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center py-2 border-b">
-              <span>Subtotal (before overheads & margin)</span>
-              <span className="font-semibold">${estimationData.totals.subtotal.toLocaleString()}</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Cost Breakdown Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center py-2 border-b">
+                <span>Subtotal (before overheads & margin)</span>
+                <span className="font-semibold">${estimationData.totals.subtotal.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b">
+                <span>Overheads ({estimationData.overheads.percentage}%)</span>
+                <span className="font-semibold">${estimationData.totals.overheads.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b">
+                <span>Margin ({estimationData.margin.percentage}%)</span>
+                <span className="font-semibold">${estimationData.totals.margin.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 text-lg font-bold border-t-2">
+                <span>Total (excluding GST)</span>
+                <span>${estimationData.totals.total.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b text-orange-600">
+                <span>GST (15%)</span>
+                <span className="font-semibold">${(estimationData.totals.total * 0.15).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 text-xl font-bold border-t-2 text-primary">
+                <span>Total (including GST)</span>
+                <span>${(estimationData.totals.total * 1.15).toLocaleString()}</span>
+              </div>
             </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span>Overheads ({estimationData.overheads.percentage}%)</span>
-              <span className="font-semibold">${estimationData.totals.overheads.toLocaleString()}</span>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Profit & Efficiency Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center py-2 border-b">
+                <span>Gross Profit $</span>
+                <span className="font-semibold text-green-600">${estimationData.totals.margin.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b">
+                <span>Gross Profit %</span>
+                <span className="font-semibold text-green-600">{estimationData.margin.percentage}%</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b">
+                <span>Total Labor Hours</span>
+                <span className="font-semibold">
+                  {(() => {
+                    const totalHours = estimationData.labor.reduce((sum, item) => sum + item.hours, 0);
+                    return `${totalHours.toFixed(1)}h`;
+                  })()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b">
+                <span>Gross Profit per Hour</span>
+                <span className="font-semibold text-blue-600">
+                  ${(() => {
+                    const totalHours = estimationData.labor.reduce((sum, item) => sum + item.hours, 0);
+                    return totalHours > 0 ? (estimationData.totals.margin / totalHours).toFixed(2) : '0.00';
+                  })()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b">
+                <span>Project Efficiency Rating</span>
+                <span className="font-semibold">
+                  {(() => {
+                    const profitPercent = estimationData.margin.percentage;
+                    if (profitPercent >= 25) return <Badge className="bg-green-500">Excellent</Badge>;
+                    if (profitPercent >= 20) return <Badge className="bg-blue-500">Good</Badge>;
+                    if (profitPercent >= 15) return <Badge className="bg-yellow-500">Fair</Badge>;
+                    return <Badge className="bg-red-500">Low</Badge>;
+                  })()}
+                </span>
+              </div>
+              <div className="pt-2 border-t-2">
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• Excellent: 25%+ margin</p>
+                  <p>• Good: 20-24% margin</p>
+                  <p>• Fair: 15-19% margin</p>
+                  <p>• Low: &lt;15% margin</p>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span>Margin ({estimationData.margin.percentage}%)</span>
-              <span className="font-semibold">${estimationData.totals.margin.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 text-lg font-bold border-t-2">
-              <span>Total Project Cost</span>
-              <span>${estimationData.totals.total.toLocaleString()}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

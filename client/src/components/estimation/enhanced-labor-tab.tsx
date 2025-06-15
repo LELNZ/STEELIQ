@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Clock, Users, MapPin, Settings, Calculator, Edit3 } from "lucide-react";
+import { Plus, Trash2, Clock, Users, MapPin, Settings, Calculator, Edit3, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface LaborItem {
@@ -123,6 +123,17 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
             Enhanced Labor Management
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Workshop and onsite labor including fabrication, welding, assembly, and erection.<br/>
+                  Tracks hours, skill levels, rates, and location-based cost variations.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CardTitle>
         </CardHeader>
         <CardContent>
