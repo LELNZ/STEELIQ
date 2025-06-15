@@ -250,8 +250,61 @@ export default function EstimationPage() {
       project,
       materials: demoMaterials,
       labor: demoLabor,
-      equipment: [],
-      consumables: [],
+      equipment: [
+        {
+          id: 'CRANE1',
+          equipment: '25T Mobile Crane',
+          type: 'rental' as const,
+          duration: 2,
+          unit: 'days' as const,
+          rate: 1200,
+          totalCost: 2400
+        },
+        {
+          id: 'WELD1',
+          equipment: 'MIG Welding Machine',
+          type: 'inhouse' as const,
+          duration: 180,
+          unit: 'hours' as const,
+          rate: 15,
+          totalCost: 2700
+        },
+        {
+          id: 'FORGE1',
+          equipment: 'Forklift 3T',
+          type: 'inhouse' as const,
+          duration: 3,
+          unit: 'days' as const,
+          rate: 150,
+          totalCost: 450
+        }
+      ],
+      consumables: [
+        {
+          id: 'ELEC1',
+          item: 'Welding Electrodes 3.2mm',
+          quantity: 25,
+          unit: 'kg',
+          unitCost: 12.50,
+          totalCost: 312.50
+        },
+        {
+          id: 'GAS1',
+          item: 'Argon Gas Cylinder',
+          quantity: 2,
+          unit: 'cylinders',
+          unitCost: 180,
+          totalCost: 360
+        },
+        {
+          id: 'PAINT1',
+          item: 'Primer Paint',
+          quantity: 15,
+          unit: 'litres',
+          unitCost: 45,
+          totalCost: 675
+        }
+      ],
       overheads: { percentage: 15, amount: 0 },
       margin: { percentage: 20, amount: 0 },
       totals: {
@@ -713,17 +766,55 @@ function LaborTab({ labor, onUpdate }: { labor: LaborCost[]; onUpdate: (labor: L
 
 // Equipment rental and usage estimation
 function EquipmentTab({ equipment, onUpdate }: { equipment: EquipmentCost[]; onUpdate: (equipment: EquipmentCost[]) => void }) {
+  const totalEquipmentCost = equipment.reduce((sum, item) => sum + item.totalCost, 0);
+  
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Equipment Cost Estimation</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Equipment & Machinery</CardTitle>
+            <div className="text-2xl font-bold">${totalEquipmentCost.toLocaleString()}</div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Equipment rental and usage estimation coming next</p>
-            <p className="text-sm">Inhouse and rental equipment with operator costs</p>
+          <div className="space-y-4">
+            {equipment.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Equipment</th>
+                      <th className="text-left p-2">Type</th>
+                      <th className="text-right p-2">Duration</th>
+                      <th className="text-right p-2">Rate</th>
+                      <th className="text-right p-2">Total Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {equipment.map((item) => (
+                      <tr key={item.id} className="border-b">
+                        <td className="p-2 font-medium">{item.equipment}</td>
+                        <td className="p-2">
+                          <Badge variant={item.type === 'inhouse' ? 'default' : 'secondary'}>
+                            {item.type}
+                          </Badge>
+                        </td>
+                        <td className="text-right p-2">{item.duration} {item.unit}</td>
+                        <td className="text-right p-2">${item.rate}/{item.unit}</td>
+                        <td className="text-right p-2 font-semibold">${item.totalCost.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No equipment costs added yet</p>
+                <p className="text-sm">Add inhouse and rental equipment with operator costs</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
