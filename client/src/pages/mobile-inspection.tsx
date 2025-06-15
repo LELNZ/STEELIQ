@@ -249,7 +249,7 @@ export default function MobileInspection() {
               onClick={() => syncData.mutate()}
               disabled={!isOnline || syncData.isPending}
             >
-              <Sync className="h-4 w-4 mr-1" />
+              <RefreshCw className="h-4 w-4 mr-1" />
               Sync
             </Button>
           </div>
@@ -576,7 +576,7 @@ export default function MobileInspection() {
               onClick={() => syncData.mutate()}
               disabled={!isOnline || syncData.isPending}
             >
-              <Sync className="h-4 w-4 mr-1" />
+              <RefreshCw className="h-4 w-4 mr-1" />
               {syncData.isPending ? 'Syncing...' : 'Sync'}
             </Button>
           </div>
