@@ -176,8 +176,8 @@ export const enhancedDrawingAnalysis = pgTable("enhanced_drawing_analysis", {
 // Drawing Revisions and Comparison
 export const drawingRevisions = pgTable("drawing_revisions", {
   id: serial("id").primaryKey(),
-  originalDrawingId: integer("original_drawing_id").references(() => drawingAnalysis.id).notNull(),
-  revisionDrawingId: integer("revision_drawing_id").references(() => drawingAnalysis.id).notNull(),
+  originalDrawingId: integer("original_drawing_id").references(() => enhancedDrawingAnalysis.id).notNull(),
+  revisionDrawingId: integer("revision_drawing_id").references(() => enhancedDrawingAnalysis.id).notNull(),
   revisionNumber: text("revision_number"),
   changesDetected: jsonb("changes_detected"),
   addedElements: jsonb("added_elements"),
@@ -191,7 +191,7 @@ export const drawingRevisions = pgTable("drawing_revisions", {
 export const materialTakeoff = pgTable("material_takeoff", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => projects.id).notNull(),
-  drawingAnalysisId: integer("drawing_analysis_id").references(() => drawingAnalysis.id),
+  drawingAnalysisId: integer("drawing_analysis_id").references(() => enhancedDrawingAnalysis.id),
   partMark: text("part_mark").notNull(),
   elementType: text("element_type").notNull(), // beam, column, purlin, brace, connection, base_plate, stiffener
   materialCode: text("material_code").notNull(),
@@ -1181,8 +1181,8 @@ export type InsertSupplierContact = z.infer<typeof insertSupplierContactSchema>;
 export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 
-// PDF Drawing Analysis Tables (Enhanced)
-export const pdfDrawingAnalysis = pgTable("pdf_drawing_analysis", {
+// AI Drawing Analysis for Three-Phase Workflow
+export const aiDrawingAnalysis = pgTable("ai_drawing_analysis", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => estimationProjects.id),
   fileName: text("file_name").notNull(),
@@ -1200,7 +1200,7 @@ export const pdfDrawingAnalysis = pgTable("pdf_drawing_analysis", {
 
 export const steelElements = pgTable("steel_elements", {
   id: serial("id").primaryKey(),
-  drawingId: integer("drawing_id").references(() => drawingAnalysis.id),
+  drawingId: integer("drawing_id").references(() => aiDrawingAnalysis.id),
   partMark: text("part_mark").notNull(), // S1, B1, C1, etc.
   elementType: text("element_type").notNull(), // beam, column, purlin, brace, connection
   materialCode: text("material_code"), // 310UB40.4, 200UC52.2, etc.
@@ -1349,7 +1349,7 @@ export const enhancedEstimationConsumables = pgTable("enhanced_estimation_consum
 });
 
 // PDF Analysis Types
-export type DrawingAnalysis = typeof drawingAnalysis.$inferSelect;
+export type DrawingAnalysis = typeof aiDrawingAnalysis.$inferSelect;
 export type SteelElement = typeof steelElements.$inferSelect;
 export type ConnectionDetail = typeof connectionDetails.$inferSelect;
 export type AiCuttingOptimization = typeof aiCuttingOptimization.$inferSelect;

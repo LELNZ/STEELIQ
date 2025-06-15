@@ -24,7 +24,7 @@ import {
   AlertTriangle,
   FileText,
   Download,
-  Sync,
+  RefreshCw,
   Wifi,
   WifiOff,
   Clock,
