@@ -107,23 +107,32 @@ export default function PdfAnalysisTab({ projectId, onElementsExtracted }: PdfAn
           );
         }
 
-        // Mock analysis results
-        const mockElements = generateMockElements(file.type);
+        // Mock analysis for demonstration - will use actual API once configured
+        const analysisResult = {
+          success: true,
+          confidence: 0.92,
+          elements: generateMockElements(file.type),
+          pageCount: Math.floor(Math.random() * 20) + 1
+        };
         
-        setUploadedFiles(prev => 
-          prev.map(f => f.id === file.id ? { 
-            ...f, 
-            status: 'completed',
-            confidence: 0.92,
-            elements: mockElements,
-            pageCount: Math.floor(Math.random() * 20) + 1
-          } : f)
-        );
+        if (analysisResult.success) {
+          setUploadedFiles(prev => 
+            prev.map(f => f.id === file.id ? { 
+              ...f, 
+              status: 'completed',
+              confidence: analysisResult.confidence,
+              elements: analysisResult.elements,
+              pageCount: analysisResult.pageCount
+            } : f)
+          );
 
-        toast({
-          title: "Analysis complete",
-          description: `${mockElements.length} steel elements detected in ${file.name}`,
-        });
+          toast({
+            title: "Analysis complete",
+            description: `${analysisResult.elements.length} steel elements detected in ${file.name}`,
+          });
+        } else {
+          throw new Error(analysisResult.error);
+        }
 
       } catch (error) {
         setUploadedFiles(prev => 

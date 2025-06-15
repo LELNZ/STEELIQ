@@ -1106,14 +1106,14 @@ export const enhancedEstimationMaterials = pgTable("enhanced_estimation_material
   materialId: integer("material_id").references(() => materials.id),
   materialCode: text("material_code").notNull(),
   materialName: text("material_name").notNull(),
-  quantity: real("quantity").notNull(),
+  quantity: decimal("quantity").notNull(),
   unit: text("unit").notNull().default("m"),
-  unitCost: real("unit_cost").notNull().default(0),
-  totalCost: real("total_cost").notNull().default(0),
-  wasteFactor: real("waste_factor").notNull().default(0.05), // 5%
-  adjustedQuantity: real("adjusted_quantity"),
-  handlingTime: real("handling_time").notNull().default(0), // minutes
-  handlingCost: real("handling_cost").notNull().default(0),
+  unitCost: decimal("unit_cost").notNull().default("0"),
+  totalCost: decimal("total_cost").notNull().default("0"),
+  wasteFactor: decimal("waste_factor").notNull().default("0.05"), // 5%
+  adjustedQuantity: decimal("adjusted_quantity"),
+  handlingTime: decimal("handling_time").notNull().default("0"), // minutes
+  handlingCost: decimal("handling_cost").notNull().default("0"),
   handlingCategory: text("handling_category").default("manual"), // crane, heavy_manual, medium_lift, light
   supplier: text("supplier"),
   leadTime: integer("lead_time"), // days
@@ -1129,9 +1129,9 @@ export const enhancedEstimationLabor = pgTable("enhanced_estimation_labor", {
   category: text("category").notNull(), // workshop, onsite, subcontractor
   subcategory: text("subcategory").notNull(), // fabrication, welding, assembly, loading, coatings, erection, demolition
   description: text("description").notNull(),
-  hours: real("hours").notNull().default(0),
-  rate: real("rate").notNull().default(0), // per hour
-  totalCost: real("total_cost").notNull().default(0),
+  hours: decimal("hours").notNull().default("0"),
+  rate: decimal("rate").notNull().default("0"), // per hour
+  totalCost: decimal("total_cost").notNull().default("0"),
   location: text("location").default("workshop"), // workshop, site
   skillLevel: text("skill_level").default("standard"), // apprentice, standard, senior, specialist
   notes: text("notes"),
@@ -1144,11 +1144,11 @@ export const enhancedEstimationEquipment = pgTable("enhanced_estimation_equipmen
   equipmentType: text("equipment_type").notNull(), // inhouse, rental
   category: text("category").notNull(), // truck, hiab, crane, generator, plasma, welding
   name: text("name").notNull(),
-  hours: real("hours").notNull().default(0),
-  rate: real("rate").notNull().default(0), // per hour
-  totalCost: real("total_cost").notNull().default(0),
-  fuelCost: real("fuel_cost").default(0),
-  operatorCost: real("operator_cost").default(0),
+  hours: decimal("hours").notNull().default("0"),
+  rate: decimal("rate").notNull().default("0"), // per hour
+  totalCost: decimal("total_cost").notNull().default("0"),
+  fuelCost: decimal("fuel_cost").default("0"),
+  operatorCost: decimal("operator_cost").default("0"),
   notes: text("notes"),
 });
 
@@ -1158,10 +1158,10 @@ export const enhancedEstimationConsumables = pgTable("enhanced_estimation_consum
   category: text("category").notNull(), // welding, cutting, grinding, fasteners, gas, paint
   itemType: text("item_type").notNull(), // welding_rod, cutting_disc, bolt, paint, etc.
   specification: text("specification"), // 7018, M20x80, etc.
-  quantity: real("quantity").notNull().default(0),
+  quantity: decimal("quantity").notNull().default("0"),
   unit: text("unit").notNull(), // kg, pieces, litres
-  unitCost: real("unit_cost").notNull().default(0),
-  totalCost: real("total_cost").notNull().default(0),
+  unitCost: decimal("unit_cost").notNull().default("0"),
+  totalCost: decimal("total_cost").notNull().default("0"),
   notes: text("notes"),
 });
 
