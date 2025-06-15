@@ -12,6 +12,9 @@ import CuttingOptimizationFixed from "@/pages/cutting-optimization-fixed";
 import CuttingPlanTest from "@/pages/cutting-plan-test";
 import Estimates from "@/pages/estimates";
 import EstimationPage from "@/pages/estimation";
+import ProjectEstimation from "@/pages/project-estimation";
+import ClientPortal from "@/pages/client-portal";
+import MobileInspection from "@/pages/mobile-inspection";
 import Contacts from "@/pages/contacts";
 import Suppliers from "@/pages/suppliers";
 import SupplierContacts from "@/pages/supplier-contacts";
@@ -27,6 +30,9 @@ function Router() {
       <Route path="/jobs" component={Jobs} />
       <Route path="/estimates" component={Estimates} />
       <Route path="/estimation" component={EstimationPage} />
+      <Route path="/project-estimation" component={ProjectEstimation} />
+      <Route path="/client-portal" component={ClientPortal} />
+      <Route path="/mobile-inspection" component={MobileInspection} />
       <Route path="/materials" component={Materials} />
       <Route path="/inventory" component={Inventory} />
       <Route path="/contacts" component={Contacts} />

@@ -1,0 +1,32 @@
+
+Include everything with a "Yes" and consider all remarks
+
+Advanced AI & Analysis Features
+Multi-Drawing Batch Processing - Upload and analyze multiple PDF drawings simultaneously for large projects - yes, include detailer drawings in all formats when they come back from the steel detailer to be readied for client review and also workshop cutlists and build into our workflow.
+Drawing Comparison Intelligence - Compare revisions and highlight changes between drawing versions - Yes
+Connection Detail Recognition - AI identifies specific weld symbols, bolt patterns, and connection types - Yes
+Material Optimization Suggestions - AI recommends alternative steel sections for cost savings - Yes- good however will required Engineer sign off
+
+Project Management & Workflow
+Three-Phase Estimation Workflow - Initial Simulation → Professional Estimate → Job Creation with approval gates - Yes, remember the user review and allow all phases to be editable with client adaptations if required - suggest how and where this would happed.
+Interactive PDF Highlighting - Click on drawing elements to see cost breakdowns and specifications - yes - also allow user to selecet a add / remove click on drawing elements for items missed or items we need to omit etc.
+Real-time Collaboration - Multiple estimators can work on the same project simultaneously - yes, we can add this at a later date but keep it in the pipline of features.
+Estimation Templates - Save and reuse estimation templates for similar project types - yes - how would this work with each job being different, does this help the AI to learn?
+
+Business Intelligence & Integration
+Predictive Cost Analytics - Historical data analysis to predict material price trends - yes- only for reference or where user is unable to get a price in a timely manner, this would be beneficial.
+Supplier Integration API - Real-time pricing from steel suppliers with automatic updates - NZ is not setup for this. keep it as a future pipeline feature.
+Mobile Site Inspection App - Field verification of estimates with photo documentation - Yes - Great idea!! allow for visual comparasion of site to construction drawing and allow for actual measuremnets to be added in plan,section, elevation views of the plans - allow user to select drawings and mark up directly on the drawing from the app - make any suggestions required to create a extremely versatile site app.
+Client Quote Portal - Branded portal where clients can review and approve estimates - Yes - if you look back at functions i have asked for this is one of them!
+
+Advanced Calculations & Standards
+AS/NZS Compliance Checker - Automated verification against Australian/New Zealand standards - Yes
+Crane Lift Planning - Calculate crane requirements and positioning for installation - Yes and crane lifting plan templates for our drivers use H&S - allow this to work in with the workflow from start to completion.
+Welding Procedure Integration - Link to WPS (Welding Procedure Specifications) database - yes - and alert if we need to make new WPS
+Surface Area for Coatings - Automatic paint/coating quantity calculations - yes this is one of my earlier requirements. 
+
+Quality & Risk Management
+Risk Assessment Matrix - Identify project risks and add contingency calculations - yes where in the workflow will this be reviewed?
+Quality Control Checklists - Built-in QC workflows for estimation accuracy - YES
+Change Order Management - Track and cost variations from original estimates - YES
+Performance Analytics - Compare estimated vs actual costs for continuous improvement - YES 

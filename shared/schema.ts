@@ -80,7 +80,194 @@ export const inventory = pgTable("inventory", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Jobs
+// Enhanced Projects with Three-Phase Estimation Workflow
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  projectNumber: text("project_number").notNull().unique(),
+  clientName: text("client_name").notNull(),
+  clientContact: text("client_contact"),
+  clientPhone: text("client_phone"),
+  clientEmail: text("client_email"),
+  clientAddress: text("client_address"),
+  projectDescription: text("project_description"),
+  
+  // Three-Phase Workflow Status
+  currentPhase: text("current_phase").notNull().default("initial_simulation"), // initial_simulation, professional_estimate, job_creation
+  phaseStatus: text("phase_status").notNull().default("in_progress"), // in_progress, pending_review, approved, rejected
+  
+  // Phase 1: Initial Simulation
+  initialSimulationData: jsonb("initial_simulation_data"),
+  initialSimulationDate: timestamp("initial_simulation_date"),
+  initialEstimatedValue: decimal("initial_estimated_value", { precision: 10, scale: 2 }),
+  
+  // Phase 2: Professional Estimate
+  professionalEstimateData: jsonb("professional_estimate_data"),
+  professionalEstimateDate: timestamp("professional_estimate_date"),
+  professionalEstimatedValue: decimal("professional_estimated_value", { precision: 10, scale: 2 }),
+  engineerApprovalRequired: boolean("engineer_approval_required").default(false),
+  engineerApprovalStatus: text("engineer_approval_status"), // pending, approved, rejected
+  engineerComments: text("engineer_comments"),
+  
+  // Phase 3: Job Creation
+  jobCreationData: jsonb("job_creation_data"),
+  jobCreationDate: timestamp("job_creation_date"),
+  finalEstimatedValue: decimal("final_estimated_value", { precision: 10, scale: 2 }),
+  
+  // Standard Job Fields
+  status: text("status").notNull().default("quote"),
+  priority: text("priority").notNull().default("standard"),
+  actualCost: decimal("actual_cost", { precision: 10, scale: 2 }),
+  materialCost: decimal("material_cost", { precision: 10, scale: 2 }),
+  laborCost: decimal("labor_cost", { precision: 10, scale: 2 }),
+  equipmentCost: decimal("equipment_cost", { precision: 10, scale: 2 }),
+  consumablesCost: decimal("consumables_cost", { precision: 10, scale: 2 }),
+  overheadCost: decimal("overhead_cost", { precision: 10, scale: 2 }),
+  profitMargin: decimal("profit_margin", { precision: 5, scale: 2 }),
+  estimatedTime: integer("estimated_time_minutes"),
+  actualTime: integer("actual_time_minutes"),
+  dueDate: timestamp("due_date"),
+  startDate: timestamp("start_date"),
+  completedDate: timestamp("completed_date"),
+  createdBy: integer("created_by"),
+  assignedEstimator: integer("assigned_estimator"),
+  riskAssessmentData: jsonb("risk_assessment_data"),
+  qualityChecklistData: jsonb("quality_checklist_data"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Multi-Drawing Batch Processing
+export const drawingBatches = pgTable("drawing_batches", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id).notNull(),
+  batchName: text("batch_name").notNull(),
+  drawingType: text("drawing_type").notNull(), // structural_plan, elevation, section, shop_drawing, detailer_drawing, workshop_cutlist
+  analysisStatus: text("analysis_status").notNull().default("pending"), // pending, processing, completed, failed
+  totalDrawings: integer("total_drawings").notNull().default(0),
+  processedDrawings: integer("processed_drawings").notNull().default(0),
+  overallConfidence: decimal("overall_confidence", { precision: 5, scale: 2 }),
+  analysisResults: jsonb("analysis_results"),
+  qualityIssues: jsonb("quality_issues"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Individual Drawing Analysis (Enhanced Multi-Format Support)
+export const enhancedDrawingAnalysis = pgTable("enhanced_drawing_analysis", {
+  id: serial("id").primaryKey(),
+  batchId: integer("batch_id").references(() => drawingBatches.id).notNull(),
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size"),
+  fileFormat: text("file_format"), // pdf, dwg, dxf
+  drawingType: text("drawing_type").notNull(),
+  analysisStatus: text("analysis_status").notNull().default("pending"),
+  confidence: decimal("confidence", { precision: 5, scale: 2 }),
+  elementsFound: integer("elements_found").default(0),
+  analysisResults: jsonb("analysis_results"),
+  extractedElements: jsonb("extracted_elements"),
+  qualityIssues: jsonb("quality_issues"),
+  userMarkups: jsonb("user_markups"), // User added/removed items
+  revisionComparison: jsonb("revision_comparison"), // Changes from previous version
+  processingTime: integer("processing_time_ms"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Drawing Revisions and Comparison
+export const drawingRevisions = pgTable("drawing_revisions", {
+  id: serial("id").primaryKey(),
+  originalDrawingId: integer("original_drawing_id").references(() => drawingAnalysis.id).notNull(),
+  revisionDrawingId: integer("revision_drawing_id").references(() => drawingAnalysis.id).notNull(),
+  revisionNumber: text("revision_number"),
+  changesDetected: jsonb("changes_detected"),
+  addedElements: jsonb("added_elements"),
+  removedElements: jsonb("removed_elements"),
+  modifiedElements: jsonb("modified_elements"),
+  impactAssessment: jsonb("impact_assessment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Enhanced Material Take-off with AI Analysis
+export const materialTakeoff = pgTable("material_takeoff", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id).notNull(),
+  drawingAnalysisId: integer("drawing_analysis_id").references(() => drawingAnalysis.id),
+  partMark: text("part_mark").notNull(),
+  elementType: text("element_type").notNull(), // beam, column, purlin, brace, connection, base_plate, stiffener
+  materialCode: text("material_code").notNull(),
+  materialId: integer("material_id").references(() => materials.id),
+  length: decimal("length", { precision: 10, scale: 2 }).notNull(),
+  quantity: integer("quantity").notNull(),
+  weight: decimal("weight", { precision: 10, scale: 3 }),
+  surfaceArea: decimal("surface_area", { precision: 10, scale: 2 }),
+  coordinates: jsonb("coordinates"), // Drawing coordinates
+  dimensions: jsonb("dimensions"),
+  connections: jsonb("connections"),
+  weldDetails: jsonb("weld_details"),
+  isUserAdded: boolean("is_user_added").default(false),
+  isUserRemoved: boolean("is_user_removed").default(false),
+  aiConfidence: decimal("ai_confidence", { precision: 5, scale: 2 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Crane Lift Planning with H&S Integration
+export const craneLiftPlans = pgTable("crane_lift_plans", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id).notNull(),
+  liftSequence: integer("lift_sequence").notNull(),
+  elementsToBeLift: jsonb("elements_to_be_lift"),
+  craneType: text("crane_type").notNull(), // mobile, tower, overhead
+  craneCapacity: decimal("crane_capacity", { precision: 10, scale: 2 }), // tonnes
+  liftWeight: decimal("lift_weight", { precision: 10, scale: 2 }), // tonnes
+  liftRadius: decimal("lift_radius", { precision: 10, scale: 2 }), // metres
+  liftHeight: decimal("lift_height", { precision: 10, scale: 2 }), // metres
+  cranePosition: jsonb("crane_position"), // coordinates
+  riggerRequirements: jsonb("rigger_requirements"),
+  safetyRequirements: jsonb("safety_requirements"),
+  hsTemplateUsed: text("hs_template_used"),
+  riskAssessment: jsonb("risk_assessment"),
+  weatherConstraints: jsonb("weather_constraints"),
+  estimatedDuration: integer("estimated_duration_minutes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// WPS (Welding Procedure Specifications) Database
+export const weldingProcedures = pgTable("welding_procedures", {
+  id: serial("id").primaryKey(),
+  wpsNumber: text("wps_number").notNull().unique(),
+  title: text("title").notNull(),
+  baseMaterial: text("base_material"),
+  fillerMaterial: text("filler_material"),
+  weldingProcess: text("welding_process"), // GMAW, SMAW, FCAW, SAW
+  jointType: text("joint_type"), // butt, fillet, corner, edge
+  weldingPosition: text("welding_position"), // flat, horizontal, vertical, overhead
+  preheatingRequired: boolean("preheating_required").default(false),
+  preheatingTemp: decimal("preheating_temp", { precision: 5, scale: 1 }),
+  interpassTemp: decimal("interpass_temp", { precision: 5, scale: 1 }),
+  postWeldHeatTreatment: boolean("post_weld_heat_treatment").default(false),
+  qualificationStatus: text("qualification_status").notNull().default("active"), // active, expired, pending
+  qualificationDate: date("qualification_date"),
+  expiryDate: date("expiry_date"),
+  approvedBy: text("approved_by"),
+  procedureDocument: text("procedure_document"), // File path or URL
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// WPS Alerts and Notifications
+export const wpsAlerts = pgTable("wps_alerts", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id),
+  wpsId: integer("wps_id").references(() => weldingProcedures.id),
+  alertType: text("alert_type").notNull(), // new_wps_required, wps_expiring, wps_expired
+  description: text("description").notNull(),
+  severity: text("severity").notNull().default("medium"), // low, medium, high, critical
+  status: text("status").notNull().default("open"), // open, acknowledged, resolved
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+// Legacy Jobs table for compatibility
 export const jobs = pgTable("jobs", {
   id: serial("id").primaryKey(),
   jobNumber: text("job_number").notNull().unique(),
@@ -90,18 +277,14 @@ export const jobs = pgTable("jobs", {
   clientEmail: text("client_email"),
   clientAddress: text("client_address"),
   projectDescription: text("project_description"),
-  status: text("status").notNull().default("quote"), // quote, client_confirmation, shop_drawings, materials_ordered, processing, fabrication, welding, finishing, coatings, delivery, site_works, variations, completed, on_hold, backcosting
-  priority: text("priority").notNull().default("standard"), // standard, high, rush, urgent
+  status: text("status").notNull().default("quote"),
+  priority: text("priority").notNull().default("standard"),
   estimatedValue: decimal("estimated_value", { precision: 10, scale: 2 }),
   actualCost: decimal("actual_cost", { precision: 10, scale: 2 }),
   materialCost: decimal("material_cost", { precision: 10, scale: 2 }),
   laborCost: decimal("labor_cost", { precision: 10, scale: 2 }),
   overheadCost: decimal("overhead_cost", { precision: 10, scale: 2 }),
   profitMargin: decimal("profit_margin", { precision: 5, scale: 2 }),
-  estimatedTime: integer("estimated_time_minutes"),
-  actualTime: integer("actual_time_minutes"),
-  dueDate: timestamp("due_date"),
-  startDate: timestamp("start_date"),
   completedDate: timestamp("completed_date"),
   assignedTo: integer("assigned_to").references(() => users.id),
   wastePercentage: decimal("waste_percentage", { precision: 5, scale: 2 }),
@@ -998,8 +1181,8 @@ export type InsertSupplierContact = z.infer<typeof insertSupplierContactSchema>;
 export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 
-// PDF Drawing Analysis Tables
-export const drawingAnalysis = pgTable("drawing_analysis", {
+// PDF Drawing Analysis Tables (Enhanced)
+export const pdfDrawingAnalysis = pgTable("pdf_drawing_analysis", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => estimationProjects.id),
   fileName: text("file_name").notNull(),

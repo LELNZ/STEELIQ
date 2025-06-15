@@ -110,9 +110,44 @@ This is a comprehensive steel fabrication business management system built for L
 - **NODE_ENV**: Development/production mode switching
 - **Port Mapping**: Automatic scaling based on demand
 
+## Advanced Features Implementation
+
+### Multi-Drawing Batch Processing
+- Upload and analyze multiple PDF drawings simultaneously
+- Support for detailer drawings in all formats from steel detailers
+- Workshop cutlists integration into workflow
+- Automated drawing format detection and processing
+
+### Three-Phase Estimation Workflow
+- Phase 1: Initial Simulation (AI-assisted rough estimate)
+- Phase 2: Professional Estimate (detailed review and refinement)
+- Phase 3: Job Creation (final approval and job setup)
+- User review gates between phases with full editability
+- Client adaptation capabilities at each phase
+
+### Interactive PDF Features
+- Click on drawing elements for cost breakdowns
+- Add/remove items missed or to be omitted
+- Drawing comparison intelligence for revisions
+- Real-time markup and annotation system
+
+### Mobile Site Inspection App
+- Visual comparison of site to construction drawings
+- Actual measurements addition to plan/section/elevation views
+- Direct drawing markup from mobile app
+- Photo documentation with drawing correlation
+
+### Advanced Calculations Integration
+- AS/NZS compliance checking
+- Crane lift planning with H&S templates
+- WPS database integration with alerts
+- Surface area calculations for coatings
+- Risk assessment matrix workflow integration
+
 ## Changelog
 
-- June 15, 2025. Initial setup
+- June 15, 2025: Initial setup and comprehensive feature planning
+- June 15, 2025: Advanced AI estimation engine with multi-phase workflow implementation
 
 ## User Preferences
 
