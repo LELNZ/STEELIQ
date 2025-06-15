@@ -958,7 +958,7 @@ function ConsumablesTab({ consumables, onUpdate }: { consumables: ConsumableCost
                         <Input
                           value={item.item}
                           onChange={(e) => updateConsumableItem(item.id, { item: e.target.value })}
-                          className="font-medium"
+                          className="font-medium border-0 px-1 py-0 h-6"
                         />
                       </TableCell>
                       <TableCell>
@@ -970,14 +970,14 @@ function ConsumablesTab({ consumables, onUpdate }: { consumables: ConsumableCost
                             const newCost = newQuantity * item.unitCost;
                             updateConsumableItem(item.id, { quantity: newQuantity, totalCost: newCost });
                           }}
-                          className="w-24"
+                          className="w-24 border-0 px-1 py-0 h-6"
                         />
                       </TableCell>
                       <TableCell>
                         <Input
                           value={item.unit}
                           onChange={(e) => updateConsumableItem(item.id, { unit: e.target.value })}
-                          className="w-24"
+                          className="w-24 border-0 px-1 py-0 h-6"
                         />
                       </TableCell>
                       <TableCell>
@@ -990,7 +990,7 @@ function ConsumablesTab({ consumables, onUpdate }: { consumables: ConsumableCost
                             const newCost = item.quantity * newUnitCost;
                             updateConsumableItem(item.id, { unitCost: newUnitCost, totalCost: newCost });
                           }}
-                          className="w-24"
+                          className="w-24 border-0 px-1 py-0 h-6"
                         />
                       </TableCell>
                       <TableCell className="font-semibold">
