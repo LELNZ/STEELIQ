@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Clock, Users, MapPin, Settings, Calculator } from "lucide-react";
+import { Plus, Trash2, Clock, Users, MapPin, Settings, Calculator, Edit3 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface LaborItem {
   id: string;
@@ -482,35 +483,69 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
                       <Badge variant="outline">{item.skillLevel}</Badge>
                     </TableCell>
                     <TableCell className="font-medium">${item.totalCost.toLocaleString()}</TableCell>
-                    <TableCell className="max-w-xs">
-                      <Input
-                        placeholder="Add notes..."
-                        value={item.notes || ''}
-                        onChange={(e) => updateLaborItem(item.id, { notes: e.target.value })}
-                        className="text-sm"
-                      />
+                    <TableCell className="max-w-40">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                placeholder="Add notes..."
+                                value={item.notes || ''}
+                                onChange={(e) => updateLaborItem(item.id, { notes: e.target.value })}
+                                className="text-sm min-w-32"
+                              />
+                              {item.notes && (
+                                <div className="text-xs text-muted-foreground truncate max-w-20">
+                                  {item.notes.length > 20 ? `${item.notes.substring(0, 20)}...` : item.notes}
+                                </div>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          {item.notes && (
+                            <TooltipContent>
+                              <p className="max-w-xs">{item.notes}</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            const newCost = item.hours * item.rate;
-                            updateLaborItem(item.id, { totalCost: newCost });
-                          }}
-                          title="Recalculate cost"
-                        >
-                          <Calculator className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeLaborItem(item.id)}
-                          title="Remove item"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newCost = item.hours * item.rate;
+                                  updateLaborItem(item.id, { totalCost: newCost });
+                                }}
+                              >
+                                <Calculator className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Recalculate cost</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeLaborItem(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Remove item</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </TableCell>
                   </TableRow>
