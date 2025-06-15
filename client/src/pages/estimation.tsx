@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Calculator, 
@@ -18,6 +19,7 @@ import {
   TrendingUp,
   Bot,
   Package,
+  Trash2,
   Truck,
   Users,
   Settings,
@@ -768,6 +770,18 @@ function LaborTab({ labor, onUpdate }: { labor: LaborCost[]; onUpdate: (labor: L
 function EquipmentTab({ equipment, onUpdate }: { equipment: EquipmentCost[]; onUpdate: (equipment: EquipmentCost[]) => void }) {
   const totalEquipmentCost = equipment.reduce((sum, item) => sum + item.totalCost, 0);
   
+  const updateEquipmentItem = (id: string, updates: Partial<EquipmentCost>) => {
+    const updatedEquipment = equipment.map(item => 
+      item.id === id ? { ...item, ...updates } : item
+    );
+    onUpdate(updatedEquipment);
+  };
+
+  const removeEquipmentItem = (id: string) => {
+    const updatedEquipment = equipment.filter(item => item.id !== id);
+    onUpdate(updatedEquipment);
+  };
+  
   return (
     <div className="space-y-6">
       <Card>
@@ -780,34 +794,110 @@ function EquipmentTab({ equipment, onUpdate }: { equipment: EquipmentCost[]; onU
         <CardContent>
           <div className="space-y-4">
             {equipment.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Equipment</th>
-                      <th className="text-left p-2">Type</th>
-                      <th className="text-right p-2">Duration</th>
-                      <th className="text-right p-2">Rate</th>
-                      <th className="text-right p-2">Total Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {equipment.map((item) => (
-                      <tr key={item.id} className="border-b">
-                        <td className="p-2 font-medium">{item.equipment}</td>
-                        <td className="p-2">
-                          <Badge variant={item.type === 'inhouse' ? 'default' : 'secondary'}>
-                            {item.type}
-                          </Badge>
-                        </td>
-                        <td className="text-right p-2">{item.duration} {item.unit}</td>
-                        <td className="text-right p-2">${item.rate}/{item.unit}</td>
-                        <td className="text-right p-2 font-semibold">${item.totalCost.toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Equipment</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead>Rate</TableHead>
+                    <TableHead>Total Cost</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {equipment.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <Input
+                          value={item.equipment}
+                          onChange={(e) => updateEquipmentItem(item.id, { equipment: e.target.value })}
+                          className="font-medium"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Select 
+                          value={item.type} 
+                          onValueChange={(value) => updateEquipmentItem(item.id, { type: value as 'inhouse' | 'rental' })}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="inhouse">Inhouse</SelectItem>
+                            <SelectItem value="rental">Rental</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          value={item.duration}
+                          onChange={(e) => {
+                            const newDuration = parseFloat(e.target.value) || 0;
+                            const newCost = newDuration * item.rate;
+                            updateEquipmentItem(item.id, { duration: newDuration, totalCost: newCost });
+                          }}
+                          className="w-20"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Select 
+                          value={item.unit} 
+                          onValueChange={(value) => updateEquipmentItem(item.id, { unit: value as 'hours' | 'days' })}
+                        >
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="hours">Hours</SelectItem>
+                            <SelectItem value="days">Days</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          value={item.rate}
+                          onChange={(e) => {
+                            const newRate = parseFloat(e.target.value) || 0;
+                            const newCost = item.duration * newRate;
+                            updateEquipmentItem(item.id, { rate: newRate, totalCost: newCost });
+                          }}
+                          className="w-24"
+                        />
+                      </TableCell>
+                      <TableCell className="font-semibold">
+                        ${item.totalCost.toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newCost = item.duration * item.rate;
+                              updateEquipmentItem(item.id, { totalCost: newCost });
+                            }}
+                            title="Recalculate cost"
+                          >
+                            <Calculator className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeEquipmentItem(item.id)}
+                            title="Remove item"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -824,17 +914,122 @@ function EquipmentTab({ equipment, onUpdate }: { equipment: EquipmentCost[]; onU
 
 // Consumables estimation with category management
 function ConsumablesTab({ consumables, onUpdate }: { consumables: ConsumableCost[]; onUpdate: (consumables: ConsumableCost[]) => void }) {
+  const totalConsumablesCost = consumables.reduce((sum, item) => sum + item.totalCost, 0);
+  
+  const updateConsumableItem = (id: string, updates: Partial<ConsumableCost>) => {
+    const updatedConsumables = consumables.map(item => 
+      item.id === id ? { ...item, ...updates } : item
+    );
+    onUpdate(updatedConsumables);
+  };
+
+  const removeConsumableItem = (id: string) => {
+    const updatedConsumables = consumables.filter(item => item.id !== id);
+    onUpdate(updatedConsumables);
+  };
+  
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Consumables Cost Estimation</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Consumables & Supplies</CardTitle>
+            <div className="text-2xl font-bold">${totalConsumablesCost.toLocaleString()}</div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Truck className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Consumables estimation coming next</p>
-            <p className="text-sm">Welding rods, cutting discs, fasteners, and more</p>
+          <div className="space-y-4">
+            {consumables.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead>Unit Cost</TableHead>
+                    <TableHead>Total Cost</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {consumables.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <Input
+                          value={item.item}
+                          onChange={(e) => updateConsumableItem(item.id, { item: e.target.value })}
+                          className="font-medium"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const newQuantity = parseFloat(e.target.value) || 0;
+                            const newCost = newQuantity * item.unitCost;
+                            updateConsumableItem(item.id, { quantity: newQuantity, totalCost: newCost });
+                          }}
+                          className="w-24"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          value={item.unit}
+                          onChange={(e) => updateConsumableItem(item.id, { unit: e.target.value })}
+                          className="w-24"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.unitCost}
+                          onChange={(e) => {
+                            const newUnitCost = parseFloat(e.target.value) || 0;
+                            const newCost = item.quantity * newUnitCost;
+                            updateConsumableItem(item.id, { unitCost: newUnitCost, totalCost: newCost });
+                          }}
+                          className="w-24"
+                        />
+                      </TableCell>
+                      <TableCell className="font-semibold">
+                        ${item.totalCost.toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newCost = item.quantity * item.unitCost;
+                              updateConsumableItem(item.id, { totalCost: newCost });
+                            }}
+                            title="Recalculate cost"
+                          >
+                            <Calculator className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeConsumableItem(item.id)}
+                            title="Remove item"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No consumables added yet</p>
+                <p className="text-sm">Add welding electrodes, gas, paint, and other supplies</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

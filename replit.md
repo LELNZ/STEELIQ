@@ -151,4 +151,12 @@ This is a comprehensive steel fabrication business management system built for L
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+**Communication Style:** Simple, everyday language.
+
+**Estimation Engine Requirements:**
+- All data points must be fully editable across entire estimation system
+- No basic/simplified versions - complete inline editing functionality required
+- Consistent edit interface with proper icons (Calculator, Trash2) and tooltips
+- Real-time cost calculations when editing quantities, rates, or hours
+- Enhanced notes visibility with hover tooltips for full content display
+- Uniform table layouts with Input fields for direct editing
