@@ -30,6 +30,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { MaterialsTab } from "@/components/estimation/materials-tab";
+import PdfAnalysisTab from "@/components/estimation/pdf-analysis-tab";
 
 // Types for estimation system
 interface EstimationProject {
@@ -469,7 +470,11 @@ function EstimationWorkspace({
 
       {/* Main Estimation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
+          <TabsTrigger value="drawings" className="flex items-center gap-2">
+            <Bot className="h-4 w-4" />
+            AI Drawings
+          </TabsTrigger>
           <TabsTrigger value="materials" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             Materials
@@ -495,6 +500,35 @@ function EstimationWorkspace({
             Quote
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="drawings">
+          <PdfAnalysisTab 
+            projectId={project.id || 0}
+            onElementsExtracted={(elements) => {
+              // Convert extracted elements to materials
+              const newMaterials = elements.map(el => ({
+                id: `ai-${el.partMark}`,
+                materialId: null,
+                materialCode: el.material,
+                materialName: el.material,
+                quantity: el.quantity,
+                unit: "m",
+                unitCost: 0,
+                totalCost: 0,
+                wasteFactor: 0.05,
+                handlingTime: 0,
+                handlingCost: 0,
+                handlingCategory: "manual",
+                aiSuggested: true,
+                elementIds: [el.partMark]
+              }));
+              setEstimationData(prev => prev ? { 
+                ...prev, 
+                materials: [...prev.materials, ...newMaterials] 
+              } : null);
+            }}
+          />
+        </TabsContent>
 
         <TabsContent value="materials">
           <MaterialsTab 

@@ -130,8 +130,6 @@ export default function PdfAnalysisTab({ projectId, onElementsExtracted }: PdfAn
             title: "Analysis complete",
             description: `${analysisResult.elements.length} steel elements detected in ${file.name}`,
           });
-        } else {
-          throw new Error(analysisResult.error);
         }
 
       } catch (error) {
