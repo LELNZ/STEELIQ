@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Plus, 
   Trash2, 
@@ -18,7 +19,9 @@ import {
   Package,
   AlertCircle,
   TrendingUp,
-  Zap
+  Zap,
+  Search,
+  Info
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -317,7 +320,20 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
       {/* Materials Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Material Cost Breakdown</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            Material Cost Breakdown
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Steel materials, sections, and raw materials required for the project.<br/>
+                  Includes quantities, unit costs, waste factors, and handling costs.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {materials.length === 0 ? (
@@ -520,6 +536,8 @@ function AddMaterialForm({
 
   const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
   const [handlingCalc, setHandlingCalc] = useState({ time: 0, cost: 0 });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredMaterials, setFilteredMaterials] = useState(availableMaterials);
 
   useEffect(() => {
     if (selectedMaterial && formData.quantity) {
@@ -527,6 +545,19 @@ function AddMaterialForm({
       setHandlingCalc(calc);
     }
   }, [selectedMaterial, formData.quantity, calculateHandlingCost]);
+
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredMaterials(availableMaterials);
+    } else {
+      const filtered = availableMaterials.filter(material =>
+        material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        material.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (material.category && material.category.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+      setFilteredMaterials(filtered);
+    }
+  }, [searchTerm, availableMaterials]);
 
   const handleMaterialSelect = (materialId: string) => {
     const material = availableMaterials.find(m => m.id.toString() === materialId);
@@ -565,18 +596,40 @@ function AddMaterialForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="material">Select Material</Label>
-          <Select onValueChange={handleMaterialSelect}>
-            <SelectTrigger>
-              <SelectValue placeholder="Choose from catalog" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableMaterials.map((material) => (
-                <SelectItem key={material.id} value={material.id.toString()}>
-                  {material.code} - {material.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search materials by name, code, or category..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <Select onValueChange={handleMaterialSelect}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose from catalog" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {filteredMaterials.length > 0 ? (
+                  filteredMaterials.map((material) => (
+                    <SelectItem key={material.id} value={material.id.toString()}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{material.code} - {material.name}</span>
+                        {material.category && (
+                          <span className="text-xs text-muted-foreground">{material.category}</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-results" disabled>
+                    No materials found
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div>
