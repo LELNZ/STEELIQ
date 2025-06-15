@@ -361,15 +361,11 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                   <TableRow key={material.id}>
                     <TableCell>
                       <div>
-                        <div className="relative">
-                          <Input
-                            value={material.materialName}
-                            onChange={(e) => updateMaterialField(material.id, 'materialName', e.target.value)}
-                            className="font-medium border-0 px-1 py-0 min-w-40 h-6"
-                            placeholder="Type to search materials..."
-                          />
-                          <Search className="absolute right-1 top-1 h-4 w-4 text-muted-foreground pointer-events-none" />
-                        </div>
+                        <Input
+                          value={material.materialName}
+                          onChange={(e) => updateMaterialField(material.id, 'materialName', e.target.value)}
+                          className="font-medium border-0 px-1 py-0 min-w-40 h-6"
+                        />
                         {material.supplier && (
                           <Input
                             value={material.supplier || ''}
@@ -540,8 +536,9 @@ function AddMaterialForm({
 
   const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
   const [handlingCalc, setHandlingCalc] = useState({ time: 0, cost: 0 });
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredMaterials, setFilteredMaterials] = useState(availableMaterials);
+  const [searchValue, setSearchValue] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [filteredMaterials, setFilteredMaterials] = useState<any[]>([]);
 
   useEffect(() => {
     if (selectedMaterial && formData.quantity) {
@@ -550,29 +547,44 @@ function AddMaterialForm({
     }
   }, [selectedMaterial, formData.quantity, calculateHandlingCost]);
 
+  // Filter materials based on search input
   useEffect(() => {
-    if (!searchTerm) {
-      setFilteredMaterials(availableMaterials);
+    if (!searchValue) {
+      setFilteredMaterials([]);
+      setShowDropdown(false);
     } else {
       const filtered = availableMaterials.filter(material =>
-        material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        material.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (material.category && material.category.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+        material.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+        material.code.toLowerCase().includes(searchValue.toLowerCase())
+      ).slice(0, 10); // Limit to 10 results like Google
       setFilteredMaterials(filtered);
+      setShowDropdown(filtered.length > 0);
     }
-  }, [searchTerm, availableMaterials]);
+  }, [searchValue, availableMaterials]);
 
-  const handleMaterialSelect = (materialId: string) => {
-    const material = availableMaterials.find(m => m.id.toString() === materialId);
-    if (material) {
-      setSelectedMaterial(material);
+  const handleMaterialSelect = (material: any) => {
+    setSelectedMaterial(material);
+    setSearchValue(`${material.code} - ${material.name}`);
+    setShowDropdown(false);
+    setFormData(prev => ({
+      ...prev,
+      materialId: material.id.toString(),
+      materialCode: material.code,
+      materialName: material.name,
+      unit: "m" // Default to meters for steel
+    }));
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+    // Clear selected material if user is typing a new search
+    if (selectedMaterial && !value.includes(selectedMaterial.code)) {
+      setSelectedMaterial(null);
       setFormData(prev => ({
         ...prev,
-        materialId,
-        materialCode: material.code,
-        materialName: material.name,
-        unit: "m" // Default to meters for steel
+        materialId: "",
+        materialCode: "",
+        materialName: value
       }));
     }
   };
@@ -599,40 +611,33 @@ function AddMaterialForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="material">Select Material</Label>
-          <div className="space-y-2">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search materials by name, code, or category..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <Select onValueChange={handleMaterialSelect}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose from catalog" />
-              </SelectTrigger>
-              <SelectContent className="max-h-60">
-                {filteredMaterials.length > 0 ? (
-                  filteredMaterials.map((material) => (
-                    <SelectItem key={material.id} value={material.id.toString()}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{material.code} - {material.name}</span>
-                        {material.category && (
-                          <span className="text-xs text-muted-foreground">{material.category}</span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="no-results" disabled>
-                    No materials found
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+          <Label htmlFor="material">Material Code</Label>
+          <div className="relative">
+            <Input
+              id="material"
+              placeholder="Type to search materials..."
+              value={searchValue}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onFocus={() => searchValue && setShowDropdown(filteredMaterials.length > 0)}
+              className="pr-8"
+            />
+            <Search className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            
+            {/* Google-style dropdown */}
+            {showDropdown && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {filteredMaterials.map((material, index) => (
+                  <div
+                    key={material.id}
+                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    onClick={() => handleMaterialSelect(material)}
+                  >
+                    <div className="font-medium text-sm">{material.code}</div>
+                    <div className="text-xs text-gray-600">{material.name}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
