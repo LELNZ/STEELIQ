@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Clock, Users, MapPin, Settings } from "lucide-react";
+import { Plus, Trash2, Clock, Users, MapPin, Settings, Calculator } from "lucide-react";
 
 interface LaborItem {
   id: string;
@@ -437,7 +437,8 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
                   <TableHead>Location</TableHead>
                   <TableHead>Skill Level</TableHead>
                   <TableHead>Total</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -452,7 +453,11 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
                       <Input
                         type="number"
                         value={item.hours}
-                        onChange={(e) => updateLaborItem(item.id, { hours: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) => {
+                          const newHours = parseFloat(e.target.value) || 0;
+                          const newCost = newHours * item.rate;
+                          updateLaborItem(item.id, { hours: newHours, totalCost: newCost });
+                        }}
                         className="w-20"
                       />
                     </TableCell>
@@ -460,7 +465,11 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
                       <Input
                         type="number"
                         value={item.rate}
-                        onChange={(e) => updateLaborItem(item.id, { rate: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) => {
+                          const newRate = parseFloat(e.target.value) || 0;
+                          const newCost = item.hours * newRate;
+                          updateLaborItem(item.id, { rate: newRate, totalCost: newCost });
+                        }}
                         className="w-20"
                       />
                     </TableCell>
@@ -473,14 +482,36 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
                       <Badge variant="outline">{item.skillLevel}</Badge>
                     </TableCell>
                     <TableCell className="font-medium">${item.totalCost.toLocaleString()}</TableCell>
+                    <TableCell className="max-w-xs">
+                      <Input
+                        placeholder="Add notes..."
+                        value={item.notes || ''}
+                        onChange={(e) => updateLaborItem(item.id, { notes: e.target.value })}
+                        className="text-sm"
+                      />
+                    </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeLaborItem(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const newCost = item.hours * item.rate;
+                            updateLaborItem(item.id, { totalCost: newCost });
+                          }}
+                          title="Recalculate cost"
+                        >
+                          <Calculator className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeLaborItem(item.id)}
+                          title="Remove item"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
