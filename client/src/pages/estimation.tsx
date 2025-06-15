@@ -645,17 +645,55 @@ function EstimationWorkspace({
 
 // Labor estimation tab with industry-standard rates
 function LaborTab({ labor, onUpdate }: { labor: LaborCost[]; onUpdate: (labor: LaborCost[]) => void }) {
+  const totalLaborCost = labor.reduce((sum, item) => sum + item.totalCost, 0);
+  
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Labor Cost Estimation</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Labor Cost Breakdown</CardTitle>
+            <div className="text-2xl font-bold">${totalLaborCost.toLocaleString()}</div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Comprehensive labor estimation coming next</p>
-            <p className="text-sm">Workshop, onsite, and subcontractor labor rates</p>
+          <div className="space-y-4">
+            {labor.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Category</th>
+                      <th className="text-left p-2">Description</th>
+                      <th className="text-right p-2">Hours</th>
+                      <th className="text-right p-2">Rate/hr</th>
+                      <th className="text-right p-2">Total Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {labor.map((item) => (
+                      <tr key={item.id} className="border-b">
+                        <td className="p-2">
+                          <Badge variant={item.category === 'workshop' ? 'default' : 'secondary'}>
+                            {item.category}
+                          </Badge>
+                        </td>
+                        <td className="p-2">{item.description}</td>
+                        <td className="text-right p-2">{item.hours}h</td>
+                        <td className="text-right p-2">${item.hourlyRate}</td>
+                        <td className="text-right p-2 font-semibold">${item.totalCost.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No labor costs added yet</p>
+                <p className="text-sm">Add workshop, onsite, or subcontractor labor</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
