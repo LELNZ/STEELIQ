@@ -48,7 +48,7 @@ const SKILL_RATES = {
   }
 };
 
-export default function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
+export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
   const [newItem, setNewItem] = useState<Partial<LaborItem>>({
     category: 'workshop',
     subcategory: 'fabrication',

@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { MaterialsTab } from "@/components/estimation/materials-tab";
 import PdfAnalysisTab from "@/components/estimation/pdf-analysis-tab";
+import { EnhancedLaborTab } from "@/components/estimation/enhanced-labor-tab";
 
 // Types for estimation system
 interface EstimationProject {
@@ -63,11 +64,14 @@ interface MaterialCost {
 interface LaborCost {
   id: string;
   category: 'workshop' | 'onsite' | 'subcontractor';
-  type: string;
+  subcategory: string;
   description: string;
   hours: number;
-  hourlyRate: number;
+  rate: number;
   totalCost: number;
+  location: 'workshop' | 'site';
+  skillLevel: 'apprentice' | 'standard' | 'senior' | 'specialist';
+  notes?: string;
 }
 
 interface EquipmentCost {
@@ -219,20 +223,26 @@ export default function EstimationPage() {
       {
         id: 'FAB1',
         category: 'workshop' as const,
-        type: 'Structural Fabrication',
+        subcategory: 'fabrication',
         description: 'Main frame assembly and welding',
         hours: 120,
-        hourlyRate: 85,
-        totalCost: 10200
+        rate: 85,
+        totalCost: 10200,
+        location: 'workshop' as const,
+        skillLevel: 'standard' as const,
+        notes: 'Primary structural welding and assembly'
       },
       {
         id: 'INST1',
         category: 'onsite' as const,
-        type: 'Installation',
+        subcategory: 'erection',
         description: 'Steel erection and final connections',
         hours: 60,
-        hourlyRate: 95,
-        totalCost: 5700
+        rate: 95,
+        totalCost: 5700,
+        location: 'site' as const,
+        skillLevel: 'senior' as const,
+        notes: 'Site installation with crane operations'
       }
     ];
 
@@ -609,8 +619,8 @@ function EstimationWorkspace({
         </TabsContent>
 
         <TabsContent value="labor">
-          <LaborTab 
-            labor={estimationData.labor}
+          <EnhancedLaborTab 
+            labor={estimationData.labor as any}
             onUpdate={(labor) => setEstimationData(prev => prev ? { ...prev, labor } : null)}
           />
         </TabsContent>
@@ -680,7 +690,7 @@ function LaborTab({ labor, onUpdate }: { labor: LaborCost[]; onUpdate: (labor: L
                         </td>
                         <td className="p-2">{item.description}</td>
                         <td className="text-right p-2">{item.hours}h</td>
-                        <td className="text-right p-2">${item.hourlyRate}</td>
+                        <td className="text-right p-2">${item.rate}</td>
                         <td className="text-right p-2 font-semibold">${item.totalCost.toLocaleString()}</td>
                       </tr>
                     ))}
