@@ -124,9 +124,22 @@ export default function EstimationPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch existing estimation projects
+  // Fetch existing estimation projects with demo project
   const { data: projects = [] } = useQuery<EstimationProject[]>({
     queryKey: ["/api/estimations"],
+    placeholderData: [{
+      id: 1,
+      name: "Commercial Warehouse Steel Frame",
+      description: "40m x 20m warehouse with 8m ceiling height for Stryde Construction",
+      clientId: 12,
+      clientName: "Stryde Construction",
+      status: 'in_progress' as const,
+      totalCost: 53303,
+      margin: 20,
+      deliveryDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }]
   });
 
   // Fetch materials for AI assistance
@@ -176,12 +189,69 @@ export default function EstimationPage() {
     }
   });
 
-  // Initialize estimation data structure
+  // Initialize estimation data structure with demonstration data
   const initializeEstimationData = (project: EstimationProject) => {
+    const demoMaterials = [
+      {
+        id: 'B1',
+        materialCode: '310UB40.4',
+        materialName: 'Universal Beam 310UB40.4',
+        quantity: 8,
+        unitCost: 850,
+        totalCost: 6800,
+        wasteFactor: 0.05,
+        handlingTime: 2,
+        handlingCost: 170
+      },
+      {
+        id: 'C1', 
+        materialCode: '200UC52.2',
+        materialName: 'Universal Column 200UC52.2',
+        quantity: 16,
+        unitCost: 720,
+        totalCost: 11520,
+        wasteFactor: 0.03,
+        handlingTime: 1.5,
+        handlingCost: 240
+      },
+      {
+        id: 'P1',
+        materialCode: '150PFC',
+        materialName: 'Parallel Flange Channel 150PFC',
+        quantity: 24,
+        unitCost: 95,
+        totalCost: 2280,
+        wasteFactor: 0.08,
+        handlingTime: 0.5,
+        handlingCost: 120
+      }
+    ];
+
+    const demoLabor = [
+      {
+        id: 'FAB1',
+        category: 'workshop' as const,
+        type: 'Structural Fabrication',
+        description: 'Main frame assembly and welding',
+        hours: 120,
+        hourlyRate: 85,
+        totalCost: 10200
+      },
+      {
+        id: 'INST1',
+        category: 'onsite' as const,
+        type: 'Installation',
+        description: 'Steel erection and final connections',
+        hours: 60,
+        hourlyRate: 95,
+        totalCost: 5700
+      }
+    ];
+
     setEstimationData({
       project,
-      materials: [],
-      labor: [],
+      materials: demoMaterials,
+      labor: demoLabor,
       equipment: [],
       consumables: [],
       overheads: { percentage: 15, amount: 0 },
