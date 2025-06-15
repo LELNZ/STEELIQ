@@ -58,12 +58,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
   const [showAiSuggestions, setShowAiSuggestions] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<MaterialCost[]>([]);
   
-  // Inline search states for each material row
-  const [inlineSearchStates, setInlineSearchStates] = useState<{[key: string]: {
-    searchValue: string;
-    showDropdown: boolean;
-    filteredMaterials: any[];
-  }}>({});
+
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -201,54 +196,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
     });
   };
 
-  // Inline search handlers for table rows
-  const updateMaterialField = (id: string, field: keyof MaterialCost, value: any) => {
-    const updatedMaterials = materials.map(material => 
-      material.id === id ? { ...material, [field]: value } : material
-    );
-    onUpdate(updatedMaterials);
-  };
 
-  const handleInlineSearchChange = (materialId: string, value: string) => {
-    const filtered = availableMaterials.filter(material =>
-      material.name.toLowerCase().includes(value.toLowerCase()) ||
-      material.code.toLowerCase().includes(value.toLowerCase())
-    ).slice(0, 10);
-
-    setInlineSearchStates(prev => ({
-      ...prev,
-      [materialId]: {
-        searchValue: value,
-        showDropdown: value.length > 0 && filtered.length > 0,
-        filteredMaterials: filtered
-      }
-    }));
-
-    updateMaterialField(materialId, 'materialName', value);
-  };
-
-  const handleInlineMaterialSelect = (materialId: string, selectedMaterial: any) => {
-    updateMaterialField(materialId, 'materialName', selectedMaterial.name);
-    updateMaterialField(materialId, 'materialCode', selectedMaterial.code);
-    updateMaterialField(materialId, 'materialId', selectedMaterial.id);
-
-    setInlineSearchStates(prev => ({
-      ...prev,
-      [materialId]: {
-        searchValue: selectedMaterial.name,
-        showDropdown: false,
-        filteredMaterials: []
-      }
-    }));
-  };
-
-  const getInlineSearchState = (materialId: string) => {
-    return inlineSearchStates[materialId] || {
-      searchValue: '',
-      showDropdown: false,
-      filteredMaterials: []
-    };
-  };
 
   const totalMaterialCost = materials.reduce((sum, material) => sum + material.totalCost, 0);
   const totalHandlingTime = materials.reduce((sum, material) => sum + material.handlingTime, 0);

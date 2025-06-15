@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { MaterialsTab } from "@/components/estimation/materials-tab";
+import { MaterialsTab } from "@/components/estimation/materials-tab-clean";
 import PdfAnalysisTab from "@/components/estimation/pdf-analysis-tab";
 import { EnhancedLaborTab } from "@/components/estimation/enhanced-labor-tab";
 
