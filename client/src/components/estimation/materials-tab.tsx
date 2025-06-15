@@ -361,11 +361,15 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                   <TableRow key={material.id}>
                     <TableCell>
                       <div>
-                        <Input
-                          value={material.materialName}
-                          onChange={(e) => updateMaterialField(material.id, 'materialName', e.target.value)}
-                          className="font-medium border-0 px-1 py-0 min-w-40 h-6"
-                        />
+                        <div className="relative">
+                          <Input
+                            value={material.materialName}
+                            onChange={(e) => updateMaterialField(material.id, 'materialName', e.target.value)}
+                            className="font-medium border-0 px-1 py-0 min-w-40 h-6"
+                            placeholder="Type to search materials..."
+                          />
+                          <Search className="absolute right-1 top-1 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        </div>
                         {material.supplier && (
                           <Input
                             value={material.supplier || ''}
