@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt';
 import multer from 'multer';
 import csv from 'csv-parser';
 import { Readable } from 'stream';
+import { analyzeConstructionDrawing, validateSteelSpecifications } from "./pdf-analysis";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure multer for file uploads
