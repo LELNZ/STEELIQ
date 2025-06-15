@@ -25,7 +25,8 @@ import {
   Send,
   Save,
   Plus,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -330,11 +331,15 @@ export default function EstimationPage() {
           materials={materials}
           aiSuggestions={aiSuggestions}
           isAiAssistEnabled={isAiAssistEnabled}
+          onBack={() => setCurrentProject(null)}
         />
       ) : (
         <ProjectOverview 
           projects={projects} 
-          onSelectProject={setCurrentProject}
+          onSelectProject={(project) => {
+            setCurrentProject(project);
+            initializeEstimationData(project);
+          }}
         />
       )}
     </div>
@@ -472,7 +477,8 @@ function EstimationWorkspace({
   setEstimationData,
   materials,
   aiSuggestions,
-  isAiAssistEnabled
+  isAiAssistEnabled,
+  onBack
 }: {
   project: EstimationProject;
   estimationData: EstimationData | null;
@@ -480,6 +486,7 @@ function EstimationWorkspace({
   materials: any[];
   aiSuggestions: string[];
   isAiAssistEnabled: boolean;
+  onBack: () => void;
 }) {
   const [activeTab, setActiveTab] = useState("materials");
 
@@ -491,9 +498,15 @@ function EstimationWorkspace({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl">{project.name}</CardTitle>
-              <p className="text-muted-foreground">{project.description}</p>
+            <div className="flex items-center space-x-4">
+              <Button variant="outline" size="sm" onClick={onBack}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Projects
+              </Button>
+              <div>
+                <CardTitle className="text-xl">{project.name}</CardTitle>
+                <p className="text-muted-foreground">{project.description}</p>
+              </div>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold">${estimationData.totals.total.toLocaleString()}</div>
