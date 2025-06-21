@@ -50,6 +50,7 @@ const SKILL_RATES = {
 };
 
 export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
+  const [activeTab, setActiveTab] = useState('workshop');
   const [newItem, setNewItem] = useState<Partial<LaborItem>>({
     category: 'workshop',
     subcategory: 'fabrication',
@@ -58,6 +59,19 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
     hours: 0,
     rate: 55
   });
+
+  // Update newItem category and location when tab changes
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    const location = tab === 'onsite' ? 'site' : 'workshop';
+    const rate = updateRate(location, newItem.skillLevel || 'standard');
+    setNewItem(prev => ({
+      ...prev,
+      category: tab as LaborItem['category'],
+      location: location as LaborItem['location'],
+      rate
+    }));
+  };
 
   const addLaborItem = () => {
     if (!newItem.description || !newItem.hours) return;
@@ -76,13 +90,18 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
     };
 
     onUpdate([...labor, item]);
+    
+    // Reset form but keep current tab context
+    const location = activeTab === 'onsite' ? 'site' : 'workshop';
+    const defaultRate = updateRate(location, 'standard');
     setNewItem({
-      category: 'workshop',
+      category: activeTab as LaborItem['category'],
       subcategory: 'fabrication',
-      location: 'workshop',
+      location: location as LaborItem['location'],
       skillLevel: 'standard',
       hours: 0,
-      rate: 55
+      rate: defaultRate,
+      description: ''
     });
   };
 
@@ -137,7 +156,7 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="workshop">
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="grid grid-cols-3 w-full">
               <TabsTrigger value="workshop">Workshop Labor</TabsTrigger>
               <TabsTrigger value="onsite">Onsite Labor</TabsTrigger>
@@ -213,10 +232,7 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
 
                 <div className="flex items-end">
                   <Button 
-                    onClick={() => {
-                      setNewItem(prev => ({ ...prev, category: 'workshop', location: 'workshop' }));
-                      addLaborItem();
-                    }}
+                    onClick={addLaborItem}
                     className="w-full"
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -295,10 +311,7 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
 
                 <div className="flex items-end">
                   <Button 
-                    onClick={() => {
-                      setNewItem(prev => ({ ...prev, category: 'onsite', location: 'site' }));
-                      addLaborItem();
-                    }}
+                    onClick={addLaborItem}
                     className="w-full"
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -372,10 +385,7 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
 
                 <div className="flex items-end">
                   <Button 
-                    onClick={() => {
-                      setNewItem(prev => ({ ...prev, category: 'subcontractor' }));
-                      addLaborItem();
-                    }}
+                    onClick={addLaborItem}
                     className="w-full"
                   >
                     <Plus className="h-4 w-4 mr-2" />
