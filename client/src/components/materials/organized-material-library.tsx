@@ -76,6 +76,7 @@ export default function OrganizedMaterialLibrary({
     { id: 'plates', label: 'Plates', count: materials?.filter(m => getMaterialCategory(m) === 'plates').length || 0 },
     { id: 'sheets', label: 'Sheets', count: materials?.filter(m => getMaterialCategory(m) === 'sheets').length || 0 },
     { id: 'pipes', label: 'Pipes', count: materials?.filter(m => getMaterialCategory(m) === 'pipes').length || 0 },
+    { id: 'consumables', label: 'Consumables', count: materials?.filter(m => getMaterialCategory(m) === 'consumables').length || 0 },
     { id: 'other', label: 'Other', count: materials?.filter(m => getMaterialCategory(m) === 'other').length || 0 },
   ].filter(cat => cat.count > 0 || cat.id === 'all');
 
@@ -128,7 +129,9 @@ export default function OrganizedMaterialLibrary({
         </TabsList>
 
         <TabsContent value={activeCategory} className="space-y-4">
-          {filteredMaterials && filteredMaterials.length > 0 ? (
+          {activeCategory === 'consumables' ? (
+            <ConsumablesTab materials={filteredMaterials?.filter(m => getMaterialCategory(m) === 'consumables') || []} />
+          ) : filteredMaterials && filteredMaterials.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredMaterials.map((material) => (
                 <Card key={material.id} className="hover:shadow-md transition-shadow">
@@ -240,6 +243,238 @@ export default function OrganizedMaterialLibrary({
           )}
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// Consumables Tab Component with Add functionality
+function ConsumablesTab({ materials }: { materials: Material[] }) {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [formData, setFormData] = useState({
+    code: "",
+    name: "",
+    category: "Consumables",
+    unitCost: 0,
+    supplier: "",
+    grade: "",
+    standard: "",
+    notes: ""
+  });
+
+  const addConsumableMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch("/api/materials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error("Failed to add consumable");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      setIsAddDialogOpen(false);
+      setFormData({
+        code: "",
+        name: "",
+        category: "Consumables",
+        unitCost: 0,
+        supplier: "",
+        grade: "",
+        standard: "",
+        notes: ""
+      });
+      toast({
+        title: "Success",
+        description: "Consumable added successfully"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add consumable",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    addConsumableMutation.mutate(formData);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header with Add Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-medium">Consumables & Supplies</h3>
+          <p className="text-sm text-muted-foreground">
+            Welding electrodes, cutting discs, fasteners, gas, and safety equipment
+          </p>
+        </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Consumable
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Add New Consumable</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="code">Code *</Label>
+                  <Input
+                    id="code"
+                    value={formData.code}
+                    onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                    placeholder="e.g. CONS-WEL-001"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="name">Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g. 7018 Welding Electrodes 3.2mm"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="unitCost">Unit Cost ($) *</Label>
+                  <Input
+                    id="unitCost"
+                    type="number"
+                    step="0.01"
+                    value={formData.unitCost}
+                    onChange={(e) => setFormData(prev => ({ ...prev, unitCost: parseFloat(e.target.value) || 0 }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="supplier">Supplier</Label>
+                  <Input
+                    id="supplier"
+                    value={formData.supplier}
+                    onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
+                    placeholder="e.g. ASMUSS Steel"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="grade">Grade</Label>
+                  <Input
+                    id="grade"
+                    value={formData.grade}
+                    onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
+                    placeholder="e.g. E7018"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="standard">Standard</Label>
+                  <Input
+                    id="standard"
+                    value={formData.standard}
+                    onChange={(e) => setFormData(prev => ({ ...prev, standard: e.target.value }))}
+                    placeholder="e.g. AWS A5.1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Additional details about the consumable"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={addConsumableMutation.isPending}>
+                  {addConsumableMutation.isPending ? "Adding..." : "Add Consumable"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Consumables Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {materials.length > 0 ? (
+          materials.map((material) => (
+            <Card key={material.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Package className="h-5 w-5 text-orange-500" />
+                    <CardTitle className="text-lg">{material.code}</CardTitle>
+                  </div>
+                  <Badge variant="secondary">Consumable</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{material.name}</p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {material.unitCost && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Unit Cost</p>
+                      <p className="font-medium text-lg">${material.unitCost}</p>
+                    </div>
+                  )}
+                  
+                  {material.grade && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Grade</p>
+                      <p className="font-medium">{material.grade}</p>
+                    </div>
+                  )}
+                  
+                  {material.supplier && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Supplier</p>
+                      <p className="font-medium">{material.supplier}</p>
+                    </div>
+                  )}
+                  
+                  {material.standard && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Standard</p>
+                      <p className="font-medium">{material.standard}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-8">
+            <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <p className="text-muted-foreground">No consumables found</p>
+            <p className="text-sm text-muted-foreground">Add welding electrodes, cutting discs, and other supplies</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

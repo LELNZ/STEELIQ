@@ -380,9 +380,9 @@ export default function EstimationPage() {
         <ProjectOverview 
           projects={projects} 
           onSelectProject={(project) => {
-            handleNavigation(() => {
+            handleNavigation(async () => {
               setCurrentProject(project);
-              initializeEstimationData(project);
+              await initializeEstimationData(project);
             });
           }}
         />
