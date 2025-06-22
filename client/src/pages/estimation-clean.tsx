@@ -171,13 +171,26 @@ export default function EstimationPage() {
     }
   }, [estimationData]);
 
-  // Track changes in estimation data
+  // Track changes in estimation data with deep comparison
   useEffect(() => {
     if (originalDataRef.current && estimationData) {
-      const hasChanges = JSON.stringify(originalDataRef.current) !== JSON.stringify(estimationData);
+      // Deep comparison to detect any changes in nested objects/arrays
+      const originalStr = JSON.stringify(originalDataRef.current, Object.keys(originalDataRef.current).sort());
+      const currentStr = JSON.stringify(estimationData, Object.keys(estimationData).sort());
+      const hasChanges = originalStr !== currentStr;
+      
+      console.log('Change detection:', {
+        hasChanges,
+        originalLength: originalDataRef.current?.labor?.length || 0,
+        currentLength: estimationData?.labor?.length || 0,
+        materialCount: estimationData?.materials?.length || 0,
+        equipmentCount: estimationData?.equipment?.length || 0,
+        consumablesCount: estimationData?.consumables?.length || 0
+      });
+      
       setHasUnsavedChanges(hasChanges);
     }
-  }, [estimationData]);
+  }, [estimationData, estimationData?.labor, estimationData?.materials, estimationData?.equipment, estimationData?.consumables]);
 
   // Prevent browser navigation with unsaved changes
   useEffect(() => {
@@ -218,12 +231,20 @@ export default function EstimationPage() {
 
   // Handle navigation with unsaved changes
   const handleNavigation = (navigationFn: () => void) => {
+    console.log('Navigation triggered with unsaved changes:', hasUnsavedChanges);
     if (hasUnsavedChanges) {
       setPendingNavigation(() => navigationFn);
       setShowSaveDialog(true);
     } else {
       navigationFn();
     }
+  };
+
+  // Enhanced navigation handler for router navigation
+  const handleRouterNavigation = (path: string) => {
+    handleNavigation(() => {
+      window.location.href = path;
+    });
   };
 
   // Save and continue navigation
@@ -1264,33 +1285,208 @@ function AddConsumableForm({ onSubmit, availableMaterials }: {
 
 // Summary tab placeholder
 function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
+  const calculateTotals = () => {
+    const materials = estimationData.materials.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+    const labor = estimationData.labor.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+    const equipment = estimationData.equipment.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+    const consumables = estimationData.consumables.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+    
+    const subtotal = materials + labor + equipment + consumables;
+    const overheads = subtotal * (estimationData.overheads.percentage / 100);
+    const totalBeforeMargin = subtotal + overheads;
+    const margin = totalBeforeMargin * (estimationData.margin.percentage / 100);
+    const grandTotal = totalBeforeMargin + margin;
+    
+    return { materials, labor, equipment, consumables, subtotal, overheads, margin, grandTotal };
+  };
+  
+  const totals = calculateTotals();
+
   return (
     <div className="space-y-6">
+      {/* Project Overview */}
       <Card>
         <CardHeader>
-          <CardTitle>Estimation Summary</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Project Summary
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Materials</p>
-              <p className="text-lg font-bold">${estimationData.totals.materials.toLocaleString()}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Project Name</p>
+                <p className="font-semibold">{estimationData.project.name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Client</p>
+                <p className="font-semibold">{estimationData.project.clientName}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Status</p>
+                <Badge variant={estimationData.project.status === 'in_progress' ? 'default' : 'secondary'}>
+                  {estimationData.project.status.replace('_', ' ').toUpperCase()}
+                </Badge>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Labor</p>
-              <p className="text-lg font-bold">${estimationData.totals.labor.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Equipment</p>
-              <p className="text-lg font-bold">${estimationData.totals.equipment.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Consumables</p>
-              <p className="text-lg font-bold">${estimationData.totals.consumables.toLocaleString()}</p>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Description</p>
+                <p className="text-sm">{estimationData.project.description}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Project Margin</p>
+                <p className="font-semibold">{estimationData.margin.percentage}%</p>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Cost Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Materials</p>
+                <p className="text-2xl font-bold text-blue-600">${totals.materials.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">{estimationData.materials.length} items</p>
+              </div>
+              <Package className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Labor</p>
+                <p className="text-2xl font-bold text-green-600">${totals.labor.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">{estimationData.labor.length} tasks</p>
+              </div>
+              <Users className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Equipment</p>
+                <p className="text-2xl font-bold text-orange-600">${totals.equipment.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">{estimationData.equipment.length} items</p>
+              </div>
+              <Wrench className="h-8 w-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Consumables</p>
+                <p className="text-2xl font-bold text-purple-600">${totals.consumables.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">{estimationData.consumables.length} items</p>
+              </div>
+              <Zap className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Financial Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="h-5 w-5" />
+            Financial Breakdown
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">Subtotal (Direct Costs)</span>
+              <span className="font-semibold">${totals.subtotal.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">Overheads ({estimationData.overheads.percentage}%)</span>
+              <span className="font-semibold">${totals.overheads.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">Margin ({estimationData.margin.percentage}%)</span>
+              <span className="font-semibold">${totals.margin.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center py-3 border-t-2 border-primary">
+              <span className="text-lg font-bold">Total Project Cost</span>
+              <span className="text-2xl font-bold text-primary">${totals.grandTotal.toLocaleString()}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Item Details Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Materials Summary */}
+        {estimationData.materials.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Top Materials</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {estimationData.materials.slice(0, 5).map((material, index) => (
+                  <div key={index} className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-sm">{material.materialName}</p>
+                      <p className="text-xs text-muted-foreground">{material.quantity} {material.unit}</p>
+                    </div>
+                    <span className="font-semibold">${material.totalCost?.toLocaleString()}</span>
+                  </div>
+                ))}
+                {estimationData.materials.length > 5 && (
+                  <p className="text-xs text-muted-foreground text-center pt-2">
+                    +{estimationData.materials.length - 5} more materials
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Labor Summary */}
+        {estimationData.labor.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Labor Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {estimationData.labor.slice(0, 5).map((labor, index) => (
+                  <div key={index} className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-sm">{labor.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {labor.hours}h @ ${labor.rate}/h • {labor.category}
+                      </p>
+                    </div>
+                    <span className="font-semibold">${labor.totalCost?.toLocaleString()}</span>
+                  </div>
+                ))}
+                {estimationData.labor.length > 5 && (
+                  <p className="text-xs text-muted-foreground text-center pt-2">
+                    +{estimationData.labor.length - 5} more labor items
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
