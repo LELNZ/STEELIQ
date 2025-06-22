@@ -155,6 +155,10 @@ const CATEGORY_STRUCTURE = {
   "Reinforcing": {
     subcategories: ["Rebar", "Mesh", "Deformed Bar"],
     description: "Reinforcing steel products"
+  },
+  "Consumables": {
+    subcategories: ["Welding", "Cutting", "Fasteners", "Gas", "Safety"],
+    description: "Welding electrodes, cutting discs, fasteners, gas, and safety equipment"
   }
 };
 
