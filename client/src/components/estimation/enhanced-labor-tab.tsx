@@ -157,10 +157,25 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="grid grid-cols-3 w-full">
-              <TabsTrigger value="workshop">Workshop Labor</TabsTrigger>
-              <TabsTrigger value="onsite">Onsite Labor</TabsTrigger>
-              <TabsTrigger value="subcontractor">Subcontractor</TabsTrigger>
+            <TabsList className="grid grid-cols-3 w-full mb-6">
+              <TabsTrigger value="workshop" className="relative">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Workshop Labor
+                </div>
+              </TabsTrigger>
+              <TabsTrigger value="onsite" className="relative">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Onsite Labor
+                </div>
+              </TabsTrigger>
+              <TabsTrigger value="subcontractor" className="relative">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Subcontractor
+                </div>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="workshop" className="space-y-4">

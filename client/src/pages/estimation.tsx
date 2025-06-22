@@ -132,6 +132,12 @@ export default function EstimationPage() {
   const [isAiAssistEnabled, setIsAiAssistEnabled] = useState(true);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   
+  // Navigation state management
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+  const originalDataRef = useRef<EstimationData | null>(null);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -400,17 +406,53 @@ export default function EstimationPage() {
           materials={materials}
           aiSuggestions={aiSuggestions}
           isAiAssistEnabled={isAiAssistEnabled}
-          onBack={() => setCurrentProject(null)}
+          onBack={() => handleNavigation(() => setCurrentProject(null))}
+          hasUnsavedChanges={hasUnsavedChanges}
+          saveEstimationMutation={saveEstimationMutation}
         />
       ) : (
         <ProjectOverview 
           projects={projects} 
           onSelectProject={(project) => {
-            setCurrentProject(project);
-            initializeEstimationData(project);
+            handleNavigation(() => {
+              setCurrentProject(project);
+              initializeEstimationData(project);
+            });
           }}
         />
       )}
+
+      {/* Save Changes Dialog */}
+      <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+              Save Changes?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes to this estimation. What would you like to do?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel onClick={handleCancelNavigation}>
+              Cancel
+            </AlertDialogCancel>
+            <Button 
+              variant="outline" 
+              onClick={handleContinueWithoutSaving}
+            >
+              Don't Save
+            </Button>
+            <AlertDialogAction 
+              onClick={handleSaveAndContinue}
+              disabled={saveEstimationMutation.isPending}
+            >
+              {saveEstimationMutation.isPending ? "Saving..." : "Save & Continue"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -547,7 +589,9 @@ function EstimationWorkspace({
   materials,
   aiSuggestions,
   isAiAssistEnabled,
-  onBack
+  onBack,
+  hasUnsavedChanges,
+  saveEstimationMutation
 }: {
   project: EstimationProject;
   estimationData: EstimationData | null;
@@ -556,13 +600,10 @@ function EstimationWorkspace({
   aiSuggestions: string[];
   isAiAssistEnabled: boolean;
   onBack: () => void;
+  hasUnsavedChanges: boolean;
+  saveEstimationMutation: any;
 }) {
   const [activeTab, setActiveTab] = useState("materials");
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
-  const originalDataRef = useRef<EstimationData | null>(null);
-  const { toast } = useToast();
 
   // Store original data on mount to track changes
   useEffect(() => {
@@ -803,6 +844,7 @@ function EstimationWorkspace({
         <TabsContent value="consumables">
           <ConsumablesTab 
             consumables={estimationData.consumables}
+            availableMaterials={materials}
             onUpdate={(consumables) => setEstimationData(prev => prev ? { ...prev, consumables } : null)}
           />
         </TabsContent>
@@ -1105,7 +1147,23 @@ function ConsumablesTab({ consumables, onUpdate }: { consumables: ConsumableCost
                 </Tooltip>
               </TooltipProvider>
             </CardTitle>
-            <div className="text-2xl font-bold">${totalConsumablesCost.toLocaleString()}</div>
+            <div className="flex items-center gap-4">
+              <div className="text-2xl font-bold">${totalConsumablesCost.toLocaleString()}</div>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Consumable
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Consumable</DialogTitle>
+                  </DialogHeader>
+                  <AddConsumableForm onSubmit={addConsumableItem} availableMaterials={availableMaterials} />
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
