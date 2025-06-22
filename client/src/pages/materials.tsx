@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import MaterialUpload from "@/components/materials/material-upload";
-import OrganizedMaterialLibrary from "@/components/materials/organized-material-library";
+import { EnhancedMaterialLibrary } from "@/components/materials/enhanced-material-library";
 import { Plus, Upload, Download } from "lucide-react";
 
 export default function Materials() {
@@ -176,13 +176,17 @@ export default function Materials() {
         </Card>
       )}
 
+      {/* Enhanced Material Library */}
+      <EnhancedMaterialLibrary 
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
+
       {/* Upload Modal */}
       <MaterialUpload 
         open={showUploadModal} 
         onOpenChange={setShowUploadModal} 
       />
-
-
     </div>
   );
 }

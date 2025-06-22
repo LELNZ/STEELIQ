@@ -162,7 +162,7 @@ const CATEGORY_STRUCTURE = {
   }
 };
 
-export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategoryChange, onSubcategoryChange }: EnhancedMaterialLibraryProps) {
+export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategoryChange, onSubcategoryChange }: EnhancedMaterialLibraryProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -173,6 +173,7 @@ export default function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, o
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [surfaceAreaMaterial, setSurfaceAreaMaterial] = useState<Material | null>(null);
   const [showAddSupplierDialog, setShowAddSupplierDialog] = useState(false);
+  const [showAddMaterialDialog, setShowAddMaterialDialog] = useState(false);
   const [newSupplierData, setNewSupplierData] = useState({
     name: "",
     address: "",

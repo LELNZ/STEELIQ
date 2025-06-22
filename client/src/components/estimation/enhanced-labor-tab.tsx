@@ -157,36 +157,36 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="grid grid-cols-3 w-full mb-6">
-              <TabsTrigger value="workshop" className="relative border-l-4 border-l-blue-500 data-[state=active]:border-l-blue-600 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-900">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-blue-100 rounded-md data-[state=active]:bg-blue-200">
-                    <Settings className="h-4 w-4 text-blue-600" />
+            <TabsList className="grid grid-cols-3 w-full mb-6 h-auto p-1">
+              <TabsTrigger value="workshop" className="h-auto p-3 border-l-4 border-l-blue-500 data-[state=active]:border-l-blue-600 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-900">
+                <div className="flex items-center gap-3 w-full">
+                  <div className="p-2 bg-blue-100 rounded-md">
+                    <Settings className="h-5 w-5 text-blue-600" />
                   </div>
-                  <div className="text-left">
-                    <div className="font-medium">Workshop Labor</div>
+                  <div className="text-left flex-1">
+                    <div className="font-medium text-sm">Workshop Labor</div>
                     <div className="text-xs text-muted-foreground">Fabrication & Assembly</div>
                   </div>
                 </div>
               </TabsTrigger>
-              <TabsTrigger value="onsite" className="relative border-l-4 border-l-green-500 data-[state=active]:border-l-green-600 data-[state=active]:bg-green-50 data-[state=active]:text-green-900">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-green-100 rounded-md data-[state=active]:bg-green-200">
-                    <MapPin className="h-4 w-4 text-green-600" />
+              <TabsTrigger value="onsite" className="h-auto p-3 border-l-4 border-l-green-500 data-[state=active]:border-l-green-600 data-[state=active]:bg-green-50 data-[state=active]:text-green-900">
+                <div className="flex items-center gap-3 w-full">
+                  <div className="p-2 bg-green-100 rounded-md">
+                    <MapPin className="h-5 w-5 text-green-600" />
                   </div>
-                  <div className="text-left">
-                    <div className="font-medium">Onsite Labor</div>
+                  <div className="text-left flex-1">
+                    <div className="font-medium text-sm">Onsite Labor</div>
                     <div className="text-xs text-muted-foreground">Installation & Erection</div>
                   </div>
                 </div>
               </TabsTrigger>
-              <TabsTrigger value="subcontractor" className="relative border-l-4 border-l-orange-500 data-[state=active]:border-l-orange-600 data-[state=active]:bg-orange-50 data-[state=active]:text-orange-900">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-orange-100 rounded-md data-[state=active]:bg-orange-200">
-                    <Users className="h-4 w-4 text-orange-600" />
+              <TabsTrigger value="subcontractor" className="h-auto p-3 border-l-4 border-l-orange-500 data-[state=active]:border-l-orange-600 data-[state=active]:bg-orange-50 data-[state=active]:text-orange-900">
+                <div className="flex items-center gap-3 w-full">
+                  <div className="p-2 bg-orange-100 rounded-md">
+                    <Users className="h-5 w-5 text-orange-600" />
                   </div>
-                  <div className="text-left">
-                    <div className="font-medium">Subcontractor</div>
+                  <div className="text-left flex-1">
+                    <div className="font-medium text-sm">Subcontractor</div>
                     <div className="text-xs text-muted-foreground">External Services</div>
                   </div>
                 </div>
