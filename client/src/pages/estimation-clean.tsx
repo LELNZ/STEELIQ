@@ -255,7 +255,21 @@ export default function EstimationPage() {
   };
 
   // Initialize estimation data for a project
-  const initializeEstimationData = (project: EstimationProject) => {
+  const initializeEstimationData = async (project: EstimationProject) => {
+    try {
+      // Try to fetch existing estimation data
+      const response = await fetch(`/api/estimations/${project.id}`);
+      if (response.ok) {
+        const existingData = await response.json();
+        setEstimationData(existingData);
+        originalDataRef.current = JSON.parse(JSON.stringify(existingData));
+        return;
+      }
+    } catch (error) {
+      console.log("No existing estimation data, creating new");
+    }
+
+    // Create new estimation data if none exists
     const data: EstimationData = {
       project,
       materials: [],

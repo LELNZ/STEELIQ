@@ -6,7 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Material } from "@shared/schema";
-import { Search, Package, Edit, Trash2, DollarSign } from "lucide-react";
+import { Search, Package, Edit, Trash2, DollarSign, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 interface OrganizedMaterialLibraryProps {
   searchQuery: string;
@@ -18,6 +24,8 @@ export default function OrganizedMaterialLibrary({
   setSearchQuery 
 }: OrganizedMaterialLibraryProps) {
   const [activeCategory, setActiveCategory] = useState("all");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: materials, isLoading } = useQuery<Material[]>({
     queryKey: ["/api/materials", searchQuery],
@@ -48,6 +56,7 @@ export default function OrganizedMaterialLibrary({
     if (code.startsWith('SR') || name.includes('round')) return 'rounds';
     if (code.startsWith('SQ') || name.includes('square bar')) return 'squares';
     if (code.startsWith('SC') || name.includes('channel')) return 'channels';
+    if (code.startsWith('CONS') || name.includes('consumable') || material.category === 'Consumables') return 'consumables';
     if (code.startsWith('PL') || name.includes('plate')) return 'plates';
     if (code.startsWith('SH') || code.startsWith('GSH') || code.startsWith('EGS') || name.includes('sheet')) return 'sheets';
     if (code.includes('PIPE') || name.includes('pipe')) return 'pipes';

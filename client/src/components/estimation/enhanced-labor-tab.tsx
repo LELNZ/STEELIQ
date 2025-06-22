@@ -158,9 +158,9 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
         <CardContent>
           <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="grid grid-cols-3 w-full mb-6">
-              <TabsTrigger value="workshop" className="relative border-l-4 border-l-blue-500 data-[state=active]:border-l-blue-600">
+              <TabsTrigger value="workshop" className="relative border-l-4 border-l-blue-500 data-[state=active]:border-l-blue-600 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-900">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-blue-100 rounded-md">
+                  <div className="p-1.5 bg-blue-100 rounded-md data-[state=active]:bg-blue-200">
                     <Settings className="h-4 w-4 text-blue-600" />
                   </div>
                   <div className="text-left">
@@ -169,9 +169,9 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
                   </div>
                 </div>
               </TabsTrigger>
-              <TabsTrigger value="onsite" className="relative border-l-4 border-l-green-500 data-[state=active]:border-l-green-600">
+              <TabsTrigger value="onsite" className="relative border-l-4 border-l-green-500 data-[state=active]:border-l-green-600 data-[state=active]:bg-green-50 data-[state=active]:text-green-900">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-green-100 rounded-md">
+                  <div className="p-1.5 bg-green-100 rounded-md data-[state=active]:bg-green-200">
                     <MapPin className="h-4 w-4 text-green-600" />
                   </div>
                   <div className="text-left">
@@ -180,9 +180,9 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
                   </div>
                 </div>
               </TabsTrigger>
-              <TabsTrigger value="subcontractor" className="relative border-l-4 border-l-orange-500 data-[state=active]:border-l-orange-600">
+              <TabsTrigger value="subcontractor" className="relative border-l-4 border-l-orange-500 data-[state=active]:border-l-orange-600 data-[state=active]:bg-orange-50 data-[state=active]:text-orange-900">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-orange-100 rounded-md">
+                  <div className="p-1.5 bg-orange-100 rounded-md data-[state=active]:bg-orange-200">
                     <Users className="h-4 w-4 text-orange-600" />
                   </div>
                   <div className="text-left">
