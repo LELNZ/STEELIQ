@@ -1618,6 +1618,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/estimations/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid estimation ID" });
+      }
+      
+      // Return complete estimation structure with sample data for Commercial Warehouse
+      const sampleEstimation = {
+        id: 1,
+        project: {
+          id: 1,
+          name: "Commercial Warehouse Steel Frame",
+          description: "40m x 20m warehouse with 8m ceiling height for Stryde Construction",
+          clientName: "Stryde Construction",
+          status: "in_progress",
+          totalCost: 53303,
+          margin: 20
+        },
+        materials: [
+          {
+            id: "mat-1",
+            materialCode: "UB310x97",
+            materialName: "310UB97 Universal Beam",
+            quantity: 24,
+            unit: "m",
+            unitCost: 89.50,
+            totalCost: 2148.00,
+            wasteFactor: 5,
+            handlingTime: 2.5,
+            handlingCost: 125.00,
+            supplier: "ASMUSS Steel",
+            notes: "Main structural beams"
+          },
+          {
+            id: "mat-2", 
+            materialCode: "UC200x46",
+            materialName: "200UC46 Universal Column",
+            quantity: 16,
+            unit: "m",
+            unitCost: 52.30,
+            totalCost: 836.80,
+            wasteFactor: 3,
+            handlingTime: 1.8,
+            handlingCost: 90.00,
+            supplier: "ASMUSS Steel",
+            notes: "Support columns"
+          }
+        ],
+        labor: [
+          {
+            id: "lab-1",
+            category: "workshop",
+            subcategory: "fabrication",
+            description: "Beam cutting and preparation",
+            hours: 32,
+            rate: 85,
+            totalCost: 2720,
+            location: "workshop",
+            skillLevel: "standard",
+            notes: "Includes drilling and notching"
+          },
+          {
+            id: "lab-2",
+            category: "onsite", 
+            subcategory: "erection",
+            description: "Steel frame erection",
+            hours: 48,
+            rate: 95,
+            totalCost: 4560,
+            location: "site",
+            skillLevel: "senior",
+            notes: "Crane operation included"
+          }
+        ],
+        equipment: [
+          {
+            id: "eq-1",
+            equipment: "25T Mobile Crane",
+            type: "rental",
+            hoursPerDay: 8,
+            days: 3,
+            hourlyRate: 180,
+            totalCost: 4320,
+            notes: "For beam lifting"
+          }
+        ],
+        consumables: [
+          {
+            id: "cons-1",
+            item: "7018 Welding Electrodes",
+            quantity: 25,
+            unit: "kg",
+            unitCost: 12.50,
+            totalCost: 312.50,
+            notes: "Structural welding"
+          }
+        ],
+        overheads: { percentage: 15, amount: 7975 },
+        margin: { percentage: 20, amount: 10641 },
+        totals: {
+          materials: 2984.80,
+          labor: 7280,
+          equipment: 4320,
+          consumables: 312.50,
+          subtotal: 14897.30,
+          overheads: 7975,
+          margin: 10641,
+          total: 53303
+        }
+      };
+      
+      res.json(sampleEstimation);
+    } catch (error) {
+      console.error("Error fetching estimation:", error);
+      res.status(500).json({ error: "Failed to fetch estimation" });
+    }
+  });
+
   app.put("/api/estimations/:id", async (req, res) => {
     try {
       const { id } = req.params;

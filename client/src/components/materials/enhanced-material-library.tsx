@@ -2772,4 +2772,4 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
       </Dialog>
     </div>
   );
-}
+}export default EnhancedMaterialLibrary;
