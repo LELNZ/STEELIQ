@@ -1,0 +1,1298 @@
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { 
+  Calculator, 
+  Zap, 
+  FileText, 
+  Clock, 
+  DollarSign, 
+  TrendingUp,
+  Bot,
+  Package,
+  Trash2,
+  Truck,
+  Users,
+  Settings,
+  Download,
+  Send,
+  Save,
+  Plus,
+  AlertCircle,
+  ArrowLeft,
+  Info,
+  MapPin
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { MaterialsTab } from "@/components/estimation/materials-tab-clean";
+import PdfAnalysisTab from "@/components/estimation/pdf-analysis-tab";
+import { EnhancedLaborTab } from "@/components/estimation/enhanced-labor-tab";
+
+// Types for estimation system
+interface EstimationProject {
+  id?: number;
+  name: string;
+  description: string;
+  clientId?: number;
+  clientName?: string;
+  status: 'draft' | 'in_progress' | 'completed' | 'sent' | 'accepted' | 'declined';
+  totalCost: number;
+  margin: number;
+  deliveryDate?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+interface MaterialCost {
+  id: string;
+  materialId?: number;
+  materialCode: string;
+  materialName: string;
+  quantity: number;
+  unit: string;
+  unitCost: number;
+  totalCost: number;
+  wasteFactor: number;
+  handlingTime: number;
+  handlingCost: number;
+  supplier?: string;
+  leadTime?: number;
+  notes?: string;
+  aiSuggested?: boolean;
+}
+
+interface LaborCost {
+  id: string;
+  category: 'workshop' | 'onsite' | 'subcontractor';
+  subcategory: string;
+  description: string;
+  hours: number;
+  rate: number;
+  totalCost: number;
+  location: 'workshop' | 'site';
+  skillLevel: 'apprentice' | 'standard' | 'senior' | 'specialist';
+  notes?: string;
+}
+
+interface EquipmentCost {
+  id: string;
+  equipment: string;
+  type: 'rental' | 'owned' | 'purchase';
+  hoursPerDay: number;
+  days: number;
+  hourlyRate: number;
+  totalCost: number;
+  notes?: string;
+}
+
+interface ConsumableCost {
+  id: string;
+  item: string;
+  quantity: number;
+  unit: string;
+  unitCost: number;
+  totalCost: number;
+  notes?: string;
+}
+
+interface EstimationData {
+  project: EstimationProject;
+  materials: MaterialCost[];
+  labor: LaborCost[];
+  equipment: EquipmentCost[];
+  consumables: ConsumableCost[];
+  overheads: {
+    percentage: number;
+    amount: number;
+  };
+  margin: {
+    percentage: number;
+    amount: number;
+  };
+  totals: {
+    materials: number;
+    labor: number;
+    equipment: number;
+    consumables: number;
+    subtotal: number;
+    overheads: number;
+    margin: number;
+    total: number;
+  };
+}
+
+export default function EstimationPage() {
+  const [activeTab, setActiveTab] = useState("overview");
+  const [currentProject, setCurrentProject] = useState<EstimationProject | null>(null);
+  const [estimationData, setEstimationData] = useState<EstimationData | null>(null);
+  const [isAiAssistEnabled, setIsAiAssistEnabled] = useState(true);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  
+  // Navigation state management
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+  const originalDataRef = useRef<EstimationData | null>(null);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch existing estimation projects
+  const { data: projects = [] } = useQuery<EstimationProject[]>({
+    queryKey: ["/api/estimations"],
+  });
+
+  // Fetch materials for AI assistance
+  const { data: materials = [] } = useQuery({
+    queryKey: ["/api/materials"],
+  });
+
+  // Fetch clients for project assignment
+  const { data: clients = [] } = useQuery({
+    queryKey: ["/api/clients"],
+  });
+
+  // Store original data on mount to track changes
+  useEffect(() => {
+    if (estimationData && !originalDataRef.current) {
+      originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
+    }
+  }, [estimationData]);
+
+  // Track changes in estimation data
+  useEffect(() => {
+    if (originalDataRef.current && estimationData) {
+      const hasChanges = JSON.stringify(originalDataRef.current) !== JSON.stringify(estimationData);
+      setHasUnsavedChanges(hasChanges);
+    }
+  }, [estimationData]);
+
+  // Prevent browser navigation with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        return "You have unsaved changes. Are you sure you want to leave?";
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Save estimation data
+  const saveEstimationMutation = useMutation({
+    mutationFn: async (data: EstimationData) => {
+      const response = await apiRequest("PUT", `/api/estimations/${currentProject?.id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      setHasUnsavedChanges(false);
+      originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
+      toast({
+        title: "Changes Saved",
+        description: "All estimation data has been saved successfully"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Save Failed",
+        description: "Failed to save changes. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Handle navigation with unsaved changes
+  const handleNavigation = (navigationFn: () => void) => {
+    if (hasUnsavedChanges) {
+      setPendingNavigation(() => navigationFn);
+      setShowSaveDialog(true);
+    } else {
+      navigationFn();
+    }
+  };
+
+  // Save and continue navigation
+  const handleSaveAndContinue = async () => {
+    if (estimationData) {
+      await saveEstimationMutation.mutateAsync(estimationData);
+      setShowSaveDialog(false);
+      if (pendingNavigation) {
+        pendingNavigation();
+        setPendingNavigation(null);
+      }
+    }
+  };
+
+  // Continue without saving
+  const handleContinueWithoutSaving = () => {
+    setShowSaveDialog(false);
+    setHasUnsavedChanges(false);
+    if (pendingNavigation) {
+      pendingNavigation();
+      setPendingNavigation(null);
+    }
+  };
+
+  // Cancel navigation
+  const handleCancelNavigation = () => {
+    setShowSaveDialog(false);
+    setPendingNavigation(null);
+  };
+
+  // Initialize estimation data for a project
+  const initializeEstimationData = (project: EstimationProject) => {
+    const data: EstimationData = {
+      project,
+      materials: [],
+      labor: [],
+      equipment: [],
+      consumables: [],
+      overheads: { percentage: 15, amount: 0 },
+      margin: { percentage: 20, amount: 0 },
+      totals: {
+        materials: 0,
+        labor: 0,
+        equipment: 0,
+        consumables: 0,
+        subtotal: 0,
+        overheads: 0,
+        margin: 0,
+        total: 0
+      }
+    };
+    setEstimationData(data);
+    originalDataRef.current = JSON.parse(JSON.stringify(data));
+  };
+
+  // AI-assisted cost estimation mutation
+  const aiEstimateMutation = useMutation({
+    mutationFn: async (projectData: any) => {
+      return await apiRequest("POST", "/api/ai/estimate", projectData);
+    },
+    onSuccess: (data) => {
+      setAiSuggestions(data.suggestions || []);
+      toast({
+        title: "AI Analysis Complete",
+        description: "Smart cost recommendations generated based on historical data",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "AI Analysis Failed",
+        description: "Using standard estimation templates",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Create new estimation project
+  const createProjectMutation = useMutation({
+    mutationFn: async (projectData: Partial<EstimationProject>) => {
+      return await apiRequest("POST", "/api/estimations", projectData);
+    },
+    onSuccess: (data) => {
+      setCurrentProject(data);
+      initializeEstimationData(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/estimations"] });
+      toast({
+        title: "Project Created",
+        description: "Estimation project created successfully",
+      });
+    }
+  });
+
+  return (
+    <div className="min-h-screen bg-background p-6">
+      {/* Header */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">AI-Assisted Estimation Engine</h1>
+            <p className="text-muted-foreground">
+              Professional steel fabrication cost estimation with intelligent recommendations
+            </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Badge variant={isAiAssistEnabled ? "default" : "secondary"} className="px-3 py-1">
+              <Bot className="h-4 w-4 mr-1" />
+              AI Enabled
+            </Badge>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Project
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Create Estimation Project</DialogTitle>
+                </DialogHeader>
+                <NewProjectForm onSubmit={(data) => createProjectMutation.mutate(data)} />
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </div>
+
+      {currentProject ? (
+        <EstimationWorkspace 
+          project={currentProject}
+          estimationData={estimationData}
+          setEstimationData={setEstimationData}
+          materials={materials}
+          aiSuggestions={aiSuggestions}
+          isAiAssistEnabled={isAiAssistEnabled}
+          onBack={() => handleNavigation(() => setCurrentProject(null))}
+          hasUnsavedChanges={hasUnsavedChanges}
+          saveEstimationMutation={saveEstimationMutation}
+        />
+      ) : (
+        <ProjectOverview 
+          projects={projects} 
+          onSelectProject={(project) => {
+            handleNavigation(() => {
+              setCurrentProject(project);
+              initializeEstimationData(project);
+            });
+          }}
+        />
+      )}
+
+      {/* Save Changes Dialog */}
+      <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+              Save Changes?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes to this estimation. What would you like to do?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel onClick={handleCancelNavigation}>
+              Cancel
+            </AlertDialogCancel>
+            <Button 
+              variant="outline" 
+              onClick={handleContinueWithoutSaving}
+            >
+              Don't Save
+            </Button>
+            <AlertDialogAction 
+              onClick={handleSaveAndContinue}
+              disabled={saveEstimationMutation.isPending}
+            >
+              {saveEstimationMutation.isPending ? "Saving..." : "Save & Continue"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+// New Project Form Component
+function NewProjectForm({ onSubmit }: { onSubmit: (data: Partial<EstimationProject>) => void }) {
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    clientId: "",
+    margin: "20"
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      name: formData.name,
+      description: formData.description,
+      clientId: formData.clientId ? parseInt(formData.clientId) : undefined,
+      margin: parseInt(formData.margin),
+      status: 'draft' as const,
+      totalCost: 0
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="name">Project Name</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          placeholder="Steel fabrication project name"
+          required
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          placeholder="Project scope and requirements"
+          rows={3}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="margin">Target Margin (%)</Label>
+        <Input
+          id="margin"
+          type="number"
+          value={formData.margin}
+          onChange={(e) => setFormData(prev => ({ ...prev, margin: e.target.value }))}
+          min="0"
+          max="100"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button type="submit">Create Project</Button>
+      </div>
+    </form>
+  );
+}
+
+// Project Overview Component
+function ProjectOverview({ projects, onSelectProject }: {
+  projects: EstimationProject[];
+  onSelectProject: (project: EstimationProject) => void;
+}) {
+  return (
+    <div className="max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {projects.map((project) => (
+          <Card key={project.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <Badge variant={project.status === 'completed' ? 'default' : 'secondary'}>
+                  {project.status}
+                </Badge>
+                <div className="text-right">
+                  <div className="text-lg font-bold">${project.totalCost.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">Total</div>
+                </div>
+              </div>
+              <CardTitle className="text-lg">{project.name}</CardTitle>
+              <p className="text-sm text-muted-foreground">{project.description}</p>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => onSelectProject(project)}
+                className="w-full"
+              >
+                Open Estimation
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Estimation Workspace Component
+function EstimationWorkspace({ 
+  project, 
+  estimationData, 
+  setEstimationData,
+  materials,
+  aiSuggestions,
+  isAiAssistEnabled,
+  onBack,
+  hasUnsavedChanges,
+  saveEstimationMutation
+}: {
+  project: EstimationProject;
+  estimationData: EstimationData | null;
+  setEstimationData: (data: EstimationData | null) => void;
+  materials: any[];
+  aiSuggestions: string[];
+  isAiAssistEnabled: boolean;
+  onBack: () => void;
+  hasUnsavedChanges: boolean;
+  saveEstimationMutation: any;
+}) {
+  const [activeTab, setActiveTab] = useState("materials");
+
+  if (!estimationData) return null;
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Project Header */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button variant="outline" size="sm" onClick={onBack}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Projects
+              </Button>
+              {hasUnsavedChanges && (
+                <Badge variant="destructive" className="animate-pulse">
+                  Unsaved Changes
+                </Badge>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => estimationData && saveEstimationMutation.mutate(estimationData)}
+                disabled={!hasUnsavedChanges || saveEstimationMutation.isPending}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {saveEstimationMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+              <div>
+                <CardTitle className="text-xl">{project.name}</CardTitle>
+                <p className="text-muted-foreground">{project.description}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold">${estimationData.totals.total.toLocaleString()}</div>
+              <p className="text-sm text-muted-foreground">Total Estimate</p>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* AI Suggestions */}
+      {isAiAssistEnabled && aiSuggestions.length > 0 && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center text-blue-800">
+              <Bot className="h-5 w-5 mr-2" />
+              AI Recommendations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {aiSuggestions.map((suggestion, index) => (
+                <li key={index} className="flex items-start">
+                  <Zap className="h-4 w-4 mt-0.5 mr-2 text-blue-600" />
+                  <span className="text-sm text-blue-800">{suggestion}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Estimation Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-7 w-full">
+          <TabsTrigger value="drawings">AI Drawings</TabsTrigger>
+          <TabsTrigger value="materials">Materials</TabsTrigger>
+          <TabsTrigger value="labor">Labor</TabsTrigger>
+          <TabsTrigger value="equipment">Equipment</TabsTrigger>
+          <TabsTrigger value="consumables">Consumables</TabsTrigger>
+          <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="quote">Quote</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="drawings">
+          <PdfAnalysisTab 
+            onMaterialsExtracted={(newMaterials) => {
+              setEstimationData(prev => prev ? { 
+                ...prev, 
+                materials: [...prev.materials, ...newMaterials] 
+              } : null);
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="materials">
+          <MaterialsTab 
+            materials={estimationData.materials}
+            availableMaterials={materials}
+            onUpdate={(materials) => setEstimationData(prev => prev ? { ...prev, materials } : null)}
+          />
+        </TabsContent>
+
+        <TabsContent value="labor">
+          <EnhancedLaborTab 
+            labor={estimationData.labor as any}
+            onUpdate={(labor) => setEstimationData(prev => prev ? { ...prev, labor } : null)}
+          />
+        </TabsContent>
+
+        <TabsContent value="equipment">
+          <EquipmentTab 
+            equipment={estimationData.equipment}
+            onUpdate={(equipment) => setEstimationData(prev => prev ? { ...prev, equipment } : null)}
+          />
+        </TabsContent>
+
+        <TabsContent value="consumables">
+          <ConsumablesTab 
+            consumables={estimationData.consumables}
+            availableMaterials={materials}
+            onUpdate={(consumables) => setEstimationData(prev => prev ? { ...prev, consumables } : null)}
+          />
+        </TabsContent>
+
+        <TabsContent value="summary">
+          <SummaryTab estimationData={estimationData} />
+        </TabsContent>
+
+        <TabsContent value="quote">
+          <QuoteTab project={project} estimationData={estimationData} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// Equipment tab with rental costs and operating hours
+function EquipmentTab({ equipment, onUpdate }: { equipment: EquipmentCost[]; onUpdate: (equipment: EquipmentCost[]) => void }) {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const totalEquipmentCost = equipment.reduce((sum, item) => sum + item.totalCost, 0);
+  
+  const updateEquipmentItem = (id: string, updates: Partial<EquipmentCost>) => {
+    const updatedEquipment = equipment.map(item => 
+      item.id === id ? { ...item, ...updates } : item
+    );
+    onUpdate(updatedEquipment);
+  };
+
+  const removeEquipmentItem = (id: string) => {
+    const updatedEquipment = equipment.filter(item => item.id !== id);
+    onUpdate(updatedEquipment);
+  };
+
+  const addEquipmentItem = (newItem: Partial<EquipmentCost>) => {
+    const item: EquipmentCost = {
+      id: Date.now().toString(),
+      equipment: newItem.equipment || "",
+      type: newItem.type || "rental",
+      hoursPerDay: newItem.hoursPerDay || 8,
+      days: newItem.days || 1,
+      hourlyRate: newItem.hourlyRate || 0,
+      totalCost: (newItem.hoursPerDay || 8) * (newItem.days || 1) * (newItem.hourlyRate || 0),
+      notes: newItem.notes || ""
+    };
+    onUpdate([...equipment, item]);
+    setIsAddDialogOpen(false);
+  };
+  
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              Plant & Equipment
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Cranes, transport, power tools, and specialized equipment.<br/>
+                    Includes rental costs, operating hours, and mobilization fees.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </CardTitle>
+            <div className="flex items-center gap-4">
+              <div className="text-2xl font-bold">${totalEquipmentCost.toLocaleString()}</div>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Equipment
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Equipment</DialogTitle>
+                  </DialogHeader>
+                  <AddEquipmentForm onSubmit={addEquipmentItem} />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {equipment.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Equipment</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Hours/Day</TableHead>
+                    <TableHead>Days</TableHead>
+                    <TableHead>Hourly Rate</TableHead>
+                    <TableHead>Total Cost</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {equipment.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <Input
+                          value={item.equipment}
+                          onChange={(e) => updateEquipmentItem(item.id, { equipment: e.target.value })}
+                          className="font-medium border-0 px-1 py-0 h-6"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Select value={item.type} onValueChange={(value) => updateEquipmentItem(item.id, { type: value as any })}>
+                          <SelectTrigger className="w-24 border-0 px-1 py-0 h-6">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="rental">Rental</SelectItem>
+                            <SelectItem value="owned">Owned</SelectItem>
+                            <SelectItem value="purchase">Purchase</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          value={item.hoursPerDay}
+                          onChange={(e) => {
+                            const newHours = parseFloat(e.target.value) || 0;
+                            const newCost = newHours * item.days * item.hourlyRate;
+                            updateEquipmentItem(item.id, { hoursPerDay: newHours, totalCost: newCost });
+                          }}
+                          className="w-20 border-0 px-1 py-0 h-6"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          value={item.days}
+                          onChange={(e) => {
+                            const newDays = parseFloat(e.target.value) || 0;
+                            const newCost = item.hoursPerDay * newDays * item.hourlyRate;
+                            updateEquipmentItem(item.id, { days: newDays, totalCost: newCost });
+                          }}
+                          className="w-20 border-0 px-1 py-0 h-6"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.hourlyRate}
+                          onChange={(e) => {
+                            const newRate = parseFloat(e.target.value) || 0;
+                            const newCost = item.hoursPerDay * item.days * newRate;
+                            updateEquipmentItem(item.id, { hourlyRate: newRate, totalCost: newCost });
+                          }}
+                          className="w-24 border-0 px-1 py-0 h-6"
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        ${item.totalCost.toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeEquipmentItem(item.id)}
+                          title="Remove item"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Truck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No equipment added yet</p>
+                <p className="text-sm">Add cranes, tools, and machinery for the project</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Add Equipment Form Component
+function AddEquipmentForm({ onSubmit }: { onSubmit: (data: Partial<EquipmentCost>) => void }) {
+  const [formData, setFormData] = useState({
+    equipment: "",
+    type: "rental" as const,
+    hoursPerDay: 8,
+    days: 1,
+    hourlyRate: 0,
+    notes: ""
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+    setFormData({
+      equipment: "",
+      type: "rental",
+      hoursPerDay: 8,
+      days: 1,
+      hourlyRate: 0,
+      notes: ""
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="equipment">Equipment Name</Label>
+        <Input
+          id="equipment"
+          value={formData.equipment}
+          onChange={(e) => setFormData(prev => ({ ...prev, equipment: e.target.value }))}
+          placeholder="e.g. 25T Mobile Crane"
+          required
+        />
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="type">Type</Label>
+          <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as any }))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rental">Rental</SelectItem>
+              <SelectItem value="owned">Owned</SelectItem>
+              <SelectItem value="purchase">Purchase</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
+          <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
+          <Input
+            id="hourlyRate"
+            type="number"
+            step="0.01"
+            value={formData.hourlyRate}
+            onChange={(e) => setFormData(prev => ({ ...prev, hourlyRate: parseFloat(e.target.value) || 0 }))}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="hoursPerDay">Hours per Day</Label>
+          <Input
+            id="hoursPerDay"
+            type="number"
+            value={formData.hoursPerDay}
+            onChange={(e) => setFormData(prev => ({ ...prev, hoursPerDay: parseFloat(e.target.value) || 0 }))}
+            required
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="days">Number of Days</Label>
+          <Input
+            id="days"
+            type="number"
+            value={formData.days}
+            onChange={(e) => setFormData(prev => ({ ...prev, days: parseFloat(e.target.value) || 0 }))}
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="notes">Notes</Label>
+        <Textarea
+          id="notes"
+          value={formData.notes}
+          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+          placeholder="Additional details or requirements"
+          rows={2}
+        />
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button type="submit">Add Equipment</Button>
+      </div>
+    </form>
+  );
+}
+
+// Consumables tab for welding supplies, cutting discs, etc.
+function ConsumablesTab({ consumables, onUpdate, availableMaterials }: { 
+  consumables: ConsumableCost[]; 
+  onUpdate: (consumables: ConsumableCost[]) => void;
+  availableMaterials: any[];
+}) {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const totalConsumablesCost = consumables.reduce((sum, item) => sum + item.totalCost, 0);
+  
+  const updateConsumableItem = (id: string, updates: Partial<ConsumableCost>) => {
+    const updatedConsumables = consumables.map(item => 
+      item.id === id ? { ...item, ...updates } : item
+    );
+    onUpdate(updatedConsumables);
+  };
+
+  const removeConsumableItem = (id: string) => {
+    const updatedConsumables = consumables.filter(item => item.id !== id);
+    onUpdate(updatedConsumables);
+  };
+
+  const addConsumableItem = (newItem: Partial<ConsumableCost>) => {
+    const item: ConsumableCost = {
+      id: Date.now().toString(),
+      item: newItem.item || "",
+      quantity: newItem.quantity || 1,
+      unit: newItem.unit || "kg",
+      unitCost: newItem.unitCost || 0,
+      totalCost: (newItem.quantity || 1) * (newItem.unitCost || 0),
+      notes: newItem.notes || ""
+    };
+    onUpdate([...consumables, item]);
+    setIsAddDialogOpen(false);
+  };
+  
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              Consumables & Supplies
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Welding electrodes, cutting discs, gas, consumables, and supplies.<br/>
+                    Includes safety equipment, protective gear, and project-specific materials.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </CardTitle>
+            <div className="flex items-center gap-4">
+              <div className="text-2xl font-bold">${totalConsumablesCost.toLocaleString()}</div>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Consumable
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Consumable</DialogTitle>
+                  </DialogHeader>
+                  <AddConsumableForm onSubmit={addConsumableItem} availableMaterials={availableMaterials} />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {consumables.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead>Unit Cost</TableHead>
+                    <TableHead>Total Cost</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {consumables.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <Input
+                          value={item.item}
+                          onChange={(e) => updateConsumableItem(item.id, { item: e.target.value })}
+                          className="font-medium border-0 px-1 py-0 h-6"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const newQuantity = parseFloat(e.target.value) || 0;
+                            const newCost = newQuantity * item.unitCost;
+                            updateConsumableItem(item.id, { quantity: newQuantity, totalCost: newCost });
+                          }}
+                          className="w-24 border-0 px-1 py-0 h-6"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          value={item.unit}
+                          onChange={(e) => updateConsumableItem(item.id, { unit: e.target.value })}
+                          className="w-24 border-0 px-1 py-0 h-6"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.unitCost}
+                          onChange={(e) => {
+                            const newCost = parseFloat(e.target.value) || 0;
+                            const totalCost = item.quantity * newCost;
+                            updateConsumableItem(item.id, { unitCost: newCost, totalCost });
+                          }}
+                          className="w-24 border-0 px-1 py-0 h-6"
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        ${item.totalCost.toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeConsumableItem(item.id)}
+                          title="Remove item"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No consumables added yet</p>
+                <p className="text-sm">Add welding electrodes, gas, paint, and other supplies</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Add Consumable Form Component
+function AddConsumableForm({ onSubmit, availableMaterials }: { 
+  onSubmit: (data: Partial<ConsumableCost>) => void;
+  availableMaterials: any[];
+}) {
+  const [formData, setFormData] = useState({
+    item: "",
+    quantity: 1,
+    unit: "kg",
+    unitCost: 0,
+    notes: ""
+  });
+
+  // Common consumables for suggestions
+  const commonConsumables = [
+    { name: "7018 Welding Electrodes", unit: "kg", estimatedCost: 12.50 },
+    { name: "6013 Welding Electrodes", unit: "kg", estimatedCost: 8.90 },
+    { name: "Cutting Discs 9\"", unit: "pcs", estimatedCost: 3.25 },
+    { name: "Grinding Discs 4.5\"", unit: "pcs", estimatedCost: 2.10 },
+    { name: "Oxygen Gas", unit: "m3", estimatedCost: 2.85 },
+    { name: "Acetylene Gas", unit: "m3", estimatedCost: 8.50 },
+    { name: "CO2 Welding Gas", unit: "m3", estimatedCost: 1.95 },
+    { name: "Anti-Spatter Spray", unit: "can", estimatedCost: 15.50 },
+    { name: "Primer Paint", unit: "L", estimatedCost: 25.80 },
+    { name: "Safety Glasses", unit: "pcs", estimatedCost: 8.90 },
+    { name: "Welding Gloves", unit: "pair", estimatedCost: 22.50 },
+    { name: "Hard Hat", unit: "pcs", estimatedCost: 18.90 }
+  ];
+
+  const handleSuggestionSelect = (suggestion: any) => {
+    setFormData(prev => ({
+      ...prev,
+      item: suggestion.name,
+      unit: suggestion.unit,
+      unitCost: suggestion.estimatedCost
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+    setFormData({
+      item: "",
+      quantity: 1,
+      unit: "kg",
+      unitCost: 0,
+      notes: ""
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="item">Consumable Item</Label>
+        <Input
+          id="item"
+          value={formData.item}
+          onChange={(e) => setFormData(prev => ({ ...prev, item: e.target.value }))}
+          placeholder="e.g. 7018 Welding Electrodes"
+          required
+        />
+        
+        {/* Common consumables suggestions */}
+        <div className="mt-2">
+          <Label className="text-xs text-muted-foreground">Common Items:</Label>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {commonConsumables.slice(0, 6).map((item, index) => (
+              <Button
+                key={index}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs h-6"
+                onClick={() => handleSuggestionSelect(item)}
+              >
+                {item.name}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <Label htmlFor="quantity">Quantity</Label>
+          <Input
+            id="quantity"
+            type="number"
+            step="0.01"
+            value={formData.quantity}
+            onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
+            required
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="unit">Unit</Label>
+          <Select value={formData.unit} onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="kg">Kilograms</SelectItem>
+              <SelectItem value="pcs">Pieces</SelectItem>
+              <SelectItem value="L">Liters</SelectItem>
+              <SelectItem value="m3">Cubic Meters</SelectItem>
+              <SelectItem value="can">Cans</SelectItem>
+              <SelectItem value="pair">Pairs</SelectItem>
+              <SelectItem value="box">Boxes</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
+          <Label htmlFor="unitCost">Unit Cost ($)</Label>
+          <Input
+            id="unitCost"
+            type="number"
+            step="0.01"
+            value={formData.unitCost}
+            onChange={(e) => setFormData(prev => ({ ...prev, unitCost: parseFloat(e.target.value) || 0 }))}
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="notes">Notes</Label>
+        <Textarea
+          id="notes"
+          value={formData.notes}
+          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+          placeholder="Additional specifications or requirements"
+          rows={2}
+        />
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button type="submit">Add Consumable</Button>
+      </div>
+    </form>
+  );
+}
+
+// Summary tab placeholder
+function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Estimation Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Materials</p>
+              <p className="text-lg font-bold">${estimationData.totals.materials.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Labor</p>
+              <p className="text-lg font-bold">${estimationData.totals.labor.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Equipment</p>
+              <p className="text-lg font-bold">${estimationData.totals.equipment.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Consumables</p>
+              <p className="text-lg font-bold">${estimationData.totals.consumables.toLocaleString()}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Quote tab placeholder
+function QuoteTab({ project, estimationData }: { project: EstimationProject; estimationData: EstimationData }) {
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Generate Quote</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Quote generation functionality will be implemented here.</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

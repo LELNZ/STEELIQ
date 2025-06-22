@@ -48,6 +48,7 @@ export const materials = pgTable("materials", {
   webTw: decimal("web_tw", { precision: 10, scale: 2 }), // Web TW (mm)
   length: decimal("length", { precision: 10, scale: 2 }),
   weightPerMeter: decimal("weight_per_meter", { precision: 10, scale: 3 }), // Weight (kg/m)
+  unitCost: decimal("unit_cost", { precision: 10, scale: 2 }), // For consumables (per piece/can/bottle)
   lengthOptions: text("length_options"), // Length Options (m) - stored as text for multiple values
   grade: text("grade"),
   standard: text("standard"), // Standard (e.g., AS/NZS 1163)

@@ -158,22 +158,37 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
         <CardContent>
           <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="grid grid-cols-3 w-full mb-6">
-              <TabsTrigger value="workshop" className="relative">
+              <TabsTrigger value="workshop" className="relative border-l-4 border-l-blue-500 data-[state=active]:border-l-blue-600">
                 <div className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Workshop Labor
+                  <div className="p-1.5 bg-blue-100 rounded-md">
+                    <Settings className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium">Workshop Labor</div>
+                    <div className="text-xs text-muted-foreground">Fabrication & Assembly</div>
+                  </div>
                 </div>
               </TabsTrigger>
-              <TabsTrigger value="onsite" className="relative">
+              <TabsTrigger value="onsite" className="relative border-l-4 border-l-green-500 data-[state=active]:border-l-green-600">
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Onsite Labor
+                  <div className="p-1.5 bg-green-100 rounded-md">
+                    <MapPin className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium">Onsite Labor</div>
+                    <div className="text-xs text-muted-foreground">Installation & Erection</div>
+                  </div>
                 </div>
               </TabsTrigger>
-              <TabsTrigger value="subcontractor" className="relative">
+              <TabsTrigger value="subcontractor" className="relative border-l-4 border-l-orange-500 data-[state=active]:border-l-orange-600">
                 <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Subcontractor
+                  <div className="p-1.5 bg-orange-100 rounded-md">
+                    <Users className="h-4 w-4 text-orange-600" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium">Subcontractor</div>
+                    <div className="text-xs text-muted-foreground">External Services</div>
+                  </div>
                 </div>
               </TabsTrigger>
             </TabsList>

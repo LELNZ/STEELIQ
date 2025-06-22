@@ -11,7 +11,7 @@ import Inventory from "@/pages/inventory";
 import CuttingOptimizationFixed from "@/pages/cutting-optimization-fixed";
 import CuttingPlanTest from "@/pages/cutting-plan-test";
 import Estimates from "@/pages/estimates";
-import EstimationPage from "@/pages/estimation";
+import EstimationPage from "@/pages/estimation-clean";
 import ProjectEstimation from "@/pages/project-estimation";
 import ClientPortal from "@/pages/client-portal";
 import MobileInspection from "@/pages/mobile-inspection";
