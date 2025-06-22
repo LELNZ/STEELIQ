@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { 
   Calculator, 
   Zap, 
@@ -556,6 +558,101 @@ function EstimationWorkspace({
   onBack: () => void;
 }) {
   const [activeTab, setActiveTab] = useState("materials");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+  const originalDataRef = useRef<EstimationData | null>(null);
+  const { toast } = useToast();
+
+  // Store original data on mount to track changes
+  useEffect(() => {
+    if (estimationData && !originalDataRef.current) {
+      originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
+    }
+  }, [estimationData]);
+
+  // Track changes in estimation data
+  useEffect(() => {
+    if (originalDataRef.current && estimationData) {
+      const hasChanges = JSON.stringify(originalDataRef.current) !== JSON.stringify(estimationData);
+      setHasUnsavedChanges(hasChanges);
+    }
+  }, [estimationData]);
+
+  // Prevent browser navigation with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        return "You have unsaved changes. Are you sure you want to leave?";
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Save estimation data
+  const saveEstimationMutation = useMutation({
+    mutationFn: async (data: EstimationData) => {
+      const response = await apiRequest("PUT", `/api/estimations/${project.id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      setHasUnsavedChanges(false);
+      originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
+      toast({
+        title: "Changes Saved",
+        description: "All estimation data has been saved successfully"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Save Failed",
+        description: "Failed to save changes. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Handle navigation with unsaved changes
+  const handleNavigation = (navigationFn: () => void) => {
+    if (hasUnsavedChanges) {
+      setPendingNavigation(() => navigationFn);
+      setShowSaveDialog(true);
+    } else {
+      navigationFn();
+    }
+  };
+
+  // Save and continue navigation
+  const handleSaveAndContinue = async () => {
+    if (estimationData) {
+      await saveEstimationMutation.mutateAsync(estimationData);
+      setShowSaveDialog(false);
+      if (pendingNavigation) {
+        pendingNavigation();
+        setPendingNavigation(null);
+      }
+    }
+  };
+
+  // Continue without saving
+  const handleContinueWithoutSaving = () => {
+    setShowSaveDialog(false);
+    setHasUnsavedChanges(false);
+    if (pendingNavigation) {
+      pendingNavigation();
+      setPendingNavigation(null);
+    }
+  };
+
+  // Cancel navigation
+  const handleCancelNavigation = () => {
+    setShowSaveDialog(false);
+    setPendingNavigation(null);
+  };
 
   if (!estimationData) return null;
 
@@ -566,9 +663,23 @@ function EstimationWorkspace({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" onClick={onBack}>
+              <Button variant="outline" size="sm" onClick={() => handleNavigation(onBack)}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Projects
+              </Button>
+              {hasUnsavedChanges && (
+                <Badge variant="destructive" className="animate-pulse">
+                  Unsaved Changes
+                </Badge>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => estimationData && saveEstimationMutation.mutate(estimationData)}
+                disabled={!hasUnsavedChanges || saveEstimationMutation.isPending}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {saveEstimationMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
               <div>
                 <CardTitle className="text-xl">{project.name}</CardTitle>
@@ -704,6 +815,38 @@ function EstimationWorkspace({
           <QuoteTab project={project} estimationData={estimationData} />
         </TabsContent>
       </Tabs>
+
+      {/* Save Changes Dialog */}
+      <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+              Save Changes?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes to this estimation. What would you like to do?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel onClick={handleCancelNavigation}>
+              Cancel
+            </AlertDialogCancel>
+            <Button 
+              variant="outline" 
+              onClick={handleContinueWithoutSaving}
+            >
+              Don't Save
+            </Button>
+            <AlertDialogAction 
+              onClick={handleSaveAndContinue}
+              disabled={saveEstimationMutation.isPending}
+            >
+              {saveEstimationMutation.isPending ? "Saving..." : "Save & Continue"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1618,6 +1618,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/estimations/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const estimationData = req.body;
+      
+      // In a real application, this would save to database
+      // For now, we'll simulate a successful save
+      const savedData = {
+        ...estimationData,
+        id: parseInt(id),
+        updatedAt: new Date()
+      };
+      
+      console.log(`Saving estimation data for project ${id}:`, {
+        materialsCount: estimationData.materials?.length || 0,
+        laborCount: estimationData.labor?.length || 0,
+        equipmentCount: estimationData.equipment?.length || 0,
+        consumablesCount: estimationData.consumables?.length || 0,
+        totalCost: estimationData.totals?.total || 0
+      });
+      
+      res.json(savedData);
+    } catch (error) {
+      console.error("Error saving estimation:", error);
+      res.status(500).json({ error: "Failed to save estimation" });
+    }
+  });
+
   app.post('/api/client-locations', async (req, res) => {
     try {
       const location = await storage.createLocation({
