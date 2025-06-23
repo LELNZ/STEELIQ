@@ -1756,9 +1756,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // For testing phase, simulate successful save without database
       const savedEstimation = {
-        ...estimationData,
-        id: projectId,
-        updatedAt: new Date().toISOString()
+        success: true,
+        message: "Estimation saved successfully",
+        data: {
+          ...estimationData,
+          id: projectId,
+          updatedAt: new Date().toISOString()
+        }
       };
       
       res.setHeader('Content-Type', 'application/json');

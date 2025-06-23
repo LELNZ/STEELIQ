@@ -241,25 +241,29 @@ export default function EstimationPage() {
     }
   });
 
-  // Track changes - simplified logic with proper comparison
+  // Track changes - only after data is fully loaded and stabilized
   useEffect(() => {
     if (originalDataRef.current && estimationData) {
-      // Use a more stable comparison by excluding certain fields that might change during normal operations
-      const cleanData = (data: any) => {
-        const { project, ...rest } = data;
-        return rest;
-      };
+      // Add delay to ensure data is stable before comparing
+      const timer = setTimeout(() => {
+        const cleanData = (data: any) => {
+          const { project, ...rest } = data;
+          return rest;
+        };
+        
+        const originalStr = JSON.stringify(cleanData(originalDataRef.current));
+        const currentStr = JSON.stringify(cleanData(estimationData));
+        const hasChanges = originalStr !== currentStr;
+        
+        console.log('Change detection after delay:', { hasChanges });
+        if (hasChanges !== hasUnsavedChanges) {
+          setHasUnsavedChanges(hasChanges);
+        }
+      }, 1000); // 1 second delay to ensure data is stable
       
-      const originalStr = JSON.stringify(cleanData(originalDataRef.current));
-      const currentStr = JSON.stringify(cleanData(estimationData));
-      const hasChanges = originalStr !== currentStr;
-      
-      console.log('Change detection:', { hasChanges, lengths: { original: originalStr.length, current: currentStr.length } });
-      setHasUnsavedChanges(hasChanges);
-    } else {
-      setHasUnsavedChanges(false);
+      return () => clearTimeout(timer);
     }
-  }, [estimationData]);
+  }, [estimationData, hasUnsavedChanges]);
 
   // Auto-save timer management
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -767,7 +771,7 @@ function EstimationWorkspace({
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Project Header */}
+      {/* Project Header - Clean without save controls */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -775,21 +779,6 @@ function EstimationWorkspace({
               <Button variant="outline" size="sm" onClick={onBack}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Projects
-              </Button>
-              {hasUnsavedChanges && (
-                <Badge variant="destructive" className="animate-pulse">
-                  Unsaved Changes
-                </Badge>
-              )}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onManualSave}
-                disabled={!hasUnsavedChanges || saveEstimationMutation.isPending}
-                className="bg-blue-50 hover:bg-blue-100 border-blue-200"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {saveEstimationMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
               <div>
                 <CardTitle className="text-xl">{project.name}</CardTitle>
