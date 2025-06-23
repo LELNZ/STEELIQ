@@ -1739,10 +1739,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/estimations/:id", async (req, res) => {
     try {
-      const { id } = req.params;
+      const projectId = parseInt(req.params.id);
       const estimationData = req.body;
       
-      console.log(`Saving estimation data for project ${id}:`, {
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID" });
+      }
+      
+      console.log(`Saving estimation data for project ${projectId}:`, {
         materialsCount: estimationData.materials?.length || 0,
         laborCount: estimationData.labor?.length || 0,
         equipmentCount: estimationData.equipment?.length || 0,
@@ -1750,42 +1754,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalCost: estimationData.totals?.total || 0
       });
       
-      // Validate required fields
-      if (!estimationData.project) {
-        return res.status(400).json({ error: "Missing project data" });
-      }
+      // Save to database using storage layer
+      const savedEstimation = await storage.saveEstimationData(projectId, estimationData);
       
-      // Ensure arrays exist
-      if (!estimationData.materials) estimationData.materials = [];
-      if (!estimationData.labor) estimationData.labor = [];
-      if (!estimationData.equipment) estimationData.equipment = [];
-      if (!estimationData.consumables) estimationData.consumables = [];
-      
-      // Ensure totals exist
-      if (!estimationData.totals) {
-        estimationData.totals = {
-          materials: 0,
-          labor: 0,
-          equipment: 0,
-          consumables: 0,
-          subtotal: 0,
-          overheads: 0,
-          margin: 0,
-          total: 0
-        };
-      }
-      
-      // In a real application, this would save to database
-      // For now, we'll simulate a successful save with proper response
-      const savedData = {
-        ...estimationData,
-        id: parseInt(id),
-        updatedAt: new Date().toISOString()
-      };
-      
-      // Ensure we return valid JSON with proper headers
       res.setHeader('Content-Type', 'application/json');
-      res.status(200).json(savedData);
+      res.status(200).json(savedEstimation);
     } catch (error) {
       console.error("Error saving estimation:", error);
       res.setHeader('Content-Type', 'application/json');

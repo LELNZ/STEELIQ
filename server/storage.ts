@@ -3,6 +3,7 @@ import {
   cuttingPlans, cutSequences, remnants, optimizationSimulations, coatingSystems, surfaceAreaConfigs,
   suppliers, materialSuppliers, supplierPriceHistory, supplierContacts,
   clients, clientContacts, locations,
+  estimationProjects, estimationMaterials, estimationLabor, estimationEquipment, estimationConsumables,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
@@ -12,7 +13,8 @@ import {
   type Supplier, type InsertSupplier, type MaterialSupplier, type InsertMaterialSupplier,
   type SupplierPriceHistory, type InsertSupplierPriceHistory, type SupplierContact, type InsertSupplierContact,
   type Client, type InsertClient, type ClientContact, type InsertClientContact,
-  type Location, type InsertLocation
+  type Location, type InsertLocation,
+  type EstimationProject, type InsertEstimationProject
 } from "@shared/schema";
 import { desc, eq, lt, asc, like, and, or, sql } from "drizzle-orm";
 import { db } from "./db";
@@ -149,6 +151,13 @@ export interface IStorage {
   createLocation(location: InsertLocation): Promise<Location>;
   updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location>;
   deleteLocation(id: number): Promise<boolean>;
+
+  // Estimation Management
+  getEstimationProjects(): Promise<any[]>;
+  getEstimationProject(id: number): Promise<any | undefined>;
+  createEstimationProject(project: any): Promise<any>;
+  updateEstimationProject(id: number, project: any): Promise<any>;
+  saveEstimationData(projectId: number, estimationData: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -848,6 +857,125 @@ export class DatabaseStorage implements IStorage {
   async deleteLocation(id: number): Promise<boolean> {
     const result = await db.delete(locations).where(eq(locations.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // Estimation Management
+  async getEstimationProjects(): Promise<EstimationProject[]> {
+    return await db.select().from(estimationProjects).orderBy(desc(estimationProjects.updatedAt));
+  }
+
+  async getEstimationProject(id: number): Promise<EstimationProject | undefined> {
+    const [project] = await db.select().from(estimationProjects).where(eq(estimationProjects.id, id));
+    return project || undefined;
+  }
+
+  async createEstimationProject(project: InsertEstimationProject): Promise<EstimationProject> {
+    const [created] = await db.insert(estimationProjects)
+      .values(project)
+      .returning();
+    return created;
+  }
+
+  async updateEstimationProject(id: number, project: Partial<InsertEstimationProject>): Promise<EstimationProject> {
+    const [updated] = await db
+      .update(estimationProjects)
+      .set({ ...project, updatedAt: new Date() })
+      .where(eq(estimationProjects.id, id))
+      .returning();
+    return updated;
+  }
+
+  async saveEstimationData(projectId: number, estimationData: any): Promise<any> {
+    return await db.transaction(async (tx) => {
+      // Update the main project with totals
+      const [updatedProject] = await tx
+        .update(estimationProjects)
+        .set({
+          totalCost: estimationData.totals?.total?.toString() || "0",
+          margin: estimationData.margin?.percentage?.toString() || "0",
+          overheadPercentage: estimationData.overheads?.percentage?.toString() || "0",
+          projectData: estimationData,
+          updatedAt: new Date()
+        })
+        .where(eq(estimationProjects.id, projectId))
+        .returning();
+
+      // Clear existing estimation items for this project
+      await tx.delete(estimationMaterials).where(eq(estimationMaterials.projectId, projectId));
+      await tx.delete(estimationLabor).where(eq(estimationLabor.projectId, projectId));
+      await tx.delete(estimationEquipment).where(eq(estimationEquipment.projectId, projectId));
+      await tx.delete(estimationConsumables).where(eq(estimationConsumables.projectId, projectId));
+
+      // Insert materials
+      if (estimationData.materials?.length > 0) {
+        await tx.insert(estimationMaterials).values(
+          estimationData.materials.map((material: any) => ({
+            projectId,
+            materialCode: material.materialCode || material.code || "",
+            materialName: material.materialName || material.name || "",
+            quantity: material.quantity?.toString() || "0",
+            unitCost: material.unitCost?.toString() || "0",
+            totalCost: material.totalCost?.toString() || "0",
+            wasteFactor: material.wasteFactor?.toString() || "5",
+            handlingTime: material.handlingTime?.toString() || "0",
+            handlingCost: material.handlingCost?.toString() || "0",
+            supplier: material.supplier || "",
+            notes: material.notes || ""
+          }))
+        );
+      }
+
+      // Insert labor
+      if (estimationData.labor?.length > 0) {
+        await tx.insert(estimationLabor).values(
+          estimationData.labor.map((labor: any) => ({
+            projectId,
+            category: labor.category || "general",
+            description: labor.description || "",
+            hours: labor.hours?.toString() || "0",
+            rate: labor.rate?.toString() || "0",
+            totalCost: labor.totalCost?.toString() || "0",
+            notes: labor.notes || ""
+          }))
+        );
+      }
+
+      // Insert equipment
+      if (estimationData.equipment?.length > 0) {
+        await tx.insert(estimationEquipment).values(
+          estimationData.equipment.map((equipment: any) => ({
+            projectId,
+            category: equipment.category || "general",
+            description: equipment.description || "",
+            hours: equipment.hours?.toString() || "0",
+            rate: equipment.rate?.toString() || "0",
+            totalCost: equipment.totalCost?.toString() || "0",
+            notes: equipment.notes || ""
+          }))
+        );
+      }
+
+      // Insert consumables
+      if (estimationData.consumables?.length > 0) {
+        await tx.insert(estimationConsumables).values(
+          estimationData.consumables.map((consumable: any) => ({
+            projectId,
+            category: consumable.category || "general",
+            description: consumable.description || "",
+            quantity: consumable.quantity?.toString() || "0",
+            unitCost: consumable.unitCost?.toString() || "0",
+            totalCost: consumable.totalCost?.toString() || "0",
+            notes: consumable.notes || ""
+          }))
+        );
+      }
+
+      return {
+        ...estimationData,
+        id: projectId,
+        updatedAt: updatedProject.updatedAt
+      };
+    });
   }
 }
 

@@ -229,12 +229,36 @@ export default function EstimationPage() {
     }
   }, [estimationData]);
 
-  // Manual save function
+  // Manual save function with better error handling
   const handleManualSave = () => {
-    if (estimationData && !saveEstimationMutation.isPending) {
-      console.log('Manual save triggered');
-      saveEstimationMutation.mutate(estimationData);
+    if (!estimationData) {
+      toast({
+        title: "Save Failed",
+        description: "No estimation data to save",
+        variant: "destructive"
+      });
+      return;
     }
+
+    if (saveEstimationMutation.isPending) {
+      toast({
+        title: "Save in Progress",
+        description: "Please wait for current save to complete",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('Manual save triggered with estimation data:', {
+      projectId: currentProject?.id,
+      materialsCount: estimationData.materials?.length || 0,
+      laborCount: estimationData.labor?.length || 0,
+      equipmentCount: estimationData.equipment?.length || 0,
+      consumablesCount: estimationData.consumables?.length || 0,
+      totalCost: estimationData.totals?.total || 0
+    });
+
+    saveEstimationMutation.mutate(estimationData);
   };
 
   // Calculate and update totals whenever data changes - runs on every state change
