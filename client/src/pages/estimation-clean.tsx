@@ -241,29 +241,11 @@ export default function EstimationPage() {
     }
   });
 
-  // Track changes - only after data is fully loaded and stabilized
+  // Disable change detection temporarily for testing
   useEffect(() => {
-    if (originalDataRef.current && estimationData) {
-      // Add delay to ensure data is stable before comparing
-      const timer = setTimeout(() => {
-        const cleanData = (data: any) => {
-          const { project, ...rest } = data;
-          return rest;
-        };
-        
-        const originalStr = JSON.stringify(cleanData(originalDataRef.current));
-        const currentStr = JSON.stringify(cleanData(estimationData));
-        const hasChanges = originalStr !== currentStr;
-        
-        console.log('Change detection after delay:', { hasChanges });
-        if (hasChanges !== hasUnsavedChanges) {
-          setHasUnsavedChanges(hasChanges);
-        }
-      }, 1000); // 1 second delay to ensure data is stable
-      
-      return () => clearTimeout(timer);
-    }
-  }, [estimationData, hasUnsavedChanges]);
+    // Force unsaved changes to false for now
+    setHasUnsavedChanges(false);
+  }, [estimationData]);
 
   // Auto-save timer management
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -518,18 +500,22 @@ export default function EstimationPage() {
             </p>
           </div>
           <div className="flex items-center space-x-4">
-            {/* Show save controls only when viewing a project */}
+            {/* Show project controls when viewing a project */}
             {currentProject && (
               <>
-                {hasUnsavedChanges && (
-                  <Badge variant="destructive" className="animate-pulse">
-                    Unsaved Changes
-                  </Badge>
-                )}
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleNavigation(() => setCurrentProject(null))}
+                  className="flex items-center gap-2"
+                  size="sm"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Projects
+                </Button>
                 
                 <Button 
                   onClick={handleManualSave}
-                  disabled={saveEstimationMutation.isPending || !hasUnsavedChanges}
+                  disabled={saveEstimationMutation.isPending}
                   className="flex items-center gap-2"
                   size="sm"
                 >
@@ -776,10 +762,6 @@ function EstimationWorkspace({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" onClick={onBack}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Projects
-              </Button>
               <div>
                 <CardTitle className="text-xl">{project.name}</CardTitle>
                 <p className="text-muted-foreground">{project.description}</p>
