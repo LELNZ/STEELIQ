@@ -229,17 +229,13 @@ export default function EstimationPage() {
     }
   }, [estimationData]);
 
-  // Auto-save after 5 minutes of inactivity
-  useEffect(() => {
-    if (hasUnsavedChanges && estimationData && !saveEstimationMutation.isPending) {
-      const timer = setTimeout(() => {
-        console.log('Auto-saving after 5 minutes of inactivity...');
-        saveEstimationMutation.mutate(estimationData);
-      }, 5 * 60 * 1000); // 5 minutes
-
-      return () => clearTimeout(timer);
+  // Manual save function
+  const handleManualSave = () => {
+    if (estimationData && !saveEstimationMutation.isPending) {
+      console.log('Manual save triggered');
+      saveEstimationMutation.mutate(estimationData);
     }
-  }, [hasUnsavedChanges, estimationData, saveEstimationMutation]);
+  };
 
   // Calculate and update totals whenever data changes - runs on every state change
   useEffect(() => {
@@ -463,7 +459,7 @@ export default function EstimationPage() {
           isAiAssistEnabled={isAiAssistEnabled}
           onBack={() => handleNavigation(() => setCurrentProject(null))}
           hasUnsavedChanges={hasUnsavedChanges}
-          saveEstimationMutation={saveEstimationMutation}
+          onManualSave={handleManualSave}
         />
       ) : (
         <ProjectOverview 
@@ -624,7 +620,7 @@ function EstimationWorkspace({
   isAiAssistEnabled,
   onBack,
   hasUnsavedChanges,
-  saveEstimationMutation
+  onManualSave
 }: {
   project: EstimationProject;
   estimationData: EstimationData | null;
@@ -634,13 +630,12 @@ function EstimationWorkspace({
   isAiAssistEnabled: boolean;
   onBack: () => void;
   hasUnsavedChanges: boolean;
-  saveEstimationMutation: any;
+  onManualSave: () => void;
 }) {
   const [activeTab, setActiveTab] = useState("materials");
 
-  // Save manually on tab change - no auto-save
+  // Simple tab change without auto-save
   const handleTabChange = (newTab: string) => {
-    console.log(`Switching to tab: ${newTab}`);
     setActiveTab(newTab);
   };
 
@@ -665,16 +660,11 @@ function EstimationWorkspace({
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => {
-                  if (estimationData) {
-                    console.log('Manual save triggered with data:', estimationData);
-                    saveEstimationMutation.mutate(estimationData);
-                  }
-                }}
-                disabled={!hasUnsavedChanges || saveEstimationMutation.isPending}
+                onClick={onManualSave}
+                disabled={!hasUnsavedChanges}
               >
                 <Save className="h-4 w-4 mr-2" />
-                {saveEstimationMutation.isPending ? "Saving..." : "Save Changes"}
+                Save Changes
               </Button>
               <div>
                 <CardTitle className="text-xl">{project.name}</CardTitle>
