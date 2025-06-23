@@ -516,7 +516,7 @@ export default function EstimationPage() {
                 )}
                 
                 <Button 
-                  onClick={handleSave}
+                  onClick={handleManualSave}
                   disabled={saveEstimationMutation.isPending || !hasUnsavedChanges}
                   className="flex items-center gap-2"
                   size="sm"
