@@ -172,7 +172,7 @@ export default function EstimationPage() {
     }
   }, [estimationData]);
 
-  // Track changes in estimation data with deep comparison
+  // Track changes and auto-save
   useEffect(() => {
     if (originalDataRef.current && estimationData) {
       // Deep comparison to detect any changes in nested objects/arrays
@@ -191,20 +191,25 @@ export default function EstimationPage() {
       });
       
       setHasUnsavedChanges(hasChanges);
-    }
-  }, [estimationData]);
 
-  // Calculate and update totals whenever data changes
+      // Auto-save after 1 second of inactivity when there are changes
+      if (hasChanges && !saveEstimationMutation.isPending) {
+        const timer = setTimeout(() => {
+          console.log('Auto-saving changes...');
+          saveEstimationMutation.mutate(estimationData);
+        }, 1000);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [estimationData, saveEstimationMutation]);
+
+  // Calculate and update totals whenever data changes - runs on every state change
   useEffect(() => {
     if (estimationData && estimationData.materials && estimationData.labor && estimationData.equipment && estimationData.consumables) {
-      console.log('=== TOTALS CALCULATION START ===');
-      console.log('Current labor array length:', estimationData.labor.length);
-      console.log('Labor items:', estimationData.labor);
-      
       const materials = estimationData.materials.reduce((sum, item) => sum + (item.totalCost || 0), 0);
       const labor = estimationData.labor.reduce((sum, item) => {
         const cost = item.totalCost || 0;
-        console.log(`Labor item ${item.id}: hours=${item.hours}, rate=${item.rate}, cost=${cost}`);
         return sum + cost;
       }, 0);
       const equipment = estimationData.equipment.reduce((sum, item) => sum + (item.totalCost || 0), 0);
@@ -215,32 +220,21 @@ export default function EstimationPage() {
       const marginAmount = (subtotal + overheadsAmount) * (estimationData.margin.percentage / 100);
       const total = subtotal + overheadsAmount + marginAmount;
 
-      console.log('Calculated totals:', {
-        materials, labor, equipment, consumables, subtotal, overheadsAmount, marginAmount, total
-      });
-
-      // Check if totals actually need updating
+      // Always update totals to ensure UI consistency
+      const newTotals = {
+        materials,
+        labor,
+        equipment,
+        consumables,
+        subtotal,
+        overheads: overheadsAmount,
+        margin: marginAmount,
+        total
+      };
+      
+      // Only update if totals differ to prevent loops
       const currentTotals = estimationData.totals;
-      const needsUpdate = !currentTotals || 
-        currentTotals.labor !== labor ||
-        currentTotals.materials !== materials ||
-        currentTotals.equipment !== equipment ||
-        currentTotals.consumables !== consumables ||
-        currentTotals.total !== total;
-
-      if (needsUpdate) {
-        console.log('Totals need updating - applying changes');
-        const newTotals = {
-          materials,
-          labor,
-          equipment,
-          consumables,
-          subtotal,
-          overheads: overheadsAmount,
-          margin: marginAmount,
-          total
-        };
-        
+      if (!currentTotals || JSON.stringify(currentTotals) !== JSON.stringify(newTotals)) {
         setEstimationData(prev => {
           if (!prev) return null;
           return {
@@ -248,10 +242,7 @@ export default function EstimationPage() {
             totals: newTotals
           };
         });
-      } else {
-        console.log('Totals unchanged - skipping update');
       }
-      console.log('=== TOTALS CALCULATION END ===');
     }
   }, [estimationData?.materials, estimationData?.labor, estimationData?.equipment, estimationData?.consumables, estimationData?.overheads?.percentage, estimationData?.margin?.percentage]);
 

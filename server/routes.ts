@@ -1751,8 +1751,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Validate required fields
-      if (!estimationData.project || !estimationData.totals) {
-        return res.status(400).json({ error: "Missing required estimation data" });
+      if (!estimationData.project) {
+        return res.status(400).json({ error: "Missing project data" });
+      }
+      
+      // Ensure arrays exist
+      if (!estimationData.materials) estimationData.materials = [];
+      if (!estimationData.labor) estimationData.labor = [];
+      if (!estimationData.equipment) estimationData.equipment = [];
+      if (!estimationData.consumables) estimationData.consumables = [];
+      
+      // Ensure totals exist
+      if (!estimationData.totals) {
+        estimationData.totals = {
+          materials: 0,
+          labor: 0,
+          equipment: 0,
+          consumables: 0,
+          subtotal: 0,
+          overheads: 0,
+          margin: 0,
+          total: 0
+        };
       }
       
       // In a real application, this would save to database

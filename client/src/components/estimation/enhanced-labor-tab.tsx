@@ -89,7 +89,10 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
       notes: newItem.notes
     };
 
-    onUpdate([...labor, item]);
+    const updatedLabor = [...labor, item];
+    console.log('Adding labor item:', item);
+    console.log('New labor array length:', updatedLabor.length);
+    onUpdate(updatedLabor);
     
     // Reset form but keep current tab context
     const location = activeTab === 'onsite' ? 'site' : 'workshop';
