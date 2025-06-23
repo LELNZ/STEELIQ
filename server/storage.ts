@@ -391,6 +391,39 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  // Coating systems methods
+  async getCoatingSystems(): Promise<any[]> {
+    try {
+      const result = await db.query(`SELECT * FROM coating_systems WHERE is_active = true ORDER BY name`);
+      return result.rows;
+    } catch (error) {
+      console.error('Error fetching coating systems:', error);
+      return [];
+    }
+  }
+
+  async createCoatingSystem(coatingData: any): Promise<any> {
+    try {
+      const result = await db.query(`
+        INSERT INTO coating_systems (name, coating_type, pricing_method, price_per_unit, coverage_rate, preparation_required, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *
+      `, [
+        coatingData.name,
+        coatingData.coating_type,
+        coatingData.pricing_method,
+        coatingData.price_per_unit,
+        coatingData.coverage_rate,
+        coatingData.preparation_required,
+        coatingData.is_active
+      ]);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating coating system:', error);
+      throw error;
+    }
+  }
+
   async deleteExpiredSimulations(): Promise<void> {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     await db.delete(optimizationSimulations).where(lt(optimizationSimulations.createdAt, sevenDaysAgo));

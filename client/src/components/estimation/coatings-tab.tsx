@@ -209,30 +209,47 @@ export default function CoatingsTab({ coatings, onCoatingsChange }: CoatingsTabP
                 </Select>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="surfaceArea">Surface Area (m²) *</Label>
-                <Input
-                  id="surfaceArea"
-                  type="number"
-                  step="0.01"
-                  value={newCoating.surfaceArea}
-                  onChange={(e) => setNewCoating({...newCoating, surfaceArea: parseFloat(e.target.value) || 0})}
-                />
-              </div>
+              {newCoating.coatingType === "galvanizing" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="weightKg">Weight (kg) *</Label>
+                  <Input
+                    id="weightKg"
+                    type="number"
+                    step="0.01"
+                    value={newCoating.weightKg}
+                    onChange={(e) => setNewCoating({...newCoating, weightKg: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="surfaceArea">Surface Area (m²) *</Label>
+                  <Input
+                    id="surfaceArea"
+                    type="number"
+                    step="0.01"
+                    value={newCoating.surfaceArea}
+                    onChange={(e) => setNewCoating({...newCoating, surfaceArea: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+              )}
+              
+              {newCoating.coatingType !== "galvanizing" && (
+                <div className="space-y-2">
+                  <Label htmlFor="coats">Number of Coats</Label>
+                  <Input
+                    id="coats"
+                    type="number"
+                    min="1"
+                    value={newCoating.coats}
+                    onChange={(e) => setNewCoating({...newCoating, coats: parseInt(e.target.value) || 1})}
+                  />
+                </div>
+              )}
               
               <div className="space-y-2">
-                <Label htmlFor="coats">Number of Coats</Label>
-                <Input
-                  id="coats"
-                  type="number"
-                  min="1"
-                  value={newCoating.coats}
-                  onChange={(e) => setNewCoating({...newCoating, coats: parseInt(e.target.value) || 1})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="unitCost">Unit Cost ($/m²) *</Label>
+                <Label htmlFor="unitCost">
+                  Unit Cost ({newCoating.coatingType === "galvanizing" ? "$/kg" : "$/m²"}) *
+                </Label>
                 <Input
                   id="unitCost"
                   type="number"
@@ -261,7 +278,7 @@ export default function CoatingsTab({ coatings, onCoatingsChange }: CoatingsTabP
                       id="supplier"
                       value={newCoating.supplier}
                       onChange={(e) => setNewCoating({...newCoating, supplier: e.target.value})}
-                      placeholder="Subcontractor name"
+                      placeholder="Select from contacts or enter name"
                     />
                   </div>
                   

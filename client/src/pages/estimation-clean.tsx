@@ -185,6 +185,11 @@ export default function EstimationPage() {
     queryKey: ["/api/clients"],
   });
 
+  // Fetch suppliers for coating subcontractors
+  const { data: suppliers = [] } = useQuery({
+    queryKey: ["/api/suppliers"],
+  });
+
   // Store original data on mount to track changes - only once per project load
   useEffect(() => {
     if (estimationData && !originalDataRef.current && currentProject) {
