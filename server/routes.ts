@@ -1625,25 +1625,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid estimation ID" });
       }
       
-      // Return complete estimation structure with sample data for Commercial Warehouse
-      const sampleEstimation = {
-        id: 1,
-        project: {
-          id: 1,
-          name: "Commercial Warehouse Steel Frame",
-          description: "40m x 20m warehouse with 8m ceiling height for Stryde Construction",
-          clientName: "Stryde Construction",
-          status: "in_progress",
-          totalCost: 53303,
-          margin: 20
-        },
-        materials: [
-          {
-            id: "mat-1",
-            materialCode: "UB310x97",
-            materialName: "310UB97 Universal Beam",
-            quantity: 24,
-            unit: "m",
+      // Get the actual estimation data from database
+      const estimation = await storage.getEstimationProject(id);
+      if (!estimation) {
+        return res.status(404).json({ error: "Estimation not found" });
+      }
+      
+      res.json(estimation);
+    } catch (error) {
+      console.error("Error fetching estimation:", error);
+      res.status(500).json({ error: "Failed to fetch estimation" });
+    }
+  });
+
+  app.get("/api/estimations", async (req, res) => {
+    try {
+      const projects = await storage.getEstimationProjects();
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching estimation projects:", error);
+      res.status(500).json({ error: "Failed to fetch estimation projects" });
+    }
+  });
+
+  app.post("/api/estimations", async (req, res) => {
+    try {
+      const projectData = req.body;
+      const project = await storage.createEstimationProject(projectData);
+      res.status(201).json(project);
+    } catch (error) {
+      console.error("Error creating estimation project:", error);
+      res.status(500).json({ error: "Failed to create estimation project" });
+    }
+  });
+
+  // Coating systems API routes  
+  app.post("/api/coating-systems", async (req, res) => {
+    try {
+      const coatingSystem = await storage.createCoatingSystem(req.body);
+      res.status(201).json(coatingSystem);
+    } catch (error: any) {
+      console.error("Error creating coating system:", error);
+      res.status(500).json({ error: "Failed to create coating system", details: error.message });
+    }
+  });
+
+  app.get("/api/coating-systems", async (req, res) => {
+    try {
+      const coatingSystems = await storage.getCoatingSystems();
+      res.json(coatingSystems);
+    } catch (error: any) {
+      console.error("Error fetching coating systems:", error);
+      res.status(500).json({ error: "Failed to fetch coating systems", details: error.message });
+    }
+  });
             unitCost: 89.50,
             totalCost: 2148.00,
             wasteFactor: 5,

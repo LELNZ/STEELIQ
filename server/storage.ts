@@ -897,9 +897,35 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(estimationProjects).orderBy(desc(estimationProjects.updatedAt));
   }
 
-  async getEstimationProject(id: number): Promise<EstimationProject | undefined> {
+  async getEstimationProject(id: number): Promise<any | undefined> {
     const [project] = await db.select().from(estimationProjects).where(eq(estimationProjects.id, id));
-    return project || undefined;
+    if (!project) return undefined;
+
+    // Get estimation data if it exists
+    const [estimationData] = await db.select().from(estimationData).where(eq(estimationData.projectId, id));
+    
+    return {
+      id: project.id,
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        clientId: project.clientId,
+        status: project.status,
+        totalCost: parseFloat(project.totalCost) || 0,
+        margin: project.margin || 20,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt
+      },
+      materials: estimationData?.materials || [],
+      labor: estimationData?.labor || [],
+      equipment: estimationData?.equipment || [],
+      consumables: estimationData?.consumables || [],
+      coatings: estimationData?.coatings || [],
+      overheads: estimationData?.overheads || { percentage: 20, amount: 0 },
+      margin: estimationData?.margin || { percentage: 20, amount: 0 },
+      totals: estimationData?.totals || {}
+    };
   }
 
   async createEstimationProject(project: InsertEstimationProject): Promise<EstimationProject> {
@@ -972,60 +998,6 @@ export class DatabaseStorage implements IStorage {
       };
     });
   }
-          estimationData.materials.map((material: any) => ({
-            projectId,
-            materialCode: material.materialCode || material.code || "",
-            materialName: material.materialName || material.name || "",
-            quantity: material.quantity?.toString() || "0",
-            unitCost: material.unitCost?.toString() || "0",
-            totalCost: material.totalCost?.toString() || "0",
-            wasteFactor: material.wasteFactor?.toString() || "5",
-            handlingTime: material.handlingTime?.toString() || "0",
-            handlingCost: material.handlingCost?.toString() || "0",
-            supplier: material.supplier || "",
-            notes: material.notes || ""
-          }))
-        );
-      }
-
-      // Insert labor
-      if (estimationData.labor?.length > 0) {
-        await tx.insert(estimationLabor).values(
-          estimationData.labor.map((labor: any) => ({
-            projectId,
-            category: labor.category || "general",
-            description: labor.description || "",
-            hours: labor.hours?.toString() || "0",
-            rate: labor.rate?.toString() || "0",
-            totalCost: labor.totalCost?.toString() || "0",
-            notes: labor.notes || ""
-          }))
-        );
-      }
-
-      // Insert equipment
-      if (estimationData.equipment?.length > 0) {
-        await tx.insert(estimationEquipment).values(
-          estimationData.equipment.map((equipment: any) => ({
-            projectId,
-            category: equipment.category || "general",
-            description: equipment.description || "",
-            hours: equipment.hours?.toString() || "0",
-            rate: equipment.rate?.toString() || "0",
-            totalCost: equipment.totalCost?.toString() || "0",
-            notes: equipment.notes || ""
-          }))
-        );
-      }
-
-      // Insert consumables
-      if (estimationData.consumables?.length > 0) {
-        await tx.insert(estimationConsumables).values(
-          estimationData.consumables.map((consumable: any) => ({
-            projectId,
-            category: consumable.category || "general",
-            description: consumable.description || "",
-            quantity: consumable.quantity?.toString() || "0",
             unitCost: consumable.unitCost?.toString() || "0",
             totalCost: consumable.totalCost?.toString() || "0",
             notes: consumable.notes || ""
