@@ -193,6 +193,59 @@ export default function EstimationPage() {
     }
   }, [estimationData, estimationData?.labor, estimationData?.materials, estimationData?.equipment, estimationData?.consumables]);
 
+  // Calculate and update totals whenever data changes
+  useEffect(() => {
+    if (estimationData) {
+      console.log('Recalculating totals. Current labor items:', estimationData.labor);
+      
+      const materials = estimationData.materials.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+      const labor = estimationData.labor.reduce((sum, item) => {
+        const cost = item.totalCost || 0;
+        console.log(`Labor item ${item.id}: hours=${item.hours}, rate=${item.rate}, cost=${cost}`);
+        return sum + cost;
+      }, 0);
+      const equipment = estimationData.equipment.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+      const consumables = estimationData.consumables.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+      
+      const subtotal = materials + labor + equipment + consumables;
+      const overheadsAmount = subtotal * (estimationData.overheads.percentage / 100);
+      const marginAmount = (subtotal + overheadsAmount) * (estimationData.margin.percentage / 100);
+      const total = subtotal + overheadsAmount + marginAmount;
+
+      console.log('Calculated totals:', {
+        materials, labor, equipment, consumables, subtotal, overheadsAmount, marginAmount, total
+      });
+
+      // Only update if totals have actually changed to prevent infinite loops
+      const currentTotals = estimationData.totals;
+      if (!currentTotals || 
+          Math.abs(currentTotals.materials - materials) > 0.01 ||
+          Math.abs(currentTotals.labor - labor) > 0.01 ||
+          Math.abs(currentTotals.equipment - equipment) > 0.01 ||
+          Math.abs(currentTotals.consumables - consumables) > 0.01 ||
+          Math.abs(currentTotals.total - total) > 0.01) {
+        
+        console.log('Totals changed, updating state');
+        setEstimationData(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            totals: {
+              materials,
+              labor,
+              equipment,
+              consumables,
+              subtotal,
+              overheads: overheadsAmount,
+              margin: marginAmount,
+              total
+            }
+          };
+        });
+      }
+    }
+  }, [estimationData?.materials, estimationData?.labor, estimationData?.equipment, estimationData?.consumables, estimationData?.overheads.percentage, estimationData?.margin.percentage]);
+
   // Prevent browser navigation with unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -210,21 +263,32 @@ export default function EstimationPage() {
   // Save estimation data
   const saveEstimationMutation = useMutation({
     mutationFn: async (data: EstimationData) => {
+      console.log('Saving estimation data:', data);
       const response = await apiRequest("PUT", `/api/estimations/${currentProject?.id}`, data);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Save failed: ${response.status} ${response.statusText} - ${errorText}`);
+      }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Save successful:', data);
       setHasUnsavedChanges(false);
-      originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
+      if (estimationData) {
+        originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
+      }
       toast({
         title: "Changes Saved",
         description: "All estimation data has been saved successfully"
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/estimations"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/estimations/${currentProject?.id}`] });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Save error details:", error);
       toast({
         title: "Save Failed",
-        description: "Failed to save changes. Please try again.",
+        description: `Failed to save changes. ${error.message}`,
         variant: "destructive"
       });
     }
@@ -675,7 +739,15 @@ function EstimationWorkspace({
         <TabsContent value="labor">
           <EnhancedLaborTab 
             labor={estimationData.labor as any}
-            onUpdate={(labor) => setEstimationData(prev => prev ? { ...prev, labor } : null)}
+            onUpdate={(labor) => {
+              console.log('Labor updated via onUpdate:', labor);
+              setEstimationData(prev => {
+                if (!prev) return null;
+                const updated = { ...prev, labor };
+                console.log('Updated estimation data with new labor:', updated);
+                return updated;
+              });
+            }}
           />
         </TabsContent>
 

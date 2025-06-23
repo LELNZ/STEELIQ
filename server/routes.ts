@@ -1742,14 +1742,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const estimationData = req.body;
       
-      // In a real application, this would save to database
-      // For now, we'll simulate a successful save
-      const savedData = {
-        ...estimationData,
-        id: parseInt(id),
-        updatedAt: new Date()
-      };
-      
       console.log(`Saving estimation data for project ${id}:`, {
         materialsCount: estimationData.materials?.length || 0,
         laborCount: estimationData.labor?.length || 0,
@@ -1758,10 +1750,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalCost: estimationData.totals?.total || 0
       });
       
-      res.json(savedData);
+      // Validate required fields
+      if (!estimationData.project || !estimationData.totals) {
+        return res.status(400).json({ error: "Missing required estimation data" });
+      }
+      
+      // In a real application, this would save to database
+      // For now, we'll simulate a successful save with proper response
+      const savedData = {
+        ...estimationData,
+        id: parseInt(id),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Ensure we return valid JSON with proper headers
+      res.setHeader('Content-Type', 'application/json');
+      res.status(200).json(savedData);
     } catch (error) {
       console.error("Error saving estimation:", error);
-      res.status(500).json({ error: "Failed to save estimation" });
+      res.setHeader('Content-Type', 'application/json');
+      res.status(500).json({ error: "Failed to save estimation", details: error.message });
     }
   });
 
