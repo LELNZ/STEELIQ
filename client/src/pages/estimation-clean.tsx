@@ -1312,6 +1312,16 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
     const totalLaborHours = estimationData.labor.reduce((sum, item) => sum + (item.hours || 0), 0);
     const grossProfitPerHour = totalLaborHours > 0 ? grossProfit / totalLaborHours : 0;
     
+    // Additional KPIs
+    const materialCostRatio = directCosts > 0 ? (materials / directCosts) * 100 : 0;
+    const revenuePerLaborHour = totalLaborHours > 0 ? revenueBeforeGST / totalLaborHours : 0;
+    const overheadRecoveryRate = overheads > 0 ? (overheads / overheads) * 100 : 100; // Currently 100% as overheads are calculated based on percentage
+    
+    // Cost category percentages
+    const directCostPercentage = revenueBeforeGST > 0 ? (directCosts / revenueBeforeGST) * 100 : 0;
+    const overheadPercentage = revenueBeforeGST > 0 ? (overheads / revenueBeforeGST) * 100 : 0;
+    const marginPercentage = revenueBeforeGST > 0 ? (margin / revenueBeforeGST) * 100 : 0;
+    
     return { 
       materials, 
       labor, 
@@ -1327,7 +1337,13 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
       grossProfit,
       grossProfitPercentage,
       grossProfitPerHour,
-      totalLaborHours
+      totalLaborHours,
+      materialCostRatio,
+      revenuePerLaborHour,
+      overheadRecoveryRate,
+      directCostPercentage,
+      overheadPercentage,
+      marginPercentage
     };
   };
   
@@ -1467,6 +1483,8 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
                       <p>Workshop rent, utilities, insurance, administration costs, and other indirect expenses</p>
+                      <p className="text-xs text-muted-foreground">Currently calculated as {estimationData.overheads.percentage}% of direct costs</p>
+                      <p className="text-xs text-muted-foreground">Best practice: Track actual overhead costs and adjust percentage quarterly</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -1578,6 +1596,99 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                 </TooltipProvider>
               </div>
               <p className="text-3xl font-bold text-green-600">${totals.grossProfitPerHour.toLocaleString()}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Key Performance Indicators */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Key Performance Indicators
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-sm text-muted-foreground">Material Cost Ratio</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Materials as % of total direct costs</p>
+                      <p className="text-xs text-muted-foreground">${totals.materials.toLocaleString()} ÷ ${totals.directCosts.toLocaleString()} = {totals.materialCostRatio.toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">Helps track material efficiency vs labor intensity</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-2xl font-bold text-blue-600">{totals.materialCostRatio.toFixed(1)}%</p>
+              <p className="text-xs text-muted-foreground">${totals.materials.toLocaleString()}</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-sm text-muted-foreground">Revenue per Labor Hour</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Total revenue divided by labor hours</p>
+                      <p className="text-xs text-muted-foreground">${totals.revenueBeforeGST.toLocaleString()} ÷ {totals.totalLaborHours.toFixed(1)}h = ${totals.revenuePerLaborHour.toFixed(0)}/hour</p>
+                      <p className="text-xs text-muted-foreground">Measures overall labor efficiency and pricing</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-2xl font-bold text-green-600">${totals.revenuePerLaborHour.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">{totals.totalLaborHours.toFixed(1)} hours</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-sm text-muted-foreground">Overhead Recovery</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Overheads recovered vs actual overhead costs</p>
+                      <p className="text-xs text-muted-foreground">Currently calculated as {estimationData.overheads.percentage}% of direct costs</p>
+                      <p className="text-xs text-muted-foreground">Workshop rent, utilities, insurance, admin costs</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-2xl font-bold text-orange-600">{totals.overheadRecoveryRate.toFixed(0)}%</p>
+              <p className="text-xs text-muted-foreground">${totals.overheads.toLocaleString()}</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-sm text-muted-foreground">Direct Cost %</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Direct costs as % of total revenue</p>
+                      <p className="text-xs text-muted-foreground">Industry target: 60-70% for steel fabrication</p>
+                      <p className="text-xs text-muted-foreground">Current: {totals.directCostPercentage.toFixed(1)}%</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-2xl font-bold text-slate-600">{totals.directCostPercentage.toFixed(1)}%</p>
+              <p className="text-xs text-muted-foreground">${totals.directCosts.toLocaleString()}</p>
             </div>
           </div>
         </CardContent>

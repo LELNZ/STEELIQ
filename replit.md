@@ -167,3 +167,15 @@ This is a comprehensive steel fabrication business management system built for L
 - COGS includes direct materials, direct labor, and direct production costs
 - Total Hours Worked includes all staff involved in producing the service/product
 - This metric determines pricing effectiveness, labor productivity, and job profitability
+
+**Overhead Calculation Method:**
+- System calculates overheads as percentage of direct costs (configurable per project)
+- Best practice: Track actual overhead costs (workshop rent, utilities, insurance, admin)
+- Recommend quarterly adjustment of overhead percentage based on actual costs
+- Overhead Recovery Rate = (Recovered Overheads / Actual Overhead Costs) × 100%
+
+**Industry Benchmarks:**
+- Direct Costs: 60-70% of project revenue (steel fabrication standard)
+- Overheads: 15-25% of direct costs
+- Margin: 15-25% for steel fabrication
+- Material Cost Ratio: Materials as % of direct costs (varies by project type)
