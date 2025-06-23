@@ -304,8 +304,9 @@ export default function EstimationPage() {
       }, 0);
       const equipment = estimationData.equipment.reduce((sum, item) => sum + (item.totalCost || 0), 0);
       const consumables = estimationData.consumables.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+      const coatings = (estimationData.coatings || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
       
-      const subtotal = materials + labor + equipment + consumables;
+      const subtotal = materials + labor + equipment + consumables + coatings;
       const overheadsAmount = subtotal * (estimationData.overheads.percentage / 100);
       const marginAmount = (subtotal + overheadsAmount) * (estimationData.margin.percentage / 100);
       const total = subtotal + overheadsAmount + marginAmount;
@@ -316,6 +317,7 @@ export default function EstimationPage() {
         labor,
         equipment,
         consumables,
+        coatings,
         subtotal,
         overheads: overheadsAmount,
         margin: marginAmount,
@@ -334,7 +336,7 @@ export default function EstimationPage() {
         });
       }
     }
-  }, [estimationData?.materials, estimationData?.labor, estimationData?.equipment, estimationData?.consumables, estimationData?.overheads?.percentage, estimationData?.margin?.percentage]);
+  }, [estimationData?.materials, estimationData?.labor, estimationData?.equipment, estimationData?.consumables, estimationData?.coatings, estimationData?.overheads?.percentage, estimationData?.margin?.percentage]);
 
   // Prevent browser navigation with unsaved changes
   useEffect(() => {
