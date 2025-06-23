@@ -998,20 +998,6 @@ export class DatabaseStorage implements IStorage {
       };
     });
   }
-            unitCost: consumable.unitCost?.toString() || "0",
-            totalCost: consumable.totalCost?.toString() || "0",
-            notes: consumable.notes || ""
-          }))
-        );
-      }
-
-      return {
-        ...estimationData,
-        id: projectId,
-        updatedAt: updatedProject.updatedAt
-      };
-    });
-  }
 }
 
 export const storage = new DatabaseStorage();
