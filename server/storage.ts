@@ -898,15 +898,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getEstimationProject(id: number): Promise<any | undefined> {
-    const [project] = await db.select().from(estimationProjects).where(eq(estimationProjects.id, id));
-    if (!project) return undefined;
-
-    // Get estimation data if it exists - use raw SQL to avoid column mismatch
-    const estDataResult = await db.execute(sql`
-      SELECT materials, labor, equipment, consumables, coatings, overheads, margin, totals
-      FROM estimation_data WHERE project_id = ${id}
+    // Use direct SQL to avoid schema mismatches
+    const projectResult = await db.execute(sql`
+      SELECT id, name, description, client_id, status, total_cost, margin, created_at, updated_at
+      FROM estimation_projects WHERE id = ${id}
     `);
-    const estData = estDataResult.rows[0] || null;
+    
+    if (!projectResult.rows[0]) return undefined;
+    const project = projectResult.rows[0];
+    
+    console.log('Found project:', project.name, 'ID:', project.id);
+
+    // Get estimation data if it exists
+    let estData = null;
+    try {
+      const estDataResult = await db.execute(sql`
+        SELECT materials, labor, equipment, consumables, coatings, overheads, margin, totals
+        FROM estimation_data WHERE project_id = ${id}
+      `);
+      estData = estDataResult.rows[0] || null;
+    } catch (error) {
+      console.log('No estimation data found for project', id);
+      estData = null;
+    }
     
     return {
       id: project.id,
@@ -914,12 +928,12 @@ export class DatabaseStorage implements IStorage {
         id: project.id,
         name: project.name,
         description: project.description,
-        clientId: project.clientId,
+        clientId: project.client_id,
         status: project.status,
-        totalCost: parseFloat(project.totalCost) || 0,
+        totalCost: parseFloat(project.total_cost) || 0,
         margin: project.margin || 20,
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt
+        createdAt: project.created_at,
+        updatedAt: project.updated_at
       },
       materials: estData?.materials || [],
       labor: estData?.labor || [],
