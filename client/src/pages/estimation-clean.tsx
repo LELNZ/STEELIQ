@@ -171,6 +171,7 @@ export default function EstimationPage() {
       // Set original data and ensure no unsaved changes initially
       originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
       setHasUnsavedChanges(false);
+      console.log('Set original data on mount');
     }
   }, [estimationData]);
 
@@ -193,6 +194,9 @@ export default function EstimationPage() {
         }
         throw new Error(errorMessage);
       }
+      
+      // Update original data to match current state after successful save
+      originalDataRef.current = JSON.parse(JSON.stringify(data));
       return response.json();
     },
     onSuccess: (data) => {
@@ -227,17 +231,21 @@ export default function EstimationPage() {
 
   // Track changes without auto-save loop - only after initial load is complete
   useEffect(() => {
-    // Only track changes if we have both original and current data, and original is not empty
-    if (originalDataRef.current && estimationData && Object.keys(originalDataRef.current).length > 0) {
-      const originalStr = JSON.stringify(originalDataRef.current);
-      const currentStr = JSON.stringify(estimationData);
-      const hasChanges = originalStr !== currentStr;
+    // Only track changes if we have both original and current data, and we're not in initial load
+    if (originalDataRef.current && estimationData) {
+      // Add delay to prevent false positives during initial load
+      const timer = setTimeout(() => {
+        const originalStr = JSON.stringify(originalDataRef.current);
+        const currentStr = JSON.stringify(estimationData);
+        const hasChanges = originalStr !== currentStr;
+        
+        console.log('Change detection after delay:', { hasChanges });
+        if (hasChanges) {
+          setHasUnsavedChanges(true);
+        }
+      }, 500); // 500ms delay to allow for initial data settling
       
-      console.log('Change detection:', { hasChanges, originalLength: originalStr.length, currentLength: currentStr.length });
-      setHasUnsavedChanges(hasChanges);
-    } else {
-      // No changes on initial load or when data is still loading
-      setHasUnsavedChanges(false);
+      return () => clearTimeout(timer);
     }
   }, [estimationData]);
 
