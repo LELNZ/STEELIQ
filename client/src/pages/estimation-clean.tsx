@@ -172,6 +172,48 @@ export default function EstimationPage() {
     }
   }, [estimationData]);
 
+  // Save estimation data mutation - defined before use
+  const saveEstimationMutation = useMutation({
+    mutationFn: async (data: EstimationData) => {
+      console.log('Saving estimation data:', data);
+      const response = await apiRequest("PUT", `/api/estimations/${currentProject?.id}`, data);
+      if (!response.ok) {
+        // Handle error response properly
+        let errorMessage = `Save failed: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If response is not JSON, use status text
+          errorMessage = `Save failed: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      console.log('Save successful:', data);
+      setHasUnsavedChanges(false);
+      if (estimationData) {
+        originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
+      }
+      toast({
+        title: "Changes Saved",
+        description: "All estimation data has been saved successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/estimations"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/estimations/${currentProject?.id}`] });
+    },
+    onError: (error) => {
+      console.error("Save error details:", error);
+      toast({
+        title: "Save Failed",
+        description: `Failed to save changes. ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
   // Track changes and auto-save
   useEffect(() => {
     if (originalDataRef.current && estimationData) {
@@ -259,48 +301,6 @@ export default function EstimationPage() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
-
-  // Save estimation data
-  const saveEstimationMutation = useMutation({
-    mutationFn: async (data: EstimationData) => {
-      console.log('Saving estimation data:', data);
-      const response = await apiRequest("PUT", `/api/estimations/${currentProject?.id}`, data);
-      if (!response.ok) {
-        // Handle error response properly
-        let errorMessage = `Save failed: ${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          // If response is not JSON, use status text
-          errorMessage = `Save failed: ${response.status} ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      console.log('Save successful:', data);
-      setHasUnsavedChanges(false);
-      if (estimationData) {
-        originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
-      }
-      toast({
-        title: "Changes Saved",
-        description: "All estimation data has been saved successfully"
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/estimations"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/estimations/${currentProject?.id}`] });
-    },
-    onError: (error) => {
-      console.error("Save error details:", error);
-      toast({
-        title: "Save Failed",
-        description: `Failed to save changes. ${error.message}`,
-        variant: "destructive"
-      });
-    }
-  });
 
   // Handle navigation with unsaved changes
   const handleNavigation = (navigationFn: () => void) => {
