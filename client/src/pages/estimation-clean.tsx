@@ -1302,11 +1302,13 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
     const gstAmount = revenueBeforeGST * 0.15;
     const totalCostAfterGST = revenueBeforeGST + gstAmount;
     
-    // Gross profit calculations
+    // Gross profit calculations (Revenue - COGS)
+    // COGS = Direct materials + Direct labor + Direct production costs
     const grossProfit = revenueBeforeGST - directCosts;
     const grossProfitPercentage = (grossProfit / revenueBeforeGST) * 100;
     
     // Calculate total labor hours for GP per hour
+    // Total Hours Worked = All staff involved in producing the service/product
     const totalLaborHours = estimationData.labor.reduce((sum, item) => sum + (item.hours || 0), 0);
     const grossProfitPerHour = totalLaborHours > 0 ? grossProfit / totalLaborHours : 0;
     
@@ -1526,7 +1528,9 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      <p>Revenue minus direct costs, expressed as percentage. Industry standard: 30-40% for steel fabrication</p>
+                      <p>Revenue minus Cost of Goods Sold (COGS), expressed as percentage.</p>
+                      <p className="text-xs text-muted-foreground">COGS = Direct materials + Direct labor + Direct production costs</p>
+                      <p className="text-xs text-muted-foreground">Industry standard: 30-40% for steel fabrication</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -1543,7 +1547,9 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      <p>Total revenue minus direct costs (materials, labor, equipment, consumables)</p>
+                      <p>Revenue minus Cost of Goods Sold (COGS)</p>
+                      <p className="text-xs text-muted-foreground">COGS includes: materials, labor, equipment, consumables</p>
+                      <p className="text-xs text-muted-foreground">This is profit before overheads and taxes</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -1559,8 +1565,14 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Gross profit divided by total labor hours ({totals.totalLaborHours.toFixed(1)}h). Measures labor efficiency and profitability</p>
+                    <TooltipContent className="max-w-sm">
+                      <div className="space-y-2">
+                        <p className="font-semibold">Gross Profit per Hour Formula:</p>
+                        <p>Gross Profit ÷ Total Hours Worked</p>
+                        <p className="text-xs">Where Gross Profit = Revenue - COGS (direct materials, labor, production costs)</p>
+                        <p className="text-xs">Current: ${totals.grossProfit.toLocaleString()} ÷ {totals.totalLaborHours.toFixed(1)}h = ${totals.grossProfitPerHour.toFixed(0)}/hour</p>
+                        <p className="text-xs text-muted-foreground">Measures pricing effectiveness and labor productivity</p>
+                      </div>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

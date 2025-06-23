@@ -160,3 +160,10 @@ This is a comprehensive steel fabrication business management system built for L
 - Real-time cost calculations when editing quantities, rates, or hours
 - Enhanced notes visibility with hover tooltips for full content display
 - Uniform table layouts with Input fields for direct editing
+
+**Financial Calculations:**
+- Gross Profit per Hour = Gross Profit ÷ Total Hours Worked
+- Gross Profit = Revenue - Cost of Goods Sold (COGS)
+- COGS includes direct materials, direct labor, and direct production costs
+- Total Hours Worked includes all staff involved in producing the service/product
+- This metric determines pricing effectiveness, labor productivity, and job profitability
