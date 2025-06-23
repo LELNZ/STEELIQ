@@ -901,8 +901,12 @@ export class DatabaseStorage implements IStorage {
     const [project] = await db.select().from(estimationProjects).where(eq(estimationProjects.id, id));
     if (!project) return undefined;
 
-    // Get estimation data if it exists
-    const [estimationData] = await db.select().from(estimationData).where(eq(estimationData.projectId, id));
+    // Get estimation data if it exists - use raw SQL to avoid column mismatch
+    const estDataResult = await db.execute(sql`
+      SELECT materials, labor, equipment, consumables, coatings, overheads, margin, totals
+      FROM estimation_data WHERE project_id = ${id}
+    `);
+    const estData = estDataResult.rows[0] || null;
     
     return {
       id: project.id,
@@ -917,14 +921,14 @@ export class DatabaseStorage implements IStorage {
         createdAt: project.createdAt,
         updatedAt: project.updatedAt
       },
-      materials: estimationData?.materials || [],
-      labor: estimationData?.labor || [],
-      equipment: estimationData?.equipment || [],
-      consumables: estimationData?.consumables || [],
-      coatings: estimationData?.coatings || [],
-      overheads: estimationData?.overheads || { percentage: 20, amount: 0 },
-      margin: estimationData?.margin || { percentage: 20, amount: 0 },
-      totals: estimationData?.totals || {}
+      materials: estData?.materials || [],
+      labor: estData?.labor || [],
+      equipment: estData?.equipment || [],
+      consumables: estData?.consumables || [],
+      coatings: estData?.coatings || [],
+      overheads: estData?.overheads || { percentage: 20, amount: 0 },
+      margin: estData?.margin || { percentage: 20, amount: 0 },
+      totals: estData?.totals || {}
     };
   }
 
