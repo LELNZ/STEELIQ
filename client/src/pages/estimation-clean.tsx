@@ -40,6 +40,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { MaterialsTab } from "@/components/estimation/materials-tab-clean";
 import PdfAnalysisTab from "@/components/estimation/pdf-analysis-tab";
 import { EnhancedLaborTab } from "@/components/estimation/enhanced-labor-tab";
+import CoatingsTab from "@/components/estimation/coatings-tab";
 
 // Types for estimation system
 interface EstimationProject {
@@ -115,6 +116,7 @@ interface EstimationData {
   equipment: EquipmentCost[];
   consumables: ConsumableCost[];
   coatings: CoatingCost[];
+  coatings: CoatingCost[];
   overheads: {
     percentage: number;
     amount: number;
@@ -128,6 +130,7 @@ interface EstimationData {
     labor: number;
     equipment: number;
     consumables: number;
+    coatings: number;
     coatings: number;
     subtotal: number;
     overheads: number;
@@ -426,6 +429,7 @@ export default function EstimationPage() {
       labor: [],
       equipment: [],
       consumables: [],
+      coatings: [],
       overheads: { percentage: 15, amount: 0 },
       margin: { percentage: 20, amount: 0 },
       totals: {
@@ -433,6 +437,7 @@ export default function EstimationPage() {
         labor: 0,
         equipment: 0,
         consumables: 0,
+        coatings: 0,
         subtotal: 0,
         overheads: 0,
         margin: 0,
