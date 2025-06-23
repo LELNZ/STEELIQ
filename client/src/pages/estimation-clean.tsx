@@ -168,7 +168,9 @@ export default function EstimationPage() {
   // Store original data on mount to track changes
   useEffect(() => {
     if (estimationData && !originalDataRef.current) {
+      // Set original data and ensure no unsaved changes initially
       originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
+      setHasUnsavedChanges(false);
     }
   }, [estimationData]);
 
@@ -223,15 +225,23 @@ export default function EstimationPage() {
     }
   });
 
-  // Track changes without auto-save loop
+  // Track changes without auto-save loop - only after initial load is complete
   useEffect(() => {
     if (originalDataRef.current && estimationData) {
-      // Deep comparison to detect any changes in nested objects/arrays
-      const originalStr = JSON.stringify(originalDataRef.current, Object.keys(originalDataRef.current).sort());
-      const currentStr = JSON.stringify(estimationData, Object.keys(estimationData).sort());
-      const hasChanges = originalStr !== currentStr;
+      // Add a small delay to ensure data is fully loaded before comparing
+      const timer = setTimeout(() => {
+        const originalStr = JSON.stringify(originalDataRef.current, Object.keys(originalDataRef.current).sort());
+        const currentStr = JSON.stringify(estimationData, Object.keys(estimationData).sort());
+        const hasChanges = originalStr !== currentStr;
+        
+        console.log('Change detection:', { hasChanges });
+        setHasUnsavedChanges(hasChanges);
+      }, 100);
       
-      setHasUnsavedChanges(hasChanges);
+      return () => clearTimeout(timer);
+    } else {
+      // No changes on initial load
+      setHasUnsavedChanges(false);
     }
   }, [estimationData]);
 
