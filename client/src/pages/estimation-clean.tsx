@@ -199,6 +199,12 @@ export default function EstimationPage() {
       if (estimationData) {
         originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
       }
+      
+      // Clear auto-save timer on successful save
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
 
       toast({
         title: "Changes Saved",
@@ -229,7 +235,35 @@ export default function EstimationPage() {
     }
   }, [estimationData]);
 
-  // Manual save function with better error handling
+  // Auto-save timer management
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clear and set auto-save timer
+  const resetAutoSaveTimer = useCallback(() => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    
+    if (hasUnsavedChanges && estimationData && !saveEstimationMutation.isPending) {
+      autoSaveTimerRef.current = setTimeout(() => {
+        console.log('Auto-saving after 10 minutes of inactivity...');
+        saveEstimationMutation.mutate(estimationData);
+      }, 10 * 60 * 1000); // 10 minutes
+    }
+  }, [hasUnsavedChanges, estimationData, saveEstimationMutation]);
+
+  // Auto-save on 10 minutes of inactivity
+  useEffect(() => {
+    resetAutoSaveTimer();
+    
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [resetAutoSaveTimer]);
+
+  // Manual save function
   const handleManualSave = () => {
     if (!estimationData) {
       toast({
@@ -249,15 +283,7 @@ export default function EstimationPage() {
       return;
     }
 
-    console.log('Manual save triggered with estimation data:', {
-      projectId: currentProject?.id,
-      materialsCount: estimationData.materials?.length || 0,
-      laborCount: estimationData.labor?.length || 0,
-      equipmentCount: estimationData.equipment?.length || 0,
-      consumablesCount: estimationData.consumables?.length || 0,
-      totalCost: estimationData.totals?.total || 0
-    });
-
+    console.log('Manual save triggered');
     saveEstimationMutation.mutate(estimationData);
   };
 
@@ -317,12 +343,21 @@ export default function EstimationPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  // Handle navigation with unsaved changes - show dialog instead of auto-save
+  // Handle navigation with unsaved changes - auto-save before navigation
   const handleNavigation = (navigationFn: () => void) => {
     console.log('Navigation triggered with unsaved changes:', hasUnsavedChanges);
-    if (hasUnsavedChanges) {
-      setPendingNavigation(() => navigationFn);
-      setShowSaveDialog(true);
+    if (hasUnsavedChanges && estimationData && !saveEstimationMutation.isPending) {
+      console.log('Auto-saving before navigation...');
+      saveEstimationMutation.mutate(estimationData, {
+        onSuccess: () => {
+          navigationFn();
+        },
+        onError: () => {
+          // Show dialog on save error
+          setPendingNavigation(() => navigationFn);
+          setShowSaveDialog(true);
+        }
+      });
     } else {
       navigationFn();
     }
@@ -484,6 +519,7 @@ export default function EstimationPage() {
           onBack={() => handleNavigation(() => setCurrentProject(null))}
           hasUnsavedChanges={hasUnsavedChanges}
           onManualSave={handleManualSave}
+          saveEstimationMutation={saveEstimationMutation}
         />
       ) : (
         <ProjectOverview 
@@ -644,7 +680,8 @@ function EstimationWorkspace({
   isAiAssistEnabled,
   onBack,
   hasUnsavedChanges,
-  onManualSave
+  onManualSave,
+  saveEstimationMutation
 }: {
   project: EstimationProject;
   estimationData: EstimationData | null;
@@ -655,6 +692,7 @@ function EstimationWorkspace({
   onBack: () => void;
   hasUnsavedChanges: boolean;
   onManualSave: () => void;
+  saveEstimationMutation: any;
 }) {
   const [activeTab, setActiveTab] = useState("materials");
 
@@ -685,11 +723,11 @@ function EstimationWorkspace({
                 variant="outline" 
                 size="sm" 
                 onClick={onManualSave}
-                disabled={!hasUnsavedChanges}
+                disabled={!hasUnsavedChanges || saveEstimationMutation.isPending}
                 className="bg-blue-50 hover:bg-blue-100 border-blue-200"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Changes
+                {saveEstimationMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
               <div>
                 <CardTitle className="text-xl">{project.name}</CardTitle>

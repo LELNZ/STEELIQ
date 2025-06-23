@@ -149,7 +149,8 @@ This is a comprehensive steel fabrication business management system built for L
 - June 15, 2025: Initial setup and comprehensive feature planning
 - June 15, 2025: Advanced AI estimation engine with multi-phase workflow implementation
 - June 23, 2025: Fixed critical save functionality and real-time calculation issues in estimation engine
-- June 23, 2025: Implemented auto-save feature and streamlined estimation components
+- June 23, 2025: Implemented comprehensive save system with auto-save on navigation and 10-minute timer
+- June 23, 2025: Added database persistence layer for estimation data with transaction safety
 
 ## User Preferences
 
@@ -162,7 +163,10 @@ This is a comprehensive steel fabrication business management system built for L
 - Real-time cost calculations when editing quantities, rates, or hours
 - Enhanced notes visibility with hover tooltips for full content display
 - Uniform table layouts with Input fields for direct editing
-- Auto-save on tab changes and after 5 minutes of inactivity (not continuous)
+- Auto-save on navigation away from estimation and after 10 minutes of inactivity
+- Manual save button available for immediate saves
+- Loading states and success/error messages for all save operations
+- Unsaved changes indicators with visual feedback
 
 **Financial Calculations:**
 - Gross Profit per Hour = Gross Profit ÷ Total Hours Worked
