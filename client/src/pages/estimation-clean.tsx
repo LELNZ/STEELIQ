@@ -1292,13 +1292,41 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
     const equipment = estimationData.equipment.reduce((sum, item) => sum + (item.totalCost || 0), 0);
     const consumables = estimationData.consumables.reduce((sum, item) => sum + (item.totalCost || 0), 0);
     
-    const subtotal = materials + labor + equipment + consumables;
-    const overheads = subtotal * (estimationData.overheads.percentage / 100);
-    const totalBeforeMargin = subtotal + overheads;
-    const margin = totalBeforeMargin * (estimationData.margin.percentage / 100);
-    const grandTotal = totalBeforeMargin + margin;
+    const directCosts = materials + labor + equipment + consumables;
+    const overheads = directCosts * (estimationData.overheads.percentage / 100);
+    const totalCosts = directCosts + overheads;
+    const margin = totalCosts * (estimationData.margin.percentage / 100);
+    const revenueBeforeGST = totalCosts + margin;
     
-    return { materials, labor, equipment, consumables, subtotal, overheads, margin, grandTotal };
+    // New Zealand GST is 15%
+    const gstAmount = revenueBeforeGST * 0.15;
+    const totalCostAfterGST = revenueBeforeGST + gstAmount;
+    
+    // Gross profit calculations
+    const grossProfit = revenueBeforeGST - directCosts;
+    const grossProfitPercentage = (grossProfit / revenueBeforeGST) * 100;
+    
+    // Calculate total labor hours for GP per hour
+    const totalLaborHours = estimationData.labor.reduce((sum, item) => sum + (item.hours || 0), 0);
+    const grossProfitPerHour = totalLaborHours > 0 ? grossProfit / totalLaborHours : 0;
+    
+    return { 
+      materials, 
+      labor, 
+      equipment, 
+      consumables, 
+      directCosts,
+      overheads, 
+      totalCosts,
+      margin, 
+      revenueBeforeGST,
+      gstAmount,
+      totalCostAfterGST,
+      grossProfit,
+      grossProfitPercentage,
+      grossProfitPerHour,
+      totalLaborHours
+    };
   };
   
   const totals = calculateTotals();
@@ -1411,20 +1439,133 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
         <CardContent>
           <div className="space-y-4">
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-muted-foreground">Subtotal (Direct Costs)</span>
-              <span className="font-semibold">${totals.subtotal.toLocaleString()}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Direct Costs</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Raw materials, direct labor, equipment rental, and consumables directly used in fabrication</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <span className="font-semibold">${totals.directCosts.toLocaleString()}</span>
             </div>
+            
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-muted-foreground">Overheads ({estimationData.overheads.percentage}%)</span>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Overheads ({estimationData.overheads.percentage}%)</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Workshop rent, utilities, insurance, administration costs, and other indirect expenses</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <span className="font-semibold">${totals.overheads.toLocaleString()}</span>
             </div>
+            
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-muted-foreground">Margin ({estimationData.margin.percentage}%)</span>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Margin ({estimationData.margin.percentage}%)</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Profit markup to cover business growth, risk, and return on investment</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <span className="font-semibold">${totals.margin.toLocaleString()}</span>
             </div>
+            
+            <div className="flex justify-between items-center py-3 border-t border-primary/20">
+              <span className="text-lg font-bold">Total Revenue (ex-GST)</span>
+              <span className="text-xl font-bold text-primary">${totals.revenueBeforeGST.toLocaleString()}</span>
+            </div>
+            
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">GST (15%)</span>
+              <span className="font-semibold">${totals.gstAmount.toLocaleString()}</span>
+            </div>
+            
             <div className="flex justify-between items-center py-3 border-t-2 border-primary">
-              <span className="text-lg font-bold">Total Project Cost</span>
-              <span className="text-2xl font-bold text-primary">${totals.grandTotal.toLocaleString()}</span>
+              <span className="text-lg font-bold">Total Cost (inc-GST)</span>
+              <span className="text-2xl font-bold text-primary">${totals.totalCostAfterGST.toLocaleString()}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Profitability Metrics */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Profitability Analysis
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-sm text-muted-foreground">Gross Profit %</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Revenue minus direct costs, expressed as percentage. Industry standard: 30-40% for steel fabrication</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-3xl font-bold text-green-600">{totals.grossProfitPercentage.toFixed(1)}%</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-sm text-muted-foreground">Gross Profit $</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Total revenue minus direct costs (materials, labor, equipment, consumables)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-3xl font-bold text-green-600">${totals.grossProfit.toLocaleString()}</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-sm text-muted-foreground">GP per Hour</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Gross profit divided by total labor hours ({totals.totalLaborHours.toFixed(1)}h). Measures labor efficiency and profitability</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-3xl font-bold text-green-600">${totals.grossProfitPerHour.toLocaleString()}</p>
             </div>
           </div>
         </CardContent>
