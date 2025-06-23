@@ -1754,15 +1754,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalCost: estimationData.totals?.total || 0
       });
       
-      // For testing phase, simulate successful save without database
+      // Store estimation data in memory for persistence during testing
+      if (!global.estimationStorage) {
+        global.estimationStorage = new Map();
+      }
+      
+      global.estimationStorage.set(projectId, {
+        ...estimationData,
+        id: projectId,
+        updatedAt: new Date().toISOString()
+      });
+      
       const savedEstimation = {
         success: true,
         message: "Estimation saved successfully",
-        data: {
-          ...estimationData,
-          id: projectId,
-          updatedAt: new Date().toISOString()
-        }
+        data: global.estimationStorage.get(projectId)
       };
       
       res.setHeader('Content-Type', 'application/json');
