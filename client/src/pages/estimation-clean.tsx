@@ -686,6 +686,7 @@ function EstimationWorkspace({
                 size="sm" 
                 onClick={onManualSave}
                 disabled={!hasUnsavedChanges}
+                className="bg-blue-50 hover:bg-blue-100 border-blue-200"
               >
                 <Save className="h-4 w-4 mr-2" />
                 Save Changes
