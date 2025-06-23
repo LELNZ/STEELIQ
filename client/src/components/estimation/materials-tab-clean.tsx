@@ -462,6 +462,29 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
           )}
         </CardContent>
       </Card>
+
+      {/* Add Material Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Material</DialogTitle>
+          </DialogHeader>
+          <AddMaterialForm
+            availableMaterials={availableMaterials}
+            onSubmit={addMaterial}
+            calculateHandlingCost={calculateHandlingCost}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Material Dialog */}
+      <EditMaterialDialog
+        material={editingMaterial}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSave={updateMaterial}
+        availableMaterials={availableMaterials}
+      />
     </div>
   );
 }

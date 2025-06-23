@@ -227,20 +227,16 @@ export default function EstimationPage() {
 
   // Track changes without auto-save loop - only after initial load is complete
   useEffect(() => {
-    if (originalDataRef.current && estimationData) {
-      // Add a small delay to ensure data is fully loaded before comparing
-      const timer = setTimeout(() => {
-        const originalStr = JSON.stringify(originalDataRef.current, Object.keys(originalDataRef.current).sort());
-        const currentStr = JSON.stringify(estimationData, Object.keys(estimationData).sort());
-        const hasChanges = originalStr !== currentStr;
-        
-        console.log('Change detection:', { hasChanges });
-        setHasUnsavedChanges(hasChanges);
-      }, 100);
+    // Only track changes if we have both original and current data, and original is not empty
+    if (originalDataRef.current && estimationData && Object.keys(originalDataRef.current).length > 0) {
+      const originalStr = JSON.stringify(originalDataRef.current);
+      const currentStr = JSON.stringify(estimationData);
+      const hasChanges = originalStr !== currentStr;
       
-      return () => clearTimeout(timer);
+      console.log('Change detection:', { hasChanges, originalLength: originalStr.length, currentLength: currentStr.length });
+      setHasUnsavedChanges(hasChanges);
     } else {
-      // No changes on initial load
+      // No changes on initial load or when data is still loading
       setHasUnsavedChanges(false);
     }
   }, [estimationData]);
