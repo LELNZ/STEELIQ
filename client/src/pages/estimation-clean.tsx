@@ -114,6 +114,7 @@ interface EstimationData {
   labor: LaborCost[];
   equipment: EquipmentCost[];
   consumables: ConsumableCost[];
+  coatings: CoatingCost[];
   overheads: {
     percentage: number;
     amount: number;
@@ -127,6 +128,7 @@ interface EstimationData {
     labor: number;
     equipment: number;
     consumables: number;
+    coatings: number;
     subtotal: number;
     overheads: number;
     margin: number;
