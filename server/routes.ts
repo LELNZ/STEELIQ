@@ -1679,3 +1679,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch coating systems", details: error.message });
     }
   });
+
+  app.put("/api/estimations/:id", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const estimationData = req.body;
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID" });
+      }
+      
+      console.log(`Saving estimation data for project ${projectId}:`, {
+        materialsCount: estimationData.materials?.length || 0,
+        laborCount: estimationData.labor?.length || 0,
+        equipmentCount: estimationData.equipment?.length || 0,
+        consumablesCount: estimationData.consumables?.length || 0,
+        totalCost: estimationData.totals?.total || 0
+      });
+      
+      // Save estimation data to database
+      const savedEstimation = await storage.saveEstimationData(projectId, estimationData);
+      
+      const response = {
+        success: true,
+        message: "Estimation saved successfully",
+        data: savedEstimation
+      };
+      
+      res.setHeader('Content-Type', 'application/json');
+      res.status(200).json(response);
+    } catch (error) {
+      console.error("Error saving estimation:", error);
+      res.setHeader('Content-Type', 'application/json');
+      res.status(500).json({ error: "Failed to save estimation", details: error.message });
+    }
+  });
+
+  app.post('/api/client-locations', async (req, res) => {
+    try {
+      const location = await storage.createLocation({
+        ...req.body,
+        entityType: 'client'
+      });
+      res.json(location);
+    } catch (error) {
+      console.error('Error creating client location:', error);
+      res.status(500).json({ error: 'Failed to create client location' });
+    }
+  });
+
+  app.put('/api/client-locations/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const location = await storage.updateLocation(id, req.body);
+      res.json(location);
+    } catch (error) {
+      console.error('Error updating client location:', error);
+      res.status(500).json({ error: 'Failed to update client location' });
+    }
+  });
+
+  app.delete('/api/client-locations/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteLocation(id);
+      res.json({ success });
+    } catch (error) {
+      console.error('Error deleting client location:', error);
+      res.status(500).json({ error: 'Failed to delete client location' });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
