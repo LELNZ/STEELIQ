@@ -175,6 +175,14 @@ export default function EstimationPage() {
     }
   }, [estimationData, currentProject]);
 
+  // Reset original data when switching projects
+  useEffect(() => {
+    if (currentProject) {
+      originalDataRef.current = null;
+      setHasUnsavedChanges(false);
+    }
+  }, [currentProject?.id]);
+
 
 
   // Save estimation data mutation - defined before use
