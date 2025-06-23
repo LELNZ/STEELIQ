@@ -184,6 +184,7 @@ export default function EstimationPage() {
         hasChanges,
         originalLength: originalDataRef.current?.labor?.length || 0,
         currentLength: estimationData?.labor?.length || 0,
+        laborTotal: estimationData?.totals?.labor || 0,
         materialCount: estimationData?.materials?.length || 0,
         equipmentCount: estimationData?.equipment?.length || 0,
         consumablesCount: estimationData?.consumables?.length || 0
@@ -191,12 +192,14 @@ export default function EstimationPage() {
       
       setHasUnsavedChanges(hasChanges);
     }
-  }, [estimationData, estimationData?.labor, estimationData?.materials, estimationData?.equipment, estimationData?.consumables]);
+  }, [estimationData]);
 
   // Calculate and update totals whenever data changes
   useEffect(() => {
-    if (estimationData) {
-      console.log('Recalculating totals. Current labor items:', estimationData.labor);
+    if (estimationData && estimationData.materials && estimationData.labor && estimationData.equipment && estimationData.consumables) {
+      console.log('=== TOTALS CALCULATION START ===');
+      console.log('Current labor array length:', estimationData.labor.length);
+      console.log('Labor items:', estimationData.labor);
       
       const materials = estimationData.materials.reduce((sum, item) => sum + (item.totalCost || 0), 0);
       const labor = estimationData.labor.reduce((sum, item) => {
@@ -216,35 +219,41 @@ export default function EstimationPage() {
         materials, labor, equipment, consumables, subtotal, overheadsAmount, marginAmount, total
       });
 
-      // Only update if totals have actually changed to prevent infinite loops
+      // Check if totals actually need updating
       const currentTotals = estimationData.totals;
-      if (!currentTotals || 
-          Math.abs(currentTotals.materials - materials) > 0.01 ||
-          Math.abs(currentTotals.labor - labor) > 0.01 ||
-          Math.abs(currentTotals.equipment - equipment) > 0.01 ||
-          Math.abs(currentTotals.consumables - consumables) > 0.01 ||
-          Math.abs(currentTotals.total - total) > 0.01) {
+      const needsUpdate = !currentTotals || 
+        currentTotals.labor !== labor ||
+        currentTotals.materials !== materials ||
+        currentTotals.equipment !== equipment ||
+        currentTotals.consumables !== consumables ||
+        currentTotals.total !== total;
+
+      if (needsUpdate) {
+        console.log('Totals need updating - applying changes');
+        const newTotals = {
+          materials,
+          labor,
+          equipment,
+          consumables,
+          subtotal,
+          overheads: overheadsAmount,
+          margin: marginAmount,
+          total
+        };
         
-        console.log('Totals changed, updating state');
         setEstimationData(prev => {
           if (!prev) return null;
           return {
             ...prev,
-            totals: {
-              materials,
-              labor,
-              equipment,
-              consumables,
-              subtotal,
-              overheads: overheadsAmount,
-              margin: marginAmount,
-              total
-            }
+            totals: newTotals
           };
         });
+      } else {
+        console.log('Totals unchanged - skipping update');
       }
+      console.log('=== TOTALS CALCULATION END ===');
     }
-  }, [estimationData?.materials, estimationData?.labor, estimationData?.equipment, estimationData?.consumables, estimationData?.overheads.percentage, estimationData?.margin.percentage]);
+  }, [estimationData?.materials, estimationData?.labor, estimationData?.equipment, estimationData?.consumables, estimationData?.overheads?.percentage, estimationData?.margin?.percentage]);
 
   // Prevent browser navigation with unsaved changes
   useEffect(() => {
@@ -266,8 +275,16 @@ export default function EstimationPage() {
       console.log('Saving estimation data:', data);
       const response = await apiRequest("PUT", `/api/estimations/${currentProject?.id}`, data);
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Save failed: ${response.status} ${response.statusText} - ${errorText}`);
+        // Handle error response properly
+        let errorMessage = `Save failed: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If response is not JSON, use status text
+          errorMessage = `Save failed: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
       return response.json();
     },
@@ -740,11 +757,12 @@ function EstimationWorkspace({
           <EnhancedLaborTab 
             labor={estimationData.labor as any}
             onUpdate={(labor) => {
-              console.log('Labor updated via onUpdate:', labor);
+              console.log('Labor tab onUpdate called with:', labor);
               setEstimationData(prev => {
                 if (!prev) return null;
                 const updated = { ...prev, labor };
-                console.log('Updated estimation data with new labor:', updated);
+                console.log('State updated with labor:', updated.labor);
+                console.log('Triggering change detection and totals recalculation');
                 return updated;
               });
             }}
