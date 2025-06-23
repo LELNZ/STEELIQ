@@ -382,7 +382,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOptimizationSimulation(id: string): Promise<OptimizationSimulation | undefined> {
-    const result = await db.select().from(optimizationSimulations).where(eq(optimizationSimulations.id, id));
+    const result = await db.select().from(optimizationSimulations).where(eq(optimizationSimulations.id, parseInt(id)));
     return result[0];
   }
 

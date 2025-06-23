@@ -799,12 +799,13 @@ function EstimationWorkspace({
 
       {/* Estimation Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className="grid grid-cols-8 w-full">
           <TabsTrigger value="drawings">AI Drawings</TabsTrigger>
           <TabsTrigger value="materials">Materials</TabsTrigger>
           <TabsTrigger value="labor">Labor</TabsTrigger>
           <TabsTrigger value="equipment">Equipment</TabsTrigger>
           <TabsTrigger value="consumables">Consumables</TabsTrigger>
+          <TabsTrigger value="coatings">Coatings</TabsTrigger>
           <TabsTrigger value="summary">Summary</TabsTrigger>
           <TabsTrigger value="quote">Quote</TabsTrigger>
         </TabsList>
@@ -856,6 +857,13 @@ function EstimationWorkspace({
             consumables={estimationData.consumables}
             availableMaterials={materials}
             onUpdate={(consumables) => setEstimationData(prev => prev ? { ...prev, consumables } : null)}
+          />
+        </TabsContent>
+
+        <TabsContent value="coatings">
+          <CoatingsTab 
+            coatings={estimationData.coatings || []}
+            onUpdate={(coatings) => setEstimationData(prev => prev ? { ...prev, coatings } : null)}
           />
         </TabsContent>
 
