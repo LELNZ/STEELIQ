@@ -17,12 +17,14 @@ interface CoatingCost {
   coatingName: string;
   coatingType: "paint" | "galvanizing" | "powder_coating";
   category: "primer" | "topcoat" | "finish" | "protective";
-  surfaceArea: number;
+  surfaceArea?: number;
+  weightKg?: number; // For galvanizing p/kg pricing
   coats: number;
   unitCost: number;
   totalCost: number;
   isInhouse: boolean;
   supplier?: string;
+  supplierId?: number;
   leadTime?: number;
   notes: string;
 }
@@ -42,23 +44,31 @@ export default function CoatingsTab({ coatings, onCoatingsChange }: CoatingsTabP
     coatingType: "paint",
     category: "primer",
     surfaceArea: 0,
+    weightKg: 0,
     coats: 1,
     unitCost: 0,
     totalCost: 0,
     isInhouse: true,
     supplier: "",
+    supplierId: undefined,
     leadTime: 0,
     notes: ""
   };
 
   const [newCoating, setNewCoating] = useState<Omit<CoatingCost, 'id'>>(defaultCoating);
 
-  const calculateTotal = (surfaceArea: number, coats: number, unitCost: number) => {
-    return surfaceArea * coats * unitCost;
+  const calculateTotal = (coating: Partial<CoatingCost>) => {
+    if (coating.coatingType === "galvanizing" && coating.weightKg) {
+      return coating.weightKg * (coating.unitCost || 0);
+    }
+    return (coating.surfaceArea || 0) * (coating.coats || 1) * (coating.unitCost || 0);
   };
 
-  const handleAddCoating = () => {
-    if (!newCoating.coatingName || newCoating.surfaceArea <= 0 || newCoating.unitCost <= 0) {
+  const handleAddCoating = async () => {
+    const isGalvanizing = newCoating.coatingType === "galvanizing";
+    const hasValidMeasurement = isGalvanizing ? newCoating.weightKg > 0 : newCoating.surfaceArea > 0;
+    
+    if (!newCoating.coatingName || !hasValidMeasurement || newCoating.unitCost <= 0) {
       toast({
         title: "Invalid Input",
         description: "Please fill in all required fields with valid values",
@@ -70,8 +80,27 @@ export default function CoatingsTab({ coatings, onCoatingsChange }: CoatingsTabP
     const coating: CoatingCost = {
       ...newCoating,
       id: `coating-${Date.now()}`,
-      totalCost: calculateTotal(newCoating.surfaceArea, newCoating.coats, newCoating.unitCost)
+      totalCost: calculateTotal(newCoating)
     };
+
+    // Add to material library coating systems if new
+    try {
+      await fetch('/api/coating-systems', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: coating.coatingName,
+          coating_type: coating.coatingType,
+          pricing_method: isGalvanizing ? 'per_kg' : 'per_m2',
+          price_per_unit: coating.unitCost,
+          coverage_rate: isGalvanizing ? 1 : coating.surfaceArea,
+          preparation_required: coating.category,
+          is_active: true
+        })
+      });
+    } catch (error) {
+      console.log('Note: Coating system not added to library');
+    }
 
     onCoatingsChange([...coatings, coating]);
     setNewCoating(defaultCoating);
@@ -87,8 +116,8 @@ export default function CoatingsTab({ coatings, onCoatingsChange }: CoatingsTabP
     const updatedCoatings = coatings.map(coating => {
       if (coating.id === id) {
         const updated = { ...coating, ...updates };
-        if ('surfaceArea' in updates || 'coats' in updates || 'unitCost' in updates) {
-          updated.totalCost = calculateTotal(updated.surfaceArea, updated.coats, updated.unitCost);
+        if ('surfaceArea' in updates || 'weightKg' in updates || 'coats' in updates || 'unitCost' in updates || 'coatingType' in updates) {
+          updated.totalCost = calculateTotal(updated);
         }
         return updated;
       }

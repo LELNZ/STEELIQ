@@ -109,13 +109,29 @@ interface ConsumableCost {
   notes?: string;
 }
 
+interface CoatingCost {
+  id: string;
+  coatingName: string;
+  coatingType: "paint" | "galvanizing" | "powder_coating";
+  category: "primer" | "topcoat" | "finish" | "protective";
+  surfaceArea?: number;
+  weightKg?: number; // For galvanizing p/kg pricing
+  coats: number;
+  unitCost: number;
+  totalCost: number;
+  isInhouse: boolean;
+  supplier?: string;
+  supplierId?: number;
+  leadTime?: number;
+  notes: string;
+}
+
 interface EstimationData {
   project: EstimationProject;
   materials: MaterialCost[];
   labor: LaborCost[];
   equipment: EquipmentCost[];
   consumables: ConsumableCost[];
-  coatings: CoatingCost[];
   coatings: CoatingCost[];
   overheads: {
     percentage: number;
@@ -130,7 +146,6 @@ interface EstimationData {
     labor: number;
     equipment: number;
     consumables: number;
-    coatings: number;
     coatings: number;
     subtotal: number;
     overheads: number;
@@ -865,7 +880,7 @@ function EstimationWorkspace({
         <TabsContent value="coatings">
           <CoatingsTab 
             coatings={estimationData.coatings || []}
-            onUpdate={(coatings) => setEstimationData(prev => prev ? { ...prev, coatings } : null)}
+            onCoatingsChange={(coatings) => setEstimationData(prev => prev ? { ...prev, coatings } : null)}
           />
         </TabsContent>
 
