@@ -165,15 +165,15 @@ export default function EstimationPage() {
     queryKey: ["/api/clients"],
   });
 
-  // Store original data on mount to track changes
+  // Store original data on mount to track changes - only once per project load
   useEffect(() => {
-    if (estimationData && !originalDataRef.current) {
-      // Set original data and ensure no unsaved changes initially
+    if (estimationData && !originalDataRef.current && currentProject) {
+      // Deep clone and store original data
       originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
       setHasUnsavedChanges(false);
-      console.log('Set original data on mount');
+      console.log('Set original data on mount for project:', currentProject.id);
     }
-  }, [estimationData]);
+  }, [estimationData, currentProject]);
 
 
 
@@ -201,10 +201,14 @@ export default function EstimationPage() {
     },
     onSuccess: (data) => {
       console.log('Save successful:', data);
-      setHasUnsavedChanges(false);
+      
+      // Update original data to match current state
       if (estimationData) {
         originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
       }
+      
+      // Clear unsaved changes state
+      setHasUnsavedChanges(false);
       
       // Clear auto-save timer on successful save
       if (autoSaveTimerRef.current) {
@@ -229,23 +233,23 @@ export default function EstimationPage() {
     }
   });
 
-  // Track changes without auto-save loop - only after initial load is complete
+  // Track changes - simplified logic with proper comparison
   useEffect(() => {
-    // Only track changes if we have both original and current data, and we're not in initial load
     if (originalDataRef.current && estimationData) {
-      // Add delay to prevent false positives during initial load
-      const timer = setTimeout(() => {
-        const originalStr = JSON.stringify(originalDataRef.current);
-        const currentStr = JSON.stringify(estimationData);
-        const hasChanges = originalStr !== currentStr;
-        
-        console.log('Change detection after delay:', { hasChanges });
-        if (hasChanges) {
-          setHasUnsavedChanges(true);
-        }
-      }, 500); // 500ms delay to allow for initial data settling
+      // Use a more stable comparison by excluding certain fields that might change during normal operations
+      const cleanData = (data: any) => {
+        const { project, ...rest } = data;
+        return rest;
+      };
       
-      return () => clearTimeout(timer);
+      const originalStr = JSON.stringify(cleanData(originalDataRef.current));
+      const currentStr = JSON.stringify(cleanData(estimationData));
+      const hasChanges = originalStr !== currentStr;
+      
+      console.log('Change detection:', { hasChanges, lengths: { original: originalStr.length, current: currentStr.length } });
+      setHasUnsavedChanges(hasChanges);
+    } else {
+      setHasUnsavedChanges(false);
     }
   }, [estimationData]);
 
@@ -420,7 +424,9 @@ export default function EstimationPage() {
       if (response.ok) {
         const existingData = await response.json();
         setEstimationData(existingData);
-        originalDataRef.current = JSON.parse(JSON.stringify(existingData));
+        // Reset original data reference for new project
+        originalDataRef.current = null;
+        // Will be set in the useEffect when estimationData updates
         return;
       }
     } catch (error) {
@@ -500,24 +506,58 @@ export default function EstimationPage() {
             </p>
           </div>
           <div className="flex items-center space-x-4">
+            {/* Show save controls only when viewing a project */}
+            {currentProject && (
+              <>
+                {hasUnsavedChanges && (
+                  <Badge variant="destructive" className="animate-pulse">
+                    Unsaved Changes
+                  </Badge>
+                )}
+                
+                <Button 
+                  onClick={handleSave}
+                  disabled={saveEstimationMutation.isPending || !hasUnsavedChanges}
+                  className="flex items-center gap-2"
+                  size="sm"
+                >
+                  {saveEstimationMutation.isPending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+            
             <Badge variant={isAiAssistEnabled ? "default" : "secondary"} className="px-3 py-1">
               <Bot className="h-4 w-4 mr-1" />
               AI Enabled
             </Badge>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Project
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
-                  <DialogTitle>Create Estimation Project</DialogTitle>
-                </DialogHeader>
-                <NewProjectForm onSubmit={(data) => createProjectMutation.mutate(data)} />
-              </DialogContent>
-            </Dialog>
+            
+            {/* Show New Project button only when not viewing a project */}
+            {!currentProject && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Project
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px]">
+                  <DialogHeader>
+                    <DialogTitle>Create Estimation Project</DialogTitle>
+                  </DialogHeader>
+                  <NewProjectForm onSubmit={(data) => createProjectMutation.mutate(data)} />
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
       </div>
