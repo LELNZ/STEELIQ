@@ -109,16 +109,20 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
     const updatedLabor = labor.map(item => {
       if (item.id === id) {
         const updated = { ...item, ...updates };
-        updated.totalCost = updated.hours * updated.rate;
+        updated.totalCost = (updated.hours || 0) * (updated.rate || 0);
+        console.log('Updated labor item:', updated);
         return updated;
       }
       return item;
     });
+    console.log('Updating labor array:', updatedLabor);
     onUpdate(updatedLabor);
   };
 
   const removeLaborItem = (id: string) => {
-    onUpdate(labor.filter(item => item.id !== id));
+    const updatedLabor = labor.filter(item => item.id !== id);
+    console.log('Removing labor item, new array:', updatedLabor);
+    onUpdate(updatedLabor);
   };
 
   const updateRate = (location: 'workshop' | 'site', skillLevel: string) => {

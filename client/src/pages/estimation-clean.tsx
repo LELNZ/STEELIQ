@@ -592,7 +592,12 @@ function EstimationWorkspace({
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => estimationData && saveEstimationMutation.mutate(estimationData)}
+                onClick={() => {
+                  if (estimationData) {
+                    console.log('Manual save triggered with data:', estimationData);
+                    saveEstimationMutation.mutate(estimationData);
+                  }
+                }}
                 disabled={!hasUnsavedChanges || saveEstimationMutation.isPending}
               >
                 <Save className="h-4 w-4 mr-2" />
@@ -604,8 +609,11 @@ function EstimationWorkspace({
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold">${estimationData.totals.total.toLocaleString()}</div>
+              <div className="text-2xl font-bold">${(estimationData.totals?.total || 0).toLocaleString()}</div>
               <p className="text-sm text-muted-foreground">Total Estimate</p>
+              <p className="text-xs text-muted-foreground">
+                Labor: ${(estimationData.totals?.labor || 0).toLocaleString()}
+              </p>
             </div>
           </div>
         </CardHeader>
