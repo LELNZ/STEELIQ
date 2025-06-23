@@ -189,26 +189,16 @@ export default function EstimationPage() {
   const saveEstimationMutation = useMutation({
     mutationFn: async (data: EstimationData) => {
       console.log('Saving estimation data:', data);
-      const response = await apiRequest("PUT", `/api/estimations/${currentProject?.id}`, data);
-      if (!response.ok) {
-        // Handle error response properly
-        let errorMessage = `Save failed: ${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          // If response is not JSON, use status text
-          errorMessage = `Save failed: ${response.status} ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
-      }
+      // apiRequest already handles response parsing and error throwing
+      const result = await apiRequest("PUT", `/api/estimations/${currentProject?.id}`, data);
+      console.log('Save response:', result);
       
       // Update original data to match current state after successful save
       originalDataRef.current = JSON.parse(JSON.stringify(data));
-      return response.json();
+      return result;
     },
-    onSuccess: (data) => {
-      console.log('Save successful:', data);
+    onSuccess: (response) => {
+      console.log('Save successful:', response);
       
       // Update original data to match current state
       if (estimationData) {
@@ -226,7 +216,7 @@ export default function EstimationPage() {
 
       toast({
         title: "Changes Saved",
-        description: "All estimation data has been saved successfully"
+        description: response.message || "All estimation data has been saved successfully"
       });
       queryClient.invalidateQueries({ queryKey: ["/api/estimations"] });
       queryClient.invalidateQueries({ queryKey: [`/api/estimations/${currentProject?.id}`] });
