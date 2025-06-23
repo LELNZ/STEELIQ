@@ -670,3 +670,131 @@ function AddMaterialForm({
     </form>
   );
 }
+
+// Edit Material Dialog Component
+function EditMaterialDialog({ 
+  material, 
+  open, 
+  onOpenChange, 
+  onSave,
+  availableMaterials 
+}: {
+  material: MaterialCost | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: Partial<MaterialCost>) => void;
+  availableMaterials: any[];
+}) {
+  const [formData, setFormData] = useState<Partial<MaterialCost>>({});
+
+  useEffect(() => {
+    if (material) {
+      setFormData({ ...material });
+    }
+  }, [material]);
+
+  const handleSave = () => {
+    onSave(formData);
+    onOpenChange(false);
+  };
+
+  if (!material) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Edit Material</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="edit-material-name">Material Name</Label>
+              <Input
+                id="edit-material-name"
+                value={formData.materialName || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, materialName: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-material-code">Material Code</Label>
+              <Input
+                id="edit-material-code"
+                value={formData.materialCode || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, materialCode: e.target.value }))}
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="edit-quantity">Quantity</Label>
+              <Input
+                id="edit-quantity"
+                type="number"
+                step="0.01"
+                value={formData.quantity || 0}
+                onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-unit-cost">Unit Cost ($)</Label>
+              <Input
+                id="edit-unit-cost"
+                type="number"
+                step="0.01"
+                value={formData.unitCost || 0}
+                onChange={(e) => setFormData(prev => ({ ...prev, unitCost: parseFloat(e.target.value) || 0 }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-waste-factor">Waste %</Label>
+              <Input
+                id="edit-waste-factor"
+                type="number"
+                value={formData.wasteFactor || 5}
+                onChange={(e) => setFormData(prev => ({ ...prev, wasteFactor: parseFloat(e.target.value) || 5 }))}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="edit-supplier">Supplier</Label>
+              <Input
+                id="edit-supplier"
+                value={formData.supplier || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-handling-cost">Handling Cost ($)</Label>
+              <Input
+                id="edit-handling-cost"
+                type="number"
+                step="0.01"
+                value={formData.handlingCost || 0}
+                onChange={(e) => setFormData(prev => ({ ...prev, handlingCost: parseFloat(e.target.value) || 0 }))}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="edit-notes">Notes</Label>
+            <Textarea
+              id="edit-notes"
+              value={formData.notes || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              rows={3}
+            />
+          </div>
+        </div>
+        
+        <div className="flex justify-end space-x-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave}>Save Changes</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
