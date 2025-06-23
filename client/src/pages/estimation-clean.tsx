@@ -172,6 +172,8 @@ export default function EstimationPage() {
     }
   }, [estimationData]);
 
+
+
   // Save estimation data mutation - defined before use
   const saveEstimationMutation = useMutation({
     mutationFn: async (data: EstimationData) => {
@@ -197,6 +199,7 @@ export default function EstimationPage() {
       if (estimationData) {
         originalDataRef.current = JSON.parse(JSON.stringify(estimationData));
       }
+
       toast({
         title: "Changes Saved",
         description: "All estimation data has been saved successfully"
@@ -294,16 +297,12 @@ export default function EstimationPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  // Handle navigation with unsaved changes - auto-save before navigation
+  // Handle navigation with unsaved changes - show dialog instead of auto-save
   const handleNavigation = (navigationFn: () => void) => {
     console.log('Navigation triggered with unsaved changes:', hasUnsavedChanges);
-    if (hasUnsavedChanges && estimationData && !saveEstimationMutation.isPending) {
-      console.log('Auto-saving before navigation...');
-      saveEstimationMutation.mutate(estimationData);
-      // Small delay to allow save to complete
-      setTimeout(() => {
-        navigationFn();
-      }, 100);
+    if (hasUnsavedChanges) {
+      setPendingNavigation(() => navigationFn);
+      setShowSaveDialog(true);
     } else {
       navigationFn();
     }
@@ -639,12 +638,9 @@ function EstimationWorkspace({
 }) {
   const [activeTab, setActiveTab] = useState("materials");
 
-  // Auto-save when switching tabs
+  // Save manually on tab change - no auto-save
   const handleTabChange = (newTab: string) => {
-    if (hasUnsavedChanges && estimationData && !saveEstimationMutation.isPending) {
-      console.log('Auto-saving on tab change...');
-      saveEstimationMutation.mutate(estimationData);
-    }
+    console.log(`Switching to tab: ${newTab}`);
     setActiveTab(newTab);
   };
 
