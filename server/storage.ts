@@ -920,28 +920,58 @@ export class DatabaseStorage implements IStorage {
 
   async saveEstimationData(projectId: number, estimationData: any): Promise<any> {
     return await db.transaction(async (tx) => {
-      // Update the main project with totals
-      const [updatedProject] = await tx
-        .update(estimationProjects)
-        .set({
-          totalCost: estimationData.totals?.total?.toString() || "0",
-          margin: estimationData.margin?.percentage?.toString() || "0",
-          overheadPercentage: estimationData.overheads?.percentage?.toString() || "0",
-          projectData: estimationData,
-          updatedAt: new Date()
-        })
-        .where(eq(estimationProjects.id, projectId))
-        .returning();
+      // Update the main project with totals using direct SQL to avoid column mismatch
+      const result = await tx.execute(sql`
+        UPDATE estimation_projects 
+        SET total_cost = ${estimationData.totals?.total || 0},
+            margin = ${estimationData.margin?.percentage || 20},
+            updated_at = NOW()
+        WHERE id = ${projectId}
+        RETURNING *
+      `);
+      
+      // Upsert estimation data
+      await tx.execute(sql`
+        INSERT INTO estimation_data (
+          project_id, materials, labor, equipment, consumables, coatings, 
+          overheads, margin, totals, overhead_percentage, margin_percentage
+        )
+        VALUES (
+          ${projectId},
+          ${JSON.stringify(estimationData.materials || [])},
+          ${JSON.stringify(estimationData.labor || [])}, 
+          ${JSON.stringify(estimationData.equipment || [])},
+          ${JSON.stringify(estimationData.consumables || [])},
+          ${JSON.stringify(estimationData.coatings || [])},
+          ${JSON.stringify(estimationData.overheads || {})},
+          ${JSON.stringify(estimationData.margin || {})},
+          ${JSON.stringify(estimationData.totals || {})},
+          ${estimationData.overheads?.percentage || 20},
+          ${estimationData.margin?.percentage || 20}
+        )
+        ON CONFLICT (project_id) 
+        DO UPDATE SET
+          materials = EXCLUDED.materials,
+          labor = EXCLUDED.labor,
+          equipment = EXCLUDED.equipment, 
+          consumables = EXCLUDED.consumables,
+          coatings = EXCLUDED.coatings,
+          overheads = EXCLUDED.overheads,
+          margin = EXCLUDED.margin,
+          totals = EXCLUDED.totals,
+          overhead_percentage = EXCLUDED.overhead_percentage,
+          margin_percentage = EXCLUDED.margin_percentage,
+          updated_at = NOW()
+      `);
 
-      // Clear existing estimation items for this project
-      await tx.delete(estimationMaterials).where(eq(estimationMaterials.projectId, projectId));
-      await tx.delete(estimationLabor).where(eq(estimationLabor.projectId, projectId));
-      await tx.delete(estimationEquipment).where(eq(estimationEquipment.projectId, projectId));
-      await tx.delete(estimationConsumables).where(eq(estimationConsumables.projectId, projectId));
-
-      // Insert materials
-      if (estimationData.materials?.length > 0) {
-        await tx.insert(estimationMaterials).values(
+      return {
+        success: true,
+        projectId,
+        totalCost: estimationData.totals?.total || 0,
+        estimationData
+      };
+    });
+  }
           estimationData.materials.map((material: any) => ({
             projectId,
             materialCode: material.materialCode || material.code || "",
