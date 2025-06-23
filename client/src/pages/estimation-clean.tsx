@@ -214,7 +214,7 @@ export default function EstimationPage() {
     }
   });
 
-  // Track changes and auto-save
+  // Track changes without auto-save loop
   useEffect(() => {
     if (originalDataRef.current && estimationData) {
       // Deep comparison to detect any changes in nested objects/arrays
@@ -222,29 +222,21 @@ export default function EstimationPage() {
       const currentStr = JSON.stringify(estimationData, Object.keys(estimationData).sort());
       const hasChanges = originalStr !== currentStr;
       
-      console.log('Change detection:', {
-        hasChanges,
-        originalLength: originalDataRef.current?.labor?.length || 0,
-        currentLength: estimationData?.labor?.length || 0,
-        laborTotal: estimationData?.totals?.labor || 0,
-        materialCount: estimationData?.materials?.length || 0,
-        equipmentCount: estimationData?.equipment?.length || 0,
-        consumablesCount: estimationData?.consumables?.length || 0
-      });
-      
       setHasUnsavedChanges(hasChanges);
-
-      // Auto-save after 1 second of inactivity when there are changes
-      if (hasChanges && !saveEstimationMutation.isPending) {
-        const timer = setTimeout(() => {
-          console.log('Auto-saving changes...');
-          saveEstimationMutation.mutate(estimationData);
-        }, 1000);
-
-        return () => clearTimeout(timer);
-      }
     }
-  }, [estimationData, saveEstimationMutation]);
+  }, [estimationData]);
+
+  // Auto-save after 5 minutes of inactivity
+  useEffect(() => {
+    if (hasUnsavedChanges && estimationData && !saveEstimationMutation.isPending) {
+      const timer = setTimeout(() => {
+        console.log('Auto-saving after 5 minutes of inactivity...');
+        saveEstimationMutation.mutate(estimationData);
+      }, 5 * 60 * 1000); // 5 minutes
+
+      return () => clearTimeout(timer);
+    }
+  }, [hasUnsavedChanges, estimationData, saveEstimationMutation]);
 
   // Calculate and update totals whenever data changes - runs on every state change
   useEffect(() => {
@@ -302,12 +294,16 @@ export default function EstimationPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  // Handle navigation with unsaved changes
+  // Handle navigation with unsaved changes - auto-save before navigation
   const handleNavigation = (navigationFn: () => void) => {
     console.log('Navigation triggered with unsaved changes:', hasUnsavedChanges);
-    if (hasUnsavedChanges) {
-      setPendingNavigation(() => navigationFn);
-      setShowSaveDialog(true);
+    if (hasUnsavedChanges && estimationData && !saveEstimationMutation.isPending) {
+      console.log('Auto-saving before navigation...');
+      saveEstimationMutation.mutate(estimationData);
+      // Small delay to allow save to complete
+      setTimeout(() => {
+        navigationFn();
+      }, 100);
     } else {
       navigationFn();
     }
@@ -643,6 +639,15 @@ function EstimationWorkspace({
 }) {
   const [activeTab, setActiveTab] = useState("materials");
 
+  // Auto-save when switching tabs
+  const handleTabChange = (newTab: string) => {
+    if (hasUnsavedChanges && estimationData && !saveEstimationMutation.isPending) {
+      console.log('Auto-saving on tab change...');
+      saveEstimationMutation.mutate(estimationData);
+    }
+    setActiveTab(newTab);
+  };
+
   if (!estimationData) return null;
 
   return (
@@ -714,7 +719,7 @@ function EstimationWorkspace({
       )}
 
       {/* Estimation Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="drawings">AI Drawings</TabsTrigger>
           <TabsTrigger value="materials">Materials</TabsTrigger>

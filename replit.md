@@ -162,6 +162,7 @@ This is a comprehensive steel fabrication business management system built for L
 - Real-time cost calculations when editing quantities, rates, or hours
 - Enhanced notes visibility with hover tooltips for full content display
 - Uniform table layouts with Input fields for direct editing
+- Auto-save on tab changes and after 5 minutes of inactivity (not continuous)
 
 **Financial Calculations:**
 - Gross Profit per Hour = Gross Profit ÷ Total Hours Worked
