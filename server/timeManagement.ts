@@ -106,6 +106,7 @@ export class TimeManagementStorage implements ITimeManagementStorage {
           columns: {
             id: true,
             name: true,
+            username: true,
           }
         },
         job: {
@@ -138,6 +139,7 @@ export class TimeManagementStorage implements ITimeManagementStorage {
             columns: {
               id: true,
               name: true,
+              username: true,
             }
           },
           job: {
@@ -186,6 +188,7 @@ export class TimeManagementStorage implements ITimeManagementStorage {
           columns: {
             id: true,
             name: true,
+            username: true,
           }
         },
         job: {
@@ -250,12 +253,14 @@ export class TimeManagementStorage implements ITimeManagementStorage {
           columns: {
             id: true,
             name: true,
+            username: true,
           }
         },
         creator: {
           columns: {
             id: true,
             name: true,
+            username: true,
           }
         }
       },
@@ -295,6 +300,7 @@ export class TimeManagementStorage implements ITimeManagementStorage {
           columns: {
             id: true,
             name: true,
+            username: true,
           }
         }
       }
@@ -327,12 +333,14 @@ export class TimeManagementStorage implements ITimeManagementStorage {
           columns: {
             id: true,
             name: true,
+            username: true,
           }
         },
         approver: {
           columns: {
             id: true,
             name: true,
+            username: true,
           }
         }
       },
@@ -380,6 +388,7 @@ export class TimeManagementStorage implements ITimeManagementStorage {
           columns: {
             id: true,
             name: true,
+            username: true,
           }
         },
         job: {
