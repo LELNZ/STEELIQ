@@ -104,7 +104,7 @@ export default function UserPreferences() {
       showGridLines: true,
       highlightChanges: true,
       animateTransitions: true,
-      defaultDashboard: '',
+      defaultDashboard: 'overview',
       sidebarCollapsed: false
     },
     personalDefaults: {
@@ -219,7 +219,7 @@ export default function UserPreferences() {
         showGridLines: true,
         highlightChanges: true,
         animateTransitions: true,
-        defaultDashboard: '',
+        defaultDashboard: 'overview',
         sidebarCollapsed: false
       },
       cutting: {
@@ -509,7 +509,7 @@ export default function UserPreferences() {
             <div>
               <Label>Default Dashboard</Label>
               <Select 
-                value={preferences.display.defaultDashboard || ''} 
+                value={preferences.display?.defaultDashboard || ''} 
                 onValueChange={(value) => setPreferences({
                   ...preferences,
                   display: { ...preferences.display, defaultDashboard: value }
