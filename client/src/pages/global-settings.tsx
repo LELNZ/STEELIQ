@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Building2, Globe, Clock, Shield, Truck, Package, Calculator, FileText, Settings, Save, RotateCcw, Info, Database, Zap } from "lucide-react";
+import { Building2, Globe, Clock, Shield, Truck, Package, Calculator, FileText, Settings, Save, RotateCcw, Info, Database, Zap, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobalSettings, type GlobalSettings } from "@/hooks/useGlobalSettings";
 

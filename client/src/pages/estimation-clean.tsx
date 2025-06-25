@@ -176,6 +176,8 @@ export default function EstimationPage() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { overheadSettings } = useBusinessSettings();
+  const estimationDefaults = useEstimationDefaults();
 
   // Fetch existing estimation projects
   const { data: projects = [] } = useQuery<EstimationProject[]>({
