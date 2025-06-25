@@ -22,6 +22,26 @@ import {
   Settings,
   AlertCircle
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface LaborCategory {
@@ -198,6 +218,8 @@ export default function LaborRates() {
 
   const [editingCategory, setEditingCategory] = useState<LaborCategory | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
   // Load saved rates on component mount
   useEffect(() => {
@@ -235,17 +257,28 @@ export default function LaborRates() {
       )
     }));
     setEditingCategory(null);
+    setShowEditDialog(false);
+    toast({
+      title: "Category Updated",
+      description: "Labor category has been successfully updated."
+    });
   };
 
-  const deleteCategory = (id: string) => {
+  const confirmDeleteCategory = (id: string) => {
     setLaborRates(prev => ({
       ...prev,
       categories: prev.categories.filter(cat => cat.id !== id)
     }));
+    setCategoryToDelete(null);
     toast({
       title: "Category Deleted",
       description: "Labor category has been removed."
     });
+  };
+
+  const startEditCategory = (category: LaborCategory) => {
+    setEditingCategory(category);
+    setShowEditDialog(true);
   };
 
   const calculateEffectiveRate = (
@@ -519,12 +552,31 @@ export default function LaborRates() {
                   </div>
                   
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setEditingCategory(category)}>
+                    <Button variant="outline" size="sm" onClick={() => startEditCategory(category)}>
                       <Edit2 className="w-4 h-4" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => deleteCategory(category.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Labor Category</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{category.name}"? This action cannot be undone and may affect existing estimations that use this labor category.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => confirmDeleteCategory(category.id)}>
+                            Delete Category
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>
@@ -587,6 +639,160 @@ export default function LaborRates() {
           </CardContent>
         </Card>
       )}
+
+      {/* Edit Category Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Labor Category</DialogTitle>
+            <DialogDescription>
+              Update the details for this labor category
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingCategory && (
+            <EditCategoryForm
+              category={editingCategory}
+              onSave={(updates) => updateCategory(editingCategory.id, updates)}
+              onCancel={() => setShowEditDialog(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Edit Category Form Component
+function EditCategoryForm({ 
+  category, 
+  onSave, 
+  onCancel 
+}: { 
+  category: LaborCategory;
+  onSave: (updates: Partial<LaborCategory>) => void;
+  onCancel: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: category.name,
+    description: category.description,
+    chargeOutRate: category.chargeOutRate,
+    inHouseCostRate: category.inHouseCostRate,
+    overtimeMultiplier: category.overtimeMultiplier,
+    skillLevel: category.skillLevel,
+    workshopChargeRate: category.workshopChargeRate || category.chargeOutRate,
+    siteChargeRate: category.siteChargeRate || category.chargeOutRate,
+    workshopCostRate: category.workshopCostRate || category.inHouseCostRate,
+    siteCostRate: category.siteCostRate || category.inHouseCostRate,
+    isActive: category.isActive
+  });
+
+  const handleSave = () => {
+    onSave(formData);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>Category Name</Label>
+          <Input
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="e.g. Senior Welder"
+          />
+        </div>
+        <div>
+          <Label>Skill Level</Label>
+          <Input
+            value={formData.skillLevel}
+            onChange={(e) => setFormData(prev => ({ ...prev, skillLevel: e.target.value }))}
+            placeholder="e.g. Specialist, Tradesman"
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label>Description</Label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          placeholder="Brief description of role and responsibilities"
+          rows={2}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>Workshop Charge Rate ($/hr)</Label>
+          <Input
+            type="number"
+            step="0.50"
+            value={formData.workshopChargeRate}
+            onChange={(e) => setFormData(prev => ({ ...prev, workshopChargeRate: parseFloat(e.target.value) }))}
+          />
+        </div>
+        <div>
+          <Label>Site Charge Rate ($/hr)</Label>
+          <Input
+            type="number"
+            step="0.50"
+            value={formData.siteChargeRate}
+            onChange={(e) => setFormData(prev => ({ ...prev, siteChargeRate: parseFloat(e.target.value) }))}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>Workshop Cost Rate ($/hr)</Label>
+          <Input
+            type="number"
+            step="0.50"
+            value={formData.workshopCostRate}
+            onChange={(e) => setFormData(prev => ({ ...prev, workshopCostRate: parseFloat(e.target.value) }))}
+          />
+        </div>
+        <div>
+          <Label>Site Cost Rate ($/hr)</Label>
+          <Input
+            type="number"
+            step="0.50"
+            value={formData.siteCostRate}
+            onChange={(e) => setFormData(prev => ({ ...prev, siteCostRate: parseFloat(e.target.value) }))}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>Overtime Multiplier</Label>
+          <Input
+            type="number"
+            step="0.1"
+            min="1"
+            max="3"
+            value={formData.overtimeMultiplier}
+            onChange={(e) => setFormData(prev => ({ ...prev, overtimeMultiplier: parseFloat(e.target.value) }))}
+          />
+        </div>
+        <div className="flex items-center space-x-2 pt-6">
+          <Switch
+            checked={formData.isActive}
+            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+          />
+          <Label>Active Category</Label>
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave}>
+          Save Changes
+        </Button>
+      </DialogFooter>
     </div>
   );
 }
