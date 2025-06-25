@@ -525,7 +525,7 @@ export default function TimeManagement() {
             <div className="flex items-center space-x-2">
               <Input
                 type="week"
-                value={format(selectedWeek, 'yyyy-\\WW')}
+                value={format(selectedWeek, "yyyy-'W'ww")}
                 onChange={(e) => setSelectedWeek(new Date(e.target.value))}
                 className="w-40"
               />
