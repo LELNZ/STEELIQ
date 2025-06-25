@@ -43,6 +43,7 @@ function Router() {
       <Route path="/supplier-contacts" component={SupplierContacts} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/global-settings" component={GlobalSettings} />
+      <Route path="/labor-rates" component={LaborRates} />
       <Route path="/preferences" component={UserPreferences} />
 
       <Route path="/financial" component={FinancialDashboard} />

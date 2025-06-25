@@ -509,7 +509,7 @@ export default function UserPreferences() {
             <div>
               <Label>Default Dashboard</Label>
               <Select 
-                value={preferences.display.defaultDashboard} 
+                value={preferences.display.defaultDashboard || ''} 
                 onValueChange={(value) => setPreferences({
                   ...preferences,
                   display: { ...preferences.display, defaultDashboard: value }
