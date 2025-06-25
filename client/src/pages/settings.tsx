@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Building, Truck, Settings2, TrendingUp, Calculator, Save, RotateCcw } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Building, Truck, Settings2, TrendingUp, Calculator, Save, RotateCcw, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface OverheadSettings {
@@ -144,7 +145,7 @@ export default function Settings() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Business Settings</h1>
-          <p className="text-muted-foreground">Configure overhead costs and margin targets for accurate estimation</p>
+          <p className="text-muted-foreground">Configure company-wide overhead costs, margin targets, and project modifiers for accurate estimation</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={resetToDefaults}>
@@ -179,7 +180,25 @@ export default function Settings() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <Label>Workshop Rent/Lease</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>Workshop Rent/Lease</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Monthly cost of workshop rent/lease (excluding GST)</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              • Commercial property rent<br/>
+                              • Body corporate fees<br/>
+                              • Property management fees<br/>
+                              • Land lease payments
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <Input
                       type="number"
                       value={overheadSettings.opexMonthly.workshopRent}
@@ -190,7 +209,25 @@ export default function Settings() {
                     />
                   </div>
                   <div>
-                    <Label>Utilities (Power, Gas, Water)</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>Utilities (Power, Gas, Water)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Monthly utility costs for workshop operations</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              • Electricity for welding, cutting, lighting<br/>
+                              • Gas for heating and cutting<br/>
+                              • Water and wastewater<br/>
+                              • Internet and phone services
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <Input
                       type="number"
                       value={overheadSettings.opexMonthly.utilities}
@@ -201,7 +238,26 @@ export default function Settings() {
                     />
                   </div>
                   <div>
-                    <Label>Insurance Premiums</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>Insurance Premiums</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Monthly insurance costs for business operations</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              • Public liability insurance<br/>
+                              • Professional indemnity<br/>
+                              • Workers compensation<br/>
+                              • Property and equipment insurance<br/>
+                              • Motor vehicle insurance
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <Input
                       type="number"
                       value={overheadSettings.opexMonthly.insurance}
@@ -212,7 +268,26 @@ export default function Settings() {
                     />
                   </div>
                   <div>
-                    <Label>Administration Costs</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>Administration Costs</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Monthly administrative and office overhead costs</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              • Office supplies and stationery<br/>
+                              • Banking and finance fees<br/>
+                              • Legal and accounting services<br/>
+                              • Business registrations and licenses<br/>
+                              • Marketing and advertising expenses
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <Input
                       type="number"
                       value={overheadSettings.opexMonthly.administration}
@@ -223,7 +298,27 @@ export default function Settings() {
                     />
                   </div>
                   <div>
-                    <Label>Non-billable Staff Costs</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>Non-billable Staff Costs</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Monthly costs for staff time not directly charged to projects</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              • Management and supervision time<br/>
+                              • Administrative and office staff<br/>
+                              • Training and development time<br/>
+                              • Sick leave and annual leave coverage<br/>
+                              • Workshop maintenance and cleanup<br/>
+                              • Estimating and quoting time
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <Input
                       type="number"
                       value={overheadSettings.opexMonthly.nonBillableStaff}
@@ -234,7 +329,26 @@ export default function Settings() {
                     />
                   </div>
                   <div>
-                    <Label>Maintenance & Repairs</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>Maintenance & Repairs</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Monthly maintenance and repair costs for equipment and facilities</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              • Equipment servicing and repairs<br/>
+                              • Building maintenance and repairs<br/>
+                              • Vehicle servicing and repairs<br/>
+                              • Tool replacement and calibration<br/>
+                              • Preventive maintenance programs
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <Input
                       type="number"
                       value={overheadSettings.opexMonthly.maintenance}
@@ -527,7 +641,27 @@ export default function Settings() {
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <Label>Small Projects (&lt;$50k) Modifier (%)</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>Small Projects (&lt;$50k) Modifier (%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Additional overhead percentage for small projects</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Small projects typically require:<br/>
+                              • Higher administrative burden per dollar<br/>
+                              • More frequent client communication<br/>
+                              • Setup costs that don't scale<br/>
+                              • More estimating time relative to value<br/>
+                              Typical range: +3% to +8%
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <Input
                       type="number"
                       step="0.1"
@@ -537,10 +671,30 @@ export default function Settings() {
                         projectModifiers: { ...overheadSettings.projectModifiers, smallProject: parseFloat(e.target.value) || 0 }
                       })}
                     />
-                    <p className="text-xs text-muted-foreground">Higher admin burden</p>
+                    <p className="text-xs text-muted-foreground">Higher admin burden and setup costs</p>
                   </div>
                   <div>
-                    <Label>Large Projects (&gt;$200k) Modifier (%)</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>Large Projects (&gt;$200k) Modifier (%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Overhead reduction percentage for large projects</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Large projects benefit from:<br/>
+                              • Economies of scale in purchasing<br/>
+                              • Lower admin cost per dollar<br/>
+                              • Bulk material discounts<br/>
+                              • More efficient resource utilization<br/>
+                              Typical range: -2% to -5%
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <Input
                       type="number"
                       step="0.1"
@@ -550,12 +704,33 @@ export default function Settings() {
                         projectModifiers: { ...overheadSettings.projectModifiers, largeProject: parseFloat(e.target.value) || 0 }
                       })}
                     />
-                    <p className="text-xs text-muted-foreground">Economies of scale</p>
+                    <p className="text-xs text-muted-foreground">Economies of scale and bulk efficiencies</p>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <Label>Site Work Modifier (%)</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>Site Work Modifier (%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Additional overhead percentage for projects involving site work</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Site work incurs additional costs:<br/>
+                              • Travel time and vehicle costs<br/>
+                              • Accommodation and meal allowances<br/>
+                              • Site setup and security<br/>
+                              • Weather delays and variations<br/>
+                              • Additional H&S requirements<br/>
+                              Typical range: +5% to +12%
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <Input
                       type="number"
                       step="0.1"
@@ -565,10 +740,31 @@ export default function Settings() {
                         projectModifiers: { ...overheadSettings.projectModifiers, siteWork: parseFloat(e.target.value) || 0 }
                       })}
                     />
-                    <p className="text-xs text-muted-foreground">Travel, accommodation, site costs</p>
+                    <p className="text-xs text-muted-foreground">Travel, accommodation, and site-specific costs</p>
                   </div>
                   <div>
-                    <Label>Workshop Only Modifier (%)</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>Workshop Only Modifier (%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Overhead reduction for projects completed entirely in workshop</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Workshop-only projects save costs:<br/>
+                              • No travel time or vehicle costs<br/>
+                              • No accommodation expenses<br/>
+                              • Better equipment access and efficiency<br/>
+                              • Controlled environment conditions<br/>
+                              • Lower H&S overhead requirements<br/>
+                              Typical range: -1% to -3%
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <Input
                       type="number"
                       step="0.1"
@@ -578,7 +774,7 @@ export default function Settings() {
                         projectModifiers: { ...overheadSettings.projectModifiers, workshopOnly: parseFloat(e.target.value) || 0 }
                       })}
                     />
-                    <p className="text-xs text-muted-foreground">No travel costs</p>
+                    <p className="text-xs text-muted-foreground">Controlled environment, no travel costs</p>
                   </div>
                 </div>
               </div>

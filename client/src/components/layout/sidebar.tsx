@@ -45,7 +45,8 @@ const navigation = [
   {
     name: "Settings",
     items: [
-      { name: "Preferences", href: "/settings", icon: Settings },
+      { name: "Business Settings", href: "/settings", icon: Building2 },
+      { name: "User Preferences", href: "/preferences", icon: Settings },
       { name: "Team Management", href: "/team", icon: Users },
     ],
   },
