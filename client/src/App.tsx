@@ -23,6 +23,7 @@ import FinancialDashboard from "@/pages/financial-dashboard";
 import SettingsPage from "@/pages/settings";
 import GlobalSettings from "@/pages/global-settings";
 import UserPreferences from "@/pages/user-preferences";
+import LaborRates from "@/pages/labor-rates";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
 
