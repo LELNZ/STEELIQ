@@ -1582,3 +1582,288 @@ export type InsertEstimationTemplate = z.infer<typeof insertEstimationTemplateSc
 
 export type AiEstimationHistory = typeof aiEstimationHistory.$inferSelect;
 export type InsertAiEstimationHistory = z.infer<typeof insertAiEstimationHistorySchema>;
+
+// Team Management Schema
+export const roles = pgTable("roles", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  isSystemRole: boolean("is_system_role").default(false),
+  permissions: jsonb("permissions").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const departments = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  headUserId: integer("head_user_id").references(() => users.id),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const teamMembers = pgTable("team_members", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  roleId: integer("role_id").notNull().references(() => roles.id),
+  departmentId: integer("department_id").references(() => departments.id),
+  isActive: boolean("is_active").default(true),
+  startDate: timestamp("start_date").defaultNow(),
+  endDate: timestamp("end_date"),
+  employeeNumber: varchar("employee_number", { length: 50 }),
+  position: varchar("position", { length: 100 }),
+  skillLevel: varchar("skill_level", { length: 50 }),
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
+  overtimeRate: decimal("overtime_rate", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const auditLog = pgTable("audit_log", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  action: varchar("action", { length: 100 }).notNull(),
+  entityType: varchar("entity_type", { length: 50 }).notNull(),
+  entityId: varchar("entity_id", { length: 100 }),
+  oldValues: jsonb("old_values"),
+  newValues: jsonb("new_values"),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+// Time Management Schema
+export const timesheets = pgTable("timesheets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  jobId: integer("job_id").references(() => jobs.id),
+  taskId: integer("task_id").references(() => jobTasks.id),
+  date: date("date").notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time"),
+  breakDuration: integer("break_duration").default(0),
+  totalHours: decimal("total_hours", { precision: 5, scale: 2 }),
+  overtimeHours: decimal("overtime_hours", { precision: 5, scale: 2 }).default("0"),
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
+  overtimeRate: decimal("overtime_rate", { precision: 10, scale: 2 }),
+  totalPay: decimal("total_pay", { precision: 12, scale: 2 }),
+  workLocation: varchar("work_location", { length: 100 }).default("workshop"),
+  notes: text("notes"),
+  status: varchar("status", { length: 20 }).default("draft"),
+  supervisorId: integer("supervisor_id").references(() => users.id),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  submittedAt: timestamp("submitted_at"),
+  geolocation: jsonb("geolocation"),
+  deviceInfo: jsonb("device_info"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const jobTasks = pgTable("job_tasks", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").notNull().references(() => jobs.id),
+  taskName: varchar("task_name", { length: 200 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 50 }),
+  priority: varchar("priority", { length: 20 }).default("medium"),
+  status: varchar("status", { length: 20 }).default("pending"),
+  assignedTo: integer("assigned_to").references(() => users.id),
+  estimatedHours: decimal("estimated_hours", { precision: 5, scale: 2 }),
+  actualHours: decimal("actual_hours", { precision: 5, scale: 2 }),
+  skillLevel: varchar("skill_level", { length: 50 }),
+  dueDate: timestamp("due_date"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  materials: jsonb("materials"),
+  tools: jsonb("tools"),
+  instructions: text("instructions"),
+  qualityNotes: text("quality_notes"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const timeClocks = pgTable("time_clocks", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  clockType: varchar("clock_type", { length: 20 }).notNull(),
+  timestamp: timestamp("timestamp").notNull(),
+  location: varchar("location", { length: 100 }),
+  geolocation: jsonb("geolocation"),
+  deviceInfo: jsonb("device_info"),
+  notes: text("notes"),
+  jobId: integer("job_id").references(() => jobs.id),
+  taskId: integer("task_id").references(() => jobTasks.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const leaveRequests = pgTable("leave_requests", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  leaveType: varchar("leave_type", { length: 50 }).notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  totalDays: decimal("total_days", { precision: 5, scale: 2 }).notNull(),
+  reason: text("reason"),
+  status: varchar("status", { length: 20 }).default("pending"),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  rejectionReason: text("rejection_reason"),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const workSchedules = pgTable("work_schedules", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  date: date("date").notNull(),
+  shiftStart: timestamp("shift_start").notNull(),
+  shiftEnd: timestamp("shift_end").notNull(),
+  breakDuration: integer("break_duration").default(30),
+  location: varchar("location", { length: 100 }).default("workshop"),
+  jobId: integer("job_id").references(() => jobs.id),
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relations
+export const rolesRelations = relations(roles, ({ many }) => ({
+  teamMembers: many(teamMembers),
+}));
+
+export const departmentsRelations = relations(departments, ({ one, many }) => ({
+  head: one(users, {
+    fields: [departments.headUserId],
+    references: [users.id],
+  }),
+  teamMembers: many(teamMembers),
+}));
+
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
+  user: one(users, {
+    fields: [teamMembers.userId],
+    references: [users.id],
+  }),
+  role: one(roles, {
+    fields: [teamMembers.roleId],
+    references: [roles.id],
+  }),
+  department: one(departments, {
+    fields: [teamMembers.departmentId],
+    references: [departments.id],
+  }),
+}));
+
+export const auditLogRelations = relations(auditLog, ({ one }) => ({
+  user: one(users, {
+    fields: [auditLog.userId],
+    references: [users.id],
+  }),
+}));
+
+export const timesheetsRelations = relations(timesheets, ({ one }) => ({
+  user: one(users, {
+    fields: [timesheets.userId],
+    references: [users.id],
+  }),
+  job: one(jobs, {
+    fields: [timesheets.jobId],
+    references: [jobs.id],
+  }),
+  task: one(jobTasks, {
+    fields: [timesheets.taskId],
+    references: [jobTasks.id],
+  }),
+  supervisor: one(users, {
+    fields: [timesheets.supervisorId],
+    references: [users.id],
+  }),
+  approver: one(users, {
+    fields: [timesheets.approvedBy],
+    references: [users.id],
+  }),
+}));
+
+export const jobTasksRelations = relations(jobTasks, ({ one, many }) => ({
+  job: one(jobs, {
+    fields: [jobTasks.jobId],
+    references: [jobs.id],
+  }),
+  assignee: one(users, {
+    fields: [jobTasks.assignedTo],
+    references: [users.id],
+  }),
+  creator: one(users, {
+    fields: [jobTasks.createdBy],
+    references: [users.id],
+  }),
+  timesheets: many(timesheets),
+  timeClocks: many(timeClocks),
+}));
+
+export const timeClocksRelations = relations(timeClocks, ({ one }) => ({
+  user: one(users, {
+    fields: [timeClocks.userId],
+    references: [users.id],
+  }),
+  job: one(jobs, {
+    fields: [timeClocks.jobId],
+    references: [jobs.id],
+  }),
+  task: one(jobTasks, {
+    fields: [timeClocks.taskId],
+    references: [jobTasks.id],
+  }),
+}));
+
+export const leaveRequestsRelations = relations(leaveRequests, ({ one }) => ({
+  user: one(users, {
+    fields: [leaveRequests.userId],
+    references: [users.id],
+  }),
+  approver: one(users, {
+    fields: [leaveRequests.approvedBy],
+    references: [users.id],
+  }),
+}));
+
+export const workSchedulesRelations = relations(workSchedules, ({ one }) => ({
+  user: one(users, {
+    fields: [workSchedules.userId],
+    references: [users.id],
+  }),
+  job: one(jobs, {
+    fields: [workSchedules.jobId],
+    references: [jobs.id],
+  }),
+  creator: one(users, {
+    fields: [workSchedules.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Team Management Types
+export type Role = typeof roles.$inferSelect;
+export type InsertRole = typeof roles.$inferInsert;
+export type Department = typeof departments.$inferSelect;
+export type InsertDepartment = typeof departments.$inferInsert;
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = typeof teamMembers.$inferInsert;
+export type AuditLog = typeof auditLog.$inferSelect;
+export type InsertAuditLog = typeof auditLog.$inferInsert;
+
+// Time Management Types
+export type Timesheet = typeof timesheets.$inferSelect;
+export type InsertTimesheet = typeof timesheets.$inferInsert;
+export type JobTask = typeof jobTasks.$inferSelect;
+export type InsertJobTask = typeof jobTasks.$inferInsert;
+export type TimeClock = typeof timeClocks.$inferSelect;
+export type InsertTimeClock = typeof timeClocks.$inferInsert;
+export type LeaveRequest = typeof leaveRequests.$inferSelect;
+export type InsertLeaveRequest = typeof leaveRequests.$inferInsert;
+export type WorkSchedule = typeof workSchedules.$inferSelect;
+export type InsertWorkSchedule = typeof workSchedules.$inferInsert;

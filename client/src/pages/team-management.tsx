@@ -646,8 +646,8 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
             </SelectTrigger>
             <SelectContent>
               {users.map((user: any) => (
-                <SelectItem key={user.id} value={user.id}>
-                  {user.firstName} {user.lastName} ({user.email})
+                <SelectItem key={user.id} value={user.id.toString()}>
+                  {user.name} ({user.username})
                 </SelectItem>
               ))}
             </SelectContent>

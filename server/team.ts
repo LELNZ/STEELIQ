@@ -119,7 +119,7 @@ export class TeamStorage implements ITeamStorage {
           columns: {
             id: true,
             name: true,
-            email: true,
+            username: true,
           }
         },
         role: true,
@@ -155,7 +155,7 @@ export class TeamStorage implements ITeamStorage {
           columns: {
             id: true,
             name: true,
-            email: true,
+            username: true,
           }
         },
         role: true,
