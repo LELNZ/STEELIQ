@@ -36,60 +36,28 @@ interface UserPreferences {
     autoSaveInterval: number; // minutes
     defaultProject: string;
     defaultEstimationTemplate: string;
-    autoCalculateCoatings: boolean;
     showAdvancedFeatures: boolean;
     confirmDeleteActions: boolean;
-    autoBackupFrequency: number; // hours
+    emailSignature: string;
   };
   display: {
-    unitsSystem: 'metric' | 'imperial';
-    decimalPlaces: number;
-    showTooltips: boolean;
     compactMode: boolean;
+    showTooltips: boolean;
     showGridLines: boolean;
     highlightChanges: boolean;
     animateTransitions: boolean;
+    defaultDashboard: string;
+    sidebarCollapsed: boolean;
   };
-  cutting: {
-    defaultKerf: number; // mm
-    defaultTolerance: number; // mm
-    preferredOptimization: 'speed' | 'material' | 'balanced';
-    autoGenerateLabels: boolean;
-    includeOffcuts: boolean;
-    minimumOffcutLength: number; // mm
-  };
-  materials: {
-    defaultSupplier: string;
-    showStockLevels: boolean;
-    warnLowStock: boolean;
-    autoUpdatePrices: boolean;
-    preferredGrades: string[];
-    showCertificates: boolean;
-  };
-  estimation: {
-    showDetailedBreakdown: boolean;
-    includeContingency: boolean;
-    defaultContingencyRate: number; // %
-    showHourlyRates: boolean;
-    autoSaveProgress: boolean;
-    trackTimeSpent: boolean;
-    showCompetitorAnalysis: boolean;
-  };
-  reporting: {
-    defaultFormat: 'pdf' | 'excel' | 'csv';
-    includeCharts: boolean;
-    showCostBreakdown: boolean;
-    watermarkDocuments: boolean;
-    autoEmailReports: boolean;
-    reportLanguage: string;
-  };
-  mobile: {
-    enableOfflineMode: boolean;
-    syncFrequency: number; // minutes
-    cameraQuality: 'low' | 'medium' | 'high';
-    autoUploadPhotos: boolean;
-    voiceNotes: boolean;
-    gpsTracking: boolean;
+  personalDefaults: {
+    favoriteReports: string[];
+    quickAccessModules: string[];
+    defaultWorkingHours: {
+      start: string; // HH:MM
+      end: string; // HH:MM
+    };
+    breakDuration: number; // minutes
+    overtimeRate: number; // multiplier
   };
   security: {
     sessionTimeout: number; // minutes

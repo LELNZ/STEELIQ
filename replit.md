@@ -161,6 +161,7 @@ This is a comprehensive steel fabrication business management system built for L
 - June 25, 2025: **COMPREHENSIVE TOOLTIPS** - Added detailed information tooltips to all Business Settings labels with practical guidance for steel fabrication costs
 - June 25, 2025: **PAGE SEPARATION** - Separated Business Settings (company-wide OPEX/CAPEX) from User Preferences (personal settings) for clearer navigation
 - June 25, 2025: **USER PREFERENCES EXPANSION** - Created comprehensive 35+ user preference categories covering Display, Workflow, Cutting, Materials, Estimation, Reporting, and Mobile settings for industry-leading customization
+- June 25, 2025: **GLOBAL SETTINGS ARCHITECTURE** - Separated personal user preferences from company-wide global settings following JMS/ERP industry standards with 11 major configuration categories including Company, Fabrication, Quality & Safety, Financial, Integration, and Workflow management
 
 ## User Preferences
 

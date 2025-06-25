@@ -21,6 +21,7 @@ import SupplierContacts from "@/pages/supplier-contacts";
 
 import FinancialDashboard from "@/pages/financial-dashboard";
 import SettingsPage from "@/pages/settings";
+import GlobalSettings from "@/pages/global-settings";
 import UserPreferences from "@/pages/user-preferences";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/suppliers" component={Suppliers} />
       <Route path="/supplier-contacts" component={SupplierContacts} />
       <Route path="/settings" component={SettingsPage} />
+      <Route path="/global-settings" component={GlobalSettings} />
       <Route path="/preferences" component={UserPreferences} />
 
       <Route path="/financial" component={FinancialDashboard} />

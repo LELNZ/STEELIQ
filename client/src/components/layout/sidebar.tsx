@@ -10,6 +10,7 @@ import {
   BarChart3,
   DollarSign,
   Settings,
+  Settings2,
   Users,
   Slice,
   FileText,
@@ -46,6 +47,7 @@ const navigation = [
     name: "Settings",
     items: [
       { name: "Business Settings", href: "/settings", icon: Building2 },
+      { name: "Global Settings", href: "/global-settings", icon: Settings2 },
       { name: "User Preferences", href: "/preferences", icon: Settings },
       { name: "Team Management", href: "/team", icon: Users },
     ],
