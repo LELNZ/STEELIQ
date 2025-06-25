@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calculator, Building, Truck, Settings, TrendingUp } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 
 interface OverheadConfig {
   opexMonthly: {
@@ -47,62 +48,11 @@ export default function OverheadConfiguration({
   onOverheadUpdate 
 }: OverheadConfigurationProps) {
   const [showConfig, setShowConfig] = useState(false);
-  const [config, setConfig] = useState<OverheadConfig>({
-    opexMonthly: {
-      workshopRent: 8000,
-      utilities: 2500,
-      insurance: 1250,
-      administration: 3000,
-      nonBillableStaff: 10000,
-      maintenance: 1500
-    },
-    capexAnnual: {
-      equipmentDepreciation: 50000,
-      vehicleDepreciation: 30000,
-      toolsDepreciation: 14286,
-      softwareLicenses: 12000
-    },
-    projectModifiers: {
-      smallProject: 5,
-      largeProject: -3,
-      siteWork: 8,
-      workshopOnly: -2
-    },
-    annualRevenueTarget: 1500000
-  });
+  const { overheadSettings, calculateOverheadRate } = useBusinessSettings();
 
-  const calculateDynamicOverheadRate = () => {
-    // Calculate annual OPEX
-    const annualOpex = Object.values(config.opexMonthly).reduce((sum, value) => sum + value, 0) * 12;
-    
-    // Calculate annual CAPEX
-    const annualCapex = Object.values(config.capexAnnual).reduce((sum, value) => sum + value, 0);
-    
-    // Base overhead rate
-    const totalOverheads = annualOpex + annualCapex;
-    const baseRate = (totalOverheads / config.annualRevenueTarget) * 100;
-    
-    // Apply project modifiers
-    let adjustedRate = baseRate;
-    
-    if (projectValue < 50000) {
-      adjustedRate += config.projectModifiers.smallProject;
-    } else if (projectValue > 200000) {
-      adjustedRate += config.projectModifiers.largeProject;
-    }
-    
-    if (projectType === 'site') {
-      adjustedRate += config.projectModifiers.siteWork;
-    } else if (projectType === 'workshop') {
-      adjustedRate += config.projectModifiers.workshopOnly;
-    }
-    
-    return Math.round(adjustedRate * 100) / 100;
-  };
-
-  const dynamicRate = calculateDynamicOverheadRate();
-  const annualOpex = Object.values(config.opexMonthly).reduce((sum, value) => sum + value, 0) * 12;
-  const annualCapex = Object.values(config.capexAnnual).reduce((sum, value) => sum + value, 0);
+  const dynamicRate = calculateOverheadRate(projectValue, projectType);
+  const annualOpex = Object.values(overheadSettings.opexMonthly).reduce((sum, value) => sum + value, 0) * 12;
+  const annualCapex = Object.values(overheadSettings.capexAnnual).reduce((sum, value) => sum + value, 0);
 
   return (
     <div className="space-y-4">
@@ -368,15 +318,22 @@ export default function OverheadConfiguration({
                           <p className="text-3xl font-bold text-blue-600">{dynamicRate}%</p>
                         </div>
                         
-                        <Button 
-                          onClick={() => {
-                            onOverheadUpdate(dynamicRate);
-                            setShowConfig(false);
-                          }}
-                          className="w-full"
-                        >
-                          Apply Calculated Rate
-                        </Button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button 
+                            variant="outline"
+                            onClick={() => setShowConfig(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={() => {
+                              onOverheadUpdate(dynamicRate);
+                              setShowConfig(false);
+                            }}
+                          >
+                            Apply Rate
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   </TabsContent>
