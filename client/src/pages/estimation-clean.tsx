@@ -41,6 +41,7 @@ import { MaterialsTab } from "@/components/estimation/materials-tab-clean";
 import PdfAnalysisTab from "@/components/estimation/pdf-analysis-tab";
 import { EnhancedLaborTab } from "@/components/estimation/enhanced-labor-tab";
 import CoatingsTab from "@/components/estimation/coatings-tab";
+import OverheadConfiguration from "@/components/estimation/overhead-configuration";
 
 // Types for estimation system
 interface EstimationProject {
@@ -136,6 +137,9 @@ interface EstimationData {
   overheads: {
     percentage: number;
     amount: number;
+    opexMonthly?: number;
+    capexAnnual?: number;
+    projectModifier?: number;
   };
   margin: {
     percentage: number;
@@ -147,10 +151,11 @@ interface EstimationData {
     equipment: number;
     consumables: number;
     coatings: number;
-    subtotal: number;
+    directCosts: number;
     overheads: number;
     margin: number;
     total: number;
+    grossProfitMargin?: number;
   };
 }
 
@@ -332,6 +337,10 @@ export default function EstimationPage() {
       const marginAmount = directCosts * (estimationData.margin.percentage / 100);
       const total = directCosts + overheadsAmount + marginAmount;
 
+      // Calculate gross profit margin for color coding
+      const grossProfit = overheadsAmount + marginAmount;
+      const grossProfitMargin = total > 0 ? (grossProfit / total) * 100 : 0;
+
       // Always update totals to ensure UI consistency
       const newTotals = {
         materials,
@@ -342,7 +351,8 @@ export default function EstimationPage() {
         directCosts,
         overheads: overheadsAmount,
         margin: marginAmount,
-        total
+        total,
+        grossProfitMargin
       };
       
       // Only update if totals differ to prevent loops
@@ -453,7 +463,7 @@ export default function EstimationPage() {
       equipment: [],
       consumables: [],
       coatings: [],
-      overheads: { percentage: 15, amount: 0 },
+      overheads: { percentage: 20, amount: 0, projectModifier: 0 },
       margin: { percentage: 20, amount: 0 },
       totals: {
         materials: 0,
@@ -461,10 +471,11 @@ export default function EstimationPage() {
         equipment: 0,
         consumables: 0,
         coatings: 0,
-        subtotal: 0,
+        directCosts: 0,
         overheads: 0,
         margin: 0,
-        total: 0
+        total: 0,
+        grossProfitMargin: 0
       }
     };
     setEstimationData(data);
