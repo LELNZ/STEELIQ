@@ -57,6 +57,11 @@ interface MaterialCost {
   leadTime?: number;
   notes?: string;
   aiSuggested?: boolean;
+  // Surface area and weight for coating integration
+  surfaceAreaPerMeter?: number;
+  weightPerMeter?: number;
+  totalSurfaceArea?: number;
+  totalWeight?: number;
 }
 
 interface MaterialsTabProps {
