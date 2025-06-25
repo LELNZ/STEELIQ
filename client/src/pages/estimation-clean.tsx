@@ -326,10 +326,11 @@ export default function EstimationPage() {
       const consumables = estimationData.consumables.reduce((sum, item) => sum + (item.totalCost || 0), 0);
       const coatings = (estimationData.coatings || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
       
-      const subtotal = materials + labor + equipment + consumables + coatings;
-      const overheadsAmount = subtotal * (estimationData.overheads.percentage / 100);
-      const marginAmount = (subtotal + overheadsAmount) * (estimationData.margin.percentage / 100);
-      const total = subtotal + overheadsAmount + marginAmount;
+      // FIXED: Consistent calculation logic
+      const directCosts = materials + labor + equipment + consumables + coatings;
+      const overheadsAmount = directCosts * (estimationData.overheads.percentage / 100);
+      const marginAmount = directCosts * (estimationData.margin.percentage / 100);
+      const total = directCosts + overheadsAmount + marginAmount;
 
       // Always update totals to ensure UI consistency
       const newTotals = {
@@ -338,7 +339,7 @@ export default function EstimationPage() {
         equipment,
         consumables,
         coatings,
-        subtotal,
+        directCosts,
         overheads: overheadsAmount,
         margin: marginAmount,
         total
@@ -1494,12 +1495,13 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
     const labor = estimationData.labor.reduce((sum, item) => sum + (item.totalCost || 0), 0);
     const equipment = estimationData.equipment.reduce((sum, item) => sum + (item.totalCost || 0), 0);
     const consumables = estimationData.consumables.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+    const coatings = (estimationData.coatings || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
     
-    const directCosts = materials + labor + equipment + consumables;
+    // FIXED: Include coatings and use consistent calculation logic
+    const directCosts = materials + labor + equipment + consumables + coatings;
     const overheads = directCosts * (estimationData.overheads.percentage / 100);
-    const totalCosts = directCosts + overheads;
-    const margin = totalCosts * (estimationData.margin.percentage / 100);
-    const revenueBeforeGST = totalCosts + margin;
+    const margin = directCosts * (estimationData.margin.percentage / 100);
+    const revenueBeforeGST = directCosts + overheads + margin;
     
     // New Zealand GST is 15%
     const gstAmount = revenueBeforeGST * 0.15;
@@ -1529,10 +1531,10 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
       materials, 
       labor, 
       equipment, 
-      consumables, 
+      consumables,
+      coatings,
       directCosts,
       overheads, 
-      totalCosts,
       margin, 
       revenueBeforeGST,
       gstAmount,
