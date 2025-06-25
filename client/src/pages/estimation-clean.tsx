@@ -42,6 +42,7 @@ import PdfAnalysisTab from "@/components/estimation/pdf-analysis-tab";
 import { EnhancedLaborTab } from "@/components/estimation/enhanced-labor-tab";
 import CoatingsTab from "@/components/estimation/coatings-tab";
 import OverheadConfiguration from "@/components/estimation/overhead-configuration";
+import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 
 // Types for estimation system
 interface EstimationProject {
@@ -1770,24 +1771,10 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <div className={`inline-flex items-center px-4 py-2 rounded-lg border-2 ${
-                totals.grossProfitPercentage < 20 ? 'text-red-600 bg-red-50 border-red-200' :
-                totals.grossProfitPercentage < 30 ? 'text-orange-600 bg-orange-50 border-orange-200' :
-                'text-green-600 bg-green-50 border-green-200'
-              }`}>
-                <div className="text-center">
-                  <p className="text-2xl font-bold">{totals.grossProfitPercentage.toFixed(1)}%</p>
-                  <p className="text-xs font-medium">
-                    {totals.grossProfitPercentage < 20 ? 'Below Sustainable' :
-                     totals.grossProfitPercentage < 30 ? 'Acceptable' : 'Healthy'}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground">
-                <span className="text-red-600">Red: &lt;20%</span> | 
-                <span className="text-orange-600 mx-1">Orange: 20-29%</span> | 
-                <span className="text-green-600">Green: 30%+</span>
-              </div>
+              <ProjectMarginIndicator 
+                projectValue={totals.revenueBeforeGST}
+                actualMargin={totals.grossProfitPercentage}
+              />
             </div>
             
             <div className="text-center">

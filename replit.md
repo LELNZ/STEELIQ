@@ -156,6 +156,8 @@ This is a comprehensive steel fabrication business management system built for L
 - June 25, 2025: **INTEGRATION** - Implemented surface area and weight flow from materials to coatings for accurate pricing
 - June 25, 2025: **CLEANUP** - Removed all simulation data, fixed persistent demo projects, database now clean for real testing
 - June 25, 2025: **ACCURACY** - Unified calculation logic across entire estimation system, fixed coatings integration
+- June 25, 2025: **SETTINGS ARCHITECTURE** - Created dedicated Settings page for OPEX/CAPEX configuration and project-specific margin targets
+- June 25, 2025: **MARGIN ENHANCEMENT** - Implemented project size-based margin color coding (Small: 20-30%, Medium: 15-25%, Large: 10-20%) with user-editable thresholds
 
 ## User Preferences
 
