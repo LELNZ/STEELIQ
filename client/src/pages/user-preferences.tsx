@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { User, Bell, Palette, Globe, Save, RotateCcw, Info, Shield, Clock, Package, Calculator, FileText, Slice } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -98,13 +99,23 @@ export default function UserPreferences() {
       emailSignature: ''
     },
     display: {
-      unitsSystem: 'metric',
-      decimalPlaces: 2,
-      showTooltips: true,
       compactMode: false,
+      showTooltips: true,
       showGridLines: true,
       highlightChanges: true,
-      animateTransitions: true
+      animateTransitions: true,
+      defaultDashboard: '',
+      sidebarCollapsed: false
+    },
+    personalDefaults: {
+      favoriteReports: [],
+      quickAccessModules: ['estimation', 'materials', 'cutting'],
+      defaultWorkingHours: {
+        start: '07:00',
+        end: '17:00'
+      },
+      breakDuration: 60,
+      overtimeRate: 1.5
     },
     cutting: {
       defaultKerf: 2.4,
@@ -203,13 +214,13 @@ export default function UserPreferences() {
         overtimeRate: 1.5
       },
       display: {
-        unitsSystem: 'metric',
-        decimalPlaces: 2,
-        showTooltips: true,
         compactMode: false,
+        showTooltips: true,
         showGridLines: true,
         highlightChanges: true,
-        animateTransitions: true
+        animateTransitions: true,
+        defaultDashboard: '',
+        sidebarCollapsed: false
       },
       cutting: {
         defaultKerf: 2.4,
