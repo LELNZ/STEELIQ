@@ -1,6 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { businessSettingsStorage } from "./businessSettings";
+import { laborRatesStorage } from "./laborRates";
+import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
+import { timeManagementStorage } from "./timeManagement";
 import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';

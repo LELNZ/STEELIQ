@@ -80,7 +80,7 @@ export class TeamStorage implements ITeamStorage {
           columns: {
             id: true,
             name: true,
-            email: true,
+            username: true,
           }
         }
       },
@@ -212,7 +212,7 @@ export class TeamStorage implements ITeamStorage {
     return await db.select({
       id: users.id,
       name: users.name,
-      email: users.email,
+      username: users.username,
       role: users.role,
       department: users.department,
       isActive: users.isActive,

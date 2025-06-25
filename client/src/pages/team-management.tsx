@@ -41,7 +41,7 @@ interface Department {
   head?: {
     id: number;
     name: string;
-    email: string;
+    username: string;
   };
   memberCount?: number;
 }
@@ -62,7 +62,7 @@ interface TeamMember {
   user: {
     id: number;
     name: string;
-    email: string;
+    username: string;
   };
   role: Role;
   department?: Department;
@@ -284,7 +284,7 @@ export default function TeamManagement() {
             </div>
             <div>
               <h3 className="font-medium">{member.user.name}</h3>
-              <p className="text-sm text-muted-foreground">{member.user.email}</p>
+              <p className="text-sm text-muted-foreground">{member.user.username}</p>
               <div className="flex items-center space-x-2 mt-1">
                 <Badge variant="outline">{member.role.name}</Badge>
                 {member.department && (
@@ -627,8 +627,11 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
     onSubmit({
       ...formData,
       id: member?.id,
-      hourlyRate: formData.hourlyRate ? parseFloat(formData.hourlyRate) : null,
-      overtimeRate: formData.overtimeRate ? parseFloat(formData.overtimeRate) : null,
+      userId: parseInt(formData.userId),
+      roleId: parseInt(formData.roleId.toString()),
+      departmentId: formData.departmentId && formData.departmentId !== "0" ? parseInt(formData.departmentId.toString()) : undefined,
+      hourlyRate: formData.hourlyRate ? parseFloat(formData.hourlyRate) : undefined,
+      overtimeRate: formData.overtimeRate ? parseFloat(formData.overtimeRate) : undefined,
     });
   };
 
@@ -669,12 +672,12 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
 
         <div>
           <Label htmlFor="departmentId">Department</Label>
-          <Select value={formData.departmentId?.toString() || ""} onValueChange={(value) => setFormData({...formData, departmentId: value ? parseInt(value) : null})}>
+          <Select value={formData.departmentId?.toString() || ""} onValueChange={(value) => setFormData({...formData, departmentId: value ? parseInt(value) : undefined})}>
             <SelectTrigger>
               <SelectValue placeholder="Select department" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No Department</SelectItem>
+              <SelectItem value="0">No Department</SelectItem>
               {departments.map((dept: Department) => (
                 <SelectItem key={dept.id} value={dept.id.toString()}>
                   {dept.name}
@@ -877,6 +880,7 @@ function DepartmentForm({ department, users, onSubmit, isLoading }: any) {
     onSubmit({
       ...formData,
       id: department?.id,
+      headUserId: formData.headUserId && formData.headUserId !== "0" ? parseInt(formData.headUserId) : undefined,
     });
   };
 
@@ -911,7 +915,7 @@ function DepartmentForm({ department, users, onSubmit, isLoading }: any) {
             <SelectValue placeholder="Select department head" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">No Head Assigned</SelectItem>
+            <SelectItem value="0">No Head Assigned</SelectItem>
             {users.map((user: any) => (
               <SelectItem key={user.id} value={user.id.toString()}>
                 {user.name}
