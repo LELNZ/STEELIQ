@@ -797,7 +797,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Add contingency to estimates by default</p>
               </div>
               <Switch
-                checked={preferences.estimation.includeContingency}
+                checked={preferences.estimation?.includeContingency || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   estimation: { ...preferences.estimation, includeContingency: checked }
@@ -810,7 +810,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Display labor rates in estimates</p>
               </div>
               <Switch
-                checked={preferences.estimation.showHourlyRates}
+                checked={preferences.estimation?.showHourlyRates || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   estimation: { ...preferences.estimation, showHourlyRates: checked }
@@ -823,7 +823,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Monitor time spent on estimation</p>
               </div>
               <Switch
-                checked={preferences.estimation.trackTimeSpent}
+                checked={preferences.estimation?.trackTimeSpent || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   estimation: { ...preferences.estimation, trackTimeSpent: checked }
@@ -845,7 +845,7 @@ export default function UserPreferences() {
             <div>
               <Label>Default Export Format</Label>
               <Select 
-                value={preferences.reporting.defaultFormat} 
+                value={preferences.reporting?.defaultFormat || 'pdf'} 
                 onValueChange={(value: 'pdf' | 'excel' | 'csv') => setPreferences({
                   ...preferences,
                   reporting: { ...preferences.reporting, defaultFormat: value }
@@ -867,7 +867,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Add charts and graphs to reports</p>
               </div>
               <Switch
-                checked={preferences.reporting.includeCharts}
+                checked={preferences.reporting?.includeCharts || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   reporting: { ...preferences.reporting, includeCharts: checked }
@@ -880,7 +880,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Include detailed cost analysis</p>
               </div>
               <Switch
-                checked={preferences.reporting.showCostBreakdown}
+                checked={preferences.reporting?.showCostBreakdown || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   reporting: { ...preferences.reporting, showCostBreakdown: checked }
@@ -893,7 +893,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Add company watermark to exports</p>
               </div>
               <Switch
-                checked={preferences.reporting.watermarkDocuments}
+                checked={preferences.reporting?.watermarkDocuments || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   reporting: { ...preferences.reporting, watermarkDocuments: checked }
