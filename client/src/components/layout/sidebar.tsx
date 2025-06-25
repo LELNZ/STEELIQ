@@ -17,7 +17,8 @@ import {
   Building2,
   Upload,
   Calculator,
-  Bot
+  Bot,
+  Timer
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 

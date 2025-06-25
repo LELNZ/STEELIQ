@@ -1884,6 +1884,212 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Time Management Routes
+  
+  // Time Clocks
+  app.post("/api/time/clock", async (req, res) => {
+    try {
+      const clock = await timeManagementStorage.createTimeClock(req.body);
+      res.json(clock);
+    } catch (error) {
+      console.error("Error creating time clock:", error);
+      res.status(500).json({ error: "Failed to create time clock" });
+    }
+  });
+
+  app.get("/api/time/clocks/today", async (req, res) => {
+    try {
+      const userId = parseInt(req.query.userId as string) || 1; // TODO: Get from auth
+      const clocks = await timeManagementStorage.getTodayTimeClocks(userId);
+      res.json(clocks);
+    } catch (error) {
+      console.error("Error fetching today's clocks:", error);
+      res.status(500).json({ error: "Failed to fetch today's clocks" });
+    }
+  });
+
+  // Timesheets
+  app.get("/api/time/timesheets/week", async (req, res) => {
+    try {
+      const userId = parseInt(req.query.userId as string) || 1; // TODO: Get from auth
+      const weekStart = req.query.weekStart as string;
+      
+      if (!weekStart) {
+        return res.status(400).json({ error: "Week start date is required" });
+      }
+      
+      const startDate = new Date(weekStart);
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      
+      const timesheets = await timeManagementStorage.getTimesheets(userId, startDate, endDate);
+      res.json(timesheets);
+    } catch (error) {
+      console.error("Error fetching week timesheets:", error);
+      res.status(500).json({ error: "Failed to fetch week timesheets" });
+    }
+  });
+
+  app.post("/api/time/timesheets", async (req, res) => {
+    try {
+      const timesheet = await timeManagementStorage.createTimesheet(req.body);
+      res.json(timesheet);
+    } catch (error) {
+      console.error("Error creating timesheet:", error);
+      res.status(500).json({ error: "Failed to create timesheet" });
+    }
+  });
+
+  app.put("/api/time/timesheets/:id", async (req, res) => {
+    try {
+      const timesheet = await timeManagementStorage.updateTimesheet(parseInt(req.params.id), req.body);
+      res.json(timesheet);
+    } catch (error) {
+      console.error("Error updating timesheet:", error);
+      res.status(500).json({ error: "Failed to update timesheet" });
+    }
+  });
+
+  app.post("/api/time/timesheets/:id/submit", async (req, res) => {
+    try {
+      const userId = req.body.userId || 1; // TODO: Get from auth
+      const timesheet = await timeManagementStorage.submitTimesheet(parseInt(req.params.id), userId);
+      res.json(timesheet);
+    } catch (error) {
+      console.error("Error submitting timesheet:", error);
+      res.status(500).json({ error: "Failed to submit timesheet" });
+    }
+  });
+
+  app.post("/api/time/timesheets/:id/approve", async (req, res) => {
+    try {
+      const approvedBy = req.body.approvedBy || 1; // TODO: Get from auth
+      const timesheet = await timeManagementStorage.approveTimesheet(parseInt(req.params.id), approvedBy);
+      res.json(timesheet);
+    } catch (error) {
+      console.error("Error approving timesheet:", error);
+      res.status(500).json({ error: "Failed to approve timesheet" });
+    }
+  });
+
+  // Job Tasks
+  app.get("/api/time/tasks/assigned", async (req, res) => {
+    try {
+      const userId = parseInt(req.query.userId as string) || 1; // TODO: Get from auth
+      const tasks = await timeManagementStorage.getJobTasks(userId);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching assigned tasks:", error);
+      res.status(500).json({ error: "Failed to fetch assigned tasks" });
+    }
+  });
+
+  app.get("/api/time/tasks", async (req, res) => {
+    try {
+      const tasks = await timeManagementStorage.getJobTasks();
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      res.status(500).json({ error: "Failed to fetch tasks" });
+    }
+  });
+
+  app.post("/api/time/tasks", async (req, res) => {
+    try {
+      const task = await timeManagementStorage.createJobTask(req.body);
+      res.json(task);
+    } catch (error) {
+      console.error("Error creating task:", error);
+      res.status(500).json({ error: "Failed to create task" });
+    }
+  });
+
+  app.put("/api/time/tasks/:id", async (req, res) => {
+    try {
+      const task = await timeManagementStorage.updateJobTask(parseInt(req.params.id), req.body);
+      res.json(task);
+    } catch (error) {
+      console.error("Error updating task:", error);
+      res.status(500).json({ error: "Failed to update task" });
+    }
+  });
+
+  app.post("/api/time/tasks/:id/assign", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      const task = await timeManagementStorage.assignTask(parseInt(req.params.id), userId);
+      res.json(task);
+    } catch (error) {
+      console.error("Error assigning task:", error);
+      res.status(500).json({ error: "Failed to assign task" });
+    }
+  });
+
+  // Leave Requests
+  app.get("/api/time/leave-requests", async (req, res) => {
+    try {
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const requests = await timeManagementStorage.getLeaveRequests(userId);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching leave requests:", error);
+      res.status(500).json({ error: "Failed to fetch leave requests" });
+    }
+  });
+
+  app.post("/api/time/leave-requests", async (req, res) => {
+    try {
+      const request = await timeManagementStorage.createLeaveRequest(req.body);
+      res.json(request);
+    } catch (error) {
+      console.error("Error creating leave request:", error);
+      res.status(500).json({ error: "Failed to create leave request" });
+    }
+  });
+
+  app.post("/api/time/leave-requests/:id/approve", async (req, res) => {
+    try {
+      const { approvedBy, approved } = req.body;
+      const request = await timeManagementStorage.approveLeaveRequest(
+        parseInt(req.params.id), 
+        approvedBy, 
+        approved
+      );
+      res.json(request);
+    } catch (error) {
+      console.error("Error processing leave request:", error);
+      res.status(500).json({ error: "Failed to process leave request" });
+    }
+  });
+
+  // Analytics
+  app.get("/api/time/analytics/user-summary", async (req, res) => {
+    try {
+      const userId = parseInt(req.query.userId as string) || 1;
+      const startDate = new Date(req.query.startDate as string);
+      const endDate = new Date(req.query.endDate as string);
+      
+      const summary = await timeManagementStorage.getUserHoursSummary(userId, startDate, endDate);
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching user summary:", error);
+      res.status(500).json({ error: "Failed to fetch user summary" });
+    }
+  });
+
+  app.get("/api/time/analytics/team-productivity", async (req, res) => {
+    try {
+      const startDate = new Date(req.query.startDate as string);
+      const endDate = new Date(req.query.endDate as string);
+      
+      const productivity = await timeManagementStorage.getTeamProductivity(startDate, endDate);
+      res.json(productivity);
+    } catch (error) {
+      console.error("Error fetching team productivity:", error);
+      res.status(500).json({ error: "Failed to fetch team productivity" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

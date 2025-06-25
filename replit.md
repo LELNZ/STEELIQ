@@ -162,6 +162,8 @@ This is a comprehensive steel fabrication business management system built for L
 - June 25, 2025: **PAGE SEPARATION** - Separated Business Settings (company-wide OPEX/CAPEX) from User Preferences (personal settings) for clearer navigation
 - June 25, 2025: **USER PREFERENCES EXPANSION** - Created comprehensive 35+ user preference categories covering Display, Workflow, Cutting, Materials, Estimation, Reporting, and Mobile settings for industry-leading customization
 - June 25, 2025: **GLOBAL SETTINGS ARCHITECTURE** - Separated personal user preferences from company-wide global settings following JMS/ERP industry standards with 11 major configuration categories including Company, Fabrication, Quality & Safety, Financial, Integration, and Workflow management
+- June 25, 2025: **TEAM MANAGEMENT SYSTEM** - Implemented comprehensive RBAC with customizable roles, departments, and team member management with industry-standard security
+- June 25, 2025: **TIME MANAGEMENT SYSTEM** - Created mobile-first time tracking with GPS location, offline sync, timesheet automation, job task allocation, and Employment Hero-style workflow for workshop and site workers
 
 ## User Preferences
 
