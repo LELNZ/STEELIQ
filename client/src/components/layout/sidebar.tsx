@@ -50,7 +50,7 @@ const navigation = [
       { name: "Global Settings", href: "/global-settings", icon: Settings2 },
       { name: "Labor Rates", href: "/labor-rates", icon: Users },
       { name: "User Preferences", href: "/preferences", icon: Settings },
-      { name: "Team Management", href: "/team", icon: Users },
+      { name: "Team Management", href: "/team-management", icon: Users },
     ],
   },
 ];

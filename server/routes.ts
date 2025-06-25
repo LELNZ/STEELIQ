@@ -1732,6 +1732,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Team Management Routes
+  
+  // Roles
+  app.get("/api/team/roles", async (req, res) => {
+    try {
+      const roles = await teamStorage.getRoles();
+      res.json(roles);
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      res.status(500).json({ error: "Failed to fetch roles" });
+    }
+  });
+
+  app.post("/api/team/roles", async (req, res) => {
+    try {
+      const role = await teamStorage.createRole(req.body);
+      res.json(role);
+    } catch (error) {
+      console.error("Error creating role:", error);
+      res.status(500).json({ error: "Failed to create role" });
+    }
+  });
+
+  app.put("/api/team/roles/:id", async (req, res) => {
+    try {
+      const role = await teamStorage.updateRole(parseInt(req.params.id), req.body);
+      res.json(role);
+    } catch (error) {
+      console.error("Error updating role:", error);
+      res.status(500).json({ error: "Failed to update role" });
+    }
+  });
+
+  app.delete("/api/team/roles/:id", async (req, res) => {
+    try {
+      await teamStorage.deleteRole(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting role:", error);
+      res.status(500).json({ error: "Failed to delete role" });
+    }
+  });
+
+  // Departments
+  app.get("/api/team/departments", async (req, res) => {
+    try {
+      const departments = await teamStorage.getDepartments();
+      res.json(departments);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      res.status(500).json({ error: "Failed to fetch departments" });
+    }
+  });
+
+  app.post("/api/team/departments", async (req, res) => {
+    try {
+      const department = await teamStorage.createDepartment(req.body);
+      res.json(department);
+    } catch (error) {
+      console.error("Error creating department:", error);
+      res.status(500).json({ error: "Failed to create department" });
+    }
+  });
+
+  app.put("/api/team/departments/:id", async (req, res) => {
+    try {
+      const department = await teamStorage.updateDepartment(parseInt(req.params.id), req.body);
+      res.json(department);
+    } catch (error) {
+      console.error("Error updating department:", error);
+      res.status(500).json({ error: "Failed to update department" });
+    }
+  });
+
+  app.delete("/api/team/departments/:id", async (req, res) => {
+    try {
+      await teamStorage.deleteDepartment(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting department:", error);
+      res.status(500).json({ error: "Failed to delete department" });
+    }
+  });
+
+  // Team Members
+  app.get("/api/team/members", async (req, res) => {
+    try {
+      const members = await teamStorage.getTeamMembers();
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ error: "Failed to fetch team members" });
+    }
+  });
+
+  app.post("/api/team/members", async (req, res) => {
+    try {
+      const member = await teamStorage.createTeamMember(req.body);
+      res.json(member);
+    } catch (error) {
+      console.error("Error creating team member:", error);
+      res.status(500).json({ error: "Failed to create team member" });
+    }
+  });
+
+  app.put("/api/team/members/:id", async (req, res) => {
+    try {
+      const member = await teamStorage.updateTeamMember(parseInt(req.params.id), req.body);
+      res.json(member);
+    } catch (error) {
+      console.error("Error updating team member:", error);
+      res.status(500).json({ error: "Failed to update team member" });
+    }
+  });
+
+  app.delete("/api/team/members/:id", async (req, res) => {
+    try {
+      await teamStorage.deleteTeamMember(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting team member:", error);
+      res.status(500).json({ error: "Failed to delete team member" });
+    }
+  });
+
+  // Users for assignment
+  app.get("/api/users", async (req, res) => {
+    try {
+      const users = await teamStorage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  // Initialize default system roles
+  app.post("/api/team/init-default-roles", async (req, res) => {
+    try {
+      const existingRoles = await teamStorage.getRoles();
+      if (existingRoles.length === 0) {
+        for (const roleData of DEFAULT_SYSTEM_ROLES) {
+          await teamStorage.createRole(roleData);
+        }
+      }
+      res.json({ success: true, message: "Default roles initialized" });
+    } catch (error) {
+      console.error("Error initializing default roles:", error);
+      res.status(500).json({ error: "Failed to initialize default roles" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

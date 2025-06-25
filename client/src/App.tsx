@@ -24,6 +24,7 @@ import SettingsPage from "@/pages/settings";
 import GlobalSettings from "@/pages/global-settings";
 import UserPreferences from "@/pages/user-preferences";
 import LaborRates from "@/pages/labor-rates";
+import TeamManagement from "@/pages/team-management";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
 
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/settings" component={SettingsPage} />
       <Route path="/global-settings" component={GlobalSettings} />
       <Route path="/labor-rates" component={LaborRates} />
+      <Route path="/team-management" component={TeamManagement} />
       <Route path="/preferences" component={UserPreferences} />
 
       <Route path="/financial" component={FinancialDashboard} />
