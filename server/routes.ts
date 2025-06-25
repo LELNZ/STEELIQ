@@ -1626,7 +1626,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(projects);
     } catch (error) {
       console.error("Error fetching estimation projects:", error);
-      res.status(500).json({ error: "Failed to fetch estimation projects" });
+      res.json([]);
     }
   });
 
