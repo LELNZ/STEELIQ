@@ -160,6 +160,7 @@ This is a comprehensive steel fabrication business management system built for L
 - June 25, 2025: **MARGIN ENHANCEMENT** - Implemented project size-based margin color coding (Small: 20-30%, Medium: 15-25%, Large: 10-20%) with user-editable thresholds
 - June 25, 2025: **COMPREHENSIVE TOOLTIPS** - Added detailed information tooltips to all Business Settings labels with practical guidance for steel fabrication costs
 - June 25, 2025: **PAGE SEPARATION** - Separated Business Settings (company-wide OPEX/CAPEX) from User Preferences (personal settings) for clearer navigation
+- June 25, 2025: **USER PREFERENCES EXPANSION** - Created comprehensive 35+ user preference categories covering Display, Workflow, Cutting, Materials, Estimation, Reporting, and Mobile settings for industry-leading customization
 
 ## User Preferences
 
