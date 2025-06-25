@@ -448,7 +448,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Receive notifications via email</p>
               </div>
               <Switch
-                checked={preferences.notifications.emailNotifications}
+                checked={preferences.notifications?.emailNotifications || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   notifications: { ...preferences.notifications, emailNotifications: checked }
@@ -461,7 +461,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Alert when inventory is low</p>
               </div>
               <Switch
-                checked={preferences.notifications.lowStockAlerts}
+                checked={preferences.notifications?.lowStockAlerts || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   notifications: { ...preferences.notifications, lowStockAlerts: checked }
@@ -474,7 +474,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Notifications for job progress</p>
               </div>
               <Switch
-                checked={preferences.notifications.jobStatusUpdates}
+                checked={preferences.notifications?.jobStatusUpdates || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   notifications: { ...preferences.notifications, jobStatusUpdates: checked }
@@ -487,7 +487,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Reminders for pending quotes</p>
               </div>
               <Switch
-                checked={preferences.notifications.quoteReminders}
+                checked={preferences.notifications?.quoteReminders || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   notifications: { ...preferences.notifications, quoteReminders: checked }
@@ -608,7 +608,7 @@ export default function UserPreferences() {
                 type="number"
                 min="1"
                 max="60"
-                value={preferences.workflow.autoSaveInterval}
+                value={preferences.workflow?.autoSaveInterval || 10}
                 onChange={(e) => setPreferences({
                   ...preferences,
                   workflow: { ...preferences.workflow, autoSaveInterval: parseInt(e.target.value) || 10 }
@@ -642,7 +642,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Display advanced tools and options</p>
               </div>
               <Switch
-                checked={preferences.workflow.showAdvancedFeatures}
+                checked={preferences.workflow?.showAdvancedFeatures || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   workflow: { ...preferences.workflow, showAdvancedFeatures: checked }
@@ -655,7 +655,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Ask for confirmation before deleting</p>
               </div>
               <Switch
-                checked={preferences.workflow.confirmDeleteActions}
+                checked={preferences.workflow?.confirmDeleteActions || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   workflow: { ...preferences.workflow, confirmDeleteActions: checked }
@@ -706,7 +706,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Display current inventory levels</p>
               </div>
               <Switch
-                checked={preferences.materials.showStockLevels}
+                checked={preferences.materials?.showStockLevels || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   materials: { ...preferences.materials, showStockLevels: checked }
@@ -719,7 +719,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Alert when materials are running low</p>
               </div>
               <Switch
-                checked={preferences.materials.warnLowStock}
+                checked={preferences.materials?.warnLowStock || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   materials: { ...preferences.materials, warnLowStock: checked }
@@ -732,7 +732,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Automatically fetch latest supplier prices</p>
               </div>
               <Switch
-                checked={preferences.materials.autoUpdatePrices}
+                checked={preferences.materials?.autoUpdatePrices || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   materials: { ...preferences.materials, autoUpdatePrices: checked }
@@ -745,7 +745,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Display mill certificates and heat numbers</p>
               </div>
               <Switch
-                checked={preferences.materials.showCertificates}
+                checked={preferences.materials?.showCertificates || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   materials: { ...preferences.materials, showCertificates: checked }
@@ -771,7 +771,7 @@ export default function UserPreferences() {
                 step="0.1"
                 min="0"
                 max="50"
-                value={preferences.estimation.defaultContingencyRate}
+                value={preferences.estimation?.defaultContingencyRate || 5}
                 onChange={(e) => setPreferences({
                   ...preferences,
                   estimation: { ...preferences.estimation, defaultContingencyRate: parseFloat(e.target.value) || 5 }
@@ -784,7 +784,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Display itemized cost details</p>
               </div>
               <Switch
-                checked={preferences.estimation.showDetailedBreakdown}
+                checked={preferences.estimation?.showDetailedBreakdown || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   estimation: { ...preferences.estimation, showDetailedBreakdown: checked }
