@@ -189,7 +189,7 @@ export default function UserPreferences() {
         autoSaveInterval: 10,
         defaultProject: '',
         defaultEstimationTemplate: '',
-        autoCalculateCoatings: true,
+
         showAdvancedFeatures: true,
         confirmDeleteActions: true,
         autoBackupFrequency: 24
@@ -488,40 +488,22 @@ export default function UserPreferences() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Units System</Label>
+              <Label>Default Dashboard</Label>
               <Select 
-                value={preferences.display.unitsSystem} 
-                onValueChange={(value: 'metric' | 'imperial') => setPreferences({
-                  ...preferences,
-                  display: { ...preferences.display, unitsSystem: value }
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="metric">Metric (mm, kg, m²)</SelectItem>
-                  <SelectItem value="imperial">Imperial (inches, lbs, ft²)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Decimal Places</Label>
-              <Select 
-                value={preferences.display.decimalPlaces.toString()} 
+                value={preferences.display.defaultDashboard} 
                 onValueChange={(value) => setPreferences({
                   ...preferences,
-                  display: { ...preferences.display, decimalPlaces: parseInt(value) }
+                  display: { ...preferences.display, defaultDashboard: value }
                 })}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select default dashboard" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">0 (whole numbers)</SelectItem>
-                  <SelectItem value="1">1 decimal place</SelectItem>
-                  <SelectItem value="2">2 decimal places</SelectItem>
-                  <SelectItem value="3">3 decimal places</SelectItem>
+                  <SelectItem value="overview">Overview Dashboard</SelectItem>
+                  <SelectItem value="estimation">Estimation Dashboard</SelectItem>
+                  <SelectItem value="financial">Financial Dashboard</SelectItem>
+                  <SelectItem value="projects">Project Dashboard</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -553,14 +535,27 @@ export default function UserPreferences() {
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Highlight Changes</Label>
-                <p className="text-xs text-muted-foreground">Highlight recently modified data</p>
+                <Label>Sidebar Collapsed</Label>
+                <p className="text-xs text-muted-foreground">Start with collapsed sidebar</p>
               </div>
               <Switch
-                checked={preferences.display.highlightChanges}
+                checked={preferences.display.sidebarCollapsed}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
-                  display: { ...preferences.display, highlightChanges: checked }
+                  display: { ...preferences.display, sidebarCollapsed: checked }
+                })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Animate Transitions</Label>
+                <p className="text-xs text-muted-foreground">Enable smooth animations</p>
+              </div>
+              <Switch
+                checked={preferences.display.animateTransitions}
+                onCheckedChange={(checked) => setPreferences({
+                  ...preferences,
+                  display: { ...preferences.display, animateTransitions: checked }
                 })}
               />
             </div>
@@ -602,31 +597,26 @@ export default function UserPreferences() {
               />
             </div>
             <div>
-              <Label>Auto-backup Frequency (hours)</Label>
-              <Input
-                type="number"
-                min="1"
-                max="168"
-                value={preferences.workflow.autoBackupFrequency}
-                onChange={(e) => setPreferences({
+              <Label>Default Estimation Template</Label>
+              <Select 
+                value={preferences.workflow.defaultEstimationTemplate} 
+                onValueChange={(value) => setPreferences({
                   ...preferences,
-                  workflow: { ...preferences.workflow, autoBackupFrequency: parseInt(e.target.value) || 24 }
+                  workflow: { ...preferences.workflow, defaultEstimationTemplate: value }
                 })}
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select default template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard Steel Fabrication</SelectItem>
+                  <SelectItem value="structural">Structural Work</SelectItem>
+                  <SelectItem value="maintenance">Maintenance & Repair</SelectItem>
+                  <SelectItem value="custom">Custom Template</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Auto-calculate Coatings</Label>
-                <p className="text-xs text-muted-foreground">Automatically calculate coating requirements</p>
-              </div>
-              <Switch
-                checked={preferences.workflow.autoCalculateCoatings}
-                onCheckedChange={(checked) => setPreferences({
-                  ...preferences,
-                  workflow: { ...preferences.workflow, autoCalculateCoatings: checked }
-                })}
-              />
-            </div>
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Show Advanced Features</Label>
@@ -658,100 +648,30 @@ export default function UserPreferences() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Cutting Optimization */}
+        {/* Email Signature */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Slice className="w-5 h-5 mr-2" />
-              Cutting Optimization
+              <FileText className="w-5 h-5 mr-2" />
+              Email Signature
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Default Kerf Width (mm)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                min="0"
-                value={preferences.cutting.defaultKerf}
+              <Label>Email Signature</Label>
+              <Textarea
+                value={preferences.workflow.emailSignature}
                 onChange={(e) => setPreferences({
                   ...preferences,
-                  cutting: { ...preferences.cutting, defaultKerf: parseFloat(e.target.value) || 2.4 }
+                  workflow: { ...preferences.workflow, emailSignature: e.target.value }
                 })}
-              />
-            </div>
-            <div>
-              <Label>Default Tolerance (mm)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                min="0"
-                value={preferences.cutting.defaultTolerance}
-                onChange={(e) => setPreferences({
-                  ...preferences,
-                  cutting: { ...preferences.cutting, defaultTolerance: parseFloat(e.target.value) || 0.5 }
-                })}
-              />
-            </div>
-            <div>
-              <Label>Preferred Optimization</Label>
-              <Select 
-                value={preferences.cutting.preferredOptimization} 
-                onValueChange={(value: 'speed' | 'material' | 'balanced') => setPreferences({
-                  ...preferences,
-                  cutting: { ...preferences.cutting, preferredOptimization: value }
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="speed">Speed (faster calculation)</SelectItem>
-                  <SelectItem value="material">Material (minimize waste)</SelectItem>
-                  <SelectItem value="balanced">Balanced (speed + efficiency)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Minimum Offcut Length (mm)</Label>
-              <Input
-                type="number"
-                min="0"
-                value={preferences.cutting.minimumOffcutLength}
-                onChange={(e) => setPreferences({
-                  ...preferences,
-                  cutting: { ...preferences.cutting, minimumOffcutLength: parseInt(e.target.value) || 500 }
-                })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Auto Generate Labels</Label>
-                <p className="text-xs text-muted-foreground">Automatically create QR codes for cuts</p>
-              </div>
-              <Switch
-                checked={preferences.cutting.autoGenerateLabels}
-                onCheckedChange={(checked) => setPreferences({
-                  ...preferences,
-                  cutting: { ...preferences.cutting, autoGenerateLabels: checked }
-                })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Include Offcuts</Label>
-                <p className="text-xs text-muted-foreground">Track reusable offcut pieces</p>
-              </div>
-              <Switch
-                checked={preferences.cutting.includeOffcuts}
-                onCheckedChange={(checked) => setPreferences({
-                  ...preferences,
-                  cutting: { ...preferences.cutting, includeOffcuts: checked }
-                })}
+                placeholder="Your professional email signature..."
+                rows={6}
               />
             </div>
           </CardContent>
         </Card>
+      </div>
 
         {/* Materials & Inventory */}
         <Card>
