@@ -532,7 +532,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Display helpful tooltips throughout the app</p>
               </div>
               <Switch
-                checked={preferences.display.showTooltips}
+                checked={preferences.display?.showTooltips || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   display: { ...preferences.display, showTooltips: checked }
@@ -545,7 +545,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Show more data in less space</p>
               </div>
               <Switch
-                checked={preferences.display.compactMode}
+                checked={preferences.display?.compactMode || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   display: { ...preferences.display, compactMode: checked }
@@ -558,7 +558,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Start with collapsed sidebar</p>
               </div>
               <Switch
-                checked={preferences.display.sidebarCollapsed}
+                checked={preferences.display?.sidebarCollapsed || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   display: { ...preferences.display, sidebarCollapsed: checked }
@@ -571,7 +571,7 @@ export default function UserPreferences() {
                 <p className="text-xs text-muted-foreground">Enable smooth animations</p>
               </div>
               <Switch
-                checked={preferences.display.animateTransitions}
+                checked={preferences.display?.animateTransitions || false}
                 onCheckedChange={(checked) => setPreferences({
                   ...preferences,
                   display: { ...preferences.display, animateTransitions: checked }
