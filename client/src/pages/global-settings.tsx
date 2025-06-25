@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,261 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Building2, Globe, Clock, Shield, Truck, Package, Calculator, FileText, Settings, Save, RotateCcw, Info, Database, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface GlobalSettings {
-  company: {
-    name: string;
-    abn: string;
-    address: string;
-    phone: string;
-    email: string;
-    website: string;
-    logo: string;
-    timezone: string;
-    fiscalYearStart: string; // MM-DD format
-  };
-  system: {
-    defaultCurrency: string;
-    unitsSystem: 'metric' | 'imperial';
-    decimalPlaces: number;
-    dateFormat: string;
-    timeFormat: '12h' | '24h';
-    language: string;
-    autoBackupEnabled: boolean;
-    backupFrequency: number; // hours
-    sessionTimeout: number; // minutes
-  };
-  fabrication: {
-    defaultKerf: number; // mm
-    defaultTolerance: number; // mm
-    standardLengths: number[]; // mm
-    minimumOffcutLength: number; // mm
-    materialWasteAllowance: number; // %
-    defaultSteelGrade: string;
-    requireMillCertificates: boolean;
-    qualityControlEnabled: boolean;
-    welderCertificationTracking: boolean;
-  };
-  estimation: {
-    contingencyRateRange: { min: number; max: number }; // %
-    laborRateStructure: 'hourly' | 'piece' | 'hybrid';
-    defaultLabourRates: {
-      apprentice: number;
-      tradesman: number;
-      foreman: number;
-      supervisor: number;
-    };
-    autoCalculateCoatings: boolean;
-    includeSiteAllowances: boolean;
-    standardSiteAllowanceRate: number; // %
-    requireApprovalThreshold: number; // dollar amount
-  };
-  inventory: {
-    enableBarcodeScanning: boolean;
-    lowStockThreshold: number; // %
-    reorderPointCalculation: 'manual' | 'automatic';
-    stockTakeFrequency: number; // days
-    enableLocationTracking: boolean;
-    requireReceiptVerification: boolean;
-    autoUpdatePricesFromSuppliers: boolean;
-    priceUpdateFrequency: number; // days
-  };
-  quality: {
-    wpsDatabase: boolean;
-    inspectionCheckpoints: boolean;
-    nonConformanceTracking: boolean;
-    customerSignoffRequired: boolean;
-    photoDocumentationMandatory: boolean;
-    testCertificateTracking: boolean;
-    complianceStandards: string[]; // AS/NZS, AWS, etc.
-  };
-  safety: {
-    hsePolicyTracking: boolean;
-    riskAssessmentMandatory: boolean;
-    inductionTracking: boolean;
-    incidentReporting: boolean;
-    equipmentInspectionSchedule: boolean;
-    emergencyContactSystem: boolean;
-    swmsRequired: boolean;
-  };
-  financial: {
-    gstRate: number; // %
-    paymentTermsDefault: number; // days
-    latePaymentPenalty: number; // %
-    creditLimitCheck: boolean;
-    multiCurrencyEnabled: boolean;
-    exchangeRateSource: string;
-    invoiceNumberFormat: string;
-    quoteValidityPeriod: number; // days
-  };
-  integration: {
-    accountingSoftware: string;
-    cadSoftware: string;
-    crmSystem: string;
-    emailProvider: string;
-    smsProvider: string;
-    weatherAPI: boolean;
-    mapService: string;
-    cloudStorage: string;
-  };
-  reporting: {
-    standardReports: string[];
-    defaultExportFormat: 'pdf' | 'excel' | 'csv';
-    includeChartsDefault: boolean;
-    watermarkDocuments: boolean;
-    autoEmailSchedules: boolean;
-    kpiDashboardEnabled: boolean;
-    benchmarkingEnabled: boolean;
-  };
-  mobile: {
-    offlineModeEnabled: boolean;
-    gpsTrackingEnabled: boolean;
-    photoCompressionLevel: 'low' | 'medium' | 'high';
-    voiceNotesEnabled: boolean;
-    barcodeScanning: boolean;
-    signatureCapture: boolean;
-    timeClockIntegration: boolean;
-  };
-  workflow: {
-    approvalWorkflows: boolean;
-    projectStageGates: boolean;
-    automaticStatusUpdates: boolean;
-    clientPortalEnabled: boolean;
-    supplierPortalEnabled: boolean;
-    documentVersionControl: boolean;
-    changeOrderApproval: boolean;
-  };
-}
+import { useGlobalSettings, type GlobalSettings } from "@/hooks/useGlobalSettings";
 
 export default function GlobalSettings() {
   const { toast } = useToast();
-  const [settings, setSettings] = useState<GlobalSettings>({
-    company: {
-      name: 'Lateral Engineering Limited',
-      abn: '',
-      address: '',
-      phone: '',
-      email: '',
-      website: '',
-      logo: '',
-      timezone: 'Pacific/Auckland',
-      fiscalYearStart: '04-01' // April 1st (NZ/AU standard)
-    },
-    system: {
-      defaultCurrency: 'NZD',
-      unitsSystem: 'metric',
-      decimalPlaces: 2,
-      dateFormat: 'DD/MM/YYYY',
-      timeFormat: '24h',
-      language: 'en',
-      autoBackupEnabled: true,
-      backupFrequency: 24,
-      sessionTimeout: 480 // 8 hours
-    },
-    fabrication: {
-      defaultKerf: 2.4,
-      defaultTolerance: 0.5,
-      standardLengths: [6000, 7500, 9000, 12000, 15000],
-      minimumOffcutLength: 500,
-      materialWasteAllowance: 5,
-      defaultSteelGrade: 'AS/NZS 3679.1-300',
-      requireMillCertificates: true,
-      qualityControlEnabled: true,
-      welderCertificationTracking: true
-    },
-    estimation: {
-      contingencyRateRange: { min: 2, max: 15 },
-      laborRateStructure: 'hourly',
-      defaultLabourRates: {
-        apprentice: 35,
-        tradesman: 55,
-        foreman: 75,
-        supervisor: 95
-      },
-      autoCalculateCoatings: true,
-      includeSiteAllowances: true,
-      standardSiteAllowanceRate: 12,
-      requireApprovalThreshold: 50000
-    },
-    inventory: {
-      enableBarcodeScanning: true,
-      lowStockThreshold: 20,
-      reorderPointCalculation: 'automatic',
-      stockTakeFrequency: 90,
-      enableLocationTracking: true,
-      requireReceiptVerification: true,
-      autoUpdatePricesFromSuppliers: false,
-      priceUpdateFrequency: 7
-    },
-    quality: {
-      wpsDatabase: true,
-      inspectionCheckpoints: true,
-      nonConformanceTracking: true,
-      customerSignoffRequired: true,
-      photoDocumentationMandatory: true,
-      testCertificateTracking: true,
-      complianceStandards: ['AS/NZS 1554', 'AS/NZS 3679', 'AWS D1.1', 'AS/NZS 1163']
-    },
-    safety: {
-      hsePolicyTracking: true,
-      riskAssessmentMandatory: true,
-      inductionTracking: true,
-      incidentReporting: true,
-      equipmentInspectionSchedule: true,
-      emergencyContactSystem: true,
-      swmsRequired: true
-    },
-    financial: {
-      gstRate: 15, // NZ GST
-      paymentTermsDefault: 30,
-      latePaymentPenalty: 1.5,
-      creditLimitCheck: true,
-      multiCurrencyEnabled: false,
-      exchangeRateSource: 'RBNZ',
-      invoiceNumberFormat: 'LE-{YYYY}-{####}',
-      quoteValidityPeriod: 30
-    },
-    integration: {
-      accountingSoftware: 'Xero',
-      cadSoftware: 'AutoCAD',
-      crmSystem: '',
-      emailProvider: 'SMTP',
-      smsProvider: '',
-      weatherAPI: true,
-      mapService: 'Google Maps',
-      cloudStorage: 'Replit Storage'
-    },
-    reporting: {
-      standardReports: ['Job Profitability', 'Material Usage', 'Labour Efficiency', 'Cash Flow'],
-      defaultExportFormat: 'pdf',
-      includeChartsDefault: true,
-      watermarkDocuments: true,
-      autoEmailSchedules: false,
-      kpiDashboardEnabled: true,
-      benchmarkingEnabled: false
-    },
-    mobile: {
-      offlineModeEnabled: true,
-      gpsTrackingEnabled: false,
-      photoCompressionLevel: 'medium',
-      voiceNotesEnabled: false,
-      barcodeScanning: true,
-      signatureCapture: true,
-      timeClockIntegration: false
-    },
-    workflow: {
-      approvalWorkflows: true,
-      projectStageGates: true,
-      automaticStatusUpdates: true,
-      clientPortalEnabled: true,
-      supplierPortalEnabled: false,
-      documentVersionControl: true,
-      changeOrderApproval: true
-    }
-  });
+  const { settings, updateSettings, resetToDefaults: resetSettings } = useGlobalSettings();
+
+  const setSettings = (newSettings: any) => {
+    updateSettings(newSettings);
+  };
 
   const saveSettings = () => {
-    localStorage.setItem('lateralEngineering_globalSettings', JSON.stringify(settings));
     toast({
       title: "Global Settings Saved",
       description: "Company-wide settings have been updated successfully.",
@@ -273,20 +29,12 @@ export default function GlobalSettings() {
   };
 
   const resetToDefaults = () => {
-    // Reset logic here...
+    resetSettings();
     toast({
       title: "Settings Reset",
       description: "All settings have been reset to default values.",
     });
   };
-
-  // Load saved settings on component mount
-  useEffect(() => {
-    const saved = localStorage.getItem('lateralEngineering_globalSettings');
-    if (saved) {
-      setSettings(JSON.parse(saved));
-    }
-  }, []);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -664,7 +412,429 @@ export default function GlobalSettings() {
           </div>
         </TabsContent>
 
-        {/* Additional tabs would continue here... */}
+        <TabsContent value="quality" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Quality Control */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Shield className="w-5 h-5 mr-2" />
+                  Quality Control
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>WPS Database</Label>
+                    <p className="text-xs text-muted-foreground">Welding Procedure Specification tracking</p>
+                  </div>
+                  <Switch
+                    checked={settings.quality.wpsDatabase}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      quality: { ...settings.quality, wpsDatabase: checked }
+                    })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Inspection Checkpoints</Label>
+                    <p className="text-xs text-muted-foreground">Mandatory quality inspection points</p>
+                  </div>
+                  <Switch
+                    checked={settings.quality.inspectionCheckpoints}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      quality: { ...settings.quality, inspectionCheckpoints: checked }
+                    })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Photo Documentation</Label>
+                    <p className="text-xs text-muted-foreground">Require photos for quality records</p>
+                  </div>
+                  <Switch
+                    checked={settings.quality.photoDocumentationMandatory}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      quality: { ...settings.quality, photoDocumentationMandatory: checked }
+                    })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Safety Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Shield className="w-5 h-5 mr-2" />
+                  Health & Safety
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Risk Assessment Mandatory</Label>
+                    <p className="text-xs text-muted-foreground">Require risk assessments for all jobs</p>
+                  </div>
+                  <Switch
+                    checked={settings.safety.riskAssessmentMandatory}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      safety: { ...settings.safety, riskAssessmentMandatory: checked }
+                    })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>SWMS Required</Label>
+                    <p className="text-xs text-muted-foreground">Safe Work Method Statements required</p>
+                  </div>
+                  <Switch
+                    checked={settings.safety.swmsRequired}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      safety: { ...settings.safety, swmsRequired: checked }
+                    })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Incident Reporting</Label>
+                    <p className="text-xs text-muted-foreground">Enable incident reporting system</p>
+                  </div>
+                  <Switch
+                    checked={settings.safety.incidentReporting}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      safety: { ...settings.safety, incidentReporting: checked }
+                    })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="financial" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Financial Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <DollarSign className="w-5 h-5 mr-2" />
+                  Financial Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>GST/VAT Rate (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="30"
+                    value={settings.financial.gstRate}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      financial: { ...settings.financial, gstRate: parseFloat(e.target.value) || 15 }
+                    })}
+                  />
+                </div>
+                <div>
+                  <Label>Default Payment Terms (days)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="90"
+                    value={settings.financial.paymentTermsDefault}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      financial: { ...settings.financial, paymentTermsDefault: parseInt(e.target.value) || 30 }
+                    })}
+                  />
+                </div>
+                <div>
+                  <Label>Late Payment Penalty (%/month)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="10"
+                    value={settings.financial.latePaymentPenalty}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      financial: { ...settings.financial, latePaymentPenalty: parseFloat(e.target.value) || 1.5 }
+                    })}
+                  />
+                </div>
+                <div>
+                  <Label>Quote Validity Period (days)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={settings.financial.quoteValidityPeriod}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      financial: { ...settings.financial, quoteValidityPeriod: parseInt(e.target.value) || 30 }
+                    })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Credit Limit Check</Label>
+                    <p className="text-xs text-muted-foreground">Check customer credit limits before orders</p>
+                  </div>
+                  <Switch
+                    checked={settings.financial.creditLimitCheck}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      financial: { ...settings.financial, creditLimitCheck: checked }
+                    })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Integration Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Database className="w-5 h-5 mr-2" />
+                  System Integration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Accounting Software</Label>
+                  <Select 
+                    value={settings.integration.accountingSoftware} 
+                    onValueChange={(value) => setSettings({
+                      ...settings,
+                      integration: { ...settings.integration, accountingSoftware: value }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Xero">Xero</SelectItem>
+                      <SelectItem value="QuickBooks">QuickBooks</SelectItem>
+                      <SelectItem value="MYOB">MYOB</SelectItem>
+                      <SelectItem value="None">None</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>CAD Software</Label>
+                  <Select 
+                    value={settings.integration.cadSoftware} 
+                    onValueChange={(value) => setSettings({
+                      ...settings,
+                      integration: { ...settings.integration, cadSoftware: value }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AutoCAD">AutoCAD</SelectItem>
+                      <SelectItem value="SolidWorks">SolidWorks</SelectItem>
+                      <SelectItem value="Inventor">Inventor</SelectItem>
+                      <SelectItem value="Tekla">Tekla Structures</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Weather API</Label>
+                    <p className="text-xs text-muted-foreground">Enable weather data for site work planning</p>
+                  </div>
+                  <Switch
+                    checked={settings.integration.weatherAPI}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      integration: { ...settings.integration, weatherAPI: checked }
+                    })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="integration" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Third-Party Integrations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label>Map Service</Label>
+                  <Select 
+                    value={settings.integration.mapService} 
+                    onValueChange={(value) => setSettings({
+                      ...settings,
+                      integration: { ...settings.integration, mapService: value }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Google Maps">Google Maps</SelectItem>
+                      <SelectItem value="MapBox">MapBox</SelectItem>
+                      <SelectItem value="OpenStreetMap">OpenStreetMap</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Cloud Storage</Label>
+                  <Select 
+                    value={settings.integration.cloudStorage} 
+                    onValueChange={(value) => setSettings({
+                      ...settings,
+                      integration: { ...settings.integration, cloudStorage: value }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Replit Storage">Replit Storage</SelectItem>
+                      <SelectItem value="AWS S3">AWS S3</SelectItem>
+                      <SelectItem value="Google Drive">Google Drive</SelectItem>
+                      <SelectItem value="Dropbox">Dropbox</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="workflow" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Workflow Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FileText className="w-5 h-5 mr-2" />
+                  Workflow Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Approval Workflows</Label>
+                    <p className="text-xs text-muted-foreground">Enable multi-stage approval processes</p>
+                  </div>
+                  <Switch
+                    checked={settings.workflow.approvalWorkflows}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      workflow: { ...settings.workflow, approvalWorkflows: checked }
+                    })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Project Stage Gates</Label>
+                    <p className="text-xs text-muted-foreground">Require approval between project phases</p>
+                  </div>
+                  <Switch
+                    checked={settings.workflow.projectStageGates}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      workflow: { ...settings.workflow, projectStageGates: checked }
+                    })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Client Portal</Label>
+                    <p className="text-xs text-muted-foreground">Enable client access portal</p>
+                  </div>
+                  <Switch
+                    checked={settings.workflow.clientPortalEnabled}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      workflow: { ...settings.workflow, clientPortalEnabled: checked }
+                    })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Document Version Control</Label>
+                    <p className="text-xs text-muted-foreground">Track document versions and changes</p>
+                  </div>
+                  <Switch
+                    checked={settings.workflow.documentVersionControl}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      workflow: { ...settings.workflow, documentVersionControl: checked }
+                    })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Mobile & Reporting */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Package className="w-5 h-5 mr-2" />
+                  Mobile & Reporting
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Offline Mode</Label>
+                    <p className="text-xs text-muted-foreground">Enable mobile offline capabilities</p>
+                  </div>
+                  <Switch
+                    checked={settings.mobile.offlineModeEnabled}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      mobile: { ...settings.mobile, offlineModeEnabled: checked }
+                    })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>GPS Tracking</Label>
+                    <p className="text-xs text-muted-foreground">Track mobile user locations</p>
+                  </div>
+                  <Switch
+                    checked={settings.mobile.gpsTrackingEnabled}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      mobile: { ...settings.mobile, gpsTrackingEnabled: checked }
+                    })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>KPI Dashboard</Label>
+                    <p className="text-xs text-muted-foreground">Enable key performance indicators</p>
+                  </div>
+                  <Switch
+                    checked={settings.reporting.kpiDashboardEnabled}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      reporting: { ...settings.reporting, kpiDashboardEnabled: checked }
+                    })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
         
       </Tabs>
     </div>

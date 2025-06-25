@@ -43,6 +43,7 @@ import { EnhancedLaborTab } from "@/components/estimation/enhanced-labor-tab";
 import CoatingsTab from "@/components/estimation/coatings-tab";
 import OverheadConfiguration from "@/components/estimation/overhead-configuration";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
+import { useEstimationDefaults } from "@/hooks/useEstimationDefaults";
 
 // Types for estimation system
 interface EstimationProject {
