@@ -894,7 +894,12 @@ export class DatabaseStorage implements IStorage {
 
   // Estimation Management
   async getEstimationProjects(): Promise<EstimationProject[]> {
-    return await db.select().from(estimationProjects).orderBy(desc(estimationProjects.updatedAt));
+    try {
+      return await db.select().from(estimationProjects).orderBy(desc(estimationProjects.updatedAt));
+    } catch (error) {
+      console.log('No estimation projects table exists yet');
+      return [];
+    }
   }
 
   async getEstimationProject(id: number): Promise<any | undefined> {

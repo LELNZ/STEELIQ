@@ -32,9 +32,10 @@ interface CoatingCost {
 interface CoatingsTabProps {
   coatings: CoatingCost[];
   onCoatingsChange: (coatings: CoatingCost[]) => void;
+  materials?: any[]; // Materials from materials tab for auto-calculation
 }
 
-export default function CoatingsTab({ coatings, onCoatingsChange }: CoatingsTabProps) {
+export default function CoatingsTab({ coatings, onCoatingsChange, materials = [] }: CoatingsTabProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingCoating, setEditingCoating] = useState<CoatingCost | null>(null);
   const { toast } = useToast();

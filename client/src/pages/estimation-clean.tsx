@@ -326,7 +326,7 @@ export default function EstimationPage() {
       const consumables = estimationData.consumables.reduce((sum, item) => sum + (item.totalCost || 0), 0);
       const coatings = (estimationData.coatings || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
       
-      // FIXED: Consistent calculation logic
+      // INDUSTRY STANDARD: Margin calculated on direct costs before overheads
       const directCosts = materials + labor + equipment + consumables + coatings;
       const overheadsAmount = directCosts * (estimationData.overheads.percentage / 100);
       const marginAmount = directCosts * (estimationData.margin.percentage / 100);

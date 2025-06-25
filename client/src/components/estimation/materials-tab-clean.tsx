@@ -243,6 +243,9 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
         if (['quantity', 'unitCost', 'wasteFactor', 'handlingCost'].includes(field)) {
           const adjustedQuantity = updated.quantity * (1 + updated.wasteFactor / 100);
           updated.totalCost = adjustedQuantity * updated.unitCost + updated.handlingCost;
+          // Update surface area and weight totals for coating integration
+          updated.totalSurfaceArea = updated.quantity * (updated.surfaceAreaPerMeter || 0);
+          updated.totalWeight = updated.quantity * (updated.weightPerMeter || 0);
         }
         return updated;
       }
