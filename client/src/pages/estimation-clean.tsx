@@ -887,6 +887,7 @@ function EstimationWorkspace({
           <CoatingsTab 
             coatings={estimationData.coatings || []}
             onCoatingsChange={(coatings) => setEstimationData(prev => prev ? { ...prev, coatings } : null)}
+            materials={estimationData.materials}
           />
         </TabsContent>
 

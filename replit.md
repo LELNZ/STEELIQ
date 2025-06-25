@@ -152,6 +152,10 @@ This is a comprehensive steel fabrication business management system built for L
 - June 23, 2025: Implemented comprehensive save system with auto-save on navigation and 10-minute timer
 - June 23, 2025: Added database persistence layer for estimation data with transaction safety
 - June 23, 2025: Fixed data persistence issue by implementing in-memory storage for estimation testing phase
+- June 25, 2025: **MAJOR FIX** - Corrected margin calculation to industry standard (margin on direct costs, not after overheads)
+- June 25, 2025: **INTEGRATION** - Implemented surface area and weight flow from materials to coatings for accurate pricing
+- June 25, 2025: **CLEANUP** - Removed all simulation data, fixed persistent demo projects, database now clean for real testing
+- June 25, 2025: **ACCURACY** - Unified calculation logic across entire estimation system, fixed coatings integration
 
 ## User Preferences
 
@@ -181,6 +185,12 @@ This is a comprehensive steel fabrication business management system built for L
 - Best practice: Track actual overhead costs (workshop rent, utilities, insurance, admin)
 - Recommend quarterly adjustment of overhead percentage based on actual costs
 - Overhead Recovery Rate = (Recovered Overheads / Actual Overhead Costs) × 100%
+
+**Margin Calculation Method (FIXED):**
+- Industry Standard: Margin calculated on direct costs BEFORE overheads
+- Formula: margin = directCosts × marginPercentage / 100
+- Previous Error: margin = (directCosts + overheads) × marginPercentage (inflated pricing)
+- Steel Fabrication Standard: 15-25% margin on direct costs
 
 **Industry Benchmarks:**
 - Direct Costs: 60-70% of project revenue (steel fabrication standard)

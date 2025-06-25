@@ -40,6 +40,14 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
   const [editingCoating, setEditingCoating] = useState<CoatingCost | null>(null);
   const { toast } = useToast();
 
+  // Calculate total surface area and weight from materials for auto-population
+  const totalMaterialSurfaceArea = materials.reduce((sum, material) => 
+    sum + (material.totalSurfaceArea || 0), 0
+  );
+  const totalMaterialWeight = materials.reduce((sum, material) => 
+    sum + (material.totalWeight || 0), 0
+  );
+
   const defaultCoating: Omit<CoatingCost, 'id'> = {
     coatingName: "",
     coatingType: "paint",
