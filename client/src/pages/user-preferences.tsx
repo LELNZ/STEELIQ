@@ -93,10 +93,9 @@ export default function UserPreferences() {
       autoSaveInterval: 10,
       defaultProject: '',
       defaultEstimationTemplate: '',
-      autoCalculateCoatings: true,
       showAdvancedFeatures: true,
       confirmDeleteActions: true,
-      autoBackupFrequency: 24
+      emailSignature: ''
     },
     display: {
       unitsSystem: 'metric',
@@ -189,10 +188,19 @@ export default function UserPreferences() {
         autoSaveInterval: 10,
         defaultProject: '',
         defaultEstimationTemplate: '',
-
         showAdvancedFeatures: true,
         confirmDeleteActions: true,
-        autoBackupFrequency: 24
+        emailSignature: ''
+      },
+      personalDefaults: {
+        favoriteReports: [],
+        quickAccessModules: ['estimation', 'materials', 'cutting'],
+        defaultWorkingHours: {
+          start: '07:00',
+          end: '17:00'
+        },
+        breakDuration: 60,
+        overtimeRate: 1.5
       },
       display: {
         unitsSystem: 'metric',
@@ -671,7 +679,6 @@ export default function UserPreferences() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
         {/* Materials & Inventory */}
         <Card>
