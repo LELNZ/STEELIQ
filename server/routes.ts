@@ -5,6 +5,7 @@ import { businessSettingsStorage } from "./businessSettings";
 import { laborRatesStorage } from "./laborRates";
 import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
+import { quotationManagementStorage } from "./quotationManagement";
 import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
