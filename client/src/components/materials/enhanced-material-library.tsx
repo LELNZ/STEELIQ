@@ -585,6 +585,16 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
     // Apply material filter first
     const materialCategories = categorizeeMaterial(material);
     
+    // Debug logging for first few materials when on consumables tab
+    if (materialFilter === "consumables" && material.id <= 4320) {
+      console.log(`Material ${material.id} (${material.name}):`, {
+        categories: materialCategories,
+        isConsumable: materialCategories.some(cat => 
+          ['Welding', 'Cutting', 'Fasteners', 'Gas', 'Safety'].includes(cat)
+        )
+      });
+    }
+    
     if (materialFilter === "steel") {
       // Steel catalogue: exclude Consumables and Coating Systems categories
       const isConsumable = materialCategories.some(cat => 

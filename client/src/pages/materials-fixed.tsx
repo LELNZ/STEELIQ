@@ -157,15 +157,24 @@ export default function Materials() {
       {/* Three Main Tabs: Steel Catalogue | Consumables | Coating Systems */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="steel" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="steel" 
+            className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+          >
             <Package className="w-4 h-4" />
             Steel Catalogue
           </TabsTrigger>
-          <TabsTrigger value="consumables" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="consumables" 
+            className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+          >
             <Wrench className="w-4 h-4" />
             Consumables
           </TabsTrigger>
-          <TabsTrigger value="coatings" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="coatings" 
+            className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+          >
             <Paintbrush className="w-4 h-4" />
             Coating Systems
           </TabsTrigger>
