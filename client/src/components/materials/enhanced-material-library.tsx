@@ -547,6 +547,35 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
     }
     if (name.includes('rebar') || name.includes('reinforcing') || name.includes('deformed bar')) categories.push('Rebar');
 
+    // Consumables - general category
+    if (name.includes('welding') || name.includes('electrode') || name.includes('cutting') || 
+        name.includes('disc') || name.includes('bolt') || name.includes('nut') || 
+        name.includes('screw') || name.includes('gas') || name.includes('safety') ||
+        category.includes('consumable') || category.includes('welding') || 
+        category.includes('cutting') || category.includes('fastener')) {
+      categories.push('Welding', 'Cutting', 'Fasteners', 'Gas', 'Safety');
+    }
+
+    // Coating Systems
+    if (name.includes('galvanizing') || name.includes('galvanising') || 
+        name.includes('paint') || name.includes('coating') || name.includes('primer') ||
+        name.includes('topcoat') || name.includes('powder coating') ||
+        category.includes('coating') || category.includes('paint') || 
+        category.includes('galvanizing') || category.includes('galvanising') ||
+        code.includes('coat') || code.includes('galv')) {
+      
+      if (name.includes('galvanizing') || name.includes('galvanising') || 
+          code.includes('galv') || category.includes('galvanizing')) {
+        categories.push('Galvanizing');
+      } else if (name.includes('powder')) {
+        categories.push('Powder Coating');
+      } else if (name.includes('paint') || name.includes('primer') || name.includes('topcoat')) {
+        categories.push('Paint Systems');
+      } else {
+        categories.push('Protective Coatings');
+      }
+    }
+
     return categories;
   };
 
