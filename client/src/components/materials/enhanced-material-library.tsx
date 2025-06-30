@@ -159,6 +159,10 @@ const CATEGORY_STRUCTURE = {
   "Consumables": {
     subcategories: ["Welding", "Cutting", "Fasteners", "Gas", "Safety"],
     description: "Welding electrodes, cutting discs, fasteners, gas, and safety equipment"
+  },
+  "Coating Systems": {
+    subcategories: ["Paint Systems", "Galvanizing", "Powder Coating", "Protective Coatings"],
+    description: "Coating systems for steel protection and finishing"
   }
 };
 
