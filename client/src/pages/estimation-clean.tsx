@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Progress } from "@/components/ui/progress";
 import { 
   Calculator, 
   Zap, 
@@ -33,7 +34,17 @@ import {
   ArrowLeft,
   Info,
   MapPin,
-  Wrench
+  Wrench,
+  Target,
+  Eye,
+  Phone,
+  Mail,
+  XCircle,
+  CheckCircle,
+  BarChart3,
+  PieChart,
+  LineChart,
+  Edit
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -529,9 +540,9 @@ export default function EstimationPage() {
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight">AI-Assisted Estimation Engine</h1>
+            <h1 className="text-3xl font-bold tracking-tight">AI Estimation Engine</h1>
             <p className="text-muted-foreground">
-              Professional steel fabrication cost estimation with intelligent recommendations
+              Comprehensive estimation platform with quotation monitoring and pipeline analytics
             </p>
           </div>
           <div className="flex items-center space-x-4">
