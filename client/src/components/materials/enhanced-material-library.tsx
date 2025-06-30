@@ -54,6 +54,7 @@ interface EnhancedMaterialLibraryProps {
   setSearchQuery: (query: string) => void;
   onCategoryChange?: (category: string) => void;
   onSubcategoryChange?: (subcategory: string) => void;
+  catalogueFilter?: "steel" | "consumables" | "all";
 }
 
 // Structured category system for Lateral Engineering (ordered as requested)
@@ -166,7 +167,7 @@ const CATEGORY_STRUCTURE = {
   }
 };
 
-export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategoryChange, onSubcategoryChange }: EnhancedMaterialLibraryProps) {
+export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategoryChange, onSubcategoryChange, catalogueFilter = "all" }: EnhancedMaterialLibraryProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -579,8 +580,28 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
     return categories;
   };
 
-  // Optimized material filtering - only show materials when category selected or search entered
+  // Enhanced material filtering with catalogue filter support
   const filteredMaterials = (materials as Material[]).filter((material: Material) => {
+    // Apply catalogue filter first
+    const materialCategories = categorizeeMaterial(material);
+    
+    if (catalogueFilter === "steel") {
+      // Steel catalogue: exclude Consumables and Coating Systems categories
+      const isConsumable = materialCategories.some(cat => 
+        ['Welding', 'Cutting', 'Fasteners', 'Gas', 'Safety'].includes(cat)
+      );
+      const isCoating = materialCategories.some(cat => 
+        ['Paint Systems', 'Galvanizing', 'Powder Coating', 'Protective Coatings'].includes(cat)
+      );
+      if (isConsumable || isCoating) return false;
+    } else if (catalogueFilter === "consumables") {
+      // Consumables catalogue: only show consumables
+      const isConsumable = materialCategories.some(cat => 
+        ['Welding', 'Cutting', 'Fasteners', 'Gas', 'Safety'].includes(cat)
+      );
+      if (!isConsumable) return false;
+    }
+
     // Don't show any materials by default - require category selection or search
     if (selectedCategory === "all" && !searchQuery.trim()) {
       return false;
@@ -596,7 +617,6 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
     if (!matchesSearch) return false;
     if (selectedCategory === "all") return true;
 
-    const materialCategories = categorizeeMaterial(material);
     const categorySubcategories = CATEGORY_STRUCTURE[selectedCategory as keyof typeof CATEGORY_STRUCTURE]?.subcategories || [];
     
     if (selectedSubcategory === "all") {

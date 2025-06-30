@@ -78,6 +78,7 @@ export default function Materials() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState("steel");
 
   const handleExport = async () => {
     try {
