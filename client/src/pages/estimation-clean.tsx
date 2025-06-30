@@ -606,30 +606,58 @@ export default function EstimationPage() {
         </div>
       </div>
 
-      {currentProject ? (
-        <EstimationWorkspace 
-          project={currentProject}
-          estimationData={estimationData}
-          setEstimationData={setEstimationData}
-          materials={materials}
-          aiSuggestions={aiSuggestions}
-          isAiAssistEnabled={isAiAssistEnabled}
-          onBack={() => handleNavigation(() => setCurrentProject(null))}
-          hasUnsavedChanges={hasUnsavedChanges}
-          onManualSave={handleManualSave}
-          saveEstimationMutation={saveEstimationMutation}
-        />
-      ) : (
-        <ProjectOverview 
-          projects={projects} 
-          onSelectProject={(project) => {
-            handleNavigation(async () => {
-              setCurrentProject(project);
-              await initializeEstimationData(project);
-            });
-          }}
-        />
-      )}
+      {/* Main Tabbed Interface */}
+      <Tabs defaultValue="estimation" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="estimation" className="flex items-center gap-2">
+            <Calculator className="h-4 w-4" />
+            AI Estimation
+          </TabsTrigger>
+          <TabsTrigger value="dashboard" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Pipeline Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="estimation" className="space-y-6">
+          {currentProject ? (
+            <EstimationWorkspace 
+              project={currentProject}
+              estimationData={estimationData}
+              setEstimationData={setEstimationData}
+              materials={materials}
+              aiSuggestions={aiSuggestions}
+              isAiAssistEnabled={isAiAssistEnabled}
+              onBack={() => handleNavigation(() => setCurrentProject(null))}
+              hasUnsavedChanges={hasUnsavedChanges}
+              onManualSave={handleManualSave}
+              saveEstimationMutation={saveEstimationMutation}
+            />
+          ) : (
+            <ProjectOverview 
+              projects={projects} 
+              onSelectProject={(project) => {
+                handleNavigation(async () => {
+                  setCurrentProject(project);
+                  await initializeEstimationData(project);
+                });
+              }}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="dashboard" className="space-y-6">
+          <AIEstimationDashboardContent />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <EstimationAnalyticsContent />
+        </TabsContent>
+      </Tabs>
 
       {/* Save Changes Dialog */}
       <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
@@ -1785,10 +1813,16 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <ProjectMarginIndicator 
-                projectValue={totals.revenueBeforeGST}
-                actualMargin={totals.grossProfitPercentage}
-              />
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full ${
+                    totals.grossProfitPercentage >= 25 ? 'bg-green-600' :
+                    totals.grossProfitPercentage >= 15 ? 'bg-yellow-600' : 'bg-red-600'
+                  }`}
+                  style={{ width: `${Math.min(totals.grossProfitPercentage, 100)}%` }}
+                ></div>
+              </div>
+              <p className="text-2xl font-bold text-slate-600">{totals.grossProfitPercentage.toFixed(1)}%</p>
             </div>
             
             <div className="text-center">
