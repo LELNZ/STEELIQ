@@ -2040,3 +2040,319 @@ function QuoteTab({ project, estimationData }: { project: EstimationProject; est
     </div>
   );
 }
+
+// Dashboard Content Component
+function AIEstimationDashboardContent() {
+  const { toast } = useToast();
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+
+  // Fetch estimation projects with quotation data
+  const { data: estimationProjects = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/estimations'],
+  });
+
+  // Calculate quotation metrics
+  const quotationMetrics = estimationProjects.reduce((acc: any, project: any) => {
+    acc.total += 1;
+    acc.totalValue += project.totalCost || 0;
+    
+    switch (project.status) {
+      case 'sent':
+        acc.active += 1;
+        acc.activeValue += project.totalCost || 0;
+        break;
+      case 'accepted':
+      case 'converted':
+        acc.won += 1;
+        acc.wonValue += project.totalCost || 0;
+        break;
+      case 'declined':
+        acc.lost += 1;
+        break;
+      case 'expired':
+        acc.expired += 1;
+        break;
+    }
+
+    return acc;
+  }, {
+    total: 0,
+    active: 0,
+    won: 0,
+    lost: 0,
+    expired: 0,
+    totalValue: 0,
+    activeValue: 0,
+    wonValue: 0
+  });
+
+  const winRate = quotationMetrics.total > 0 ? (quotationMetrics.won / quotationMetrics.total * 100) : 0;
+
+  const statusColors = {
+    draft: 'bg-gray-100 text-gray-800',
+    sent: 'bg-blue-100 text-blue-800',
+    viewed: 'bg-yellow-100 text-yellow-800',
+    accepted: 'bg-green-100 text-green-800',
+    declined: 'bg-red-100 text-red-800',
+    expired: 'bg-gray-100 text-gray-600',
+    converted: 'bg-purple-100 text-purple-800'
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'sent': return <Send className="h-4 w-4" />;
+      case 'viewed': return <Eye className="h-4 w-4" />;
+      case 'accepted': return <CheckCircle className="h-4 w-4" />;
+      case 'declined': return <XCircle className="h-4 w-4" />;
+      case 'expired': return <Clock className="h-4 w-4" />;
+      case 'converted': return <Target className="h-4 w-4" />;
+      default: return <FileText className="h-4 w-4" />;
+    }
+  };
+
+  return (
+    <>
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Quotes</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{quotationMetrics.active}</div>
+            <p className="text-xs text-muted-foreground">
+              ${quotationMetrics.activeValue.toLocaleString()} in pipeline
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{winRate.toFixed(1)}%</div>
+            <Progress value={winRate} className="mt-2" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Revenue Won</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${quotationMetrics.wonValue.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              From {quotationMetrics.won} accepted quotes
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Pipeline</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{quotationMetrics.total}</div>
+            <p className="text-xs text-muted-foreground">
+              ${quotationMetrics.totalValue.toLocaleString()} total value
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filter Controls */}
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="status-filter">Status:</Label>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="sent">Sent</SelectItem>
+              <SelectItem value="viewed">Viewed</SelectItem>
+              <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="declined">Declined</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Quotation List */}
+      <div className="grid gap-4">
+        {isLoading ? (
+          <div className="text-center py-8">
+            <div className="text-muted-foreground">Loading quotations...</div>
+          </div>
+        ) : estimationProjects.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No quotations found</h3>
+              <p className="text-muted-foreground mb-4">
+                Create estimations using the AI Estimation tab to start tracking your pipeline.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          estimationProjects
+            .filter((project) => filterStatus === 'all' || project.status === filterStatus)
+            .map((project: any) => (
+              <Card key={project.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        {getStatusIcon(project.status)}
+                        <div>
+                          <h3 className="font-medium">{project.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {project.clientName || 'No client assigned'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <div className="font-medium">${project.totalCost?.toLocaleString() || 0}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {project.margin ? `${project.margin}% margin` : 'No margin set'}
+                        </div>
+                      </div>
+
+                      <Badge className={statusColors[project.status as keyof typeof statusColors] || statusColors.draft}>
+                        {project.status || 'draft'}
+                      </Badge>
+
+                      <div className="flex items-center space-x-2">
+                        <Button size="sm" variant="outline">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+        )}
+      </div>
+    </>
+  );
+}
+
+// Analytics Content Component  
+function EstimationAnalyticsContent() {
+  const { data: estimationProjects = [] } = useQuery<any[]>({
+    queryKey: ['/api/estimations'],
+  });
+
+  // Calculate analytics metrics
+  const analytics = estimationProjects.reduce((acc: any, project: any) => {
+    acc.totalProjects += 1;
+    acc.totalValue += project.totalCost || 0;
+    
+    if (project.status === 'accepted' || project.status === 'converted') {
+      acc.wonProjects += 1;
+      acc.wonValue += project.totalCost || 0;
+    }
+    
+    return acc;
+  }, {
+    totalProjects: 0,
+    wonProjects: 0,
+    totalValue: 0,
+    wonValue: 0
+  });
+
+  const conversionRate = analytics.totalProjects > 0 ? (analytics.wonProjects / analytics.totalProjects * 100) : 0;
+  const averageValue = analytics.totalProjects > 0 ? analytics.totalValue / analytics.totalProjects : 0;
+
+  return (
+    <>
+      {/* Analytics Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <PieChart className="h-5 w-5 mr-2" />
+              Performance Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span>Total Estimations</span>
+                <span className="font-medium">{analytics.totalProjects}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Conversion Rate</span>
+                <span className="font-medium">{conversionRate.toFixed(1)}%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Average Project Value</span>
+                <span className="font-medium">${averageValue.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Total Won Value</span>
+                <span className="font-medium text-green-600">${analytics.wonValue.toLocaleString()}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <LineChart className="h-5 w-5 mr-2" />
+              Pipeline Health
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600">{analytics.totalProjects}</div>
+                <div className="text-sm text-muted-foreground">Active Pipeline</div>
+              </div>
+              <Progress value={Math.max(conversionRate, 5)} className="h-4" />
+              <p className="text-sm text-muted-foreground text-center">
+                Current conversion rate trending {conversionRate > 20 ? 'positive' : 'needs improvement'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Analytics */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Estimation Insights</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{analytics.wonProjects}</div>
+              <div className="text-sm text-muted-foreground">Projects Won</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">${averageValue.toLocaleString()}</div>
+              <div className="text-sm text-muted-foreground">Average Value</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{conversionRate.toFixed(1)}%</div>
+              <div className="text-sm text-muted-foreground">Success Rate</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
