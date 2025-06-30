@@ -301,7 +301,26 @@ export default function AIEstimationDashboard() {
 
           {/* Quotation List */}
           <div className="grid gap-4">
-            {filteredProjects.map((project: EstimationProject) => {
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="text-muted-foreground">Loading quotations...</div>
+              </div>
+            ) : filteredProjects.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No quotations found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Start by creating an estimation that can be converted to a quotation.
+                  </p>
+                  <Button onClick={() => window.location.href = '/estimation'}>
+                    <Brain className="h-4 w-4 mr-2" />
+                    Create First Estimation
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredProjects.map((project: EstimationProject) => {
               const urgency = getUrgencyLevel(project);
               const daysUntilExpiry = getDaysUntilExpiry(project.quotationData?.expiryDate);
               
@@ -385,7 +404,7 @@ export default function AIEstimationDashboard() {
                   </CardContent>
                 </Card>
               );
-            })}
+            }))}
           </div>
         </TabsContent>
 
