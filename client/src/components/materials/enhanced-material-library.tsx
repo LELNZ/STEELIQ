@@ -167,7 +167,7 @@ const CATEGORY_STRUCTURE = {
   }
 };
 
-export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategoryChange, onSubcategoryChange, catalogueFilter = "all" }: EnhancedMaterialLibraryProps) {
+export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategoryChange, onSubcategoryChange, materialFilter = "all" }: EnhancedMaterialLibraryProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -580,12 +580,12 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
     return categories;
   };
 
-  // Enhanced material filtering with catalogue filter support
+  // Enhanced material filtering with material filter support
   const filteredMaterials = (materials as Material[]).filter((material: Material) => {
-    // Apply catalogue filter first
+    // Apply material filter first
     const materialCategories = categorizeeMaterial(material);
     
-    if (catalogueFilter === "steel") {
+    if (materialFilter === "steel") {
       // Steel catalogue: exclude Consumables and Coating Systems categories
       const isConsumable = materialCategories.some(cat => 
         ['Welding', 'Cutting', 'Fasteners', 'Gas', 'Safety'].includes(cat)
@@ -594,12 +594,18 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
         ['Paint Systems', 'Galvanizing', 'Powder Coating', 'Protective Coatings'].includes(cat)
       );
       if (isConsumable || isCoating) return false;
-    } else if (catalogueFilter === "consumables") {
+    } else if (materialFilter === "consumables") {
       // Consumables catalogue: only show consumables
       const isConsumable = materialCategories.some(cat => 
         ['Welding', 'Cutting', 'Fasteners', 'Gas', 'Safety'].includes(cat)
       );
       if (!isConsumable) return false;
+    } else if (materialFilter === "coatings") {
+      // Coatings catalogue: only show coating systems
+      const isCoating = materialCategories.some(cat => 
+        ['Paint Systems', 'Galvanizing', 'Powder Coating', 'Protective Coatings'].includes(cat)
+      );
+      if (!isCoating) return false;
     }
 
     // Don't show any materials by default - require category selection or search
