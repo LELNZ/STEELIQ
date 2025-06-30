@@ -96,7 +96,7 @@ export default function AIEstimationDashboard() {
   const [filterPriority, setFilterPriority] = useState<string>('all');
 
   // Fetch estimation projects with quotation data
-  const { data: estimationProjects = [], isLoading } = useQuery({
+  const { data: estimationProjects = [], isLoading } = useQuery<EstimationProject[]>({
     queryKey: ['/api/estimations'],
   });
 
@@ -148,7 +148,7 @@ export default function AIEstimationDashboard() {
   const conversionRate = quotationMetrics.active > 0 ? (quotationMetrics.won / (quotationMetrics.won + quotationMetrics.lost) * 100) : 0;
 
   // Filter projects
-  const filteredProjects = estimationProjects.filter((project: EstimationProject) => {
+  const filteredProjects = estimationProjects.filter((project) => {
     if (filterStatus !== 'all' && project.status !== filterStatus) return false;
     // Add priority filtering logic here when priority field is available
     return true;
@@ -157,10 +157,7 @@ export default function AIEstimationDashboard() {
   // Update quotation status
   const updateQuotationMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/estimations/${id}/quotation`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      });
+      return await apiRequest(`/api/estimations/${id}/quotation`, 'PATCH', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/estimations'] });
