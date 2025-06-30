@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaterialUpload from "@/components/materials/material-upload";
 import EnhancedMaterialLibrary from "@/components/materials/enhanced-material-library";
-import { Plus, Upload, Download } from "lucide-react";
+import CoatingSystemsTab from "@/components/materials/coating-systems-tab";
+import { Plus, Upload, Download, Package, Wrench, Paintbrush } from "lucide-react";
 
 // Import dimensional reference images
 import anglesImg from "@assets/Angles.png";
@@ -99,55 +101,44 @@ export default function Materials() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Material Library</h1>
-          <p className="text-muted-foreground">
-            Manage your steel catalogue with organized categories and pricing
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Material Library</h1>
+          <p className="text-gray-600 mt-1">Manage your steel catalogue with organized categories and pricing</p>
         </div>
         
-        {/* Dimensional reference image */}
-        {selectedSubcategory !== "all" && selectedCategory !== "all" && DIMENSION_IMAGES[selectedCategory as keyof typeof DIMENSION_IMAGES]?.[selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]] && (
-          <div className="flex-shrink-0 bg-white p-3 rounded-md border shadow-sm">
-            <div className="text-xs text-muted-foreground mb-2 text-center font-medium">
-              Dimensional Reference
-            </div>
-            <img 
-              src={DIMENSION_IMAGES[selectedCategory as keyof typeof DIMENSION_IMAGES][selectedSubcategory as keyof typeof DIMENSION_IMAGES[keyof typeof DIMENSION_IMAGES]]} 
-              alt={`${selectedSubcategory} dimensions`}
-              className="w-20 h-20 object-contain"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Action Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button className="bg-secondary hover:bg-secondary/90">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Material
-          </Button>
-          
-          <Button 
+        <div className="flex gap-3">
+          <Button
             variant="outline"
             onClick={() => setShowUploadModal(true)}
+            className="flex items-center gap-2"
           >
-            <Upload className="w-4 h-4 mr-2" />
+            <Upload className="w-4 h-4" />
             Import CSV
           </Button>
           
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
             Export CSV
+          </Button>
+          
+          <Button 
+            onClick={() => setShowUploadModal(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Material
           </Button>
         </div>
       </div>
 
-      {/* CSV Import Instructions */}
-      <Card className="bg-blue-50 border-blue-200">
+      {/* CSV Import Help */}
+      <Card className="border-blue-200 bg-blue-50">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-blue-800">
             CSV Import Format
@@ -163,13 +154,47 @@ export default function Materials() {
         </CardContent>
       </Card>
 
-      {/* Enhanced Material Library */}
-      <EnhancedMaterialLibrary 
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onCategoryChange={setSelectedCategory}
-        onSubcategoryChange={setSelectedSubcategory}
-      />
+      {/* Three Main Tabs: Steel Catalogue | Consumables | Coating Systems */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="steel" className="flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            Steel Catalogue
+          </TabsTrigger>
+          <TabsTrigger value="consumables" className="flex items-center gap-2">
+            <Wrench className="w-4 h-4" />
+            Consumables
+          </TabsTrigger>
+          <TabsTrigger value="coatings" className="flex items-center gap-2">
+            <Paintbrush className="w-4 h-4" />
+            Coating Systems
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="steel" className="mt-6">
+          <EnhancedMaterialLibrary 
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onCategoryChange={setSelectedCategory}
+            onSubcategoryChange={setSelectedSubcategory}
+            materialFilter="steel"
+          />
+        </TabsContent>
+
+        <TabsContent value="consumables" className="mt-6">
+          <EnhancedMaterialLibrary 
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onCategoryChange={setSelectedCategory}
+            onSubcategoryChange={setSelectedSubcategory}
+            materialFilter="consumables"
+          />
+        </TabsContent>
+
+        <TabsContent value="coatings" className="mt-6">
+          <CoatingSystemsTab />
+        </TabsContent>
+      </Tabs>
 
       {/* Upload Modal */}
       <MaterialUpload 

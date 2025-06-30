@@ -54,7 +54,7 @@ interface EnhancedMaterialLibraryProps {
   setSearchQuery: (query: string) => void;
   onCategoryChange?: (category: string) => void;
   onSubcategoryChange?: (subcategory: string) => void;
-  catalogueFilter?: "steel" | "consumables" | "all";
+  materialFilter?: "steel" | "consumables" | "coatings" | "all";
 }
 
 // Structured category system for Lateral Engineering (ordered as requested)
