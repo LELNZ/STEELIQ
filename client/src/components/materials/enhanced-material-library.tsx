@@ -831,20 +831,7 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
                 {selectedCategory === category && expandedCategory !== category && " ▶"}
               </Button>
             ))}
-            <Button
-              variant={selectedCategory === "Coating Systems" ? "default" : "outline"}
-              size="sm"
-              className="rounded-full text-xs px-4 py-1 h-auto font-medium"
-              onClick={() => {
-                setSelectedCategory("Coating Systems");
-                setSelectedSubcategory("all");
-                setExpandedCategory(null);
-                setSelectedMaterials(new Set());
-                setSelectAll(false);
-              }}
-            >
-              Coating Systems
-            </Button>
+            {/* Removed duplicate Coating Systems button - now handled within CATEGORY_STRUCTURE loop */}
           </div>
 
           {/* Subcategory Buttons (Expandable Row) */}
