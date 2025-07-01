@@ -57,6 +57,13 @@ export const materials = pgTable("materials", {
   pricePerMeter: decimal("price_per_meter", { precision: 10, scale: 2 }),
   surfaceAreaPerMeter: decimal("surface_area_per_meter", { precision: 10, scale: 2 }), // m²/m for coating calculations
   coatingConfig: jsonb("coating_config"), // Stores surface area calculation preferences
+  // Coating system specific fields
+  layersDft: text("layers_dft"), // Layers & DFT (µm)
+  durabilityYears: text("durability_years"), // Durability (Years to 1st Major Maintenance)
+  asNzsReference: text("as_nzs_reference"), // Reference Clause (AS/NZS 2312)
+  applicationMethod: text("application_method"), // Application Method
+  inHouseSubcontracted: text("in_house_subcontracted"), // In-house/Subcontracted
+  fireRating: text("fire_rating"), // Fire Rating (if Intumescent)
   supplier: text("supplier"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
