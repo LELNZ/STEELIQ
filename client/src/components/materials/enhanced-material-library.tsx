@@ -17,6 +17,7 @@ import { LoadingSpinner, LoadingOverlay, LoadingState } from "@/components/ui/lo
 import { MaterialTypeIndicator, MaterialIcon } from "./material-icons";
 import SurfaceAreaManager from "./surface-area-manager";
 import { EnhancedConsumablesV2 } from "./enhanced-consumables-v2";
+import { EnhancedCoatingSystems } from "./enhanced-coating-systems";
 import { Material, Supplier } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -157,14 +158,6 @@ const CATEGORY_STRUCTURE = {
   "Reinforcing": {
     subcategories: ["Rebar", "Mesh", "Deformed Bar"],
     description: "Reinforcing steel products"
-  },
-  "Consumables": {
-    subcategories: ["Welding", "Cutting", "Fasteners", "Gas", "Safety"],
-    description: "Welding electrodes, cutting discs, fasteners, gas, and safety equipment"
-  },
-  "Coating Systems": {
-    subcategories: ["Paint Systems", "Galvanizing", "Powder Coating", "Protective Coatings"],
-    description: "Coating systems for steel protection and finishing"
   }
 };
 
@@ -872,6 +865,20 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
   if (materialFilter === "consumables") {
     return (
       <EnhancedConsumablesV2 
+        materials={materials as Material[]}
+        suppliers={suppliers as Supplier[]}
+        onAddToJob={(material, quantity) => {
+          console.log('Adding to job:', material.name, 'quantity:', quantity);
+          // Integration with job system would go here
+        }}
+      />
+    );
+  }
+
+  // If we're showing coating systems, render the enhanced coating systems tab instead
+  if (materialFilter === "coatings") {
+    return (
+      <EnhancedCoatingSystems 
         materials={materials as Material[]}
         suppliers={suppliers as Supplier[]}
         onAddToJob={(material, quantity) => {
