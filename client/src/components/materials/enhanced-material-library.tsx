@@ -618,11 +618,6 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
       if (!isCoating) return false;
     }
 
-    // Don't show any materials by default - require category selection or search
-    if (selectedCategory === "all" && !searchQuery.trim()) {
-      return false;
-    }
-
     // Search filter
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery || 
@@ -631,7 +626,11 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
       (material.grade && material.grade.toLowerCase().includes(searchLower));
 
     if (!matchesSearch) return false;
-    if (selectedCategory === "all") return true;
+
+    // If "All Categories" is selected, show all materials that pass the material filter and search
+    if (selectedCategory === "all") {
+      return true;
+    }
 
     const categorySubcategories = CATEGORY_STRUCTURE[selectedCategory as keyof typeof CATEGORY_STRUCTURE]?.subcategories || [];
     
