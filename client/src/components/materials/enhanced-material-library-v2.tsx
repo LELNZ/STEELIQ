@@ -33,6 +33,7 @@ export function EnhancedMaterialLibrary({
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
+  const [addMaterialModalOpen, setAddMaterialModalOpen] = useState(false);
   const [displayedMaterials, setDisplayedMaterials] = useState(15);
 
   // Query for materials data
@@ -115,6 +116,20 @@ export function EnhancedMaterialLibrary({
             </TabsList>
 
             <TabsContent value="steel-catalogue" className="space-y-6">
+              {/* Action Bar */}
+              <div className="flex items-center justify-between">
+                <Button 
+                  onClick={() => setAddMaterialModalOpen(true)}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Material
+                </Button>
+                <div className="text-sm text-muted-foreground">
+                  {filteredMaterials.length} materials found
+                </div>
+              </div>
+
               {/* Search and Filters */}
               <div className="flex flex-col lg:flex-row gap-4">
                 <div className="relative flex-1">
@@ -161,12 +176,10 @@ export function EnhancedMaterialLibrary({
                 </div>
               ) : filteredMaterials.length > 0 ? (
                 <>
-                  <SteelCatalogueTable
+                  <EnhancedSteelCatalogueTable
                     materials={displayedMaterialsList}
                     selectedMaterials={selectedMaterials}
                     onMaterialSelect={onMaterialSelect}
-                    onEditMaterial={onMaterialEdit}
-                    onDeleteMaterial={handleDeleteMaterial}
                   />
                   
                   {/* Load More Button */}
@@ -221,7 +234,10 @@ export function EnhancedMaterialLibrary({
             </TabsContent>
 
             <TabsContent value="consumables">
-              <EnhancedConsumablesV2 />
+              <EnhancedConsumablesV2 
+                materials={materials || []}
+                suppliers={[]}
+              />
             </TabsContent>
 
             <TabsContent value="coating-systems">
@@ -236,6 +252,14 @@ export function EnhancedMaterialLibrary({
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Add Material Modal */}
+      <MaterialEditModal
+        material={null}
+        isOpen={addMaterialModalOpen}
+        onClose={() => setAddMaterialModalOpen(false)}
+        mode="add"
+      />
     </div>
   );
 }
