@@ -5,9 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, ShoppingCart, Edit, Trash2, Package } from "lucide-react";
+import { Search, Edit, Trash2, Package, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Material, Supplier } from "@shared/schema";
+import MaterialEditModal from "@/components/materials/material-edit-modal";
 
 interface ConsumablesCleanProps {
   materials: Material[];
@@ -20,22 +21,36 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ConsumableCategory>("all");
   const [displayedConsumables, setDisplayedConsumables] = useState(15);
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const { toast } = useToast();
 
-  // Filter materials for consumables only
+  // Filter materials for consumables only (excluding coatings)
   const filteredConsumables = useMemo(() => {
     if (!materials || !Array.isArray(materials)) return [];
     
     return materials.filter((material: Material) => {
-      // Only show consumables
+      // Only show consumables, exclude coating materials
       const category = material.category?.toLowerCase() || '';
+      const name = material.name?.toLowerCase() || '';
+      
+      // Exclude coating materials - these go to Coating Systems tab
+      const isCoating = category.includes('galvanizing') || 
+                       category.includes('galvanising') ||
+                       category.includes('hot dip') ||
+                       category.includes('painting') ||
+                       category.includes('coating') ||
+                       name.includes('galvaniz') ||
+                       name.includes('paint') ||
+                       name.includes('coating');
+      
+      if (isCoating) return false;
+      
       const isConsumable = category.includes('consumable') || 
                           category.includes('bolt') || 
                           category.includes('cutting') || 
                           category.includes('grinding') || 
                           category.includes('fastener') ||
-                          category.includes('galvanizing') ||
-                          category.includes('hot dip') ||
                           category.includes('welding');
       
       if (!isConsumable) return false;
@@ -101,6 +116,14 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
               />
             </div>
             <div className="flex items-center gap-2">
+              <Button 
+                onClick={() => setShowAddModal(true)}
+                variant="default" 
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Material
+              </Button>
               <Button 
                 onClick={handleExportCSV}
                 variant="outline" 
@@ -174,13 +197,26 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
                         <TableCell>{consumable.supplier || "N/A"}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="sm">
-                              <ShoppingCart className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setEditingMaterial(consumable)}
+                              title="Edit consumable"
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                toast({
+                                  title: "Delete Consumable",
+                                  description: "Delete functionality will be implemented in the next update.",
+                                  variant: "destructive"
+                                });
+                              }}
+                              title="Delete consumable"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -224,6 +260,40 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Modal */}
+      {editingMaterial && (
+        <MaterialEditModal
+          material={editingMaterial}
+          suppliers={suppliers}
+          isOpen={!!editingMaterial}
+          onClose={() => setEditingMaterial(null)}
+          onSave={(updatedMaterial) => {
+            setEditingMaterial(null);
+            toast({
+              title: "Material Updated",
+              description: "Consumable material has been successfully updated.",
+            });
+          }}
+        />
+      )}
+
+      {/* Add Material Modal */}
+      {showAddModal && (
+        <MaterialEditModal
+          material={null}
+          suppliers={suppliers}
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onSave={(newMaterial) => {
+            setShowAddModal(false);
+            toast({
+              title: "Material Added",
+              description: "New consumable material has been successfully added.",
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
