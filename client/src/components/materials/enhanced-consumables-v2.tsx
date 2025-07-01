@@ -87,8 +87,8 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
   const [selectedCategory, setSelectedCategory] = useState<ConsumableCategory>("all");
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
-  const [displayLimit, setDisplayLimit] = useState(10);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [displayLimit, setDisplayLimit] = useState(15);
   const [searchQuery, setSearchQuery] = useState("");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
   const [supplierFilter, setSupplierFilter] = useState("all");
@@ -617,7 +617,7 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
             <div className="flex justify-center">
               <Button 
                 variant="outline" 
-                onClick={() => setDisplayLimit(prev => prev + 10)}
+                onClick={() => setDisplayLimit(prev => prev + 15)}
                 className="w-full max-w-xs"
               >
                 Load More ({sortedConsumables.length - displayedConsumables.length} remaining)

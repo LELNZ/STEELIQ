@@ -75,6 +75,7 @@ export function EnhancedCoatingSystems({ materials, suppliers, onAddToJob }: Enh
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingSystem, setEditingSystem] = useState<CoatingSystem | null>(null);
+  const [displayLimit, setDisplayLimit] = useState(15);
   const { toast } = useToast();
 
   // Sample coating systems data
@@ -189,6 +190,9 @@ export function EnhancedCoatingSystems({ materials, suppliers, onAddToJob }: Enh
   };
 
   const filteredSystems = getFilteredSystems();
+  
+  // Apply pagination
+  const displayedSystems = filteredSystems.slice(0, displayLimit);
 
   // Get statistics for each category
   const getCategoryStats = () => {
@@ -350,14 +354,14 @@ export function EnhancedCoatingSystems({ materials, suppliers, onAddToJob }: Enh
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredSystems.length === 0 ? (
+              {displayedSystems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                     No coating systems found for {activeCategory}
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredSystems.map((system) => (
+                displayedSystems.map((system) => (
                   <TableRow key={system.id}>
                     <TableCell>
                       <div>

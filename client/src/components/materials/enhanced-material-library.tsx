@@ -175,7 +175,7 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
   const [materialToMove, setMaterialToMove] = useState<Material | null>(null);
   const [targetCategory, setTargetCategory] = useState<string>("");
   const [showLoadMore, setShowLoadMore] = useState(false);
-  const [displayLimit, setDisplayLimit] = useState(10);
+  const [displayLimit, setDisplayLimit] = useState(15);
   const [showAddSupplierDialog, setShowAddSupplierDialog] = useState(false);
   const [showAddMaterialDialog, setShowAddMaterialDialog] = useState(false);
   const [newSupplierData, setNewSupplierData] = useState({
@@ -1804,10 +1804,10 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
             </p>
             <Button 
               variant="outline" 
-              onClick={() => setDisplayLimit(prev => prev + 20)}
+              onClick={() => setDisplayLimit(prev => prev + 15)}
               className="w-full max-w-xs"
             >
-              Load More Materials
+              Load More ({sortedMaterials.length - displayLimit} remaining)
             </Button>
           </CardContent>
         </Card>
