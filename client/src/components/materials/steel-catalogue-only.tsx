@@ -30,7 +30,7 @@ export function SteelCatalogueOnly() {
     if (!materials || !Array.isArray(materials)) return [];
     
     return materials.filter((material: Material) => {
-      // Only show steel materials, exclude consumables
+      // Only show steel materials, exclude consumables and coating systems
       const category = material.category?.toLowerCase() || '';
       const isSteel = !category.includes('consumable') && 
                      !category.includes('bolt') && 
@@ -38,7 +38,15 @@ export function SteelCatalogueOnly() {
                      !category.includes('grinding') && 
                      !category.includes('fastener') &&
                      !category.includes('galvanizing') &&
-                     !category.includes('hot dip');
+                     !category.includes('hot dip') &&
+                     !category.includes('alkyd') &&
+                     !category.includes('epoxy') &&
+                     !category.includes('polyurethane') &&
+                     !category.includes('zinc') &&
+                     !category.includes('coating') &&
+                     !category.includes('system') &&
+                     !category.includes('intumescent') &&
+                     !category.includes('primer');
       
       const matchesSearch = !searchQuery.trim() || 
         material.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

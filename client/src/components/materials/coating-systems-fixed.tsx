@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Edit2, Trash2, FileText } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, FileText, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -652,7 +653,28 @@ Notes on Application and Subcontracting:
                   name="coverage_rate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Coverage Rate</FormLabel>
+                      <div className="flex items-center space-x-2">
+                        <FormLabel>Coverage Rate</FormLabel>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p className="text-sm">
+                                <strong>Coverage Rate</strong> tells you how much coating material you need for each square meter of steel surface.
+                                <br /><br />
+                                <strong>Examples:</strong>
+                                <br />• Galvanizing: 2.5 kg per m² (thick zinc coating)
+                                <br />• Paint: 0.15 L per m² (liquid coverage)
+                                <br />• Powder coating: 120 g per m² (dry powder)
+                                <br /><br />
+                                This helps calculate the total quantity of coating needed for your project.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                       <FormControl>
                         <Input placeholder="e.g., 2.5" type="number" step="0.01" {...field} />
                       </FormControl>
@@ -665,7 +687,31 @@ Notes on Application and Subcontracting:
                   name="coverage_unit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Coverage Unit</FormLabel>
+                      <div className="flex items-center space-x-2">
+                        <FormLabel>Coverage Unit</FormLabel>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p className="text-sm">
+                                <strong>Coverage Unit</strong> defines how the coverage rate is measured:
+                                <br /><br />
+                                <strong>• kg per m²:</strong> Weight of coating per area (e.g., galvanizing)
+                                <br />
+                                <strong>• L per m²:</strong> Volume of liquid coating per area (e.g., paint)
+                                <br />
+                                <strong>• g per m²:</strong> Light coatings like powder coating
+                                <br />
+                                <strong>• m² per kg/L:</strong> Area covered by each unit of coating
+                                <br /><br />
+                                Choose the unit that matches how your supplier sells the coating.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                       <FormControl>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <SelectTrigger>
