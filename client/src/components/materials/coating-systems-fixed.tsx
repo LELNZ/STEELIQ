@@ -70,7 +70,9 @@ export default function CoatingSystemsFixed() {
     queryKey: ["/api/materials"],
     staleTime: 0, // Ensure fresh data
     refetchOnWindowFocus: true,
-    refetchInterval: 5000, // Refresh every 5 seconds for debugging
+    refetchInterval: 3000, // Refresh every 3 seconds for debugging
+    cacheTime: 0, // Disable cache completely for debugging
+    refetchOnMount: 'always',
   });
 
   // Force refetch on component mount for testing
@@ -174,8 +176,12 @@ export default function CoatingSystemsFixed() {
     },
     onSuccess: (data) => {
       console.log('✅ Mutation successful, response data:', data);
-      queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
-      queryClient.refetchQueries({ queryKey: ["/api/materials"] });
+      // Clear all cache and force fresh data
+      queryClient.removeQueries({ queryKey: ["/api/materials"] });
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+        refetch();
+      }, 100);
       setDialogOpen(false);
       setEditingMaterial(null);
       form.reset();
