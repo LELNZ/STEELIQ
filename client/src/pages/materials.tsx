@@ -71,10 +71,25 @@ export default function Materials() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="steel-catalogue" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="steel-catalogue">Steel Catalogue</TabsTrigger>
-              <TabsTrigger value="consumables">Consumables</TabsTrigger>
-              <TabsTrigger value="coating-systems">Coating Systems</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 mb-6 h-12 bg-muted/50 rounded-lg p-1">
+              <TabsTrigger 
+                value="steel-catalogue" 
+                className="text-sm font-medium rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+              >
+                Steel Catalogue
+              </TabsTrigger>
+              <TabsTrigger 
+                value="consumables" 
+                className="text-sm font-medium rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+              >
+                Consumables
+              </TabsTrigger>
+              <TabsTrigger 
+                value="coating-systems" 
+                className="text-sm font-medium rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all"
+              >
+                Coating Systems
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="steel-catalogue" className="space-y-6">
