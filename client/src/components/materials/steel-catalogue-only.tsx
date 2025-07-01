@@ -6,7 +6,7 @@ import { Plus, Search } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Material } from "@shared/schema";
 import { EnhancedSteelCatalogueTable } from "./enhanced-steel-catalogue-table";
-import { MaterialEditModal } from "./material-edit-modal";
+import MaterialEditModal from "./material-edit-modal";
 
 export function SteelCatalogueOnly() {
   const [searchQuery, setSearchQuery] = useState("");
