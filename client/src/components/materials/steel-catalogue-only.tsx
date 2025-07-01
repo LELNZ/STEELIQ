@@ -13,7 +13,7 @@ import MaterialEditModal from "./material-edit-modal";
 export function SteelCatalogueOnly() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [displayedMaterials, setDisplayedMaterials] = useState(50);
+  const [displayedMaterials, setDisplayedMaterials] = useState(15);
   const [addMaterialModalOpen, setAddMaterialModalOpen] = useState(false);
   const [supplierFilter, setSupplierFilter] = useState("all");
   
@@ -68,9 +68,14 @@ export function SteelCatalogueOnly() {
     { id: "Square Bar", name: "Square Bar", count: 0 }
   ];
 
-  // Apply 15-item limit for "all" categories
+  // Reset displayedMaterials when category changes
+  useEffect(() => {
+    setDisplayedMaterials(15);
+  }, [selectedCategory]);
+
+  // Apply 15-item limit for "all" categories with View More functionality
   const materialsToDisplay = selectedCategory === "all" 
-    ? filteredMaterials.slice(0, 15) 
+    ? filteredMaterials.slice(0, displayedMaterials) 
     : filteredMaterials;
 
   return (
@@ -79,11 +84,22 @@ export function SteelCatalogueOnly() {
         <CardContent className="space-y-6 pt-6">
           {/* Action Bar */}
           <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              {selectedCategory === "all" 
-                ? `${materialsToDisplay.length} of ${filteredMaterials.length} materials shown` 
-                : `${filteredMaterials.length} materials found`
-              }
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                {selectedCategory === "all" 
+                  ? `${materialsToDisplay.length} of ${filteredMaterials.length} materials shown` 
+                  : `${filteredMaterials.length} materials found`
+                }
+              </div>
+              {selectedCategory === "all" && filteredMaterials.length > displayedMaterials && (
+                <Button 
+                  onClick={() => setDisplayedMaterials(prev => prev + 15)}
+                  variant="outline" 
+                  size="sm"
+                >
+                  View More ({filteredMaterials.length - displayedMaterials} remaining)
+                </Button>
+              )}
             </div>
             <Button 
               onClick={() => setAddMaterialModalOpen(true)}
