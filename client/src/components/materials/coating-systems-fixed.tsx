@@ -215,6 +215,7 @@ export default function CoatingSystemsFixed() {
       in_house_subcontracted: getInHouseSubcontracted(material) === "—" ? "" : getInHouseSubcontracted(material),
       fire_rating: getFireRating(material),
       unit_cost: material.unitCost?.toString() || "",
+      price_per_kg: material.pricePerKg?.toString() || "",
       supplier: material.supplier || "",
       notes: material.notes || "",
     });
@@ -228,11 +229,13 @@ export default function CoatingSystemsFixed() {
   };
 
   const onSubmit = (data: CoatingFormData) => {
-    // Convert unit_cost string to number if provided
+    // Convert pricing fields to numbers if provided
     const processedData = {
       ...data,
       unitCost: data.unit_cost ? parseFloat(data.unit_cost) : undefined,
-      unit_cost: undefined, // Remove the string version
+      pricePerKg: data.price_per_kg ? parseFloat(data.price_per_kg) : undefined,
+      unit_cost: undefined, // Remove the string versions
+      price_per_kg: undefined,
       ...(editingMaterial && { id: editingMaterial.id }),
     };
     
@@ -621,18 +624,32 @@ Notes on Application and Subcontracting:
                 />
                 <FormField
                   control={form.control}
-                  name="supplier"
+                  name="price_per_kg"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Supplier</FormLabel>
+                      <FormLabel>Price per kg</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Dulux Protective Coatings" {...field} />
+                        <Input placeholder="e.g., 8.50" type="number" step="0.01" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="supplier"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Supplier</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Dulux Protective Coatings" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
