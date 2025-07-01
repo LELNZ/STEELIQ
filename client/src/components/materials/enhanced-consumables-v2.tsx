@@ -365,10 +365,9 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
                 setExpandedCategory(null);
               }}
             >
-              All Categories ({statistics.total})
+              All Categories
             </Button>
             {Object.entries(CONSUMABLE_CATEGORY_STRUCTURE).map(([category, info]) => {
-              const count = statistics.categories[category.toLowerCase() as keyof typeof statistics.categories];
               return (
                 <Button
                   key={category}
@@ -377,7 +376,7 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
                   className="rounded-full text-xs px-4 py-1 h-auto font-medium"
                   onClick={() => handleCategoryChange(category.toLowerCase())}
                 >
-                  {category} ({count})
+                  {category}
                   {selectedCategory === category.toLowerCase() && expandedCategory === category.toLowerCase() && " ▼"}
                   {selectedCategory === category.toLowerCase() && expandedCategory !== category.toLowerCase() && " ▶"}
                 </Button>
@@ -518,37 +517,7 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
         </CardContent>
       </Card>
 
-      {/* Statistics Panel */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{statistics.total}</div>
-              <div className="text-sm text-muted-foreground">Total Items</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">{statistics.categories.welding}</div>
-              <div className="text-sm text-muted-foreground">Welding</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{statistics.categories.cutting}</div>
-              <div className="text-sm text-muted-foreground">Cutting</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{statistics.categories.fasteners}</div>
-              <div className="text-sm text-muted-foreground">Fasteners</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">{statistics.categories.gas}</div>
-              <div className="text-sm text-muted-foreground">Gas</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{statistics.categories.safety}</div>
-              <div className="text-sm text-muted-foreground">Safety</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* Materials Display */}
       {viewMode === "grid" ? (
