@@ -1043,6 +1043,19 @@ export const insertMaterialCategorySchema = createInsertSchema(materialCategorie
 export const insertMaterialSchema = createInsertSchema(materials).omit({
   id: true,
   createdAt: true,
+}).extend({
+  // Allow unitCost to accept both string and number types and convert to string
+  unitCost: z.union([z.string(), z.number()]).optional().transform(val => 
+    val === undefined || val === null ? undefined : String(val)
+  ),
+  // Allow pricePerKg to accept both string and number types and convert to string  
+  pricePerKg: z.union([z.string(), z.number()]).optional().transform(val => 
+    val === undefined || val === null ? undefined : String(val)
+  ),
+  // Allow pricePerMeter to accept both string and number types and convert to string
+  pricePerMeter: z.union([z.string(), z.number()]).optional().transform(val => 
+    val === undefined || val === null ? undefined : String(val)
+  ),
 });
 
 export const insertInventorySchema = createInsertSchema(inventory).omit({
