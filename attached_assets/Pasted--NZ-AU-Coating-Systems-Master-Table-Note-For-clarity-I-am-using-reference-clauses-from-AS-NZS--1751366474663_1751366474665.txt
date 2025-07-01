@@ -1,0 +1,39 @@
+📋 NZ & AU Coating Systems Master Table
+Note: For clarity, I am using reference clauses from AS/NZS 2312.1:2014 (Paint coatings) and AS/NZS 2312.2:2014 (Hot dip galvanizing).
+Common practice in NZ: most steel protection references back to AS/NZS 2312.1 System Codes (A1, B1, etc.), plus selected “colloquial” abbreviations (e.g., PUR5).
+Where no direct AS/NZS code exists for a nickname (like “PUR5”), I’ve indicated Comparable to A3 or G3.
+
+Code	Description	Layers & DFT (µm)	Durability (Years to 1st Major Maintenance)	Reference Clause (AS/NZS 2312)	Application Method	In-house/Subcontracted	Fire Rating (if Intumescent)
+ALK1	Single coat alkyd	1 x Alkyd enamel (~50)	2–5	C1	Brush/Roller/Spray	In-house (light steel)	N/A
+ALK2	Alkyd primer + topcoat	1 x Alkyd primer (~35) + 1 x Alkyd enamel (~35)	5–7	C1	Brush/Roller/Spray	In-house	N/A
+ALK3	Alkyd primer + 2 topcoats	1 x Alkyd primer (~35) + 2 x Alkyd enamel (~35)	7–10	C1	Brush/Roller/Spray	In-house	N/A
+ALK4	Enhanced alkyd system	1 x Zinc phosphate alkyd primer + 2 x Alkyd enamel	10	C1	Brush/Roller/Spray	In-house	N/A
+ETC1	Etch primer + alkyd	1 x Etch primer (~15) + 1 x Alkyd (~40)	3–5	B1	Spray	In-house	N/A
+EP1	Epoxy primer only	1 x Epoxy primer (~75)	5–8	A1	Spray	In-house/Subcontracted	N/A
+EP2	Epoxy primer + epoxy finish	1 x Epoxy primer (~75) + 1 x Epoxy finish (~75)	10–15	A2	Spray	Subcontracted	N/A
+EP3	Epoxy primer + build + finish	1 x Epoxy primer (~75) + 1 x Epoxy build (~125) + 1 x Epoxy finish (~75)	15–20	A3	Spray	Subcontracted	N/A
+IZS1	Inorganic zinc silicate primer	1 x IZS (~75)	5–10	G1	Spray	Subcontracted	N/A
+IZS2	IZS primer + epoxy build + polyurethane	IZS (~75) + Epoxy build (~150) + Polyurethane (~50)	20–25	G3	Spray	Subcontracted	N/A
+PUR2	Zinc-rich epoxy primer + polyurethane	Zn epoxy (~75) + Polyurethane (~50)	10–15	A2 (modified)	Spray	Subcontracted	N/A
+PUR3	Zinc-rich epoxy + epoxy build + polyurethane	Zn epoxy (~75) + Epoxy build (~150) + Polyurethane (~50)	20–25	A3 (modified)	Spray	Subcontracted	N/A
+PUR4	PUR3 with extra build	As PUR3 + extra epoxy build coat	25–30	A4 (approx.)	Spray	Subcontracted	N/A
+PUR5	High-durability 3-coat	Zn epoxy (~75) + Epoxy build (~150) + Polyurethane (~50)	25	A3/G3 hybrid	Spray	Subcontracted	N/A
+PUR5 & IZS1	PUR5 with IZS primer	IZS (~75) + Epoxy build (~150) + Polyurethane (~50)	25–30	G3	Spray	Subcontracted	N/A
+INT1	Intumescent fire protection	Epoxy primer (~75) + Intumescent (~250–500)	As primer only	Project-specific spec	Spray	Subcontracted specialist	30–90 min
+INT2	Intumescent + decorative topcoat	Epoxy primer + Intumescent + Polyurethane finish	As primer only	Project-specific spec	Spray	Subcontracted specialist	30–120 min
+HDG-only	Standard hot-dip galvanizing	~85–100 µm zinc	15–25	AS/NZS 4680	Dip Galvanizing	Subcontracted	N/A
+Double Dipping Galv	Extra-thick galvanizing	~150–200 µm zinc	25–40	AS/NZS 4680	Double dip galvanizing	Subcontracted	N/A
+HDG600+5D	HDG (>600g/m2) + duplex	HDG + Epoxy sealer + Epoxy build + Polyurethane finish	25–35+	C3/G3 hybrid	Galv + Spray	Subcontracted	N/A
+HDG + PUR	HDG + Polyurethane	HDG + Epoxy sealer + Polyurethane finish	~20–25	C3 hybrid	Galv + Spray	Subcontracted	N/A
+HDG + INT	HDG + Intumescent	HDG + Epoxy sealer + Intumescent	As intumescent	Project-specific spec	Galv + Spray	Subcontracted specialist	30–120 min
+Standard Galv	Hot-dip galvanizing standard	~85 µm zinc	~15–25	AS/NZS 4680	Dip galvanizing	Subcontracted	N/A
+ZMS100ES	Zinc metal spray + epoxy sealer	100 µm metal spray + Epoxy sealer (~50)	20–25	G1 (approx.)	Thermal spray	Subcontracted specialist	N/A
+ZMS150–5D	Zinc metal spray 150 µm + duplex	150 µm metal spray + Epoxy sealer + Epoxy build + Polyurethane	30–40	G3	Thermal spray	Subcontracted specialist	N/A
+ZMS150–5DA	Zinc metal spray 150 µm + duplex advanced	150 µm metal spray + Epoxy sealer + 2x Epoxy build + Polyurethane	35–45	G4	Thermal spray	Subcontracted specialist	N/A
+ZMS200ES	Zinc metal spray 200 µm + epoxy sealer	200 µm metal spray + Epoxy sealer	~35–40	G2	Thermal spray	Subcontracted specialist	N/A
+ZMS300ES	Zinc metal spray 300 µm + epoxy sealer	300 µm metal spray + Epoxy sealer	40–50	G3/G4	Thermal spray	Subcontracted specialist	N/A
+
+💡 Notes on Application and Subcontracting
+✅ In-house: Usually applies to light alkyd or single-pack epoxy touch-ups, minor maintenance, or smaller components.
+✅ Subcontracted: All galvanizing, metal spraying, intumescent, and multi-layer high-build systems almost always subcontracted in NZ.
+✅ Intumescents: Require specialist certified applicators, test certificates, and compliance documentation.
