@@ -343,14 +343,14 @@ export function EnhancedCoatingSystems({ materials, suppliers, onAddToJob }: Enh
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Manufacturer</TableHead>
-                <TableHead>Coverage</TableHead>
-                <TableHead>Unit Cost</TableHead>
-                <TableHead>Standard</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Type</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Category</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Manufacturer</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Coverage</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Unit Cost</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Standard</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

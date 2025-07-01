@@ -1532,7 +1532,7 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
                         <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Surface Area</span>
                       </div>
                       <div className="text-center">
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Weight</span>
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Weight/m</span>
                       </div>
                       <div className="text-center">
                         <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Grade</span>
