@@ -59,13 +59,13 @@ export function SteelCatalogueOnly() {
     { id: "Flats", name: "Flats", count: 0 },
     { id: "Angles", name: "Angles", count: 0 },
     { id: "Rounds", name: "Rounds", count: 0 },
-    { id: "UB", name: "UB", count: 0 },
-    { id: "UC", name: "UC", count: 0 },
+    { id: "Universal Beams", name: "UB", count: 0 },
+    { id: "Universal Columns", name: "UC", count: 0 },
     { id: "Channels", name: "Channels", count: 0 },
     { id: "Sheet", name: "Sheet", count: 0 },
     { id: "Plate", name: "Plate", count: 0 },
     { id: "Pipe", name: "Pipe", count: 0 },
-    { id: "Square Bar", name: "Square Bar", count: 0 }
+    { id: "Squares", name: "Square Bar", count: 0 }
   ];
 
   // Reset displayedMaterials when category changes
