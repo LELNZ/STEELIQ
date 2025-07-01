@@ -26,6 +26,7 @@ const coatingFormSchema = z.object({
   application_method: z.string().min(1, "Application method is required"),
   in_house_subcontracted: z.string().min(1, "In-house/Subcontracted is required"),
   fire_rating: z.string().optional(),
+  unit_cost: z.string().optional(),
   supplier: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -37,12 +38,20 @@ interface Material {
   code: string;
   name: string;
   category: string;
+  layersDft?: string;
   layers_dft?: string;
+  durabilityYears?: string;
   durability_years?: string;
+  asNzsReference?: string;
   as_nzs_reference?: string;
+  applicationMethod?: string;
   application_method?: string;
+  inHouseSubcontracted?: string;
   in_house_subcontracted?: string;
+  fireRating?: string;
   fire_rating?: string;
+  pricePerKg?: number;
+  unitCost?: number;
   supplier?: string;
   notes?: string;
 }
@@ -101,6 +110,19 @@ export default function CoatingSystemsFixed() {
     });
   }, [coatingMaterials, searchTerm, selectedCategory]);
 
+  // Helper functions to get field values (handles both camelCase and snake_case)
+  const getLayersDft = (material: Material) => material.layersDft || material.layers_dft || "—";
+  const getDurabilityYears = (material: Material) => material.durabilityYears || material.durability_years || "—";
+  const getAsNzsReference = (material: Material) => material.asNzsReference || material.as_nzs_reference || "—";
+  const getApplicationMethod = (material: Material) => material.applicationMethod || material.application_method || "—";
+  const getInHouseSubcontracted = (material: Material) => material.inHouseSubcontracted || material.in_house_subcontracted || "—";
+  const getFireRating = (material: Material) => material.fireRating || material.fire_rating || "N/A";
+  const getPricePerSqm = (material: Material) => {
+    if (material.unitCost) return `$${material.unitCost}/m²`;
+    if (material.pricePerKg) return `$${material.pricePerKg}/kg`;
+    return "Contact for pricing";
+  };
+
   const form = useForm<CoatingFormData>({
     resolver: zodResolver(coatingFormSchema),
     defaultValues: {
@@ -113,6 +135,7 @@ export default function CoatingSystemsFixed() {
       application_method: "",
       in_house_subcontracted: "",
       fire_rating: "N/A",
+      unit_cost: "",
       supplier: "",
       notes: "",
     },
@@ -171,12 +194,13 @@ export default function CoatingSystemsFixed() {
       code: material.code,
       name: material.name,
       category: material.category,
-      layers_dft: material.layers_dft || "",
-      durability_years: material.durability_years || "",
-      as_nzs_reference: material.as_nzs_reference || "",
-      application_method: material.application_method || "",
-      in_house_subcontracted: material.in_house_subcontracted || "",
-      fire_rating: material.fire_rating || "N/A",
+      layers_dft: getLayersDft(material) === "—" ? "" : getLayersDft(material),
+      durability_years: getDurabilityYears(material) === "—" ? "" : getDurabilityYears(material),
+      as_nzs_reference: getAsNzsReference(material) === "—" ? "" : getAsNzsReference(material),
+      application_method: getApplicationMethod(material) === "—" ? "" : getApplicationMethod(material),
+      in_house_subcontracted: getInHouseSubcontracted(material) === "—" ? "" : getInHouseSubcontracted(material),
+      fire_rating: getFireRating(material),
+      unit_cost: material.unitCost?.toString() || "",
       supplier: material.supplier || "",
       notes: material.notes || "",
     });
@@ -313,6 +337,7 @@ Notes on Application and Subcontracting:
               <TableHead>AS/NZS Reference</TableHead>
               <TableHead>Application Method</TableHead>
               <TableHead>In-house/Subcontracted</TableHead>
+              <TableHead>Price per m²</TableHead>
               <TableHead>Fire Rating</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -332,15 +357,18 @@ Notes on Application and Subcontracting:
                   </div>
                 </TableCell>
                 <TableCell className="text-sm">
-                  {material.layers_dft || "—"}
+                  {getLayersDft(material)}
                 </TableCell>
-                <TableCell>{material.durability_years || "—"}</TableCell>
-                <TableCell>{material.as_nzs_reference || "—"}</TableCell>
-                <TableCell>{material.application_method || "—"}</TableCell>
-                <TableCell>{material.in_house_subcontracted || "—"}</TableCell>
+                <TableCell>{getDurabilityYears(material)}</TableCell>
+                <TableCell>{getAsNzsReference(material)}</TableCell>
+                <TableCell>{getApplicationMethod(material)}</TableCell>
+                <TableCell>{getInHouseSubcontracted(material)}</TableCell>
+                <TableCell className="font-medium">
+                  {getPricePerSqm(material)}
+                </TableCell>
                 <TableCell>
-                  {material.fire_rating && material.fire_rating !== "N/A" ? (
-                    <Badge variant="destructive">{material.fire_rating}</Badge>
+                  {getFireRating(material) !== "N/A" ? (
+                    <Badge variant="destructive">{getFireRating(material)}</Badge>
                   ) : (
                     <span className="text-muted-foreground">N/A</span>
                   )}
@@ -541,7 +569,7 @@ Notes on Application and Subcontracting:
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="fire_rating"
@@ -550,6 +578,19 @@ Notes on Application and Subcontracting:
                       <FormLabel>Fire Rating (if Intumescent)</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., 30–90 min, N/A" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="unit_cost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Price per m²</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., 45.20" type="number" step="0.01" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
