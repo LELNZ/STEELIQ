@@ -391,31 +391,39 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="w-5 h-5" />
-            Surface Area Calculator
-          </CardTitle>
-          <CardDescription>
-            Calculate coating surface area for {material.name} ({material.code})
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-
-
-          {/* Dimensional Reference */}
-          <div className="mb-6">
-            <Card className="bg-gray-50 dark:bg-gray-800">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Dimensional Reference</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                {getDimensionalReference()}
-              </CardContent>
-            </Card>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="border-b pb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Calculator className="w-5 h-5" />
+              Surface Area Calculator
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Calculate coating surface area for {material.name} ({material.code})
+            </p>
           </div>
+          <Button variant="outline" onClick={onClose} className="h-8 px-3">
+            Close
+          </Button>
+        </div>
+      </div>
+
+      {/* Dimensional Reference */}
+      <div className="mb-6">
+        <Card className="bg-gray-50 dark:bg-gray-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Dimensional Reference</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {getDimensionalReference()}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardContent className="space-y-4 pt-6">
 
           {/* Coating Configuration */}
           <div className="space-y-3">
@@ -1790,10 +1798,16 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <Button 
-              onClick={onClose}
-              className="w-full"
+              onClick={() => {
+                if (calculatedArea) {
+                  onSave(getSelectedTotalArea());
+                  onClose();
+                }
+              }}
+              className="w-full bg-primary hover:bg-primary/90"
+              disabled={!calculatedArea}
             >
-              Close
+              Save Surface Area
             </Button>
           </div>
         </CardContent>

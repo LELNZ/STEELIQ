@@ -254,8 +254,8 @@ export function EnhancedSteelCatalogueTable({
       {/* Surface Area Calculator Modal */}
       {selectedMaterial && (
         <Dialog open={surfaceAreaModalOpen} onOpenChange={setSurfaceAreaModalOpen}>
-          <DialogContent className="max-w-6xl h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex-1 overflow-y-auto">
+          <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden p-0">
+            <div className="max-h-[95vh] overflow-y-auto">
               <SurfaceAreaManager
                 material={selectedMaterial}
                 onSave={handleSurfaceAreaSave}
