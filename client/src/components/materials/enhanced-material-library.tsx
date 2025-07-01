@@ -620,42 +620,71 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
 
   // Enhanced material filtering with material filter support
   const allFilteredMaterials = (materials as Material[]).filter((material: Material) => {
-    // Apply material filter first
+    // Apply material filter first using a more precise approach
     const materialCategories = categorizeeMaterial(material);
     
-    // Debug logging for materials when on consumables tab
-    if (materialFilter === "consumables") {
-      console.log(`CONSUMABLES FILTER - Material ${material.id} (${material.name}):`, {
-        materialFilter,
-        categories: materialCategories,
-        isConsumable: materialCategories.some(cat => 
-          ['Welding', 'Cutting', 'Fasteners', 'Gas', 'Safety'].includes(cat)
-        ),
-        category: material.category
-      });
-    }
-    
     if (materialFilter === "steel") {
-      // Steel catalogue: exclude Consumables and Coating Systems categories
-      const isConsumable = materialCategories.some(cat => 
-        ['Welding', 'Cutting', 'Fasteners', 'Gas', 'Safety'].includes(cat)
+      // Steel catalogue: exclude materials that are specifically consumables or coatings
+      // Use stricter criteria - only exclude if the category or code explicitly indicates consumables/coatings
+      const isExplicitConsumable = (
+        material.category?.toLowerCase().includes('welding') ||
+        material.category?.toLowerCase().includes('consumables') ||
+        material.category?.toLowerCase().includes('fastener') ||
+        material.category?.toLowerCase().includes('gas') ||
+        material.category?.toLowerCase().includes('safety') ||
+        material.code?.toLowerCase().includes('cons-') ||
+        material.code?.toLowerCase().includes('weld-') ||
+        material.code?.toLowerCase().includes('bolt-') ||
+        material.code?.toLowerCase().includes('gas-')
       );
-      const isCoating = materialCategories.some(cat => 
-        ['Paint Systems', 'Galvanizing', 'Powder Coating', 'Protective Coatings'].includes(cat)
+      
+      const isExplicitCoating = (
+        material.category?.toLowerCase().includes('paint') ||
+        material.category?.toLowerCase().includes('coating') ||
+        material.category?.toLowerCase().includes('galvanizing') ||
+        material.code?.toLowerCase().includes('coat-') ||
+        material.code?.toLowerCase().includes('galv-') ||
+        material.code?.toLowerCase().includes('paint-')
       );
-      if (isConsumable || isCoating) return false;
+      
+      if (isExplicitConsumable || isExplicitCoating) return false;
+      
     } else if (materialFilter === "consumables") {
-      // Consumables catalogue: only show consumables
-      const isConsumable = materialCategories.some(cat => 
-        ['Welding', 'Cutting', 'Fasteners', 'Gas', 'Safety'].includes(cat)
+      // Consumables catalogue: only show materials explicitly marked as consumables
+      const isExplicitConsumable = (
+        material.category?.toLowerCase().includes('welding') ||
+        material.category?.toLowerCase().includes('consumables') ||
+        material.category?.toLowerCase().includes('fastener') ||
+        material.category?.toLowerCase().includes('gas') ||
+        material.category?.toLowerCase().includes('safety') ||
+        material.code?.toLowerCase().includes('cons-') ||
+        material.code?.toLowerCase().includes('weld-') ||
+        material.code?.toLowerCase().includes('bolt-') ||
+        material.code?.toLowerCase().includes('gas-') ||
+        // Additional specific consumable patterns
+        (material.name?.toLowerCase().includes('electrode') && !material.name?.toLowerCase().includes('steel')) ||
+        (material.name?.toLowerCase().includes('welding') && !material.name?.toLowerCase().includes('steel')) ||
+        (material.name?.toLowerCase().includes('bolt') && material.category?.toLowerCase() !== 'fasteners steel') ||
+        (material.name?.toLowerCase().includes('grinding') && material.name?.toLowerCase().includes('disc'))
       );
-      if (!isConsumable) return false;
+      
+      if (!isExplicitConsumable) return false;
+      
     } else if (materialFilter === "coatings") {
-      // Coatings catalogue: only show coating systems
-      const isCoating = materialCategories.some(cat => 
-        ['Paint Systems', 'Galvanizing', 'Powder Coating', 'Protective Coatings'].includes(cat)
+      // Coatings catalogue: only show materials explicitly marked as coatings
+      const isExplicitCoating = (
+        material.category?.toLowerCase().includes('paint') ||
+        material.category?.toLowerCase().includes('coating') ||
+        material.category?.toLowerCase().includes('galvanizing') ||
+        material.code?.toLowerCase().includes('coat-') ||
+        material.code?.toLowerCase().includes('galv-') ||
+        material.code?.toLowerCase().includes('paint-') ||
+        (material.name?.toLowerCase().includes('paint') && !material.name?.toLowerCase().includes('steel')) ||
+        (material.name?.toLowerCase().includes('coating') && !material.name?.toLowerCase().includes('steel')) ||
+        (material.name?.toLowerCase().includes('galvanizing') && !material.name?.toLowerCase().includes('steel'))
       );
-      if (!isCoating) return false;
+      
+      if (!isExplicitCoating) return false;
     }
 
     // Search filter

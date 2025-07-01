@@ -88,6 +88,7 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [displayLimit, setDisplayLimit] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
   const [supplierFilter, setSupplierFilter] = useState("all");
@@ -174,17 +175,31 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
     return categories.length > 0 ? categories : ["welding"]; // Default fallback
   };
 
-  // Filter materials
+  // Filter materials with strict consumables-only filtering
   const filteredConsumables = useMemo(() => {
     return materials.filter((material: Material) => {
-      // Only show consumables
-      const materialCategories = categorizeConsumable(material);
-      const isConsumable = materialCategories.some(cat => 
-        ['welding', 'cutting', 'fasteners', 'gas', 'safety'].includes(cat)
+      // Strict filtering: only show materials explicitly marked as consumables
+      const isExplicitConsumable = (
+        material.category?.toLowerCase().includes('welding') ||
+        material.category?.toLowerCase().includes('consumables') ||
+        material.category?.toLowerCase().includes('fastener') ||
+        material.category?.toLowerCase().includes('gas') ||
+        material.category?.toLowerCase().includes('safety') ||
+        material.code?.toLowerCase().includes('cons-') ||
+        material.code?.toLowerCase().includes('weld-') ||
+        material.code?.toLowerCase().includes('bolt-') ||
+        material.code?.toLowerCase().includes('gas-') ||
+        // Additional specific consumable patterns
+        (material.name?.toLowerCase().includes('electrode') && !material.name?.toLowerCase().includes('steel')) ||
+        (material.name?.toLowerCase().includes('welding') && !material.name?.toLowerCase().includes('steel')) ||
+        (material.name?.toLowerCase().includes('bolt') && material.category?.toLowerCase() !== 'fasteners steel') ||
+        (material.name?.toLowerCase().includes('grinding') && material.name?.toLowerCase().includes('disc'))
       );
-      if (!isConsumable) return false;
+      
+      if (!isExplicitConsumable) return false;
 
-      // Category filter
+      // Category filter using categorizeConsumable function
+      const materialCategories = categorizeConsumable(material);
       if (selectedCategory !== "all" && !materialCategories.includes(selectedCategory)) {
         return false;
       }
@@ -208,6 +223,36 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
       return true;
     });
   }, [materials, selectedCategory, searchQuery, stockFilter, supplierFilter]);
+
+  // Most used scoring (same as steel catalogue)
+  const getMostUsedScore = (material: Material): number => {
+    let score = 0;
+    // Having pricing data = more established/used
+    if (material.pricePerKg || material.pricePerMeter) score += 100;
+    // Recent creation = more active
+    if (material.createdAt) {
+      const daysSinceCreation = (Date.now() - new Date(material.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceCreation < 30) score += 50;
+    }
+    // Supplier assigned = more established
+    if (material.supplier) score += 25;
+    // Has weight data = more complete
+    if (material.weightPerMeter) score += 20;
+    
+    return score;
+  };
+
+  // Sort and limit materials for performance
+  const sortedConsumables = useMemo(() => {
+    return [...filteredConsumables].sort((a, b) => getMostUsedScore(b) - getMostUsedScore(a));
+  }, [filteredConsumables]);
+
+  const displayedConsumables = useMemo(() => {
+    if (searchQuery || selectedCategory !== "all") {
+      return sortedConsumables; // Show all when filtering/searching
+    }
+    return sortedConsumables.slice(0, displayLimit);
+  }, [sortedConsumables, displayLimit, searchQuery, selectedCategory]);
 
   // Statistics
   const statistics = useMemo(() => {
