@@ -57,6 +57,8 @@ export const materials = pgTable("materials", {
   pricePerMeter: decimal("price_per_meter", { precision: 10, scale: 2 }),
   surfaceAreaPerMeter: decimal("surface_area_per_meter", { precision: 10, scale: 2 }), // m²/m for coating calculations
   coatingConfig: jsonb("coating_config"), // Stores surface area calculation preferences
+  coverageRate: decimal("coverage_rate", { precision: 10, scale: 3 }), // Coverage rate for coatings
+  coverageUnit: text("coverage_unit"), // "kg_per_m2", "m2_per_kg", "L_per_m2", etc.
   // Coating system specific fields
   layersDft: text("layers_dft"), // Layers & DFT (µm)
   durabilityYears: text("durability_years"), // Durability (Years to 1st Major Maintenance)
@@ -1054,6 +1056,10 @@ export const insertMaterialSchema = createInsertSchema(materials).omit({
   ),
   // Allow pricePerMeter to accept both string and number types and convert to string
   pricePerMeter: z.union([z.string(), z.number()]).optional().transform(val => 
+    val === undefined || val === null ? undefined : String(val)
+  ),
+  // Allow coverageRate to accept both string and number types and convert to string
+  coverageRate: z.union([z.string(), z.number()]).optional().transform(val => 
     val === undefined || val === null ? undefined : String(val)
   ),
 });

@@ -28,6 +28,8 @@ const coatingFormSchema = z.object({
   fire_rating: z.string().optional(),
   unit_cost: z.string().optional(),
   price_per_kg: z.string().optional(),
+  coverage_rate: z.string().optional(),
+  coverage_unit: z.string().optional(),
   supplier: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -150,6 +152,8 @@ export default function CoatingSystemsFixed() {
       fire_rating: "N/A",
       unit_cost: "",
       price_per_kg: "",
+      coverage_rate: "",
+      coverage_unit: "kg_per_m2",
       supplier: "",
       notes: "",
     },
@@ -216,6 +220,8 @@ export default function CoatingSystemsFixed() {
       fire_rating: getFireRating(material),
       unit_cost: material.unitCost?.toString() || "",
       price_per_kg: material.pricePerKg?.toString() || "",
+      coverage_rate: material.coverageRate?.toString() || "",
+      coverage_unit: material.coverageUnit || "kg_per_m2",
       supplier: material.supplier || "",
       notes: material.notes || "",
     });
@@ -229,13 +235,16 @@ export default function CoatingSystemsFixed() {
   };
 
   const onSubmit = (data: CoatingFormData) => {
-    // Convert pricing fields to numbers if provided
+    // Convert pricing and coverage fields to numbers if provided
     const processedData = {
       ...data,
       unitCost: data.unit_cost ? parseFloat(data.unit_cost) : undefined,
       pricePerKg: data.price_per_kg ? parseFloat(data.price_per_kg) : undefined,
+      coverageRate: data.coverage_rate ? parseFloat(data.coverage_rate) : undefined,
+      coverageUnit: data.coverage_unit || undefined,
       unit_cost: undefined, // Remove the string versions
       price_per_kg: undefined,
+      coverage_rate: undefined,
       ...(editingMaterial && { id: editingMaterial.id }),
     };
     
@@ -630,6 +639,46 @@ Notes on Application and Subcontracting:
                       <FormLabel>Price per kg</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., 8.50" type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="coverage_rate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Coverage Rate</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., 2.5" type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="coverage_unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Coverage Unit</FormLabel>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select unit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="kg_per_m2">kg per m²</SelectItem>
+                            <SelectItem value="m2_per_kg">m² per kg</SelectItem>
+                            <SelectItem value="L_per_m2">L per m²</SelectItem>
+                            <SelectItem value="m2_per_L">m² per L</SelectItem>
+                            <SelectItem value="g_per_m2">g per m²</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
