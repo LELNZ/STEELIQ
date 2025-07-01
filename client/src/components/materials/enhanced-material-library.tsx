@@ -585,13 +585,15 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
     // Apply material filter first
     const materialCategories = categorizeeMaterial(material);
     
-    // Debug logging for first few materials when on consumables tab
-    if (materialFilter === "consumables" && material.id <= 4320) {
-      console.log(`Material ${material.id} (${material.name}):`, {
+    // Debug logging for materials when on consumables tab
+    if (materialFilter === "consumables") {
+      console.log(`CONSUMABLES FILTER - Material ${material.id} (${material.name}):`, {
+        materialFilter,
         categories: materialCategories,
         isConsumable: materialCategories.some(cat => 
           ['Welding', 'Cutting', 'Fasteners', 'Gas', 'Safety'].includes(cat)
-        )
+        ),
+        category: material.category
       });
     }
     
