@@ -111,34 +111,20 @@ export function EnhancedMaterialLibrary({
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Material Library
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="steel-catalogue" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="steel-catalogue">Steel Catalogue</TabsTrigger>
-              <TabsTrigger value="consumables">Consumables</TabsTrigger>
-              <TabsTrigger value="coating-systems">Coating Systems</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="steel-catalogue" className="space-y-6">
-              {/* Action Bar */}
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                  {filteredMaterials.length} materials found
-                </div>
-                <Button 
-                  onClick={() => setAddMaterialModalOpen(true)}
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Material
-                </Button>
-              </div>
+        <CardContent className="space-y-6 pt-6">
+          {/* Action Bar */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {filteredMaterials.length} materials found
+            </div>
+            <Button 
+              onClick={() => setAddMaterialModalOpen(true)}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Material
+            </Button>
+          </div>
 
               {/* Search and Filters */}
               <div className="flex flex-col lg:flex-row gap-4">
@@ -241,25 +227,6 @@ export function EnhancedMaterialLibrary({
                   </CardContent>
                 </Card>
               )}
-            </TabsContent>
-
-            <TabsContent value="consumables">
-              <EnhancedConsumablesV2 
-                materials={materials || []}
-                suppliers={[]}
-              />
-            </TabsContent>
-
-            <TabsContent value="coating-systems">
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Coating Systems</h3>
-                  <p className="text-muted-foreground">Coming soon - coating system management</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
         </CardContent>
       </Card>
 

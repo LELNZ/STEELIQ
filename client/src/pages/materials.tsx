@@ -1,36 +1,25 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaterialUpload from "@/components/materials/material-upload";
-import { EnhancedMaterialLibrary } from "@/components/materials/enhanced-material-library-v2";
-import { Plus, Upload, Download, Search } from "lucide-react";
+import { SteelCatalogueOnly } from "@/components/materials/steel-catalogue-only";
+import { EnhancedConsumablesV2 } from "@/components/materials/enhanced-consumables-v2";
+import { useQuery } from "@tanstack/react-query";
+import { Material, Supplier } from "@shared/schema";
+import { Plus, Upload, Download, Search, Package } from "lucide-react";
 
 export default function Materials() {
-  const [searchQuery, setSearchQuery] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [selectedMaterials, setSelectedMaterials] = useState<Set<number>>(new Set());
 
-  const handleMaterialSelect = (id: number) => {
-    setSelectedMaterials(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
+  // Load materials and suppliers for components
+  const { data: materials = [] } = useQuery<Material[]>({
+    queryKey: ["/api/materials"],
+  });
 
-  const handleMaterialEdit = (material: any) => {
-    // TODO: Implement material edit functionality
-    console.log("Edit material:", material);
-  };
-
-  const handleMaterialDelete = (id: number) => {
-    // TODO: Implement material delete functionality
-    console.log("Delete material:", id);
-  };
+  const { data: suppliers = [] } = useQuery<Supplier[]>({
+    queryKey: ["/api/suppliers"],
+  });
 
   const handleExport = async () => {
     try {
@@ -72,8 +61,45 @@ export default function Materials() {
         </div>
       </div>
 
-      {/* Enhanced Material Library */}
-      <EnhancedMaterialLibrary />
+      {/* Material Library with Tabs */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Material Library
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="steel-catalogue" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="steel-catalogue">Steel Catalogue</TabsTrigger>
+              <TabsTrigger value="consumables">Consumables</TabsTrigger>
+              <TabsTrigger value="coating-systems">Coating Systems</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="steel-catalogue" className="space-y-6">
+              <SteelCatalogueOnly />
+            </TabsContent>
+
+            <TabsContent value="consumables">
+              <EnhancedConsumablesV2 
+                materials={materials}
+                suppliers={suppliers}
+              />
+            </TabsContent>
+
+            <TabsContent value="coating-systems">
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">Coating Systems</h3>
+                  <p className="text-muted-foreground">Coming soon - coating system management</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
 
       {/* Upload Modal */}
       <MaterialUpload 
