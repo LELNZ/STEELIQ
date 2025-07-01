@@ -69,11 +69,21 @@ export function EnhancedMaterialLibrary({
     { id: "Square Bar", name: "Square Bar", count: 0 }
   ];
 
-  // Filter materials based on search and category
+  // Filter materials for Steel Catalogue only (exclude consumables)
   const filteredMaterials = useMemo(() => {
     if (!materials || !Array.isArray(materials)) return [];
     
     return materials.filter((material: Material) => {
+      // Only show steel materials, exclude consumables
+      const category = material.category?.toLowerCase() || '';
+      const isSteel = !category.includes('consumable') && 
+                     !category.includes('bolt') && 
+                     !category.includes('cutting') && 
+                     !category.includes('grinding') && 
+                     !category.includes('fastener') &&
+                     !category.includes('galvanizing') &&
+                     !category.includes('hot dip');
+      
       const matchesSearch = !searchQuery.trim() || 
         material.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (material.code && material.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -82,7 +92,7 @@ export function EnhancedMaterialLibrary({
       const matchesCategory = selectedCategory === "all" || 
         (material.category && material.category.toLowerCase().includes(selectedCategory.toLowerCase()));
       
-      return matchesSearch && matchesCategory;
+      return isSteel && matchesSearch && matchesCategory;
     });
   }, [materials, searchQuery, selectedCategory]);
 
@@ -118,6 +128,9 @@ export function EnhancedMaterialLibrary({
             <TabsContent value="steel-catalogue" className="space-y-6">
               {/* Action Bar */}
               <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  {filteredMaterials.length} materials found
+                </div>
                 <Button 
                   onClick={() => setAddMaterialModalOpen(true)}
                   className="bg-primary hover:bg-primary/90"
@@ -125,9 +138,6 @@ export function EnhancedMaterialLibrary({
                   <Plus className="h-4 w-4 mr-2" />
                   Add Material
                 </Button>
-                <div className="text-sm text-muted-foreground">
-                  {filteredMaterials.length} materials found
-                </div>
               </div>
 
               {/* Search and Filters */}

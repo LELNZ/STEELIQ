@@ -57,16 +57,7 @@ export default function Materials() {
           <h1 className="text-3xl font-bold text-foreground">Material Library</h1>
           <p className="text-muted-foreground">Manage your steel catalog and material specifications</p>
         </div>
-      </div>
-
-      {/* Action Bar */}
-      <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button className="bg-secondary hover:bg-secondary/90">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Material
-          </Button>
-
           <Button 
             variant="outline"
             onClick={() => setShowUploadModal(true)}
@@ -78,17 +69,6 @@ export default function Materials() {
             <Download className="w-4 h-4 mr-2" />
             Export CSV
           </Button>
-        </div>
-
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search materials..."
-            className="pl-10 w-80"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
         </div>
       </div>
 
