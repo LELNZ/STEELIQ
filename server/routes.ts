@@ -236,6 +236,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Move material to different category
+  app.post("/api/materials/:id/move", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { category } = req.body;
+      
+      if (!category) {
+        return res.status(400).json({ error: "Category is required" });
+      }
+      
+      const material = await storage.getMaterial(id);
+      if (!material) {
+        return res.status(404).json({ error: "Material not found" });
+      }
+      
+      const updatedMaterial = await storage.updateMaterial(id, { category });
+      console.log(`Successfully moved material ${id} to category: ${category}`);
+      
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(200).json(updatedMaterial);
+    } catch (error) {
+      console.error("Error moving material:", error);
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(500).json({ error: "Failed to move material" });
+    }
+  });
+
   app.delete("/api/materials/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
