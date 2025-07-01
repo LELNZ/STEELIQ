@@ -73,6 +73,13 @@ export function SteelCatalogueOnly() {
             <div className="text-sm text-muted-foreground">
               {filteredMaterials.length} materials found
             </div>
+            <Button 
+              onClick={() => setAddMaterialModalOpen(true)}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Material
+            </Button>
           </div>
 
           {/* Search and Filters */}

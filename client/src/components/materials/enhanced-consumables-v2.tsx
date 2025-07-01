@@ -336,11 +336,26 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
 
   return (
     <div className="space-y-6">
-      {/* Category Navigation Card */}
       <Card>
-        <CardHeader className="pb-4">
+        <CardContent className="space-y-6 pt-6">
+          {/* Action Bar */}
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Consumables Categories</CardTitle>
+            <div className="text-sm text-muted-foreground">
+              {filteredConsumables.length} consumables found
+            </div>
+          </div>
+
+          {/* Search and Filters */}
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search consumables..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
             <div className="flex items-center gap-2">
               <Button onClick={handleExportCSV} variant="outline" size="sm">
                 <Package className="w-4 h-4 mr-2" />
@@ -352,9 +367,8 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
               </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Simple Categories - matching Steel Catalogue style */}
+
+          {/* Categories - moved below search bar to match Steel Catalogue */}
           <div className="flex flex-wrap gap-2">
             <Button
               variant={selectedCategory === "all" ? "default" : "outline"}
@@ -384,37 +398,40 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
               </Button>
             ))}
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Search and Controls */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search consumables..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2"
-              >
-                <Filter className="h-4 w-4" />
-                Filters
-                {(stockFilter !== "all" || supplierFilter !== "all") && (
-                  <Badge variant="secondary" className="ml-1">
-                    Active
-                  </Badge>
-                )}
-              </Button>
-              <div className="flex items-center gap-2">
+          {/* Additional Filters - collapsible */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Stock Status:</label>
+              <Select value={stockFilter} onValueChange={(value: StockFilter) => setStockFilter(value)}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Stock</SelectItem>
+                  <SelectItem value="in-stock">In Stock</SelectItem>
+                  <SelectItem value="low-stock">Low Stock</SelectItem>
+                  <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Supplier:</label>
+              <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="All suppliers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All suppliers</SelectItem>
+                  {suppliers.map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.name}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
                 <Button
                   variant={viewMode === "grid" ? "default" : "outline"}
                   size="sm"
