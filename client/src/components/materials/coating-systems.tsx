@@ -29,24 +29,49 @@ export function CoatingSystems({ materials, suppliers }: CoatingSystemsProps) {
     if (!materials || !Array.isArray(materials)) return [];
     
     return materials.filter((material: Material) => {
-      // Only show coating materials
+      // Only show coating materials - exclude steel materials
       const category = material.category?.toLowerCase() || '';
       const name = material.name?.toLowerCase() || '';
       
-      const isCoating = category.includes('galvanizing') || 
-                       category.includes('galvanising') ||
-                       category.includes('hot dip') ||
+      // Exclude steel materials (pipes, beams, sheets, plates, etc.)
+      const isSteelMaterial = category.includes('pipe') ||
+                             category.includes('beam') ||
+                             category.includes('column') ||
+                             category.includes('shs') ||
+                             category.includes('rhs') ||
+                             category.includes('flat') ||
+                             category.includes('angle') ||
+                             category.includes('round') ||
+                             category.includes('channel') ||
+                             category.includes('bar') ||
+                             category.includes('mesh') ||
+                             category.includes('rail') ||
+                             category.includes('purlin') ||
+                             category.includes('sheet') ||
+                             category.includes('plate') ||
+                             category.includes('chequer') ||
+                             category.includes('weather resistant') ||
+                             name.includes('pipe') ||
+                             name.includes('beam') ||
+                             name.includes('tube') ||
+                             name.includes('sheet') ||
+                             name.includes('plate');
+      
+      if (isSteelMaterial) return false;
+      
+      // Only include actual coating systems and services
+      const isCoating = category.includes('coating') ||
                        category.includes('painting') ||
-                       category.includes('coating') ||
                        category.includes('powder') ||
                        category.includes('anodizing') ||
                        category.includes('plating') ||
-                       name.includes('galvaniz') ||
-                       name.includes('paint') ||
                        name.includes('coating') ||
+                       name.includes('paint') ||
                        name.includes('powder') ||
                        name.includes('anodiz') ||
-                       name.includes('plat');
+                       name.includes('plat') ||
+                       // Include galvanizing services but not galvanized steel products
+                       (name.includes('galvaniz') && !name.includes('pipe') && !name.includes('tube') && !name.includes('beam'));
       
       if (!isCoating) return false;
       
