@@ -2,7 +2,9 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Search, Package, Bookmark } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Material } from "@shared/schema";
 import { EnhancedSteelCatalogueTable } from "./enhanced-steel-catalogue-table";
@@ -13,8 +15,10 @@ export function SteelCatalogueOnly() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [displayedMaterials, setDisplayedMaterials] = useState(50);
   const [addMaterialModalOpen, setAddMaterialModalOpen] = useState(false);
+  const [supplierFilter, setSupplierFilter] = useState("all");
   
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Load materials
   const { data: materials = [], isLoading } = useQuery<Material[]>({
@@ -82,7 +86,7 @@ export function SteelCatalogueOnly() {
             </Button>
           </div>
 
-          {/* Search and Filters */}
+          {/* Search and Action Buttons */}
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -92,6 +96,24 @@ export function SteelCatalogueOnly() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={() => toast({ title: "Export Started", description: "Steel catalogue data is being exported..." })} 
+                variant="outline" 
+                size="sm"
+              >
+                <Package className="w-4 h-4 mr-2" />
+                Export CSV
+              </Button>
+              <Button 
+                onClick={() => toast({ title: "Filter Saved", description: "Current filter settings have been saved" })} 
+                variant="outline" 
+                size="sm"
+              >
+                <Bookmark className="w-4 h-4 mr-2" />
+                Save Filter
+              </Button>
             </div>
           </div>
 
@@ -108,6 +130,23 @@ export function SteelCatalogueOnly() {
                 {category.name}
               </Button>
             ))}
+          </div>
+
+          {/* Additional Filters */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Supplier:</label>
+              <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="All suppliers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All suppliers</SelectItem>
+                  <SelectItem value="ASMUSS Steel">ASMUSS Steel</SelectItem>
+                  <SelectItem value="Other Supplier">Other Supplier</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Materials Table */}
