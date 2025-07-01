@@ -1636,8 +1636,590 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
               </div>
             </CardContent>
           </Card>
-                          {/* Show diameter for rounds, pipes, and reinforcing bars, otherwise show width/thickness */}
-                          {(material.category?.toLowerCase().includes('round') || 
+        )
+      ) : (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            {selectedCategory === "all" && !searchQuery.trim() ? (
+              <>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Select a Material Category</h3>
+                <p className="text-muted-foreground mb-4">
+                  Choose a category above or use the search bar to browse your steel catalogue
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("SHS");
+                    setSelectedSubcategory("all");
+                  }}
+                >
+                  Browse SHS Materials
+                </Button>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-foreground mb-2">No Materials Found</h3>
+                <p className="text-muted-foreground">
+                  {searchQuery.trim() 
+                    ? `No materials found matching "${searchQuery}" in ${selectedCategory}`
+                    : `No materials found in category: ${selectedCategory}`
+                  }
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Load More Button */}
+      {hasMoreToLoad && (
+        <div className="flex justify-center pt-4">
+          <Button 
+            variant="outline" 
+            onClick={() => setDisplayLimit(prev => prev + 15)}
+            className="px-6"
+          >
+            Load More ({sortedMaterials.length - displayLimit} remaining)
+          </Button>
+        </div>
+      )}
+
+      {/* Bulk Actions */}
+      {selectedMaterials.size > 0 && (
+        <Card className="mt-4">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {selectedMaterials.size} material{selectedMaterials.size !== 1 ? 's' : ''} selected
+              </p>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedMaterials(new Set());
+                    setSelectAll(false);
+                  }}
+                >
+                  Clear Selection
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDeleteSelected()}
+                  disabled={deleteSelectedMutation.isPending}
+                >
+                  {deleteSelectedMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    `Delete Selected (${selectedMaterials.size})`
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Material Edit Dialog */}
+      {editingMaterial && (
+        <Dialog open={!!editingMaterial} onOpenChange={() => setEditingMaterial(null)}>
+          <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Material</DialogTitle>
+              <DialogDescription>
+                Update the material details below. All fields are editable.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="edit-name">Material Name</Label>
+                  <Input
+                    id="edit-name"
+                    value={editingMaterial.name}
+                    onChange={(e) => setEditingMaterial({...editingMaterial, name: e.target.value})}
+                    placeholder="Material name"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-code">Material Code</Label>
+                  <Input
+                    id="edit-code"
+                    value={editingMaterial.code}
+                    onChange={(e) => setEditingMaterial({...editingMaterial, code: e.target.value})}
+                    placeholder="Material code"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-category">Category</Label>
+                  <Input
+                    id="edit-category"
+                    value={editingMaterial.category || ''}
+                    onChange={(e) => setEditingMaterial({...editingMaterial, category: e.target.value})}
+                    placeholder="Material category"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-grade">Grade</Label>
+                  <Input
+                    id="edit-grade"
+                    value={editingMaterial.grade || ''}
+                    onChange={(e) => setEditingMaterial({...editingMaterial, grade: e.target.value})}
+                    placeholder="Material grade"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-standard">Standard</Label>
+                  <Input
+                    id="edit-standard"
+                    value={editingMaterial.standard || ''}
+                    onChange={(e) => setEditingMaterial({...editingMaterial, standard: e.target.value})}
+                    placeholder="Material standard"
+                  />
+                </div>
+              </div>
+
+              {/* Dimensions */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="edit-width">Width (mm)</Label>
+                  <Input
+                    id="edit-width"
+                    type="number"
+                    value={editingMaterial.width?.toString() || ''}
+                    onChange={(e) => setEditingMaterial({...editingMaterial, width: e.target.value || null})}
+                    placeholder="Width in millimeters"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-depth">Depth (mm)</Label>
+                  <Input
+                    id="edit-depth"
+                    type="number"
+                    value={editingMaterial.depth?.toString() || ''}
+                    onChange={(e) => setEditingMaterial({...editingMaterial, depth: e.target.value || null})}
+                    placeholder="Depth in millimeters"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-thickness">Thickness (mm)</Label>
+                  <Input
+                    id="edit-thickness"
+                    type="number"
+                    value={editingMaterial.thickness?.toString() || ''}
+                    onChange={(e) => setEditingMaterial({...editingMaterial, thickness: e.target.value || null})}
+                    placeholder="Thickness in millimeters"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-diameter">Diameter (mm)</Label>
+                  <Input
+                    id="edit-diameter"
+                    type="number"
+                    value={editingMaterial.diameter?.toString() || ''}
+                    onChange={(e) => setEditingMaterial({...editingMaterial, diameter: e.target.value || null})}
+                    placeholder="Diameter in millimeters"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-weight">Weight per Meter (kg/m)</Label>
+                  <Input
+                    id="edit-weight"
+                    type="number"
+                    step="0.001"
+                    value={editingMaterial.weightPerMeter?.toString() || ''}
+                    onChange={(e) => setEditingMaterial({...editingMaterial, weightPerMeter: parseFloat(e.target.value) || null})}
+                    placeholder="Weight per meter"
+                  />
+                </div>
+              </div>
+
+              {/* Supplier Information */}
+              <div className="col-span-1 md:col-span-2">
+                <Label>Supplier</Label>
+                <Popover open={supplierDropdownOpen} onOpenChange={setSupplierDropdownOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                      aria-expanded={supplierDropdownOpen}
+                    >
+                      {editingMaterial.supplierId 
+                        ? suppliers?.find(s => s.id === editingMaterial.supplierId)?.company || "Unknown supplier"
+                        : "Select supplier..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" ref={supplierDropdownRef}>
+                    <Command>
+                      <CommandInput 
+                        placeholder="Search suppliers..." 
+                        value={supplierSearchText}
+                        onValueChange={setSupplierSearchText}
+                      />
+                      <CommandEmpty>
+                        <div className="p-4 text-center">
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {supplierSearchText ? `No suppliers found matching "${supplierSearchText}"` : "No suppliers found"}
+                          </p>
+                          {filteredSuppliers && filteredSuppliers.length === 0 && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                const newSupplier = suppliers?.find(s => 
+                                  s.company.toLowerCase().includes(supplierSearchText.toLowerCase())
+                                );
+                                if (newSupplier) {
+                                  setEditingMaterial({
+                                    ...editingMaterial, 
+                                    supplierId: newSupplier.id
+                                  });
+                                  setSupplierDropdownOpen(false);
+                                  setSupplierSearchText('');
+                                }
+                              }}
+                            >
+                              {editingMaterial.supplierId ? 'Clear Supplier' : 'Add New Supplier'}
+                            </Button>
+                          )}
+                        </div>
+                      </CommandEmpty>
+                      <CommandList>
+                        <CommandGroup>
+                          {filteredSuppliers?.map((supplier, index) => (
+                            <CommandItem
+                              key={supplier.id}
+                              value={supplier.company}
+                              onSelect={() => {
+                                const isCurrentSupplier = editingMaterial.supplierId === supplier.id;
+                                
+                                setEditingMaterial({
+                                  ...editingMaterial, 
+                                  supplierId: isCurrentSupplier ? null : supplier.id
+                                });
+                                setSupplierDropdownOpen(false);
+                                setSupplierSearchText('');
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  editingMaterial.supplierId === supplier.id ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              <div>
+                                <p className="font-medium">{supplier.company}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {supplier.contactPerson} • {supplier.email}
+                                </p>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                      
+                      {(!filteredSuppliers || filteredSuppliers.length === 0) && supplierSearchText && (
+                        <div className="p-2 border-t">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="w-full justify-start"
+                            onClick={() => {
+                              console.log('Adding new supplier:', supplierSearchText);
+                              // Add new supplier logic here
+                            }}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add "{supplierSearchText}" as new supplier
+                          </Button>
+                        </div>
+                      )}
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Price Information - Enhanced for steel fabrication */}
+              <div className="col-span-1 md:col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="edit-price-per-kg">Price per kg ($)</Label>
+                    <Input
+                      id="edit-price-per-kg"
+                      type="number"
+                      step="0.01"
+                      value={editingMaterial.pricePerKg?.toString() || ''}
+                      onChange={(e) => {
+                        const pricePerKg = parseFloat(e.target.value) || null;
+                        setEditingMaterial({...editingMaterial, pricePerKg});
+                        
+                        // Auto-calculate other price fields if weight is available
+                        if (pricePerKg && editingMaterial.weightPerMeter) {
+                          const pricePerMeter = calculatePricePerMeter(pricePerKg, editingMaterial.weightPerMeter);
+                          setEditingMaterial(prev => ({
+                            ...prev,
+                            pricePerKg,
+                            pricePerMeter,
+                            tonRate: calculateTonRate(pricePerKg)
+                          }));
+                        }
+                      }}
+                      placeholder="Price per kilogram"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-price-per-meter">Price per meter ($)</Label>
+                    <Input
+                      id="edit-price-per-meter"
+                      type="number"
+                      step="0.01"
+                      value={editingMaterial.pricePerMeter?.toString() || ''}
+                      onChange={(e) => {
+                        const pricePerMeter = parseFloat(e.target.value) || null;
+                        setEditingMaterial({...editingMaterial, pricePerMeter});
+                        
+                        // Auto-calculate price per kg if weight is available
+                        if (pricePerMeter && editingMaterial.weightPerMeter) {
+                          const pricePerKg = calculatePricePerKg(pricePerMeter, editingMaterial.weightPerMeter);
+                          setEditingMaterial(prev => ({
+                            ...prev,
+                            pricePerMeter,
+                            pricePerKg,
+                            tonRate: calculateTonRate(pricePerKg)
+                          }));
+                        }
+                      }}
+                      placeholder="Price per linear meter"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-ton-rate">Ton Rate ($/tonne)</Label>
+                    <Input
+                      id="edit-ton-rate"
+                      type="number"
+                      step="1"
+                      value={editingMaterial.tonRate ? editingMaterial.tonRate.toString() : ''}
+                      onChange={(e) => {
+                        const tonRate = parseFloat(e.target.value) || null;
+                        if (tonRate) {
+                          const pricePerKg = calculatePricePerKgFromTonRate(tonRate);
+                          setEditingMaterial(prev => ({
+                            ...prev,
+                            tonRate,
+                            pricePerKg,
+                            pricePerMeter: prev.weightPerMeter ? calculatePricePerMeter(pricePerKg, prev.weightPerMeter) : prev.pricePerMeter
+                          }));
+                        } else {
+                          setEditingMaterial({...editingMaterial, tonRate});
+                        }
+                      }}
+                      placeholder="Ton rate"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 mt-6">
+              <Button variant="outline" onClick={() => setEditingMaterial(null)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  updateMaterialMutation.mutate({
+                    id: editingMaterial.id,
+                    updates: editingMaterial
+                  });
+                }}
+                disabled={updateMaterialMutation.isPending}
+              >
+                {updateMaterialMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Material'
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Add Supplier Dialog */}
+      <Dialog open={showAddSupplierDialog} onOpenChange={setShowAddSupplierDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Supplier</DialogTitle>
+            <DialogDescription>
+              Create a new supplier entry for your materials.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="new-supplier-company">Company Name</Label>
+              <Input
+                id="new-supplier-company"
+                value={newSupplierData.company}
+                onChange={(e) => setNewSupplierData({...newSupplierData, company: e.target.value})}
+                placeholder="Supplier company name"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="new-supplier-contact">Contact Person</Label>
+              <Input
+                id="new-supplier-contact"
+                value={newSupplierData.contactPerson}
+                onChange={(e) => setNewSupplierData({...newSupplierData, contactPerson: e.target.value})}
+                placeholder="Contact person name"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="new-supplier-email">Email</Label>
+              <Input
+                id="new-supplier-email"
+                type="email"
+                value={newSupplierData.email}
+                onChange={(e) => setNewSupplierData({...newSupplierData, email: e.target.value})}
+                placeholder="Contact email"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => {
+              setShowAddSupplierDialog(false);
+              setNewSupplierData({
+                company: '',
+                contactPerson: '',
+                email: '',
+                phone: '',
+                address: '',
+                city: '',
+                postalCode: '',
+                paymentTerms: '30 days',
+                accountNumber: '',
+                notes: ''
+              });
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (!newSupplierData.company.trim()) {
+                  toast({
+                    title: "Error",
+                    description: "Company name is required",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                addSupplierMutation.mutate({
+                  company: newSupplierData.company,
+                  contactPerson: newSupplierData.contactPerson,
+                  email: newSupplierData.email,
+                  phone: newSupplierData.phone,
+                  address: newSupplierData.address,
+                  city: newSupplierData.city,
+                  postalCode: newSupplierData.postalCode,
+                  paymentTerms: newSupplierData.paymentTerms,
+                  accountNumber: newSupplierData.accountNumber,
+                  notes: newSupplierData.notes,
+                  isActive: true,
+                  categories: newSupplierData.categories ? newSupplierData.categories.split(',').map(c => c.trim()) : []
+                });
+              }}
+              disabled={!newSupplierData.company.trim() || addSupplierMutation.isPending}
+            >
+              {addSupplierMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                'Add Supplier'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move Material Dialog */}
+      <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move Material to Category</DialogTitle>
+            <DialogDescription>
+              Select the target category for {materialToMove?.name}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="target-category">Target Category</Label>
+              <Input
+                id="target-category"
+                value={targetCategory}
+                onChange={(e) => setTargetCategory(e.target.value)}
+                placeholder="Enter target category"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (materialToMove && targetCategory.trim()) {
+                  moveMaterialMutation.mutate({
+                    materialId: materialToMove.id,
+                    targetCategory: targetCategory.trim()
+                  });
+                }
+              }}
+              disabled={!targetCategory.trim() || moveMaterialMutation.isPending}
+            >
+              {moveMaterialMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Moving...
+                </>
+              ) : (
+                <>
+                  <ArrowRightLeft className="w-4 h-4 mr-2" />
+                  Move Material
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog> 
                             material.category?.toLowerCase().includes('pipe') || 
                             material.category?.toLowerCase().includes('chs') ||
                             material.category?.toLowerCase().includes('reinforc')) ? (
