@@ -50,8 +50,8 @@ interface Material {
   in_house_subcontracted?: string;
   fireRating?: string;
   fire_rating?: string;
-  pricePerKg?: number;
-  unitCost?: number;
+  pricePerKg?: number | string;
+  unitCost?: number | string;
   supplier?: string;
   notes?: string;
 }
@@ -68,6 +68,8 @@ export default function CoatingSystemsFixed() {
 
   const { data: materials = [], isLoading } = useQuery<Material[]>({
     queryKey: ["/api/materials"],
+    staleTime: 0, // Ensure fresh data
+    refetchOnWindowFocus: true,
   });
 
   // Filter for coating systems only
@@ -118,8 +120,12 @@ export default function CoatingSystemsFixed() {
   const getInHouseSubcontracted = (material: Material) => material.inHouseSubcontracted || material.in_house_subcontracted || "—";
   const getFireRating = (material: Material) => material.fireRating || material.fire_rating || "N/A";
   const getPricePerSqm = (material: Material) => {
-    if (material.unitCost) return `$${material.unitCost}/m²`;
-    if (material.pricePerKg) return `$${material.pricePerKg}/kg`;
+    // Convert string to number if needed
+    const unitCost = typeof material.unitCost === 'string' ? parseFloat(material.unitCost) : material.unitCost;
+    const pricePerKg = typeof material.pricePerKg === 'string' ? parseFloat(material.pricePerKg) : material.pricePerKg;
+    
+    if (unitCost && unitCost > 0) return `$${unitCost.toFixed(2)}/m²`;
+    if (pricePerKg && pricePerKg > 0) return `$${pricePerKg.toFixed(2)}/kg`;
     return "Contact for pricing";
   };
 
