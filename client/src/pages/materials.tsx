@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaterialUpload from "@/components/materials/material-upload";
 import { SteelCatalogueOnly } from "@/components/materials/steel-catalogue-only";
-import { ConsumablesClean } from "@/components/materials/consumables-clean";
+import { ConsumablesCleanFixed } from "@/components/materials/consumables-clean-fixed";
 import { useQuery } from "@tanstack/react-query";
 import { Material, Supplier } from "@shared/schema";
 import { Plus, Upload, Download, Search, Package } from "lucide-react";
@@ -97,7 +97,7 @@ export default function Materials() {
             </TabsContent>
 
             <TabsContent value="consumables">
-              <ConsumablesClean 
+              <ConsumablesCleanFixed 
                 materials={materials}
                 suppliers={suppliers}
               />
