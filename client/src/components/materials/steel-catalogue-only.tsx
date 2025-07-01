@@ -68,6 +68,11 @@ export function SteelCatalogueOnly() {
     { id: "Square Bar", name: "Square Bar", count: 0 }
   ];
 
+  // Apply 15-item limit for "all" categories
+  const materialsToDisplay = selectedCategory === "all" 
+    ? filteredMaterials.slice(0, 15) 
+    : filteredMaterials;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -75,7 +80,10 @@ export function SteelCatalogueOnly() {
           {/* Action Bar */}
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              {filteredMaterials.length} materials found
+              {selectedCategory === "all" 
+                ? `${materialsToDisplay.length} of ${filteredMaterials.length} materials shown` 
+                : `${filteredMaterials.length} materials found`
+              }
             </div>
             <Button 
               onClick={() => setAddMaterialModalOpen(true)}
@@ -156,7 +164,7 @@ export function SteelCatalogueOnly() {
             </div>
           ) : (
             <EnhancedSteelCatalogueTable 
-              materials={filteredMaterials}
+              materials={materialsToDisplay}
             />
           )}
 

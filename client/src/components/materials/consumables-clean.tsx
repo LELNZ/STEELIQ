@@ -60,6 +60,11 @@ export function ConsumablesClean({ materials, suppliers }: ConsumablesCleanProps
     });
   }, [materials, searchQuery, selectedCategory]);
 
+  // Apply 15-item limit for "all" categories
+  const consumablesToDisplay = selectedCategory === "all" 
+    ? filteredConsumables.slice(0, 15) 
+    : filteredConsumables;
+
   const handleExportCSV = () => {
     toast({
       title: "Export Started",
@@ -81,7 +86,10 @@ export function ConsumablesClean({ materials, suppliers }: ConsumablesCleanProps
           {/* Action Bar */}
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              {filteredConsumables.length} consumables found
+              {selectedCategory === "all" 
+                ? `${consumablesToDisplay.length} of ${filteredConsumables.length} consumables shown` 
+                : `${filteredConsumables.length} consumables found`
+              }
             </div>
           </div>
 
@@ -166,7 +174,7 @@ export function ConsumablesClean({ materials, suppliers }: ConsumablesCleanProps
           </div>
 
           {/* Consumables Table */}
-          {filteredConsumables.length > 0 ? (
+          {consumablesToDisplay.length > 0 ? (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -181,7 +189,7 @@ export function ConsumablesClean({ materials, suppliers }: ConsumablesCleanProps
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredConsumables.map((consumable) => (
+                  {consumablesToDisplay.map((consumable) => (
                     <TableRow key={consumable.id}>
                       <TableCell className="font-medium">{consumable.name}</TableCell>
                       <TableCell>{consumable.code || "N/A"}</TableCell>
@@ -191,7 +199,17 @@ export function ConsumablesClean({ materials, suppliers }: ConsumablesCleanProps
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {consumable.pricePerKg ? `$${consumable.pricePerKg.toFixed(2)}/kg` : "N/A"}
+                        {(() => {
+                          try {
+                            if (!consumable.pricePerKg) return "N/A";
+                            const price = typeof consumable.pricePerKg === 'number' 
+                              ? consumable.pricePerKg 
+                              : parseFloat(String(consumable.pricePerKg));
+                            return isNaN(price) ? "N/A" : `$${price.toFixed(2)}/kg`;
+                          } catch {
+                            return "N/A";
+                          }
+                        })()}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
