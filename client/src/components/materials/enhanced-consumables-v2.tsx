@@ -39,7 +39,7 @@ interface EnhancedConsumablesV2Props {
   onAddToJob?: (material: Material, quantity: number) => void;
 }
 
-type ViewMode = "grid" | "table";
+type ViewMode = "grid" | "list" | "table";
 type StockFilter = "all" | "in-stock" | "low-stock" | "out-of-stock";
 type ConsumableCategory = "all" | "welding" | "cutting" | "fasteners" | "gas" | "safety";
 
@@ -87,7 +87,7 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
   const [selectedCategory, setSelectedCategory] = useState<ConsumableCategory>("all");
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [displayLimit, setDisplayLimit] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
