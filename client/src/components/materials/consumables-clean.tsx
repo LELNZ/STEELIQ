@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,6 +23,7 @@ export function ConsumablesClean({ materials, suppliers }: ConsumablesCleanProps
   const [selectedCategory, setSelectedCategory] = useState<ConsumableCategory>("all");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
   const [supplierFilter, setSupplierFilter] = useState("all");
+  const [displayedConsumables, setDisplayedConsumables] = useState(15);
   const { toast } = useToast();
 
   // Filter materials for consumables only
@@ -60,9 +61,14 @@ export function ConsumablesClean({ materials, suppliers }: ConsumablesCleanProps
     });
   }, [materials, searchQuery, selectedCategory]);
 
-  // Apply 15-item limit for "all" categories
+  // Reset displayedConsumables when category changes
+  useEffect(() => {
+    setDisplayedConsumables(15);
+  }, [selectedCategory]);
+
+  // Apply 15-item limit for "all" categories with View More functionality
   const consumablesToDisplay = selectedCategory === "all" 
-    ? filteredConsumables.slice(0, 15) 
+    ? filteredConsumables.slice(0, displayedConsumables) 
     : filteredConsumables;
 
   const handleExportCSV = () => {
@@ -85,11 +91,22 @@ export function ConsumablesClean({ materials, suppliers }: ConsumablesCleanProps
         <CardContent className="space-y-6 pt-6">
           {/* Action Bar */}
           <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              {selectedCategory === "all" 
-                ? `${consumablesToDisplay.length} of ${filteredConsumables.length} consumables shown` 
-                : `${filteredConsumables.length} consumables found`
-              }
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                {selectedCategory === "all" 
+                  ? `${consumablesToDisplay.length} of ${filteredConsumables.length} consumables shown` 
+                  : `${filteredConsumables.length} consumables found`
+                }
+              </div>
+              {selectedCategory === "all" && filteredConsumables.length > displayedConsumables && (
+                <Button 
+                  onClick={() => setDisplayedConsumables(prev => prev + 15)}
+                  variant="outline" 
+                  size="sm"
+                >
+                  View More ({filteredConsumables.length - displayedConsumables} remaining)
+                </Button>
+              )}
             </div>
           </div>
 

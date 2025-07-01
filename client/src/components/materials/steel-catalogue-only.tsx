@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -130,14 +130,7 @@ export function SteelCatalogueOnly() {
                 <Package className="w-4 h-4 mr-2" />
                 Export CSV
               </Button>
-              <Button 
-                onClick={() => toast({ title: "Filter Saved", description: "Current filter settings have been saved" })} 
-                variant="outline" 
-                size="sm"
-              >
-                <Bookmark className="w-4 h-4 mr-2" />
-                Save Filter
-              </Button>
+
             </div>
           </div>
 
