@@ -43,9 +43,7 @@ export function EnhancedMaterialLibrary({
   // Delete mutation
   const deleteMaterialMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest(`/api/materials/${id}`, {
-        method: "DELETE",
-      });
+      await apiRequest(`/api/materials/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
@@ -222,11 +220,17 @@ export function EnhancedMaterialLibrary({
             </TabsContent>
 
             <TabsContent value="consumables">
-              <EnhancedConsumables />
+              <EnhancedConsumablesV2 />
             </TabsContent>
 
             <TabsContent value="coating-systems">
-              <EnhancedCoatingSystems />
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">Coating Systems</h3>
+                  <p className="text-muted-foreground">Coming soon - coating system management</p>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </CardContent>

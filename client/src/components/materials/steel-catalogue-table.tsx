@@ -140,12 +140,12 @@ export function SteelCatalogueTable({
               {materials.map((material: Material) => (
                 <TableRow 
                   key={material.id}
-                  className={selectedMaterials.has(material.id) ? 'bg-blue-50' : ''}
+                  className={selectedMaterials?.has(material.id) ? 'bg-blue-50' : ''}
                 >
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Checkbox
-                        checked={selectedMaterials.has(material.id)}
+                        checked={selectedMaterials?.has(material.id) || false}
                         onCheckedChange={() => onMaterialSelect(material.id)}
                       />
                       <MaterialTypeIndicator 
