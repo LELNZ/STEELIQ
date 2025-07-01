@@ -21,8 +21,6 @@ type ConsumableCategory = "all" | "welding" | "cutting" | "fasteners" | "gas" | 
 export function ConsumablesClean({ materials, suppliers }: ConsumablesCleanProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ConsumableCategory>("all");
-  const [stockFilter, setStockFilter] = useState<StockFilter>("all");
-  const [supplierFilter, setSupplierFilter] = useState("all");
   const [displayedConsumables, setDisplayedConsumables] = useState(15);
   const { toast } = useToast();
 
@@ -91,22 +89,11 @@ export function ConsumablesClean({ materials, suppliers }: ConsumablesCleanProps
         <CardContent className="space-y-6 pt-6">
           {/* Action Bar */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-muted-foreground">
-                {selectedCategory === "all" 
-                  ? `${consumablesToDisplay.length} of ${filteredConsumables.length} consumables shown` 
-                  : `${filteredConsumables.length} consumables found`
-                }
-              </div>
-              {selectedCategory === "all" && filteredConsumables.length > displayedConsumables && (
-                <Button 
-                  onClick={() => setDisplayedConsumables(prev => prev + 15)}
-                  variant="outline" 
-                  size="sm"
-                >
-                  View More ({filteredConsumables.length - displayedConsumables} remaining)
-                </Button>
-              )}
+            <div className="text-sm text-muted-foreground">
+              {selectedCategory === "all" 
+                ? `${consumablesToDisplay.length} of ${filteredConsumables.length} consumables shown` 
+                : `${filteredConsumables.length} consumables found`
+              }
             </div>
           </div>
 
@@ -156,43 +143,12 @@ export function ConsumablesClean({ materials, suppliers }: ConsumablesCleanProps
             ))}
           </div>
 
-          {/* Additional Filters */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium">Stock Status:</label>
-              <Select value={stockFilter} onValueChange={(value: StockFilter) => setStockFilter(value)}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Stock</SelectItem>
-                  <SelectItem value="in-stock">In Stock</SelectItem>
-                  <SelectItem value="low-stock">Low Stock</SelectItem>
-                  <SelectItem value="out-of-stock">Out of Stock</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium">Supplier:</label>
-              <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="All suppliers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All suppliers</SelectItem>
-                  {suppliers.map((supplier) => (
-                    <SelectItem key={supplier.id} value={supplier.name}>
-                      {supplier.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+
 
           {/* Consumables Table */}
           {consumablesToDisplay.length > 0 ? (
-            <div className="rounded-md border">
+            <>
+              <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -252,6 +208,48 @@ export function ConsumablesClean({ materials, suppliers }: ConsumablesCleanProps
                 </TableBody>
               </Table>
             </div>
+          </>
+        ) : (
+          <div>
+            {/* View More Button */}
+            {selectedCategory === "all" && filteredConsumables.length > displayedConsumables && (
+              <div className="flex justify-center mt-6">
+                <Button 
+                  onClick={() => setDisplayedConsumables(prev => prev + 15)}
+                  variant="outline" 
+                  size="sm"
+                >
+                  View More ({filteredConsumables.length - displayedConsumables} remaining)
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Fixed table structure */}
+        {consumablesToDisplay.length > 0 ? (
+          <>
+            {/* View More Button */}
+            {selectedCategory === "all" && filteredConsumables.length > displayedConsumables && (
+              <div className="flex justify-center mt-6">
+                <Button 
+                  onClick={() => setDisplayedConsumables(prev => prev + 15)}
+                  variant="outline" 
+                  size="sm"
+                >
+                  View More ({filteredConsumables.length - displayedConsumables} remaining)
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex justify-center py-8">
+            <div className="text-sm text-muted-foreground">No consumables found</div>
+          </div>
+        )}
+
+        {/* Empty state properly handled */}
+        {!consumablesToDisplay.length ? (
           ) : (
             <Card>
               <CardContent className="p-12 text-center">

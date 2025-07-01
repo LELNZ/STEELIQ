@@ -84,22 +84,11 @@ export function SteelCatalogueOnly() {
         <CardContent className="space-y-6 pt-6">
           {/* Action Bar */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-muted-foreground">
-                {selectedCategory === "all" 
-                  ? `${materialsToDisplay.length} of ${filteredMaterials.length} materials shown` 
-                  : `${filteredMaterials.length} materials found`
-                }
-              </div>
-              {selectedCategory === "all" && filteredMaterials.length > displayedMaterials && (
-                <Button 
-                  onClick={() => setDisplayedMaterials(prev => prev + 15)}
-                  variant="outline" 
-                  size="sm"
-                >
-                  View More ({filteredMaterials.length - displayedMaterials} remaining)
-                </Button>
-              )}
+            <div className="text-sm text-muted-foreground">
+              {selectedCategory === "all" 
+                ? `${materialsToDisplay.length} of ${filteredMaterials.length} materials shown` 
+                : `${filteredMaterials.length} materials found`
+              }
             </div>
             <Button 
               onClick={() => setAddMaterialModalOpen(true)}
@@ -172,9 +161,23 @@ export function SteelCatalogueOnly() {
               <div className="text-sm text-muted-foreground">Loading materials...</div>
             </div>
           ) : (
-            <EnhancedSteelCatalogueTable 
-              materials={materialsToDisplay}
-            />
+            <>
+              <EnhancedSteelCatalogueTable 
+                materials={materialsToDisplay}
+              />
+              {/* View More Button */}
+              {selectedCategory === "all" && filteredMaterials.length > displayedMaterials && (
+                <div className="flex justify-center mt-6">
+                  <Button 
+                    onClick={() => setDisplayedMaterials(prev => prev + 15)}
+                    variant="outline" 
+                    size="sm"
+                  >
+                    View More ({filteredMaterials.length - displayedMaterials} remaining)
+                  </Button>
+                </div>
+              )}
+            </>
           )}
 
           {/* Empty State */}
