@@ -868,6 +868,20 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
     ? CATEGORY_STRUCTURE[selectedCategory as keyof typeof CATEGORY_STRUCTURE]?.subcategories || []
     : [];
 
+  // If we're showing consumables, render the enhanced consumables tab instead
+  if (materialFilter === "consumables") {
+    return (
+      <EnhancedConsumablesTab 
+        materials={materials as Material[]}
+        suppliers={suppliers as Supplier[]}
+        onAddToJob={(material, quantity) => {
+          console.log('Adding to job:', material.name, 'quantity:', quantity);
+          // Integration with job system would go here
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Quick-Click Category Navigation */}
