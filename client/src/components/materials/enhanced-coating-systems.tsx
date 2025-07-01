@@ -402,6 +402,24 @@ export function EnhancedCoatingSystems({ materials, suppliers, onAddToJob }: Enh
           </Table>
         </CardContent>
       </Card>
+
+      {/* Load More Button */}
+      {displayedSystems.length < filteredSystems.length && (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground mb-4">
+              Showing {displayedSystems.length} of {filteredSystems.length} coating systems
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => setDisplayLimit(prev => prev + 15)}
+              className="w-full max-w-xs"
+            >
+              Load More ({filteredSystems.length - displayedSystems.length} remaining)
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
