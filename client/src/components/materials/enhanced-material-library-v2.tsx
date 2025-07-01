@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, Plus, Package } from "lucide-react";
 import { SteelCatalogueTable } from "./steel-catalogue-table";
-import { EnhancedConsumables } from "./enhanced-consumables-v2";
+import { EnhancedConsumablesV2 } from "./enhanced-consumables-v2";
 import { EnhancedCoatingSystems } from "./enhanced-coating-systems";
 import { Material } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";

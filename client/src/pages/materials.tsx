@@ -2,12 +2,35 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import MaterialUpload from "@/components/materials/material-upload";
-import EnhancedMaterialLibrary from "@/components/materials/enhanced-material-library";
-import { Plus, Upload, Download } from "lucide-react";
+import { EnhancedMaterialLibrary } from "@/components/materials/enhanced-material-library-v2";
+import { Plus, Upload, Download, Search } from "lucide-react";
 
 export default function Materials() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedMaterials, setSelectedMaterials] = useState<Set<number>>(new Set());
+
+  const handleMaterialSelect = (id: number) => {
+    setSelectedMaterials(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleMaterialEdit = (material: any) => {
+    // TODO: Implement material edit functionality
+    console.log("Edit material:", material);
+  };
+
+  const handleMaterialDelete = (id: number) => {
+    // TODO: Implement material delete functionality
+    console.log("Delete material:", id);
+  };
 
   const handleExport = async () => {
     try {
@@ -180,6 +203,10 @@ export default function Materials() {
       <EnhancedMaterialLibrary 
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        selectedMaterials={selectedMaterials}
+        onMaterialSelect={handleMaterialSelect}
+        onMaterialEdit={handleMaterialEdit}
+        onMaterialDelete={handleMaterialDelete}
       />
 
       {/* Upload Modal */}
