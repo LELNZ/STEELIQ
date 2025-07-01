@@ -27,6 +27,7 @@ const coatingFormSchema = z.object({
   in_house_subcontracted: z.string().min(1, "In-house/Subcontracted is required"),
   fire_rating: z.string().optional(),
   unit_cost: z.string().optional(),
+  price_per_kg: z.string().optional(),
   supplier: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -122,9 +123,15 @@ export default function CoatingSystemsFixed() {
   const getPricePerSqm = (material: Material) => {
     // Convert string to number if needed for decimal fields from database
     const unitCost = typeof material.unitCost === 'string' ? parseFloat(material.unitCost) : material.unitCost;
-    const pricePerKg = typeof material.pricePerKg === 'string' ? parseFloat(material.pricePerKg) : material.pricePerKg;
     
     if (unitCost && unitCost > 0) return `$${unitCost.toFixed(2)}/m²`;
+    return "Contact for pricing";
+  };
+
+  const getPricePerKg = (material: Material) => {
+    // Convert string to number if needed for decimal fields from database
+    const pricePerKg = typeof material.pricePerKg === 'string' ? parseFloat(material.pricePerKg) : material.pricePerKg;
+    
     if (pricePerKg && pricePerKg > 0) return `$${pricePerKg.toFixed(2)}/kg`;
     return "Contact for pricing";
   };
@@ -142,6 +149,7 @@ export default function CoatingSystemsFixed() {
       in_house_subcontracted: "",
       fire_rating: "N/A",
       unit_cost: "",
+      price_per_kg: "",
       supplier: "",
       notes: "",
     },
@@ -349,6 +357,7 @@ Notes on Application and Subcontracting:
               <TableHead>Application Method</TableHead>
               <TableHead>In-house/Subcontracted</TableHead>
               <TableHead>Price per m²</TableHead>
+              <TableHead>Price per kg</TableHead>
               <TableHead>Fire Rating</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -376,6 +385,9 @@ Notes on Application and Subcontracting:
                 <TableCell>{getInHouseSubcontracted(material)}</TableCell>
                 <TableCell className="font-medium">
                   {getPricePerSqm(material)}
+                </TableCell>
+                <TableCell className="font-medium">
+                  {getPricePerKg(material)}
                 </TableCell>
                 <TableCell>
                   {getFireRating(material) !== "N/A" ? (
