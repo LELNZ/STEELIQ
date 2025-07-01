@@ -1,11 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ActionIcons } from "@/components/ui/action-icons";
 import { MaterialTypeIndicator } from "./material-icons";
+import { Edit, Trash2, Calculator } from "lucide-react";
 import { Material } from "@shared/schema";
 import { calculateMaterialSurfaceArea as calculateUnifiedSurfaceArea } from "@/lib/unified-surface-area-calculator";
+import MaterialEditModal from "./material-edit-modal";
+import SurfaceAreaManager from "./surface-area-manager";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface SteelCatalogueTableProps {
   materials: Material[];
