@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, Plus, Edit2, Trash2, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -66,11 +66,17 @@ export default function CoatingSystemsFixed() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: materials = [], isLoading } = useQuery<Material[]>({
+  const { data: materials = [], isLoading, refetch } = useQuery<Material[]>({
     queryKey: ["/api/materials"],
     staleTime: 0, // Ensure fresh data
     refetchOnWindowFocus: true,
+    refetchInterval: 5000, // Refresh every 5 seconds for debugging
   });
+
+  // Force refetch on component mount for testing
+  React.useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   // Filter for coating systems only
   const coatingMaterials = useMemo(() => {
@@ -120,6 +126,17 @@ export default function CoatingSystemsFixed() {
   const getInHouseSubcontracted = (material: Material) => material.inHouseSubcontracted || material.in_house_subcontracted || "—";
   const getFireRating = (material: Material) => material.fireRating || material.fire_rating || "N/A";
   const getPricePerSqm = (material: Material) => {
+    // Debug logging
+    if (material.code === 'ALK1' || material.code === 'ALK2') {
+      console.log(`🔍 Pricing Debug for ${material.code}:`, {
+        unitCost: material.unitCost,
+        unitCostType: typeof material.unitCost,
+        pricePerKg: material.pricePerKg,
+        pricePerKgType: typeof material.pricePerKg,
+        fullMaterial: material
+      });
+    }
+    
     // Convert string to number if needed
     const unitCost = typeof material.unitCost === 'string' ? parseFloat(material.unitCost) : material.unitCost;
     const pricePerKg = typeof material.pricePerKg === 'string' ? parseFloat(material.pricePerKg) : material.pricePerKg;
@@ -155,8 +172,10 @@ export default function CoatingSystemsFixed() {
         return apiRequest("POST", "/api/materials", data);
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('✅ Mutation successful, response data:', data);
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      queryClient.refetchQueries({ queryKey: ["/api/materials"] });
       setDialogOpen(false);
       setEditingMaterial(null);
       form.reset();
