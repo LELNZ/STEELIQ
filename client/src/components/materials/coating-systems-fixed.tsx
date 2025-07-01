@@ -68,17 +68,9 @@ export default function CoatingSystemsFixed() {
 
   const { data: materials = [], isLoading, refetch } = useQuery<Material[]>({
     queryKey: ["/api/materials"],
-    staleTime: 0, // Ensure fresh data
+    staleTime: 0,
     refetchOnWindowFocus: true,
-    refetchInterval: 3000, // Refresh every 3 seconds for debugging
-    cacheTime: 0, // Disable cache completely for debugging
-    refetchOnMount: 'always',
   });
-
-  // Force refetch on component mount for testing
-  React.useEffect(() => {
-    refetch();
-  }, [refetch]);
 
   // Filter for coating systems only
   const coatingMaterials = useMemo(() => {
@@ -128,18 +120,7 @@ export default function CoatingSystemsFixed() {
   const getInHouseSubcontracted = (material: Material) => material.inHouseSubcontracted || material.in_house_subcontracted || "—";
   const getFireRating = (material: Material) => material.fireRating || material.fire_rating || "N/A";
   const getPricePerSqm = (material: Material) => {
-    // Debug logging
-    if (material.code === 'ALK1' || material.code === 'ALK2') {
-      console.log(`🔍 Pricing Debug for ${material.code}:`, {
-        unitCost: material.unitCost,
-        unitCostType: typeof material.unitCost,
-        pricePerKg: material.pricePerKg,
-        pricePerKgType: typeof material.pricePerKg,
-        fullMaterial: material
-      });
-    }
-    
-    // Convert string to number if needed
+    // Convert string to number if needed for decimal fields from database
     const unitCost = typeof material.unitCost === 'string' ? parseFloat(material.unitCost) : material.unitCost;
     const pricePerKg = typeof material.pricePerKg === 'string' ? parseFloat(material.pricePerKg) : material.pricePerKg;
     
@@ -174,14 +155,8 @@ export default function CoatingSystemsFixed() {
         return apiRequest("POST", "/api/materials", data);
       }
     },
-    onSuccess: (data) => {
-      console.log('✅ Mutation successful, response data:', data);
-      // Clear all cache and force fresh data
-      queryClient.removeQueries({ queryKey: ["/api/materials"] });
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
-        refetch();
-      }, 100);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
       setDialogOpen(false);
       setEditingMaterial(null);
       form.reset();
