@@ -16,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { LoadingSpinner, LoadingOverlay, LoadingState } from "@/components/ui/loading-spinner";
 import { MaterialTypeIndicator, MaterialIcon } from "./material-icons";
 import SurfaceAreaManager from "./surface-area-manager";
-import { EnhancedConsumablesTab } from "./enhanced-consumables-tab";
+import { EnhancedConsumablesV2 } from "./enhanced-consumables-v2";
 import { Material, Supplier } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -871,7 +871,7 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
   // If we're showing consumables, render the enhanced consumables tab instead
   if (materialFilter === "consumables") {
     return (
-      <EnhancedConsumablesTab 
+      <EnhancedConsumablesV2 
         materials={materials as Material[]}
         suppliers={suppliers as Supplier[]}
         onAddToJob={(material, quantity) => {

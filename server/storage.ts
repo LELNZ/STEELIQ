@@ -158,6 +158,14 @@ export interface IStorage {
   createEstimationProject(project: any): Promise<any>;
   updateEstimationProject(id: number, project: any): Promise<any>;
   saveEstimationData(projectId: number, estimationData: any): Promise<any>;
+
+  // Saved Filters
+  getSavedFilters(filterType?: string, userId?: number): Promise<SavedFilter[]>;
+  getSavedFilter(id: number): Promise<SavedFilter | undefined>;
+  createSavedFilter(filter: InsertSavedFilter): Promise<SavedFilter>;
+  updateSavedFilter(id: number, filter: Partial<InsertSavedFilter>): Promise<SavedFilter>;
+  deleteSavedFilter(id: number): Promise<boolean>;
+  applySavedFilter(id: number): Promise<SavedFilter>;
 }
 
 export class DatabaseStorage implements IStorage {

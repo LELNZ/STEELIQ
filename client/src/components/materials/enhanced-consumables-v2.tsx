@@ -110,10 +110,7 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
   // Save filter mutation
   const saveFilterMutation = useMutation({
     mutationFn: async (filter: any) => {
-      return apiRequest("/api/saved-filters", {
-        method: "POST",
-        body: JSON.stringify(filter),
-      });
+      return apiRequest("/api/saved-filters", "POST", filter);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/saved-filters"] });
@@ -136,9 +133,7 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
   // Apply saved filter mutation
   const applyFilterMutation = useMutation({
     mutationFn: async (filterId: number) => {
-      return apiRequest(`/api/saved-filters/${filterId}/apply`, {
-        method: "POST",
-      });
+      return apiRequest(`/api/saved-filters/${filterId}/apply`, "POST");
     },
     onSuccess: (data) => {
       const config = data.filterConfig as FilterConfig;
