@@ -220,8 +220,8 @@ export default function CoatingSystemsFixed() {
       fire_rating: getFireRating(material),
       unit_cost: material.unitCost?.toString() || "",
       price_per_kg: material.pricePerKg?.toString() || "",
-      coverage_rate: material.coverageRate?.toString() || "",
-      coverage_unit: material.coverageUnit || "kg_per_m2",
+      coverage_rate: (material as any).coverageRate?.toString() || "",
+      coverage_unit: (material as any).coverageUnit || "kg_per_m2",
       supplier: material.supplier || "",
       notes: material.notes || "",
     });
