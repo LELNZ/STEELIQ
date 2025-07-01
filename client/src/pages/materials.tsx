@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaterialUpload from "@/components/materials/material-upload";
 import { SteelCatalogueOnly } from "@/components/materials/steel-catalogue-only";
 import { ConsumablesCleanFixed } from "@/components/materials/consumables-clean-fixed";
+import { CoatingSystems } from "@/components/materials/coating-systems";
 import { useQuery } from "@tanstack/react-query";
 import { Material, Supplier } from "@shared/schema";
 import { Plus, Upload, Download, Search, Package } from "lucide-react";
@@ -104,13 +105,10 @@ export default function Materials() {
             </TabsContent>
 
             <TabsContent value="coating-systems">
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Coating Systems</h3>
-                  <p className="text-muted-foreground">Coming soon - coating system management</p>
-                </CardContent>
-              </Card>
+              <CoatingSystems 
+                materials={materials}
+                suppliers={suppliers}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>

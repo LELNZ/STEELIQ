@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Search, Edit, Trash2, Package, Plus } from "lucide-react";
@@ -10,50 +9,46 @@ import { useToast } from "@/hooks/use-toast";
 import type { Material, Supplier } from "@shared/schema";
 import MaterialEditModal from "@/components/materials/material-edit-modal";
 
-interface ConsumablesCleanProps {
+interface CoatingSystemsProps {
   materials: Material[];
   suppliers: Supplier[];
 }
 
-type ConsumableCategory = "all" | "welding" | "cutting" | "fasteners" | "gas" | "safety";
+type CoatingCategory = "all" | "galvanizing" | "painting" | "powder-coating" | "anodizing" | "plating";
 
-export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesCleanProps) {
+export function CoatingSystems({ materials, suppliers }: CoatingSystemsProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<ConsumableCategory>("all");
-  const [displayedConsumables, setDisplayedConsumables] = useState(15);
+  const [selectedCategory, setSelectedCategory] = useState<CoatingCategory>("all");
+  const [displayedCoatings, setDisplayedCoatings] = useState(15);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const { toast } = useToast();
 
-  // Filter materials for consumables only (excluding coatings)
-  const filteredConsumables = useMemo(() => {
+  // Filter materials for coating systems only
+  const filteredCoatings = useMemo(() => {
     if (!materials || !Array.isArray(materials)) return [];
     
     return materials.filter((material: Material) => {
-      // Only show consumables, exclude coating materials
+      // Only show coating materials
       const category = material.category?.toLowerCase() || '';
       const name = material.name?.toLowerCase() || '';
       
-      // Exclude coating materials - these go to Coating Systems tab
       const isCoating = category.includes('galvanizing') || 
                        category.includes('galvanising') ||
                        category.includes('hot dip') ||
                        category.includes('painting') ||
                        category.includes('coating') ||
+                       category.includes('powder') ||
+                       category.includes('anodizing') ||
+                       category.includes('plating') ||
                        name.includes('galvaniz') ||
                        name.includes('paint') ||
-                       name.includes('coating');
+                       name.includes('coating') ||
+                       name.includes('powder') ||
+                       name.includes('anodiz') ||
+                       name.includes('plat');
       
-      if (isCoating) return false;
-      
-      const isConsumable = category.includes('consumable') || 
-                          category.includes('bolt') || 
-                          category.includes('cutting') || 
-                          category.includes('grinding') || 
-                          category.includes('fastener') ||
-                          category.includes('welding');
-      
-      if (!isConsumable) return false;
+      if (!isCoating) return false;
       
       const matchesSearch = !searchQuery.trim() || 
         material.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -61,33 +56,34 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
         (material.category && material.category.toLowerCase().includes(searchQuery.toLowerCase()));
       
       const matchesCategory = selectedCategory === "all" || 
-        (material.category && material.category.toLowerCase().includes(selectedCategory.toLowerCase()));
+        (material.category && material.category.toLowerCase().includes(selectedCategory.toLowerCase())) ||
+        (material.name && material.name.toLowerCase().includes(selectedCategory.toLowerCase()));
       
       return matchesSearch && matchesCategory;
     });
   }, [materials, searchQuery, selectedCategory]);
 
-  // Reset displayedConsumables when category changes
+  // Reset displayedCoatings when category changes
   useEffect(() => {
-    setDisplayedConsumables(15);
+    setDisplayedCoatings(15);
   }, [selectedCategory]);
 
   // Apply 15-item limit for "all" categories with View More functionality
-  const consumablesToDisplay = selectedCategory === "all" 
-    ? filteredConsumables.slice(0, displayedConsumables) 
-    : filteredConsumables;
+  const coatingsToDisplay = selectedCategory === "all" 
+    ? filteredCoatings.slice(0, displayedCoatings) 
+    : filteredCoatings;
 
   const handleExportCSV = () => {
-    toast({ title: "Export Started", description: "Consumables data is being exported..." });
+    toast({ title: "Export Started", description: "Coating systems data is being exported..." });
   };
 
   const categories = [
-    { id: "all", name: "All Categories", count: 0 },
-    { id: "welding", name: "Welding", count: 0 },
-    { id: "cutting", name: "Cutting", count: 0 },
-    { id: "fasteners", name: "Fasteners", count: 0 },
-    { id: "gas", name: "Gas", count: 0 },
-    { id: "safety", name: "Safety", count: 0 }
+    { id: "all", name: "All Coatings" },
+    { id: "galvanizing", name: "Galvanizing" },
+    { id: "painting", name: "Painting" },
+    { id: "powder-coating", name: "Powder Coating" },
+    { id: "anodizing", name: "Anodizing" },
+    { id: "plating", name: "Plating" }
   ];
 
   return (
@@ -98,8 +94,8 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               {selectedCategory === "all" 
-                ? `${consumablesToDisplay.length} of ${filteredConsumables.length} consumables shown` 
-                : `${filteredConsumables.length} consumables found`
+                ? `${coatingsToDisplay.length} of ${filteredCoatings.length} coating systems shown` 
+                : `${filteredCoatings.length} coating systems found`
               }
             </div>
           </div>
@@ -109,7 +105,7 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Search consumables by name, code, or category..."
+                placeholder="Search coating systems by name, code, or category..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -122,7 +118,7 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
                 size="sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Material
+                Add Coating
               </Button>
               <Button 
                 onClick={handleExportCSV}
@@ -142,7 +138,7 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
                 key={category.id}
                 variant={selectedCategory === category.id ? "default" : "outline"}
                 size="sm"
-                onClick={() => setSelectedCategory(category.id as ConsumableCategory)}
+                onClick={() => setSelectedCategory(category.id as CoatingCategory)}
                 className="text-sm"
               >
                 {category.name}
@@ -150,8 +146,8 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
             ))}
           </div>
 
-          {/* Consumables Table */}
-          {consumablesToDisplay.length > 0 ? (
+          {/* Coating Systems Table */}
+          {coatingsToDisplay.length > 0 ? (
             <>
               <div className="rounded-md border">
                 <Table>
@@ -161,29 +157,29 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
                       <TableHead>Code</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Price</TableHead>
-                      <TableHead>Stock</TableHead>
+                      <TableHead>Coverage</TableHead>
                       <TableHead>Supplier</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {consumablesToDisplay.map((consumable) => (
-                      <TableRow key={consumable.id}>
-                        <TableCell className="font-medium">{consumable.name}</TableCell>
-                        <TableCell>{consumable.code || "N/A"}</TableCell>
+                    {coatingsToDisplay.map((coating) => (
+                      <TableRow key={coating.id}>
+                        <TableCell className="font-medium">{coating.name}</TableCell>
+                        <TableCell>{coating.code || "N/A"}</TableCell>
                         <TableCell>
                           <Badge variant="secondary" className="text-xs">
-                            {consumable.category || "Uncategorized"}
+                            {coating.category || "Uncategorized"}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           {(() => {
                             try {
-                              if (!consumable.pricePerKg) return "N/A";
-                              const price = typeof consumable.pricePerKg === 'number' 
-                                ? consumable.pricePerKg 
-                                : parseFloat(String(consumable.pricePerKg));
-                              return isNaN(price) ? "N/A" : `$${price.toFixed(2)}/kg`;
+                              if (!coating.pricePerKg) return "N/A";
+                              const price = typeof coating.pricePerKg === 'number' 
+                                ? coating.pricePerKg 
+                                : parseFloat(String(coating.pricePerKg));
+                              return isNaN(price) ? "N/A" : `$${price.toFixed(2)}/m²`;
                             } catch {
                               return "N/A";
                             }
@@ -191,17 +187,17 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">
-                            {Math.floor(Math.random() * 100)} units
+                            {coating.surfaceAreaPerMeter ? `${coating.surfaceAreaPerMeter} m²/m` : "N/A"}
                           </Badge>
                         </TableCell>
-                        <TableCell>{consumable.supplier || "N/A"}</TableCell>
+                        <TableCell>{coating.supplier || "N/A"}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              onClick={() => setEditingMaterial(consumable)}
-                              title="Edit consumable"
+                              onClick={() => setEditingMaterial(coating)}
+                              title="Edit coating system"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -210,12 +206,12 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
                               size="sm"
                               onClick={() => {
                                 toast({
-                                  title: "Delete Consumable",
+                                  title: "Delete Coating",
                                   description: "Delete functionality will be implemented in the next update.",
                                   variant: "destructive"
                                 });
                               }}
-                              title="Delete consumable"
+                              title="Delete coating system"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -228,14 +224,14 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
               </div>
               
               {/* View More Button */}
-              {selectedCategory === "all" && filteredConsumables.length > displayedConsumables && (
+              {selectedCategory === "all" && filteredCoatings.length > displayedCoatings && (
                 <div className="flex justify-center mt-6">
                   <Button 
-                    onClick={() => setDisplayedConsumables(prev => prev + 15)}
+                    onClick={() => setDisplayedCoatings(prev => prev + 15)}
                     variant="outline" 
                     size="sm"
                   >
-                    View More ({filteredConsumables.length - displayedConsumables} remaining)
+                    View More ({filteredCoatings.length - displayedCoatings} remaining)
                   </Button>
                 </div>
               )}
@@ -246,11 +242,11 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
                 <div className="flex flex-col items-center space-y-3">
                   <div className="text-muted-foreground">
                     <Search className="h-12 w-12 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No consumables found</h3>
+                    <h3 className="text-lg font-semibold mb-2">No coating systems found</h3>
                     <p className="text-sm">
                       {searchQuery.trim() 
-                        ? `No consumables found matching "${searchQuery}"`
-                        : `No consumables found in category: ${selectedCategory}`
+                        ? `No coating systems found matching "${searchQuery}"`
+                        : `No coating systems found in category: ${selectedCategory}`
                       }
                     </p>
                   </div>
@@ -275,16 +271,9 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
       {showAddModal && (
         <MaterialEditModal
           material={null}
-          suppliers={suppliers}
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
-          onSave={(newMaterial) => {
-            setShowAddModal(false);
-            toast({
-              title: "Material Added",
-              description: "New consumable material has been successfully added.",
-            });
-          }}
+          mode="add"
         />
       )}
     </div>
