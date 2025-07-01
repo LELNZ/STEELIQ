@@ -354,12 +354,12 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Main Categories */}
+          {/* Simple Categories - matching Steel Catalogue style */}
           <div className="flex flex-wrap gap-2">
             <Button
               variant={selectedCategory === "all" ? "default" : "outline"}
               size="sm"
-              className="rounded-full text-xs px-3 py-1 h-auto"
+              className="h-8 px-4 text-sm"
               onClick={() => {
                 setSelectedCategory("all");
                 setSelectedSubcategory("all");
@@ -368,47 +368,22 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
             >
               All Categories
             </Button>
-            {Object.entries(CONSUMABLE_CATEGORY_STRUCTURE).map(([category, info]) => {
-              return (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category.toLowerCase() ? "default" : "outline"}
-                  size="sm"
-                  className="rounded-full text-xs px-4 py-1 h-auto font-medium"
-                  onClick={() => handleCategoryChange(category.toLowerCase())}
-                >
-                  {category}
-                  {selectedCategory === category.toLowerCase() && expandedCategory === category.toLowerCase() && " ▼"}
-                  {selectedCategory === category.toLowerCase() && expandedCategory !== category.toLowerCase() && " ▶"}
-                </Button>
-              );
-            })}
-          </div>
-
-          {/* Subcategory Buttons (Expandable) */}
-          {expandedCategory && (
-            <div className="flex flex-wrap gap-2 animate-in slide-in-from-top-2 duration-200 bg-gray-50 p-3 rounded-lg border">
+            {["Welding", "Cutting", "Fasteners", "Gas", "Safety"].map((category) => (
               <Button
-                variant={selectedSubcategory === "all" ? "secondary" : "ghost"}
+                key={category}
+                variant={selectedCategory === category.toLowerCase() ? "default" : "outline"}
                 size="sm"
-                className="rounded-full text-xs px-3 py-1 h-auto"
-                onClick={() => setSelectedSubcategory("all")}
+                className="h-8 px-4 text-sm"
+                onClick={() => {
+                  setSelectedCategory(category.toLowerCase() as ConsumableCategory);
+                  setSelectedSubcategory("all");
+                  setExpandedCategory(null);
+                }}
               >
-                All {expandedCategory}
+                {category}
               </Button>
-              {CONSUMABLE_CATEGORY_STRUCTURE[expandedCategory as keyof typeof CONSUMABLE_CATEGORY_STRUCTURE]?.subcategories.map((subcategory) => (
-                <Button
-                  key={subcategory}
-                  variant={selectedSubcategory === subcategory ? "secondary" : "ghost"}
-                  size="sm"
-                  className="rounded-full text-xs px-3 py-1 h-auto"
-                  onClick={() => setSelectedSubcategory(subcategory)}
-                >
-                  {subcategory}
-                </Button>
-              ))}
-            </div>
-          )}
+            ))}
+          </div>
         </CardContent>
       </Card>
 

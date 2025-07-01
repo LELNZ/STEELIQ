@@ -1800,7 +1800,7 @@ export default function SurfaceAreaManager({ material, onSave, onClose }: Surfac
             <Button 
               onClick={() => {
                 if (calculatedArea) {
-                  onSave(getSelectedTotalArea());
+                  onSave(getSelectedArea());
                   onClose();
                 }
               }}
