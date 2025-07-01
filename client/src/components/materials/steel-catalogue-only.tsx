@@ -169,7 +169,7 @@ export function SteelCatalogueOnly() {
           )}
 
           {/* Empty State */}
-          {!isLoading && filteredMaterials.length === 0 && (
+          {!isLoading && materialsToDisplay.length === 0 && (
             <Card>
               <CardContent className="p-12 text-center">
                 <div className="flex flex-col items-center space-y-3">
