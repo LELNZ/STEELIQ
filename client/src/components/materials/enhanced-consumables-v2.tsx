@@ -552,13 +552,14 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
 
       {/* Materials Display */}
       {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredConsumables.map((material) => {
-            const stockInfo = getStockStatus(material);
-            const categories = categorizeConsumable(material);
-            const categoryInfo = categories[0] ? CONSUMABLE_CATEGORY_STRUCTURE[categories[0].charAt(0).toUpperCase() + categories[0].slice(1) as keyof typeof CONSUMABLE_CATEGORY_STRUCTURE] : null;
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {displayedConsumables.map((material) => {
+              const stockInfo = getStockStatus(material);
+              const categories = categorizeConsumable(material);
+              const categoryInfo = categories[0] ? CONSUMABLE_CATEGORY_STRUCTURE[categories[0].charAt(0).toUpperCase() + categories[0].slice(1) as keyof typeof CONSUMABLE_CATEGORY_STRUCTURE] : null;
 
-            return (
+              return (
               <Card key={material.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
@@ -609,6 +610,20 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
               </Card>
             );
           })}
+          </div>
+          
+          {/* Load More Button */}
+          {!searchQuery && selectedCategory === "all" && displayedConsumables.length < sortedConsumables.length && (
+            <div className="flex justify-center">
+              <Button 
+                variant="outline" 
+                onClick={() => setDisplayLimit(prev => prev + 10)}
+                className="w-full max-w-xs"
+              >
+                Load More ({sortedConsumables.length - displayedConsumables.length} remaining)
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <Card>
@@ -627,7 +642,7 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredConsumables.map((material) => {
+                  {displayedConsumables.map((material) => {
                     const stockInfo = getStockStatus(material);
                     const categories = categorizeConsumable(material);
                     const categoryInfo = categories[0] ? CONSUMABLE_CATEGORY_STRUCTURE[categories[0].charAt(0).toUpperCase() + categories[0].slice(1) as keyof typeof CONSUMABLE_CATEGORY_STRUCTURE] : null;
