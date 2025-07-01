@@ -236,6 +236,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PUT handler for materials (needed for form compatibility)
+  app.put("/api/materials/:id", async (req, res) => {
+    try {
+      console.log(`PUT request for material ${req.params.id} with data:`, JSON.stringify(req.body, null, 2));
+      const id = parseInt(req.params.id);
+      
+      // Check if unitCost is present and log it specifically
+      if (req.body.unitCost !== undefined) {
+        console.log(`💰 Unit cost update: ${req.body.unitCost} (type: ${typeof req.body.unitCost})`);
+      }
+      
+      const materialData = insertMaterialSchema.partial().parse(req.body);
+      console.log(`📝 Parsed material data:`, JSON.stringify(materialData, null, 2));
+      
+      const material = await storage.getMaterial(id);
+      if (!material) {
+        console.log(`Material ${id} not found`);
+        return res.status(404).json({ error: "Material not found" });
+      }
+      
+      const updatedMaterial = await storage.updateMaterial(id, materialData);
+      console.log(`✅ Successfully updated material ${id}: ${updatedMaterial.name}, new unitCost: ${updatedMaterial.unitCost}`);
+      
+      // Ensure we're sending JSON response
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(200).json(updatedMaterial);
+    } catch (error) {
+      console.error("Error updating material:", error);
+      res.setHeader('Content-Type', 'application/json');
+      if (error instanceof z.ZodError) {
+        console.log("Zod validation errors:", error.errors);
+        return res.status(400).json({ error: "Invalid material data", details: error.errors });
+      }
+      return res.status(500).json({ error: "Failed to update material" });
+    }
+  });
+
   // Move material to different category
   app.post("/api/materials/:id/move", async (req, res) => {
     try {
