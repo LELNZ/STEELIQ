@@ -602,13 +602,13 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Code</TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Category</TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Price</TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Stock</TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Supplier</TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Stock</TableHead>
+                    <TableHead>Supplier</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

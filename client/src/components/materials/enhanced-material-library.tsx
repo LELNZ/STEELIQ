@@ -1520,28 +1520,28 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
                     <div className="w-8"></div> {/* Icon space */}
                     <div className="flex-1 grid grid-cols-9 gap-3 items-center">
                       <div className="col-span-2">
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Material Details</span>
+                        <span>Material Details</span>
                       </div>
                       <div>
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Dimensions</span>
+                        <span>Dimensions</span>
                       </div>
                       <div>
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Weight</span>
+                        <span>Weight</span>
                       </div>
                       <div>
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Surface Area</span>
+                        <span>Surface Area</span>
                       </div>
                       <div className="text-center">
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Weight/m</span>
+                        <span>Weight/m</span>
                       </div>
                       <div className="text-center">
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Grade</span>
+                        <span>Grade</span>
                       </div>
                       <div className="text-center">
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Standard</span>
+                        <span>Standard</span>
                       </div>
                       <div className="text-center">
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</span>
+                        <span>Actions</span>
                       </div>
                     </div>
                   </div>
