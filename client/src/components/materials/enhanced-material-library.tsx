@@ -548,13 +548,32 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
     }
     if (name.includes('rebar') || name.includes('reinforcing') || name.includes('deformed bar')) categories.push('Rebar');
 
-    // Consumables - general category
-    if (name.includes('welding') || name.includes('electrode') || name.includes('cutting') || 
-        name.includes('disc') || name.includes('bolt') || name.includes('nut') || 
-        name.includes('screw') || name.includes('gas') || name.includes('safety') ||
-        category.includes('consumable') || category.includes('welding') || 
-        category.includes('cutting') || category.includes('fastener')) {
-      categories.push('Welding', 'Cutting', 'Fasteners', 'Gas', 'Safety');
+    // Consumables - specific categorization
+    // Match existing database categories AND name patterns
+    if (name.includes('welding') || name.includes('electrode') || 
+        category?.toLowerCase().includes('welding') || 
+        (category?.toLowerCase() === 'consumables' && (name.includes('welding') || name.includes('electrode')))) {
+      categories.push('Welding');
+    }
+    if (name.includes('cutting') || name.includes('disc') || name.includes('grind') || 
+        category?.toLowerCase().includes('cutting') ||
+        (category?.toLowerCase() === 'consumables' && (name.includes('cutting') || name.includes('disc')))) {
+      categories.push('Cutting');
+    }
+    if (name.includes('bolt') || name.includes('nut') || name.includes('screw') || name.includes('fastener') || 
+        category?.toLowerCase().includes('fastener') || category?.toLowerCase() === 'fasteners' ||
+        (category?.toLowerCase() === 'consumables' && (name.includes('bolt') || name.includes('nut') || name.includes('screw')))) {
+      categories.push('Fasteners');
+    }
+    if (name.includes('gas') || name.includes('oxygen') || name.includes('acetylene') || name.includes('argon') || 
+        category?.toLowerCase().includes('gas') ||
+        (category?.toLowerCase() === 'consumables' && name.includes('gas'))) {
+      categories.push('Gas');
+    }
+    if (name.includes('safety') || name.includes('ppe') || name.includes('protective') || 
+        category?.toLowerCase().includes('safety') ||
+        (category?.toLowerCase() === 'consumables' && name.includes('safety'))) {
+      categories.push('Safety');
     }
 
     // Coating Systems
