@@ -57,13 +57,13 @@ export default function CoatingSystemsEnhanced() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: materials = [], isLoading } = useQuery({
+  const { data: materials = [], isLoading } = useQuery<Material[]>({
     queryKey: ["/api/materials"],
   });
 
   // Filter for coating systems only
   const coatingMaterials = useMemo(() => {
-    return materials.filter((material: Material) => {
+    return materials.filter((material) => {
       const category = material.category?.toLowerCase() || '';
       const name = material.name?.toLowerCase() || '';
       
@@ -83,7 +83,7 @@ export default function CoatingSystemsEnhanced() {
 
   // Get unique categories
   const categories = useMemo(() => {
-    const cats = [...new Set(coatingMaterials.map((m: Material) => m.category))].filter(Boolean);
+    const cats = Array.from(new Set(coatingMaterials.map((m) => m.category))).filter(Boolean);
     return cats.sort();
   }, [coatingMaterials]);
 
@@ -121,15 +121,9 @@ export default function CoatingSystemsEnhanced() {
   const mutation = useMutation({
     mutationFn: async (data: CoatingFormData & { id?: number }) => {
       if (data.id) {
-        return apiRequest(`/api/materials/${data.id}`, {
-          method: "PUT",
-          body: JSON.stringify(data),
-        });
+        return apiRequest("PUT", `/api/materials/${data.id}`, data);
       } else {
-        return apiRequest("/api/materials", {
-          method: "POST", 
-          body: JSON.stringify(data),
-        });
+        return apiRequest("POST", "/api/materials", data);
       }
     },
     onSuccess: () => {
@@ -153,7 +147,7 @@ export default function CoatingSystemsEnhanced() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/materials/${id}`, { method: "DELETE" });
+      return apiRequest("DELETE", `/api/materials/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
