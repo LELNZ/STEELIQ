@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus, Calculator, Info, Building2, DollarSign, Check, ChevronsUpDown, ArrowRightLeft } from "lucide-react";
 import { ActionIcons } from "@/components/ui/action-icons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { LoadingSpinner, LoadingOverlay, LoadingState } from "@/components/ui/loading-spinner";
@@ -1509,95 +1510,132 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
             ))}
           </div>
         ) : (
-          // List View
-          <div className="space-y-2">
-            {/* Table Headers for List View */}
-            <div className="hidden md:block">
-              <Card className="border-b bg-muted/30">
-                <CardContent className="py-2">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-8"></div> {/* Checkbox space */}
-                    <div className="w-8"></div> {/* Icon space */}
-                    <div className="flex-1 grid grid-cols-9 gap-3 items-center">
-                      <div className="col-span-2">
-                        <span>Material Details</span>
-                      </div>
-                      <div>
-                        <span>Dimensions</span>
-                      </div>
-                      <div>
-                        <span>Weight</span>
-                      </div>
-                      <div>
-                        <span>Surface Area</span>
-                      </div>
-                      <div className="text-center">
-                        <span>Weight/m</span>
-                      </div>
-                      <div className="text-center">
-                        <span>Grade</span>
-                      </div>
-                      <div className="text-center">
-                        <span>Standard</span>
-                      </div>
-                      <div className="text-center">
-                        <span>Actions</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            {filteredMaterials.map((material: Material) => (
-              <Card 
-                key={material.id} 
-                className={`hover:shadow-sm transition-all ${
-                  selectedMaterials.has(material.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''
-                }`}
-              >
-                <CardContent className="py-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4 flex-1">
-                      <Checkbox
-                        checked={selectedMaterials.has(material.id)}
-                        onCheckedChange={() => handleMaterialSelect(material.id)}
-                      />
-                      {/* Material Type Icon for List View */}
-                      <MaterialTypeIndicator 
-                        category={material.category || ""} 
-                        name={material.name}
-                        size="sm"
-                        className="flex-shrink-0"
-                      />
-                      <div className="flex-1 grid grid-cols-9 gap-3 items-center">
-                        <div className="col-span-2">
-                          <div className="flex flex-col">
-                            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{material.name}</p>
-                            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{material.code}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{material.category}</p>
+          // List View - Table Structure
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Material Details</TableHead>
+                      <TableHead>Dimensions</TableHead>
+                      <TableHead>Weight</TableHead>
+                      <TableHead>Surface Area</TableHead>
+                      <TableHead>Weight/m</TableHead>
+                      <TableHead>Grade</TableHead>
+                      <TableHead>Standard</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredMaterials.map((material: Material) => (
+                      <TableRow 
+                        key={material.id}
+                        className={selectedMaterials.has(material.id) ? 'bg-blue-50' : ''}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Checkbox
+                              checked={selectedMaterials.has(material.id)}
+                              onCheckedChange={() => handleMaterialSelect(material.id)}
+                            />
+                            <MaterialTypeIndicator 
+                              category={material.category || ""} 
+                              name={material.name}
+                              size="sm"
+                              className="flex-shrink-0"
+                            />
+                            <div>
+                              <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{material.name}</p>
+                              <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{material.code}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{material.category}</p>
+                            </div>
                           </div>
-                          {/* Available Lengths for List View */}
-                          {material.lengthOptions && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {material.lengthOptions.split(';').slice(0, 2).map((length, index) => (
-                                <Badge 
-                                  key={index} 
-                                  variant="secondary" 
-                                  className="text-xs px-1 py-0 bg-gray-100 dark:bg-gray-700"
-                                >
-                                  {length.trim()}m
-                                </Badge>
-                              ))}
-                              {material.lengthOptions.split(';').length > 2 && (
-                                <Badge variant="outline" className="text-xs px-1 py-0">
-                                  +{material.lengthOptions.split(';').length - 2}
-                                </Badge>
-                              )}
+                        </TableCell>
+                        <TableCell>
+                          {(material.category?.toLowerCase().includes('round') || 
+                            material.category?.toLowerCase().includes('pipe') || 
+                            material.category?.toLowerCase().includes('chs') ||
+                            material.category?.toLowerCase().includes('reinforc')) ? (
+                            <div>
+                              <p className="text-sm">⌀: {material.diameter || 'N/A'}mm</p>
+                              {material.thickness && <p className="text-sm">T: {material.thickness}mm</p>}
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-sm">W: {material.width ? parseFloat(material.width.toString()).toFixed(0) : 'N/A'}mm</p>
+                              {material.depth && <p className="text-sm">D: {material.depth}mm</p>}
+                              <p className="text-sm">T: {material.thickness || 'N/A'}mm</p>
                             </div>
                           )}
-                        </div>
-                        <div>
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-sm font-medium">{material.weightPerMeter || 0} kg/m</p>
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-sm font-medium text-blue-600">
+                            {(() => {
+                              if (material.category && (material.width || material.width1 || material.diameter)) {
+                                const isRoundMaterial = material.category.toLowerCase().includes('round') || 
+                                                       material.category.toLowerCase().includes('pipe') || 
+                                                       material.category.toLowerCase().includes('reinforc');
+                                
+                                const dimensions = {
+                                  width: material.width ? parseFloat(material.width) : (material.width1 ? parseFloat(material.width1.toString()) : 0),
+                                  depth: material.depth ? parseFloat(material.depth) : (material.width2 ? parseFloat(material.width2.toString()) : (material.width ? parseFloat(material.width) : 0)),
+                                  webThickness: material.webTw ? parseFloat(material.webTw.toString()) : (material.thickness ? parseFloat(material.thickness.toString()) : 0),
+                                  flangeThickness: material.flangeTf ? parseFloat(material.flangeTf.toString()) : (material.thickness ? parseFloat(material.thickness.toString()) : 0),
+                                  thickness: material.thickness ? parseFloat(material.thickness.toString()) : 0,
+                                  diameter: isRoundMaterial && material.diameter ? parseFloat(material.diameter.toString()) : undefined,
+                                  outerDiameter: isRoundMaterial && material.diameter ? parseFloat(material.diameter.toString()) : undefined,
+                                  width1: material.width1 ? parseFloat(material.width1.toString()) : undefined,
+                                  width2: material.width2 ? parseFloat(material.width2.toString()) : undefined
+                                };
+                                
+                                const result = calculateUnifiedSurfaceArea(
+                                  material.category,
+                                  dimensions,
+                                  'external-internal'
+                                );
+                                
+                                return `${result.total.toFixed(3)} m²/m`;
+                              } else if (material.surfaceAreaPerMeter) {
+                                return `${Number(material.surfaceAreaPerMeter).toFixed(3)} m²/m`;
+                              } else {
+                                return 'Not calculated';
+                              }
+                            })()}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-sm font-medium">{material.weightPerMeter || 0}</p>
+                          <p className="text-xs text-gray-500">kg/m</p>
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-sm font-medium">{material.grade || 'Standard'}</p>
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-sm font-medium">{material.standard || 'AS/NZS'}</p>
+                        </TableCell>
+                        <TableCell>
+                          <ActionIcons
+                            onEdit={() => setEditingMaterial(material)}
+                            onDelete={() => {
+                              if (confirm(`Are you sure you want to delete ${material.name}?`)) {
+                                deleteMaterialMutation.mutate(material.id);
+                              }
+                            }}
+                            editTitle="Edit Material"
+                            deleteTitle="Delete Material"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
                           {/* Show diameter for rounds, pipes, and reinforcing bars, otherwise show width/thickness */}
                           {(material.category?.toLowerCase().includes('round') || 
                             material.category?.toLowerCase().includes('pipe') || 
