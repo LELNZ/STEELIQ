@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Edit2, Trash2, Filter, FileText } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
@@ -47,7 +47,7 @@ interface Material {
   notes?: string;
 }
 
-export default function CoatingSystemsEnhanced() {
+export default function CoatingSystemsFixed() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
@@ -65,7 +65,6 @@ export default function CoatingSystemsEnhanced() {
   const coatingMaterials = useMemo(() => {
     return materials.filter((material) => {
       const category = material.category?.toLowerCase() || '';
-      const name = material.name?.toLowerCase() || '';
       
       // Include only coating systems categories
       const isCoatingSystem = category.includes('systems') ||
@@ -75,7 +74,8 @@ export default function CoatingSystemsEnhanced() {
                              category.includes('polyurethane') ||
                              category.includes('zinc') ||
                              category.includes('galvanizing') ||
-                             category.includes('intumescent');
+                             category.includes('intumescent') ||
+                             category.includes('powder coating');
       
       return isCoatingSystem;
     });
@@ -202,8 +202,7 @@ export default function CoatingSystemsEnhanced() {
     }
   };
 
-  const standards = `
-AS/NZS 2312.1:2014 Guide to protection of structural steel against atmospheric corrosion by the use of protective coatings—Paint coatings
+  const standards = `AS/NZS 2312.1:2014 Guide to protection of structural steel against atmospheric corrosion by the use of protective coatings—Paint coatings
 
 AS/NZS 2312.2:2014 Guide to protection of structural steel against atmospheric corrosion—Hot-dip galvanizing
 
@@ -217,8 +216,7 @@ Notes on Application and Subcontracting:
 • In-house application is typically used for small fabrications, minor repairs, and alkyd/epoxy touch-ups.
 • Subcontracted application is strongly recommended or mandatory for galvanizing, thermal metal spray, high-build epoxies, polyurethanes, and intumescent coatings.
 • Intumescent coatings require certified applicators and compliance documentation to meet fire resistance ratings.
-• All coating systems require appropriate surface preparation, inspection of blast profiles, and verification of dry film thickness.
-  `;
+• All coating systems require appropriate surface preparation, inspection of blast profiles, and verification of dry film thickness.`;
 
   if (isLoading) {
     return (
@@ -248,14 +246,10 @@ Notes on Application and Subcontracting:
             <FileText className="h-4 w-4" />
             Standards
           </Button>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleAdd} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Coating System
-              </Button>
-            </DialogTrigger>
-          </Dialog>
+          <Button onClick={handleAdd} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Coating System
+          </Button>
         </div>
       </div>
 
@@ -376,234 +370,239 @@ Notes on Application and Subcontracting:
       </Card>
 
       {/* Add/Edit Dialog */}
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {editingMaterial ? "Edit Coating System" : "Add Coating System"}
-          </DialogTitle>
-          <DialogDescription>
-            Create or modify coating system specifications following AS/NZS standards.
-          </DialogDescription>
-        </DialogHeader>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingMaterial ? "Edit Coating System" : "Add Coating System"}
+            </DialogTitle>
+            <DialogDescription>
+              Create or modify coating system specifications following AS/NZS standards.
+            </DialogDescription>
+          </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Code</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., ALK1, EP2, HDG-only" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Alkyd Systems">Alkyd Systems</SelectItem>
+                            <SelectItem value="Etch Primer Systems">Etch Primer Systems</SelectItem>
+                            <SelectItem value="Epoxy Systems">Epoxy Systems</SelectItem>
+                            <SelectItem value="Zinc Silicate Systems">Zinc Silicate Systems</SelectItem>
+                            <SelectItem value="Polyurethane Systems">Polyurethane Systems</SelectItem>
+                            <SelectItem value="Intumescent Systems">Intumescent Systems</SelectItem>
+                            <SelectItem value="Galvanizing Systems">Galvanizing Systems</SelectItem>
+                            <SelectItem value="Zinc Metal Spray Systems">Zinc Metal Spray Systems</SelectItem>
+                            <SelectItem value="Powder Coating Systems">Powder Coating Systems</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
-                name="code"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Code</FormLabel>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., ALK1, EP2, HDG-only" {...field} />
+                      <Input placeholder="e.g., Single coat alkyd" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
-                name="category"
+                name="layers_dft"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
+                    <FormLabel>Layers & DFT (µm)</FormLabel>
                     <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Alkyd Systems">Alkyd Systems</SelectItem>
-                          <SelectItem value="Etch Primer Systems">Etch Primer Systems</SelectItem>
-                          <SelectItem value="Epoxy Systems">Epoxy Systems</SelectItem>
-                          <SelectItem value="Zinc Silicate Systems">Zinc Silicate Systems</SelectItem>
-                          <SelectItem value="Polyurethane Systems">Polyurethane Systems</SelectItem>
-                          <SelectItem value="Intumescent Systems">Intumescent Systems</SelectItem>
-                          <SelectItem value="Galvanizing Systems">Galvanizing Systems</SelectItem>
-                          <SelectItem value="Zinc Metal Spray Systems">Zinc Metal Spray Systems</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Textarea 
+                        placeholder="e.g., 1 x Alkyd enamel (~50µm)" 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
 
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Single coat alkyd" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="durability_years"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Durability (Years to 1st Major Maintenance)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., 2–5, 10–15" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="as_nzs_reference"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>AS/NZS Reference</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., C1, A2, G3" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-            <FormField
-              control={form.control}
-              name="layers_dft"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Layers & DFT (µm)</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="e.g., 1 x Alkyd enamel (~50µm)" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="application_method"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Application Method</FormLabel>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select method" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Brush/Roller/Spray">Brush/Roller/Spray</SelectItem>
+                            <SelectItem value="Spray">Spray</SelectItem>
+                            <SelectItem value="Dip Galvanizing">Dip Galvanizing</SelectItem>
+                            <SelectItem value="Double dip galvanizing">Double dip galvanizing</SelectItem>
+                            <SelectItem value="Galv + Spray">Galv + Spray</SelectItem>
+                            <SelectItem value="Thermal spray">Thermal spray</SelectItem>
+                            <SelectItem value="Electrostatic spray & oven cure">Electrostatic spray & oven cure</SelectItem>
+                            <SelectItem value="Galvanizing + powder coating">Galvanizing + powder coating</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="in_house_subcontracted"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>In-house/Subcontracted</FormLabel>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select option" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="In-house">In-house</SelectItem>
+                            <SelectItem value="In-house (light steel)">In-house (light steel)</SelectItem>
+                            <SelectItem value="In-house/Subcontracted">In-house/Subcontracted</SelectItem>
+                            <SelectItem value="Subcontracted">Subcontracted</SelectItem>
+                            <SelectItem value="Subcontracted specialist">Subcontracted specialist</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="fire_rating"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fire Rating (if Intumescent)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., 30–90 min, N/A" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="supplier"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Supplier</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Dulux Protective Coatings" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
-                name="durability_years"
+                name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Durability (Years to 1st Major Maintenance)</FormLabel>
+                    <FormLabel>Notes</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., 2–5, 10–15" {...field} />
+                      <Textarea 
+                        placeholder="Additional specifications or requirements" 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="as_nzs_reference"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>AS/NZS Reference</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., C1, A2, G3" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="application_method"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Application Method</FormLabel>
-                    <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select method" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Brush/Roller/Spray">Brush/Roller/Spray</SelectItem>
-                          <SelectItem value="Spray">Spray</SelectItem>
-                          <SelectItem value="Dip Galvanizing">Dip Galvanizing</SelectItem>
-                          <SelectItem value="Double dip galvanizing">Double dip galvanizing</SelectItem>
-                          <SelectItem value="Galv + Spray">Galv + Spray</SelectItem>
-                          <SelectItem value="Thermal spray">Thermal spray</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="in_house_subcontracted"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>In-house/Subcontracted</FormLabel>
-                    <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="In-house">In-house</SelectItem>
-                          <SelectItem value="In-house (light steel)">In-house (light steel)</SelectItem>
-                          <SelectItem value="In-house/Subcontracted">In-house/Subcontracted</SelectItem>
-                          <SelectItem value="Subcontracted">Subcontracted</SelectItem>
-                          <SelectItem value="Subcontracted specialist">Subcontracted specialist</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="fire_rating"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fire Rating (if Intumescent)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., 30–90 min, N/A" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="supplier"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Supplier</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Dulux Protective Coatings" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Additional specifications or requirements" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={mutation.isPending}>
-                {mutation.isPending ? "Saving..." : editingMaterial ? "Update" : "Add"} Coating System
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={mutation.isPending}>
+                  {mutation.isPending ? "Saving..." : editingMaterial ? "Update" : "Add"} Coating System
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
