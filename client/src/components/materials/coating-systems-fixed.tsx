@@ -214,10 +214,15 @@ export default function CoatingSystemsFixed() {
   };
 
   const onSubmit = (data: CoatingFormData) => {
-    mutation.mutate({
+    // Convert unit_cost string to number if provided
+    const processedData = {
       ...data,
+      unitCost: data.unit_cost ? parseFloat(data.unit_cost) : undefined,
+      unit_cost: undefined, // Remove the string version
       ...(editingMaterial && { id: editingMaterial.id }),
-    });
+    };
+    
+    mutation.mutate(processedData);
   };
 
   const handleDelete = (id: number) => {
