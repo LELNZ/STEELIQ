@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaterialUpload from "@/components/materials/material-upload";
 import EnhancedMaterialLibrary from "@/components/materials/enhanced-material-library";
-import CoatingSystemsTab from "@/components/materials/coating-systems-tab";
+import { EnhancedCoatingSystems } from "@/components/materials/enhanced-coating-systems";
 import { Plus, Upload, Download, Package, Wrench, Paintbrush } from "lucide-react";
 
 // Import dimensional reference images
@@ -201,7 +201,13 @@ export default function Materials() {
         </TabsContent>
 
         <TabsContent value="coatings" className="mt-6">
-          <CoatingSystemsTab />
+          <EnhancedMaterialLibrary 
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onCategoryChange={setSelectedCategory}
+            onSubcategoryChange={setSelectedSubcategory}
+            materialFilter="coatings"
+          />
         </TabsContent>
       </Tabs>
 

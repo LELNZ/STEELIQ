@@ -171,6 +171,11 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
   const [cardSize, setCardSize] = useState<"normal" | "small" | "tiny">("normal");
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [surfaceAreaMaterial, setSurfaceAreaMaterial] = useState<Material | null>(null);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [materialToMove, setMaterialToMove] = useState<Material | null>(null);
+  const [targetCategory, setTargetCategory] = useState<string>("");
+  const [showLoadMore, setShowLoadMore] = useState(false);
+  const [displayLimit, setDisplayLimit] = useState(10);
   const [showAddSupplierDialog, setShowAddSupplierDialog] = useState(false);
   const [showAddMaterialDialog, setShowAddMaterialDialog] = useState(false);
   const [newSupplierData, setNewSupplierData] = useState({
@@ -593,8 +598,28 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
     return categories;
   };
 
+  // Sort materials by "most used" criteria (pricing data + supplier + recent creation)
+  const getMostUsedScore = (material: Material): number => {
+    let score = 0;
+    // Having pricing data = more established/used
+    if (material.pricePerKg || material.pricePerMeter) score += 100;
+    // Recent creation = more active (using createdAt which exists)
+    if (material.createdAt) {
+      const daysSinceCreation = (Date.now() - new Date(material.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceCreation < 30) score += 50;
+    }
+    // Supplier assigned = more established
+    if (material.supplier) score += 25;
+    // Has weight data = more complete
+    if (material.weightPerMeter) score += 20;
+    // Has surface area = more complete
+    if (material.surfaceAreaPerMeter) score += 15;
+    
+    return score;
+  };
+
   // Enhanced material filtering with material filter support
-  const filteredMaterials = (materials as Material[]).filter((material: Material) => {
+  const allFilteredMaterials = (materials as Material[]).filter((material: Material) => {
     // Apply material filter first
     const materialCategories = categorizeeMaterial(material);
     
@@ -655,6 +680,16 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
 
     return materialCategories.includes(selectedSubcategory);
   });
+
+  // Apply performance optimization: Sort by "most used" and limit initial display
+  const sortedMaterials = allFilteredMaterials.sort((a, b) => getMostUsedScore(b) - getMostUsedScore(a));
+  
+  // Show limited items initially (10 most used) unless searching or filtering
+  const isActivelyFiltering = searchQuery.trim() || selectedCategory !== "all" || selectedSubcategory !== "all";
+  const filteredMaterials = isActivelyFiltering ? sortedMaterials : sortedMaterials.slice(0, displayLimit);
+  
+  // Check if there are more items to load
+  const hasMoreToLoad = !isActivelyFiltering && sortedMaterials.length > displayLimit;
 
   // Delete selected materials mutation
   const deleteSelectedMutation = useMutation({
