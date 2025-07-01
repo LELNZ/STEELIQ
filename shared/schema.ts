@@ -710,6 +710,22 @@ export const pdfExportConfigs = pgTable("pdf_export_configs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Saved Filters - user-defined filter presets
+export const savedFilters = pgTable("saved_filters", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  filterType: text("filter_type").notNull(), // "consumables", "steel", "coatings", "all"
+  filterConfig: jsonb("filter_config").notNull(), // stores all filter criteria
+  userId: integer("user_id").references(() => users.id),
+  isGlobal: boolean("is_global").default(false), // available to all users
+  isDefault: boolean("is_default").default(false), // default filter for category
+  usageCount: integer("usage_count").default(0),
+  lastUsed: timestamp("last_used"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Coating Systems
 export const coatingSystems = pgTable("coating_systems", {
   id: serial("id").primaryKey(),
@@ -1157,6 +1173,12 @@ export const insertLocationSchema = createInsertSchema(locations).omit({
   updatedAt: true,
 });
 
+export const insertSavedFilterSchema = createInsertSchema(savedFilters).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -1181,6 +1203,9 @@ export type InsertSupplierContact = z.infer<typeof insertSupplierContactSchema>;
 
 export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
+
+export type SavedFilter = typeof savedFilters.$inferSelect;
+export type InsertSavedFilter = z.infer<typeof insertSavedFilterSchema>;
 
 // AI Drawing Analysis for Three-Phase Workflow
 export const aiDrawingAnalysis = pgTable("ai_drawing_analysis", {

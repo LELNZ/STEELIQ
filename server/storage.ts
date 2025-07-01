@@ -2,7 +2,7 @@ import {
   users, materials, materialCategories, inventory, jobs, jobMaterials, 
   cuttingPlans, cutSequences, remnants, optimizationSimulations, coatingSystems, surfaceAreaConfigs,
   suppliers, materialSuppliers, supplierPriceHistory, supplierContacts,
-  clients, clientContacts, locations,
+  clients, clientContacts, locations, savedFilters,
   estimationProjects, estimationMaterials, estimationLabor, estimationEquipment, estimationConsumables,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
@@ -13,7 +13,7 @@ import {
   type Supplier, type InsertSupplier, type MaterialSupplier, type InsertMaterialSupplier,
   type SupplierPriceHistory, type InsertSupplierPriceHistory, type SupplierContact, type InsertSupplierContact,
   type Client, type InsertClient, type ClientContact, type InsertClientContact,
-  type Location, type InsertLocation,
+  type Location, type InsertLocation, type SavedFilter, type InsertSavedFilter,
   type EstimationProject, type InsertEstimationProject
 } from "@shared/schema";
 import { desc, eq, lt, asc, like, and, or, sql } from "drizzle-orm";
