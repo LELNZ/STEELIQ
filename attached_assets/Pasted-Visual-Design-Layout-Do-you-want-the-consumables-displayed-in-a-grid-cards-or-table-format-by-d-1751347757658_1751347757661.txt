@@ -1,0 +1,25 @@
+Visual Design & Layout
+Do you want the consumables displayed in a grid (cards) or table format by default? Grid by default, but allow for grid and card
+Should each consumable card show an image/icon to visually distinguish between welding supplies, cutting tools, fasteners, etc.? Yes
+What specific information should be prominently displayed on each consumable card (price, supplier, stock level, specifications)? Price, Stock level, default supplier
+Do you want different color coding for different consumable types (e.g., blue for fasteners, red for cutting, yellow for welding)? yes
+Category Organization
+Should the subcategory filters (Welding, Cutting, Fasteners, Gas, Safety) be displayed as buttons, dropdown, or tabs under the main Consumables tab? tabs 
+Do you want to see a count of items in each subcategory (e.g., "Welding (23)", "Fasteners (45)")? yes
+Should "All Consumables" be the default view, or should it default to a specific subcategory like "Welding"? All consumables as the default view - to reduce loading time only show a list of 20 items in the all consumables tab and only load additional items when scrolling down
+Do you want to group consumables by supplier within each category? no
+Search & Filtering
+What search criteria are most important for consumables (brand, size, grade, material specification)? all, allow user to search like a google search box in line with the rest of the application search theme.
+Should there be quick filters for common specifications like "M12 bolts only" or "3.2mm electrodes only"? yes this is a feature that would be good. allow user to select from an arrangement of filtering options - suggest how this should work best. 
+Do you want to filter by stock status (in stock, low stock, out of stock)? yes
+Should there be price range filtering for consumables? yes
+Practical Information Display
+Do you want to show packaging information (box of 100, per meter, per kg) prominently? as a purchase option yes show packaging information 
+Should consumption tracking be visible (how much used this month/year)? yes and allow this as a tracked metric for reporting 
+Do you want to display supplier lead times for each consumable? yes default 5-7 working days
+Should minimum order quantities be clearly displayed? yes minimum order of 1 box default but allow user to edit this number.
+Workflow Integration
+Do you want a "Quick Add to Job" button for each consumable when working on estimates? how would this work?
+Should there be preset consumable packages (e.g., "Standard Welding Kit", "Basic Fastener Pack")? no but allow user to create preset consumable packages. 
+Do you want to track which consumables are commonly used together? yes
+Should the system suggest consumables based on the materials selected in a job (e.g., suggest appropriate electrodes for specific steel grades)? no

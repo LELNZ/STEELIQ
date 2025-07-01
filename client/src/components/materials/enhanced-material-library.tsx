@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { LoadingSpinner, LoadingOverlay, LoadingState } from "@/components/ui/loading-spinner";
 import { MaterialTypeIndicator, MaterialIcon } from "./material-icons";
 import SurfaceAreaManager from "./surface-area-manager";
+import { EnhancedConsumablesTab } from "./enhanced-consumables-tab";
 import { Material, Supplier } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";

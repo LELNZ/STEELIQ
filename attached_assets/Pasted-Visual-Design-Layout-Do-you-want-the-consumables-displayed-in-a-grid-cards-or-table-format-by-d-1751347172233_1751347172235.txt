@@ -1,0 +1,25 @@
+Visual Design & Layout
+Do you want the consumables displayed in a grid (cards) or table format by default?
+Should each consumable card show an image/icon to visually distinguish between welding supplies, cutting tools, fasteners, etc.?
+What specific information should be prominently displayed on each consumable card (price, supplier, stock level, specifications)?
+Do you want different color coding for different consumable types (e.g., blue for fasteners, red for cutting, yellow for welding)?
+Category Organization
+Should the subcategory filters (Welding, Cutting, Fasteners, Gas, Safety) be displayed as buttons, dropdown, or tabs under the main Consumables tab?
+Do you want to see a count of items in each subcategory (e.g., "Welding (23)", "Fasteners (45)")?
+Should "All Consumables" be the default view, or should it default to a specific subcategory like "Welding"?
+Do you want to group consumables by supplier within each category?
+Search & Filtering
+What search criteria are most important for consumables (brand, size, grade, material specification)?
+Should there be quick filters for common specifications like "M12 bolts only" or "3.2mm electrodes only"?
+Do you want to filter by stock status (in stock, low stock, out of stock)?
+Should there be price range filtering for consumables?
+Practical Information Display
+Do you want to show packaging information (box of 100, per meter, per kg) prominently?
+Should consumption tracking be visible (how much used this month/year)?
+Do you want to display supplier lead times for each consumable?
+Should minimum order quantities be clearly displayed?
+Workflow Integration
+Do you want a "Quick Add to Job" button for each consumable when working on estimates?
+Should there be preset consumable packages (e.g., "Standard Welding Kit", "Basic Fastener Pack")?
+Do you want to track which consumables are commonly used together?
+Should the system suggest consumables based on the materials selected in a job (e.g., suggest appropriate electrodes for specific steel grades)?
