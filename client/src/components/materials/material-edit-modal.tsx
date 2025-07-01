@@ -56,12 +56,12 @@ export default function MaterialEditModal({ material, isOpen, onClose, mode }: M
         code: "",
         grade: "",
         standard: "",
-        width: 0,
-        thickness: 0,
-        depth: 0,
-        diameter: 0,
-        weightPerMeter: 0,
-        surfaceAreaPerMeter: 0,
+        width: "0",
+        thickness: "0",
+        depth: "0",
+        diameter: "0",
+        weightPerMeter: "0",
+        surfaceAreaPerMeter: "0",
         isActive: true
       });
     }
@@ -105,7 +105,7 @@ export default function MaterialEditModal({ material, isOpen, onClose, mode }: M
   };
 
   const handleSurfaceAreaSave = (surfaceArea: number) => {
-    setFormData(prev => ({ ...prev, surfaceAreaPerMeter: surfaceArea }));
+    setFormData(prev => ({ ...prev, surfaceAreaPerMeter: surfaceArea.toString() }));
     setShowSurfaceAreaCalc(false);
     toast({
       title: "Surface Area Updated",
@@ -219,16 +219,7 @@ export default function MaterialEditModal({ material, isOpen, onClose, mode }: M
               </Select>
             </div>
 
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description || ""}
-                onChange={(e) => updateField("description", e.target.value)}
-                placeholder="Additional material details..."
-                rows={3}
-              />
-            </div>
+
           </TabsContent>
 
           <TabsContent value="dimensions" className="space-y-4">
@@ -239,7 +230,7 @@ export default function MaterialEditModal({ material, isOpen, onClose, mode }: M
                   id="width"
                   type="number"
                   value={formData.width || ""}
-                  onChange={(e) => updateField("width", parseFloat(e.target.value) || 0)}
+                  onChange={(e) => updateField("width", e.target.value)}
                 />
               </div>
               <div>
@@ -248,7 +239,7 @@ export default function MaterialEditModal({ material, isOpen, onClose, mode }: M
                   id="thickness"
                   type="number"
                   value={formData.thickness || ""}
-                  onChange={(e) => updateField("thickness", parseFloat(e.target.value) || 0)}
+                  onChange={(e) => updateField("thickness", e.target.value)}
                 />
               </div>
             </div>
@@ -330,13 +321,13 @@ export default function MaterialEditModal({ material, isOpen, onClose, mode }: M
               </div>
             </div>
 
-            {formData.surfaceAreaPerMeter && formData.surfaceAreaPerMeter > 0 && (
+            {formData.surfaceAreaPerMeter && parseFloat(String(formData.surfaceAreaPerMeter)) > 0 && (
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Calculated Surface Area</span>
                     <Badge variant="secondary">
-                      {formData.surfaceAreaPerMeter.toFixed(4)} m²/m
+                      {parseFloat(String(formData.surfaceAreaPerMeter)).toFixed(4)} m²/m
                     </Badge>
                   </div>
                 </CardContent>
