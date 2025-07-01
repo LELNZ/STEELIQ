@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus, Calculator, Info, Building2, DollarSign, Check, ChevronsUpDown } from "lucide-react";
+import { Edit, Trash2, Search, Package, CheckSquare, Square, AlertTriangle, Loader2, Grid3X3, List, Minus, Plus, Calculator, Info, Building2, DollarSign, Check, ChevronsUpDown, ArrowRightLeft } from "lucide-react";
 import { ActionIcons } from "@/components/ui/action-icons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -757,6 +757,40 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
       toast({
         title: "Error",
         description: "Failed to update material",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Move material mutation
+  const moveMaterialMutation = useMutation({
+    mutationFn: async (data: { materialId: number; newCategory: string }) => {
+      const response = await fetch(`/api/materials/${data.materialId}/move`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: data.newCategory })
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to move material");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      setShowMoveDialog(false);
+      setMaterialToMove(null);
+      setTargetCategory("");
+      toast({
+        title: "Success",
+        description: "Material moved successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to move material",
         variant: "destructive",
       });
     },
@@ -1670,6 +1704,18 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
                       >
                         <Calculator className="w-3 h-3" />
                       </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setMaterialToMove(material);
+                          setShowMoveDialog(true);
+                        }}
+                        title="Move to Different Category"
+                        className="h-6 w-8 p-0"
+                      >
+                        <ArrowRightLeft className="w-3 h-3" />
+                      </Button>
                       <ActionIcons
                         onEdit={() => setEditingMaterial(material)}
                         onDelete={() => {
@@ -1716,6 +1762,24 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
                 </Button>
               </>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Load More Button */}
+      {hasMoreToLoad && (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground mb-4">
+              Showing {displayLimit} of {sortedMaterials.length} materials
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => setDisplayLimit(prev => prev + 20)}
+              className="w-full max-w-xs"
+            >
+              Load More Materials
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -2917,6 +2981,87 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Move Item Dialog */}
+      <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <ArrowRightLeft className="w-5 h-5 mr-2 text-blue-600" />
+              Move Material
+            </DialogTitle>
+            <DialogDescription>
+              Move "{materialToMove?.name}" to a different category
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="target-category">Target Category</Label>
+              <Select value={targetCategory} onValueChange={setTargetCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select target category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Merchant Bar">Merchant Bar</SelectItem>
+                  <SelectItem value="SHS/RHS">SHS/RHS</SelectItem>
+                  <SelectItem value="Structural Channels">Structural Channels</SelectItem>
+                  <SelectItem value="Universal Beams">Universal Beams</SelectItem>
+                  <SelectItem value="Universal Columns">Universal Columns</SelectItem>
+                  <SelectItem value="Angles">Angles</SelectItem>
+                  <SelectItem value="Unequal Angles">Unequal Angles</SelectItem>
+                  <SelectItem value="Cattle Rail">Cattle Rail</SelectItem>
+                  <SelectItem value="Mesh">Mesh</SelectItem>
+                  <SelectItem value="Sheet Steel">Sheet Steel</SelectItem>
+                  <SelectItem value="Pipe">Pipe</SelectItem>
+                  <SelectItem value="DHS Purlins">DHS Purlins</SelectItem>
+                  <SelectItem value="Reinforcing Mesh">Reinforcing Mesh</SelectItem>
+                  <SelectItem value="Reinforcing Bar">Reinforcing Bar</SelectItem>
+                  <SelectItem value="Welding Consumables">Welding Consumables</SelectItem>
+                  <SelectItem value="Cutting Consumables">Cutting Consumables</SelectItem>
+                  <SelectItem value="Fasteners">Fasteners</SelectItem>
+                  <SelectItem value="Safety Equipment">Safety Equipment</SelectItem>
+                  <SelectItem value="Gas Cylinders">Gas Cylinders</SelectItem>
+                  <SelectItem value="Paint Systems">Paint Systems</SelectItem>
+                  <SelectItem value="Galvanizing">Galvanizing</SelectItem>
+                  <SelectItem value="Powder Coating">Powder Coating</SelectItem>
+                  <SelectItem value="Protective Coatings">Protective Coatings</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (materialToMove && targetCategory) {
+                    moveMaterialMutation.mutate({
+                      materialId: materialToMove.id,
+                      newCategory: targetCategory
+                    });
+                  }
+                }}
+                disabled={!targetCategory || moveMaterialMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {moveMaterialMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Moving...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRightLeft className="w-4 h-4 mr-2" />
+                    Move Material
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-}export default EnhancedMaterialLibrary;
+}
+
+export default EnhancedMaterialLibrary;
