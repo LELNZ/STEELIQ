@@ -169,6 +169,7 @@ This is a comprehensive steel fabrication business management system built for L
 - July 1, 2025: **TABLE STANDARDIZATION IN PROGRESS** - Working on converting Steel Catalogue from Card-based grid layout to consistent Table structure matching Consumables and Coating Systems tabs for uniform Material Library interface
 - July 1, 2025: **COMPREHENSIVE COATING SYSTEMS CATALOG** - Completely rebuilt coating systems catalog with 28 authentic AS/NZS 2312 compliant coating specifications including Alkyd, Epoxy, Polyurethane, Galvanizing, Intumescent, and Zinc Metal Spray systems with full technical specifications (layers, DFT, durability, reference standards, application methods, fire ratings)
 - July 1, 2025: **ENHANCED COATING SYSTEMS UI** - Created professional table interface with detailed specifications matching industry standards table format, comprehensive add/edit forms with dropdown selections, standards reference panel, and proper categorization for steel fabrication workflows
+- July 1, 2025: **COATING PRICING FUNCTIONALITY COMPLETE** - Fixed critical Zod schema validation error preventing price updates by adding dual string/number type support for unitCost fields, enabling real-time price editing and database persistence for coating systems catalog
 
 ## User Preferences
 
