@@ -1511,6 +1511,44 @@ export function EnhancedMaterialLibrary({ searchQuery, setSearchQuery, onCategor
         ) : (
           // List View
           <div className="space-y-2">
+            {/* Table Headers for List View */}
+            <div className="hidden md:block">
+              <Card className="border-b bg-muted/30">
+                <CardContent className="py-2">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-8"></div> {/* Checkbox space */}
+                    <div className="w-8"></div> {/* Icon space */}
+                    <div className="flex-1 grid grid-cols-9 gap-3 items-center">
+                      <div className="col-span-2">
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Material Details</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Dimensions</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Weight</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Surface Area</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Weight</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Grade</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Standard</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
             {filteredMaterials.map((material: Material) => (
               <Card 
                 key={material.id} 

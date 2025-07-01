@@ -599,45 +599,45 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b bg-muted/50">
-                  <tr>
-                    <th className="text-left p-3 font-medium">Name</th>
-                    <th className="text-left p-3 font-medium">Code</th>
-                    <th className="text-left p-3 font-medium">Category</th>
-                    <th className="text-left p-3 font-medium">Price</th>
-                    <th className="text-left p-3 font-medium">Stock</th>
-                    <th className="text-left p-3 font-medium">Supplier</th>
-                    <th className="text-left p-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</TableHead>
+                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Code</TableHead>
+                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Category</TableHead>
+                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Price</TableHead>
+                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Stock</TableHead>
+                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Supplier</TableHead>
+                    <TableHead className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {displayedConsumables.map((material) => {
                     const stockInfo = getStockStatus(material);
                     const categories = categorizeConsumable(material);
                     const categoryInfo = categories[0] ? CONSUMABLE_CATEGORY_STRUCTURE[categories[0].charAt(0).toUpperCase() + categories[0].slice(1) as keyof typeof CONSUMABLE_CATEGORY_STRUCTURE] : null;
 
                     return (
-                      <tr key={material.id} className="border-b hover:bg-muted/50">
-                        <td className="p-3 font-medium">{material.name}</td>
-                        <td className="p-3 text-sm text-muted-foreground">{material.code}</td>
-                        <td className="p-3">
+                      <TableRow key={material.id}>
+                        <TableCell className="font-medium">{material.name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{material.code}</TableCell>
+                        <TableCell>
                           {categoryInfo && (
                             <Badge className={`${categoryInfo.color} text-xs`}>
                               {categories[0].charAt(0).toUpperCase() + categories[0].slice(1)}
                             </Badge>
                           )}
-                        </td>
-                        <td className="p-3 font-medium">
+                        </TableCell>
+                        <TableCell className="font-medium">
                           {formatCurrency(parseFloat(material.pricePerKg?.toString() || "0"))}/kg
-                        </td>
-                        <td className="p-3">
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={stockInfo.color as any}>
                             {stockInfo.level} units
                           </Badge>
-                        </td>
-                        <td className="p-3">{getSupplierName(material)}</td>
-                        <td className="p-3">
+                        </TableCell>
+                        <TableCell>{getSupplierName(material)}</TableCell>
+                        <TableCell>
                           <div className="flex gap-1">
                             <Button size="sm" onClick={() => onAddToJob?.(material, 1)}>
                               <ShoppingCart className="w-3 h-3" />
@@ -646,12 +646,12 @@ export function EnhancedConsumablesV2({ materials, suppliers, onAddToJob }: Enha
                               <Edit className="w-3 h-3" />
                             </Button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
