@@ -275,16 +275,9 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
       {showAddModal && (
         <MaterialEditModal
           material={null}
-          suppliers={suppliers}
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
-          onSave={(newMaterial) => {
-            setShowAddModal(false);
-            toast({
-              title: "Material Added",
-              description: "New consumable material has been successfully added.",
-            });
-          }}
+          mode="add"
         />
       )}
     </div>
