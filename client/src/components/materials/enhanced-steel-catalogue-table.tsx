@@ -128,7 +128,9 @@ export function EnhancedSteelCatalogueTable({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Material Details</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead>Dimensions</TableHead>
                   <TableHead>Weight</TableHead>
                   <TableHead>Surface Area</TableHead>
@@ -157,12 +159,18 @@ export function EnhancedSteelCatalogueTable({
                           size="sm"
                           className="flex-shrink-0"
                         />
-                        <div>
-                          <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{material.name}</p>
-                          <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{material.code}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{material.category}</p>
-                        </div>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{material.name}</p>
                       </div>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{material.code || "—"}</p>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                        {material.category || "Uncategorized"}
+                      </Badge>
                     </TableCell>
                     
                     <TableCell>
