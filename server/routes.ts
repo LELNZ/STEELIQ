@@ -623,36 +623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User authentication routes
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      
-      if (!username || !password) {
-        return res.status(400).json({ error: "Username and password required" });
-      }
-      
-      const user = await storage.getUserByUsername(username);
-      if (!user) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
-      
-      const validPassword = await bcrypt.compare(password, user.password);
-      if (!validPassword) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
-      
-      // Update last login
-      await storage.updateUserLastLogin(user.id);
-      
-      // Return user data without password
-      const { password: _, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ error: "Authentication failed" });
-    }
-  });
+  // NOTE: User authentication routes moved to secure AuthService implementation below (line ~2449)
 
   app.post("/api/auth/register", async (req, res) => {
     try {
