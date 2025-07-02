@@ -119,15 +119,9 @@ export default function TeamManagement() {
   const memberMutation = useMutation({
     mutationFn: async (data: any) => {
       if (data.id) {
-        return apiRequest(`/api/team/members/${data.id}`, {
-          method: "PUT",
-          body: JSON.stringify(data),
-        });
+        return apiRequest(`/api/team/members/${data.id}`, "PUT", data);
       } else {
-        return apiRequest("/api/team/members", {
-          method: "POST", 
-          body: JSON.stringify(data),
-        });
+        return apiRequest("/api/team/members", "POST", data);
       }
     },
     onSuccess: () => {
@@ -152,15 +146,9 @@ export default function TeamManagement() {
   const roleMutation = useMutation({
     mutationFn: async (data: any) => {
       if (data.id) {
-        return apiRequest(`/api/team/roles/${data.id}`, {
-          method: "PUT",
-          body: JSON.stringify(data),
-        });
+        return apiRequest(`/api/team/roles/${data.id}`, "PUT", data);
       } else {
-        return apiRequest("/api/team/roles", {
-          method: "POST",
-          body: JSON.stringify(data),
-        });
+        return apiRequest("/api/team/roles", "POST", data);
       }
     },
     onSuccess: () => {
@@ -185,15 +173,9 @@ export default function TeamManagement() {
   const departmentMutation = useMutation({
     mutationFn: async (data: any) => {
       if (data.id) {
-        return apiRequest(`/api/team/departments/${data.id}`, {
-          method: "PUT",
-          body: JSON.stringify(data),
-        });
+        return apiRequest(`/api/team/departments/${data.id}`, "PUT", data);
       } else {
-        return apiRequest("/api/team/departments", {
-          method: "POST",
-          body: JSON.stringify(data),
-        });
+        return apiRequest("/api/team/departments", "POST", data);
       }
     },
     onSuccess: () => {
@@ -306,7 +288,7 @@ export default function TeamManagement() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to remove {member.user.name} from the team?
+                    Are you sure you want to remove {member.userName} from the team?
                     This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -324,11 +306,11 @@ export default function TeamManagement() {
         <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <div>
             <span className="text-muted-foreground">Employee #:</span>
-            <span className="ml-1">{member.employeeNumber || "N/A"}</span>
+            <span className="ml-1">{member.userUsername || "N/A"}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Position:</span>
-            <span className="ml-1">{member.position || "N/A"}</span>
+            <span className="ml-1">{member.roleName || "N/A"}</span>
           </div>
           {member.hourlyRate && (
             <div>
