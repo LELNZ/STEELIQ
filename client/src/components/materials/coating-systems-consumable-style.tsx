@@ -277,55 +277,57 @@ AS 1580.481 - Intumescent coatings for fire protection`;
         </Card>
       )}
 
-      {/* Results Summary */}
-      <div className="text-sm text-muted-foreground">
-        {filteredMaterials.length} of {coatingMaterials.length} coating systems shown
-      </div>
-
-      {/* Search Controls */}
-      <div className="flex gap-4 items-center">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search coating systems by name, code, or category..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button onClick={handleAdd} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Material
-        </Button>
-        <Button variant="outline" className="gap-2">
-          <FileText className="h-4 w-4" />
-          Export CSV
-        </Button>
-      </div>
-
-      {/* Category Filter Buttons */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={selectedCategory === "all" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setSelectedCategory("all")}
-        >
-          All Categories
-        </Button>
-        {categories.map((category) => (
-          <Button
-            key={category}
-            variant={selectedCategory === category ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedCategory(category)}
-          >
-            {category.replace(' Systems', '')}
-          </Button>
-        ))}
-      </div>
-
-      {/* Table */}
       <Card>
+        <CardContent className="space-y-6 pt-6">
+          {/* Results Summary */}
+          <div className="text-sm text-muted-foreground">
+            {filteredMaterials.length} of {coatingMaterials.length} coating systems shown
+          </div>
+
+          {/* Search Controls */}
+          <div className="flex gap-4 items-center">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search coating systems by name, code, or category..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button onClick={handleAdd} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Material
+            </Button>
+            <Button variant="outline" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Export CSV
+            </Button>
+          </div>
+
+          {/* Category Filter Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={selectedCategory === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory("all")}
+            >
+              All Categories
+            </Button>
+            {categories.map((category) => (
+              <Button
+                key={category}
+                variant={selectedCategory === category ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory(category)}
+              >
+                {category.replace(' Systems', '')}
+              </Button>
+            ))}
+          </div>
+
+          {/* Table */}
+          <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -383,7 +385,7 @@ AS 1580.481 - Intumescent coatings for fire protection`;
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(material.id)}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -626,6 +628,8 @@ AS 1580.481 - Intumescent coatings for fire protection`;
           </Form>
         </DialogContent>
       </Dialog>
+        </CardContent>
+      </Card>
     </div>
   );
 }
