@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { Material, Supplier } from "@shared/schema";
 import MaterialEditModal from "@/components/materials/material-edit-modal";
+import { ConsumableAddModal } from "@/components/materials/consumable-add-modal";
 
 interface ConsumablesCleanProps {
   materials: Material[];
@@ -25,6 +26,7 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
   const [displayedConsumables, setDisplayedConsumables] = useState(15);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showConsumableModal, setShowConsumableModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -141,12 +143,12 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
             </div>
             <div className="flex items-center gap-2">
               <Button 
-                onClick={() => setShowAddModal(true)}
+                onClick={() => setShowConsumableModal(true)}
                 variant="default" 
                 size="sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Material
+                Add Consumable
               </Button>
               <Button 
                 onClick={handleExportCSV}
@@ -318,6 +320,13 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
           mode="add"
         />
       )}
+
+      {/* Add Consumable Modal */}
+      <ConsumableAddModal
+        open={showConsumableModal}
+        onOpenChange={setShowConsumableModal}
+        suppliers={suppliers}
+      />
     </div>
   );
 }
