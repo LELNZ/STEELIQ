@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [authData]);
 
   useEffect(() => {
-    if (clockStatus?.status) {
+    if (clockStatus && typeof clockStatus === 'object' && 'status' in clockStatus) {
       setCurrentClockStatus(clockStatus.status);
     }
   }, [clockStatus]);
@@ -84,15 +84,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { requires2FA: true };
       }
 
-      // Set user and authentication state
-      setUser(data.user);
+      // Set user and authentication state (data is the user object directly)
+      setUser(data);
       
       // Refetch user data
       await refetch();
 
       toast({
         title: "Login successful",
-        description: `Welcome back, ${data.user.name}!`,
+        description: `Welcome back, ${data.name || data.username || 'User'}!`,
       });
 
       return data;
