@@ -88,7 +88,7 @@ export function ConsumableAddModal({ open, onOpenChange, suppliers }: Consumable
   const addConsumableMutation = useMutation({
     mutationFn: async (data: ConsumableFormData) => {
       const processedData = {
-        // Required fields matching database schema (snake_case)
+        // Required fields matching API schema (camelCase)
         code: data.code,
         name: data.name,
         category: data.customCategory || data.category,
@@ -97,18 +97,17 @@ export function ConsumableAddModal({ open, onOpenChange, suppliers }: Consumable
         width: "0", 
         diameter: "0",
         depth: "0",
-        // Weight and surface area
-        weight_per_meter: 0,
-        surface_area_per_meter: 0,
-        // Pricing fields
-        price_per_kg: parseFloat(data.pricePerUnit) || 0,
-        price_per_meter: parseFloat(data.pricePerUnit) || 0,
-        unit_cost: parseFloat(data.pricePerUnit) || 0,
+        // Weight and surface area (camelCase for API)
+        weightPerMeter: 0,
+        surfaceAreaPerMeter: 0,
+        // Pricing fields (camelCase for API)
+        pricePerKg: parseFloat(data.pricePerUnit) || 0,
+        pricePerMeter: parseFloat(data.pricePerUnit) || 0,
+        unitCost: parseFloat(data.pricePerUnit) || 0,
         // Material specifications
         standard: data.specifications || "",
         grade: data.brand,
         supplier: data.supplierId ? `supplier_${data.supplierId}` : "",
-        // No id field for new materials
       };
 
       return await apiRequest("POST", "/api/materials", processedData);
