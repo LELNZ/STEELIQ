@@ -325,53 +325,77 @@ AS 1580.481 - Intumescent coatings for fire protection`;
       </div>
 
       {/* Table */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Code</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Price</TableHead>
-            <TableHead>Stock</TableHead>
-            <TableHead>Supplier</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredMaterials.map((material: any) => (
-            <TableRow key={material.id}>
-              <TableCell className="font-medium">{material.name}</TableCell>
-              <TableCell className="font-mono">{material.code}</TableCell>
-              <TableCell>
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                  {material.category?.replace(' Systems', '') || 'Coating'}
-                </Badge>
-              </TableCell>
-              <TableCell>{getPricePerSqm(material)}</TableCell>
-              <TableCell>N/A</TableCell>
-              <TableCell>{material.supplier || 'N/A'}</TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(material)}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(material.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Supplier</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMaterials.map((material: any) => (
+                  <TableRow key={material.id}>
+                    <TableCell>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{material.name}</p>
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{material.code || "—"}</p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                        {material.category?.replace(' Systems', '') || 'Coating'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-gray-700 dark:text-gray-300">
+                        {getPricePerSqm(material)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-gray-700 dark:text-gray-300">
+                        —
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-gray-700 dark:text-gray-300">
+                        {material.supplier || "—"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(material)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(material.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

@@ -153,79 +153,95 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
           {/* Consumables Table */}
           {consumablesToDisplay.length > 0 ? (
             <>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead>Supplier</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {consumablesToDisplay.map((consumable) => (
-                      <TableRow key={consumable.id}>
-                        <TableCell className="font-medium">{consumable.name}</TableCell>
-                        <TableCell>{consumable.code || "N/A"}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="text-xs">
-                            {consumable.category || "Uncategorized"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {(() => {
-                            try {
-                              if (!consumable.pricePerKg) return "N/A";
-                              const price = typeof consumable.pricePerKg === 'number' 
-                                ? consumable.pricePerKg 
-                                : parseFloat(String(consumable.pricePerKg));
-                              return isNaN(price) ? "N/A" : `$${price.toFixed(2)}/kg`;
-                            } catch {
-                              return "N/A";
-                            }
-                          })()}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {Math.floor(Math.random() * 100)} units
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{consumable.supplier || "N/A"}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => setEditingMaterial(consumable)}
-                              title="Edit consumable"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                toast({
-                                  title: "Delete Consumable",
-                                  description: "Delete functionality will be implemented in the next update.",
-                                  variant: "destructive"
-                                });
-                              }}
-                              title="Delete consumable"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Code</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Stock</TableHead>
+                          <TableHead>Supplier</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {consumablesToDisplay.map((consumable) => (
+                          <TableRow key={consumable.id}>
+                            <TableCell>
+                              <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{consumable.name}</p>
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{consumable.code || "—"}</p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                                {consumable.category || "Uncategorized"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-gray-700 dark:text-gray-300">
+                                {(() => {
+                                  try {
+                                    if (!consumable.pricePerKg) return "—";
+                                    const price = typeof consumable.pricePerKg === 'number' 
+                                      ? consumable.pricePerKg 
+                                      : parseFloat(String(consumable.pricePerKg));
+                                    return isNaN(price) ? "—" : `$${price.toFixed(2)}/kg`;
+                                  } catch {
+                                    return "—";
+                                  }
+                                })()}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-gray-700 dark:text-gray-300">
+                                {Math.floor(Math.random() * 100)} units
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-gray-700 dark:text-gray-300">
+                                {consumable.supplier || "—"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => setEditingMaterial(consumable)}
+                                  title="Edit consumable"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => {
+                                    toast({
+                                      title: "Delete Consumable",
+                                      description: "Delete functionality will be implemented in the next update.",
+                                      variant: "destructive"
+                                    });
+                                  }}
+                                  title="Delete consumable"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
               
               {/* View More Button */}
               {selectedCategory === "all" && filteredConsumables.length > displayedConsumables && (
