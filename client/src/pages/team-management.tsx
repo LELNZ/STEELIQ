@@ -13,7 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activity, ChevronRight } from "lucide-react";
+import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activity, ChevronRight, ShieldCheck } from "lucide-react";
+import { PermissionViewer } from "@/components/team/PermissionViewer";
 
 interface Permission {
   module: string;
@@ -24,10 +25,9 @@ interface Role {
   id: number;
   name: string;
   description: string;
-  isSystemRole: boolean;
-  permissions: Permission[];
+  permissions: Record<string, string[]> | Permission[];
+  hourlyRate?: string;
   createdAt: string;
-  updatedAt: string;
 }
 
 interface Department {
@@ -237,10 +237,16 @@ export default function TeamManagement() {
   });
 
   const getRolePermissionBadge = (role: Role) => {
-    const permissionCount = role.permissions.reduce((acc, perm) => acc + perm.actions.length, 0);
+    const permissions = typeof role.permissions === 'object' && !Array.isArray(role.permissions) 
+      ? role.permissions as Record<string, string[]>
+      : {};
+    
+    const permissionCount = Object.values(permissions).flat().length;
+    const categoryCount = Object.keys(permissions).length;
+    
     return (
-      <Badge variant={role.isSystemRole ? "default" : "secondary"}>
-        {role.isSystemRole ? "System" : "Custom"} • {permissionCount} permissions
+      <Badge variant="default" className="text-xs">
+        {categoryCount} categories • {permissionCount} permissions
       </Badge>
     );
   };
@@ -329,35 +335,70 @@ export default function TeamManagement() {
     </Card>
   );
 
-  const RoleCard = ({ role }: { role: Role }) => (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="font-medium flex items-center">
-              <Shield className="w-4 h-4 mr-2" />
-              {role.name}
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">{role.description}</p>
-            <div className="mt-2">
-              {getRolePermissionBadge(role)}
+  const RoleCard = ({ role }: { role: Role }) => {
+    const [viewPermissions, setViewPermissions] = useState(false);
+    const permissions = typeof role.permissions === 'object' && !Array.isArray(role.permissions) 
+      ? role.permissions as Record<string, string[]>
+      : {};
+    
+    const securityLevel = role.hourlyRate 
+      ? (parseFloat(role.hourlyRate) >= 140 ? 'Critical' 
+         : parseFloat(role.hourlyRate) >= 100 ? 'High'
+         : parseFloat(role.hourlyRate) >= 80 ? 'Medium' 
+         : 'Low')
+      : 'Low';
+
+    return (
+      <Card className="hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h3 className="font-medium flex items-center">
+                <Shield className="w-4 h-4 mr-2" />
+                {role.name}
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">{role.description}</p>
+              <div className="mt-2 space-y-2">
+                {getRolePermissionBadge(role)}
+                {role.hourlyRate && (
+                  <Badge variant="outline" className="text-xs">
+                    ${role.hourlyRate}/hr • {securityLevel} Level
+                  </Badge>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSelectedRole(role);
-                setIsEditingRole(true);
-              }}
-            >
-              <Edit2 className="w-4 h-4" />
-            </Button>
-            {!role.isSystemRole && (
+            <div className="flex items-center space-x-1">
+              <Dialog open={viewPermissions} onOpenChange={setViewPermissions}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" title="View Permissions">
+                    <ShieldCheck className="w-4 h-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh]">
+                  <DialogHeader>
+                    <DialogTitle>Role Permissions - {role.name}</DialogTitle>
+                  </DialogHeader>
+                  <PermissionViewer 
+                    permissions={permissions}
+                    securityLevel={securityLevel}
+                    roleName={role.name}
+                  />
+                </DialogContent>
+              </Dialog>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedRole(role);
+                  setIsEditingRole(true);
+                }}
+                title="Edit Role"
+              >
+                <Edit2 className="w-4 h-4" />
+              </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" title="Delete Role">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </AlertDialogTrigger>
@@ -377,12 +418,12 @@ export default function TeamManagement() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            )}
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   const DepartmentCard = ({ department }: { department: Department }) => (
     <Card className="hover:shadow-md transition-shadow">
