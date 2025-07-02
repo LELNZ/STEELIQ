@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activity, ChevronRight, ShieldCheck } from "lucide-react";
 import { PermissionViewer } from "@/components/team/PermissionViewer";
+import { PerformanceDashboard } from "@/components/team/PerformanceDashboard";
 
 interface Permission {
   module: string;
