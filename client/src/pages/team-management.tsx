@@ -1778,11 +1778,14 @@ function UserCard({ user }: { user: any }) {
               variant="ghost"
               size="sm"
               onClick={() => {
-                setSelectedUser(user);
-                setIsEditingUser(true);
+                // Edit functionality will be added later
+                toast({
+                  title: "Edit User",
+                  description: "User editing functionality will be available soon.",
+                });
               }}
             >
-              <Edit className="w-4 h-4" />
+              <Edit2 className="w-4 h-4" />
             </Button>
             <Button
               variant="ghost"

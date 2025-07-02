@@ -209,6 +209,31 @@ export class DatabaseStorage implements IStorage {
     await db.update(users).set({ lastLogin: new Date() }).where(eq(users.id, id));
   }
 
+  async deleteUser(id: number): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  // Team Members
+  async getTeamMemberByUserId(userId: number): Promise<TeamMember | undefined> {
+    const [teamMember] = await db.select().from(teamMembers).where(eq(teamMembers.userId, userId));
+    return teamMember || undefined;
+  }
+
+  async deleteTeamMember(id: number): Promise<void> {
+    await db.delete(teamMembers).where(eq(teamMembers.id, id));
+  }
+
+  // Employee Archive
+  async archiveUser(data: InsertArchivedEmployee): Promise<ArchivedEmployee> {
+    const [archivedEmployee] = await db.insert(archivedEmployees).values(data).returning();
+    return archivedEmployee;
+  }
+
+  async logEmployeeAudit(data: InsertEmployeeAuditLog): Promise<EmployeeAuditLog> {
+    const [auditLog] = await db.insert(employeeAuditLog).values(data).returning();
+    return auditLog;
+  }
+
   // Material Categories
   async getMaterialCategories(): Promise<MaterialCategory[]> {
     return await db.select().from(materialCategories).orderBy(asc(materialCategories.name));
