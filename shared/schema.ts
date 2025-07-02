@@ -1658,20 +1658,17 @@ export const roles = pgTable("roles", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   description: text("description"),
-  isSystemRole: boolean("is_system_role").default(false),
-  permissions: jsonb("permissions").notNull(),
+  permissions: jsonb("permissions"),
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const departments = pgTable("departments", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   description: text("description"),
-  headUserId: integer("head_user_id").references(() => users.id),
-  isActive: boolean("is_active").default(true),
+  managerId: integer("manager_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const teamMembers = pgTable("team_members", {
@@ -1806,8 +1803,8 @@ export const rolesRelations = relations(roles, ({ many }) => ({
 }));
 
 export const departmentsRelations = relations(departments, ({ one, many }) => ({
-  head: one(users, {
-    fields: [departments.headUserId],
+  manager: one(users, {
+    fields: [departments.managerId],
     references: [users.id],
   }),
   teamMembers: many(teamMembers),

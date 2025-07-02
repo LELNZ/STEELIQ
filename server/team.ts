@@ -46,7 +46,7 @@ export class TeamStorage implements ITeamStorage {
   
   // Roles
   async getRoles(): Promise<Role[]> {
-    return await db.select().from(roles).orderBy(desc(roles.createdAt));
+    return await db.select().from(roles).orderBy(roles.name);
   }
 
   async createRole(role: InsertRole): Promise<Role> {
@@ -57,7 +57,7 @@ export class TeamStorage implements ITeamStorage {
   async updateRole(id: number, roleData: Partial<InsertRole>): Promise<Role> {
     const [updatedRole] = await db
       .update(roles)
-      .set({ ...roleData, updatedAt: new Date() })
+      .set(roleData)
       .where(eq(roles.id, id))
       .returning();
     return updatedRole;
@@ -85,7 +85,7 @@ export class TeamStorage implements ITeamStorage {
   async updateDepartment(id: number, departmentData: Partial<InsertDepartment>): Promise<Department> {
     const [updatedDepartment] = await db
       .update(departments)
-      .set({ ...departmentData, updatedAt: new Date() })
+      .set(departmentData)
       .where(eq(departments.id, id))
       .returning();
     return updatedDepartment;
