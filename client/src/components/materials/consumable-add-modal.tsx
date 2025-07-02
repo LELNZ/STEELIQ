@@ -88,25 +88,27 @@ export function ConsumableAddModal({ open, onOpenChange, suppliers }: Consumable
   const addConsumableMutation = useMutation({
     mutationFn: async (data: ConsumableFormData) => {
       const processedData = {
-        ...data,
+        // Required fields matching database schema (snake_case)
+        code: data.code,
+        name: data.name,
         category: data.customCategory || data.category,
-        price_per_kg: parseFloat(data.pricePerUnit) || 0,
-        price_per_meter: parseFloat(data.pricePerUnit) || 0,
-        weight_per_meter: 0, // Not applicable for consumables
-        surface_area_per_meter: 0, // Not applicable for consumables
+        // Dimension fields as strings
         thickness: "0",
         width: "0", 
         diameter: "0",
+        depth: "0",
+        // Weight and surface area
+        weight_per_meter: 0,
+        surface_area_per_meter: 0,
+        // Pricing fields
+        price_per_kg: parseFloat(data.pricePerUnit) || 0,
+        price_per_meter: parseFloat(data.pricePerUnit) || 0,
+        unit_cost: parseFloat(data.pricePerUnit) || 0,
+        // Material specifications
         standard: data.specifications || "",
         grade: data.brand,
-        supplier_id: data.supplierId ? parseInt(data.supplierId) : null,
-        stock_quantity: parseInt(data.currentStock) || 0,
-        minimum_stock_level: parseInt(data.minimumStock) || 0,
-        storage_location: data.storageLocation || "",
-        unit_of_measure: data.unitOfMeasure,
-        pack_size: data.packSize,
-        bulk_pricing: data.bulkPricing || "",
-        notes: data.notes || "",
+        supplier: data.supplierId ? `supplier_${data.supplierId}` : "",
+        // No id field for new materials
       };
 
       return await apiRequest("POST", "/api/materials", processedData);
