@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 const coatingFormSchema = z.object({
   code: z.string().min(1, "Code is required"),
@@ -157,14 +158,14 @@ export default function CoatingSystemsConsumableStyle() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
       toast({
-        title: "Success",
-        description: "Coating system deleted",
+        title: "Coating System Deleted",
+        description: "Coating system has been removed from the catalog.",
       });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to delete coating system",
+        description: `Failed to delete coating system: ${error.message}`,
         variant: "destructive",
       });
     },

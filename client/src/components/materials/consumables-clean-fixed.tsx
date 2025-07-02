@@ -7,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Search, Edit, Trash2, Package, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import type { Material, Supplier } from "@shared/schema";
 import MaterialEditModal from "@/components/materials/material-edit-modal";
 
@@ -24,6 +26,28 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/materials/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      toast({
+        title: "Consumable Deleted",
+        description: "Consumable has been removed from the catalog.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete consumable: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Filter materials for consumables only (excluding coatings)
   const filteredConsumables = useMemo(() => {
@@ -222,11 +246,9 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
                                   variant="ghost" 
                                   size="sm"
                                   onClick={() => {
-                                    toast({
-                                      title: "Delete Consumable",
-                                      description: "Delete functionality will be implemented in the next update.",
-                                      variant: "destructive"
-                                    });
+                                    if (confirm("Are you sure you want to delete this consumable?")) {
+                                      deleteMutation.mutate(consumable.id);
+                                    }
                                   }}
                                   title="Delete consumable"
                                   className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
