@@ -94,9 +94,11 @@ export default function TeamManagement() {
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isEditingMember, setIsEditingMember] = useState(false);
   const [isEditingRole, setIsEditingRole] = useState(false);
   const [isEditingDepartment, setIsEditingDepartment] = useState(false);
+  const [isEditingUser, setIsEditingUser] = useState(false);
 
   // Fetch team members
   const { data: teamMembers = [], isLoading: membersLoading } = useQuery({
@@ -194,6 +196,33 @@ export default function TeamManagement() {
       toast({
         title: "Error",
         description: error.message || "Failed to update department",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create/Update User Mutation
+  const userMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (data.id) {
+        return apiRequest("PUT", `/api/users/${data.id}`, data);
+      } else {
+        return apiRequest("POST", "/api/users", data);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setIsEditingUser(false);
+      setSelectedUser(null);
+      toast({
+        title: "Success",
+        description: "User account created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create user account",
         variant: "destructive",
       });
     },
@@ -527,13 +556,45 @@ export default function TeamManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="users">User Accounts</TabsTrigger>
           <TabsTrigger value="members">Team Members</TabsTrigger>
           <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="capacity">Capacity Planning</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="users" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">User Accounts ({availableUsers.length})</h2>
+            <Dialog open={isEditingUser} onOpenChange={setIsEditingUser}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setSelectedUser(null)}>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Create User Account
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>
+                    {selectedUser ? "Edit User Account" : "Create User Account"}
+                  </DialogTitle>
+                </DialogHeader>
+                <UserForm
+                  user={selectedUser}
+                  onSubmit={userMutation.mutate}
+                  isLoading={userMutation.isPending}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {availableUsers.map((user: any) => (
+              <UserCard key={user.id} user={user} />
+            ))}
+          </div>
+        </TabsContent>
 
         <TabsContent value="members" className="space-y-4">
           <div className="flex items-center justify-between">
