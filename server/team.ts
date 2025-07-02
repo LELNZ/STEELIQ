@@ -74,18 +74,7 @@ export class TeamStorage implements ITeamStorage {
 
   // Departments
   async getDepartments(): Promise<Department[]> {
-    return await db.query.departments.findMany({
-      with: {
-        head: {
-          columns: {
-            id: true,
-            name: true,
-            username: true,
-          }
-        }
-      },
-      orderBy: [desc(departments.createdAt)]
-    });
+    return await db.select().from(departments).orderBy(desc(departments.createdAt));
   }
 
   async createDepartment(department: InsertDepartment): Promise<Department> {
@@ -113,20 +102,23 @@ export class TeamStorage implements ITeamStorage {
 
   // Team Members
   async getTeamMembers(): Promise<any[]> {
-    return await db.query.teamMembers.findMany({
-      with: {
-        user: {
-          columns: {
-            id: true,
-            name: true,
-            username: true,
-          }
-        },
-        role: true,
-        department: true,
-      },
-      orderBy: [desc(teamMembers.createdAt)]
-    });
+    return await db.select({
+      id: teamMembers.id,
+      userId: teamMembers.userId,
+      roleId: teamMembers.roleId,
+      departmentId: teamMembers.departmentId,
+      isActive: teamMembers.isActive,
+      hourlyRate: teamMembers.hourlyRate,
+      userName: users.name,
+      userUsername: users.username,
+      roleName: roles.name,
+      departmentName: departments.name
+    })
+    .from(teamMembers)
+    .leftJoin(users, eq(teamMembers.userId, users.id))
+    .leftJoin(roles, eq(teamMembers.roleId, roles.id))
+    .leftJoin(departments, eq(teamMembers.departmentId, departments.id))
+    .orderBy(desc(teamMembers.createdAt));
   }
 
   async createTeamMember(member: InsertTeamMember): Promise<TeamMember> {
@@ -148,20 +140,23 @@ export class TeamStorage implements ITeamStorage {
   }
 
   async getTeamMemberById(id: number): Promise<any | undefined> {
-    const [member] = await db.query.teamMembers.findMany({
-      where: eq(teamMembers.id, id),
-      with: {
-        user: {
-          columns: {
-            id: true,
-            name: true,
-            username: true,
-          }
-        },
-        role: true,
-        department: true,
-      }
-    });
+    const [member] = await db.select({
+      id: teamMembers.id,
+      userId: teamMembers.userId,
+      roleId: teamMembers.roleId,
+      departmentId: teamMembers.departmentId,
+      isActive: teamMembers.isActive,
+      hourlyRate: teamMembers.hourlyRate,
+      userName: users.name,
+      userUsername: users.username,
+      roleName: roles.name,
+      departmentName: departments.name
+    })
+    .from(teamMembers)
+    .leftJoin(users, eq(teamMembers.userId, users.id))
+    .leftJoin(roles, eq(teamMembers.roleId, roles.id))
+    .leftJoin(departments, eq(teamMembers.departmentId, departments.id))
+    .where(eq(teamMembers.id, id));
     return member;
   }
 
