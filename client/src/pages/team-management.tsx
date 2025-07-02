@@ -60,17 +60,18 @@ interface TeamMember {
 }
 
 const DEFAULT_PERMISSIONS = {
-  estimation: ["view", "create", "edit", "delete", "approve"],
-  materials: ["view", "create", "edit", "delete", "import", "export"],
-  cutting: ["view", "create", "edit", "delete", "optimize"],
-  jobs: ["view", "create", "edit", "delete", "manage"],
-  inventory: ["view", "create", "edit", "delete", "adjust"],
-  reports: ["view", "create", "export", "schedule"],
-  settings: ["view", "edit", "manage"],
-  users: ["view", "create", "edit", "delete", "manage"],
-  clients: ["view", "create", "edit", "delete"],
-  suppliers: ["view", "create", "edit", "delete"],
-  financial: ["view", "edit", "approve", "manage"],
+  system: ["view_system_logs", "manage_system_config", "manage_backups", "manage_integrations", "view_audit_logs", "manage_security_settings", "manage_api_keys", "system_maintenance", "database_administration"],
+  users: ["view_users", "create_users", "edit_users", "delete_users", "manage_roles", "manage_permissions", "view_user_activity", "reset_passwords", "manage_2fa", "assign_roles"],
+  financial: ["view_financial_data", "edit_pricing", "approve_quotes", "manage_invoices", "view_profit_margins", "edit_costs", "approve_purchases", "manage_payments", "view_financial_reports", "edit_overhead_rates"],
+  projects: ["view_projects", "create_projects", "edit_projects", "delete_projects", "manage_project_status", "assign_team_members", "view_project_costs", "edit_project_timeline", "approve_variations", "manage_deliverables"],
+  estimation: ["view_estimates", "create_estimates", "edit_estimates", "approve_estimates", "manage_rate_cards", "view_estimate_history", "duplicate_estimates", "convert_to_job", "manage_templates", "review_margins"],
+  materials: ["view_materials", "edit_materials", "manage_inventory", "approve_purchases", "manage_suppliers", "view_stock_levels", "edit_pricing", "manage_categories", "import_materials", "export_materials"],
+  production: ["view_production_schedule", "edit_cutting_plans", "manage_job_sequences", "view_work_orders", "update_job_status", "manage_quality_control", "record_production_time", "manage_equipment", "view_efficiency_reports"],
+  quality: ["manage_quality_standards", "conduct_inspections", "approve_quality_docs", "manage_wps_procedures", "record_non_conformance", "manage_certifications", "view_safety_reports", "manage_compliance", "audit_processes"],
+  clients: ["view_clients", "create_clients", "edit_clients", "manage_contacts", "view_client_history", "manage_communications", "view_client_reports", "manage_contracts"],
+  reports: ["view_reports", "create_reports", "export_reports", "schedule_reports", "view_analytics", "manage_dashboards", "view_kpis", "access_business_intelligence"],
+  time: ["view_timesheets", "edit_own_timesheet", "edit_all_timesheets", "approve_timesheets", "manage_time_codes", "view_time_reports", "clock_in_out", "manage_leave_requests"],
+  documents: ["view_documents", "upload_documents", "edit_documents", "delete_documents", "manage_document_approval", "access_archives", "manage_versions", "control_document_access"]
 };
 
 const SKILL_LEVELS = [
@@ -780,34 +781,54 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
 
 // Role Form Component
 function RoleForm({ role, onSubmit, isLoading }: any) {
+  // Convert existing role permissions to new format if needed
+  const convertPermissions = (perms: any) => {
+    if (!perms) return {};
+    if (typeof perms === 'object' && !Array.isArray(perms)) {
+      return perms;
+    }
+    // Convert old array format to new object format if needed
+    const converted: Record<string, string[]> = {};
+    if (Array.isArray(perms)) {
+      perms.forEach((perm: any) => {
+        if (perm.module && perm.actions) {
+          converted[perm.module] = perm.actions;
+        }
+      });
+    }
+    return converted;
+  };
+
   const [formData, setFormData] = useState({
     name: role?.name || "",
     description: role?.description || "",
-    permissions: role?.permissions || [],
+    hourlyRate: role?.hourlyRate || "",
+    permissions: convertPermissions(role?.permissions),
   });
 
   const handlePermissionChange = (module: string, action: string, checked: boolean) => {
-    const updatedPermissions = [...formData.permissions];
-    const moduleIndex = updatedPermissions.findIndex(p => p.module === module);
+    const updatedPermissions = { ...formData.permissions };
     
-    if (moduleIndex >= 0) {
-      if (checked) {
-        if (!updatedPermissions[moduleIndex].actions.includes(action)) {
-          updatedPermissions[moduleIndex].actions.push(action);
-        }
-      } else {
-        updatedPermissions[moduleIndex].actions = updatedPermissions[moduleIndex].actions.filter(a => a !== action);
+    if (!updatedPermissions[module]) {
+      updatedPermissions[module] = [];
+    }
+    
+    if (checked) {
+      if (!updatedPermissions[module].includes(action)) {
+        updatedPermissions[module] = [...updatedPermissions[module], action];
       }
-    } else if (checked) {
-      updatedPermissions.push({ module, actions: [action] });
+    } else {
+      updatedPermissions[module] = updatedPermissions[module].filter(a => a !== action);
+      if (updatedPermissions[module].length === 0) {
+        delete updatedPermissions[module];
+      }
     }
     
     setFormData({...formData, permissions: updatedPermissions});
   };
 
   const hasPermission = (module: string, action: string) => {
-    const modulePerms = formData.permissions.find(p => p.module === module);
-    return modulePerms?.actions.includes(action) || false;
+    return formData.permissions[module]?.includes(action) || false;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -820,7 +841,7 @@ function RoleForm({ role, onSubmit, isLoading }: any) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div>
           <Label htmlFor="name">Role Name</Label>
           <Input
@@ -838,6 +859,17 @@ function RoleForm({ role, onSubmit, isLoading }: any) {
             value={formData.description}
             onChange={(e) => setFormData({...formData, description: e.target.value})}
             placeholder="Role description"
+          />
+        </div>
+        <div>
+          <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
+          <Input
+            id="hourlyRate"
+            type="number"
+            step="0.01"
+            value={formData.hourlyRate}
+            onChange={(e) => setFormData({...formData, hourlyRate: e.target.value})}
+            placeholder="75.00"
           />
         </div>
       </div>
