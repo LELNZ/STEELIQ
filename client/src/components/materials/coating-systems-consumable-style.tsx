@@ -11,12 +11,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 
 const coatingFormSchema = z.object({
   code: z.string().min(1, "Code is required"),
@@ -38,13 +36,12 @@ const coatingFormSchema = z.object({
 
 type CoatingFormData = z.infer<typeof coatingFormSchema>;
 
-export default function CoatingSystemsTabbed() {
+export default function CoatingSystemsConsumableStyle() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any | null>(null);
   const [showStandards, setShowStandards] = useState(false);
-  const [displayedMaterials, setDisplayedMaterials] = useState(15);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -88,27 +85,11 @@ export default function CoatingSystemsTabbed() {
     });
   }, [coatingMaterials, searchTerm, selectedCategory]);
 
-  // For display with 15-item limit behavior
-  const materialsToDisplay = selectedCategory === "all" 
-    ? filteredMaterials.slice(0, displayedMaterials) 
-    : filteredMaterials;
-
   // Helper functions to get field values
-  const getLayersDft = (material: any) => material.layersDft || material.layers_dft || "—";
-  const getDurabilityYears = (material: any) => material.durabilityYears || material.durability_years || "—";
-  const getAsNzsReference = (material: any) => material.asNzsReference || material.as_nzs_reference || "—";
-  const getApplicationMethod = (material: any) => material.applicationMethod || material.application_method || "—";
-  const getInHouseSubcontracted = (material: any) => material.inHouseSubcontracted || material.in_house_subcontracted || "—";
-  const getFireRating = (material: any) => material.fireRating || material.fire_rating || "N/A";
   const getPricePerSqm = (material: any) => {
     const unitCost = typeof material.unitCost === 'string' ? parseFloat(material.unitCost) : material.unitCost;
     if (unitCost && unitCost > 0) return `$${unitCost.toFixed(2)}/m²`;
-    return "Contact for pricing";
-  };
-  const getPricePerKg = (material: any) => {
-    const pricePerKg = typeof material.pricePerKg === 'string' ? parseFloat(material.pricePerKg) : material.pricePerKg;
-    if (pricePerKg && pricePerKg > 0) return `$${pricePerKg.toFixed(2)}/kg`;
-    return "Contact for pricing";
+    return "N/A";
   };
 
   const form = useForm<CoatingFormData>({
@@ -203,12 +184,12 @@ export default function CoatingSystemsTabbed() {
       code: material.code || "",
       name: material.name || "",
       category: material.category || "",
-      layers_dft: getLayersDft(material) === "—" ? "" : getLayersDft(material),
-      durability_years: getDurabilityYears(material) === "—" ? "" : getDurabilityYears(material),
-      as_nzs_reference: getAsNzsReference(material) === "—" ? "" : getAsNzsReference(material),
-      application_method: getApplicationMethod(material) === "—" ? "" : getApplicationMethod(material),
-      in_house_subcontracted: getInHouseSubcontracted(material) === "—" ? "" : getInHouseSubcontracted(material),
-      fire_rating: getFireRating(material),
+      layers_dft: material.layersDft || material.layers_dft || "",
+      durability_years: material.durabilityYears || material.durability_years || "",
+      as_nzs_reference: material.asNzsReference || material.as_nzs_reference || "",
+      application_method: material.applicationMethod || material.application_method || "",
+      in_house_subcontracted: material.inHouseSubcontracted || material.in_house_subcontracted || "",
+      fire_rating: material.fireRating || material.fire_rating || "N/A",
       unit_cost: material.unitCost?.toString() || "",
       price_per_kg: material.pricePerKg?.toString() || "",
       coverage_rate: (material as any).coverageRate?.toString() || "",
@@ -300,207 +281,101 @@ AS 1580.481 - Intumescent coatings for fire protection`;
         </Card>
       )}
 
+      {/* Results Summary */}
+      <div className="text-sm text-muted-foreground">
+        {filteredMaterials.length} of {coatingMaterials.length} coating systems shown
+      </div>
+
       {/* Search Controls */}
       <div className="flex gap-4 items-center">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Search coating systems..."
+            placeholder="Search coating systems by name, code, or category..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
+        <Button onClick={handleAdd} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Add Material
+        </Button>
+        <Button variant="outline" className="gap-2">
+          <FileText className="h-4 w-4" />
+          Export CSV
+        </Button>
       </div>
 
-      {/* Category Tabs */}
-      <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="space-y-4">
-        <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(categories.length + 1, 6)}, minmax(0, 1fr))` }}>
-          <TabsTrigger value="all">All Coatings</TabsTrigger>
-          {categories.slice(0, 5).map((category) => (
-            <TabsTrigger key={category} value={category} className="text-xs">
-              {category.replace(' Systems', '')}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {/* All Coatings Tab Content */}
-        <TabsContent value="all" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Badge variant="secondary">
-              {materialsToDisplay.length} of {filteredMaterials.length} coating systems
-            </Badge>
-            {selectedCategory === "all" && filteredMaterials.length > displayedMaterials && (
-              <Button 
-                variant="outline" 
-                onClick={() => setDisplayedMaterials(prev => prev + 15)}
-              >
-                View More ({filteredMaterials.length - displayedMaterials} remaining)
-              </Button>
-            )}
-          </div>
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Layers & DFT (µm)</TableHead>
-                  <TableHead>Durability (Years)</TableHead>
-                  <TableHead>AS/NZS Reference</TableHead>
-                  <TableHead>Application Method</TableHead>
-                  <TableHead>In-house/Subcontracted</TableHead>
-                  <TableHead>Price per m²</TableHead>
-                  <TableHead>Price per kg</TableHead>
-                  <TableHead>Fire Rating</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {materialsToDisplay.map((material: any) => (
-                  <TableRow key={material.id}>
-                    <TableCell className="font-mono font-medium">
-                      {material.code}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{material.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {material.category}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {getLayersDft(material)}
-                    </TableCell>
-                    <TableCell>{getDurabilityYears(material)}</TableCell>
-                    <TableCell>{getAsNzsReference(material)}</TableCell>
-                    <TableCell>{getApplicationMethod(material)}</TableCell>
-                    <TableCell>{getInHouseSubcontracted(material)}</TableCell>
-                    <TableCell className="font-medium">
-                      {getPricePerSqm(material)}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {getPricePerKg(material)}
-                    </TableCell>
-                    <TableCell>
-                      {getFireRating(material) !== "N/A" ? (
-                        <Badge variant="destructive">{getFireRating(material)}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">N/A</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(material)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(material.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        </TabsContent>
-
-        {/* Individual category tabs */}
+      {/* Category Filter Buttons */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={selectedCategory === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setSelectedCategory("all")}
+        >
+          All Categories
+        </Button>
         {categories.map((category) => (
-          <TabsContent key={category} value={category} className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Badge variant="secondary">
-                {filteredMaterials.filter(m => m.category === category).length} coating systems
-              </Badge>
-              <Badge variant="outline">{category}</Badge>
-            </div>
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Layers & DFT (µm)</TableHead>
-                    <TableHead>Durability (Years)</TableHead>
-                    <TableHead>AS/NZS Reference</TableHead>
-                    <TableHead>Application Method</TableHead>
-                    <TableHead>In-house/Subcontracted</TableHead>
-                    <TableHead>Price per m²</TableHead>
-                    <TableHead>Price per kg</TableHead>
-                    <TableHead>Fire Rating</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredMaterials.filter(m => m.category === category).map((material: any) => (
-                    <TableRow key={material.id}>
-                      <TableCell className="font-mono font-medium">
-                        {material.code}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{material.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {material.category}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {getLayersDft(material)}
-                      </TableCell>
-                      <TableCell>{getDurabilityYears(material)}</TableCell>
-                      <TableCell>{getAsNzsReference(material)}</TableCell>
-                      <TableCell>{getApplicationMethod(material)}</TableCell>
-                      <TableCell>{getInHouseSubcontracted(material)}</TableCell>
-                      <TableCell className="font-medium">
-                        {getPricePerSqm(material)}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {getPricePerKg(material)}
-                      </TableCell>
-                      <TableCell>
-                        {getFireRating(material) !== "N/A" ? (
-                          <Badge variant="destructive">{getFireRating(material)}</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">N/A</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(material)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(material.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
+          <Button
+            key={category}
+            variant={selectedCategory === category ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedCategory(category)}
+          >
+            {category.replace(' Systems', '')}
+          </Button>
         ))}
-      </Tabs>
+      </div>
+
+      {/* Table */}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Code</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead>Stock</TableHead>
+            <TableHead>Supplier</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredMaterials.map((material: any) => (
+            <TableRow key={material.id}>
+              <TableCell className="font-medium">{material.name}</TableCell>
+              <TableCell className="font-mono">{material.code}</TableCell>
+              <TableCell>
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                  {material.category?.replace(' Systems', '') || 'Coating'}
+                </Badge>
+              </TableCell>
+              <TableCell>{getPricePerSqm(material)}</TableCell>
+              <TableCell>N/A</TableCell>
+              <TableCell>{material.supplier || 'N/A'}</TableCell>
+              <TableCell>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(material)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(material.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -586,113 +461,6 @@ AS 1580.481 - Intumescent coatings for fire protection`;
                   )}
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="durability_years"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Durability (Years)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., 2–5" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="as_nzs_reference"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>AS/NZS Reference</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., C1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="application_method"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Application Method</FormLabel>
-                      <FormControl>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select method" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Brush/Roller/Spray">Brush/Roller/Spray</SelectItem>
-                            <SelectItem value="Airless Spray">Airless Spray</SelectItem>
-                            <SelectItem value="Electrostatic Spray">Electrostatic Spray</SelectItem>
-                            <SelectItem value="Hot Dip Process">Hot Dip Process</SelectItem>
-                            <SelectItem value="Flame/Arc Spray">Flame/Arc Spray</SelectItem>
-                            <SelectItem value="Powder Coating">Powder Coating</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="in_house_subcontracted"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>In-house/Subcontracted</FormLabel>
-                      <FormControl>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select option" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="In-house (light steel)">In-house (light steel)</SelectItem>
-                            <SelectItem value="Subcontracted (structural)">Subcontracted (structural)</SelectItem>
-                            <SelectItem value="Subcontracted (galvanizer)">Subcontracted (galvanizer)</SelectItem>
-                            <SelectItem value="In-house prep + subcontract">In-house prep + subcontract</SelectItem>
-                            <SelectItem value="Fully subcontracted">Fully subcontracted</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="fire_rating"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fire Rating</FormLabel>
-                    <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select fire rating" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="N/A">N/A</SelectItem>
-                          <SelectItem value="30 min">30 minutes</SelectItem>
-                          <SelectItem value="60 min">60 minutes</SelectItem>
-                          <SelectItem value="90 min">90 minutes</SelectItem>
-                          <SelectItem value="120 min">120 minutes</SelectItem>
-                          <SelectItem value="240 min">240 minutes</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -816,24 +584,6 @@ AS 1580.481 - Intumescent coatings for fire protection`;
                     <FormLabel>Supplier</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., Dulux Protective Coatings" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notes</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Additional notes or specifications..."
-                        className="min-h-[100px]"
-                        {...field}
-                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

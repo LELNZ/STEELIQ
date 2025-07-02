@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaterialUpload from "@/components/materials/material-upload";
 import { SteelCatalogueOnly } from "@/components/materials/steel-catalogue-only";
 import { ConsumablesCleanFixed } from "@/components/materials/consumables-clean-fixed";
-import CoatingSystemsTabbed from "@/components/materials/coating-systems-tabbed";
+import CoatingSystemsConsumableStyle from "@/components/materials/coating-systems-consumable-style";
 import { useQuery } from "@tanstack/react-query";
 import { Material, Supplier } from "@shared/schema";
 import { Plus, Upload, Download, Search, Package } from "lucide-react";
@@ -105,7 +105,7 @@ export default function Materials() {
             </TabsContent>
 
             <TabsContent value="coating-systems">
-              <CoatingSystemsTabbed />
+              <CoatingSystemsConsumableStyle />
             </TabsContent>
           </Tabs>
         </CardContent>
