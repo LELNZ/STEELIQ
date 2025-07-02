@@ -152,9 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/materials", async (req, res) => {
     try {
-      console.log('Raw request body:', JSON.stringify(req.body, null, 2));
       const materialData = insertMaterialSchema.parse(req.body);
-      console.log('Parsed material data:', JSON.stringify(materialData, null, 2));
       
       // Check if material with this code already exists
       const existingMaterial = await storage.getMaterialByCode(materialData.code);

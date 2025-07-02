@@ -226,7 +226,6 @@ export class DatabaseStorage implements IStorage {
   async createMaterial(material: InsertMaterial): Promise<Material> {
     // Explicitly remove any id field to prevent conflicts
     const { id, ...materialWithoutId } = material as any;
-    console.log('Inserting material without ID:', JSON.stringify(materialWithoutId, null, 2));
     const [newMaterial] = await db.insert(materials).values(materialWithoutId).returning();
     return newMaterial;
   }

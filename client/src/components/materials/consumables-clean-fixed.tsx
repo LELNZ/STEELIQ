@@ -77,6 +77,10 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
                           category.includes('cutting') || 
                           category.includes('grinding') || 
                           category.includes('fastener') ||
+                          category.includes('fasteners') ||
+                          category.includes('threaded rod') ||
+                          category.includes('gas') ||
+                          category.includes('safety') ||
                           category.includes('welding');
       
       if (!isConsumable) return false;
