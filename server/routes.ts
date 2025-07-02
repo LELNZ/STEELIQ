@@ -1,12 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import { businessSettingsStorage } from "./businessSettings";
 import { laborRatesStorage } from "./laborRates";
 import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -2143,6 +2145,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user summary:", error);
       res.status(500).json({ error: "Failed to fetch user summary" });
+    }
+  });
+
+  // Labor Rates Management API
+  app.get("/api/labor-rates", async (req, res) => {
+    try {
+      // Get team members with their roles and rates
+      const teamRates = await db.select({
+        id: users.id,
+        name: users.name,
+        role: roles.name,
+        department: departments.name,
+        hourlyRate: teamMembers.hourlyRate,
+        skillLevel: roles.description,
+        isActive: teamMembers.isActive
+      })
+      .from(teamMembers)
+      .innerJoin(users, eq(teamMembers.userId, users.id))
+      .innerJoin(roles, eq(teamMembers.roleId, roles.id))
+      .innerJoin(departments, eq(teamMembers.departmentId, departments.id))
+      .where(eq(teamMembers.isActive, true));
+
+      // Transform to Labor Category format for AI Engine
+      const laborCategories = teamRates.map(member => ({
+        id: `team-${member.id}`,
+        name: member.role,
+        description: `${member.name} - ${member.department}`,
+        chargeOutRate: Number(member.hourlyRate) || 85,
+        inHouseCostRate: Number(member.hourlyRate) * 0.6 || 45, // 60% cost ratio
+        overtimeMultiplier: 1.5,
+        skillLevel: member.role.includes('Senior') ? 'Senior' : 
+                   member.role.includes('Manager') || member.role.includes('Owner') ? 'Supervisor' : 'Tradesman',
+        certifications: [],
+        workshopChargeRate: Number(member.hourlyRate) || 85,
+        siteChargeRate: (Number(member.hourlyRate) || 85) * 1.2, // 20% site premium
+        workshopCostRate: (Number(member.hourlyRate) * 0.6) || 45,
+        siteCostRate: (Number(member.hourlyRate) * 0.6 * 1.1) || 50, // 10% site cost increase
+        effectiveDate: new Date().toISOString().split('T')[0],
+        isActive: member.isActive,
+        dayShiftMultiplier: 1.0,
+        nightShiftMultiplier: 1.3,
+        weekendMultiplier: 1.5,
+        publicHolidayMultiplier: 2.0
+      }));
+
+      const laborRatesConfig = {
+        categories: laborCategories,
+        defaultOvertime: 1.5,
+        defaultInHouseCostRate: 45.00,
+        travelTime: {
+          billable: true,
+          chargeRate: 85.00,
+          costRate: 45.00,
+          minimumHours: 0.5
+        },
+        aiIntegration: {
+          enabled: true,
+          autoAssignCategories: true,
+          suggestHours: true,
+          complexityFactors: true,
+          pdfAnalysisIntegration: true
+        },
+        historicalTracking: {
+          enabled: true,
+          retentionMonths: 24
+        }
+      };
+
+      res.json(laborRatesConfig);
+    } catch (error) {
+      console.error("Error fetching labor rates:", error);
+      res.status(500).json({ error: "Failed to fetch labor rates" });
+    }
+  });
+
+  // AI Estimation Labor Integration
+  app.post("/api/estimation/labor-integration", async (req, res) => {
+    try {
+      const { projectData, materials } = req.body;
+      
+      // Get current labor rates from database
+      const teamRates = await db.select({
+        role: roles.name,
+        hourlyRate: teamMembers.hourlyRate,
+        department: departments.name
+      })
+      .from(teamMembers)
+      .innerJoin(roles, eq(teamMembers.roleId, roles.id))
+      .innerJoin(departments, eq(teamMembers.departmentId, departments.id))
+      .where(eq(teamMembers.isActive, true));
+
+      // AI suggestion logic for labor categories based on materials
+      const laborSuggestions = materials.map((material: any) => {
+        let suggestedRole = 'Welder/Fabricator';
+        let estimatedHours = 1.0;
+        
+        // Suggest appropriate roles based on material complexity
+        if (material.category?.includes('Universal Beam') || material.category?.includes('Column')) {
+          suggestedRole = 'Senior Estimator'; // Complex structural work
+          estimatedHours = 3.0;
+        } else if (material.category?.includes('Coating') || material.category?.includes('Paint')) {
+          suggestedRole = 'Welder/Fabricator'; // Surface preparation
+          estimatedHours = 0.5;
+        } else if (material.category?.includes('Plate') || material.category?.includes('Sheet')) {
+          suggestedRole = 'Welder/Fabricator'; // Cutting and welding
+          estimatedHours = 2.0;
+        }
+
+        const roleRate = teamRates.find(r => r.role === suggestedRole);
+        
+        return {
+          materialId: material.id,
+          materialName: material.name,
+          suggestedRole,
+          estimatedHours,
+          hourlyRate: Number(roleRate?.hourlyRate) || 75,
+          totalLaborCost: estimatedHours * (Number(roleRate?.hourlyRate) || 75),
+          complexity: material.category?.includes('Universal') ? 'high' : 
+                     material.category?.includes('Plate') ? 'medium' : 'low'
+        };
+      });
+
+      res.json({
+        laborSuggestions,
+        totalLaborHours: laborSuggestions.reduce((sum: number, item: any) => sum + item.estimatedHours, 0),
+        totalLaborCost: laborSuggestions.reduce((sum: number, item: any) => sum + item.totalLaborCost, 0),
+        teamRates: teamRates.map(rate => ({
+          role: rate.role,
+          department: rate.department,
+          hourlyRate: Number(rate.hourlyRate)
+        }))
+      });
+    } catch (error) {
+      console.error("Error in labor integration:", error);
+      res.status(500).json({ error: "Failed to process labor integration" });
     }
   });
 
