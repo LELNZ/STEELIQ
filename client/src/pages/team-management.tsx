@@ -526,10 +526,12 @@ export default function TeamManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="members">Team Members</TabsTrigger>
           <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="capacity">Capacity Planning</TabsTrigger>
         </TabsList>
 
         <TabsContent value="members" className="space-y-4">
@@ -616,6 +618,228 @@ export default function TeamManagement() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="performance" className="space-y-4">
+          <PerformanceDashboard 
+            teamData={[
+              {
+                id: 1,
+                name: "Adam Green",
+                role: "Business Owner",
+                department: "Management",
+                metrics: {
+                  efficiency: 94,
+                  qualityScore: 98,
+                  safetyScore: 100,
+                  attendanceRate: 96,
+                  overtimeHours: 12,
+                  billableHours: 168,
+                  projectsCompleted: 8
+                },
+                trend: 'up',
+                alerts: [],
+                certifications: ["Safety Management", "ISO 9001 Lead Auditor"]
+              },
+              {
+                id: 2,
+                name: "Chipo Green", 
+                role: "Senior Estimator",
+                department: "Estimation",
+                metrics: {
+                  efficiency: 88,
+                  qualityScore: 92,
+                  safetyScore: 95,
+                  attendanceRate: 98,
+                  overtimeHours: 8,
+                  billableHours: 156,
+                  projectsCompleted: 12
+                },
+                trend: 'up',
+                alerts: [],
+                certifications: ["Advanced Estimation", "Steel Detailing"]
+              },
+              {
+                id: 3,
+                name: "Manny Magallanes",
+                role: "Senior Welder",
+                department: "Production",
+                metrics: {
+                  efficiency: 85,
+                  qualityScore: 94,
+                  safetyScore: 92,
+                  attendanceRate: 88,
+                  overtimeHours: 24,
+                  billableHours: 144,
+                  projectsCompleted: 6
+                },
+                trend: 'stable',
+                alerts: ["High overtime hours this month"],
+                certifications: ["Advanced Welding", "Safety Supervisor"]
+              }
+            ]}
+            dateRange="Current Month"
+          />
+        </TabsContent>
+
+        <TabsContent value="capacity" className="space-y-4">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Workforce Capacity Planning</h2>
+                <p className="text-muted-foreground">Resource allocation and capacity optimization</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Users className="w-5 h-5" />
+                    <span>Current Capacity</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Total Available Hours</span>
+                      <span className="font-medium">1,680h</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Allocated Hours</span>
+                      <span className="font-medium">1,420h</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Utilization Rate</span>
+                      <span className="font-medium text-green-600">84.5%</span>
+                    </div>
+                    <Progress value={84.5} className="h-2" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Target className="w-5 h-5" />
+                    <span>Skill Coverage</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span>Welding</span>
+                        <span className="font-medium">100%</span>
+                      </div>
+                      <Progress value={100} className="h-2" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span>Estimation</span>
+                        <span className="font-medium">85%</span>
+                      </div>
+                      <Progress value={85} className="h-2" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span>Cutting</span>
+                        <span className="font-medium">90%</span>
+                      </div>
+                      <Progress value={90} className="h-2" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Activity className="w-5 h-5" />
+                    <span>Upcoming Demand</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Next Week</span>
+                      <Badge variant="default">Normal</Badge>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Next Month</span>
+                      <Badge variant="destructive">High</Badge>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Resource Gap</span>
+                      <span className="font-medium text-red-600">2 welders</span>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      Recommendation: Hire 2 additional welders for Q3 projects
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Department Workload Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Production</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Capacity</span>
+                        <span>880h</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Allocated</span>
+                        <span>756h</span>
+                      </div>
+                      <Progress value={86} className="h-2" />
+                      <div className="text-xs text-muted-foreground">86% utilized</div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Estimation</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Capacity</span>
+                        <span>320h</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Allocated</span>
+                        <span>264h</span>
+                      </div>
+                      <Progress value={82.5} className="h-2" />
+                      <div className="text-xs text-muted-foreground">82.5% utilized</div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Administration</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Capacity</span>
+                        <span>480h</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Allocated</span>
+                        <span>400h</span>
+                      </div>
+                      <Progress value={83.3} className="h-2" />
+                      <div className="text-xs text-muted-foreground">83.3% utilized</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
