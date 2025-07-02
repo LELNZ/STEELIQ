@@ -1706,9 +1706,29 @@ function UserCard({ user }: { user: any }) {
   const hasTeamMember = user.teamMember && user.teamMember.length > 0;
   const [showEditDialog, setShowEditDialog] = useState(false);
   
+  const updateUserMutation = useMutation({
+    mutationFn: async (userData: any) => {
+      return await apiRequest(`/api/users/${user.id}`, "PATCH", userData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "User Updated",
+        description: "User account has been updated successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed", 
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteUserMutation = useMutation({
     mutationFn: async (userData: { userId: number; archiveReason: string }) => {
-      return await apiRequest(`/api/users/${userData.userId}/archive`, "DELETE", {
+      return await apiRequest(`/api/users/${userData.userId}/archive`, "POST", {
         archiveReason: userData.archiveReason
       });
     },
@@ -1786,14 +1806,11 @@ function UserCard({ user }: { user: any }) {
                 <UserEditForm
                   user={user}
                   onSubmit={(updatedUser) => {
-                    // User update functionality
+                    updateUserMutation.mutate(updatedUser);
                     setShowEditDialog(false);
-                    toast({
-                      title: "User Updated",
-                      description: "User account has been updated successfully.",
-                    });
                   }}
                   onCancel={() => setShowEditDialog(false)}
+                  isLoading={updateUserMutation.isPending}
                 />
               </DialogContent>
             </Dialog>
@@ -1849,7 +1866,7 @@ function UserCard({ user }: { user: any }) {
 }
 
 // User Form Component  
-function UserEditForm({ user, onSubmit, onCancel }: any) {
+function UserEditForm({ user, onSubmit, onCancel, isLoading }: any) {
   const [formData, setFormData] = useState({
     name: user?.name || "",
     username: user?.username || "",
@@ -1928,8 +1945,8 @@ function UserEditForm({ user, onSubmit, onCancel }: any) {
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit">
-          Update User
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Updating..." : "Update User"}
         </Button>
       </div>
     </form>
