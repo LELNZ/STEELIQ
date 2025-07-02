@@ -847,18 +847,84 @@ export default function TeamManagement() {
   );
 }
 
-// Member Form Component
+// Enhanced Member Form Component with Comprehensive Employee Data Capture
 function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: any) {
+  const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState({
+    // Basic Required Fields
     userId: member?.userId || "",
     roleId: member?.roleId || "",
     departmentId: member?.departmentId || "",
+    
+    // Basic Employment Information
     employeeNumber: member?.employeeNumber || "",
+    employmentType: member?.employmentType || "full_time",
+    startDate: member?.startDate || new Date().toISOString().split('T')[0],
+    endDate: member?.endDate || "",
+    isActive: member?.isActive ?? true,
+    
+    // Personal Information
+    firstName: member?.firstName || "",
+    lastName: member?.lastName || "",
+    preferredName: member?.preferredName || "",
+    dateOfBirth: member?.dateOfBirth || "",
+    
+    // Contact Information
+    personalEmail: member?.personalEmail || "",
+    personalPhone: member?.personalPhone || "",
+    emergencyContactName: member?.emergencyContactName || "",
+    emergencyContactPhone: member?.emergencyContactPhone || "",
+    emergencyContactRelation: member?.emergencyContactRelation || "",
+    
+    // Address Information
+    streetAddress: member?.streetAddress || "",
+    suburb: member?.suburb || "",
+    city: member?.city || "",
+    state: member?.state || "",
+    postcode: member?.postcode || "",
+    country: member?.country || "New Zealand",
+    
+    // Position & Skills
     position: member?.position || "",
+    jobTitle: member?.jobTitle || "",
     skillLevel: member?.skillLevel || "",
+    primarySkills: member?.primarySkills || [],
+    secondarySkills: member?.secondarySkills || [],
+    experienceYears: member?.experienceYears || "",
+    
+    // Rates & Compensation
     hourlyRate: member?.hourlyRate || "",
     overtimeRate: member?.overtimeRate || "",
-    isActive: member?.isActive ?? true,
+    siteAllowance: member?.siteAllowance || "",
+    travelAllowance: member?.travelAllowance || "",
+    annualSalary: member?.annualSalary || "",
+    payFrequency: member?.payFrequency || "weekly",
+    
+    // Certifications & Qualifications
+    certifications: member?.certifications || [],
+    qualifications: member?.qualifications || [],
+    licenses: member?.licenses || [],
+    
+    // Health & Safety
+    inductionCompleted: member?.inductionCompleted ?? false,
+    inductionDate: member?.inductionDate || "",
+    safetyTrainingExpiry: member?.safetyTrainingExpiry || "",
+    medicalClearance: member?.medicalClearance ?? false,
+    medicalExpiryDate: member?.medicalExpiryDate || "",
+    
+    // Performance & Review
+    performanceRating: member?.performanceRating || "",
+    lastReviewDate: member?.lastReviewDate || "",
+    nextReviewDate: member?.nextReviewDate || "",
+    
+    // Benefits & Leave
+    annualLeaveEntitlement: member?.annualLeaveEntitlement || "20",
+    sickLeaveEntitlement: member?.sickLeaveEntitlement || "5",
+    currentLeaveBalance: member?.currentLeaveBalance || "0",
+    
+    // Notes
+    notes: member?.notes || "",
+    internalNotes: member?.internalNotes || "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -874,134 +940,459 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
     });
   };
 
+  const skillOptions = [
+    "Welding (MIG/TIG/Stick)", "Cutting (Plasma/Oxy)", "Steel Fabrication", "Assembly", 
+    "Fitting", "Machining", "Quality Control", "Site Erection", "Crane Operation",
+    "Rigging", "Safety Management", "Project Management", "Estimation", "Drawing Reading"
+  ];
+
+  const certificationOptions = [
+    "Advanced Welding", "Safety Supervisor", "Crane Operator", "Rigging Supervisor",
+    "ISO 9001 Lead Auditor", "First Aid", "Working at Height", "Confined Space"
+  ];
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="userId">User</Label>
-          <Select value={formData.userId} onValueChange={(value) => setFormData({...formData, userId: value})}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select user" />
-            </SelectTrigger>
-            <SelectContent>
-              {users.map((user: any) => (
-                <SelectItem key={user.id} value={user.id.toString()}>
-                  {user.name} ({user.username})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="max-w-4xl mx-auto">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="basic">Basic Info</TabsTrigger>
+          <TabsTrigger value="personal">Personal</TabsTrigger>
+          <TabsTrigger value="employment">Employment</TabsTrigger>
+          <TabsTrigger value="compensation">Compensation</TabsTrigger>
+        </TabsList>
 
-        <div>
-          <Label htmlFor="roleId">Role</Label>
-          <Select value={formData.roleId.toString()} onValueChange={(value) => setFormData({...formData, roleId: parseInt(value)})}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select role" />
-            </SelectTrigger>
-            <SelectContent>
-              {roles.map((role: Role) => (
-                <SelectItem key={role.id} value={role.id.toString()}>
-                  {role.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information Tab */}
+          <TabsContent value="basic" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="userId">Select User Account *</Label>
+                <Select value={formData.userId} onValueChange={(value) => setFormData({...formData, userId: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select user account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user: any) => (
+                      <SelectItem key={user.id} value={user.id.toString()}>
+                        {user.name} ({user.username})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-        <div>
-          <Label htmlFor="departmentId">Department</Label>
-          <Select value={formData.departmentId?.toString() || ""} onValueChange={(value) => setFormData({...formData, departmentId: value ? parseInt(value) : undefined})}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">No Department</SelectItem>
-              {departments.map((dept: Department) => (
-                <SelectItem key={dept.id} value={dept.id.toString()}>
-                  {dept.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+              <div>
+                <Label htmlFor="employeeNumber">Employee Number</Label>
+                <Input
+                  id="employeeNumber"
+                  value={formData.employeeNumber}
+                  onChange={(e) => setFormData({...formData, employeeNumber: e.target.value})}
+                  placeholder="EMP001"
+                />
+              </div>
 
-        <div>
-          <Label htmlFor="employeeNumber">Employee Number</Label>
-          <Input
-            id="employeeNumber"
-            value={formData.employeeNumber}
-            onChange={(e) => setFormData({...formData, employeeNumber: e.target.value})}
-            placeholder="EMP001"
-          />
-        </div>
+              <div>
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                  placeholder="John"
+                  required
+                />
+              </div>
 
-        <div>
-          <Label htmlFor="position">Position</Label>
-          <Input
-            id="position"
-            value={formData.position}
-            onChange={(e) => setFormData({...formData, position: e.target.value})}
-            placeholder="Steel Fabricator"
-          />
-        </div>
+              <div>
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                  placeholder="Smith"
+                  required
+                />
+              </div>
 
-        <div>
-          <Label htmlFor="skillLevel">Skill Level</Label>
-          <Select value={formData.skillLevel} onValueChange={(value) => setFormData({...formData, skillLevel: value})}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select skill level" />
-            </SelectTrigger>
-            <SelectContent>
-              {SKILL_LEVELS.map((level) => (
-                <SelectItem key={level} value={level}>
-                  {level}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+              <div>
+                <Label htmlFor="roleId">Role *</Label>
+                <Select value={formData.roleId.toString()} onValueChange={(value) => setFormData({...formData, roleId: parseInt(value)})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role: Role) => (
+                      <SelectItem key={role.id} value={role.id.toString()}>
+                        {role.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-        <div>
-          <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
-          <Input
-            id="hourlyRate"
-            type="number"
-            step="0.01"
-            value={formData.hourlyRate}
-            onChange={(e) => setFormData({...formData, hourlyRate: e.target.value})}
-            placeholder="45.00"
-          />
-        </div>
+              <div>
+                <Label htmlFor="departmentId">Department</Label>
+                <Select value={formData.departmentId?.toString() || ""} onValueChange={(value) => setFormData({...formData, departmentId: value ? parseInt(value) : undefined})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">No Department</SelectItem>
+                    {departments.map((dept: Department) => (
+                      <SelectItem key={dept.id} value={dept.id.toString()}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-        <div>
-          <Label htmlFor="overtimeRate">Overtime Rate ($)</Label>
-          <Input
-            id="overtimeRate"
-            type="number"
-            step="0.01"
-            value={formData.overtimeRate}
-            onChange={(e) => setFormData({...formData, overtimeRate: e.target.value})}
-            placeholder="67.50"
-          />
-        </div>
-      </div>
+              <div>
+                <Label htmlFor="employmentType">Employment Type</Label>
+                <Select value={formData.employmentType} onValueChange={(value) => setFormData({...formData, employmentType: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full_time">Full Time</SelectItem>
+                    <SelectItem value="part_time">Part Time</SelectItem>
+                    <SelectItem value="contractor">Contractor</SelectItem>
+                    <SelectItem value="casual">Casual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="isActive"
-          checked={formData.isActive}
-          onCheckedChange={(checked) => setFormData({...formData, isActive: checked})}
-        />
-        <Label htmlFor="isActive">Active Member</Label>
-      </div>
+              <div>
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={formData.isActive}
+                onCheckedChange={(checked) => setFormData({...formData, isActive: checked})}
+              />
+              <Label>Active Employee</Label>
+            </div>
+          </TabsContent>
 
-      <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Saving..." : member ? "Update Member" : "Add Member"}
-        </Button>
-      </div>
-    </form>
+          {/* Personal Information Tab */}
+          <TabsContent value="personal" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                <Input
+                  id="dateOfBirth"
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="personalEmail">Personal Email</Label>
+                <Input
+                  id="personalEmail"
+                  type="email"
+                  value={formData.personalEmail}
+                  onChange={(e) => setFormData({...formData, personalEmail: e.target.value})}
+                  placeholder="john.smith@email.com"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="personalPhone">Personal Phone</Label>
+                <Input
+                  id="personalPhone"
+                  value={formData.personalPhone}
+                  onChange={(e) => setFormData({...formData, personalPhone: e.target.value})}
+                  placeholder="+64 21 123 4567"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="streetAddress">Street Address</Label>
+                <Input
+                  id="streetAddress"
+                  value={formData.streetAddress}
+                  onChange={(e) => setFormData({...formData, streetAddress: e.target.value})}
+                  placeholder="123 Main Street"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="suburb">Suburb</Label>
+                <Input
+                  id="suburb"
+                  value={formData.suburb}
+                  onChange={(e) => setFormData({...formData, suburb: e.target.value})}
+                  placeholder="Mt Eden"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({...formData, city: e.target.value})}
+                  placeholder="Auckland"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="text-lg font-semibold">Emergency Contact</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="emergencyContactName">Emergency Contact Name</Label>
+                  <Input
+                    id="emergencyContactName"
+                    value={formData.emergencyContactName}
+                    onChange={(e) => setFormData({...formData, emergencyContactName: e.target.value})}
+                    placeholder="Jane Smith"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="emergencyContactPhone">Emergency Contact Phone</Label>
+                  <Input
+                    id="emergencyContactPhone"
+                    value={formData.emergencyContactPhone}
+                    onChange={(e) => setFormData({...formData, emergencyContactPhone: e.target.value})}
+                    placeholder="+64 21 123 4567"
+                  />
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Employment Information Tab */}
+          <TabsContent value="employment" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="position">Position Title</Label>
+                <Input
+                  id="position"
+                  value={formData.position}
+                  onChange={(e) => setFormData({...formData, position: e.target.value})}
+                  placeholder="Senior Steel Fabricator"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="skillLevel">Skill Level</Label>
+                <Select value={formData.skillLevel} onValueChange={(value) => setFormData({...formData, skillLevel: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select skill level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="apprentice">Apprentice</SelectItem>
+                    <SelectItem value="tradesman">Tradesman</SelectItem>
+                    <SelectItem value="advanced">Advanced</SelectItem>
+                    <SelectItem value="specialist">Specialist</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="experienceYears">Years of Experience</Label>
+                <Input
+                  id="experienceYears"
+                  type="number"
+                  value={formData.experienceYears}
+                  onChange={(e) => setFormData({...formData, experienceYears: e.target.value})}
+                  placeholder="5"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Primary Skills</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {skillOptions.slice(0, 8).map((skill) => (
+                  <div key={skill} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`skill-${skill}`}
+                      checked={formData.primarySkills.includes(skill)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData({...formData, primarySkills: [...formData.primarySkills, skill]});
+                        } else {
+                          setFormData({...formData, primarySkills: formData.primarySkills.filter((s: string) => s !== skill)});
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <Label htmlFor={`skill-${skill}`} className="text-sm">{skill}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="text-lg font-semibold">Health & Safety</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={formData.inductionCompleted}
+                    onCheckedChange={(checked) => setFormData({...formData, inductionCompleted: checked})}
+                  />
+                  <Label>Induction Completed</Label>
+                </div>
+
+                <div>
+                  <Label htmlFor="inductionDate">Induction Date</Label>
+                  <Input
+                    id="inductionDate"
+                    type="date"
+                    value={formData.inductionDate}
+                    onChange={(e) => setFormData({...formData, inductionDate: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Compensation Tab */}
+          <TabsContent value="compensation" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
+                <Input
+                  id="hourlyRate"
+                  type="number"
+                  step="0.01"
+                  value={formData.hourlyRate}
+                  onChange={(e) => setFormData({...formData, hourlyRate: e.target.value})}
+                  placeholder="35.00"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="overtimeRate">Overtime Rate ($)</Label>
+                <Input
+                  id="overtimeRate"
+                  type="number"
+                  step="0.01"
+                  value={formData.overtimeRate}
+                  onChange={(e) => setFormData({...formData, overtimeRate: e.target.value})}
+                  placeholder="52.50"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="siteAllowance">Site Allowance ($)</Label>
+                <Input
+                  id="siteAllowance"
+                  type="number"
+                  step="0.01"
+                  value={formData.siteAllowance}
+                  onChange={(e) => setFormData({...formData, siteAllowance: e.target.value})}
+                  placeholder="10.00"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="annualSalary">Annual Salary ($)</Label>
+                <Input
+                  id="annualSalary"
+                  type="number"
+                  step="0.01"
+                  value={formData.annualSalary}
+                  onChange={(e) => setFormData({...formData, annualSalary: e.target.value})}
+                  placeholder="72800"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="payFrequency">Pay Frequency</Label>
+                <Select value={formData.payFrequency} onValueChange={(value) => setFormData({...formData, payFrequency: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="fortnightly">Fortnightly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="text-lg font-semibold">Leave Entitlements</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="annualLeaveEntitlement">Annual Leave (days)</Label>
+                  <Input
+                    id="annualLeaveEntitlement"
+                    type="number"
+                    step="0.5"
+                    value={formData.annualLeaveEntitlement}
+                    onChange={(e) => setFormData({...formData, annualLeaveEntitlement: e.target.value})}
+                    placeholder="20"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="sickLeaveEntitlement">Sick Leave (days)</Label>
+                  <Input
+                    id="sickLeaveEntitlement"
+                    type="number"
+                    step="0.5"
+                    value={formData.sickLeaveEntitlement}
+                    onChange={(e) => setFormData({...formData, sickLeaveEntitlement: e.target.value})}
+                    placeholder="5"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="currentLeaveBalance">Current Balance (days)</Label>
+                  <Input
+                    id="currentLeaveBalance"
+                    type="number"
+                    step="0.5"
+                    value={formData.currentLeaveBalance}
+                    onChange={(e) => setFormData({...formData, currentLeaveBalance: e.target.value})}
+                    placeholder="15.5"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="notes">General Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  placeholder="General notes about the employee..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Form Actions */}
+          <div className="flex justify-between pt-6 border-t">
+            <Button type="button" variant="outline" onClick={() => setActiveTab("basic")}>
+              Back to Basic Info
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Saving..." : member ? "Update Employee" : "Add Employee"}
+            </Button>
+          </div>
+        </form>
+      </Tabs>
+    </div>
   );
 }
 

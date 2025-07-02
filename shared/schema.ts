@@ -1676,14 +1676,79 @@ export const teamMembers = pgTable("team_members", {
   userId: integer("user_id").notNull().references(() => users.id),
   roleId: integer("role_id").notNull().references(() => roles.id),
   departmentId: integer("department_id").references(() => departments.id),
+  
+  // Basic Employment Information
   isActive: boolean("is_active").default(true),
+  employeeNumber: varchar("employee_number", { length: 50 }),
   startDate: timestamp("start_date").defaultNow(),
   endDate: timestamp("end_date"),
-  employeeNumber: varchar("employee_number", { length: 50 }),
+  employmentType: varchar("employment_type", { length: 50 }).default("full_time"), // full_time, part_time, contractor, casual
+  
+  // Personal Information (captured from User but can be overridden)
+  firstName: varchar("first_name", { length: 100 }),
+  lastName: varchar("last_name", { length: 100 }),
+  preferredName: varchar("preferred_name", { length: 100 }),
+  dateOfBirth: date("date_of_birth"),
+  
+  // Contact Information
+  personalEmail: varchar("personal_email", { length: 255 }),
+  personalPhone: varchar("personal_phone", { length: 20 }),
+  emergencyContactName: varchar("emergency_contact_name", { length: 100 }),
+  emergencyContactPhone: varchar("emergency_contact_phone", { length: 20 }),
+  emergencyContactRelation: varchar("emergency_contact_relation", { length: 50 }),
+  
+  // Address Information
+  streetAddress: varchar("street_address", { length: 200 }),
+  suburb: varchar("suburb", { length: 100 }),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+  postcode: varchar("postcode", { length: 10 }),
+  country: varchar("country", { length: 50 }).default("New Zealand"),
+  
+  // Position & Skills
   position: varchar("position", { length: 100 }),
-  skillLevel: varchar("skill_level", { length: 50 }),
+  jobTitle: varchar("job_title", { length: 100 }),
+  skillLevel: varchar("skill_level", { length: 50 }), // apprentice, tradesman, advanced, specialist
+  primarySkills: jsonb("primary_skills"), // Array of skills
+  secondarySkills: jsonb("secondary_skills"),
+  experienceYears: integer("experience_years"),
+  
+  // Rates & Compensation
   hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
   overtimeRate: decimal("overtime_rate", { precision: 10, scale: 2 }),
+  siteAllowance: decimal("site_allowance", { precision: 10, scale: 2 }).default("0"),
+  travelAllowance: decimal("travel_allowance", { precision: 10, scale: 2 }).default("0"),
+  annualSalary: decimal("annual_salary", { precision: 12, scale: 2 }),
+  payFrequency: varchar("pay_frequency", { length: 20 }).default("weekly"), // weekly, fortnightly, monthly
+  
+  // Certifications & Qualifications
+  certifications: jsonb("certifications"), // Array of certification objects
+  qualifications: jsonb("qualifications"), // Array of qualification objects
+  licenses: jsonb("licenses"), // Array of license objects
+  trainingRecords: jsonb("training_records"), // Array of training completion records
+  
+  // Health & Safety
+  inductionCompleted: boolean("induction_completed").default(false),
+  inductionDate: date("induction_date"),
+  safetyTrainingExpiry: date("safety_training_expiry"),
+  medicalClearance: boolean("medical_clearance").default(false),
+  medicalExpiryDate: date("medical_expiry_date"),
+  
+  // Performance & Review
+  performanceRating: decimal("performance_rating", { precision: 3, scale: 1 }), // 1.0 to 5.0
+  lastReviewDate: date("last_review_date"),
+  nextReviewDate: date("next_review_date"),
+  
+  // Benefits & Leave
+  annualLeaveEntitlement: decimal("annual_leave_entitlement", { precision: 5, scale: 2 }).default("20"), // days
+  sickLeaveEntitlement: decimal("sick_leave_entitlement", { precision: 5, scale: 2 }).default("5"), // days
+  currentLeaveBalance: decimal("current_leave_balance", { precision: 5, scale: 2 }).default("0"),
+  
+  // System Fields
+  profilePhoto: text("profile_photo"), // File path or URL
+  notes: text("notes"),
+  internalNotes: text("internal_notes"), // HR/Management only
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
