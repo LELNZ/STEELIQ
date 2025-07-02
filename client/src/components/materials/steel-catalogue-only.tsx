@@ -90,21 +90,12 @@ export function SteelCatalogueOnly() {
     <div className="space-y-6">
       <Card>
         <CardContent className="space-y-6 pt-6">
-          {/* Action Bar */}
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              {selectedCategory === "all" 
-                ? `${materialsToDisplay.length} of ${filteredMaterials.length} materials shown` 
-                : `${filteredMaterials.length} materials found`
-              }
-            </div>
-            <Button 
-              onClick={() => setAddMaterialModalOpen(true)}
-              className="bg-primary hover:bg-primary/90"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Material
-            </Button>
+          {/* Results Summary */}
+          <div className="text-sm text-muted-foreground">
+            {selectedCategory === "all" 
+              ? `${materialsToDisplay.length} of ${filteredMaterials.length} materials shown` 
+              : `${filteredMaterials.length} materials found`
+            }
           </div>
 
           {/* Search and Action Buttons */}
@@ -119,6 +110,14 @@ export function SteelCatalogueOnly() {
               />
             </div>
             <div className="flex items-center gap-2">
+              <Button 
+                onClick={() => setAddMaterialModalOpen(true)}
+                className="bg-primary hover:bg-primary/90"
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Material
+              </Button>
               <Button 
                 onClick={() => toast({ title: "Export Started", description: "Steel catalogue data is being exported..." })} 
                 variant="outline" 
