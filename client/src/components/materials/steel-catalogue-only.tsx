@@ -15,7 +15,6 @@ export function SteelCatalogueOnly() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [displayedMaterials, setDisplayedMaterials] = useState(15);
   const [addMaterialModalOpen, setAddMaterialModalOpen] = useState(false);
-  const [supplierFilter, setSupplierFilter] = useState("all");
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -143,23 +142,6 @@ export function SteelCatalogueOnly() {
                 {category.name}
               </Button>
             ))}
-          </div>
-
-          {/* Additional Filters */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium">Supplier:</label>
-              <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="All suppliers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All suppliers</SelectItem>
-                  <SelectItem value="ASMUSS Steel">ASMUSS Steel</SelectItem>
-                  <SelectItem value="Other Supplier">Other Supplier</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           {/* Materials Table */}
