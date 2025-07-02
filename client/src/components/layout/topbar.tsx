@@ -170,13 +170,13 @@ function UserMenu() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center space-x-3 hover:bg-accent">
             <div className="text-right">
-              <p className="text-sm font-medium text-foreground">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{user.role}</p>
+              <p className="text-sm font-medium text-foreground">{user.name || user.username}</p>
+              <p className="text-xs text-muted-foreground">{user.role || 'User'}</p>
             </div>
             <Avatar className="h-10 w-10">
               <AvatarImage src={user.profileImageUrl} alt={user.name} />
               <AvatarFallback>
-                {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                {user.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : user.username?.[0]?.toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
           </Button>
@@ -184,15 +184,17 @@ function UserMenu() {
         <DropdownMenuContent align="end" className="w-64">
           <DropdownMenuLabel>
             <div className="flex flex-col space-y-1">
-              <p className="font-medium">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
+              <p className="font-medium">{user.name || user.username}</p>
+              <p className="text-xs text-muted-foreground">{user.email || 'No email'}</p>
               <div className="flex items-center space-x-2">
                 <Badge variant="secondary" className="text-xs">
-                  {user.department}
+                  {user.department || user.role || 'User'}
                 </Badge>
-                <span className="text-xs text-muted-foreground">
-                  ${user.hourlyRate}/hr
-                </span>
+                {user.hourlyRate && (
+                  <span className="text-xs text-muted-foreground">
+                    ${user.hourlyRate}/hr
+                  </span>
+                )}
               </div>
             </div>
           </DropdownMenuLabel>
