@@ -833,6 +833,16 @@ function RoleForm({ role, onSubmit, isLoading }: any) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Ensure at least some permissions are selected
+    const hasPermissions = Object.keys(formData.permissions).length > 0;
+    if (!hasPermissions) {
+      // Add at least one basic permission if none selected
+      formData.permissions = { time: ["edit_own_timesheet", "clock_in_out"] };
+    }
+    
+    console.log("Submitting role data:", formData);
+    
     onSubmit({
       ...formData,
       id: role?.id,
