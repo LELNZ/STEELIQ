@@ -214,9 +214,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Team Members
-  async getTeamMemberByUserId(userId: number): Promise<TeamMember | undefined> {
-    const [teamMember] = await db.select().from(teamMembers).where(eq(teamMembers.userId, userId));
-    return teamMember || undefined;
+  async getTeamMemberByUserId(userId: number): Promise<any | undefined> {
+    // Direct SQL query to avoid ORM schema mismatch issues
+    const result = await db.execute(sql`
+      SELECT id, user_id, role_id, department_id, hire_date, hourly_rate, is_active, created_at 
+      FROM team_members 
+      WHERE user_id = ${userId}
+    `);
+    
+    if (result.rows.length === 0) return undefined;
+    
+    const row = result.rows[0];
+    return {
+      id: row[0],
+      userId: row[1],
+      roleId: row[2],
+      departmentId: row[3],
+      hireDate: row[4],
+      hourlyRate: row[5],
+      isActive: row[6],
+      createdAt: row[7]
+    };
   }
 
   async deleteTeamMember(id: number): Promise<void> {

@@ -780,9 +780,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: user.email,
         phone: user.phone,
         roleId: teamMember?.roleId || null,
-        roleName: teamMember?.role?.name || null,
+        roleName: null, // TODO: Get role name via separate query
         departmentId: teamMember?.departmentId || null,
-        departmentName: teamMember?.department?.name || null,
+        departmentName: null, // TODO: Get department name via separate query
         employeeNumber: null,
         employmentType: teamMember?.employmentType || null,
         isActive: teamMember?.isActive || false,
@@ -832,7 +832,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currentLeaveBalance: teamMember?.currentLeaveBalance || null,
         archiveReason: archiveReason,
         archivedBy: 1, // TODO: Get from authenticated user
-        legalRetentionUntil: new Date(Date.now() + (7 * 365 * 24 * 60 * 60 * 1000)), // 7 years
+        legalRetentionUntil: new Date(Date.now() + (7 * 365 * 24 * 60 * 60 * 1000)).toISOString(), // 7 years
         canBeDeleted: false,
         notes: teamMember?.notes || null,
         internalNotes: teamMember?.internalNotes || null,
