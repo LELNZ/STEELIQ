@@ -289,6 +289,7 @@ export class AuthService {
 
   // Clean expired sessions
   static async cleanExpiredSessions() {
-    await db.delete(authSessions).where(gt(new Date(), authSessions.expiresAt));
+    const now = new Date();
+    await db.delete(authSessions).where(gt(authSessions.expiresAt, now));
   }
 }

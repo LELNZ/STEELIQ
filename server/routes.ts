@@ -2297,6 +2297,190 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Authentication Routes
+  
+  // Login endpoint
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password, twoFactorCode } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ error: "Username and password required" });
+      }
+
+      const result = await AuthService.authenticateUser(username, password, twoFactorCode);
+      
+      if (result.requires2FA) {
+        return res.json({ requires2FA: true });
+      }
+
+      // Set session token in HTTP-only cookie
+      res.cookie('auth_token', result.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      });
+
+      res.json({
+        user: result.user,
+        token: result.token,
+        expiresAt: result.expiresAt
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(401).json({ error: error.message });
+    }
+  });
+
+  // Logout endpoint
+  app.post("/api/auth/logout", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      
+      if (token) {
+        await AuthService.logout(token);
+      }
+
+      res.clearCookie('auth_token');
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ error: "Failed to logout" });
+    }
+  });
+
+  // Get current user endpoint
+  app.get("/api/auth/user", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      
+      if (!token) {
+        return res.status(401).json({ error: "No authentication token" });
+      }
+
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        res.clearCookie('auth_token');
+        return res.status(401).json({ error: "Invalid or expired session" });
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error("Auth validation error:", error);
+      res.status(401).json({ error: "Authentication failed" });
+    }
+  });
+
+  // Setup 2FA endpoint
+  app.post("/api/auth/2fa/setup", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const twoFASetup = await AuthService.setup2FA(user.id);
+      res.json(twoFASetup);
+    } catch (error) {
+      console.error("2FA setup error:", error);
+      res.status(500).json({ error: "Failed to setup 2FA" });
+    }
+  });
+
+  // Enable 2FA endpoint
+  app.post("/api/auth/2fa/enable", async (req, res) => {
+    try {
+      const { verificationCode } = req.body;
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      await AuthService.enable2FA(user.id, verificationCode);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("2FA enable error:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Disable 2FA endpoint
+  app.post("/api/auth/2fa/disable", async (req, res) => {
+    try {
+      const { password } = req.body;
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      await AuthService.disable2FA(user.id, password);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("2FA disable error:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Change password endpoint
+  app.post("/api/auth/change-password", async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current and new passwords required" });
+      }
+
+      await AuthService.changePassword(user.id, currentPassword, newPassword);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Password change error:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Create user endpoint (admin only)
+  app.post("/api/auth/users", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const currentUser = await AuthService.validateSession(token);
+      
+      if (!currentUser || !['Business Owner', 'Administrator'].includes(currentUser.role)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const newUser = await AuthService.createUser(req.body);
+      res.json(newUser);
+    } catch (error) {
+      console.error("User creation error:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Clean expired sessions (can be called periodically)
+  app.post("/api/auth/cleanup", async (req, res) => {
+    try {
+      await AuthService.cleanExpiredSessions();
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Session cleanup error:", error);
+      res.status(500).json({ error: "Failed to cleanup sessions" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
