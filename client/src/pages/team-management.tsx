@@ -199,7 +199,7 @@ export default function TeamManagement() {
   // Delete mutations
   const deleteMemberMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/team/members/${id}`, { method: "DELETE" });
+      return apiRequest(`/api/team/members/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/members"] });
@@ -212,7 +212,7 @@ export default function TeamManagement() {
 
   const deleteRoleMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/team/roles/${id}`, { method: "DELETE" });
+      return apiRequest(`/api/team/roles/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/roles"] });
@@ -225,7 +225,7 @@ export default function TeamManagement() {
 
   const deleteDepartmentMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/team/departments/${id}`, { method: "DELETE" });
+      return apiRequest(`/api/team/departments/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/departments"] });
