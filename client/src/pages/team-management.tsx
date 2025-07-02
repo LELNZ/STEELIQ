@@ -1708,7 +1708,9 @@ function UserCard({ user }: { user: any }) {
   
   const updateUserMutation = useMutation({
     mutationFn: async (userData: any) => {
-      return await apiRequest(`/api/users/${user.id}`, "PATCH", userData);
+      console.log("Making API request with data:", userData);
+      console.log("User ID:", user.id);
+      return await apiRequest("PATCH", `/api/users/${user.id}`, userData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -1877,6 +1879,7 @@ function UserEditForm({ user, onSubmit, onCancel, isLoading }: any) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("UserEditForm submitting data:", formData);
     onSubmit(formData);
   };
 
