@@ -262,10 +262,6 @@ AS 1580.481 - Intumescent coatings for fire protection`;
             <FileText className="h-4 w-4" />
             Standards
           </Button>
-          <Button onClick={handleAdd} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Coating System
-          </Button>
         </div>
       </div>
 
