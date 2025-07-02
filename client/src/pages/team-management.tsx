@@ -90,7 +90,7 @@ const SKILL_LEVELS = [
 export default function TeamManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("members");
+  const [activeTab, setActiveTab] = useState("users");
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
@@ -1669,6 +1669,203 @@ function DepartmentForm({ department, users, onSubmit, isLoading }: any) {
       <div className="flex justify-end space-x-2">
         <Button type="submit" disabled={isLoading}>
           {isLoading ? "Saving..." : department ? "Update Department" : "Create Department"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+// User Card Component
+function UserCard({ user }: { user: any }) {
+  const hasTeamMember = user.teamMember && user.teamMember.length > 0;
+  
+  return (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h3 className="font-medium flex items-center">
+              <Users className="w-4 h-4 mr-2" />
+              {user.name}
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">@{user.username}</p>
+            {user.email && (
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+            )}
+            <div className="mt-2 flex items-center space-x-2">
+              <Badge variant={hasTeamMember ? "default" : "secondary"}>
+                {hasTeamMember ? "Employee Profile" : "Account Only"}
+              </Badge>
+              <Badge variant="outline">
+                Login Access
+              </Badge>
+            </div>
+            {hasTeamMember && (
+              <p className="text-sm mt-2 text-green-600">
+                ✓ Linked to employee profile
+              </p>
+            )}
+            {!hasTeamMember && (
+              <p className="text-sm mt-2 text-orange-600">
+                ⚠ No employee profile yet
+              </p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// User Form Component  
+function UserForm({ user, onSubmit, isLoading }: any) {
+  const [formData, setFormData] = useState({
+    username: user?.username || "",
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    password: "",
+    confirmPassword: "",
+  });
+  
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!formData.username || !formData.name) {
+      alert("Username and name are required");
+      return;
+    }
+    
+    if (!user && !formData.password) {
+      alert("Password is required for new users");
+      return;
+    }
+    
+    if (!user && formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+    
+    // Submit data
+    const submitData = {
+      ...formData,
+      id: user?.id,
+    };
+    
+    // Remove password fields if not creating new user and password is empty
+    if (user && !formData.password) {
+      delete submitData.password;
+      delete submitData.confirmPassword;
+    }
+    
+    onSubmit(submitData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="name">Full Name *</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            placeholder="John Smith"
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="username">Username *</Label>
+          <Input
+            id="username"
+            value={formData.username}
+            onChange={(e) => setFormData({...formData, username: e.target.value})}
+            placeholder="john.smith"
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            placeholder="john.smith@lateralengineering.co.nz"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="phone">Phone</Label>
+          <Input
+            id="phone"
+            value={formData.phone}
+            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+            placeholder="+64 21 123 4567"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4 pt-4 border-t">
+        <h3 className="text-lg font-semibold">
+          {user ? "Change Password (Optional)" : "Set Password *"}
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="password">
+              {user ? "New Password" : "Password *"}
+            </Label>
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              placeholder={user ? "Leave blank to keep current" : "Enter secure password"}
+              required={!user}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="confirmPassword">
+              {user ? "Confirm New Password" : "Confirm Password *"}
+            </Label>
+            <Input
+              id="confirmPassword"
+              type={showPassword ? "text" : "password"}
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+              placeholder="Confirm password"
+              required={!user && !!formData.password}
+            />
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={showPassword}
+            onCheckedChange={setShowPassword}
+          />
+          <Label>Show passwords</Label>
+        </div>
+      </div>
+
+      <div className="bg-blue-50 p-4 rounded-lg">
+        <h4 className="font-medium text-blue-900">Understanding User Accounts</h4>
+        <p className="text-sm text-blue-700 mt-1">
+          User accounts provide login access to the system. After creating this account, 
+          go to the "Team Members" tab to create an employee profile and link it to this user account.
+        </p>
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Creating..." : user ? "Update Account" : "Create Account"}
         </Button>
       </div>
     </form>
