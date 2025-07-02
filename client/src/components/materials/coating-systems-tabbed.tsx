@@ -38,66 +38,37 @@ const coatingFormSchema = z.object({
 
 type CoatingFormData = z.infer<typeof coatingFormSchema>;
 
-interface Material {
-  id: number;
-  code: string;
-  name: string;
-  category: string;
-  layersDft?: string;
-  layers_dft?: string;
-  durabilityYears?: string;
-  durability_years?: string;
-  asNzsReference?: string;
-  as_nzs_reference?: string;
-  applicationMethod?: string;
-  application_method?: string;
-  inHouseSubcontracted?: string;
-  in_house_subcontracted?: string;
-  fireRating?: string;
-  fire_rating?: string;
-  pricePerKg?: number | string;
-  unitCost?: number | string;
-  supplier?: string;
-  notes?: string;
-}
-
-export default function CoatingSystemsFixed() {
+export default function CoatingSystemsTabbed() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<any | null>(null);
   const [showStandards, setShowStandards] = useState(false);
+  const [displayedMaterials, setDisplayedMaterials] = useState(15);
   
-  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const { data: materials = [], isLoading, refetch } = useQuery<Material[]>({
+  // Load materials and filter for coating systems only
+  const { data: materials = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/materials"],
-    staleTime: 0,
-    refetchOnWindowFocus: true,
   });
 
-  // Filter for coating systems only
   const coatingMaterials = useMemo(() => {
     return materials.filter((material) => {
       const category = material.category?.toLowerCase() || '';
-      
-      // Include only coating systems categories
-      const isCoatingSystem = category.includes('systems') ||
-                             category.includes('alkyd') ||
-                             category.includes('epoxy') ||
-                             category.includes('etch') ||
-                             category.includes('polyurethane') ||
-                             category.includes('zinc') ||
-                             category.includes('galvanizing') ||
-                             category.includes('intumescent') ||
-                             category.includes('powder coating');
-      
-      return isCoatingSystem;
+      return category.includes('alkyd') || 
+             category.includes('epoxy') || 
+             category.includes('polyurethane') || 
+             category.includes('zinc') || 
+             category.includes('coating') || 
+             category.includes('galvanizing') ||
+             category.includes('intumescent') ||
+             category.includes('primer');
     });
   }, [materials]);
 
-  // Get unique categories
+  // Extract unique categories
   const categories = useMemo(() => {
     const cats = Array.from(new Set(coatingMaterials.map((m) => m.category))).filter(Boolean);
     return cats.sort();
@@ -105,7 +76,7 @@ export default function CoatingSystemsFixed() {
 
   // Filter materials based on search and category
   const filteredMaterials = useMemo(() => {
-    return coatingMaterials.filter((material: Material) => {
+    return coatingMaterials.filter((material: any) => {
       const matchesSearch = !searchTerm || 
         material.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         material.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -117,25 +88,25 @@ export default function CoatingSystemsFixed() {
     });
   }, [coatingMaterials, searchTerm, selectedCategory]);
 
-  // Helper functions to get field values (handles both camelCase and snake_case)
-  const getLayersDft = (material: Material) => material.layersDft || material.layers_dft || "—";
-  const getDurabilityYears = (material: Material) => material.durabilityYears || material.durability_years || "—";
-  const getAsNzsReference = (material: Material) => material.asNzsReference || material.as_nzs_reference || "—";
-  const getApplicationMethod = (material: Material) => material.applicationMethod || material.application_method || "—";
-  const getInHouseSubcontracted = (material: Material) => material.inHouseSubcontracted || material.in_house_subcontracted || "—";
-  const getFireRating = (material: Material) => material.fireRating || material.fire_rating || "N/A";
-  const getPricePerSqm = (material: Material) => {
-    // Convert string to number if needed for decimal fields from database
+  // For display with 15-item limit behavior
+  const materialsToDisplay = selectedCategory === "all" 
+    ? filteredMaterials.slice(0, displayedMaterials) 
+    : filteredMaterials;
+
+  // Helper functions to get field values
+  const getLayersDft = (material: any) => material.layersDft || material.layers_dft || "—";
+  const getDurabilityYears = (material: any) => material.durabilityYears || material.durability_years || "—";
+  const getAsNzsReference = (material: any) => material.asNzsReference || material.as_nzs_reference || "—";
+  const getApplicationMethod = (material: any) => material.applicationMethod || material.application_method || "—";
+  const getInHouseSubcontracted = (material: any) => material.inHouseSubcontracted || material.in_house_subcontracted || "—";
+  const getFireRating = (material: any) => material.fireRating || material.fire_rating || "N/A";
+  const getPricePerSqm = (material: any) => {
     const unitCost = typeof material.unitCost === 'string' ? parseFloat(material.unitCost) : material.unitCost;
-    
     if (unitCost && unitCost > 0) return `$${unitCost.toFixed(2)}/m²`;
     return "Contact for pricing";
   };
-
-  const getPricePerKg = (material: Material) => {
-    // Convert string to number if needed for decimal fields from database
+  const getPricePerKg = (material: any) => {
     const pricePerKg = typeof material.pricePerKg === 'string' ? parseFloat(material.pricePerKg) : material.pricePerKg;
-    
     if (pricePerKg && pricePerKg > 0) return `$${pricePerKg.toFixed(2)}/kg`;
     return "Contact for pricing";
   };
@@ -161,59 +132,77 @@ export default function CoatingSystemsFixed() {
     },
   });
 
+  // Mutation for create/update
   const mutation = useMutation({
-    mutationFn: async (data: CoatingFormData & { id?: number }) => {
+    mutationFn: async (data: any) => {
       if (data.id) {
-        return apiRequest("PUT", `/api/materials/${data.id}`, data);
+        return await fetch(`/api/materials/${data.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }).then(res => res.json());
       } else {
-        return apiRequest("POST", "/api/materials", data);
+        return await fetch("/api/materials", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }).then(res => res.json());
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
+      toast({
+        title: "Success",
+        description: editingMaterial ? "Coating system updated" : "Coating system added",
+      });
       setDialogOpen(false);
       setEditingMaterial(null);
       form.reset();
-      toast({
-        title: "Success",
-        description: editingMaterial ? "Coating system updated successfully" : "Coating system added successfully",
-      });
     },
-    onError: (error: Error) => {
+    onError: () => {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to save coating system",
         variant: "destructive",
       });
     },
   });
 
+  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest("DELETE", `/api/materials/${id}`);
+      return await fetch(`/api/materials/${id}`, {
+        method: "DELETE",
+      }).then(res => res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
       toast({
         title: "Success",
-        description: "Coating system deleted successfully",
+        description: "Coating system deleted",
       });
     },
-    onError: (error: Error) => {
+    onError: () => {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to delete coating system",
         variant: "destructive",
       });
     },
   });
 
-  const handleEdit = (material: Material) => {
+  const handleAdd = () => {
+    setEditingMaterial(null);
+    form.reset();
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (material: any) => {
     setEditingMaterial(material);
     form.reset({
-      code: material.code,
-      name: material.name,
-      category: material.category,
+      code: material.code || "",
+      name: material.name || "",
+      category: material.category || "",
       layers_dft: getLayersDft(material) === "—" ? "" : getLayersDft(material),
       durability_years: getDurabilityYears(material) === "—" ? "" : getDurabilityYears(material),
       as_nzs_reference: getAsNzsReference(material) === "—" ? "" : getAsNzsReference(material),
@@ -230,21 +219,20 @@ export default function CoatingSystemsFixed() {
     setDialogOpen(true);
   };
 
-  const handleAdd = () => {
-    setEditingMaterial(null);
-    form.reset();
-    setDialogOpen(true);
+  const handleDelete = (id: number) => {
+    if (confirm("Are you sure you want to delete this coating system?")) {
+      deleteMutation.mutate(id);
+    }
   };
 
   const onSubmit = (data: CoatingFormData) => {
-    // Convert pricing and coverage fields to numbers if provided
     const processedData = {
       ...data,
       unitCost: data.unit_cost ? parseFloat(data.unit_cost) : undefined,
       pricePerKg: data.price_per_kg ? parseFloat(data.price_per_kg) : undefined,
       coverageRate: data.coverage_rate ? parseFloat(data.coverage_rate) : undefined,
       coverageUnit: data.coverage_unit || undefined,
-      unit_cost: undefined, // Remove the string versions
+      unit_cost: undefined,
       price_per_kg: undefined,
       coverage_rate: undefined,
       ...(editingMaterial && { id: editingMaterial.id }),
@@ -253,27 +241,17 @@ export default function CoatingSystemsFixed() {
     mutation.mutate(processedData);
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this coating system?")) {
-      deleteMutation.mutate(id);
-    }
-  };
+  const standards = `AS/NZS 2312 - Guide to the protection of structural steel against atmospheric corrosion by the use of protective coatings
 
-  const standards = `AS/NZS 2312.1:2014 Guide to protection of structural steel against atmospheric corrosion by the use of protective coatings—Paint coatings
-
-AS/NZS 2312.2:2014 Guide to protection of structural steel against atmospheric corrosion—Hot-dip galvanizing
-
-AS/NZS 5131:2016 Structural steel fabrication and erection
-
-AS/NZS 4680:2006 Hot-dip galvanized (zinc) coatings on fabricated ferrous articles
-
-NZS 3910:2013 Conditions of Contract for Building and Civil Engineering Construction
-
-Notes on Application and Subcontracting:
-• In-house application is typically used for small fabrications, minor repairs, and alkyd/epoxy touch-ups.
-• Subcontracted application is strongly recommended or mandatory for galvanizing, thermal metal spray, high-build epoxies, polyurethanes, and intumescent coatings.
-• Intumescent coatings require certified applicators and compliance documentation to meet fire resistance ratings.
-• All coating systems require appropriate surface preparation, inspection of blast profiles, and verification of dry film thickness.`;
+Referenced Standards:
+C1, C2, C3, C4, C5 - Corrosivity categories for different environments
+AS/NZS 1580 - Paints and related materials
+AS/NZS 2312.1 - Hot dip galvanized coatings  
+AS/NZS 2312.2 - Organic coatings
+AS 3750 - Painting of buildings
+AS 1397 - Continuous hot-dip metallic coated steel sheet and strip
+AS 4312 - Atmospheric corrosivity zones in Australia
+AS 1580.481 - Intumescent coatings for fire protection`;
 
   if (isLoading) {
     return (
@@ -337,7 +315,7 @@ Notes on Application and Subcontracting:
 
       {/* Category Tabs */}
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(categories.length + 1, 6)}, minmax(0, 1fr))` }}>
           <TabsTrigger value="all">All Coatings</TabsTrigger>
           {categories.slice(0, 5).map((category) => (
             <TabsTrigger key={category} value={category} className="text-xs">
@@ -348,10 +326,18 @@ Notes on Application and Subcontracting:
 
         {/* All Coatings Tab Content */}
         <TabsContent value="all" className="space-y-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between">
             <Badge variant="secondary">
-              {filteredMaterials.length} coating systems
+              {materialsToDisplay.length} of {filteredMaterials.length} coating systems
             </Badge>
+            {selectedCategory === "all" && filteredMaterials.length > displayedMaterials && (
+              <Button 
+                variant="outline" 
+                onClick={() => setDisplayedMaterials(prev => prev + 15)}
+              >
+                View More ({filteredMaterials.length - displayedMaterials} remaining)
+              </Button>
+            )}
           </div>
           <Card>
             <Table>
@@ -371,7 +357,7 @@ Notes on Application and Subcontracting:
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMaterials.map((material: Material) => (
+                {materialsToDisplay.map((material: any) => (
                   <TableRow key={material.id}>
                     <TableCell className="font-mono font-medium">
                       {material.code}
@@ -428,80 +414,6 @@ Notes on Application and Subcontracting:
             </Table>
           </Card>
         </TabsContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Layers & DFT (µm)</TableHead>
-              <TableHead>Durability (Years)</TableHead>
-              <TableHead>AS/NZS Reference</TableHead>
-              <TableHead>Application Method</TableHead>
-              <TableHead>In-house/Subcontracted</TableHead>
-              <TableHead>Price per m²</TableHead>
-              <TableHead>Price per kg</TableHead>
-              <TableHead>Fire Rating</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredMaterials.map((material: Material) => (
-              <TableRow key={material.id}>
-                <TableCell className="font-mono font-medium">
-                  {material.code}
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{material.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {material.category}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-sm">
-                  {getLayersDft(material)}
-                </TableCell>
-                <TableCell>{getDurabilityYears(material)}</TableCell>
-                <TableCell>{getAsNzsReference(material)}</TableCell>
-                <TableCell>{getApplicationMethod(material)}</TableCell>
-                <TableCell>{getInHouseSubcontracted(material)}</TableCell>
-                <TableCell className="font-medium">
-                  {getPricePerSqm(material)}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {getPricePerKg(material)}
-                </TableCell>
-                <TableCell>
-                  {getFireRating(material) !== "N/A" ? (
-                    <Badge variant="destructive">{getFireRating(material)}</Badge>
-                  ) : (
-                    <span className="text-muted-foreground">N/A</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(material)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(material.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-            </Table>
-          </Card>
-        </TabsContent>
 
         {/* Individual category tabs */}
         {categories.map((category) => (
@@ -530,7 +442,7 @@ Notes on Application and Subcontracting:
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMaterials.filter(m => m.category === category).map((material: Material) => (
+                  {filteredMaterials.filter(m => m.category === category).map((material: any) => (
                     <TableRow key={material.id}>
                       <TableCell className="font-mono font-medium">
                         {material.code}
@@ -612,12 +524,28 @@ Notes on Application and Subcontracting:
                     <FormItem>
                       <FormLabel>Code</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., ALK1, EP2, HDG-only" {...field} />
+                        <Input placeholder="e.g., ALK1" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Single coat alkyd" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="category"
@@ -631,14 +559,12 @@ Notes on Application and Subcontracting:
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Alkyd Systems">Alkyd Systems</SelectItem>
-                            <SelectItem value="Etch Primer Systems">Etch Primer Systems</SelectItem>
                             <SelectItem value="Epoxy Systems">Epoxy Systems</SelectItem>
-                            <SelectItem value="Zinc Silicate Systems">Zinc Silicate Systems</SelectItem>
                             <SelectItem value="Polyurethane Systems">Polyurethane Systems</SelectItem>
+                            <SelectItem value="Zinc Rich Primer Systems">Zinc Rich Primer Systems</SelectItem>
+                            <SelectItem value="Hot Dip Galvanizing">Hot Dip Galvanizing</SelectItem>
                             <SelectItem value="Intumescent Systems">Intumescent Systems</SelectItem>
-                            <SelectItem value="Galvanizing Systems">Galvanizing Systems</SelectItem>
                             <SelectItem value="Zinc Metal Spray Systems">Zinc Metal Spray Systems</SelectItem>
-                            <SelectItem value="Powder Coating Systems">Powder Coating Systems</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormControl>
@@ -646,38 +572,20 @@ Notes on Application and Subcontracting:
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="layers_dft"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Layers & DFT (µm)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., 1 x Alkyd enamel (~50µm)" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Single coat alkyd" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="layers_dft"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Layers & DFT (µm)</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="e.g., 1 x Alkyd enamel (~50µm)" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -685,9 +593,9 @@ Notes on Application and Subcontracting:
                   name="durability_years"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Durability (Years to 1st Major Maintenance)</FormLabel>
+                      <FormLabel>Durability (Years)</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., 2–5, 10–15" {...field} />
+                        <Input placeholder="e.g., 2–5" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -700,7 +608,7 @@ Notes on Application and Subcontracting:
                     <FormItem>
                       <FormLabel>AS/NZS Reference</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., C1, A2, G3" {...field} />
+                        <Input placeholder="e.g., C1" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -722,13 +630,11 @@ Notes on Application and Subcontracting:
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Brush/Roller/Spray">Brush/Roller/Spray</SelectItem>
-                            <SelectItem value="Spray">Spray</SelectItem>
-                            <SelectItem value="Dip Galvanizing">Dip Galvanizing</SelectItem>
-                            <SelectItem value="Double dip galvanizing">Double dip galvanizing</SelectItem>
-                            <SelectItem value="Galv + Spray">Galv + Spray</SelectItem>
-                            <SelectItem value="Thermal spray">Thermal spray</SelectItem>
-                            <SelectItem value="Electrostatic spray & oven cure">Electrostatic spray & oven cure</SelectItem>
-                            <SelectItem value="Galvanizing + powder coating">Galvanizing + powder coating</SelectItem>
+                            <SelectItem value="Airless Spray">Airless Spray</SelectItem>
+                            <SelectItem value="Electrostatic Spray">Electrostatic Spray</SelectItem>
+                            <SelectItem value="Hot Dip Process">Hot Dip Process</SelectItem>
+                            <SelectItem value="Flame/Arc Spray">Flame/Arc Spray</SelectItem>
+                            <SelectItem value="Powder Coating">Powder Coating</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormControl>
@@ -748,11 +654,11 @@ Notes on Application and Subcontracting:
                             <SelectValue placeholder="Select option" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="In-house">In-house</SelectItem>
                             <SelectItem value="In-house (light steel)">In-house (light steel)</SelectItem>
-                            <SelectItem value="In-house/Subcontracted">In-house/Subcontracted</SelectItem>
-                            <SelectItem value="Subcontracted">Subcontracted</SelectItem>
-                            <SelectItem value="Subcontracted specialist">Subcontracted specialist</SelectItem>
+                            <SelectItem value="Subcontracted (structural)">Subcontracted (structural)</SelectItem>
+                            <SelectItem value="Subcontracted (galvanizer)">Subcontracted (galvanizer)</SelectItem>
+                            <SelectItem value="In-house prep + subcontract">In-house prep + subcontract</SelectItem>
+                            <SelectItem value="Fully subcontracted">Fully subcontracted</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormControl>
@@ -762,20 +668,33 @@ Notes on Application and Subcontracting:
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="fire_rating"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fire Rating (if Intumescent)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., 30–90 min, N/A" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="fire_rating"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fire Rating</FormLabel>
+                    <FormControl>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select fire rating" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="N/A">N/A</SelectItem>
+                          <SelectItem value="30 min">30 minutes</SelectItem>
+                          <SelectItem value="60 min">60 minutes</SelectItem>
+                          <SelectItem value="90 min">90 minutes</SelectItem>
+                          <SelectItem value="120 min">120 minutes</SelectItem>
+                          <SelectItem value="240 min">240 minutes</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="unit_cost"
@@ -783,7 +702,7 @@ Notes on Application and Subcontracting:
                     <FormItem>
                       <FormLabel>Price per m²</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., 45.20" type="number" step="0.01" {...field} />
+                        <Input placeholder="e.g., 35.00" type="number" step="0.01" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -910,9 +829,10 @@ Notes on Application and Subcontracting:
                   <FormItem>
                     <FormLabel>Notes</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Additional specifications or requirements" 
-                        {...field} 
+                      <Textarea
+                        placeholder="Additional notes or specifications..."
+                        className="min-h-[100px]"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
