@@ -122,14 +122,90 @@ export class TeamStorage implements ITeamStorage {
   }
 
   async createTeamMember(member: InsertTeamMember): Promise<TeamMember> {
-    const [newMember] = await db.insert(teamMembers).values(member).returning();
+    // Convert date strings to Date objects for database compatibility
+    const processedMember = { ...member } as any;
+    
+    // Helper function to convert date strings
+    const convertDateField = (fieldName: string) => {
+      const value = processedMember[fieldName];
+      if (value && typeof value === 'string') {
+        // Handle various date formats (dd/mm/yyyy, yyyy-mm-dd, etc.)
+        if (value.includes('/')) {
+          // Handle dd/mm/yyyy format
+          const [day, month, year] = value.split('/');
+          processedMember[fieldName] = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else if (value.includes('-')) {
+          // Handle yyyy-mm-dd format
+          processedMember[fieldName] = new Date(value);
+        } else {
+          // Try to parse as-is
+          const parsed = new Date(value);
+          if (!isNaN(parsed.getTime())) {
+            processedMember[fieldName] = parsed;
+          } else {
+            // If parsing fails, remove the field to avoid database error
+            delete processedMember[fieldName];
+          }
+        }
+      }
+    };
+    
+    // Convert all possible date fields
+    convertDateField('dateOfBirth');
+    convertDateField('startDate');
+    convertDateField('endDate');
+    convertDateField('inductionDate');
+    convertDateField('safetyTrainingExpiry');
+    convertDateField('medicalExpiryDate');
+    convertDateField('lastReviewDate');
+    convertDateField('nextReviewDate');
+
+    const [newMember] = await db.insert(teamMembers).values(processedMember).returning();
     return newMember;
   }
 
   async updateTeamMember(id: number, memberData: Partial<InsertTeamMember>): Promise<TeamMember> {
+    // Convert date strings to Date objects for database compatibility
+    const processedData = { ...memberData } as any;
+    
+    // Helper function to convert date strings
+    const convertDateField = (fieldName: string) => {
+      const value = processedData[fieldName];
+      if (value && typeof value === 'string') {
+        // Handle various date formats (dd/mm/yyyy, yyyy-mm-dd, etc.)
+        if (value.includes('/')) {
+          // Handle dd/mm/yyyy format
+          const [day, month, year] = value.split('/');
+          processedData[fieldName] = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else if (value.includes('-')) {
+          // Handle yyyy-mm-dd format
+          processedData[fieldName] = new Date(value);
+        } else {
+          // Try to parse as-is
+          const parsed = new Date(value);
+          if (!isNaN(parsed.getTime())) {
+            processedData[fieldName] = parsed;
+          } else {
+            // If parsing fails, remove the field to avoid database error
+            delete processedData[fieldName];
+          }
+        }
+      }
+    };
+    
+    // Convert all possible date fields
+    convertDateField('dateOfBirth');
+    convertDateField('startDate');
+    convertDateField('endDate');
+    convertDateField('inductionDate');
+    convertDateField('safetyTrainingExpiry');
+    convertDateField('medicalExpiryDate');
+    convertDateField('lastReviewDate');
+    convertDateField('nextReviewDate');
+
     const [updatedMember] = await db
       .update(teamMembers)
-      .set({ ...memberData, updatedAt: new Date() })
+      .set({ ...processedData, updatedAt: new Date() })
       .where(eq(teamMembers.id, id))
       .returning();
     return updatedMember;
