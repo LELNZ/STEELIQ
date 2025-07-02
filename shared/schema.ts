@@ -1848,6 +1848,153 @@ export const leaveRequests = pgTable("leave_requests", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Employee Archive & Audit Tables - Industry Standard Data Retention
+export const archivedEmployees = pgTable("archived_employees", {
+  id: serial("id").primaryKey(),
+  originalUserId: integer("original_user_id").notNull(),
+  originalTeamMemberId: integer("original_team_member_id"),
+  
+  // Complete copy of user data at time of archival
+  username: varchar("username", { length: 255 }),
+  name: varchar("name", { length: 255 }),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 20 }),
+  
+  // Complete copy of team member data
+  roleId: integer("role_id"),
+  roleName: varchar("role_name", { length: 100 }),
+  departmentId: integer("department_id"),
+  departmentName: varchar("department_name", { length: 100 }),
+  
+  employeeNumber: varchar("employee_number", { length: 50 }),
+  employmentType: varchar("employment_type", { length: 50 }),
+  isActive: boolean("is_active"),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  
+  // Personal Information
+  firstName: varchar("first_name", { length: 100 }),
+  lastName: varchar("last_name", { length: 100 }),
+  preferredName: varchar("preferred_name", { length: 100 }),
+  dateOfBirth: date("date_of_birth"),
+  personalEmail: varchar("personal_email", { length: 255 }),
+  personalPhone: varchar("personal_phone", { length: 20 }),
+  
+  // Address
+  streetAddress: varchar("street_address", { length: 200 }),
+  suburb: varchar("suburb", { length: 100 }),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+  postcode: varchar("postcode", { length: 10 }),
+  country: varchar("country", { length: 50 }),
+  
+  // Emergency Contact
+  emergencyContactName: varchar("emergency_contact_name", { length: 100 }),
+  emergencyContactPhone: varchar("emergency_contact_phone", { length: 20 }),
+  emergencyContactRelation: varchar("emergency_contact_relation", { length: 50 }),
+  
+  // Employment Details
+  position: varchar("position", { length: 100 }),
+  jobTitle: varchar("job_title", { length: 100 }),
+  skillLevel: varchar("skill_level", { length: 50 }),
+  primarySkills: jsonb("primary_skills"),
+  secondarySkills: jsonb("secondary_skills"),
+  experienceYears: integer("experience_years"),
+  
+  // Compensation
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
+  overtimeRate: decimal("overtime_rate", { precision: 10, scale: 2 }),
+  siteAllowance: decimal("site_allowance", { precision: 10, scale: 2 }),
+  travelAllowance: decimal("travel_allowance", { precision: 10, scale: 2 }),
+  annualSalary: decimal("annual_salary", { precision: 12, scale: 2 }),
+  payFrequency: varchar("pay_frequency", { length: 20 }),
+  
+  // Certifications & Training
+  certifications: jsonb("certifications"),
+  qualifications: jsonb("qualifications"),
+  licenses: jsonb("licenses"),
+  trainingRecords: jsonb("training_records"),
+  
+  // Health & Safety
+  inductionCompleted: boolean("induction_completed"),
+  inductionDate: date("induction_date"),
+  safetyTrainingExpiry: date("safety_training_expiry"),
+  medicalClearance: boolean("medical_clearance"),
+  medicalExpiryDate: date("medical_expiry_date"),
+  
+  // Performance
+  performanceRating: decimal("performance_rating", { precision: 3, scale: 1 }),
+  lastReviewDate: date("last_review_date"),
+  nextReviewDate: date("next_review_date"),
+  
+  // Leave & Benefits
+  annualLeaveEntitlement: decimal("annual_leave_entitlement", { precision: 5, scale: 2 }),
+  sickLeaveEntitlement: decimal("sick_leave_entitlement", { precision: 5, scale: 2 }),
+  currentLeaveBalance: decimal("current_leave_balance", { precision: 5, scale: 2 }),
+  
+  // Archive Metadata
+  archiveReason: varchar("archive_reason", { length: 100 }),
+  archivedBy: integer("archived_by"),
+  archivedAt: timestamp("archived_at").defaultNow(),
+  legalRetentionUntil: date("legal_retention_until"),
+  canBeDeleted: boolean("can_be_deleted").default(false),
+  
+  // Notes
+  notes: text("notes"),
+  internalNotes: text("internal_notes"),
+  exitInterviewNotes: text("exit_interview_notes"),
+});
+
+export const employeeAuditLog = pgTable("employee_audit_log", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  teamMemberId: integer("team_member_id"),
+  archivedEmployeeId: integer("archived_employee_id"),
+  
+  action: varchar("action", { length: 100 }).notNull(), // CREATE, UPDATE, DELETE, ARCHIVE, LOGIN, LOGOUT
+  actionBy: integer("action_by").references(() => users.id),
+  entityType: varchar("entity_type", { length: 50 }).notNull(), // USER, TEAM_MEMBER, TIMESHEET, etc
+  entityId: varchar("entity_id", { length: 100 }),
+  
+  oldValues: jsonb("old_values"),
+  newValues: jsonb("new_values"),
+  
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  sessionId: varchar("session_id", { length: 100 }),
+  
+  timestamp: timestamp("timestamp").defaultNow(),
+  
+  // Legal & Compliance
+  legalBasis: varchar("legal_basis", { length: 100 }), // EMPLOYMENT, HEALTH_SAFETY, TAX_COMPLIANCE
+  retentionPeriod: varchar("retention_period", { length: 50 }), // 7_YEARS, 20_YEARS, INDEFINITE
+});
+
+export const archivedTimesheets = pgTable("archived_timesheets", {
+  id: serial("id").primaryKey(),
+  originalTimesheetId: integer("original_timesheet_id"),
+  archivedEmployeeId: integer("archived_employee_id").references(() => archivedEmployees.id),
+  
+  jobId: integer("job_id"),
+  jobName: varchar("job_name", { length: 200 }),
+  taskId: integer("task_id"),
+  taskName: varchar("task_name", { length: 200 }),
+  
+  date: date("date").notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time"),
+  breakDuration: integer("break_duration"),
+  totalHours: decimal("total_hours", { precision: 5, scale: 2 }),
+  overtimeHours: decimal("overtime_hours", { precision: 5, scale: 2 }),
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
+  overtimeRate: decimal("overtime_rate", { precision: 10, scale: 2 }),
+  totalPay: decimal("total_pay", { precision: 12, scale: 2 }),
+  workLocation: varchar("work_location", { length: 100 }),
+  notes: text("notes"),
+  
+  archivedAt: timestamp("archived_at").defaultNow(),
+});
+
 export const workSchedules = pgTable("work_schedules", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -1999,3 +2146,11 @@ export type LeaveRequest = typeof leaveRequests.$inferSelect;
 export type InsertLeaveRequest = typeof leaveRequests.$inferInsert;
 export type WorkSchedule = typeof workSchedules.$inferSelect;
 export type InsertWorkSchedule = typeof workSchedules.$inferInsert;
+
+// Employee Archive & Audit Types
+export type ArchivedEmployee = typeof archivedEmployees.$inferSelect;
+export type InsertArchivedEmployee = typeof archivedEmployees.$inferInsert;
+export type EmployeeAuditLog = typeof employeeAuditLog.$inferSelect;
+export type InsertEmployeeAuditLog = typeof employeeAuditLog.$inferInsert;
+export type ArchivedTimesheet = typeof archivedTimesheets.$inferSelect;
+export type InsertArchivedTimesheet = typeof archivedTimesheets.$inferInsert;

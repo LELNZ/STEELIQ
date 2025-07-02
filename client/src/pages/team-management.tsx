@@ -990,15 +990,39 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
+    
+    // Process and validate form data
+    const processedData = {
       ...formData,
       id: member?.id,
       userId: parseInt(formData.userId),
       roleId: parseInt(formData.roleId.toString()),
       departmentId: formData.departmentId && formData.departmentId !== "0" ? parseInt(formData.departmentId.toString()) : undefined,
+      
+      // Convert numeric fields
       hourlyRate: formData.hourlyRate ? parseFloat(formData.hourlyRate) : undefined,
       overtimeRate: formData.overtimeRate ? parseFloat(formData.overtimeRate) : undefined,
-    });
+      siteAllowance: formData.siteAllowance ? parseFloat(formData.siteAllowance) : undefined,
+      travelAllowance: formData.travelAllowance ? parseFloat(formData.travelAllowance) : undefined,
+      annualSalary: formData.annualSalary ? parseFloat(formData.annualSalary) : undefined,
+      experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : undefined,
+      performanceRating: formData.performanceRating ? parseFloat(formData.performanceRating) : undefined,
+      annualLeaveEntitlement: formData.annualLeaveEntitlement ? parseFloat(formData.annualLeaveEntitlement) : undefined,
+      sickLeaveEntitlement: formData.sickLeaveEntitlement ? parseFloat(formData.sickLeaveEntitlement) : undefined,
+      currentLeaveBalance: formData.currentLeaveBalance ? parseFloat(formData.currentLeaveBalance) : undefined,
+      
+      // Convert date fields (ensure proper Date objects or null)
+      startDate: formData.startDate ? new Date(formData.startDate) : null,
+      endDate: formData.endDate ? new Date(formData.endDate) : null,
+      dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth) : null,
+      inductionDate: formData.inductionDate ? new Date(formData.inductionDate) : null,
+      safetyTrainingExpiry: formData.safetyTrainingExpiry ? new Date(formData.safetyTrainingExpiry) : null,
+      medicalExpiryDate: formData.medicalExpiryDate ? new Date(formData.medicalExpiryDate) : null,
+      lastReviewDate: formData.lastReviewDate ? new Date(formData.lastReviewDate) : null,
+      nextReviewDate: formData.nextReviewDate ? new Date(formData.nextReviewDate) : null,
+    };
+    
+    onSubmit(processedData);
   };
 
   const skillOptions = [
