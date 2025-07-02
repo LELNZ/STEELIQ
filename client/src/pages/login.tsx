@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,11 +8,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Shield, Clock, User, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -22,39 +22,33 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [requires2FA, setRequires2FA] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const loginMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      return await apiRequest("/api/auth/login", "POST", data);
-    },
-    onSuccess: (data) => {
-      if (data.requires2FA) {
-        setRequires2FA(true);
-        setLoginError("");
-        return;
-      }
-      
-      // Store user session
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("token", data.token);
-      
-      toast({
-        title: "Welcome Back!",
-        description: `Logged in as ${data.user.name}`,
-      });
-      
-      setLocation("/");
-    },
-    onError: (error: any) => {
-      setLoginError(error.message || "Login failed");
-      setRequires2FA(false);
-    }
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
-    loginMutation.mutate(formData);
+    setIsLoading(true);
+
+    try {
+      const result = await login(
+        formData.username,
+        formData.password,
+        formData.twoFactorCode || undefined
+      );
+
+      if (result?.requires2FA) {
+        setRequires2FA(true);
+        setLoginError("");
+      } else {
+        // Login successful, redirect to dashboard
+        setLocation("/");
+      }
+    } catch (error: any) {
+      setLoginError(error.message || "Login failed");
+      setRequires2FA(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -164,9 +158,9 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 className="w-full h-11"
-                disabled={loginMutation.isPending}
+                disabled={isLoading}
               >
-                {loginMutation.isPending ? (
+                {isLoading ? (
                   "Signing In..."
                 ) : requires2FA ? (
                   "Verify & Sign In"
