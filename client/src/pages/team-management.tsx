@@ -205,7 +205,7 @@ export default function TeamManagement() {
   const userMutation = useMutation({
     mutationFn: async (data: any) => {
       if (data.id) {
-        return apiRequest("PUT", `/api/users/${data.id}`, data);
+        return apiRequest("PATCH", `/api/users/${data.id}`, data);
       } else {
         return apiRequest("POST", "/api/users", data);
       }
@@ -216,7 +216,7 @@ export default function TeamManagement() {
       setSelectedUser(null);
       toast({
         title: "Success",
-        description: "User account created successfully",
+        description: selectedUser ? "User account updated successfully" : "User account created successfully",
       });
     },
     onError: (error: any) => {
