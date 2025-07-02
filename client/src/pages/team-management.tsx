@@ -52,20 +52,11 @@ interface TeamMember {
   roleId: number;
   departmentId?: number;
   isActive: boolean;
-  startDate: string;
-  endDate?: string;
-  employeeNumber?: string;
-  position?: string;
-  skillLevel?: string;
   hourlyRate?: number;
-  overtimeRate?: number;
-  user: {
-    id: number;
-    name: string;
-    username: string;
-  };
-  role: Role;
-  department?: Department;
+  userName: string;
+  userUsername: string;
+  roleName: string;
+  departmentName?: string;
 }
 
 const DEFAULT_PERMISSIONS = {
@@ -279,20 +270,18 @@ export default function TeamManagement() {
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
               <span className="text-sm font-medium text-blue-600">
-                {member.user.name?.[0]}{member.user.name?.split(' ')[1]?.[0] || ''}
+                {member.userName?.[0]}{member.userName?.split(' ')[1]?.[0] || ''}
               </span>
             </div>
             <div>
-              <h3 className="font-medium">{member.user.name}</h3>
-              <p className="text-sm text-muted-foreground">{member.user.username}</p>
+              <h3 className="font-medium">{member.userName}</h3>
+              <p className="text-sm text-muted-foreground">{member.userUsername}</p>
               <div className="flex items-center space-x-2 mt-1">
-                <Badge variant="outline">{member.role.name}</Badge>
-                {member.department && (
-                  <Badge variant="secondary">{member.department.name}</Badge>
+                <Badge variant="outline">{member.roleName}</Badge>
+                {member.departmentName && (
+                  <Badge variant="secondary">{member.departmentName}</Badge>
                 )}
-                {member.skillLevel && (
-                  <Badge variant="outline">{member.skillLevel}</Badge>
-                )}
+
               </div>
             </div>
           </div>
