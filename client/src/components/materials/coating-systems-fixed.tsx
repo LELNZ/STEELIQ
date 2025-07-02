@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -321,7 +322,7 @@ Notes on Application and Subcontracting:
         </Card>
       )}
 
-      {/* Search and Filter Controls */}
+      {/* Search Controls */}
       <div className="flex gap-4 items-center">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -332,33 +333,101 @@ Notes on Application and Subcontracting:
             className="pl-10"
           />
         </div>
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Filter by category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
-      {/* Results Summary */}
-      <div className="flex items-center gap-4">
-        <Badge variant="secondary">
-          {filteredMaterials.length} coating systems
-        </Badge>
-        {selectedCategory !== "all" && (
-          <Badge variant="outline">{selectedCategory}</Badge>
-        )}
-      </div>
+      {/* Category Tabs */}
+      <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="all">All Coatings</TabsTrigger>
+          {categories.slice(0, 5).map((category) => (
+            <TabsTrigger key={category} value={category} className="text-xs">
+              {category.replace(' Systems', '')}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-      {/* Coating Systems Table */}
-      <Card>
+        {/* All Coatings Tab Content */}
+        <TabsContent value="all" className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Badge variant="secondary">
+              {filteredMaterials.length} coating systems
+            </Badge>
+          </div>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Layers & DFT (µm)</TableHead>
+                  <TableHead>Durability (Years)</TableHead>
+                  <TableHead>AS/NZS Reference</TableHead>
+                  <TableHead>Application Method</TableHead>
+                  <TableHead>In-house/Subcontracted</TableHead>
+                  <TableHead>Price per m²</TableHead>
+                  <TableHead>Price per kg</TableHead>
+                  <TableHead>Fire Rating</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMaterials.map((material: Material) => (
+                  <TableRow key={material.id}>
+                    <TableCell className="font-mono font-medium">
+                      {material.code}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{material.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {material.category}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {getLayersDft(material)}
+                    </TableCell>
+                    <TableCell>{getDurabilityYears(material)}</TableCell>
+                    <TableCell>{getAsNzsReference(material)}</TableCell>
+                    <TableCell>{getApplicationMethod(material)}</TableCell>
+                    <TableCell>{getInHouseSubcontracted(material)}</TableCell>
+                    <TableCell className="font-medium">
+                      {getPricePerSqm(material)}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {getPricePerKg(material)}
+                    </TableCell>
+                    <TableCell>
+                      {getFireRating(material) !== "N/A" ? (
+                        <Badge variant="destructive">{getFireRating(material)}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">N/A</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(material)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(material.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
         <Table>
           <TableHeader>
             <TableRow>
@@ -430,8 +499,96 @@ Notes on Application and Subcontracting:
               </TableRow>
             ))}
           </TableBody>
-        </Table>
-      </Card>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        {/* Individual category tabs */}
+        {categories.map((category) => (
+          <TabsContent key={category} value={category} className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Badge variant="secondary">
+                {filteredMaterials.filter(m => m.category === category).length} coating systems
+              </Badge>
+              <Badge variant="outline">{category}</Badge>
+            </div>
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Layers & DFT (µm)</TableHead>
+                    <TableHead>Durability (Years)</TableHead>
+                    <TableHead>AS/NZS Reference</TableHead>
+                    <TableHead>Application Method</TableHead>
+                    <TableHead>In-house/Subcontracted</TableHead>
+                    <TableHead>Price per m²</TableHead>
+                    <TableHead>Price per kg</TableHead>
+                    <TableHead>Fire Rating</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredMaterials.filter(m => m.category === category).map((material: Material) => (
+                    <TableRow key={material.id}>
+                      <TableCell className="font-mono font-medium">
+                        {material.code}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{material.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {material.category}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {getLayersDft(material)}
+                      </TableCell>
+                      <TableCell>{getDurabilityYears(material)}</TableCell>
+                      <TableCell>{getAsNzsReference(material)}</TableCell>
+                      <TableCell>{getApplicationMethod(material)}</TableCell>
+                      <TableCell>{getInHouseSubcontracted(material)}</TableCell>
+                      <TableCell className="font-medium">
+                        {getPricePerSqm(material)}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {getPricePerKg(material)}
+                      </TableCell>
+                      <TableCell>
+                        {getFireRating(material) !== "N/A" ? (
+                          <Badge variant="destructive">{getFireRating(material)}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">N/A</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(material)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(material.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+        ))}
+      </Tabs>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
