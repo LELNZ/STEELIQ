@@ -94,9 +94,9 @@ export function ConsumableAddModal({ open, onOpenChange, suppliers }: Consumable
         price_per_meter: parseFloat(data.pricePerUnit) || 0,
         weight_per_meter: 0, // Not applicable for consumables
         surface_area_per_meter: 0, // Not applicable for consumables
-        thickness: 0,
-        width: 0,
-        diameter: 0,
+        thickness: "0",
+        width: "0", 
+        diameter: "0",
         standard: data.specifications || "",
         grade: data.brand,
         supplier_id: data.supplierId ? parseInt(data.supplierId) : null,

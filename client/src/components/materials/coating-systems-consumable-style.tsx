@@ -207,14 +207,38 @@ export default function CoatingSystemsConsumableStyle() {
 
   const onSubmit = (data: CoatingFormData) => {
     const processedData = {
-      ...data,
-      unitCost: data.unit_cost ? parseFloat(data.unit_cost) : undefined,
-      pricePerKg: data.price_per_kg ? parseFloat(data.price_per_kg) : undefined,
-      coverageRate: data.coverage_rate ? parseFloat(data.coverage_rate) : undefined,
-      coverageUnit: data.coverage_unit || undefined,
-      unit_cost: undefined,
-      price_per_kg: undefined,
-      coverage_rate: undefined,
+      code: data.code,
+      name: data.name,
+      category: data.category,
+      // Map coating-specific fields to material schema
+      layersDft: data.layers_dft,
+      durabilityYears: data.durability_years,
+      asNzsReference: data.as_nzs_reference,
+      applicationMethod: data.application_method,
+      fireRating: data.fire_rating,
+      
+      // Pricing fields
+      unitCost: data.unit_cost ? parseFloat(data.unit_cost) : 0,
+      pricePerKg: data.price_per_kg ? parseFloat(data.price_per_kg) : 0,
+      pricePerMeter: 0, // Not applicable for coatings
+      
+      // Coverage data
+      coverageRate: data.coverage_rate ? parseFloat(data.coverage_rate) : 0,
+      coverageUnit: data.coverage_unit || "m2_per_L",
+      
+      // Required numeric fields as strings to match schema
+      thickness: "0",
+      width: "0",
+      diameter: "0",
+      depth: "0",
+      weightPerMeter: 0,
+      surfaceAreaPerMeter: 0,
+      
+      // Standard fields
+      standard: data.as_nzs_reference || "",
+      grade: "",
+      coating: data.name,
+      
       ...(editingMaterial && { id: editingMaterial.id }),
     };
     
