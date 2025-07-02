@@ -19,9 +19,28 @@ export const users = pgTable("users", {
   lastLogin: timestamp("last_login"),
   passwordResetToken: text("password_reset_token"),
   passwordResetExpiry: timestamp("password_reset_expiry"),
+  twoFactorSecret: text("two_factor_secret"), // Base32 encoded secret for TOTP
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  twoFactorBackupCodes: jsonb("two_factor_backup_codes"), // Array of backup codes
+  loginAttempts: integer("login_attempts").default(0),
+  lockedUntil: timestamp("locked_until"), // Account lockout
+  sessionToken: text("session_token"), // Current session token
+  profileImageUrl: text("profile_image_url"),
   createdBy: integer("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Authentication sessions table
+export const authSessions = pgTable("auth_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  token: text("token").notNull().unique(),
+  deviceInfo: text("device_info"), // Browser/device details
+  ipAddress: text("ip_address"),
+  location: text("location"), // Geographic location
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Material categories and types

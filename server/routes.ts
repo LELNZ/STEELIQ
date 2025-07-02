@@ -7,6 +7,7 @@ import { businessSettingsStorage } from "./businessSettings";
 import { laborRatesStorage } from "./laborRates";
 import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
+import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
 import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers } from "@shared/schema";
 import { z } from "zod";
