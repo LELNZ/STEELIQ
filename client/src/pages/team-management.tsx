@@ -14,7 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activity, ChevronRight, ShieldCheck, Target } from "lucide-react";
+import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activity, ChevronRight, ShieldCheck, Target, UserX } from "lucide-react";
 import { PermissionViewer } from "@/components/team/PermissionViewer";
 import { PerformanceDashboard } from "@/components/team/PerformanceDashboard";
 
@@ -565,7 +565,7 @@ export default function TeamManagement() {
           <TabsTrigger value="capacity">Capacity Planning</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="users" className="space-y-4">
+        <TabsContent value="users" className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">User Accounts ({availableUsers.length})</h2>
             <Dialog open={isEditingUser} onOpenChange={setIsEditingUser}>
@@ -589,11 +589,45 @@ export default function TeamManagement() {
               </DialogContent>
             </Dialog>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {availableUsers.map((user: any) => (
-              <UserCard key={user.id} user={user} />
-            ))}
-          </div>
+          
+          {/* Active Users Section */}
+          {availableUsers.filter((user: any) => user.isActive).length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Users className="w-5 h-5 text-green-600" />
+                <h3 className="text-lg font-medium text-green-700">Active Users ({availableUsers.filter((user: any) => user.isActive).length})</h3>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {availableUsers.filter((user: any) => user.isActive).map((user: any) => (
+                  <UserCard key={user.id} user={user} />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Inactive Users Section */}
+          {availableUsers.filter((user: any) => !user.isActive).length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2 pt-6 border-t border-gray-200">
+                <UserX className="w-5 h-5 text-gray-500" />
+                <h3 className="text-lg font-medium text-gray-600">Inactive Users ({availableUsers.filter((user: any) => !user.isActive).length})</h3>
+                <Badge variant="secondary" className="ml-2">No Login Access</Badge>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {availableUsers.filter((user: any) => !user.isActive).map((user: any) => (
+                  <UserCard key={user.id} user={user} />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Empty State */}
+          {availableUsers.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <p>No user accounts found. Create the first user account to get started.</p>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="members" className="space-y-4">
@@ -1763,25 +1797,52 @@ function UserCard({ user }: { user: any }) {
   };
   
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className={`hover:shadow-md transition-all duration-200 ${
+      !user.isActive ? "opacity-60 border-gray-300 bg-gray-50" : "hover:shadow-md"
+    }`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <h3 className="font-medium flex items-center">
-              <Users className="w-4 h-4 mr-2" />
+            <h3 className={`font-medium flex items-center ${
+              !user.isActive ? "text-gray-600" : ""
+            }`}>
+              {user.isActive ? (
+                <Users className="w-4 h-4 mr-2 text-green-600" />
+              ) : (
+                <UserX className="w-4 h-4 mr-2 text-gray-500" />
+              )}
               {user.name}
+              {!user.isActive && (
+                <span className="ml-2 text-xs font-normal text-red-600 bg-red-100 px-2 py-1 rounded-full">
+                  INACTIVE
+                </span>
+              )}
             </h3>
-            <p className="text-sm text-muted-foreground mt-1">@{user.username}</p>
+            <p className={`text-sm mt-1 ${
+              !user.isActive ? "text-gray-500" : "text-muted-foreground"
+            }`}>@{user.username}</p>
             {user.email && (
-              <p className="text-sm text-muted-foreground">{user.email}</p>
+              <p className={`text-sm ${
+                !user.isActive ? "text-gray-500" : "text-muted-foreground"
+              }`}>{user.email}</p>
             )}
             <div className="mt-2 flex items-center space-x-2">
+              <Badge variant={user.isActive ? "default" : "secondary"}>
+                {user.isActive ? "Active" : "Inactive"}
+              </Badge>
               <Badge variant={hasTeamMember ? "default" : "secondary"}>
                 {hasTeamMember ? "Employee Profile" : "Account Only"}
               </Badge>
-              <Badge variant="outline">
-                Login Access
-              </Badge>
+              {user.isActive && (
+                <Badge variant="outline" className="text-green-600 border-green-600">
+                  Login Access
+                </Badge>
+              )}
+              {!user.isActive && (
+                <Badge variant="outline" className="text-red-600 border-red-600">
+                  No Login Access
+                </Badge>
+              )}
             </div>
             {hasTeamMember && (
               <p className="text-sm mt-2 text-green-600">
