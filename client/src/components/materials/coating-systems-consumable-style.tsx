@@ -152,9 +152,7 @@ export default function CoatingSystemsConsumableStyle() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await fetch(`/api/materials/${id}`, {
-        method: "DELETE",
-      }).then(res => res.json());
+      await apiRequest("DELETE", `/api/materials/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });

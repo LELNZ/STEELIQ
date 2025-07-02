@@ -48,7 +48,7 @@ export function EnhancedSteelCatalogueTable({
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest(`/api/materials/${id}`, "DELETE");
+      await apiRequest("DELETE", `/api/materials/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
