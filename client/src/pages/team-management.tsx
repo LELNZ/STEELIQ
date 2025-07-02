@@ -1701,7 +1701,45 @@ function DepartmentForm({ department, users, onSubmit, isLoading }: any) {
 
 // User Card Component
 function UserCard({ user }: { user: any }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const hasTeamMember = user.teamMember && user.teamMember.length > 0;
+  
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userData: { userId: number; archiveReason: string }) => {
+      return await apiRequest(`/api/users/${userData.userId}/archive`, "POST", {
+        archiveReason: userData.archiveReason
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/team/members"] });
+      toast({
+        title: "User Archived",
+        description: "User account has been archived with all data retained for legal compliance.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Archive Failed", 
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleArchiveUser = () => {
+    const reason = hasTeamMember 
+      ? "Employee termination - full data archived" 
+      : "Unused account removal - basic data archived";
+      
+    if (confirm(`Archive user account "${user.username}"?\n\nThis will:\n• Remove login access immediately\n• Archive all data for legal retention\n• Cannot be undone\n\nReason: ${reason}`)) {
+      deleteUserMutation.mutate({
+        userId: user.id,
+        archiveReason: reason
+      });
+    }
+  };
   
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -1734,6 +1772,26 @@ function UserCard({ user }: { user: any }) {
                 ⚠ No employee profile yet
               </p>
             )}
+          </div>
+          <div className="flex flex-col space-y-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedUser(user);
+                setIsEditingUser(true);
+              }}
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleArchiveUser}
+              disabled={deleteUserMutation.isPending}
+            >
+              <Trash2 className="w-4 h-4 text-red-500" />
+            </Button>
           </div>
         </div>
       </CardContent>

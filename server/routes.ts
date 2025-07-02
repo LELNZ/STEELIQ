@@ -756,6 +756,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Archive user with comprehensive data retention
+  app.post("/api/users/:id/archive", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { archiveReason } = req.body;
+      
+      // Get current user data
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Get associated team member data if exists
+      const teamMember = await storage.getTeamMemberByUserId(userId);
+      
+      // Archive the user data
+      await storage.archiveUser({
+        originalUserId: userId,
+        originalTeamMemberId: teamMember?.id || null,
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        roleId: teamMember?.roleId || null,
+        roleName: teamMember?.role?.name || null,
+        departmentId: teamMember?.departmentId || null,
+        departmentName: teamMember?.department?.name || null,
+        employeeNumber: teamMember?.employeeNumber || null,
+        employmentType: teamMember?.employmentType || null,
+        isActive: teamMember?.isActive || false,
+        startDate: teamMember?.startDate || null,
+        endDate: teamMember?.endDate || new Date(),
+        firstName: teamMember?.firstName || null,
+        lastName: teamMember?.lastName || null,
+        preferredName: teamMember?.preferredName || null,
+        dateOfBirth: teamMember?.dateOfBirth || null,
+        personalEmail: teamMember?.personalEmail || null,
+        personalPhone: teamMember?.personalPhone || null,
+        streetAddress: teamMember?.streetAddress || null,
+        suburb: teamMember?.suburb || null,
+        city: teamMember?.city || null,
+        state: teamMember?.state || null,
+        postcode: teamMember?.postcode || null,
+        country: teamMember?.country || null,
+        emergencyContactName: teamMember?.emergencyContactName || null,
+        emergencyContactPhone: teamMember?.emergencyContactPhone || null,
+        emergencyContactRelation: teamMember?.emergencyContactRelation || null,
+        position: teamMember?.position || null,
+        jobTitle: teamMember?.jobTitle || null,
+        skillLevel: teamMember?.skillLevel || null,
+        primarySkills: teamMember?.primarySkills || null,
+        secondarySkills: teamMember?.secondarySkills || null,
+        experienceYears: teamMember?.experienceYears || null,
+        hourlyRate: teamMember?.hourlyRate || null,
+        overtimeRate: teamMember?.overtimeRate || null,
+        siteAllowance: teamMember?.siteAllowance || null,
+        travelAllowance: teamMember?.travelAllowance || null,
+        annualSalary: teamMember?.annualSalary || null,
+        payFrequency: teamMember?.payFrequency || null,
+        certifications: teamMember?.certifications || null,
+        qualifications: teamMember?.qualifications || null,
+        licenses: teamMember?.licenses || null,
+        trainingRecords: teamMember?.trainingRecords || null,
+        inductionCompleted: teamMember?.inductionCompleted || false,
+        inductionDate: teamMember?.inductionDate || null,
+        safetyTrainingExpiry: teamMember?.safetyTrainingExpiry || null,
+        medicalClearance: teamMember?.medicalClearance || false,
+        medicalExpiryDate: teamMember?.medicalExpiryDate || null,
+        performanceRating: teamMember?.performanceRating || null,
+        lastReviewDate: teamMember?.lastReviewDate || null,
+        nextReviewDate: teamMember?.nextReviewDate || null,
+        annualLeaveEntitlement: teamMember?.annualLeaveEntitlement || null,
+        sickLeaveEntitlement: teamMember?.sickLeaveEntitlement || null,
+        currentLeaveBalance: teamMember?.currentLeaveBalance || null,
+        archiveReason: archiveReason,
+        archivedBy: 1, // TODO: Get from authenticated user
+        legalRetentionUntil: new Date(Date.now() + (7 * 365 * 24 * 60 * 60 * 1000)), // 7 years
+        canBeDeleted: false,
+        notes: teamMember?.notes || null,
+        internalNotes: teamMember?.internalNotes || null,
+        exitInterviewNotes: null,
+      });
+      
+      // Log the archive action
+      await storage.logEmployeeAudit({
+        userId: userId,
+        teamMemberId: teamMember?.id || null,
+        action: "ARCHIVE",
+        actionBy: 1, // TODO: Get from authenticated user
+        entityType: "USER",
+        entityId: userId.toString(),
+        oldValues: { user, teamMember },
+        newValues: { archived: true, reason: archiveReason },
+        legalBasis: "EMPLOYMENT",
+        retentionPeriod: "7_YEARS",
+      });
+      
+      // Delete from active tables
+      if (teamMember) {
+        await storage.deleteTeamMember(teamMember.id);
+      }
+      await storage.deleteUser(userId);
+      
+      res.json({ 
+        success: true, 
+        message: "User archived successfully",
+        retentionUntil: new Date(Date.now() + (7 * 365 * 24 * 60 * 60 * 1000))
+      });
+    } catch (error) {
+      console.error("Error archiving user:", error);
+      res.status(500).json({ error: "Failed to archive user" });
+    }
+  });
+
   // Supplier Contacts routes
   app.get("/api/supplier-contacts", async (req, res) => {
     try {

@@ -4,6 +4,7 @@ import {
   suppliers, materialSuppliers, supplierPriceHistory, supplierContacts,
   clients, clientContacts, locations, savedFilters,
   estimationProjects, estimationMaterials, estimationLabor, estimationEquipment, estimationConsumables,
+  teamMembers, archivedEmployees, employeeAuditLog,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
@@ -14,7 +15,8 @@ import {
   type SupplierPriceHistory, type InsertSupplierPriceHistory, type SupplierContact, type InsertSupplierContact,
   type Client, type InsertClient, type ClientContact, type InsertClientContact,
   type Location, type InsertLocation, type SavedFilter, type InsertSavedFilter,
-  type EstimationProject, type InsertEstimationProject
+  type EstimationProject, type InsertEstimationProject, type TeamMember, type InsertTeamMember,
+  type ArchivedEmployee, type InsertArchivedEmployee, type EmployeeAuditLog, type InsertEmployeeAuditLog
 } from "@shared/schema";
 import { desc, eq, lt, asc, like, and, or, sql } from "drizzle-orm";
 import { db } from "./db";
@@ -27,6 +29,15 @@ export interface IStorage {
   getUsers(): Promise<User[]>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   updateUserLastLogin(id: number): Promise<void>;
+  deleteUser(id: number): Promise<void>;
+  
+  // Team Members
+  getTeamMemberByUserId(userId: number): Promise<TeamMember | undefined>;
+  deleteTeamMember(id: number): Promise<void>;
+  
+  // Employee Archive
+  archiveUser(data: InsertArchivedEmployee): Promise<ArchivedEmployee>;
+  logEmployeeAudit(data: InsertEmployeeAuditLog): Promise<EmployeeAuditLog>;
 
   // Material Categories
   getMaterialCategories(): Promise<MaterialCategory[]>;
