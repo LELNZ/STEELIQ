@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 interface User {
   id: number;
@@ -8,13 +8,11 @@ interface User {
   name: string;
   email?: string;
   role: string;
-  department: string;
-  hourlyRate: string;
-  permissions: any;
-  profileImageUrl?: string;
+  department?: string;
   isActive: boolean;
-  lastLogin?: Date;
+  profileImageUrl?: string;
   twoFactorEnabled: boolean;
+  lastLogin?: Date;
 }
 
 interface AuthContextType {
@@ -35,28 +33,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [currentClockStatus, setCurrentClockStatus] = useState<"clocked-in" | "clocked-out" | "break" | null>(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  // Check for existing session on mount
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
-    
-    if (storedUser && token) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
-      }
-    }
-  }, []);
-
-  // Get current user data if authenticated
-  const { data: currentUser, isLoading, refetch: refreshUser } = useQuery({
-    queryKey: ["/api/auth/me"],
-    enabled: !!user,
+  // Query to check authentication status
+  const { data: authData, isLoading, refetch } = useQuery({
+    queryKey: ["/api/auth/user"],
     retry: false,
-    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Get current clock status
@@ -67,110 +50,183 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    if (currentUser) {
-      setUser(currentUser);
+    if (authData) {
+      setUser(authData as User);
+    } else {
+      setUser(null);
     }
-  }, [currentUser]);
+  }, [authData]);
 
   useEffect(() => {
-    if (clockStatus) {
+    if (clockStatus?.status) {
       setCurrentClockStatus(clockStatus.status);
     }
   }, [clockStatus]);
 
-  const loginMutation = useMutation({
-    mutationFn: async ({ username, password, twoFactorCode }: { 
-      username: string; 
-      password: string; 
-      twoFactorCode?: string; 
-    }) => {
-      return await apiRequest("/api/auth/login", "POST", {
-        username,
-        password,
-        twoFactorCode
-      });
-    },
-    onSuccess: (data) => {
-      if (!data.requires2FA) {
-        setUser(data.user);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("token", data.token);
-        queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/time/clock-status"] });
-      }
-    }
-  });
-
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest("/api/auth/logout", "POST");
-    },
-    onSuccess: () => {
-      setUser(null);
-      setCurrentClockStatus(null);
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
-      queryClient.clear();
-    }
-  });
-
-  const clockInMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest("/api/time/clock-in", "POST", {
-        userId: user?.id,
-        location: "Office", // Could be enhanced with GPS
-        notes: ""
-      });
-    },
-    onSuccess: () => {
-      setCurrentClockStatus("clocked-in");
-      queryClient.invalidateQueries({ queryKey: ["/api/time/clock-status"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/time/clocks/today"] });
-    }
-  });
-
-  const clockOutMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest("/api/time/clock-out", "POST", {
-        userId: user?.id,
-        notes: ""
-      });
-    },
-    onSuccess: () => {
-      setCurrentClockStatus("clocked-out");
-      queryClient.invalidateQueries({ queryKey: ["/api/time/clock-status"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/time/clocks/today"] });
-    }
-  });
-
   const login = async (username: string, password: string, twoFactorCode?: string) => {
-    return loginMutation.mutateAsync({ username, password, twoFactorCode });
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password, twoFactorCode }),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      if (data.requires2FA) {
+        return { requires2FA: true };
+      }
+
+      // Set user and authentication state
+      setUser(data.user);
+      
+      // Refetch user data
+      await refetch();
+
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${data.user.name}!`,
+      });
+
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid credentials",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
   const logout = async () => {
-    return logoutMutation.mutateAsync();
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      // Clear local state
+      setUser(null);
+      setCurrentClockStatus(null);
+
+      // Clear all cached data
+      queryClient.clear();
+
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still clear local state even if logout request fails
+      setUser(null);
+      setCurrentClockStatus(null);
+      queryClient.clear();
+    }
   };
 
   const clockIn = async () => {
-    return clockInMutation.mutateAsync();
+    if (!user) return;
+    
+    try {
+      const response = await fetch('/api/time/clock-in', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clock in');
+      }
+
+      setCurrentClockStatus("clocked-in");
+      
+      // Refetch clock status
+      queryClient.invalidateQueries({ queryKey: ["/api/time/clock-status"] });
+
+      toast({
+        title: "Clocked In",
+        description: "You have successfully clocked in.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Clock In Failed",
+        description: error.message || "Failed to clock in",
+        variant: "destructive",
+      });
+    }
   };
 
   const clockOut = async () => {
-    return clockOutMutation.mutateAsync();
+    if (!user) return;
+    
+    try {
+      const response = await fetch('/api/time/clock-out', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clock out');
+      }
+
+      setCurrentClockStatus("clocked-out");
+      
+      // Refetch clock status
+      queryClient.invalidateQueries({ queryKey: ["/api/time/clock-status"] });
+
+      toast({
+        title: "Clocked Out",
+        description: "You have successfully clocked out.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Clock Out Failed",
+        description: error.message || "Failed to clock out",
+        variant: "destructive",
+      });
+    }
   };
 
+  const refreshUser = async (): Promise<void> => {
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+    }
+  };
+
+  const isAuthenticated = !!user;
+
   return (
-    <AuthContext.Provider value={{
-      user,
-      isLoading,
-      isAuthenticated: !!user,
-      login,
-      logout,
-      clockIn,
-      clockOut,
-      currentClockStatus,
-      refreshUser: () => refreshUser()
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated,
+        login,
+        logout,
+        clockIn,
+        clockOut,
+        currentClockStatus,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -179,7 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }
