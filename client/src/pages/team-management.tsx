@@ -120,9 +120,9 @@ export default function TeamManagement() {
   const memberMutation = useMutation({
     mutationFn: async (data: any) => {
       if (data.id) {
-        return apiRequest(`/api/team/members/${data.id}`, "PUT", data);
+        return apiRequest("PUT", `/api/team/members/${data.id}`, data);
       } else {
-        return apiRequest("/api/team/members", "POST", data);
+        return apiRequest("POST", "/api/team/members", data);
       }
     },
     onSuccess: () => {
@@ -147,9 +147,9 @@ export default function TeamManagement() {
   const roleMutation = useMutation({
     mutationFn: async (data: any) => {
       if (data.id) {
-        return apiRequest(`/api/team/roles/${data.id}`, "PUT", data);
+        return apiRequest("PUT", `/api/team/roles/${data.id}`, data);
       } else {
-        return apiRequest("/api/team/roles", "POST", data);
+        return apiRequest("POST", "/api/team/roles", data);
       }
     },
     onSuccess: () => {
@@ -174,9 +174,9 @@ export default function TeamManagement() {
   const departmentMutation = useMutation({
     mutationFn: async (data: any) => {
       if (data.id) {
-        return apiRequest(`/api/team/departments/${data.id}`, "PUT", data);
+        return apiRequest("PUT", `/api/team/departments/${data.id}`, data);
       } else {
-        return apiRequest("/api/team/departments", "POST", data);
+        return apiRequest("POST", "/api/team/departments", data);
       }
     },
     onSuccess: () => {
@@ -200,7 +200,7 @@ export default function TeamManagement() {
   // Delete mutations
   const deleteMemberMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/team/members/${id}`, "DELETE");
+      return apiRequest("DELETE", `/api/team/members/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/members"] });
@@ -213,7 +213,7 @@ export default function TeamManagement() {
 
   const deleteRoleMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/team/roles/${id}`, "DELETE");
+      return apiRequest("DELETE", `/api/team/roles/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/roles"] });
@@ -226,7 +226,7 @@ export default function TeamManagement() {
 
   const deleteDepartmentMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/team/departments/${id}`, "DELETE");
+      return apiRequest("DELETE", `/api/team/departments/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/departments"] });
