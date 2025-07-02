@@ -783,7 +783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         roleName: teamMember?.role?.name || null,
         departmentId: teamMember?.departmentId || null,
         departmentName: teamMember?.department?.name || null,
-        employeeNumber: teamMember?.employeeNumber || null,
+        employeeNumber: null,
         employmentType: teamMember?.employmentType || null,
         isActive: teamMember?.isActive || false,
         startDate: teamMember?.startDate || null,
