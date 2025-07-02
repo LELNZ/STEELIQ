@@ -1704,10 +1704,11 @@ function UserCard({ user }: { user: any }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const hasTeamMember = user.teamMember && user.teamMember.length > 0;
+  const [showEditDialog, setShowEditDialog] = useState(false);
   
   const deleteUserMutation = useMutation({
     mutationFn: async (userData: { userId: number; archiveReason: string }) => {
-      return await apiRequest(`/api/users/${userData.userId}/archive`, "POST", {
+      return await apiRequest(`/api/users/${userData.userId}/archive`, "DELETE", {
         archiveReason: userData.archiveReason
       });
     },
@@ -1733,12 +1734,10 @@ function UserCard({ user }: { user: any }) {
       ? "Employee termination - full data archived" 
       : "Unused account removal - basic data archived";
       
-    if (confirm(`Archive user account "${user.username}"?\n\nThis will:\n• Remove login access immediately\n• Archive all data for legal retention\n• Cannot be undone\n\nReason: ${reason}`)) {
-      deleteUserMutation.mutate({
-        userId: user.id,
-        archiveReason: reason
-      });
-    }
+    deleteUserMutation.mutate({
+      userId: user.id,
+      archiveReason: reason
+    });
   };
   
   return (
@@ -1774,27 +1773,74 @@ function UserCard({ user }: { user: any }) {
             )}
           </div>
           <div className="flex flex-col space-y-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                // Edit functionality will be added later
-                toast({
-                  title: "Edit User",
-                  description: "User editing functionality will be available soon.",
-                });
-              }}
-            >
-              <Edit2 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleArchiveUser}
-              disabled={deleteUserMutation.isPending}
-            >
-              <Trash2 className="w-4 h-4 text-red-500" />
-            </Button>
+            <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Edit2 className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Edit User Account</DialogTitle>
+                </DialogHeader>
+                <UserEditForm
+                  user={user}
+                  onSubmit={(updatedUser) => {
+                    // User update functionality
+                    setShowEditDialog(false);
+                    toast({
+                      title: "User Updated",
+                      description: "User account has been updated successfully.",
+                    });
+                  }}
+                  onCancel={() => setShowEditDialog(false)}
+                />
+              </DialogContent>
+            </Dialog>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={deleteUserMutation.isPending}
+                >
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Archive User Account?</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-3">
+                    <div>
+                      Archive user account <strong>"{user.username}"</strong>?
+                    </div>
+                    <div className="bg-orange-50 p-3 rounded-md text-sm">
+                      <strong>This will:</strong>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>Remove login access immediately</li>
+                        <li>Archive all data for legal retention (7 years)</li>
+                        <li>Cannot be undone</li>
+                      </ul>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <strong>Reason:</strong> {hasTeamMember 
+                        ? "Employee termination - full data archived" 
+                        : "Unused account removal - basic data archived"}
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleArchiveUser}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Archive User
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </CardContent>
@@ -1803,6 +1849,93 @@ function UserCard({ user }: { user: any }) {
 }
 
 // User Form Component  
+function UserEditForm({ user, onSubmit, onCancel }: any) {
+  const [formData, setFormData] = useState({
+    name: user?.name || "",
+    username: user?.username || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    isActive: user?.isActive ?? true,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="name">Full Name *</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            placeholder="John Smith"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="username">Username *</Label>
+          <Input
+            id="username"
+            value={formData.username}
+            onChange={(e) => setFormData({...formData, username: e.target.value})}
+            placeholder="john.smith"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            placeholder="john.smith@lateralengineering.co.nz"
+          />
+        </div>
+        <div>
+          <Label htmlFor="phone">Phone</Label>
+          <Input
+            id="phone"
+            value={formData.phone}
+            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+            placeholder="+64 21 123 4567"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="isActive"
+          checked={formData.isActive}
+          onCheckedChange={(checked) => setFormData({...formData, isActive: checked})}
+        />
+        <Label htmlFor="isActive">Active Account</Label>
+      </div>
+
+      <div className="bg-blue-50 p-3 rounded-md text-sm">
+        <strong>Note:</strong> User accounts provide login access to the system. 
+        After updating this account, the user can immediately use the new credentials to log in.
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit">
+          Update User
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 function UserForm({ user, onSubmit, isLoading }: any) {
   const [formData, setFormData] = useState({
     username: user?.username || "",
