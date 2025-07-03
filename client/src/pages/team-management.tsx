@@ -90,7 +90,7 @@ const SKILL_LEVELS = [
 export default function TeamManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("users");
+  const [activeTab, setActiveTab] = useState("members");
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
@@ -557,12 +557,12 @@ export default function TeamManagement() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="users">User Accounts</TabsTrigger>
-          <TabsTrigger value="members">Team Members</TabsTrigger>
-          <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
-          <TabsTrigger value="departments">Departments</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="capacity">Capacity Planning</TabsTrigger>
+          <TabsTrigger value="members">📋 Employees</TabsTrigger>
+          <TabsTrigger value="users">🔐 User Accounts</TabsTrigger>
+          <TabsTrigger value="roles">🛡️ Roles & Permissions</TabsTrigger>
+          <TabsTrigger value="departments">🏢 Departments</TabsTrigger>
+          <TabsTrigger value="performance">📊 Performance</TabsTrigger>
+          <TabsTrigger value="capacity">⚖️ Capacity Planning</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-6">
@@ -630,12 +630,51 @@ export default function TeamManagement() {
           )}
         </TabsContent>
 
-        <TabsContent value="members" className="space-y-4">
+        <TabsContent value="members" className="space-y-6">
+          {/* Industry-Standard Workflow Guidance */}
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="flex items-start space-x-3">
+                <Target className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <h3 className="font-medium text-blue-900">Employee Management Workflow</h3>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Following industry standards: 1️⃣ Create <strong>User Account</strong> (login credentials) → 
+                    2️⃣ Create <strong>Employee Profile</strong> (employment details) → 
+                    3️⃣ Assign <strong>Role & Department</strong>
+                  </p>
+                  <div className="flex items-center space-x-4 mt-2 text-xs text-blue-600">
+                    <span>✓ Auto-generated employee numbers</span>
+                    <span>✓ Centralized employee data</span>
+                    <span>✓ Integrated with payroll & time tracking</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Team Members ({teamMembers.length})</h2>
+            <div className="text-sm text-muted-foreground">
+              Need to create a user account first? → 
+              <Button variant="link" className="p-0 h-auto" onClick={() => setActiveTab("users")}>
+                Go to User Accounts
+              </Button>
+            </div>
           </div>
+          
           {membersLoading ? (
             <div>Loading team members...</div>
+          ) : teamMembers.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-gray-200 rounded-lg">
+              <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-medium mb-2">No Team Members Yet</h3>
+              <p className="mb-4">Start by creating employee profiles for your team.</p>
+              <div className="space-y-2 text-sm">
+                <p>📝 First: Create user accounts in the "User Accounts" tab</p>
+                <p>👥 Then: Create employee profiles here with detailed information</p>
+              </div>
+            </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {teamMembers.map((member: TeamMember) => (
