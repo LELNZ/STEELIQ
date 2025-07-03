@@ -2123,7 +2123,12 @@ function UserForm({ user, onSubmit, isLoading }: any) {
                     const response = await fetch(`/api/users/${user.id}/password`);
                     if (response.ok) {
                       const data = await response.json();
-                      setCurrentPassword(data.password);
+                      // Check if it's a bcrypt hash
+                      if (data.password.startsWith('$2b$')) {
+                        setCurrentPassword("Password is encrypted (bcrypt hash) - actual password cannot be recovered");
+                      } else {
+                        setCurrentPassword(data.password);
+                      }
                       setShowCurrentPassword(true);
                     }
                   } catch (error) {
@@ -2138,7 +2143,7 @@ function UserForm({ user, onSubmit, isLoading }: any) {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            Current password for team management reference only
+            Password storage: bcrypt encrypted (cannot be decrypted). To change, enter new password below.
           </p>
         </div>
       )}

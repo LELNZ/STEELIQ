@@ -238,6 +238,7 @@ export class TeamStorage implements ITeamStorage {
     if (memberData.position) updateData.position = memberData.position;
     if (memberData.jobTitle) updateData.jobTitle = memberData.jobTitle;
     if (memberData.skillLevel) updateData.skillLevel = memberData.skillLevel;
+    if (memberData.experienceYears !== undefined) updateData.experienceYears = parseInt(memberData.experienceYears?.toString() || "0");
     
     // Arrays and JSON fields
     if (memberData.primarySkills) updateData.primarySkills = memberData.primarySkills;
