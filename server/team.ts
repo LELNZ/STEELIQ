@@ -103,12 +103,30 @@ export class TeamStorage implements ITeamStorage {
   // Team Members
   async getTeamMembers(): Promise<any[]> {
     return await db.select({
+      // Core team member data
       id: teamMembers.id,
       userId: teamMembers.userId,
       roleId: teamMembers.roleId,
       departmentId: teamMembers.departmentId,
       isActive: teamMembers.isActive,
+      
+      // Personal information - these definitely exist
+      firstName: teamMembers.firstName,
+      lastName: teamMembers.lastName,
+      employeeNumber: teamMembers.employeeNumber,
+      startDate: teamMembers.startDate,
+      endDate: teamMembers.endDate,
+      employmentType: teamMembers.employmentType,
+      
+      // Compensation
       hourlyRate: teamMembers.hourlyRate,
+      payFrequency: teamMembers.payFrequency,
+      
+      // Timestamps
+      createdAt: teamMembers.createdAt,
+      updatedAt: teamMembers.updatedAt,
+      
+      // Related data from joins
       userName: users.name,
       userUsername: users.username,
       roleName: roles.name,
