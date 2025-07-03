@@ -165,47 +165,48 @@ export class TeamStorage implements ITeamStorage {
   }
 
   async updateTeamMember(id: number, memberData: Partial<InsertTeamMember>): Promise<TeamMember> {
-    // Convert date strings to Date objects for database compatibility
-    const processedData = { ...memberData } as any;
+    // Only update core fields that definitely exist in the database
+    const safeUpdateData: any = {};
     
-    // Helper function to convert date strings
-    const convertDateField = (fieldName: string) => {
-      const value = processedData[fieldName];
-      if (value && typeof value === 'string') {
-        // Handle various date formats (dd/mm/yyyy, yyyy-mm-dd, etc.)
-        if (value.includes('/')) {
-          // Handle dd/mm/yyyy format
-          const [day, month, year] = value.split('/');
-          processedData[fieldName] = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        } else if (value.includes('-')) {
-          // Handle yyyy-mm-dd format
-          processedData[fieldName] = new Date(value);
+    // Basic fields that exist in current database structure
+    if (memberData.userId !== undefined) safeUpdateData.userId = memberData.userId;
+    if (memberData.roleId !== undefined) safeUpdateData.roleId = memberData.roleId;
+    if (memberData.departmentId !== undefined) safeUpdateData.departmentId = memberData.departmentId;
+    if (memberData.isActive !== undefined) safeUpdateData.isActive = memberData.isActive;
+    
+    // Handle start date conversion if provided
+    if (memberData.startDate) {
+      const startDateValue = memberData.startDate as any;
+      if (typeof startDateValue === 'string') {
+        if (startDateValue.includes('/')) {
+          const [day, month, year] = startDateValue.split('/');
+          safeUpdateData.startDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         } else {
-          // Try to parse as-is
-          const parsed = new Date(value);
-          if (!isNaN(parsed.getTime())) {
-            processedData[fieldName] = parsed;
-          } else {
-            // If parsing fails, remove the field to avoid database error
-            delete processedData[fieldName];
-          }
+          safeUpdateData.startDate = new Date(startDateValue);
         }
+      } else {
+        safeUpdateData.startDate = startDateValue;
       }
-    };
+    }
     
-    // Convert all possible date fields
-    convertDateField('dateOfBirth');
-    convertDateField('startDate');
-    convertDateField('endDate');
-    convertDateField('inductionDate');
-    convertDateField('safetyTrainingExpiry');
-    convertDateField('medicalExpiryDate');
-    convertDateField('lastReviewDate');
-    convertDateField('nextReviewDate');
+    // Handle end date conversion if provided
+    if (memberData.endDate) {
+      const endDateValue = memberData.endDate as any;
+      if (typeof endDateValue === 'string') {
+        if (endDateValue.includes('/')) {
+          const [day, month, year] = endDateValue.split('/');
+          safeUpdateData.endDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else {
+          safeUpdateData.endDate = new Date(endDateValue);
+        }
+      } else {
+        safeUpdateData.endDate = endDateValue;
+      }
+    }
 
     const [updatedMember] = await db
       .update(teamMembers)
-      .set({ ...processedData, updatedAt: new Date() })
+      .set(safeUpdateData)
       .where(eq(teamMembers.id, id))
       .returning();
     return updatedMember;
