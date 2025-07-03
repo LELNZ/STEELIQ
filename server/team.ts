@@ -260,7 +260,7 @@ export class TeamStorage implements ITeamStorage {
     return newMember;
   }
 
-  async updateTeamMember(id: number, memberData: Partial<InsertTeamMember>): Promise<TeamMember> {
+  async updateTeamMember(id: number, memberData: any): Promise<TeamMember> {
     console.log("Updating team member with data:", memberData);
     
     // Now we can update all fields since we added them to the database
@@ -273,11 +273,23 @@ export class TeamStorage implements ITeamStorage {
     if (memberData.isActive !== undefined) updateData.isActive = memberData.isActive;
     
     // Employment information
-    if (memberData.employeeNumber) updateData.employeeNumber = memberData.employeeNumber;
+    if (memberData.employeeNumber) {
+      updateData.employeeNumber = memberData.employeeNumber;
+    } else {
+      // Auto-generate employee number if it's missing
+      const currentMember = await db.select().from(teamMembers).where(eq(teamMembers.id, id)).limit(1);
+      if (currentMember.length > 0 && (!currentMember[0].employeeNumber || currentMember[0].employeeNumber === '')) {
+        updateData.employeeNumber = await this.generateEmployeeNumber();
+      }
+    }
     if (memberData.employmentType) updateData.employmentType = memberData.employmentType;
     if (memberData.startDate) updateData.startDate = new Date(memberData.startDate);
     if (memberData.endDate) updateData.endDate = new Date(memberData.endDate);
     if (memberData.hourlyRate !== undefined) updateData.hourlyRate = parseFloat(memberData.hourlyRate?.toString() || "0");
+    if (memberData.overtimeRate !== undefined) updateData.overtimeRate = parseFloat(memberData.overtimeRate?.toString() || "0");
+    if (memberData.siteAllowance !== undefined) updateData.siteAllowance = parseFloat(memberData.siteAllowance?.toString() || "0");
+    if (memberData.travelAllowance !== undefined) updateData.travelAllowance = parseFloat(memberData.travelAllowance?.toString() || "0");
+    if (memberData.annualSalary !== undefined) updateData.annualSalary = parseFloat(memberData.annualSalary?.toString() || "0");
     if (memberData.payFrequency) updateData.payFrequency = memberData.payFrequency;
     
     // Personal information
@@ -329,6 +341,25 @@ export class TeamStorage implements ITeamStorage {
     if (memberData.annualLeaveEntitlement !== undefined) updateData.annualLeaveEntitlement = parseInt(memberData.annualLeaveEntitlement?.toString() || "0");
     if (memberData.sickLeaveEntitlement !== undefined) updateData.sickLeaveEntitlement = parseInt(memberData.sickLeaveEntitlement?.toString() || "0");
     if (memberData.currentLeaveBalance !== undefined) updateData.currentLeaveBalance = parseFloat(memberData.currentLeaveBalance?.toString() || "0");
+    
+    // Training and Performance
+    if (memberData.trainingRecords) updateData.trainingRecords = memberData.trainingRecords;
+    if (memberData.performanceRating) updateData.performanceRating = memberData.performanceRating;
+    
+    // Banking and Financial
+    if (memberData.bankAccountName) updateData.bankAccountName = memberData.bankAccountName;
+    if (memberData.bankAccountNumber) updateData.bankAccountNumber = memberData.bankAccountNumber;
+    if (memberData.bankSortCode) updateData.bankSortCode = memberData.bankSortCode;
+    if (memberData.taxNumber) updateData.taxNumber = memberData.taxNumber;
+    if (memberData.kiwisaverRate !== undefined) updateData.kiwisaverRate = parseFloat(memberData.kiwisaverRate?.toString() || "0");
+    
+    // Profile and Additional Information
+    if (memberData.profilePhoto) updateData.profilePhoto = memberData.profilePhoto;
+    if (memberData.visaType) updateData.visaType = memberData.visaType;
+    if (memberData.visaExpiry) updateData.visaExpiry = new Date(memberData.visaExpiry);
+    if (memberData.nextOfKinName) updateData.nextOfKinName = memberData.nextOfKinName;
+    if (memberData.nextOfKinPhone) updateData.nextOfKinPhone = memberData.nextOfKinPhone;
+    if (memberData.nextOfKinRelation) updateData.nextOfKinRelation = memberData.nextOfKinRelation;
     
     // Notes
     if (memberData.notes) updateData.notes = memberData.notes;
