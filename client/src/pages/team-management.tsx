@@ -566,6 +566,27 @@ export default function TeamManagement() {
         </TabsList>
 
         <TabsContent value="users" className="space-y-6">
+          {/* Industry-Standard User Account Guidance */}
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="p-4">
+              <div className="flex items-start space-x-3">
+                <Shield className="w-5 h-5 text-green-600 mt-0.5" />
+                <div>
+                  <h3 className="font-medium text-green-900">User Account Management</h3>
+                  <p className="text-sm text-green-700 mt-1">
+                    User accounts control system access and login credentials only. For complete employee information, 
+                    create corresponding profiles in the <strong>Employees</strong> tab.
+                  </p>
+                  <div className="flex items-center space-x-4 mt-2 text-xs text-green-600">
+                    <span>✓ Secure authentication</span>
+                    <span>✓ Role-based access control</span>
+                    <span>✓ Separate from employee records</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">User Accounts ({availableUsers.length})</h2>
             <Dialog open={isEditingUser} onOpenChange={setIsEditingUser}>
@@ -575,17 +596,26 @@ export default function TeamManagement() {
                   Create User Account
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className={selectedUser ? "max-w-4xl" : "max-w-2xl"}>
                 <DialogHeader>
                   <DialogTitle>
                     {selectedUser ? "Edit User Account" : "Create User Account"}
                   </DialogTitle>
                 </DialogHeader>
-                <UserForm
-                  user={selectedUser}
-                  onSubmit={userMutation.mutate}
-                  isLoading={userMutation.isPending}
-                />
+                {selectedUser ? (
+                  <UserEditForm
+                    user={selectedUser}
+                    onSubmit={userMutation.mutate}
+                    onCancel={() => setIsEditingUser(false)}
+                    isLoading={userMutation.isPending}
+                  />
+                ) : (
+                  <UserForm
+                    user={selectedUser}
+                    onSubmit={userMutation.mutate}
+                    isLoading={userMutation.isPending}
+                  />
+                )}
               </DialogContent>
             </Dialog>
           </div>
