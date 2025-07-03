@@ -596,26 +596,17 @@ export default function TeamManagement() {
                   Create User Account
                 </Button>
               </DialogTrigger>
-              <DialogContent className={selectedUser ? "max-w-4xl" : "max-w-2xl"}>
+              <DialogContent className="max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>
                     {selectedUser ? "Edit User Account" : "Create User Account"}
                   </DialogTitle>
                 </DialogHeader>
-                {selectedUser ? (
-                  <UserEditForm
-                    user={selectedUser}
-                    onSubmit={userMutation.mutate}
-                    onCancel={() => setIsEditingUser(false)}
-                    isLoading={userMutation.isPending}
-                  />
-                ) : (
-                  <UserForm
-                    user={selectedUser}
-                    onSubmit={userMutation.mutate}
-                    isLoading={userMutation.isPending}
-                  />
-                )}
+                <UserForm
+                  user={selectedUser}
+                  onSubmit={userMutation.mutate}
+                  isLoading={userMutation.isPending}
+                />
               </DialogContent>
             </Dialog>
           </div>
@@ -2536,11 +2527,14 @@ function UserForm({ user, onSubmit, isLoading }: any) {
       </div>
 
       <div className="bg-blue-50 p-4 rounded-lg">
-        <h4 className="font-medium text-blue-900">User Account - Login Information Only</h4>
+        <h4 className="font-medium text-blue-900">
+          {user ? "Edit User Account - Login Credentials Only" : "User Account - Login Information Only"}
+        </h4>
         <p className="text-sm text-blue-700 mt-1">
-          This creates a basic user account for system login. For employee details, salary, and 
-          personal information, go to the "Team Members" tab to create a team member profile 
-          and link it to this user account.
+          {user 
+            ? "Update login credentials and contact information. For employee details, salary, and personal information, use the 'Employees' tab to manage the team member profile."
+            : "This creates a basic user account for system login. For employee details, salary, and personal information, go to the 'Employees' tab to create a team member profile and link it to this user account."
+          }
         </p>
       </div>
 
