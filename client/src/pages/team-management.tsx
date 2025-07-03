@@ -1997,6 +1997,7 @@ function UserForm({ user, onSubmit, isLoading }: any) {
     phone: user?.phone || "",
     password: "",
     confirmPassword: "",
+    isActive: user?.isActive ?? true,
   });
   
   const [showPassword, setShowPassword] = useState(false);
@@ -2081,6 +2082,23 @@ function UserForm({ user, onSubmit, isLoading }: any) {
           />
         </div>
       </div>
+
+      {/* Active Account Toggle - Only show for editing existing users */}
+      {user && (
+        <div className="flex items-center space-x-2 pt-4 border-t">
+          <Switch
+            id="isActive"
+            checked={formData.isActive}
+            onCheckedChange={(checked) => setFormData({...formData, isActive: checked})}
+          />
+          <Label htmlFor="isActive" className="font-medium">
+            Active Account
+          </Label>
+          <span className="text-sm text-muted-foreground ml-2">
+            {formData.isActive ? "(User can log in)" : "(Login access disabled)"}
+          </span>
+        </div>
+      )}
 
       <div className="space-y-4 pt-4 border-t">
         <h3 className="text-lg font-semibold">
