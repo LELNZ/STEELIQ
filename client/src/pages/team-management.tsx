@@ -2001,6 +2001,8 @@ function UserForm({ user, onSubmit, isLoading }: any) {
   });
   
   const [showPassword, setShowPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2097,6 +2099,47 @@ function UserForm({ user, onSubmit, isLoading }: any) {
           <span className="text-sm text-muted-foreground ml-2">
             {formData.isActive ? "(User can log in)" : "(Login access disabled)"}
           </span>
+        </div>
+      )}
+
+      {/* View Current Password - Only for editing existing users */}
+      {user && (
+        <div className="space-y-4 pt-4 border-t">
+          <h3 className="text-lg font-semibold">Current Password</h3>
+          <div className="flex items-center space-x-2">
+            <Input
+              type={showCurrentPassword ? "text" : "password"}
+              value={currentPassword}
+              readOnly
+              placeholder="Click 'View Password' to display"
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                if (!currentPassword) {
+                  try {
+                    const response = await fetch(`/api/users/${user.id}/password`);
+                    if (response.ok) {
+                      const data = await response.json();
+                      setCurrentPassword(data.password);
+                      setShowCurrentPassword(true);
+                    }
+                  } catch (error) {
+                    console.error("Error fetching password:", error);
+                  }
+                } else {
+                  setShowCurrentPassword(!showCurrentPassword);
+                }
+              }}
+            >
+              {!currentPassword ? "View Password" : (showCurrentPassword ? "Hide" : "Show")}
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Current password for team management reference only
+          </p>
         </div>
       )}
 

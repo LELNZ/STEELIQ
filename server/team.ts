@@ -138,16 +138,18 @@ export class TeamStorage implements ITeamStorage {
   async updateTeamMember(id: number, memberData: Partial<InsertTeamMember>): Promise<TeamMember> {
     console.log("Updating team member with data:", memberData);
     
-    // Create a very minimal update object with only the absolutely essential fields
+    // Only update fields that actually exist in the database
     const updateData: any = {};
     
-    // Only include basic fields that we know exist
+    // Basic required fields that exist in database
     if (memberData.userId) updateData.userId = memberData.userId;
     if (memberData.roleId) updateData.roleId = memberData.roleId;
     if (memberData.departmentId) updateData.departmentId = memberData.departmentId;
     if (memberData.isActive !== undefined) updateData.isActive = memberData.isActive;
+    if (memberData.hourlyRate !== undefined) updateData.hourlyRate = parseFloat(memberData.hourlyRate?.toString() || "0");
+    if (memberData.startDate) updateData.hireDate = new Date(memberData.startDate);
     
-    console.log("Safe update data:", updateData);
+    console.log("Safe update data (database fields only):", updateData);
     
     const [updatedMember] = await db
       .update(teamMembers)

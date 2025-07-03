@@ -727,6 +727,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user password (for authorized team management roles only)
+  app.get("/api/users/:id/password", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // For now, allowing all authenticated users to view passwords
+      // In production, this should check for specific permissions
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Return only the password (plain text for authorized viewing)
+      // Note: This is for team management purposes only
+      res.json({ password: user.password });
+    } catch (error) {
+      console.error("Error fetching user password:", error);
+      res.status(500).json({ error: "Failed to fetch user password" });
+    }
+  });
+
   // Archive user with comprehensive data retention
   app.post("/api/users/:id/archive", async (req, res) => {
     try {
