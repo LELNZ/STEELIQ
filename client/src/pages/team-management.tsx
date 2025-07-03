@@ -123,25 +123,35 @@ export default function TeamManagement() {
   // Create/Update Member Mutation
   const memberMutation = useMutation({
     mutationFn: async (data: any) => {
-      if (data.id) {
-        return apiRequest("PUT", `/api/team/members/${data.id}`, data);
-      } else {
-        return apiRequest("POST", "/api/team/members", data);
+      console.log("Member mutation starting with data:", data);
+      try {
+        if (data.id) {
+          console.log("Updating existing member with ID:", data.id);
+          return apiRequest("PUT", `/api/team/members/${data.id}`, data);
+        } else {
+          console.log("Creating new member");
+          return apiRequest("POST", "/api/team/members", data);
+        }
+      } catch (error) {
+        console.error("API request failed:", error);
+        throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log("Member operation successful:", result);
       queryClient.invalidateQueries({ queryKey: ["/api/team/members"] });
       setIsEditingMember(false);
       setSelectedMember(null);
       toast({
         title: "Success",
-        description: "Team member updated successfully",
+        description: "Team member saved successfully",
       });
     },
     onError: (error: any) => {
+      console.error("Team member operation error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update team member",
+        description: error.message || "Failed to save team member",
         variant: "destructive",
       });
     },
@@ -1085,6 +1095,8 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log("Form submission started with data:", formData);
+    
     // Process and validate form data
     const processedData = {
       ...formData,
@@ -1116,6 +1128,7 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
       nextReviewDate: formData.nextReviewDate ? new Date(formData.nextReviewDate) : null,
     };
     
+    console.log("Processed data for submission:", processedData);
     onSubmit(processedData);
   };
 
@@ -1164,10 +1177,17 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
                 <Label htmlFor="employeeNumber">Employee Number</Label>
                 <Input
                   id="employeeNumber"
-                  value={formData.employeeNumber}
-                  onChange={(e) => setFormData({...formData, employeeNumber: e.target.value})}
-                  placeholder="EMP001"
+                  value={formData.employeeNumber || (member ? formData.employeeNumber : "Auto-generated on save")}
+                  readOnly={!member}
+                  onChange={(e) => member ? setFormData({...formData, employeeNumber: e.target.value}) : undefined}
+                  placeholder={member ? "Enter employee number" : "Auto-generated on save"}
+                  className={!member ? "bg-muted text-muted-foreground" : ""}
                 />
+                {!member && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Employee number will be automatically generated (e.g., EMP2025052)
+                  </p>
+                )}
               </div>
 
               <div>
