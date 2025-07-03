@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { roles, departments, teamMembers, auditLog, users } from "@shared/schema";
-import { eq, and, desc, isNull } from "drizzle-orm";
+import { eq, and, desc, isNull, sql } from "drizzle-orm";
 import type { 
   Role, 
   InsertRole, 
@@ -122,91 +122,36 @@ export class TeamStorage implements ITeamStorage {
   }
 
   async createTeamMember(member: InsertTeamMember): Promise<TeamMember> {
-    // Convert date strings to Date objects for database compatibility
-    const processedMember = { ...member } as any;
-    
-    // Helper function to convert date strings
-    const convertDateField = (fieldName: string) => {
-      const value = processedMember[fieldName];
-      if (value && typeof value === 'string') {
-        // Handle various date formats (dd/mm/yyyy, yyyy-mm-dd, etc.)
-        if (value.includes('/')) {
-          // Handle dd/mm/yyyy format
-          const [day, month, year] = value.split('/');
-          processedMember[fieldName] = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        } else if (value.includes('-')) {
-          // Handle yyyy-mm-dd format
-          processedMember[fieldName] = new Date(value);
-        } else {
-          // Try to parse as-is
-          const parsed = new Date(value);
-          if (!isNaN(parsed.getTime())) {
-            processedMember[fieldName] = parsed;
-          } else {
-            // If parsing fails, remove the field to avoid database error
-            delete processedMember[fieldName];
-          }
-        }
-      }
+    // Only include essential fields for creation to avoid database conflicts
+    const essentialMember = {
+      userId: member.userId,
+      roleId: member.roleId,
+      departmentId: member.departmentId,
+      isActive: member.isActive ?? true,
+      startDate: member.startDate ? new Date(member.startDate as any) : new Date(),
     };
-    
-    // Convert all possible date fields
-    convertDateField('dateOfBirth');
-    convertDateField('startDate');
-    convertDateField('endDate');
-    convertDateField('inductionDate');
-    convertDateField('safetyTrainingExpiry');
-    convertDateField('medicalExpiryDate');
-    convertDateField('lastReviewDate');
-    convertDateField('nextReviewDate');
 
-    const [newMember] = await db.insert(teamMembers).values(processedMember).returning();
+    const [newMember] = await db.insert(teamMembers).values(essentialMember).returning();
     return newMember;
   }
 
   async updateTeamMember(id: number, memberData: Partial<InsertTeamMember>): Promise<TeamMember> {
-    // Only update core fields that definitely exist in the database
-    const safeUpdateData: any = {};
+    console.log("Updating team member with data:", memberData);
     
-    // Basic fields that exist in current database structure
-    if (memberData.userId !== undefined) safeUpdateData.userId = memberData.userId;
-    if (memberData.roleId !== undefined) safeUpdateData.roleId = memberData.roleId;
-    if (memberData.departmentId !== undefined) safeUpdateData.departmentId = memberData.departmentId;
-    if (memberData.isActive !== undefined) safeUpdateData.isActive = memberData.isActive;
+    // Create a very minimal update object with only the absolutely essential fields
+    const updateData: any = {};
     
-    // Handle start date conversion if provided
-    if (memberData.startDate) {
-      const startDateValue = memberData.startDate as any;
-      if (typeof startDateValue === 'string') {
-        if (startDateValue.includes('/')) {
-          const [day, month, year] = startDateValue.split('/');
-          safeUpdateData.startDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        } else {
-          safeUpdateData.startDate = new Date(startDateValue);
-        }
-      } else {
-        safeUpdateData.startDate = startDateValue;
-      }
-    }
+    // Only include basic fields that we know exist
+    if (memberData.userId) updateData.userId = memberData.userId;
+    if (memberData.roleId) updateData.roleId = memberData.roleId;
+    if (memberData.departmentId) updateData.departmentId = memberData.departmentId;
+    if (memberData.isActive !== undefined) updateData.isActive = memberData.isActive;
     
-    // Handle end date conversion if provided
-    if (memberData.endDate) {
-      const endDateValue = memberData.endDate as any;
-      if (typeof endDateValue === 'string') {
-        if (endDateValue.includes('/')) {
-          const [day, month, year] = endDateValue.split('/');
-          safeUpdateData.endDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        } else {
-          safeUpdateData.endDate = new Date(endDateValue);
-        }
-      } else {
-        safeUpdateData.endDate = endDateValue;
-      }
-    }
-
+    console.log("Safe update data:", updateData);
+    
     const [updatedMember] = await db
       .update(teamMembers)
-      .set(safeUpdateData)
+      .set(updateData)
       .where(eq(teamMembers.id, id))
       .returning();
     return updatedMember;

@@ -2328,63 +2328,18 @@ function UserEditForm({ user, onSubmit, onCancel, isLoading }: any) {
   );
 }
 
-// Advanced Create User Form Component with comprehensive employee data
+// Simple User Account Form - Login Information Only
 function UserForm({ user, onSubmit, isLoading }: any) {
-  const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState({
-    // Basic Account Info
     username: user?.username || "",
     name: user?.name || "",
     email: user?.email || "",
     phone: user?.phone || "",
     password: "",
     confirmPassword: "",
-    
-    // Employment Info
-    department: user?.department || "",
-    role: user?.role || "",
-    position: user?.position || "",
-    employmentType: user?.employmentType || "full_time",
-    skillLevel: user?.skillLevel || "",
-    experienceYears: user?.experienceYears || "",
-    startDate: user?.startDate || "",
-    
-    // Personal Info
-    preferredName: user?.preferredName || "",
-    dateOfBirth: user?.dateOfBirth || "",
-    personalEmail: user?.personalEmail || "",
-    personalPhone: user?.personalPhone || "",
-    streetAddress: user?.streetAddress || "",
-    suburb: user?.suburb || "",
-    city: user?.city || "",
-    emergencyContactName: user?.emergencyContactName || "",
-    emergencyContactPhone: user?.emergencyContactPhone || "",
-    
-    // Compensation
-    hourlyRate: user?.hourlyRate || "",
-    overtimeRate: user?.overtimeRate || "",
-    siteAllowance: user?.siteAllowance || "",
-    
-    // Skills & Certifications
-    primarySkills: user?.primarySkills || [],
-    certifications: user?.certifications || "",
-    
-    // Health & Safety
-    inductionCompleted: user?.inductionCompleted || false,
-    inductionDate: user?.inductionDate || "",
-    safetyTrainingExpiry: user?.safetyTrainingExpiry || "",
   });
   
   const [showPassword, setShowPassword] = useState(false);
-
-  const skillOptions = [
-    "MIG Welding", "TIG Welding", "Arc Welding", "Oxy-Acetylene Cutting",
-    "Plasma Cutting", "Steel Fabrication", "Blueprint Reading", "Crane Operation",
-    "Quality Control", "Project Management", "CAD/Drawing", "Site Installation"
-  ];
-
-  const { data: availableRoles } = useQuery({ queryKey: ["/api/team/roles"] });
-  const { data: availableDepartments } = useQuery({ queryKey: ["/api/team/departments"] });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2421,373 +2376,102 @@ function UserForm({ user, onSubmit, isLoading }: any) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="basic">Basic Info</TabsTrigger>
-          <TabsTrigger value="employment">Employment</TabsTrigger>
-          <TabsTrigger value="personal">Personal</TabsTrigger>
-          <TabsTrigger value="compensation">Compensation</TabsTrigger>
-          <TabsTrigger value="password">Password</TabsTrigger>
-        </TabsList>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="name">Full Name *</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            placeholder="John Smith"
+            required
+          />
+        </div>
 
-        {/* Basic Information Tab */}
-        <TabsContent value="basic" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Full Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                placeholder="John Smith"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="username">Username *</Label>
-              <Input
-                id="username"
-                value={formData.username}
-                onChange={(e) => setFormData({...formData, username: e.target.value})}
-                placeholder="john.smith"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="email">Work Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                placeholder="john.smith@lateralengineering.co.nz"
-              />
-            </div>
-            <div>
-              <Label htmlFor="phone">Work Phone</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                placeholder="+64 21 123 4567"
-              />
-            </div>
-          </div>
-        </TabsContent>
+        <div>
+          <Label htmlFor="username">Username *</Label>
+          <Input
+            id="username"
+            value={formData.username}
+            onChange={(e) => setFormData({...formData, username: e.target.value})}
+            placeholder="john.smith"
+            required
+          />
+        </div>
 
-        {/* Employment Information Tab */}
-        <TabsContent value="employment" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="department">Department</Label>
-              <Select value={formData.department} onValueChange={(value) => setFormData({...formData, department: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDepartments?.map((dept: any) => (
-                    <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            placeholder="john.smith@lateralengineering.co.nz"
+          />
+        </div>
 
-            <div>
-              <Label htmlFor="role">Role</Label>
-              <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableRoles?.map((role: any) => (
-                    <SelectItem key={role.id} value={role.name}>{role.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <div>
+          <Label htmlFor="phone">Phone</Label>
+          <Input
+            id="phone"
+            value={formData.phone}
+            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+            placeholder="+64 21 123 4567"
+          />
+        </div>
+      </div>
 
-            <div>
-              <Label htmlFor="position">Position Title</Label>
-              <Input
-                id="position"
-                value={formData.position}
-                onChange={(e) => setFormData({...formData, position: e.target.value})}
-                placeholder="Senior Steel Fabricator"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="skillLevel">Skill Level</Label>
-              <Select value={formData.skillLevel} onValueChange={(value) => setFormData({...formData, skillLevel: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select skill level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="apprentice">Apprentice</SelectItem>
-                  <SelectItem value="tradesman">Tradesman</SelectItem>
-                  <SelectItem value="advanced">Advanced</SelectItem>
-                  <SelectItem value="specialist">Specialist</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="experienceYears">Years of Experience</Label>
-              <Input
-                id="experienceYears"
-                type="number"
-                value={formData.experienceYears}
-                onChange={(e) => setFormData({...formData, experienceYears: e.target.value})}
-                placeholder="5"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="startDate">Start Date</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-              />
-            </div>
+      <div className="space-y-4 pt-4 border-t">
+        <h3 className="text-lg font-semibold">
+          {user ? "Change Password (Optional)" : "Set Password *"}
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="password">
+              {user ? "New Password" : "Password *"}
+            </Label>
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              placeholder={user ? "Leave blank to keep current" : "Enter secure password"}
+              required={!user}
+            />
           </div>
 
           <div>
-            <Label>Primary Skills</Label>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {skillOptions.slice(0, 8).map((skill) => (
-                <div key={skill} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id={`skill-${skill}`}
-                    checked={formData.primarySkills.includes(skill)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setFormData({...formData, primarySkills: [...formData.primarySkills, skill]});
-                      } else {
-                        setFormData({...formData, primarySkills: formData.primarySkills.filter((s: string) => s !== skill)});
-                      }
-                    }}
-                    className="rounded"
-                  />
-                  <Label htmlFor={`skill-${skill}`} className="text-sm">{skill}</Label>
-                </div>
-              ))}
-            </div>
+            <Label htmlFor="confirmPassword">
+              {user ? "Confirm New Password" : "Confirm Password *"}
+            </Label>
+            <Input
+              id="confirmPassword"
+              type={showPassword ? "text" : "password"}
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+              placeholder="Confirm password"
+              required={!user && !!formData.password}
+            />
           </div>
-        </TabsContent>
-
-        {/* Personal Information Tab */}
-        <TabsContent value="personal" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="preferredName">Preferred Name</Label>
-              <Input
-                id="preferredName"
-                value={formData.preferredName}
-                onChange={(e) => setFormData({...formData, preferredName: e.target.value})}
-                placeholder="Johnny"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="dateOfBirth">Date of Birth</Label>
-              <Input
-                id="dateOfBirth"
-                type="date"
-                value={formData.dateOfBirth}
-                onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="personalEmail">Personal Email</Label>
-              <Input
-                id="personalEmail"
-                type="email"
-                value={formData.personalEmail}
-                onChange={(e) => setFormData({...formData, personalEmail: e.target.value})}
-                placeholder="john.smith@email.com"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="personalPhone">Personal Phone</Label>
-              <Input
-                id="personalPhone"
-                value={formData.personalPhone}
-                onChange={(e) => setFormData({...formData, personalPhone: e.target.value})}
-                placeholder="+64 21 123 4567"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="streetAddress">Street Address</Label>
-              <Input
-                id="streetAddress"
-                value={formData.streetAddress}
-                onChange={(e) => setFormData({...formData, streetAddress: e.target.value})}
-                placeholder="123 Main Street"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="suburb">Suburb</Label>
-              <Input
-                id="suburb"
-                value={formData.suburb}
-                onChange={(e) => setFormData({...formData, suburb: e.target.value})}
-                placeholder="Mt Eden"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-4 border-t">
-            <h3 className="text-lg font-semibold">Emergency Contact</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="emergencyContactName">Emergency Contact Name</Label>
-                <Input
-                  id="emergencyContactName"
-                  value={formData.emergencyContactName}
-                  onChange={(e) => setFormData({...formData, emergencyContactName: e.target.value})}
-                  placeholder="Jane Smith"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="emergencyContactPhone">Emergency Contact Phone</Label>
-                <Input
-                  id="emergencyContactPhone"
-                  value={formData.emergencyContactPhone}
-                  onChange={(e) => setFormData({...formData, emergencyContactPhone: e.target.value})}
-                  placeholder="+64 21 123 4567"
-                />
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Compensation Tab */}
-        <TabsContent value="compensation" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
-              <Input
-                id="hourlyRate"
-                type="number"
-                step="0.01"
-                value={formData.hourlyRate}
-                onChange={(e) => setFormData({...formData, hourlyRate: e.target.value})}
-                placeholder="75.00"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="overtimeRate">Overtime Rate ($)</Label>
-              <Input
-                id="overtimeRate"
-                type="number"
-                step="0.01"
-                value={formData.overtimeRate}
-                onChange={(e) => setFormData({...formData, overtimeRate: e.target.value})}
-                placeholder="112.50"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="siteAllowance">Site Allowance ($)</Label>
-              <Input
-                id="siteAllowance"
-                type="number"
-                step="0.01"
-                value={formData.siteAllowance}
-                onChange={(e) => setFormData({...formData, siteAllowance: e.target.value})}
-                placeholder="15.00"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-4 border-t">
-            <h3 className="text-lg font-semibold">Health & Safety</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={formData.inductionCompleted}
-                  onCheckedChange={(checked) => setFormData({...formData, inductionCompleted: checked})}
-                />
-                <Label>Induction Completed</Label>
-              </div>
-
-              <div>
-                <Label htmlFor="inductionDate">Induction Date</Label>
-                <Input
-                  id="inductionDate"
-                  type="date"
-                  value={formData.inductionDate}
-                  onChange={(e) => setFormData({...formData, inductionDate: e.target.value})}
-                />
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Password Tab */}
-        <TabsContent value="password" className="space-y-4">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">
-              {user ? "Change Password (Optional)" : "Set Password *"}
-            </h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="password">
-                  {user ? "New Password" : "Password *"}
-                </Label>
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  placeholder={user ? "Leave blank to keep current" : "Enter secure password"}
-                  required={!user}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="confirmPassword">
-                  {user ? "Confirm New Password" : "Confirm Password *"}
-                </Label>
-                <Input
-                  id="confirmPassword"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                  placeholder="Confirm password"
-                  required={!user && !!formData.password}
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={showPassword}
-                onCheckedChange={setShowPassword}
-              />
-              <Label>Show passwords</Label>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={showPassword}
+            onCheckedChange={setShowPassword}
+          />
+          <Label>Show passwords</Label>
+        </div>
+      </div>
 
       <div className="bg-blue-50 p-4 rounded-lg">
-        <h4 className="font-medium text-blue-900">Creating Complete Employee Profile</h4>
+        <h4 className="font-medium text-blue-900">User Account - Login Information Only</h4>
         <p className="text-sm text-blue-700 mt-1">
-          This form creates both a user account (for login) and a complete employee profile 
-          with employment details, personal information, and compensation data. All information 
-          can be updated later.
+          This creates a basic user account for system login. For employee details, salary, and 
+          personal information, go to the "Team Members" tab to create a team member profile 
+          and link it to this user account.
         </p>
       </div>
 
