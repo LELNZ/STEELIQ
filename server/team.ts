@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { roles, departments, teamMembers, auditLog, users } from "@shared/schema";
-import { eq, and, desc, isNull, sql } from "drizzle-orm";
+import { eq, and, desc, isNull, sql, gte } from "drizzle-orm";
 import type { 
   Role, 
   InsertRole, 
@@ -121,35 +121,155 @@ export class TeamStorage implements ITeamStorage {
     .orderBy(desc(teamMembers.createdAt));
   }
 
+  // Generate automatic employee number
+  private async generateEmployeeNumber(): Promise<string> {
+    const currentYear = new Date().getFullYear();
+    
+    // Get the count of team members created this year
+    const yearStart = new Date(currentYear, 0, 1);
+    const count = await db.select({ count: sql<number>`count(*)` })
+      .from(teamMembers)
+      .where(gte(teamMembers.createdAt, yearStart));
+    
+    const nextNumber = (count[0]?.count || 0) + 1;
+    return `EMP${currentYear}${nextNumber.toString().padStart(3, '0')}`;
+  }
+
   async createTeamMember(member: InsertTeamMember): Promise<TeamMember> {
-    // Only include essential fields for creation to avoid database conflicts
-    const essentialMember = {
+    // Generate employee number if not provided
+    const employeeNumber = member.employeeNumber || await this.generateEmployeeNumber();
+    
+    // Create comprehensive member record with all provided data
+    const memberData = {
       userId: member.userId,
       roleId: member.roleId,
       departmentId: member.departmentId,
       isActive: member.isActive ?? true,
+      employeeNumber,
       startDate: member.startDate ? new Date(member.startDate as any) : new Date(),
+      endDate: member.endDate ? new Date(member.endDate as any) : null,
+      employmentType: member.employmentType || 'full_time',
+      firstName: member.firstName,
+      lastName: member.lastName,
+      preferredName: member.preferredName,
+      dateOfBirth: member.dateOfBirth ? new Date(member.dateOfBirth as any) : null,
+      personalEmail: member.personalEmail,
+      personalPhone: member.personalPhone,
+      emergencyContactName: member.emergencyContactName,
+      emergencyContactPhone: member.emergencyContactPhone,
+      emergencyContactRelation: member.emergencyContactRelation,
+      streetAddress: member.streetAddress,
+      suburb: member.suburb,
+      city: member.city,
+      state: member.state,
+      postcode: member.postcode,
+      country: member.country || 'New Zealand',
+      position: member.position,
+      jobTitle: member.jobTitle,
+      skillLevel: member.skillLevel,
+      hourlyRate: member.hourlyRate ? parseFloat(member.hourlyRate.toString()) : null,
+      payFrequency: member.payFrequency || 'weekly',
+      primarySkills: member.primarySkills || [],
+      secondarySkills: member.secondarySkills || [],
+      certifications: member.certifications || [],
+      qualifications: member.qualifications || [],
+      licenses: member.licenses || [],
+      inductionCompleted: member.inductionCompleted || false,
+      inductionDate: member.inductionDate ? new Date(member.inductionDate as any) : null,
+      safetyTrainingExpiry: member.safetyTrainingExpiry ? new Date(member.safetyTrainingExpiry as any) : null,
+      medicalClearance: member.medicalClearance || false,
+      medicalExpiryDate: member.medicalExpiryDate ? new Date(member.medicalExpiryDate as any) : null,
+      lastReviewDate: member.lastReviewDate ? new Date(member.lastReviewDate as any) : null,
+      nextReviewDate: member.nextReviewDate ? new Date(member.nextReviewDate as any) : null,
+      annualLeaveEntitlement: member.annualLeaveEntitlement || 20,
+      sickLeaveEntitlement: member.sickLeaveEntitlement || 5,
+      currentLeaveBalance: member.currentLeaveBalance || 0,
+      notes: member.notes,
+      internalNotes: member.internalNotes,
     };
 
-    const [newMember] = await db.insert(teamMembers).values(essentialMember).returning();
+    console.log("Creating team member with employee number:", employeeNumber);
+    const [newMember] = await db.insert(teamMembers).values(memberData).returning();
     return newMember;
   }
 
   async updateTeamMember(id: number, memberData: Partial<InsertTeamMember>): Promise<TeamMember> {
     console.log("Updating team member with data:", memberData);
     
-    // Only update fields that actually exist in the database
+    // Now we can update all fields since we added them to the database
     const updateData: any = {};
     
-    // Basic required fields that exist in database
+    // Basic required fields
     if (memberData.userId) updateData.userId = memberData.userId;
     if (memberData.roleId) updateData.roleId = memberData.roleId;
     if (memberData.departmentId) updateData.departmentId = memberData.departmentId;
     if (memberData.isActive !== undefined) updateData.isActive = memberData.isActive;
-    if (memberData.hourlyRate !== undefined) updateData.hourlyRate = parseFloat(memberData.hourlyRate?.toString() || "0");
-    if (memberData.startDate) updateData.hireDate = new Date(memberData.startDate);
     
-    console.log("Safe update data (database fields only):", updateData);
+    // Employment information
+    if (memberData.employeeNumber) updateData.employeeNumber = memberData.employeeNumber;
+    if (memberData.employmentType) updateData.employmentType = memberData.employmentType;
+    if (memberData.startDate) updateData.startDate = new Date(memberData.startDate);
+    if (memberData.endDate) updateData.endDate = new Date(memberData.endDate);
+    if (memberData.hourlyRate !== undefined) updateData.hourlyRate = parseFloat(memberData.hourlyRate?.toString() || "0");
+    if (memberData.payFrequency) updateData.payFrequency = memberData.payFrequency;
+    
+    // Personal information
+    if (memberData.firstName) updateData.firstName = memberData.firstName;
+    if (memberData.lastName) updateData.lastName = memberData.lastName;
+    if (memberData.preferredName) updateData.preferredName = memberData.preferredName;
+    if (memberData.dateOfBirth) updateData.dateOfBirth = new Date(memberData.dateOfBirth);
+    
+    // Contact information
+    if (memberData.personalEmail) updateData.personalEmail = memberData.personalEmail;
+    if (memberData.personalPhone) updateData.personalPhone = memberData.personalPhone;
+    if (memberData.emergencyContactName) updateData.emergencyContactName = memberData.emergencyContactName;
+    if (memberData.emergencyContactPhone) updateData.emergencyContactPhone = memberData.emergencyContactPhone;
+    if (memberData.emergencyContactRelation) updateData.emergencyContactRelation = memberData.emergencyContactRelation;
+    
+    // Address information
+    if (memberData.streetAddress) updateData.streetAddress = memberData.streetAddress;
+    if (memberData.suburb) updateData.suburb = memberData.suburb;
+    if (memberData.city) updateData.city = memberData.city;
+    if (memberData.state) updateData.state = memberData.state;
+    if (memberData.postcode) updateData.postcode = memberData.postcode;
+    if (memberData.country) updateData.country = memberData.country;
+    
+    // Job information
+    if (memberData.position) updateData.position = memberData.position;
+    if (memberData.jobTitle) updateData.jobTitle = memberData.jobTitle;
+    if (memberData.skillLevel) updateData.skillLevel = memberData.skillLevel;
+    
+    // Arrays and JSON fields
+    if (memberData.primarySkills) updateData.primarySkills = memberData.primarySkills;
+    if (memberData.secondarySkills) updateData.secondarySkills = memberData.secondarySkills;
+    if (memberData.certifications) updateData.certifications = memberData.certifications;
+    if (memberData.qualifications) updateData.qualifications = memberData.qualifications;
+    if (memberData.licenses) updateData.licenses = memberData.licenses;
+    
+    // Safety and compliance
+    if (memberData.inductionCompleted !== undefined) updateData.inductionCompleted = memberData.inductionCompleted;
+    if (memberData.inductionDate) updateData.inductionDate = new Date(memberData.inductionDate);
+    if (memberData.safetyTrainingExpiry) updateData.safetyTrainingExpiry = new Date(memberData.safetyTrainingExpiry);
+    if (memberData.medicalClearance !== undefined) updateData.medicalClearance = memberData.medicalClearance;
+    if (memberData.medicalExpiryDate) updateData.medicalExpiryDate = new Date(memberData.medicalExpiryDate);
+    
+    // Review dates
+    if (memberData.lastReviewDate) updateData.lastReviewDate = new Date(memberData.lastReviewDate);
+    if (memberData.nextReviewDate) updateData.nextReviewDate = new Date(memberData.nextReviewDate);
+    
+    // Leave entitlements
+    if (memberData.annualLeaveEntitlement !== undefined) updateData.annualLeaveEntitlement = parseInt(memberData.annualLeaveEntitlement?.toString() || "0");
+    if (memberData.sickLeaveEntitlement !== undefined) updateData.sickLeaveEntitlement = parseInt(memberData.sickLeaveEntitlement?.toString() || "0");
+    if (memberData.currentLeaveBalance !== undefined) updateData.currentLeaveBalance = parseFloat(memberData.currentLeaveBalance?.toString() || "0");
+    
+    // Notes
+    if (memberData.notes) updateData.notes = memberData.notes;
+    if (memberData.internalNotes) updateData.internalNotes = memberData.internalNotes;
+    
+    // Always update the updated_at timestamp
+    updateData.updatedAt = new Date();
+    
+    console.log("Comprehensive update data:", updateData);
     
     const [updatedMember] = await db
       .update(teamMembers)

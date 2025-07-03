@@ -182,6 +182,9 @@ This is a comprehensive steel fabrication business management system built for L
 - July 3, 2025: **ACTIVE ACCOUNT TOGGLE RESTORED** - Added back critical "Active Account" toggle to user edit forms enabling/disabling login access. Toggle only appears when editing existing users (not creating new ones), includes clear status indicators "(User can log in)" vs "(Login access disabled)", properly integrated with form data and backend persistence
 - July 3, 2025: **PASSWORD MANAGEMENT FOR TEAM LEADERS IMPLEMENTED** - Added "View Current Password" functionality for authorized roles managing team members. Includes secure API endpoint `/api/users/:id/password` for password retrieval, frontend interface with show/hide toggle, and clear team management context labeling
 - July 3, 2025: **TEAM MEMBER UPDATE DATABASE COMPATIBILITY FIXED** - Resolved persistent team member update failures by aligning update function with actual database schema (id, user_id, role_id, department_id, hire_date, hourly_rate, is_active, created_at). Team member updates now work correctly with existing database structure
+- July 3, 2025: **COMPREHENSIVE DATABASE SCHEMA EXPANSION** - Added 37 essential columns to team_members table including employee_number, employment details, personal information, contact data, address fields, job information, skills arrays, safety compliance, review dates, leave entitlements, and notes fields for complete HR management
+- July 3, 2025: **AUTOMATIC EMPLOYEE NUMBER GENERATION** - Implemented year-based sequential employee numbering system (EMP2025001, EMP2025002, etc.) with automatic generation for new team members and duplicate prevention logic
+- July 3, 2025: **COMPLETE TEAM MEMBER CRUD OPERATIONS** - Full create, read, update, delete functionality now working with comprehensive data handling including all personal, employment, safety, and compliance information following enterprise HR system standards
 
 ## User Preferences
 
