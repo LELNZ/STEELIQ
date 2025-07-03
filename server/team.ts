@@ -110,17 +110,66 @@ export class TeamStorage implements ITeamStorage {
       departmentId: teamMembers.departmentId,
       isActive: teamMembers.isActive,
       
-      // Personal information - these definitely exist
+      // Personal information
       firstName: teamMembers.firstName,
       lastName: teamMembers.lastName,
+      preferredName: teamMembers.preferredName,
+      dateOfBirth: teamMembers.dateOfBirth,
+      
+      // Employment information
       employeeNumber: teamMembers.employeeNumber,
       startDate: teamMembers.startDate,
       endDate: teamMembers.endDate,
       employmentType: teamMembers.employmentType,
+      position: teamMembers.position,
+      jobTitle: teamMembers.jobTitle,
+      skillLevel: teamMembers.skillLevel,
+      
+      // Contact information
+      personalEmail: teamMembers.personalEmail,
+      personalPhone: teamMembers.personalPhone,
+      emergencyContactName: teamMembers.emergencyContactName,
+      emergencyContactPhone: teamMembers.emergencyContactPhone,
+      emergencyContactRelation: teamMembers.emergencyContactRelation,
+      
+      // Address information
+      streetAddress: teamMembers.streetAddress,
+      suburb: teamMembers.suburb,
+      city: teamMembers.city,
+      state: teamMembers.state,
+      postcode: teamMembers.postcode,
+      country: teamMembers.country,
+      
+      // Skills and qualifications
+      primarySkills: teamMembers.primarySkills,
+      secondarySkills: teamMembers.secondarySkills,
+      certifications: teamMembers.certifications,
+      qualifications: teamMembers.qualifications,
+      licenses: teamMembers.licenses,
       
       // Compensation
       hourlyRate: teamMembers.hourlyRate,
       payFrequency: teamMembers.payFrequency,
+      
+      // Safety and compliance
+      inductionCompleted: teamMembers.inductionCompleted,
+      inductionDate: teamMembers.inductionDate,
+      safetyTrainingExpiry: teamMembers.safetyTrainingExpiry,
+      medicalClearance: teamMembers.medicalClearance,
+      medicalExpiryDate: teamMembers.medicalExpiryDate,
+      
+      // Leave entitlements
+      annualLeaveEntitlement: teamMembers.annualLeaveEntitlement,
+      sickLeaveEntitlement: teamMembers.sickLeaveEntitlement,
+      currentLeaveBalance: teamMembers.currentLeaveBalance,
+      
+      // Review information
+      lastReviewDate: teamMembers.lastReviewDate,
+      nextReviewDate: teamMembers.nextReviewDate,
+      
+      // Additional information
+      notes: teamMembers.notes,
+      internalNotes: teamMembers.internalNotes,
       
       // Timestamps
       createdAt: teamMembers.createdAt,
@@ -371,10 +420,23 @@ export class TeamStorage implements ITeamStorage {
       id: users.id,
       name: users.name,
       username: users.username,
+      email: users.email,
+      phone: users.phone,
       role: users.role,
       department: users.department,
       isActive: users.isActive,
-    }).from(users).where(eq(users.isActive, true));
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      // Include team member information
+      teamMemberId: teamMembers.id,
+      teamMemberFirstName: teamMembers.firstName,
+      teamMemberLastName: teamMembers.lastName,
+      teamMemberEmployeeNumber: teamMembers.employeeNumber,
+      teamMemberIsActive: teamMembers.isActive,
+    })
+    .from(users)
+    .leftJoin(teamMembers, eq(users.id, teamMembers.userId))
+    .orderBy(desc(users.createdAt));
   }
 }
 

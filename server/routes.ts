@@ -659,17 +659,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users", async (req, res) => {
-    try {
-      const users = await storage.getUsers();
-      // Remove passwords from response
-      const usersWithoutPasswords = users.map(({ password, ...user }) => user);
-      res.json(usersWithoutPasswords);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ error: "Failed to fetch users" });
-    }
-  });
+  // Legacy users endpoint - replaced by team management endpoint below
+  // app.get("/api/users", async (req, res) => {
+  //   try {
+  //     const users = await storage.getUsers();
+  //     // Remove passwords from response
+  //     const usersWithoutPasswords = users.map(({ password, ...user }) => user);
+  //     res.json(usersWithoutPasswords);
+  //   } catch (error) {
+  //     console.error("Error fetching users:", error);
+  //     res.status(500).json({ error: "Failed to fetch users" });
+  //   }
+  // });
 
   app.post("/api/users", async (req, res) => {
     try {

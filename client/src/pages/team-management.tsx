@@ -1817,7 +1817,7 @@ function DepartmentForm({ department, users, onSubmit, isLoading }: any) {
 function UserCard({ user }: { user: any }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const hasTeamMember = user.teamMember && user.teamMember.length > 0;
+  const hasTeamMember = user.teamMemberId !== null && user.teamMemberId !== undefined;
   const [showEditDialog, setShowEditDialog] = useState(false);
   
   const updateUserMutation = useMutation({
@@ -1926,7 +1926,7 @@ function UserCard({ user }: { user: any }) {
             </div>
             {hasTeamMember && (
               <p className="text-sm mt-2 text-green-600">
-                ✓ Linked to employee profile
+                ✓ Linked to employee: {user.teamMemberFirstName} {user.teamMemberLastName} ({user.teamMemberEmployeeNumber})
               </p>
             )}
             {!hasTeamMember && (
