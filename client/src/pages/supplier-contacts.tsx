@@ -350,7 +350,7 @@ export default function SupplierContactsPage() {
                           <FormItem>
                             <FormLabel>Email</FormLabel>
                             <FormControl>
-                              <Input type="email" placeholder="john.smith@supplier.com" {...field} />
+                              <Input type="email" placeholder="contact@supplier.com" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

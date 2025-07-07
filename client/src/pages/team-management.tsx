@@ -1331,7 +1331,7 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
                   type="email"
                   value={formData.personalEmail}
                   onChange={(e) => setFormData({...formData, personalEmail: e.target.value})}
-                  placeholder="john.smith@email.com"
+                  placeholder="user@email.com"
                 />
               </div>
 
@@ -2136,7 +2136,7 @@ function UserForm({ user, onSubmit, isLoading }: any) {
             id="username"
             value={formData.username}
             onChange={(e) => setFormData({...formData, username: e.target.value})}
-            placeholder="john.smith"
+            placeholder="username"
             required
           />
         </div>
@@ -2148,7 +2148,7 @@ function UserForm({ user, onSubmit, isLoading }: any) {
             type="email"
             value={formData.email}
             onChange={(e) => setFormData({...formData, email: e.target.value})}
-            placeholder="john.smith@lateralengineering.co.nz"
+            placeholder="user@lateralengineering.co.nz"
           />
         </div>
 

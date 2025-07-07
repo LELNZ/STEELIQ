@@ -82,7 +82,7 @@ export default function ClientPortal() {
     dueDate: "2025-07-15",
     createdAt: "2025-06-10",
     estimatorName: "John Smith",
-    estimatorContact: "john.smith@lateralengineering.co.nz"
+    estimatorContact: "estimator@lateralengineering.co.nz"
   };
 
   const mockQuoteItems: QuoteItem[] = [

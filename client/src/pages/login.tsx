@@ -92,7 +92,7 @@ export default function LoginPage() {
                     <Input
                       id="username"
                       type="text"
-                      placeholder="adam.green"
+                      placeholder="Enter username"
                       value={formData.username}
                       onChange={(e) => handleInputChange("username", e.target.value)}
                       className="h-11"
@@ -210,32 +210,7 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        {/* Demo Credentials for Testing */}
-        <Card className="border-dashed">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <h3 className="text-sm font-medium mb-3">Demo Team Members</h3>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                  <p className="font-medium">Adam Green</p>
-                  <p className="text-gray-500">admin / password123</p>
-                </div>
-                <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                  <p className="font-medium">Chipo Green</p>
-                  <p className="text-gray-500">chipo.green / password123</p>
-                </div>
-                <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                  <p className="font-medium">Manny Magallanes</p>
-                  <p className="text-gray-500">manny.magallanes / password123</p>
-                </div>
-                <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                  <p className="font-medium">Vili Pelenato</p>
-                  <p className="text-gray-500">vili.pelenato / password123</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   );
