@@ -207,25 +207,12 @@ export class TeamStorage implements ITeamStorage {
         roleName: role?.name,
         departmentName: department?.name,
         
-        // Placeholder Health & Safety fields for frontend compatibility
+        // Health & Safety fields will be added after database migration
         firstAidCertifications: [],
         weldingQualifications: [],
         workingAtHeightsCerts: [],
         tradeQualifications: [],
-        driversLicenseClass: null,
-        driversLicenseExpiry: null,
-        driversLicenseDocument: null,
-        visaType: null,
-        visaNumber: null,
-        visaExpiry: null,
-        visaDocument: null,
-        workEligibility: true,
-        bankAccountName: null,
-        bankAccountNumber: null,
-        bankSortCode: null,
-        taxNumber: null,
-        kiwisaverProvider: null,
-        kiwisaverRate: null
+        driversLicenses: []
       };
     });
   }
