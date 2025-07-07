@@ -390,7 +390,7 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
   };
 
   return (
-    <div className="h-full overflow-y-auto space-y-4 pr-2 pb-4">
+    <div className="h-[calc(100vh-280px)] overflow-y-auto space-y-4 pr-2 pb-4">
       {/* Safety Status Overview */}
       <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
         <CardHeader className="pb-3">
