@@ -101,130 +101,136 @@ export class TeamStorage implements ITeamStorage {
   }
 
   // Team Members
+  
+  // Team Members
+  
+  // Team Members - Simple query using only existing fields
   async getTeamMembers(): Promise<any[]> {
-    return await db.select({
-      // Core team member data
-      id: teamMembers.id,
-      userId: teamMembers.userId,
-      roleId: teamMembers.roleId,
-      departmentId: teamMembers.departmentId,
-      isActive: teamMembers.isActive,
-      
-      // Personal information
-      firstName: teamMembers.firstName,
-      lastName: teamMembers.lastName,
-      preferredName: teamMembers.preferredName,
-      dateOfBirth: teamMembers.dateOfBirth,
-      
-      // Employment information
-      employeeNumber: teamMembers.employeeNumber,
-      startDate: teamMembers.startDate,
-      endDate: teamMembers.endDate,
-      employmentType: teamMembers.employmentType,
-      position: teamMembers.position,
-      jobTitle: teamMembers.jobTitle,
-      skillLevel: teamMembers.skillLevel,
-      
-      // Contact information
-      personalEmail: teamMembers.personalEmail,
-      personalPhone: teamMembers.personalPhone,
-      emergencyContactName: teamMembers.emergencyContactName,
-      emergencyContactPhone: teamMembers.emergencyContactPhone,
-      emergencyContactRelation: teamMembers.emergencyContactRelation,
-      
-      // Address information
-      streetAddress: teamMembers.streetAddress,
-      suburb: teamMembers.suburb,
-      city: teamMembers.city,
-      state: teamMembers.state,
-      postcode: teamMembers.postcode,
-      country: teamMembers.country,
-      
-      // Skills and qualifications
-      primarySkills: teamMembers.primarySkills,
-      secondarySkills: teamMembers.secondarySkills,
-      experienceYears: teamMembers.experienceYears,
-      certifications: teamMembers.certifications,
-      qualifications: teamMembers.qualifications,
-      licenses: teamMembers.licenses,
-      
-      // Compensation
-      hourlyRate: teamMembers.hourlyRate,
-      overtimeRate: teamMembers.overtimeRate,
-      siteAllowance: teamMembers.siteAllowance,
-      travelAllowance: teamMembers.travelAllowance,
-      annualSalary: teamMembers.annualSalary,
-      payFrequency: teamMembers.payFrequency,
-      
-      // Safety and compliance
-      inductionCompleted: teamMembers.inductionCompleted,
-      inductionDate: teamMembers.inductionDate,
-      safetyTrainingExpiry: teamMembers.safetyTrainingExpiry,
-      medicalClearance: teamMembers.medicalClearance,
-      medicalExpiryDate: teamMembers.medicalExpiryDate,
-      
-      // Leave entitlements
-      annualLeaveEntitlement: teamMembers.annualLeaveEntitlement,
-      sickLeaveEntitlement: teamMembers.sickLeaveEntitlement,
-      currentLeaveBalance: teamMembers.currentLeaveBalance,
-      
-      // Review information
-      performanceRating: teamMembers.performanceRating,
-      lastReviewDate: teamMembers.lastReviewDate,
-      nextReviewDate: teamMembers.nextReviewDate,
-      
+    const members = await db.select()
+      .from(teamMembers)
+      .leftJoin(users, eq(teamMembers.userId, users.id))
+      .leftJoin(roles, eq(teamMembers.roleId, roles.id))
+      .leftJoin(departments, eq(teamMembers.departmentId, departments.id));
 
+    return members.map(row => {
+      const member = row.team_members;
+      const user = row.users;
+      const role = row.roles;
+      const department = row.departments;
       
-      // Training records
-      trainingRecords: teamMembers.trainingRecords,
-      profilePhoto: teamMembers.profilePhoto,
-      
-      // Additional information
-      notes: teamMembers.notes,
-      internalNotes: teamMembers.internalNotes,
-      
-      // Health & Safety Comprehensive Fields
-      firstAidCertifications: teamMembers.firstAidCertifications,
-      weldingQualifications: teamMembers.weldingQualifications,
-      workingAtHeightsCerts: teamMembers.workingAtHeightsCerts,
-      tradeQualifications: teamMembers.tradeQualifications,
-      
-      // Driver's License
-      driversLicenseClass: teamMembers.driversLicenseClass,
-      driversLicenseExpiry: teamMembers.driversLicenseExpiry,
-      driversLicenseDocument: teamMembers.driversLicenseDocument,
-      
-      // Visa & Immigration
-      visaType: teamMembers.visaType,
-      visaNumber: teamMembers.visaNumber,
-      visaExpiry: teamMembers.visaExpiry,
-      visaDocument: teamMembers.visaDocument,
-      workEligibility: teamMembers.workEligibility,
-      
-      // Banking & Financial
-      bankAccountName: teamMembers.bankAccountName,
-      bankAccountNumber: teamMembers.bankAccountNumber,
-      bankSortCode: teamMembers.bankSortCode,
-      taxNumber: teamMembers.taxNumber,
-      kiwisaverProvider: teamMembers.kiwisaverProvider,
-      kiwisaverRate: teamMembers.kiwisaverRate,
-      
-      // Timestamps
-      createdAt: teamMembers.createdAt,
-      updatedAt: teamMembers.updatedAt,
-      
-      // Related data from joins
-      userName: users.name,
-      userUsername: users.username,
-      roleName: roles.name,
-      departmentName: departments.name
-    })
-    .from(teamMembers)
-    .leftJoin(users, eq(teamMembers.userId, users.id))
-    .leftJoin(roles, eq(teamMembers.roleId, roles.id))
-    .leftJoin(departments, eq(teamMembers.departmentId, departments.id))
-    .orderBy(desc(teamMembers.createdAt));
+      return {
+        // Core team member data
+        id: member.id,
+        userId: member.userId,
+        roleId: member.roleId,
+        departmentId: member.departmentId,
+        isActive: member.isActive,
+        
+        // Personal information
+        firstName: member.firstName,
+        lastName: member.lastName,
+        preferredName: member.preferredName,
+        dateOfBirth: member.dateOfBirth,
+        
+        // Employment information
+        employeeNumber: member.employeeNumber,
+        startDate: member.startDate,
+        endDate: member.endDate,
+        employmentType: member.employmentType,
+        
+        // Contact information
+        personalEmail: member.personalEmail,
+        personalPhone: member.personalPhone,
+        emergencyContactName: member.emergencyContactName,
+        emergencyContactPhone: member.emergencyContactPhone,
+        emergencyContactRelation: member.emergencyContactRelation,
+        
+        // Address information
+        streetAddress: member.streetAddress,
+        suburb: member.suburb,
+        city: member.city,
+        state: member.state,
+        postcode: member.postcode,
+        country: member.country,
+        
+        // Position & Skills
+        position: member.position,
+        jobTitle: member.jobTitle,
+        skillLevel: member.skillLevel,
+        primarySkills: member.primarySkills,
+        secondarySkills: member.secondarySkills,
+        experienceYears: member.experienceYears,
+        
+        // Rates & Compensation
+        hourlyRate: member.hourlyRate,
+        overtimeRate: member.overtimeRate,
+        siteAllowance: member.siteAllowance,
+        travelAllowance: member.travelAllowance,
+        annualSalary: member.annualSalary,
+        payFrequency: member.payFrequency,
+        
+        // Certifications & Qualifications
+        certifications: member.certifications,
+        qualifications: member.qualifications,
+        licenses: member.licenses,
+        trainingRecords: member.trainingRecords,
+        
+        // Health & Safety
+        inductionCompleted: member.inductionCompleted,
+        inductionDate: member.inductionDate,
+        safetyTrainingExpiry: member.safetyTrainingExpiry,
+        medicalClearance: member.medicalClearance,
+        medicalExpiryDate: member.medicalExpiryDate,
+        
+        // Review information
+        performanceRating: member.performanceRating,
+        lastReviewDate: member.lastReviewDate,
+        nextReviewDate: member.nextReviewDate,
+        
+        // Additional information
+        notes: member.notes,
+        internalNotes: member.internalNotes,
+        profilePhoto: member.profilePhoto,
+        
+        // Leave balances
+        annualLeaveEntitlement: member.annualLeaveEntitlement,
+        sickLeaveEntitlement: member.sickLeaveEntitlement,
+        currentLeaveBalance: member.currentLeaveBalance,
+        
+        // Timestamps
+        createdAt: member.createdAt,
+        updatedAt: member.updatedAt,
+        
+        // Related data from joins
+        userName: user?.name,
+        userUsername: user?.username,
+        roleName: role?.name,
+        departmentName: department?.name,
+        
+        // Placeholder Health & Safety fields for frontend compatibility
+        firstAidCertifications: [],
+        weldingQualifications: [],
+        workingAtHeightsCerts: [],
+        tradeQualifications: [],
+        driversLicenseClass: null,
+        driversLicenseExpiry: null,
+        driversLicenseDocument: null,
+        visaType: null,
+        visaNumber: null,
+        visaExpiry: null,
+        visaDocument: null,
+        workEligibility: true,
+        bankAccountName: null,
+        bankAccountNumber: null,
+        bankSortCode: null,
+        taxNumber: null,
+        kiwisaverProvider: null,
+        kiwisaverRate: null
+      };
+    });
   }
+
+
 
   // Generate automatic employee number
   private async generateEmployeeNumber(): Promise<string> {

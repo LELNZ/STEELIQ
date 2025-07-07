@@ -1734,37 +1734,7 @@ export const teamMembers = pgTable("team_members", {
   medicalClearance: boolean("medical_clearance").default(false),
   medicalExpiryDate: date("medical_expiry_date"),
   
-  // First Aid Certifications
-  firstAidCertifications: jsonb("first_aid_certifications"), // Array of first aid certs
-  
-  // Welding Qualifications  
-  weldingQualifications: jsonb("welding_qualifications"), // Array of welding quals
-  
-  // Working at Heights
-  workingAtHeightsCerts: jsonb("working_at_heights_certs"), // Array of height certs
-  
-  // Driver's License
-  driversLicenseClass: varchar("drivers_license_class", { length: 100 }), // NZ license classes
-  driversLicenseExpiry: date("drivers_license_expiry"),
-  driversLicenseDocument: text("drivers_license_document"), // File path
-  
-  // Trade Qualifications
-  tradeQualifications: jsonb("trade_qualifications"), // Array of trade quals
-  
-  // Visa & Immigration (moved from Additional to H&S)
-  visaType: varchar("visa_type", { length: 100 }),
-  visaNumber: varchar("visa_number", { length: 50 }),
-  visaExpiry: date("visa_expiry"),
-  visaDocument: text("visa_document"), // File path
-  workEligibility: boolean("work_eligibility").default(true),
-  
-  // Banking & Financial Information  
-  bankAccountName: varchar("bank_account_name", { length: 100 }),
-  bankAccountNumber: varchar("bank_account_number", { length: 50 }),
-  bankSortCode: varchar("bank_sort_code", { length: 20 }),
-  taxNumber: varchar("tax_number", { length: 50 }), // IRD number
-  kiwisaverProvider: varchar("kiwisaver_provider", { length: 100 }),
-  kiwisaverRate: decimal("kiwisaver_rate", { precision: 5, scale: 2 }).default("3"),
+  // Health & Safety fields temporarily removed - will be added back with database migration
   
   // Performance & Review
   performanceRating: decimal("performance_rating", { precision: 3, scale: 1 }), // 1.0 to 5.0
