@@ -1055,14 +1055,14 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
     skillLevel: member?.skillLevel || "",
     primarySkills: member?.primarySkills || [],
     secondarySkills: member?.secondarySkills || [],
-    experienceYears: member?.experienceYears || "",
+    experienceYears: member?.experienceYears?.toString() || "",
     
     // Rates & Compensation
-    hourlyRate: member?.hourlyRate || "",
-    overtimeRate: member?.overtimeRate || "",
-    siteAllowance: member?.siteAllowance || "",
-    travelAllowance: member?.travelAllowance || "",
-    annualSalary: member?.annualSalary || "",
+    hourlyRate: member?.hourlyRate?.toString() || "",
+    overtimeRate: member?.overtimeRate?.toString() || "",
+    siteAllowance: member?.siteAllowance?.toString() || "",
+    travelAllowance: member?.travelAllowance?.toString() || "",
+    annualSalary: member?.annualSalary?.toString() || "",
     payFrequency: member?.payFrequency || "weekly",
     
     // Certifications & Qualifications
@@ -1078,34 +1078,34 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
     medicalExpiryDate: member?.medicalExpiryDate ? new Date(member.medicalExpiryDate).toISOString().split('T')[0] : "",
     
     // Performance & Review
-    performanceRating: member?.performanceRating || "",
+    performanceRating: member?.performanceRating?.toString() || "",
     lastReviewDate: member?.lastReviewDate ? new Date(member.lastReviewDate).toISOString().split('T')[0] : "",
     nextReviewDate: member?.nextReviewDate ? new Date(member.nextReviewDate).toISOString().split('T')[0] : "",
     
     // Benefits & Leave
-    annualLeaveEntitlement: member?.annualLeaveEntitlement || "20",
-    sickLeaveEntitlement: member?.sickLeaveEntitlement || "5",
-    currentLeaveBalance: member?.currentLeaveBalance || "0",
+    annualLeaveEntitlement: member?.annualLeaveEntitlement?.toString() || "20",
+    sickLeaveEntitlement: member?.sickLeaveEntitlement?.toString() || "5",
+    currentLeaveBalance: member?.currentLeaveBalance?.toString() || "0",
     
     // Notes
     notes: member?.notes || "",
     internalNotes: member?.internalNotes || "",
     
-    // Banking & Financial Information
-    bankAccountName: member?.bankAccountName || "",
-    bankAccountNumber: member?.bankAccountNumber || "",
-    bankSortCode: member?.bankSortCode || "",
-    taxNumber: member?.taxNumber || "",
-    kiwisaverRate: member?.kiwisaverRate || "",
+    // Banking & Financial Information (fields will be added to schema later)
+    bankAccountName: "",
+    bankAccountNumber: "",
+    bankSortCode: "",
+    taxNumber: "",
+    kiwisaverRate: "",
     
-    // Visa & Immigration
-    visaType: member?.visaType || "",
-    visaExpiry: member?.visaExpiry ? new Date(member.visaExpiry).toISOString().split('T')[0] : "",
+    // Visa & Immigration (fields will be added to schema later)
+    visaType: "",
+    visaExpiry: "",
     
-    // Next of Kin
-    nextOfKinName: member?.nextOfKinName || "",
-    nextOfKinPhone: member?.nextOfKinPhone || "",
-    nextOfKinRelation: member?.nextOfKinRelation || "",
+    // Next of Kin (fields will be added to schema later)
+    nextOfKinName: "",
+    nextOfKinPhone: "",
+    nextOfKinRelation: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {

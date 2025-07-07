@@ -143,12 +143,17 @@ export class TeamStorage implements ITeamStorage {
       // Skills and qualifications
       primarySkills: teamMembers.primarySkills,
       secondarySkills: teamMembers.secondarySkills,
+      experienceYears: teamMembers.experienceYears,
       certifications: teamMembers.certifications,
       qualifications: teamMembers.qualifications,
       licenses: teamMembers.licenses,
       
       // Compensation
       hourlyRate: teamMembers.hourlyRate,
+      overtimeRate: teamMembers.overtimeRate,
+      siteAllowance: teamMembers.siteAllowance,
+      travelAllowance: teamMembers.travelAllowance,
+      annualSalary: teamMembers.annualSalary,
       payFrequency: teamMembers.payFrequency,
       
       // Safety and compliance
@@ -164,8 +169,15 @@ export class TeamStorage implements ITeamStorage {
       currentLeaveBalance: teamMembers.currentLeaveBalance,
       
       // Review information
+      performanceRating: teamMembers.performanceRating,
       lastReviewDate: teamMembers.lastReviewDate,
       nextReviewDate: teamMembers.nextReviewDate,
+      
+
+      
+      // Training records
+      trainingRecords: teamMembers.trainingRecords,
+      profilePhoto: teamMembers.profilePhoto,
       
       // Additional information
       notes: teamMembers.notes,
