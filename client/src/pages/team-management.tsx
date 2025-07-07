@@ -1665,10 +1665,10 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
             </div>
           </TabsContent>
 
-          {/* Additional Information Tab */}
+          {/* Health & Safety Tab */}
           <TabsContent value="healthsafety" className="space-y-4">
             <HealthSafetyForm 
-              member={selectedMember}
+              member={member}
               onUpdate={(field, value) => setFormData({...formData, [field]: value})}
             />
           </TabsContent>
