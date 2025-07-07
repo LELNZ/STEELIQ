@@ -283,6 +283,70 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
             </div>
           </div>
 
+          {/* Document Upload Section */}
+          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium">Document</Label>
+              <div className="flex items-center gap-2">
+                {cert.documentPath ? (
+                  <>
+                    <Badge variant="secondary" className="text-xs">
+                      <FileText className="h-3 w-3 mr-1" />
+                      Uploaded
+                    </Badge>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
+                      onClick={() => {
+                        // View document functionality
+                        window.open(cert.documentPath, '_blank');
+                      }}
+                    >
+                      <FileText className="h-3 w-3" />
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => {
+                      // File upload functionality
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = '.pdf,.jpg,.jpeg,.png';
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) {
+                          // In a real implementation, this would upload to server
+                          // For now, we'll store the file name
+                          onCertUpdate({ 
+                            ...cert, 
+                            documentPath: `documents/${cert.type}/${file.name}` 
+                          });
+                        }
+                      };
+                      input.click();
+                    }}
+                  >
+                    <Upload className="h-3 w-3 mr-1" />
+                    Upload
+                  </Button>
+                )}
+              </div>
+            </div>
+            {cert.documentPath && (
+              <div className="mt-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {cert.documentPath.split('/').pop()}
+                </span>
+              </div>
+            )}
+          </div>
+
           {cert.type === 'welding' && (
             <div className="mt-2">
               <Label className="text-xs">Qualified Positions</Label>
@@ -314,7 +378,7 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
   };
 
   return (
-    <div className="h-[500px] overflow-y-auto space-y-6 pr-2">
+    <div className="h-full overflow-y-auto space-y-6 pr-2">
       {/* Safety Status Overview */}
       <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
         <CardHeader className="pb-3">

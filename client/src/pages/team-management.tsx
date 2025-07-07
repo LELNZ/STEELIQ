@@ -1166,11 +1166,21 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
     <div className="max-w-4xl mx-auto">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="basic">Basic Info</TabsTrigger>
-          <TabsTrigger value="personal">Personal</TabsTrigger>
-          <TabsTrigger value="employment">Employment</TabsTrigger>
-          <TabsTrigger value="compensation">Compensation</TabsTrigger>
-          <TabsTrigger value="healthsafety">🛡️ Health & Safety</TabsTrigger>
+          <TabsTrigger value="basic" className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900 dark:data-[state=active]:text-blue-100">
+            📋 Basic Info
+          </TabsTrigger>
+          <TabsTrigger value="personal" className="data-[state=active]:bg-green-100 data-[state=active]:text-green-700 dark:data-[state=active]:bg-green-900 dark:data-[state=active]:text-green-100">
+            👤 Personal
+          </TabsTrigger>
+          <TabsTrigger value="employment" className="data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700 dark:data-[state=active]:bg-purple-900 dark:data-[state=active]:text-purple-100">
+            💼 Employment
+          </TabsTrigger>
+          <TabsTrigger value="compensation" className="data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700 dark:data-[state=active]:bg-orange-900 dark:data-[state=active]:text-orange-100">
+            💰 Compensation
+          </TabsTrigger>
+          <TabsTrigger value="healthsafety" className="data-[state=active]:bg-red-100 data-[state=active]:text-red-700 dark:data-[state=active]:bg-red-900 dark:data-[state=active]:text-red-100">
+            🛡️ Health & Safety
+          </TabsTrigger>
         </TabsList>
 
         <div className="flex-1 overflow-hidden">
@@ -1618,7 +1628,7 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
           </TabsContent>
 
           {/* Health & Safety Tab */}
-          <TabsContent value="healthsafety" className="flex-1 overflow-hidden p-1">
+          <TabsContent value="healthsafety" className="flex-1 h-full overflow-hidden p-1">
             <HealthSafetyForm 
               member={member}
               onUpdate={(field, value) => setFormData({...formData, [field]: value})}
