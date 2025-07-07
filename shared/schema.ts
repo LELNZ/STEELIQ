@@ -1734,7 +1734,25 @@ export const teamMembers = pgTable("team_members", {
   medicalClearance: boolean("medical_clearance").default(false),
   medicalExpiryDate: date("medical_expiry_date"),
   
-  // Health & Safety fields temporarily removed - will be added back with database migration
+  // Health & Safety Certification Arrays (multiple certifications per employee)
+  firstAidCertifications: jsonb("first_aid_certifications"), // Array of First Aid cert objects
+  weldingQualifications: jsonb("welding_qualifications"), // Array of Welding qualification objects
+  workingAtHeightsCerts: jsonb("working_at_heights_certs"), // Array of Heights cert objects
+  tradeQualifications: jsonb("trade_qualifications"), // Array of Trade qualification objects
+  driversLicenses: jsonb("drivers_licenses"), // Array of NZ Driver's License objects
+  
+  // Immigration & Visa Information
+  visaType: varchar("visa_type", { length: 100 }),
+  visaNumber: varchar("visa_number", { length: 100 }),
+  visaExpiry: date("visa_expiry"),
+  workEligibility: boolean("work_eligibility").default(true),
+  
+  // Banking & Financial Details
+  bankName: varchar("bank_name", { length: 100 }),
+  bankAccountNumber: varchar("bank_account_number", { length: 50 }),
+  irdNumber: varchar("ird_number", { length: 20 }),
+  kiwiSaverProvider: varchar("kiwi_saver_provider", { length: 100 }),
+  kiwiSaverContribution: decimal("kiwi_saver_contribution", { precision: 5, scale: 2 }),
   
   // Performance & Review
   performanceRating: decimal("performance_rating", { precision: 3, scale: 1 }), // 1.0 to 5.0

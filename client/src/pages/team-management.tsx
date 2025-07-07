@@ -14,7 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activity, ChevronRight, ShieldCheck, Target, UserX } from "lucide-react";
+import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activity, ChevronRight, ShieldCheck, Target, UserX, Star, Calendar, UserCheck, MapPin, Clock, AlertTriangle, CheckCircle, ArrowLeft } from "lucide-react";
 import { PermissionViewer } from "@/components/team/PermissionViewer";
 import { PerformanceDashboard } from "@/components/team/PerformanceDashboard";
 import { HealthSafetyForm } from "@/components/team/HealthSafetyForm";
@@ -547,20 +547,22 @@ export default function TeamManagement() {
                 Add Member
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
+            <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>
                   {selectedMember ? "Edit Team Member" : "Add Team Member"}
                 </DialogTitle>
               </DialogHeader>
-              <MemberForm
-                member={selectedMember}
-                roles={roles}
-                departments={departments}
-                users={availableUsers}
-                onSubmit={memberMutation.mutate}
-                isLoading={memberMutation.isPending}
-              />
+              <div className="flex-1 overflow-hidden">
+                <MemberForm
+                  member={selectedMember}
+                  roles={roles}
+                  departments={departments}
+                  users={availableUsers}
+                  onSubmit={memberMutation.mutate}
+                  isLoading={memberMutation.isPending}
+                />
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -1171,9 +1173,10 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
           <TabsTrigger value="healthsafety">🛡️ Health & Safety</TabsTrigger>
         </TabsList>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information Tab */}
-          <TabsContent value="basic" className="space-y-4">
+        <div className="flex-1 overflow-hidden">
+          <form onSubmit={handleSubmit} className="h-full flex flex-col">
+            {/* Basic Information Tab */}
+            <TabsContent value="basic" className="flex-1 overflow-y-auto space-y-4 p-1">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="userId">Select User Account *</Label>
@@ -1299,7 +1302,7 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
           </TabsContent>
 
           {/* Personal Information Tab */}
-          <TabsContent value="personal" className="space-y-4">
+          <TabsContent value="personal" className="flex-1 overflow-y-auto space-y-4 p-1">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="dateOfBirth">Date of Birth</Label>
@@ -1390,7 +1393,7 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
           </TabsContent>
 
           {/* Employment Information Tab */}
-          <TabsContent value="employment" className="space-y-4">
+          <TabsContent value="employment" className="flex-1 overflow-y-auto space-y-4 p-1">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="position">Position Title</Label>
@@ -1454,59 +1457,8 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
             </div>
 
             <div className="space-y-4 pt-4 border-t">
-              <h3 className="text-lg font-semibold">Health & Safety</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={formData.inductionCompleted}
-                    onCheckedChange={(checked) => setFormData({...formData, inductionCompleted: checked})}
-                  />
-                  <Label>Induction Completed</Label>
-                </div>
-
-                <div>
-                  <Label htmlFor="inductionDate">Induction Date</Label>
-                  <Input
-                    id="inductionDate"
-                    type="date"
-                    value={formData.inductionDate}
-                    onChange={(e) => setFormData({...formData, inductionDate: e.target.value})}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="safetyTrainingExpiry">Safety Training Expiry</Label>
-                  <Input
-                    id="safetyTrainingExpiry"
-                    type="date"
-                    value={formData.safetyTrainingExpiry}
-                    onChange={(e) => setFormData({...formData, safetyTrainingExpiry: e.target.value})}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={formData.medicalClearance}
-                    onCheckedChange={(checked) => setFormData({...formData, medicalClearance: checked})}
-                  />
-                  <Label>Medical Clearance</Label>
-                </div>
-
-                <div>
-                  <Label htmlFor="medicalExpiryDate">Medical Expiry Date</Label>
-                  <Input
-                    id="medicalExpiryDate"
-                    type="date"
-                    value={formData.medicalExpiryDate}
-                    onChange={(e) => setFormData({...formData, medicalExpiryDate: e.target.value})}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-4 border-t">
               <h3 className="text-lg font-semibold">Performance & Review</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="performanceRating">Performance Rating (1.0-5.0)</Label>
                   <Input
@@ -1545,7 +1497,7 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
           </TabsContent>
 
           {/* Compensation Tab */}
-          <TabsContent value="compensation" className="space-y-4">
+          <TabsContent value="compensation" className="flex-1 overflow-y-auto space-y-4 p-1">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
@@ -1666,7 +1618,7 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
           </TabsContent>
 
           {/* Health & Safety Tab */}
-          <TabsContent value="healthsafety" className="space-y-4">
+          <TabsContent value="healthsafety" className="flex-1 overflow-hidden p-1">
             <HealthSafetyForm 
               member={member}
               onUpdate={(field, value) => setFormData({...formData, [field]: value})}
@@ -1674,7 +1626,7 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
           </TabsContent>
 
           {/* Form Actions */}
-          <div className="flex justify-between pt-6 border-t">
+          <div className="flex-shrink-0 flex justify-between pt-6 border-t">
             <Button type="button" variant="outline" onClick={() => setActiveTab("basic")}>
               Back to Basic Info
             </Button>
@@ -1682,7 +1634,8 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
               {isLoading ? "Saving..." : member ? "Update Employee" : "Add Employee"}
             </Button>
           </div>
-        </form>
+          </form>
+        </div>
       </Tabs>
     </div>
   );

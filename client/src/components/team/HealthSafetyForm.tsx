@@ -12,15 +12,12 @@ import { Calendar, Upload, X, Plus, Shield, Heart, HardHat, Car, GraduationCap, 
 
 // NZ Driver's License Classes
 const NZ_LICENSE_CLASSES = [
-  { value: "1", label: "Class 1 - Motorcycle (≤50cc)" },
-  { value: "6", label: "Class 6 - Motorcycle (>50cc)" },
-  { value: "2", label: "Class 2 - Heavy vehicle" },
-  { value: "3", label: "Class 3 - Heavy vehicle with trailer" },
-  { value: "4", label: "Class 4 - Heavy vehicle with passengers" },
-  { value: "5", label: "Class 5 - Heavy vehicle with dangerous goods" },
-  { value: "1F", label: "Class 1F - Full car license" },
-  { value: "1L", label: "Class 1L - Learner license" },
-  { value: "1R", label: "Class 1R - Restricted license" }
+  { value: "1", label: "Class 1 - Car" },
+  { value: "2", label: "Class 2 - Medium Rigid Vehicle (bus or truck 6,000-18,000kg)" },
+  { value: "3", label: "Class 3 - Medium Combination Vehicle (truck & trailer 12,000-25,000kg)" },
+  { value: "4", label: "Class 4 - Heavy Rigid Vehicle (bus or truck 18,000+kg)" },
+  { value: "5", label: "Class 5 - Heavy Combination Vehicle (truck & trailer 25,000+kg)" },
+  { value: "6", label: "Class 6 - Motorcycle" }
 ];
 
 // Welding Qualification Types
@@ -93,8 +90,11 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
   const [tradeQuals, setTradeQuals] = useState<CertificationItem[]>(
     member?.tradeQualifications || []
   );
+  const [driversLicenses, setDriversLicenses] = useState<CertificationItem[]>(
+    member?.driversLicenses || []
+  );
 
-  const addCertification = (type: 'firstAid' | 'welding' | 'heights' | 'trade') => {
+  const addCertification = (type: 'firstAid' | 'welding' | 'heights' | 'trade' | 'drivers') => {
     const newCert: CertificationItem = {
       id: Date.now().toString(),
       type,
@@ -125,6 +125,11 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
         const newTrade = [...tradeQuals, newCert];
         setTradeQuals(newTrade);
         onUpdate('tradeQualifications', newTrade);
+        break;
+      case 'drivers':
+        const newDrivers = [...driversLicenses, newCert];
+        setDriversLicenses(newDrivers);
+        onUpdate('driversLicenses', newDrivers);
         break;
     }
   };
@@ -157,6 +162,11 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
         setTradeQuals(updatedTrade);
         onUpdate('tradeQualifications', updatedTrade);
         break;
+      case 'drivers':
+        const updatedDrivers = updateArray(driversLicenses);
+        setDriversLicenses(updatedDrivers);
+        onUpdate('driversLicenses', updatedDrivers);
+        break;
     }
   };
 
@@ -183,6 +193,11 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
         const updatedTrade = removeFromArray(tradeQuals);
         setTradeQuals(updatedTrade);
         onUpdate('tradeQualifications', updatedTrade);
+        break;
+      case 'drivers':
+        const updatedDrivers = removeFromArray(driversLicenses);
+        setDriversLicenses(updatedDrivers);
+        onUpdate('driversLicenses', updatedDrivers);
         break;
     }
   };
@@ -346,7 +361,7 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
       </Card>
 
       {/* First Aid Certifications */}
-      <Card className="border-0 shadow-sm">
+      <Card className="border-0 shadow-sm bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/20 dark:to-pink-950/20">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold text-red-600 dark:text-red-400">
             <Heart className="h-4 w-4" />
@@ -386,7 +401,7 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
       </Card>
 
       {/* Welding Qualifications */}
-      <Card className="border-0 shadow-sm">
+      <Card className="border-0 shadow-sm bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold text-orange-600 dark:text-orange-400">
             <HardHat className="h-4 w-4" />
@@ -426,7 +441,7 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
       </Card>
 
       {/* Working at Heights */}
-      <Card className="border-0 shadow-sm">
+      <Card className="border-0 shadow-sm bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold text-yellow-600 dark:text-yellow-400">
             <HardHat className="h-4 w-4" />
@@ -465,7 +480,7 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
       </Card>
 
       {/* Trade Qualifications */}
-      <Card className="border-0 shadow-sm">
+      <Card className="border-0 shadow-sm bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold text-purple-600 dark:text-purple-400">
             <GraduationCap className="h-4 w-4" />
@@ -504,60 +519,71 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
         </CardContent>
       </Card>
 
-      {/* Driver's License & Visa Combined */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-green-600 dark:text-green-400">
-              <Car className="h-4 w-4" />
-              Driver's License
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div>
-              <Label className="text-xs">License Class</Label>
-              <Select 
-                value={member?.driversLicenseClass || ''} 
-                onValueChange={(value) => onUpdate('driversLicenseClass', value)}
-              >
-                <SelectTrigger className="h-7">
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {NZ_LICENSE_CLASSES.slice(0, 4).map((license) => (
-                    <SelectItem key={license.value} value={license.value}>
-                      {license.value} - {license.label.split(' - ')[1]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {/* Driver's Licenses */}
+      <Card className="border-0 shadow-sm bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-green-600 dark:text-green-400">
+            <Car className="h-4 w-4" />
+            Driver's Licenses
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {driversLicenses.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground bg-gray-50 dark:bg-gray-800/60 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
+              <Car className="h-6 w-6 mx-auto mb-1 text-gray-400" />
+              <p className="text-xs">No licenses recorded</p>
             </div>
-            <div>
-              <Label className="text-xs">Expiry Date</Label>
-              <Input
-                type="date"
-                value={member?.driversLicenseExpiry ? new Date(member.driversLicenseExpiry).toISOString().split('T')[0] : ''}
-                onChange={(e) => onUpdate('driversLicenseExpiry', e.target.value)}
-                className="h-7 text-sm"
-              />
+          ) : (
+            <div className="space-y-2">
+              {driversLicenses.map((cert, index) => (
+                <CertificationCard
+                  key={cert.id}
+                  cert={cert}
+                  onUpdate={(updatedCert) => updateCertification('drivers', index, updatedCert)}
+                  onRemove={() => removeCertification('drivers', index)}
+                  levelOptions={NZ_LICENSE_CLASSES}
+                />
+              ))}
             </div>
-          </CardContent>
-        </Card>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => addCertification('drivers')}
+            className="w-full h-8 text-xs border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-950/30"
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Add Driver's License
+          </Button>
+        </CardContent>
+      </Card>
 
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400">
-              <FileText className="h-4 w-4" />
-              Visa Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+      {/* Visa & Immigration */}
+      <Card className="border-0 shadow-sm bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-950/20 dark:to-slate-950/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-600 dark:text-gray-400">
+            <FileText className="h-4 w-4" />
+            Visa & Immigration
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Visa Type</Label>
               <Input
                 value={member?.visaType || ''}
                 onChange={(e) => onUpdate('visaType', e.target.value)}
                 placeholder="e.g., Work Visa"
+                className="h-7 text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Visa Number</Label>
+              <Input
+                value={member?.visaNumber || ''}
+                onChange={(e) => onUpdate('visaNumber', e.target.value)}
+                placeholder="Visa number"
                 className="h-7 text-sm"
               />
             </div>
@@ -570,9 +596,16 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
                 className="h-7 text-sm"
               />
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div>
+              <Label className="text-xs">Upload Document</Label>
+              <Button type="button" variant="outline" size="sm" className="h-7 w-full text-xs">
+                <Upload className="h-3 w-3 mr-1" />
+                Choose File
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
