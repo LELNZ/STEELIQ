@@ -1090,6 +1090,22 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
     // Notes
     notes: member?.notes || "",
     internalNotes: member?.internalNotes || "",
+    
+    // Banking & Financial Information
+    bankAccountName: member?.bankAccountName || "",
+    bankAccountNumber: member?.bankAccountNumber || "",
+    bankSortCode: member?.bankSortCode || "",
+    taxNumber: member?.taxNumber || "",
+    kiwisaverRate: member?.kiwisaverRate || "",
+    
+    // Visa & Immigration
+    visaType: member?.visaType || "",
+    visaExpiry: member?.visaExpiry ? new Date(member.visaExpiry).toISOString().split('T')[0] : "",
+    
+    // Next of Kin
+    nextOfKinName: member?.nextOfKinName || "",
+    nextOfKinPhone: member?.nextOfKinPhone || "",
+    nextOfKinRelation: member?.nextOfKinRelation || "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1111,7 +1127,7 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
       siteAllowance: formData.siteAllowance ? parseFloat(formData.siteAllowance) : undefined,
       travelAllowance: formData.travelAllowance ? parseFloat(formData.travelAllowance) : undefined,
       annualSalary: formData.annualSalary ? parseFloat(formData.annualSalary) : undefined,
-      experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : undefined,
+      experienceYears: formData.experienceYears !== "" ? parseInt(formData.experienceYears || "0") : undefined,
       performanceRating: formData.performanceRating ? parseFloat(formData.performanceRating) : undefined,
       annualLeaveEntitlement: formData.annualLeaveEntitlement ? parseFloat(formData.annualLeaveEntitlement) : undefined,
       sickLeaveEntitlement: formData.sickLeaveEntitlement ? parseFloat(formData.sickLeaveEntitlement) : undefined,
@@ -1146,11 +1162,12 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
   return (
     <div className="max-w-4xl mx-auto">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="basic">Basic Info</TabsTrigger>
           <TabsTrigger value="personal">Personal</TabsTrigger>
           <TabsTrigger value="employment">Employment</TabsTrigger>
           <TabsTrigger value="compensation">Compensation</TabsTrigger>
+          <TabsTrigger value="additional">Additional</TabsTrigger>
         </TabsList>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -1455,6 +1472,73 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
                     onChange={(e) => setFormData({...formData, inductionDate: e.target.value})}
                   />
                 </div>
+
+                <div>
+                  <Label htmlFor="safetyTrainingExpiry">Safety Training Expiry</Label>
+                  <Input
+                    id="safetyTrainingExpiry"
+                    type="date"
+                    value={formData.safetyTrainingExpiry}
+                    onChange={(e) => setFormData({...formData, safetyTrainingExpiry: e.target.value})}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={formData.medicalClearance}
+                    onCheckedChange={(checked) => setFormData({...formData, medicalClearance: checked})}
+                  />
+                  <Label>Medical Clearance</Label>
+                </div>
+
+                <div>
+                  <Label htmlFor="medicalExpiryDate">Medical Expiry Date</Label>
+                  <Input
+                    id="medicalExpiryDate"
+                    type="date"
+                    value={formData.medicalExpiryDate}
+                    onChange={(e) => setFormData({...formData, medicalExpiryDate: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="text-lg font-semibold">Performance & Review</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="performanceRating">Performance Rating (1.0-5.0)</Label>
+                  <Input
+                    id="performanceRating"
+                    type="number"
+                    step="0.1"
+                    min="1.0"
+                    max="5.0"
+                    value={formData.performanceRating}
+                    onChange={(e) => setFormData({...formData, performanceRating: e.target.value})}
+                    placeholder="4.2"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="lastReviewDate">Last Review Date</Label>
+                  <Input
+                    id="lastReviewDate"
+                    type="date"
+                    value={formData.lastReviewDate}
+                    onChange={(e) => setFormData({...formData, lastReviewDate: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="nextReviewDate">Next Review Date</Label>
+                  <Input
+                    id="nextReviewDate"
+                    type="date"
+                    value={formData.nextReviewDate}
+                    onChange={(e) => setFormData({...formData, nextReviewDate: e.target.value})}
+                  />
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -1574,6 +1658,139 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
                   value={formData.notes}
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
                   placeholder="General notes about the employee..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Additional Information Tab */}
+          <TabsContent value="additional" className="space-y-4">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Banking & Financial</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="bankAccountName">Bank Account Name</Label>
+                  <Input
+                    id="bankAccountName"
+                    value={formData.bankAccountName || ""}
+                    onChange={(e) => setFormData({...formData, bankAccountName: e.target.value})}
+                    placeholder="John Smith"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="bankAccountNumber">Bank Account Number</Label>
+                  <Input
+                    id="bankAccountNumber"
+                    value={formData.bankAccountNumber || ""}
+                    onChange={(e) => setFormData({...formData, bankAccountNumber: e.target.value})}
+                    placeholder="12-3456-0123456-00"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="bankSortCode">Bank Sort Code</Label>
+                  <Input
+                    id="bankSortCode"
+                    value={formData.bankSortCode || ""}
+                    onChange={(e) => setFormData({...formData, bankSortCode: e.target.value})}
+                    placeholder="12-3456"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="taxNumber">Tax Number (IRD)</Label>
+                  <Input
+                    id="taxNumber"
+                    value={formData.taxNumber || ""}
+                    onChange={(e) => setFormData({...formData, taxNumber: e.target.value})}
+                    placeholder="123-456-789"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="kiwisaverRate">KiwiSaver Rate (%)</Label>
+                  <Input
+                    id="kiwisaverRate"
+                    type="number"
+                    step="0.5"
+                    value={formData.kiwisaverRate || ""}
+                    onChange={(e) => setFormData({...formData, kiwisaverRate: e.target.value})}
+                    placeholder="3.0"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="text-lg font-semibold">Visa & Immigration</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="visaType">Visa Type</Label>
+                  <Input
+                    id="visaType"
+                    value={formData.visaType || ""}
+                    onChange={(e) => setFormData({...formData, visaType: e.target.value})}
+                    placeholder="Work Visa, Resident, Citizen"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="visaExpiry">Visa Expiry Date</Label>
+                  <Input
+                    id="visaExpiry"
+                    type="date"
+                    value={formData.visaExpiry || ""}
+                    onChange={(e) => setFormData({...formData, visaExpiry: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="text-lg font-semibold">Next of Kin</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="nextOfKinName">Next of Kin Name</Label>
+                  <Input
+                    id="nextOfKinName"
+                    value={formData.nextOfKinName || ""}
+                    onChange={(e) => setFormData({...formData, nextOfKinName: e.target.value})}
+                    placeholder="Jane Smith"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="nextOfKinPhone">Next of Kin Phone</Label>
+                  <Input
+                    id="nextOfKinPhone"
+                    value={formData.nextOfKinPhone || ""}
+                    onChange={(e) => setFormData({...formData, nextOfKinPhone: e.target.value})}
+                    placeholder="+64 21 123 4567"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="nextOfKinRelation">Relationship</Label>
+                  <Input
+                    id="nextOfKinRelation"
+                    value={formData.nextOfKinRelation || ""}
+                    onChange={(e) => setFormData({...formData, nextOfKinRelation: e.target.value})}
+                    placeholder="Spouse, Parent, Sibling"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <div>
+                <Label htmlFor="internalNotes">Internal Notes (HR/Management Only)</Label>
+                <Textarea
+                  id="internalNotes"
+                  value={formData.internalNotes}
+                  onChange={(e) => setFormData({...formData, internalNotes: e.target.value})}
+                  placeholder="Internal notes for HR and management..."
                   rows={3}
                 />
               </div>
