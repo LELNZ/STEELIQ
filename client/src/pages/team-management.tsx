@@ -1017,22 +1017,22 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
   const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState({
     // Basic Required Fields
-    userId: member?.userId || "",
+    userId: member?.userId ? member.userId.toString() : "",
     roleId: member?.roleId || "",
     departmentId: member?.departmentId || "",
     
     // Basic Employment Information
     employeeNumber: member?.employeeNumber || "",
     employmentType: member?.employmentType || "full_time",
-    startDate: member?.startDate || new Date().toISOString().split('T')[0],
-    endDate: member?.endDate || "",
+    startDate: member?.startDate ? new Date(member.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    endDate: member?.endDate ? new Date(member.endDate).toISOString().split('T')[0] : "",
     isActive: member?.isActive ?? true,
     
     // Personal Information
     firstName: member?.firstName || "",
     lastName: member?.lastName || "",
     preferredName: member?.preferredName || "",
-    dateOfBirth: member?.dateOfBirth || "",
+    dateOfBirth: member?.dateOfBirth ? new Date(member.dateOfBirth).toISOString().split('T')[0] : "",
     
     // Contact Information
     personalEmail: member?.personalEmail || "",
@@ -1072,15 +1072,15 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
     
     // Health & Safety
     inductionCompleted: member?.inductionCompleted ?? false,
-    inductionDate: member?.inductionDate || "",
-    safetyTrainingExpiry: member?.safetyTrainingExpiry || "",
+    inductionDate: member?.inductionDate ? new Date(member.inductionDate).toISOString().split('T')[0] : "",
+    safetyTrainingExpiry: member?.safetyTrainingExpiry ? new Date(member.safetyTrainingExpiry).toISOString().split('T')[0] : "",
     medicalClearance: member?.medicalClearance ?? false,
-    medicalExpiryDate: member?.medicalExpiryDate || "",
+    medicalExpiryDate: member?.medicalExpiryDate ? new Date(member.medicalExpiryDate).toISOString().split('T')[0] : "",
     
     // Performance & Review
     performanceRating: member?.performanceRating || "",
-    lastReviewDate: member?.lastReviewDate || "",
-    nextReviewDate: member?.nextReviewDate || "",
+    lastReviewDate: member?.lastReviewDate ? new Date(member.lastReviewDate).toISOString().split('T')[0] : "",
+    nextReviewDate: member?.nextReviewDate ? new Date(member.nextReviewDate).toISOString().split('T')[0] : "",
     
     // Benefits & Leave
     annualLeaveEntitlement: member?.annualLeaveEntitlement || "20",

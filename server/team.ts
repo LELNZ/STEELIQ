@@ -261,7 +261,6 @@ export class TeamStorage implements ITeamStorage {
   }
 
   async updateTeamMember(id: number, memberData: any): Promise<TeamMember> {
-    console.log("Updating team member with data:", memberData);
     
     // Now we can update all fields since we added them to the database
     const updateData: any = {};
