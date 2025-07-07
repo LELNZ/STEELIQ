@@ -2149,6 +2149,107 @@ export type InsertLeaveRequest = typeof leaveRequests.$inferInsert;
 export type WorkSchedule = typeof workSchedules.$inferSelect;
 export type InsertWorkSchedule = typeof workSchedules.$inferInsert;
 
+// Performance Reviews Table
+export const performanceReviews = pgTable("performance_reviews", {
+  id: serial("id").primaryKey(),
+  teamMemberId: integer("team_member_id").references(() => teamMembers.id).notNull(),
+  reviewPeriodStart: timestamp("review_period_start").notNull(),
+  reviewPeriodEnd: timestamp("review_period_end").notNull(),
+  reviewType: varchar("review_type").notNull(), // 'annual', 'probation', 'project', 'improvement'
+  overallRating: decimal("overall_rating", { precision: 3, scale: 2 }), // 1.00 to 5.00
+  reviewStatus: varchar("review_status").default("pending"), // 'pending', 'completed', 'overdue'
+  
+  // KPI Scores (1-5 scale) - Steel Fabrication Industry Standard
+  productionQuality: decimal("production_quality", { precision: 3, scale: 2 }),
+  safetyCompliance: decimal("safety_compliance", { precision: 3, scale: 2 }),
+  teamwork: decimal("teamwork", { precision: 3, scale: 2 }),
+  technicalSkills: decimal("technical_skills", { precision: 3, scale: 2 }),
+  problemSolving: decimal("problem_solving", { precision: 3, scale: 2 }),
+  reliability: decimal("reliability", { precision: 3, scale: 2 }),
+  communication: decimal("communication", { precision: 3, scale: 2 }),
+  initiative: decimal("initiative", { precision: 3, scale: 2 }),
+  
+  // Quantitative Metrics
+  defectRate: decimal("defect_rate", { precision: 5, scale: 2 }), // Percentage
+  productivityScore: decimal("productivity_score", { precision: 5, scale: 2 }), // Percentage of target
+  attendanceScore: decimal("attendance_score", { precision: 5, scale: 2 }), // Percentage
+  safetyIncidents: integer("safety_incidents").default(0),
+  
+  // Comments and Development
+  achievements: text("achievements"),
+  areasForImprovement: text("areas_for_improvement"),
+  developmentGoals: text("development_goals"),
+  trainingRecommendations: text("training_recommendations"),
+  employeeComments: text("employee_comments"),
+  managerComments: text("manager_comments"),
+  
+  // Review metadata
+  reviewerId: integer("reviewer_id").references(() => users.id),
+  reviewDate: timestamp("review_date"),
+  employeeSignedDate: timestamp("employee_signed_date"),
+  managerSignedDate: timestamp("manager_signed_date"),
+  hrApprovedDate: timestamp("hr_approved_date"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Qualification Expiry Tracking & Reminders
+export const qualificationReminders = pgTable("qualification_reminders", {
+  id: serial("id").primaryKey(),
+  teamMemberId: integer("team_member_id").references(() => teamMembers.id).notNull(),
+  qualificationType: varchar("qualification_type").notNull(), // 'first_aid', 'welding', 'heights', 'drivers', 'trade'
+  qualificationName: varchar("qualification_name").notNull(),
+  issueDate: timestamp("issue_date"),
+  expiryDate: timestamp("expiry_date").notNull(),
+  reminderDays: integer("reminder_days").array().default([90, 30, 14, 7, 1]), // Days before expiry to send reminders
+  
+  // Reminder tracking
+  lastReminderSent: timestamp("last_reminder_sent"),
+  remindersSent: integer("reminders_sent").default(0),
+  isActive: boolean("is_active").default(true),
+  
+  // Renewal tracking
+  renewalRequested: boolean("renewal_requested").default(false),
+  renewalRequestDate: timestamp("renewal_request_date"),
+  renewalCompletedDate: timestamp("renewal_completed_date"),
+  newExpiryDate: timestamp("new_expiry_date"),
+  
+  // Notification preferences
+  notifyEmployee: boolean("notify_employee").default(true),
+  notifyManager: boolean("notify_manager").default(true),
+  notifyHR: boolean("notify_hr").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Performance Reviews Relations
+export const performanceReviewsRelations = relations(performanceReviews, ({ one }) => ({
+  teamMember: one(teamMembers, {
+    fields: [performanceReviews.teamMemberId],
+    references: [teamMembers.id],
+  }),
+  reviewer: one(users, {
+    fields: [performanceReviews.reviewerId],
+    references: [users.id],
+  }),
+}));
+
+// Qualification Reminders Relations
+export const qualificationRemindersRelations = relations(qualificationReminders, ({ one }) => ({
+  teamMember: one(teamMembers, {
+    fields: [qualificationReminders.teamMemberId],
+    references: [teamMembers.id],
+  }),
+}));
+
+// Performance Review Types
+export type PerformanceReview = typeof performanceReviews.$inferSelect;
+export type InsertPerformanceReview = typeof performanceReviews.$inferInsert;
+export type QualificationReminder = typeof qualificationReminders.$inferSelect;
+export type InsertQualificationReminder = typeof qualificationReminders.$inferInsert;
+
 // Employee Archive & Audit Types
 export type ArchivedEmployee = typeof archivedEmployees.$inferSelect;
 export type InsertArchivedEmployee = typeof archivedEmployees.$inferInsert;

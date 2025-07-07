@@ -2,14 +2,14 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc, and, gte, lte } from "drizzle-orm";
 import { businessSettingsStorage } from "./businessSettings";
 import { laborRatesStorage } from "./laborRates";
 import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -2671,6 +2671,199 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Document upload error:", error);
       res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
+  // Performance Review Routes
+  app.get("/api/performance-reviews/:teamMemberId", async (req, res) => {
+    try {
+      const teamMemberId = parseInt(req.params.teamMemberId);
+      
+      const reviews = await db
+        .select()
+        .from(performanceReviews)
+        .where(eq(performanceReviews.teamMemberId, teamMemberId))
+        .orderBy(desc(performanceReviews.reviewPeriodStart));
+
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching performance reviews:", error);
+      res.status(500).json({ error: "Failed to fetch performance reviews" });
+    }
+  });
+
+  app.post("/api/performance-reviews", async (req, res) => {
+    try {
+      const reviewData = req.body;
+      
+      // Convert string dates to Date objects
+      if (reviewData.reviewPeriodStart) {
+        reviewData.reviewPeriodStart = new Date(reviewData.reviewPeriodStart);
+      }
+      if (reviewData.reviewPeriodEnd) {
+        reviewData.reviewPeriodEnd = new Date(reviewData.reviewPeriodEnd);
+      }
+
+      // Convert numeric strings to proper numbers
+      const numericFields = [
+        'overallRating', 'productionQuality', 'safetyCompliance', 'teamwork',
+        'technicalSkills', 'problemSolving', 'reliability', 'communication',
+        'initiative', 'defectRate', 'productivityScore', 'attendanceScore'
+      ];
+
+      numericFields.forEach(field => {
+        if (reviewData[field] && reviewData[field] !== '') {
+          reviewData[field] = parseFloat(reviewData[field]);
+        } else {
+          delete reviewData[field];
+        }
+      });
+
+      if (reviewData.safetyIncidents) {
+        reviewData.safetyIncidents = parseInt(reviewData.safetyIncidents);
+      }
+
+      const [newReview] = await db
+        .insert(performanceReviews)
+        .values({
+          ...reviewData,
+          reviewStatus: 'pending'
+        })
+        .returning();
+
+      // Calculate next review date
+      const nextReviewDate = new Date();
+      if (reviewData.reviewType === 'annual') {
+        nextReviewDate.setFullYear(nextReviewDate.getFullYear() + 1);
+      } else if (reviewData.reviewType === 'probation' || reviewData.reviewType === 'improvement') {
+        nextReviewDate.setDate(nextReviewDate.getDate() + 90);
+      }
+
+      // Update team member's review dates
+      await db
+        .update(teamMembers)
+        .set({ 
+          lastReviewDate: new Date(),
+          nextReviewDate: nextReviewDate
+        })
+        .where(eq(teamMembers.id, reviewData.teamMemberId));
+
+      res.json(newReview);
+    } catch (error) {
+      console.error("Error creating performance review:", error);
+      res.status(500).json({ error: "Failed to create performance review" });
+    }
+  });
+
+  // Auto-sync team member and user account data
+  app.post("/api/team/sync-user-data/:teamMemberId", async (req, res) => {
+    try {
+      const teamMemberId = parseInt(req.params.teamMemberId);
+      const { syncDirection } = req.body; // 'team-to-user' or 'user-to-team'
+      
+      // Get team member data
+      const [teamMember] = await db
+        .select()
+        .from(teamMembers)
+        .where(eq(teamMembers.id, teamMemberId));
+
+      if (!teamMember) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+
+      // Get user data
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, teamMember.userId));
+
+      if (!user) {
+        return res.status(404).json({ error: "User account not found" });
+      }
+
+      if (syncDirection === 'team-to-user') {
+        // Update user account with team member data
+        const updateData: any = {};
+        
+        if (teamMember.firstName && teamMember.lastName) {
+          updateData.name = `${teamMember.firstName} ${teamMember.lastName}`;
+        }
+        if (teamMember.personalEmail) {
+          updateData.email = teamMember.personalEmail;
+        }
+        if (teamMember.personalPhone) {
+          updateData.phone = teamMember.personalPhone;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await db
+            .update(users)
+            .set(updateData)
+            .where(eq(users.id, user.id));
+        }
+      } else if (syncDirection === 'user-to-team') {
+        // Update team member with user account data
+        const updateData: any = {};
+        
+        if (user.name) {
+          const nameParts = user.name.split(' ');
+          updateData.firstName = nameParts[0] || '';
+          updateData.lastName = nameParts.slice(1).join(' ') || '';
+        }
+        if (user.email) {
+          updateData.personalEmail = user.email;
+        }
+        if (user.phone) {
+          updateData.personalPhone = user.phone;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await db
+            .update(teamMembers)
+            .set({
+              ...updateData,
+              updatedAt: new Date()
+            })
+            .where(eq(teamMembers.id, teamMemberId));
+        }
+      }
+
+      res.json({ message: "Data synchronized successfully", syncDirection });
+    } catch (error) {
+      console.error("Error syncing user data:", error);
+      res.status(500).json({ error: "Failed to sync user data" });
+    }
+  });
+
+  // Qualification expiry reminders
+  app.get("/api/qualification-reminders/expiring", async (req, res) => {
+    try {
+      const currentDate = new Date();
+      const futureDate = new Date();
+      futureDate.setDate(currentDate.getDate() + 90);
+      
+      const expiringQualifications = await db
+        .select({
+          reminder: qualificationReminders,
+          teamMember: teamMembers,
+          user: users
+        })
+        .from(qualificationReminders)
+        .leftJoin(teamMembers, eq(qualificationReminders.teamMemberId, teamMembers.id))
+        .leftJoin(users, eq(teamMembers.userId, users.id))
+        .where(
+          and(
+            eq(qualificationReminders.isActive, true),
+            gte(qualificationReminders.expiryDate, currentDate),
+            lte(qualificationReminders.expiryDate, futureDate)
+          )
+        )
+        .orderBy(qualificationReminders.expiryDate);
+
+      res.json(expiringQualifications);
+    } catch (error) {
+      console.error("Error fetching expiring qualifications:", error);
+      res.status(500).json({ error: "Failed to fetch expiring qualifications" });
     }
   });
 

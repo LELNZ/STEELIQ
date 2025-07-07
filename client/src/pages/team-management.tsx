@@ -18,6 +18,9 @@ import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activ
 import { PermissionViewer } from "@/components/team/PermissionViewer";
 import { PerformanceDashboard } from "@/components/team/PerformanceDashboard";
 import { HealthSafetyForm } from "@/components/team/HealthSafetyForm";
+import { WorkshopInductionModal } from "@/components/team/WorkshopInductionModal";
+import { PerformanceReviewSystem } from "@/components/team/PerformanceReviewSystem";
+import { QualificationReminderDashboard } from "@/components/team/QualificationReminderDashboard";
 
 interface Permission {
   module: string;
@@ -100,6 +103,8 @@ export default function TeamManagement() {
   const [isEditingRole, setIsEditingRole] = useState(false);
   const [isEditingDepartment, setIsEditingDepartment] = useState(false);
   const [isEditingUser, setIsEditingUser] = useState(false);
+  const [showPerformanceReview, setShowPerformanceReview] = useState(false);
+  const [selectedMemberForReview, setSelectedMemberForReview] = useState<any>(null);
 
   // Fetch team members
   const { data: teamMembers = [], isLoading: membersLoading } = useQuery({
@@ -279,6 +284,28 @@ export default function TeamManagement() {
     },
   });
 
+  // Auto-sync data mutation
+  const syncDataMutation = useMutation({
+    mutationFn: async ({ teamMemberId, syncDirection }: { teamMemberId: number, syncDirection: string }) => {
+      return apiRequest("POST", `/api/team/sync-user-data/${teamMemberId}`, { syncDirection });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/team/members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Data Synchronized",
+        description: `Successfully synced data from ${data.syncDirection === 'team-to-user' ? 'employee profile to user account' : 'user account to employee profile'}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sync Error",
+        description: error.message || "Failed to synchronize data",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getRolePermissionBadge = (role: Role) => {
     const permissions = typeof role.permissions === 'object' && !Array.isArray(role.permissions) 
       ? role.permissions as Record<string, string[]>
@@ -317,6 +344,25 @@ export default function TeamManagement() {
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedMemberForReview(member);
+                setShowPerformanceReview(true);
+              }}
+              title="Performance Review"
+            >
+              <Star className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => syncDataMutation.mutate({ teamMemberId: member.id, syncDirection: 'team-to-user' })}
+              title="Sync to User Account"
+            >
+              <UserCheck className="w-4 h-4" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -569,13 +615,14 @@ export default function TeamManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="members">📋 Employees</TabsTrigger>
           <TabsTrigger value="users">🔐 User Accounts</TabsTrigger>
           <TabsTrigger value="roles">🛡️ Roles & Permissions</TabsTrigger>
           <TabsTrigger value="departments">🏢 Departments</TabsTrigger>
           <TabsTrigger value="performance">📊 Performance</TabsTrigger>
           <TabsTrigger value="capacity">⚖️ Capacity Planning</TabsTrigger>
+          <TabsTrigger value="reminders">⏰ Qualification Reminders</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-6">
@@ -1010,7 +1057,24 @@ export default function TeamManagement() {
             </Card>
           </div>
         </TabsContent>
+
+        {/* Qualification Reminders Tab */}
+        <TabsContent value="reminders" className="space-y-6">
+          <QualificationReminderDashboard />
+        </TabsContent>
       </Tabs>
+
+      {/* Performance Review Modal */}
+      {selectedMemberForReview && (
+        <PerformanceReviewSystem
+          teamMember={selectedMemberForReview}
+          isOpen={showPerformanceReview}
+          onClose={() => {
+            setShowPerformanceReview(false);
+            setSelectedMemberForReview(null);
+          }}
+        />
+      )}
     </div>
   );
 }
