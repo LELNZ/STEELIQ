@@ -183,6 +183,32 @@ export class TeamStorage implements ITeamStorage {
       notes: teamMembers.notes,
       internalNotes: teamMembers.internalNotes,
       
+      // Health & Safety Comprehensive Fields
+      firstAidCertifications: teamMembers.firstAidCertifications,
+      weldingQualifications: teamMembers.weldingQualifications,
+      workingAtHeightsCerts: teamMembers.workingAtHeightsCerts,
+      tradeQualifications: teamMembers.tradeQualifications,
+      
+      // Driver's License
+      driversLicenseClass: teamMembers.driversLicenseClass,
+      driversLicenseExpiry: teamMembers.driversLicenseExpiry,
+      driversLicenseDocument: teamMembers.driversLicenseDocument,
+      
+      // Visa & Immigration
+      visaType: teamMembers.visaType,
+      visaNumber: teamMembers.visaNumber,
+      visaExpiry: teamMembers.visaExpiry,
+      visaDocument: teamMembers.visaDocument,
+      workEligibility: teamMembers.workEligibility,
+      
+      // Banking & Financial
+      bankAccountName: teamMembers.bankAccountName,
+      bankAccountNumber: teamMembers.bankAccountNumber,
+      bankSortCode: teamMembers.bankSortCode,
+      taxNumber: teamMembers.taxNumber,
+      kiwisaverProvider: teamMembers.kiwisaverProvider,
+      kiwisaverRate: teamMembers.kiwisaverRate,
+      
       // Timestamps
       createdAt: teamMembers.createdAt,
       updatedAt: teamMembers.updatedAt,

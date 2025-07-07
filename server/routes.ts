@@ -2620,6 +2620,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Document Upload for Health & Safety Certificates
+  const documentUpload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        const employeeNumber = req.params.employeeNumber || 'general';
+        const uploadPath = `./documents/team/${employeeNumber}`;
+        cb(null, uploadPath);
+      },
+      filename: (req, file, cb) => {
+        const timestamp = Date.now();
+        const originalName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        cb(null, `${timestamp}_${originalName}`);
+      }
+    }),
+    limits: {
+      fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only PDF, JPEG, PNG files are allowed.'));
+      }
+    }
+  });
+
+  app.post("/api/team/:employeeNumber/documents", documentUpload.single('document'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const documentInfo = {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        path: req.file.path,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        employeeNumber: req.params.employeeNumber,
+        documentType: req.body.documentType || 'general',
+        uploadedAt: new Date().toISOString()
+      };
+
+      res.json({
+        message: "Document uploaded successfully",
+        document: documentInfo
+      });
+    } catch (error) {
+      console.error("Document upload error:", error);
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activity, ChevronRight, ShieldCheck, Target, UserX } from "lucide-react";
 import { PermissionViewer } from "@/components/team/PermissionViewer";
 import { PerformanceDashboard } from "@/components/team/PerformanceDashboard";
+import { HealthSafetyForm } from "@/components/team/HealthSafetyForm";
 
 interface Permission {
   module: string;
@@ -1167,7 +1168,7 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
           <TabsTrigger value="personal">Personal</TabsTrigger>
           <TabsTrigger value="employment">Employment</TabsTrigger>
           <TabsTrigger value="compensation">Compensation</TabsTrigger>
-          <TabsTrigger value="additional">Additional</TabsTrigger>
+          <TabsTrigger value="healthsafety">🛡️ Health & Safety</TabsTrigger>
         </TabsList>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -1665,136 +1666,11 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
           </TabsContent>
 
           {/* Additional Information Tab */}
-          <TabsContent value="additional" className="space-y-4">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Banking & Financial</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="bankAccountName">Bank Account Name</Label>
-                  <Input
-                    id="bankAccountName"
-                    value={formData.bankAccountName || ""}
-                    onChange={(e) => setFormData({...formData, bankAccountName: e.target.value})}
-                    placeholder="John Smith"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="bankAccountNumber">Bank Account Number</Label>
-                  <Input
-                    id="bankAccountNumber"
-                    value={formData.bankAccountNumber || ""}
-                    onChange={(e) => setFormData({...formData, bankAccountNumber: e.target.value})}
-                    placeholder="12-3456-0123456-00"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="bankSortCode">Bank Sort Code</Label>
-                  <Input
-                    id="bankSortCode"
-                    value={formData.bankSortCode || ""}
-                    onChange={(e) => setFormData({...formData, bankSortCode: e.target.value})}
-                    placeholder="12-3456"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="taxNumber">Tax Number (IRD)</Label>
-                  <Input
-                    id="taxNumber"
-                    value={formData.taxNumber || ""}
-                    onChange={(e) => setFormData({...formData, taxNumber: e.target.value})}
-                    placeholder="123-456-789"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="kiwisaverRate">KiwiSaver Rate (%)</Label>
-                  <Input
-                    id="kiwisaverRate"
-                    type="number"
-                    step="0.5"
-                    value={formData.kiwisaverRate || ""}
-                    onChange={(e) => setFormData({...formData, kiwisaverRate: e.target.value})}
-                    placeholder="3.0"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-4 border-t">
-              <h3 className="text-lg font-semibold">Visa & Immigration</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="visaType">Visa Type</Label>
-                  <Input
-                    id="visaType"
-                    value={formData.visaType || ""}
-                    onChange={(e) => setFormData({...formData, visaType: e.target.value})}
-                    placeholder="Work Visa, Resident, Citizen"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="visaExpiry">Visa Expiry Date</Label>
-                  <Input
-                    id="visaExpiry"
-                    type="date"
-                    value={formData.visaExpiry || ""}
-                    onChange={(e) => setFormData({...formData, visaExpiry: e.target.value})}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-4 border-t">
-              <h3 className="text-lg font-semibold">Next of Kin</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="nextOfKinName">Next of Kin Name</Label>
-                  <Input
-                    id="nextOfKinName"
-                    value={formData.nextOfKinName || ""}
-                    onChange={(e) => setFormData({...formData, nextOfKinName: e.target.value})}
-                    placeholder="Jane Smith"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="nextOfKinPhone">Next of Kin Phone</Label>
-                  <Input
-                    id="nextOfKinPhone"
-                    value={formData.nextOfKinPhone || ""}
-                    onChange={(e) => setFormData({...formData, nextOfKinPhone: e.target.value})}
-                    placeholder="+64 21 123 4567"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="nextOfKinRelation">Relationship</Label>
-                  <Input
-                    id="nextOfKinRelation"
-                    value={formData.nextOfKinRelation || ""}
-                    onChange={(e) => setFormData({...formData, nextOfKinRelation: e.target.value})}
-                    placeholder="Spouse, Parent, Sibling"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-4 border-t">
-              <div>
-                <Label htmlFor="internalNotes">Internal Notes (HR/Management Only)</Label>
-                <Textarea
-                  id="internalNotes"
-                  value={formData.internalNotes}
-                  onChange={(e) => setFormData({...formData, internalNotes: e.target.value})}
-                  placeholder="Internal notes for HR and management..."
-                  rows={3}
-                />
-              </div>
-            </div>
+          <TabsContent value="healthsafety" className="space-y-4">
+            <HealthSafetyForm 
+              member={selectedMember}
+              onUpdate={(field, value) => setFormData({...formData, [field]: value})}
+            />
           </TabsContent>
 
           {/* Form Actions */}
