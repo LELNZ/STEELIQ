@@ -1628,11 +1628,13 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
           </TabsContent>
 
           {/* Health & Safety Tab */}
-          <TabsContent value="healthsafety" className="flex-1 h-full overflow-hidden p-1">
-            <HealthSafetyForm 
-              member={member}
-              onUpdate={(field, value) => setFormData({...formData, [field]: value})}
-            />
+          <TabsContent value="healthsafety" className="flex-1 overflow-hidden p-1">
+            <div className="h-full">
+              <HealthSafetyForm 
+                member={member}
+                onUpdate={(field, value) => setFormData({...formData, [field]: value})}
+              />
+            </div>
           </TabsContent>
 
           {/* Form Actions */}

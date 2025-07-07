@@ -8,7 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Upload, X, Plus, Shield, Heart, HardHat, Car, GraduationCap, FileText, AlertTriangle, CheckCircle } from "lucide-react";
+import { Calendar, Upload, X, Plus, Shield, Heart, HardHat, Car, GraduationCap, FileText, AlertTriangle, CheckCircle, Award } from "lucide-react";
+import { WorkshopInductionModal } from "./WorkshopInductionModal";
 
 // NZ Driver's License Classes
 const NZ_LICENSE_CLASSES = [
@@ -93,6 +94,17 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
   const [driversLicenses, setDriversLicenses] = useState<CertificationItem[]>(
     member?.driversLicenses || []
   );
+  
+  // Workshop Induction Modal state
+  const [showInductionModal, setShowInductionModal] = useState(false);
+
+  const handleInductionComplete = (passed: boolean, score: number) => {
+    if (passed) {
+      onUpdate('inductionCompleted', true);
+      onUpdate('inductionDate', new Date().toISOString().split('T')[0]);
+      onUpdate('inductionScore', score);
+    }
+  };
 
   const addCertification = (type: 'firstAid' | 'welding' | 'heights' | 'trade' | 'drivers') => {
     const newCert: CertificationItem = {
@@ -378,7 +390,7 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
   };
 
   return (
-    <div className="h-full overflow-y-auto space-y-6 pr-2">
+    <div className="h-full overflow-y-auto space-y-4 pr-2 pb-4">
       {/* Safety Status Overview */}
       <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
         <CardHeader className="pb-3">
@@ -390,19 +402,47 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3">
-              <div className="flex items-center space-x-2 mb-2">
-                <Switch
-                  checked={member?.inductionCompleted || false}
-                  onCheckedChange={(checked) => onUpdate('inductionCompleted', checked)}
-                />
-                <Label className="text-sm font-medium">Site Induction</Label>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={member?.inductionCompleted || false}
+                    onCheckedChange={(checked) => onUpdate('inductionCompleted', checked)}
+                  />
+                  <Label className="text-sm font-medium">Workshop Site Induction</Label>
+                </div>
+                {!member?.inductionCompleted && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowInductionModal(true)}
+                    className="h-7 text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                  >
+                    <Award className="h-3 w-3 mr-1" />
+                    Take Induction
+                  </Button>
+                )}
               </div>
-              <Input
-                type="date"
-                value={member?.inductionDate ? new Date(member.inductionDate).toISOString().split('T')[0] : ''}
-                onChange={(e) => onUpdate('inductionDate', e.target.value)}
-                className="h-8"
-              />
+              {member?.inductionCompleted && (
+                <>
+                  <Input
+                    type="date"
+                    value={member?.inductionDate ? new Date(member.inductionDate).toISOString().split('T')[0] : ''}
+                    onChange={(e) => onUpdate('inductionDate', e.target.value)}
+                    className="h-8 mb-2"
+                  />
+                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Induction Completed
+                  </Badge>
+                </>
+              )}
+              {!member?.inductionCompleted && (
+                <div className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Induction required before workshop access
+                </div>
+              )}
             </div>
             
             <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3">
@@ -670,6 +710,14 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Workshop Induction Modal */}
+      <WorkshopInductionModal
+        isOpen={showInductionModal}
+        onClose={() => setShowInductionModal(false)}
+        onComplete={handleInductionComplete}
+        employeeName={`${member?.firstName || ''} ${member?.lastName || ''}`.trim() || 'Employee'}
+      />
     </div>
   );
 }
