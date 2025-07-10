@@ -1734,7 +1734,36 @@ export const teamMembers = pgTable("team_members", {
   medicalClearance: boolean("medical_clearance").default(false),
   medicalExpiryDate: date("medical_expiry_date"),
   
-  // Health & Safety fields will be added after database migration
+  // Health & Safety Certificate Fields
+  safetyCertificates: jsonb("safety_certificates").default("[]"),
+  weldingCertificates: jsonb("welding_certificates").default("[]"),
+  tradeLicenses: jsonb("trade_licenses").default("[]"),
+  equipmentCertificates: jsonb("equipment_certificates").default("[]"),
+  
+  // Additional H&S fields
+  safetyCardNumber: varchar("safety_card_number", { length: 50 }),
+  safetyCardExpiry: date("safety_card_expiry"),
+  workingAtHeightsExpiry: date("working_at_heights_expiry"),
+  firstAidExpiry: date("first_aid_expiry"),
+  driverLicenseType: varchar("driver_license_type", { length: 50 }),
+  driverLicenseExpiry: date("driver_license_expiry"),
+  tradeCertificates: jsonb("trade_certificates"),
+  
+  // Banking & Financial
+  bankAccountName: varchar("bank_account_name", { length: 100 }),
+  bankAccountNumber: varchar("bank_account_number", { length: 50 }),
+  bankSortCode: varchar("bank_sort_code", { length: 20 }),
+  taxNumber: varchar("tax_number", { length: 20 }),
+  kiwisaverRate: decimal("kiwisaver_rate", { precision: 5, scale: 2 }),
+  
+  // Visa & Immigration
+  visaType: varchar("visa_type", { length: 50 }),
+  visaExpiry: date("visa_expiry"),
+  
+  // Next of Kin
+  nextOfKinName: varchar("next_of_kin_name", { length: 100 }),
+  nextOfKinPhone: varchar("next_of_kin_phone", { length: 20 }),
+  nextOfKinRelation: varchar("next_of_kin_relation", { length: 50 }),
   
   // Performance & Review
   performanceRating: decimal("performance_rating", { precision: 3, scale: 1 }), // 1.0 to 5.0
@@ -1745,6 +1774,8 @@ export const teamMembers = pgTable("team_members", {
   annualLeaveEntitlement: decimal("annual_leave_entitlement", { precision: 5, scale: 2 }).default("20"), // days
   sickLeaveEntitlement: decimal("sick_leave_entitlement", { precision: 5, scale: 2 }).default("5"), // days
   currentLeaveBalance: decimal("current_leave_balance", { precision: 5, scale: 2 }).default("0"),
+  annualLeaveBalance: decimal("annual_leave_balance", { precision: 5, scale: 2 }).default("0"),
+  sickLeaveBalance: decimal("sick_leave_balance", { precision: 5, scale: 2 }).default("0"),
   
   // System Fields
   profilePhoto: text("profile_photo"), // File path or URL
