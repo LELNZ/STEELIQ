@@ -29,6 +29,10 @@ import LaborRates from "@/pages/labor-rates";
 import TeamManagement from "@/pages/team-management";
 import EmployeeProfile from "@/pages/employee-profile";
 import TimeManagement from "@/pages/time-management";
+import OrganizationSettings from "@/pages/settings/organization";
+import FinancialSettings from "@/pages/settings/financial";
+import OperationsSettings from "@/pages/settings/operations";
+import TimePayroll from "@/pages/time-payroll";
 
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
@@ -72,11 +76,15 @@ function Router() {
       <Route path="/suppliers" component={Suppliers} />
       <Route path="/supplier-contacts" component={SupplierContacts} />
       <Route path="/settings" component={SettingsPage} />
+      <Route path="/settings/organization" component={OrganizationSettings} />
+      <Route path="/settings/financial" component={FinancialSettings} />
+      <Route path="/settings/operations" component={OperationsSettings} />
       <Route path="/global-settings" component={GlobalSettings} />
       <Route path="/labor-rates" component={LaborRates} />
       <Route path="/team-management" component={TeamManagement} />
       <Route path="/team-management/employee/:id" component={EmployeeProfile} />
       <Route path="/time-management" component={TimeManagement} />
+      <Route path="/time-payroll" component={TimePayroll} />
       <Route path="/preferences" component={UserPreferences} />
       <Route path="/financial" component={FinancialDashboard} />
       <Route path="/optimization" component={CuttingOptimizationFixed} />

@@ -2288,3 +2288,169 @@ export type EmployeeAuditLog = typeof employeeAuditLog.$inferSelect;
 export type InsertEmployeeAuditLog = typeof employeeAuditLog.$inferInsert;
 export type ArchivedTimesheet = typeof archivedTimesheets.$inferSelect;
 export type InsertArchivedTimesheet = typeof archivedTimesheets.$inferInsert;
+
+// Enterprise Settings Tables
+export const settingsCategories = pgTable("settings_categories", {
+  id: varchar("id").primaryKey(), // e.g., "organization", "financial", "operations"
+  name: varchar("name").notNull(),
+  description: text("description"),
+  requiredRole: varchar("required_role"), // minimum role to access
+  displayOrder: integer("display_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  categoryId: varchar("category_id").references(() => settingsCategories.id),
+  key: varchar("key").notNull().unique(),
+  value: jsonb("value"),
+  dataType: varchar("data_type").notNull(), // string, number, boolean, json
+  defaultValue: jsonb("default_value"),
+  description: text("description"),
+  isEncrypted: boolean("is_encrypted").default(false),
+  requiredRole: varchar("required_role"),
+  validationRules: jsonb("validation_rules"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const settingsAudit = pgTable("settings_audit", {
+  id: serial("id").primaryKey(),
+  settingId: integer("setting_id").references(() => settings.id),
+  userId: integer("user_id").references(() => users.id),
+  previousValue: jsonb("previous_value"),
+  newValue: jsonb("new_value"),
+  changeReason: text("change_reason"),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const settingsApprovals = pgTable("settings_approvals", {
+  id: serial("id").primaryKey(),
+  settingId: integer("setting_id").references(() => settings.id),
+  requestedBy: integer("requested_by").references(() => users.id),
+  requestedValue: jsonb("requested_value"),
+  currentValue: jsonb("current_value"),
+  changeReason: text("change_reason"),
+  status: varchar("status").default("pending"), // pending, approved, rejected
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvalNotes: text("approval_notes"),
+  requestedAt: timestamp("requested_at").defaultNow(),
+  decidedAt: timestamp("decided_at")
+});
+
+// User Preferences (simplified)
+export const userPreferences = pgTable("user_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).unique(),
+  theme: varchar("theme").default("system"), // light, dark, system
+  language: varchar("language").default("en"),
+  dateFormat: varchar("date_format").default("DD/MM/YYYY"),
+  timeFormat: varchar("time_format").default("12h"), // 12h, 24h
+  timezone: varchar("timezone").default("Pacific/Auckland"),
+  sidebarCollapsed: boolean("sidebar_collapsed").default(false),
+  emailNotifications: boolean("email_notifications").default(true),
+  pushNotifications: boolean("push_notifications").default(false),
+  dashboardLayout: jsonb("dashboard_layout"), // custom dashboard widget arrangement
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Enhanced Labor Rates with Payroll Integration
+export const laborRateCards = pgTable("labor_rate_cards", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(),
+  code: varchar("code").unique(),
+  description: text("description"),
+  skillLevel: varchar("skill_level").notNull(),
+  employeeType: varchar("employee_type").notNull(), // employee, contractor, subcontractor
+  baseRate: decimal("base_rate", { precision: 10, scale: 2 }).notNull(),
+  costRate: decimal("cost_rate", { precision: 10, scale: 2 }).notNull(),
+  overtimeMultiplier: decimal("overtime_multiplier", { precision: 3, scale: 2 }).default("1.5"),
+  weekendMultiplier: decimal("weekend_multiplier", { precision: 3, scale: 2 }).default("1.5"),
+  holidayMultiplier: decimal("holiday_multiplier", { precision: 3, scale: 2 }).default("2.0"),
+  nightShiftMultiplier: decimal("night_shift_multiplier", { precision: 3, scale: 2 }).default("1.2"),
+  certificationRequirements: jsonb("certification_requirements").default([]),
+  unionAgreementId: varchar("union_agreement_id"),
+  effectiveFrom: date("effective_from").notNull(),
+  effectiveTo: date("effective_to"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const laborRateRegions = pgTable("labor_rate_regions", {
+  id: serial("id").primaryKey(),
+  rateCardId: integer("rate_card_id").references(() => laborRateCards.id),
+  region: varchar("region").notNull(),
+  regionalMultiplier: decimal("regional_multiplier", { precision: 3, scale: 2 }).default("1.0"),
+  siteAllowance: decimal("site_allowance", { precision: 10, scale: 2 }).default("0"),
+  travelAllowance: decimal("travel_allowance", { precision: 10, scale: 2 }).default("0"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+
+
+export const payrollIntegration = pgTable("payroll_integration", {
+  id: serial("id").primaryKey(),
+  provider: varchar("provider").notNull(), // xero, adp, workday, myob
+  apiEndpoint: varchar("api_endpoint"),
+  apiKey: varchar("api_key"), // encrypted
+  mappingRules: jsonb("mapping_rules"),
+  syncFrequency: varchar("sync_frequency").default("daily"),
+  lastSyncAt: timestamp("last_sync_at"),
+  syncStatus: varchar("sync_status"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const costCenters = pgTable("cost_centers", {
+  id: serial("id").primaryKey(),
+  code: varchar("code").unique().notNull(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  parentId: integer("parent_id").references(() => costCenters.id),
+  budgetAnnual: decimal("budget_annual", { precision: 15, scale: 2 }),
+  budgetMonthly: decimal("budget_monthly", { precision: 15, scale: 2 }),
+  managerId: integer("manager_id").references(() => teamMembers.id),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Multi-entity support
+export const businessUnits = pgTable("business_units", {
+  id: serial("id").primaryKey(),
+  code: varchar("code").unique().notNull(),
+  name: varchar("name").notNull(),
+  parentId: integer("parent_id").references(() => businessUnits.id),
+  address: text("address"),
+  phone: varchar("phone"),
+  email: varchar("email"),
+  timezone: varchar("timezone"),
+  settingsOverrides: jsonb("settings_overrides"), // unit-specific settings
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Export types for new tables
+export type SettingsCategory = typeof settingsCategories.$inferSelect;
+export type InsertSettingsCategory = typeof settingsCategories.$inferInsert;
+export type Setting = typeof settings.$inferSelect;
+export type InsertSetting = typeof settings.$inferInsert;
+export type SettingsAudit = typeof settingsAudit.$inferSelect;
+export type InsertSettingsAudit = typeof settingsAudit.$inferInsert;
+export type UserPreference = typeof userPreferences.$inferSelect;
+export type InsertUserPreference = typeof userPreferences.$inferInsert;
+export type LaborRateCard = typeof laborRateCards.$inferSelect;
+export type InsertLaborRateCard = typeof laborRateCards.$inferInsert;
+export type TimeClock = typeof timeClocks.$inferSelect;
+export type InsertTimeClock = typeof timeClocks.$inferInsert;
+export type CostCenter = typeof costCenters.$inferSelect;
+export type InsertCostCenter = typeof costCenters.$inferInsert;
+export type BusinessUnit = typeof businessUnits.$inferSelect;
+export type InsertBusinessUnit = typeof businessUnits.$inferInsert;

@@ -47,12 +47,17 @@ const navigation = [
   {
     name: "Settings",
     items: [
-      { name: "Business Settings", href: "/settings", icon: Building2 },
-      { name: "Global Settings", href: "/global-settings", icon: Settings2 },
-      { name: "Labor Rates", href: "/labor-rates", icon: Users },
+      { name: "Organization Settings", href: "/settings/organization", icon: Building2 },
+      { name: "Financial Settings", href: "/settings/financial", icon: DollarSign },
+      { name: "Operations Settings", href: "/settings/operations", icon: Settings2 },
+      { name: "My Preferences", href: "/preferences", icon: Settings },
+    ],
+  },
+  {
+    name: "Management",
+    items: [
       { name: "Team Management", href: "/team-management", icon: Users },
-      { name: "Time Management", href: "/time-management", icon: Timer },
-      { name: "User Preferences", href: "/preferences", icon: Settings },
+      { name: "Time & Payroll", href: "/time-payroll", icon: Timer },
     ],
   },
 ];

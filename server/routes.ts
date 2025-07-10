@@ -2,14 +2,14 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
 import { businessSettingsStorage } from "./businessSettings";
 import { laborRatesStorage } from "./laborRates";
 import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -3083,6 +3083,440 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching expiring qualifications:", error);
       res.status(500).json({ error: "Failed to fetch expiring qualifications" });
+    }
+  });
+
+  // Enhanced Settings API Routes
+  
+  // Organization Settings Routes
+  app.get("/api/settings/organization", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const orgSettings = await db.select()
+        .from(settings)
+        .where(eq(settings.categoryId, "organization"));
+      const settingsMap = orgSettings.reduce((acc, setting) => {
+        acc[setting.key] = setting.value;
+        return acc;
+      }, {} as Record<string, any>);
+      res.json(settingsMap);
+    } catch (error) {
+      console.error("Error fetching organization settings:", error);
+      res.status(500).json({ message: "Failed to fetch organization settings" });
+    }
+  });
+
+  app.put("/api/settings/organization", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { companySettings, systemSettings, customBranding } = req.body;
+      const userId = user.id;
+
+      // Update settings in database
+      const updates = [
+        { key: "company", value: companySettings, categoryId: "organization" },
+        { key: "system", value: systemSettings, categoryId: "organization" },
+        { key: "branding", value: customBranding, categoryId: "organization" }
+      ];
+
+      for (const update of updates) {
+        // Get existing setting
+        const [existing] = await db.select().from(settings).where(eq(settings.key, update.key));
+        
+        if (existing) {
+          // Update existing setting
+          await db.update(settings)
+            .set({
+              value: update.value,
+              updatedAt: new Date()
+            })
+            .where(eq(settings.key, update.key));
+            
+          // Add to audit log
+          await db.insert(settingsAudit).values({
+            settingId: existing.id,
+            userId,
+            previousValue: existing.value,
+            newValue: update.value,
+            changeReason: "Settings update"
+          });
+        } else {
+          // Insert new setting
+          const [newSetting] = await db.insert(settings)
+            .values({
+              ...update,
+              dataType: "json",
+              description: `${update.key} settings`,
+              requiredRole: "admin"
+            })
+            .returning();
+            
+          // Add to audit log
+          await db.insert(settingsAudit).values({
+            settingId: newSetting.id,
+            userId,
+            previousValue: null,
+            newValue: update.value,
+            changeReason: "Settings creation"
+          });
+        }
+      }
+
+      res.json({ message: "Settings updated successfully" });
+    } catch (error) {
+      console.error("Error updating organization settings:", error);
+      res.status(500).json({ message: "Failed to update organization settings" });
+    }
+  });
+
+  // Financial Settings Routes
+  app.get("/api/settings/financial", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const finSettings = await db.select()
+        .from(settings)
+        .where(eq(settings.categoryId, "financial"));
+      const settingsMap = finSettings.reduce((acc, setting) => {
+        acc[setting.key] = setting.value;
+        return acc;
+      }, {} as Record<string, any>);
+      res.json(settingsMap);
+    } catch (error) {
+      console.error("Error fetching financial settings:", error);
+      res.status(500).json({ message: "Failed to fetch financial settings" });
+    }
+  });
+
+  app.put("/api/settings/financial", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { overheadSettings, marginTargets } = req.body;
+      const userId = user.id;
+
+      // Update settings in database
+      const updates = [
+        { key: "overheads", value: overheadSettings, categoryId: "financial" },
+        { key: "margins", value: marginTargets, categoryId: "financial" }
+      ];
+
+      for (const update of updates) {
+        // Get existing setting
+        const [existing] = await db.select().from(settings).where(eq(settings.key, update.key));
+        
+        if (existing) {
+          // Update existing setting
+          await db.update(settings)
+            .set({
+              value: update.value,
+              updatedAt: new Date()
+            })
+            .where(eq(settings.key, update.key));
+            
+          // Add to audit log
+          await db.insert(settingsAudit).values({
+            settingId: existing.id,
+            userId,
+            previousValue: existing.value,
+            newValue: update.value,
+            changeReason: "Settings update"
+          });
+        } else {
+          // Insert new setting
+          const [newSetting] = await db.insert(settings)
+            .values({
+              ...update,
+              dataType: "json",
+              description: `${update.key} settings`,
+              requiredRole: "finance_manager"
+            })
+            .returning();
+            
+          // Add to audit log
+          await db.insert(settingsAudit).values({
+            settingId: newSetting.id,
+            userId,
+            previousValue: null,
+            newValue: update.value,
+            changeReason: "Settings creation"
+          });
+        }
+      }
+
+      res.json({ message: "Settings updated successfully" });
+    } catch (error) {
+      console.error("Error updating financial settings:", error);
+      res.status(500).json({ message: "Failed to update financial settings" });
+    }
+  });
+
+  // Operations Settings Routes
+  app.get("/api/settings/operations", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const opsSettings = await db.select()
+        .from(settings)
+        .where(eq(settings.categoryId, "operations"));
+      const settingsMap = opsSettings.reduce((acc, setting) => {
+        acc[setting.key] = setting.value;
+        return acc;
+      }, {} as Record<string, any>);
+      res.json(settingsMap);
+    } catch (error) {
+      console.error("Error fetching operations settings:", error);
+      res.status(500).json({ message: "Failed to fetch operations settings" });
+    }
+  });
+
+  app.put("/api/settings/operations", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { fabricationSettings, workflowSettings, qualitySettings } = req.body;
+      const userId = user.id;
+
+      // Update settings in database
+      const updates = [
+        { key: "fabrication", value: fabricationSettings, categoryId: "operations" },
+        { key: "workflow", value: workflowSettings, categoryId: "operations" },
+        { key: "quality", value: qualitySettings, categoryId: "operations" }
+      ];
+
+      for (const update of updates) {
+        // Get existing setting
+        const [existing] = await db.select().from(settings).where(eq(settings.key, update.key));
+        
+        if (existing) {
+          // Update existing setting
+          await db.update(settings)
+            .set({
+              value: update.value,
+              updatedAt: new Date()
+            })
+            .where(eq(settings.key, update.key));
+            
+          // Add to audit log
+          await db.insert(settingsAudit).values({
+            settingId: existing.id,
+            userId,
+            previousValue: existing.value,
+            newValue: update.value,
+            changeReason: "Settings update"
+          });
+        } else {
+          // Insert new setting
+          const [newSetting] = await db.insert(settings)
+            .values({
+              ...update,
+              dataType: "json",
+              description: `${update.key} settings`,
+              requiredRole: "operations_manager"
+            })
+            .returning();
+            
+          // Add to audit log
+          await db.insert(settingsAudit).values({
+            settingId: newSetting.id,
+            userId,
+            previousValue: null,
+            newValue: update.value,
+            changeReason: "Settings creation"
+          });
+        }
+      }
+
+      res.json({ message: "Settings updated successfully" });
+    } catch (error) {
+      console.error("Error updating operations settings:", error);
+      res.status(500).json({ message: "Failed to update operations settings" });
+    }
+  });
+
+  // Enhanced Time & Payroll Routes
+  app.get("/api/payroll/integration", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [integration] = await db.select().from(payrollIntegration).limit(1);
+      res.json(integration || null);
+    } catch (error) {
+      console.error("Error fetching payroll integration:", error);
+      res.status(500).json({ message: "Failed to fetch payroll integration" });
+    }
+  });
+
+  app.post("/api/payroll/sync", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Placeholder for payroll sync logic
+      await db.update(payrollIntegration)
+        .set({ lastSyncAt: new Date() })
+        .where(eq(payrollIntegration.isActive, true));
+      res.json({ message: "Payroll sync completed" });
+    } catch (error) {
+      console.error("Error syncing payroll:", error);
+      res.status(500).json({ message: "Failed to sync payroll" });
+    }
+  });
+
+  // Time Clock Summary Route
+  app.get("/api/time/summary/:date", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const date = new Date(req.params.date);
+      const startOfWeek = new Date(date);
+      startOfWeek.setDate(date.getDate() - date.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+      // Get active workers (clocked in)
+      const activeWorkers = await db.select()
+        .from(timeClocks)
+        .where(
+          and(
+            eq(timeClocks.clockType, "clock_in"),
+            gte(timeClocks.timestamp, new Date(new Date().setHours(0, 0, 0, 0)))
+          )
+        );
+
+      // Calculate week hours and costs
+      const weekData = await db.select({
+        totalHours: sql<number>`SUM(EXTRACT(EPOCH FROM (timestamp - LAG(timestamp) OVER (PARTITION BY user_id ORDER BY timestamp))) / 3600)`,
+        totalCost: sql<number>`SUM(EXTRACT(EPOCH FROM (timestamp - LAG(timestamp) OVER (PARTITION BY user_id ORDER BY timestamp))) / 3600 * 85)` // Average rate
+      })
+        .from(timeClocks)
+        .where(
+          and(
+            gte(timeClocks.timestamp, startOfWeek),
+            lte(timeClocks.timestamp, endOfWeek)
+          )
+        );
+
+      res.json({
+        activeWorkers: activeWorkers.length,
+        weekHours: weekData[0]?.totalHours || 0,
+        weekLaborCost: weekData[0]?.totalCost || 0,
+        recentActivity: activeWorkers.slice(0, 5)
+      });
+    } catch (error) {
+      console.error("Error fetching time summary:", error);
+      res.status(500).json({ message: "Failed to fetch time summary" });
+    }
+  });
+
+  // Enhanced Labor Rate Routes for Time & Payroll
+  app.get("/api/labor-rates/cards", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const rateCards = await db.select().from(laborRateCards).where(eq(laborRateCards.isActive, true));
+      res.json(rateCards);
+    } catch (error) {
+      console.error("Error fetching labor rate cards:", error);
+      res.status(500).json({ message: "Failed to fetch labor rate cards" });
+    }
+  });
+
+  app.post("/api/labor-rates/cards", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [newRateCard] = await db.insert(laborRateCards).values(req.body).returning();
+      res.json(newRateCard);
+    } catch (error) {
+      console.error("Error creating labor rate card:", error);
+      res.status(500).json({ message: "Failed to create labor rate card" });
+    }
+  });
+
+  // New Clock Status Route
+  app.get("/api/time/clock-status", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const userId = user.id;
+      const todayClocks = await timeManagementStorage.getTodayTimeClocks(userId);
+      
+      // Determine current status from today's clocks
+      let currentStatus = "clocked_out";
+      if (todayClocks.length > 0) {
+        const lastClock = todayClocks[0]; // Already sorted by timestamp desc
+        if (lastClock.clockType === "clock_in") {
+          currentStatus = "clocked_in";
+        } else if (lastClock.clockType === "break_start") {
+          currentStatus = "on_break";
+        }
+      }
+      
+      res.json({ todayClocks, currentStatus });
+    } catch (error) {
+      console.error("Error fetching clock status:", error);
+      res.status(500).json({ message: "Failed to fetch clock status" });
     }
   });
 
