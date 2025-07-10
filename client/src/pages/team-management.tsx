@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -109,8 +110,7 @@ export default function TeamManagement() {
   const [selectedMemberForReview, setSelectedMemberForReview] = useState<any>(null);
   const [viewMode, setViewMode] = useState<"table" | "card">("table"); // Default to table view
 
-  // Import necessary for Button link
-  const Link = "span" as any; // Temporary workaround for onClick navigation
+
 
   // Fetch team members
   const { data: teamMembers = [], isLoading: membersLoading } = useQuery({
@@ -328,115 +328,123 @@ export default function TeamManagement() {
   };
 
   const MemberCard = ({ member }: { member: TeamMember }) => (
-    <Card className="hover:shadow-lg transition-shadow relative overflow-hidden">
-      <CardContent className="p-4">
-        {/* Main Content */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center space-x-3 flex-1">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <span className="text-sm font-medium text-primary">
-                {(member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim())?.[0]}{(member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim())?.split(' ')[1]?.[0] || ''}
-              </span>
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-semibold text-lg truncate">{member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unknown'}</h3>
-              <p className="text-sm text-muted-foreground">{member.userUsername || member.employeeNumber || 'No ID'}</p>
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <Badge variant="outline" className="text-xs">{member.roleName}</Badge>
-                {member.departmentName && (
-                  <Badge variant="secondary" className="text-xs">{member.departmentName}</Badge>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-          <div>
-            <span className="text-muted-foreground block text-xs">Employee #</span>
-            <span className="font-medium">{member.userUsername || "N/A"}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground block text-xs">Hourly Rate</span>
-            <span className="font-medium">{member.hourlyRate ? `$${member.hourlyRate}/hr` : "-"}</span>
-          </div>
-          <div className="col-span-2">
-            <span className="text-muted-foreground block text-xs">Status</span>
-            <Badge variant={member.isActive ? "default" : "secondary"} className="mt-1">
-              {member.isActive ? "Active" : "Inactive"}
+    <div className="relative group">
+      <Link href={`/team-management/employee/${member.id}`}>
+        <Card className="hover:shadow-lg transition-all cursor-pointer hover:border-primary/20 relative overflow-hidden">
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Badge variant="outline" className="text-xs">
+              <ChevronRight className="h-3 w-3 mr-1" />
+              View Profile
             </Badge>
           </div>
-        </div>
-        
-        {/* Action Buttons - Always Visible */}
-        <div className="border-t pt-3 -mx-4 px-4 bg-muted/30">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSelectedMemberForReview(member);
-                  setShowPerformanceReview(true);
-                }}
-                title="Performance Review"
-                className="hover:bg-secondary"
-              >
-                <Star className="w-4 h-4" />
-                <span className="ml-1 text-xs hidden sm:inline">Review</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => syncDataMutation.mutate({ teamMemberId: member.id, syncDirection: 'team-to-user' })}
-                title="Sync to User Account"
-                className="hover:bg-secondary"
-              >
-                <UserCheck className="w-4 h-4" />
-                <span className="ml-1 text-xs hidden sm:inline">Sync</span>
-              </Button>
+          <CardContent className="p-4">
+            {/* Main Content */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-3 flex-1">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-medium text-primary">
+                    {(member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim())?.[0]}{(member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim())?.split(' ')[1]?.[0] || ''}
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-lg truncate">{member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unknown'}</h3>
+                  <p className="text-sm text-muted-foreground">{member.userUsername || member.employeeNumber || 'No ID'}</p>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <Badge variant="outline" className="text-xs">{member.roleName}</Badge>
+                    {member.departmentName && (
+                      <Badge variant="secondary" className="text-xs">{member.departmentName}</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSelectedMember(member);
-                  setIsEditingMember(true);
-                }}
-                title="Edit"
-                className="hover:bg-secondary"
-              >
-                <Edit2 className="w-4 h-4" />
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm" title="Delete" className="hover:bg-destructive/10">
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to remove {member.userName} from the team?
-                      This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteMemberMutation.mutate(member.id)}>
-                      Remove
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+
+            {/* Info Grid */}
+            <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+              <div>
+                <span className="text-muted-foreground block text-xs">Employee #</span>
+                <span className="font-medium">{member.userUsername || "N/A"}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block text-xs">Hourly Rate</span>
+                <span className="font-medium">{member.hourlyRate ? `$${member.hourlyRate}/hr` : "-"}</span>
+              </div>
+              <div className="col-span-2">
+                <span className="text-muted-foreground block text-xs">Status</span>
+                <Badge variant={member.isActive ? "default" : "secondary"} className="mt-1">
+                  {member.isActive ? "Active" : "Inactive"}
+                </Badge>
+              </div>
             </div>
+          </CardContent>
+        </Card>
+      </Link>
+      
+      {/* Action Buttons - Outside Link */}
+      <div className="absolute bottom-0 left-0 right-0 border-t p-3 bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                setSelectedMemberForReview(member);
+                setShowPerformanceReview(true);
+              }}
+              title="Performance Review"
+              className="hover:bg-secondary"
+            >
+              <Star className="w-4 h-4" />
+              <span className="ml-1 text-xs hidden sm:inline">Review</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                syncDataMutation.mutate({ teamMemberId: member.id, syncDirection: 'team-to-user' });
+              }}
+              title="Sync to User Account"
+              className="hover:bg-secondary"
+            >
+              <UserCheck className="w-4 h-4" />
+              <span className="ml-1 text-xs hidden sm:inline">Sync</span>
+            </Button>
+          </div>
+          <div className="flex items-center gap-1">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  title="Delete" 
+                  className="hover:bg-destructive/10"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to remove {member.userName} from the team?
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deleteMemberMutation.mutate(member.id)}>
+                    Remove
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 
   const RoleCard = ({ role }: { role: Role }) => {
@@ -601,31 +609,12 @@ export default function TeamManagement() {
           <p className="text-muted-foreground">Manage team members, roles, and departments</p>
         </div>
         <div className="flex space-x-2">
-          <Dialog open={isEditingMember} onOpenChange={setIsEditingMember}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setSelectedMember(null)}>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Add Member
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
-              <DialogHeader className="flex-shrink-0">
-                <DialogTitle>
-                  {selectedMember ? "Edit Team Member" : "Add Team Member"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="flex-1 overflow-hidden">
-                <MemberForm
-                  member={selectedMember}
-                  roles={roles}
-                  departments={departments}
-                  users={availableUsers}
-                  onSubmit={memberMutation.mutate}
-                  isLoading={memberMutation.isPending}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Link href="/team-management/employee/new">
+            <Button>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Member
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -895,17 +884,20 @@ export default function TeamManagement() {
                   {teamMembers.map((member: TeamMember) => (
                     <TableRow key={member.id} className="hover:bg-muted/50">
                       <TableCell>
-                        <div className="flex items-center space-x-3">
+                        <Link href={`/team-management/employee/${member.id}`} className="flex items-center space-x-3 hover:text-primary transition-colors">
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                             <span className="text-sm font-medium text-primary">
                               {(member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim())?.[0]}{(member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim())?.split(' ')[1]?.[0] || ''}
                             </span>
                           </div>
                           <div>
-                            <div className="font-medium">{member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unknown'}</div>
+                            <div className="font-medium flex items-center gap-1">
+                              {member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unknown'}
+                              <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
                             <div className="text-sm text-muted-foreground">{member.userUsername || member.employeeNumber || 'No ID'}</div>
                           </div>
-                        </div>
+                        </Link>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{member.roleName}</Badge>
@@ -946,18 +938,16 @@ export default function TeamManagement() {
                           >
                             <UserCheck className="w-4 h-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedMember(member);
-                              setIsEditingMember(true);
-                            }}
-                            title="Edit"
-                            className="hover:bg-secondary"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
+                          <Link href={`/team-management/employee/${member.id}`}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="View/Edit Profile"
+                              className="hover:bg-secondary"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </Link>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="sm" title="Delete" className="hover:bg-destructive/10">
