@@ -207,12 +207,13 @@ export class TeamStorage implements ITeamStorage {
         roleName: role?.name,
         departmentName: department?.name,
         
-        // Health & Safety fields will be added after database migration
-        firstAidCertifications: [],
-        weldingQualifications: [],
-        workingAtHeightsCerts: [],
-        tradeQualifications: [],
-        driversLicenses: []
+        // Certificate fields - map from the existing JSON fields
+        weldingCertificates: member.weldingCertificates || [],
+        tradeLicenses: member.tradeLicenses || [],
+        equipmentCertificates: member.equipmentCertificates || [],
+        firstAidCertifications: member.firstAidCertifications || [],
+        workingAtHeightsCerts: member.workingAtHeightsCerts || [],
+        driversLicenses: member.driversLicenses || []
       };
     });
   }
@@ -356,6 +357,11 @@ export class TeamStorage implements ITeamStorage {
     if (memberData.qualifications) updateData.qualifications = memberData.qualifications;
     if (memberData.licenses) updateData.licenses = memberData.licenses;
     
+    // Certificate fields for Trade Qualifications
+    if (memberData.weldingCertificates) updateData.weldingCertificates = memberData.weldingCertificates;
+    if (memberData.tradeLicenses) updateData.tradeLicenses = memberData.tradeLicenses;
+    if (memberData.equipmentCertificates) updateData.equipmentCertificates = memberData.equipmentCertificates;
+    
     // Safety and compliance
     if (memberData.inductionCompleted !== undefined) updateData.inductionCompleted = memberData.inductionCompleted;
     if (memberData.inductionDate) updateData.inductionDate = new Date(memberData.inductionDate);
@@ -486,10 +492,12 @@ export class TeamStorage implements ITeamStorage {
       safetyCardExpiry: row.team_members.safetyCardExpiry,
       workingAtHeightsExpiry: row.team_members.workingAtHeightsExpiry,
       firstAidExpiry: row.team_members.firstAidExpiry,
-      weldingCertificates: row.team_members.weldingCertificates,
+      weldingCertificates: row.team_members.weldingCertificates || [],
       driverLicenseType: row.team_members.driverLicenseType,
       driverLicenseExpiry: row.team_members.driverLicenseExpiry,
       tradeCertificates: row.team_members.tradeCertificates,
+      tradeLicenses: row.team_members.tradeLicenses || [],
+      equipmentCertificates: row.team_members.equipmentCertificates || [],
       // Leave
       annualLeaveBalance: row.team_members.annualLeaveBalance,
       sickLeaveBalance: row.team_members.sickLeaveBalance,

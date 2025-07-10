@@ -130,6 +130,19 @@ export default function EmployeeProfile() {
     }
   }, [hasUnsavedChanges, isEditing]);
 
+  // Warn when navigating away with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   const handleFieldUpdate = (field: string, value: any) => {
     setFormData({ ...formData, [field]: value });
     setHasUnsavedChanges(true);
@@ -198,23 +211,24 @@ export default function EmployeeProfile() {
           </div>
           <div className="flex items-center space-x-2">
             {hasUnsavedChanges && (
-              <span className="text-sm text-muted-foreground">
-                <Clock className="h-3 w-3 inline mr-1" />
-                Unsaved changes
-              </span>
+              <div className="flex items-center space-x-2 px-3 py-1 bg-amber-100 text-amber-800 rounded-md">
+                <Clock className="h-4 w-4" />
+                <span className="text-sm font-medium">You have unsaved changes</span>
+              </div>
             )}
             <Button
-              variant="outline"
+              variant={hasUnsavedChanges ? "default" : "outline"}
               size="sm"
               onClick={handleSave}
               disabled={!hasUnsavedChanges || saveMutation.isPending}
+              className={hasUnsavedChanges ? "animate-pulse" : ""}
             >
               <Save className="h-4 w-4 mr-2" />
-              Save Changes
+              {saveMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
-            {canEdit() && (
+            {canEdit() && !isNewEmployee && (
               <Button
-                variant="default"
+                variant="outline"
                 size="sm"
                 onClick={() => setIsEditing(!isEditing)}
               >

@@ -249,6 +249,13 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
   const [equipmentCerts, setEquipmentCerts] = useState<EquipmentCertificate[]>(member?.equipmentCertificates || []);
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
 
+  // Update local state when member data changes
+  useEffect(() => {
+    setWeldingCerts(member?.weldingCertificates || []);
+    setTradeLicenses(member?.tradeLicenses || []);
+    setEquipmentCerts(member?.equipmentCertificates || []);
+  }, [member?.weldingCertificates, member?.tradeLicenses, member?.equipmentCertificates]);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'welding' | 'trade' | 'equipment', itemId?: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -280,8 +287,9 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
 
         toast({
           title: "Welding Certificate Parsed",
-          description: "Certificate details extracted successfully",
-          variant: "default"
+          description: "Certificate details extracted successfully. Remember to save your changes!",
+          variant: "default",
+          duration: 5000
         });
       } else if (type === 'trade') {
         const parsedData = await parseCertificatePDF(file, 'trade');
@@ -305,8 +313,9 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
 
         toast({
           title: "Trade License Uploaded",
-          description: "License details extracted successfully",
-          variant: "default"
+          description: "License details extracted successfully. Remember to save your changes!",
+          variant: "default",
+          duration: 5000
         });
       } else {
         const parsedData = await parseCertificatePDF(file, 'equipment');
@@ -330,8 +339,9 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
 
         toast({
           title: "Equipment Certificate Uploaded",
-          description: "Certificate details extracted successfully",
-          variant: "default"
+          description: "Certificate details extracted successfully. Remember to save your changes!",
+          variant: "default",
+          duration: 5000
         });
       }
     } catch (error) {
