@@ -211,6 +211,7 @@ export class TeamStorage implements ITeamStorage {
         weldingCertificates: member.weldingCertificates || [],
         tradeLicenses: member.tradeLicenses || [],
         equipmentCertificates: member.equipmentCertificates || [],
+        safetyCertificates: member.safetyCertificates || [],
         firstAidCertifications: member.firstAidCertifications || [],
         workingAtHeightsCerts: member.workingAtHeightsCerts || [],
         driversLicenses: member.driversLicenses || []
@@ -361,6 +362,7 @@ export class TeamStorage implements ITeamStorage {
     if (memberData.weldingCertificates) updateData.weldingCertificates = memberData.weldingCertificates;
     if (memberData.tradeLicenses) updateData.tradeLicenses = memberData.tradeLicenses;
     if (memberData.equipmentCertificates) updateData.equipmentCertificates = memberData.equipmentCertificates;
+    if (memberData.safetyCertificates) updateData.safetyCertificates = memberData.safetyCertificates;
     
     // Safety and compliance
     if (memberData.inductionCompleted !== undefined) updateData.inductionCompleted = memberData.inductionCompleted;
@@ -498,6 +500,7 @@ export class TeamStorage implements ITeamStorage {
       tradeCertificates: row.team_members.tradeCertificates,
       tradeLicenses: row.team_members.tradeLicenses || [],
       equipmentCertificates: row.team_members.equipmentCertificates || [],
+      safetyCertificates: row.team_members.safetyCertificates || [],
       // Leave
       annualLeaveBalance: row.team_members.annualLeaveBalance,
       sickLeaveBalance: row.team_members.sickLeaveBalance,

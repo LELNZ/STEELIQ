@@ -13,7 +13,7 @@ async function checkCertificateFields() {
       SELECT column_name, data_type 
       FROM information_schema.columns 
       WHERE table_name = 'team_members' 
-      AND column_name IN ('welding_certificates', 'trade_licenses', 'equipment_certificates')
+      AND column_name IN ('welding_certificates', 'trade_licenses', 'equipment_certificates', 'safety_certificates')
       ORDER BY column_name
     `);
     

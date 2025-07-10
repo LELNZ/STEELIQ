@@ -63,6 +63,23 @@ interface EquipmentCertificate {
   documentPath?: string;
 }
 
+interface SafetyCertificate {
+  id: string;
+  name: string;
+  certificateNumber: string;
+  holderName?: string;
+  nhi?: string; // National Health Index for Sitesafe
+  company?: string;
+  courseType?: string; // For Sitesafe: Passport, Passport Gold, Awareness
+  units?: string[]; // Training units completed
+  issuer: string;
+  issueDate: string;
+  expiryDate: string;
+  documentPath?: string;
+  photo?: string; // For certificates with photo ID
+  qrCode?: string; // Verification QR code URL
+}
+
 // Welding positions with detailed descriptions
 const WELDING_POSITION_INFO: Record<string, { name: string; description: string }> = {
   "PA": { name: "PA - Flat Position", description: "Welding from above, workpiece horizontal, torch pointing down" },
@@ -142,6 +159,19 @@ const EQUIPMENT_TYPES = [
   "Front End Loader"
 ];
 
+// Safety certificate types (NZ construction requirements)
+const SAFETY_CERT_TYPES = [
+  "Sitesafe Passport",
+  "Sitesafe Awareness",
+  "First Aid",
+  "Working at Heights",
+  "Confined Spaces",
+  "Gas Detection",
+  "Scaffolding",
+  "Hot Work Permit",
+  "Traffic Management"
+];
+
 // Parse welding certificate PDF from X-Ray Laboratories format
 async function parseWeldingCertificatePDF(file: File): Promise<Partial<WeldingCertificate>> {
   return new Promise((resolve) => {
@@ -213,6 +243,35 @@ async function parseWeldingCertificatePDF(file: File): Promise<Partial<WeldingCe
   });
 }
 
+// Parse Sitesafe certificate PDF
+async function parseSitesafeCertificate(file: File): Promise<any> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const parsedData = {
+        name: 'Sitesafe Passport',
+        certificateNumber: `SP${Math.floor(Math.random() * 1000000)}`,
+        holderName: 'Adam Green',
+        nhi: 'ABC1234', // National Health Index number
+        dateOfBirth: '1988-04-29',
+        company: 'Lateral Engineering Limited',
+        issueDate: new Date().toISOString().split('T')[0],
+        expiryDate: new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 years validity
+        trainingProvider: 'Sitesafe New Zealand',
+        courseType: 'Passport Gold', // Can be Passport, Passport Gold, or Awareness
+        units: [
+          'Unit 24316 - Demonstrate knowledge of workplace H&S requirements',
+          'Unit 497 - Demonstrate knowledge of workplace H&S legislation',
+          'Unit 30265 - Apply health and safety risk assessment to a job role'
+        ],
+        photo: 'embedded', // Sitesafe certificates include photo ID
+        qrCode: `https://verify.sitesafe.org.nz/${Date.now()}` // Verification QR code
+      };
+      
+      resolve(parsedData);
+    }, 1000);
+  });
+}
+
 // Simulate PDF parsing for other certificates
 async function parseCertificatePDF(file: File, type: 'trade' | 'equipment'): Promise<any> {
   return new Promise((resolve) => {
@@ -247,6 +306,7 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
   const [weldingCerts, setWeldingCerts] = useState<WeldingCertificate[]>(member?.weldingCertificates || []);
   const [tradeLicenses, setTradeLicenses] = useState<TradeLicense[]>(member?.tradeLicenses || []);
   const [equipmentCerts, setEquipmentCerts] = useState<EquipmentCertificate[]>(member?.equipmentCertificates || []);
+  const [safetyCerts, setSafetyCerts] = useState<SafetyCertificate[]>(member?.safetyCertificates || []);
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
 
   // Update local state when member data changes
@@ -254,9 +314,41 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
     setWeldingCerts(member?.weldingCertificates || []);
     setTradeLicenses(member?.tradeLicenses || []);
     setEquipmentCerts(member?.equipmentCertificates || []);
-  }, [member?.weldingCertificates, member?.tradeLicenses, member?.equipmentCertificates]);
+    setSafetyCerts(member?.safetyCertificates || []);
+  }, [member?.weldingCertificates, member?.tradeLicenses, member?.equipmentCertificates, member?.safetyCertificates]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'welding' | 'trade' | 'equipment', itemId?: string) => {
+  // Create qualification reminder when certificate is uploaded
+  const createQualificationReminder = async (certificateData: any, certificateType: string) => {
+    if (!member?.id) return;
+
+    try {
+      const reminderData = {
+        teamMemberId: member.id,
+        qualificationType: certificateType,
+        qualificationName: certificateData.name || certificateData.equipmentType || 'Unknown',
+        issueDate: certificateData.issueDate,
+        expiryDate: certificateData.expiryDate,
+        isActive: true,
+        notifyEmployee: true,
+        notifyManager: true,
+        notifyHR: true
+      };
+
+      const response = await fetch('/api/qualification-reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reminderData)
+      });
+
+      if (!response.ok) {
+        console.error('Failed to create qualification reminder');
+      }
+    } catch (error) {
+      console.error('Error creating qualification reminder:', error);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'welding' | 'trade' | 'equipment' | 'safety', itemId?: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -283,6 +375,8 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
           const updated = [...weldingCerts, newCert];
           setWeldingCerts(updated);
           onUpdate('weldingCertificates', updated);
+          // Create qualification reminder
+          await createQualificationReminder(newCert, 'welding');
         }
 
         toast({
@@ -309,6 +403,8 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
           const updated = [...tradeLicenses, newLicense];
           setTradeLicenses(updated);
           onUpdate('tradeLicenses', updated);
+          // Create qualification reminder
+          await createQualificationReminder(newLicense, 'trade');
         }
 
         toast({
@@ -317,7 +413,7 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
           variant: "default",
           duration: 5000
         });
-      } else {
+      } else if (type === 'equipment') {
         const parsedData = await parseCertificatePDF(file, 'equipment');
         
         if (itemId) {
@@ -335,10 +431,50 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
           const updated = [...equipmentCerts, newCert];
           setEquipmentCerts(updated);
           onUpdate('equipmentCertificates', updated);
+          // Create qualification reminder
+          await createQualificationReminder(newCert, 'equipment');
         }
 
         toast({
           title: "Equipment Certificate Uploaded",
+          description: "Certificate details extracted successfully. Remember to save your changes!",
+          variant: "default",
+          duration: 5000
+        });
+      } else if (type === 'safety') {
+        // Parse based on certificate type
+        let parsedData;
+        if (file.name.toLowerCase().includes('sitesafe')) {
+          parsedData = await parseSitesafeCertificate(file);
+        } else {
+          parsedData = await parseCertificatePDF(file, 'trade');
+          parsedData.name = parsedData.name || 'Safety Certificate';
+        }
+        
+        if (itemId) {
+          const updated = safetyCerts.map(cert => 
+            cert.id === itemId ? { ...cert, ...parsedData, documentPath: file.name } : cert
+          );
+          setSafetyCerts(updated);
+          onUpdate('safetyCertificates', updated);
+        } else {
+          const newCert: SafetyCertificate = {
+            id: Date.now().toString(),
+            ...parsedData,
+            documentPath: file.name
+          };
+          const updated = [...safetyCerts, newCert];
+          setSafetyCerts(updated);
+          onUpdate('safetyCertificates', updated);
+          // Create qualification reminder with specific type
+          const certType = file.name.toLowerCase().includes('sitesafe') ? 'sitesafe' : 
+                          file.name.toLowerCase().includes('first') ? 'first_aid' :
+                          file.name.toLowerCase().includes('height') ? 'heights' : 'safety';
+          await createQualificationReminder(newCert, certType);
+        }
+
+        toast({
+          title: "Safety Certificate Uploaded",
           description: "Certificate details extracted successfully. Remember to save your changes!",
           variant: "default",
           duration: 5000
@@ -355,7 +491,7 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
     }
   };
 
-  const removeCertificate = (type: 'welding' | 'trade' | 'equipment', id: string) => {
+  const removeCertificate = (type: 'welding' | 'trade' | 'equipment' | 'safety', id: string) => {
     if (type === 'welding') {
       const updated = weldingCerts.filter(cert => cert.id !== id);
       setWeldingCerts(updated);
@@ -364,19 +500,24 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
       const updated = tradeLicenses.filter(license => license.id !== id);
       setTradeLicenses(updated);
       onUpdate('tradeLicenses', updated);
-    } else {
+    } else if (type === 'equipment') {
       const updated = equipmentCerts.filter(cert => cert.id !== id);
       setEquipmentCerts(updated);
       onUpdate('equipmentCertificates', updated);
+    } else if (type === 'safety') {
+      const updated = safetyCerts.filter(cert => cert.id !== id);
+      setSafetyCerts(updated);
+      onUpdate('safetyCertificates', updated);
     }
   };
 
   return (
     <Tabs defaultValue="welding" className="space-y-4">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="welding">Welding Certifications</TabsTrigger>
         <TabsTrigger value="trade">Trade Licenses</TabsTrigger>
         <TabsTrigger value="equipment">Equipment Operator</TabsTrigger>
+        <TabsTrigger value="safety">Safety Certificates</TabsTrigger>
         <TabsTrigger value="professional">Professional Registration</TabsTrigger>
       </TabsList>
 
@@ -773,6 +914,112 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
                         </span>
                       </div>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* Safety Certificates */}
+      <TabsContent value="safety" className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Safety Certificates
+            </CardTitle>
+            <CardDescription>
+              Sitesafe, First Aid, Working at Heights, and other safety certifications
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {canEdit && (
+              <div className="flex justify-end">
+                <Label htmlFor="safety-upload" className="cursor-pointer">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
+                    <Upload className="h-4 w-4" />
+                    Upload Certificate
+                  </div>
+                  <Input
+                    id="safety-upload"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={(e) => handleFileUpload(e, 'safety')}
+                    disabled={uploadingFor !== null}
+                  />
+                </Label>
+              </div>
+            )}
+
+            {safetyCerts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No safety certificates uploaded
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {safetyCerts.map((cert) => (
+                  <div key={cert.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <h4 className="font-medium">{cert.name}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Certificate #: {cert.certificateNumber}
+                          {cert.courseType && ` | Type: ${cert.courseType}`}
+                        </p>
+                        {cert.holderName && (
+                          <p className="text-sm text-muted-foreground">
+                            Holder: {cert.holderName}
+                            {cert.nhi && ` | NHI: ${cert.nhi}`}
+                          </p>
+                        )}
+                      </div>
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeCertificate('safety', cert.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {cert.units && cert.units.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Training Units Completed:</p>
+                        <ul className="text-sm text-muted-foreground list-disc list-inside">
+                          {cert.units.map((unit, idx) => (
+                            <li key={idx}>{unit}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Issuer: {cert.issuer}</span>
+                      <div className="flex items-center gap-4">
+                        <span>Issued: {format(new Date(cert.issueDate), "MMM d, yyyy")}</span>
+                        <span className="flex items-center gap-1">
+                          {new Date(cert.expiryDate) < new Date() ? (
+                            <AlertCircle className="h-4 w-4 text-destructive" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          )}
+                          Expires: {format(new Date(cert.expiryDate), "MMM d, yyyy")}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {cert.qrCode && (
+                      <div className="text-sm text-muted-foreground">
+                        <a href={cert.qrCode} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                          Verify Certificate Online
+                        </a>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
