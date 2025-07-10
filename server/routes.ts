@@ -2038,6 +2038,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/team/members/:id", async (req, res) => {
+    try {
+      const member = await teamStorage.getTeamMemberById(parseInt(req.params.id));
+      if (!member) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+      res.json(member);
+    } catch (error) {
+      console.error("Error fetching team member:", error);
+      res.status(500).json({ error: "Failed to fetch team member" });
+    }
+  });
+
   app.post("/api/team/members", async (req, res) => {
     try {
       const member = await teamStorage.createTeamMember(req.body);

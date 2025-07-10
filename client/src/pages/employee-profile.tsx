@@ -588,6 +588,215 @@ export default function EmployeeProfile() {
           </Card>
         </TabsContent>
 
+        {/* Employment Tab */}
+        <TabsContent value="employment" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Employment Details</CardTitle>
+              <CardDescription>
+                Position, department, and employment status
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Employee Number</label>
+                  {isEditing || isNewEmployee ? (
+                    <input
+                      type="text"
+                      value={formData.employeeNumber || ""}
+                      onChange={(e) => handleFieldUpdate("employeeNumber", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="Auto-generated if empty"
+                    />
+                  ) : (
+                    <p className="mt-1">{employee?.employeeNumber || "Not assigned"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Employment Type</label>
+                  {isEditing || isNewEmployee ? (
+                    <select
+                      value={formData.employmentType || "full_time"}
+                      onChange={(e) => handleFieldUpdate("employmentType", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                    >
+                      <option value="full_time">Full Time</option>
+                      <option value="part_time">Part Time</option>
+                      <option value="contractor">Contractor</option>
+                      <option value="casual">Casual</option>
+                    </select>
+                  ) : (
+                    <p className="mt-1">{employee?.employmentType || "Full Time"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Position</label>
+                  {isEditing || isNewEmployee ? (
+                    <input
+                      type="text"
+                      value={formData.position || ""}
+                      onChange={(e) => handleFieldUpdate("position", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="e.g., Senior Welder"
+                    />
+                  ) : (
+                    <p className="mt-1">{employee?.position || "Not specified"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Job Title</label>
+                  {isEditing || isNewEmployee ? (
+                    <input
+                      type="text"
+                      value={formData.jobTitle || ""}
+                      onChange={(e) => handleFieldUpdate("jobTitle", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="e.g., Workshop Foreman"
+                    />
+                  ) : (
+                    <p className="mt-1">{employee?.jobTitle || "Not specified"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Start Date</label>
+                  {isEditing || isNewEmployee ? (
+                    <input
+                      type="date"
+                      value={formData.startDate ? new Date(formData.startDate).toISOString().split('T')[0] : ""}
+                      onChange={(e) => handleFieldUpdate("startDate", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                    />
+                  ) : (
+                    <p className="mt-1">{employee?.startDate ? format(new Date(employee.startDate), "MMM d, yyyy") : "Not specified"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Years of Experience</label>
+                  {isEditing || isNewEmployee ? (
+                    <input
+                      type="number"
+                      value={formData.experienceYears || ""}
+                      onChange={(e) => handleFieldUpdate("experienceYears", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="e.g., 5"
+                    />
+                  ) : (
+                    <p className="mt-1">{employee?.experienceYears || "Not specified"}</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Compensation Tab */}
+        <TabsContent value="compensation" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Compensation & Benefits</CardTitle>
+              <CardDescription>
+                Salary, rates, and allowances
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Hourly Rate</label>
+                  {isEditing || isNewEmployee ? (
+                    <input
+                      type="number"
+                      value={formData.hourlyRate || ""}
+                      onChange={(e) => handleFieldUpdate("hourlyRate", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="e.g., 85"
+                      step="0.01"
+                    />
+                  ) : (
+                    <p className="mt-1">{employee?.hourlyRate ? `$${employee.hourlyRate}/hr` : "Not set"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Overtime Rate</label>
+                  {isEditing || isNewEmployee ? (
+                    <input
+                      type="number"
+                      value={formData.overtimeRate || ""}
+                      onChange={(e) => handleFieldUpdate("overtimeRate", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="e.g., 127.50"
+                      step="0.01"
+                    />
+                  ) : (
+                    <p className="mt-1">{employee?.overtimeRate ? `$${employee.overtimeRate}/hr` : "Not set"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Site Allowance</label>
+                  {isEditing || isNewEmployee ? (
+                    <input
+                      type="number"
+                      value={formData.siteAllowance || ""}
+                      onChange={(e) => handleFieldUpdate("siteAllowance", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="e.g., 5"
+                      step="0.01"
+                    />
+                  ) : (
+                    <p className="mt-1">{employee?.siteAllowance ? `$${employee.siteAllowance}/hr` : "Not set"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Travel Allowance</label>
+                  {isEditing || isNewEmployee ? (
+                    <input
+                      type="number"
+                      value={formData.travelAllowance || ""}
+                      onChange={(e) => handleFieldUpdate("travelAllowance", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="e.g., 50"
+                      step="0.01"
+                    />
+                  ) : (
+                    <p className="mt-1">{employee?.travelAllowance ? `$${employee.travelAllowance}/day` : "Not set"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Annual Salary</label>
+                  {isEditing || isNewEmployee ? (
+                    <input
+                      type="number"
+                      value={formData.annualSalary || ""}
+                      onChange={(e) => handleFieldUpdate("annualSalary", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="e.g., 176800"
+                      step="1"
+                    />
+                  ) : (
+                    <p className="mt-1">{employee?.annualSalary ? `$${employee.annualSalary.toLocaleString()}` : "Not set"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Pay Frequency</label>
+                  {isEditing || isNewEmployee ? (
+                    <select
+                      value={formData.payFrequency || "weekly"}
+                      onChange={(e) => handleFieldUpdate("payFrequency", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                    >
+                      <option value="weekly">Weekly</option>
+                      <option value="fortnightly">Fortnightly</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                  ) : (
+                    <p className="mt-1">{employee?.payFrequency || "Weekly"}</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Health & Safety Tab */}
         <TabsContent value="health-safety" className="space-y-6">
           <HealthSafetyForm
@@ -596,7 +805,133 @@ export default function EmployeeProfile() {
           />
         </TabsContent>
 
-        {/* Other tabs would follow similar patterns */}
+        {/* Trade Quals Tab */}
+        <TabsContent value="trade-quals" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Trade Qualifications</CardTitle>
+              <CardDescription>
+                Professional qualifications and trade certifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Skill Level</label>
+                  {isEditing || isNewEmployee ? (
+                    <select
+                      value={formData.skillLevel || ""}
+                      onChange={(e) => handleFieldUpdate("skillLevel", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                    >
+                      <option value="">Select skill level</option>
+                      <option value="apprentice">Apprentice</option>
+                      <option value="tradesman">Tradesman</option>
+                      <option value="advanced">Advanced Tradesman</option>
+                      <option value="foreman">Foreman</option>
+                      <option value="supervisor">Supervisor</option>
+                    </select>
+                  ) : (
+                    <p className="mt-1">{employee?.skillLevel || "Not specified"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Qualifications</label>
+                  {isEditing || isNewEmployee ? (
+                    <textarea
+                      value={formData.qualifications || ""}
+                      onChange={(e) => handleFieldUpdate("qualifications", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="List qualifications (e.g., Level 4 Welding Certificate, Trade Certificate in Fabrication)"
+                      rows={3}
+                    />
+                  ) : (
+                    <p className="mt-1 whitespace-pre-wrap">{employee?.qualifications || "No qualifications listed"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Licenses</label>
+                  {isEditing || isNewEmployee ? (
+                    <textarea
+                      value={formData.licenses || ""}
+                      onChange={(e) => handleFieldUpdate("licenses", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="List licenses (e.g., Class 2 Driver License, Forklift License)"
+                      rows={3}
+                    />
+                  ) : (
+                    <p className="mt-1 whitespace-pre-wrap">{employee?.licenses || "No licenses listed"}</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Skills Tab */}
+        <TabsContent value="skills" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Skills & Competencies</CardTitle>
+              <CardDescription>
+                Primary and secondary skills
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Primary Skills</label>
+                  {isEditing || isNewEmployee ? (
+                    <textarea
+                      value={formData.primarySkills || ""}
+                      onChange={(e) => handleFieldUpdate("primarySkills", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="List primary skills (e.g., MIG Welding, TIG Welding, Steel Fabrication)"
+                      rows={3}
+                    />
+                  ) : (
+                    <p className="mt-1 whitespace-pre-wrap">{employee?.primarySkills || "No primary skills listed"}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Secondary Skills</label>
+                  {isEditing || isNewEmployee ? (
+                    <textarea
+                      value={formData.secondarySkills || ""}
+                      onChange={(e) => handleFieldUpdate("secondarySkills", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md mt-1"
+                      placeholder="List secondary skills (e.g., Blueprint Reading, Quality Control, Team Leadership)"
+                      rows={3}
+                    />
+                  ) : (
+                    <p className="mt-1 whitespace-pre-wrap">{employee?.secondarySkills || "No secondary skills listed"}</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Documents Tab */}
+        <TabsContent value="documents" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Documents & Records</CardTitle>
+              <CardDescription>
+                Employee documents and certificates
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Document management coming soon</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Upload and manage employee documents, certificates, and contracts
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
