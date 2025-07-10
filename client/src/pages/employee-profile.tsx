@@ -11,7 +11,7 @@ import { ArrowLeft, Save, Edit2, Mail, Phone, Calendar, MapPin, Clock, Shield, C
 import { format } from "date-fns";
 
 // Import form components
-import { HealthSafetyForm } from "@/components/team/HealthSafetyForm";
+import { HealthSafetyFormEnterprise } from "@/components/team/HealthSafetyFormEnterprise";
 import { PerformanceReviewSystem } from "@/components/team/PerformanceReviewSystem";
 
 interface EmployeeProfile {
@@ -799,9 +799,11 @@ export default function EmployeeProfile() {
 
         {/* Health & Safety Tab */}
         <TabsContent value="health-safety" className="space-y-6">
-          <HealthSafetyForm
+          <HealthSafetyFormEnterprise
             member={formData}
             onUpdate={handleFieldUpdate}
+            isEditing={isEditing}
+            isNewEmployee={isNewEmployee}
           />
         </TabsContent>
 

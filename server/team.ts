@@ -413,90 +413,112 @@ export class TeamStorage implements ITeamStorage {
   }
 
   async getTeamMemberById(id: number): Promise<any | undefined> {
-    const [member] = await db.select({
-      id: teamMembers.id,
-      userId: teamMembers.userId,
-      roleId: teamMembers.roleId,
-      departmentId: teamMembers.departmentId,
-      employeeNumber: teamMembers.employeeNumber,
-      isActive: teamMembers.isActive,
-      hourlyRate: teamMembers.hourlyRate,
-      startDate: teamMembers.startDate,
-      endDate: teamMembers.endDate,
-      employmentType: teamMembers.employmentType,
+    // First get the team member with basic joins
+    const result = await db
+      .select()
+      .from(teamMembers)
+      .leftJoin(users, eq(teamMembers.userId, users.id))
+      .leftJoin(roles, eq(teamMembers.roleId, roles.id))
+      .leftJoin(departments, eq(teamMembers.departmentId, departments.id))
+      .where(eq(teamMembers.id, id));
+    
+    if (!result || result.length === 0) {
+      return undefined;
+    }
+    
+    const row = result[0];
+    
+    // Manually construct the response object
+    return {
+      // Basic info
+      id: row.team_members.id,
+      userId: row.team_members.userId,
+      roleId: row.team_members.roleId,
+      departmentId: row.team_members.departmentId,
+      employeeNumber: row.team_members.employeeNumber,
+      isActive: row.team_members.isActive,
+      hourlyRate: row.team_members.hourlyRate,
+      startDate: row.team_members.startDate,
+      endDate: row.team_members.endDate,
+      employmentType: row.team_members.employmentType,
       // Personal Information
-      firstName: teamMembers.firstName,
-      lastName: teamMembers.lastName,
-      preferredName: teamMembers.preferredName,
-      dateOfBirth: teamMembers.dateOfBirth,
+      firstName: row.team_members.firstName,
+      lastName: row.team_members.lastName,
+      preferredName: row.team_members.preferredName,
+      dateOfBirth: row.team_members.dateOfBirth,
       // Contact Information
-      personalEmail: teamMembers.personalEmail,
-      personalPhone: teamMembers.personalPhone,
-      emergencyContactName: teamMembers.emergencyContactName,
-      emergencyContactPhone: teamMembers.emergencyContactPhone,
-      emergencyContactRelation: teamMembers.emergencyContactRelation,
+      personalEmail: row.team_members.personalEmail,
+      personalPhone: row.team_members.personalPhone,
+      emergencyContactName: row.team_members.emergencyContactName,
+      emergencyContactPhone: row.team_members.emergencyContactPhone,
+      emergencyContactRelation: row.team_members.emergencyContactRelation,
       // Address
-      streetAddress: teamMembers.streetAddress,
-      suburb: teamMembers.suburb,
-      city: teamMembers.city,
-      state: teamMembers.state,
-      postcode: teamMembers.postcode,
-      country: teamMembers.country,
+      streetAddress: row.team_members.streetAddress,
+      suburb: row.team_members.suburb,
+      city: row.team_members.city,
+      state: row.team_members.state,
+      postcode: row.team_members.postcode,
+      country: row.team_members.country,
       // Job Information
-      position: teamMembers.position,
-      jobTitle: teamMembers.jobTitle,
-      skillLevel: teamMembers.skillLevel,
-      experienceYears: teamMembers.experienceYears,
+      position: row.team_members.position,
+      jobTitle: row.team_members.jobTitle,
+      skillLevel: row.team_members.skillLevel,
+      experienceYears: row.team_members.experienceYears,
+      primarySkills: row.team_members.primarySkills,
+      secondarySkills: row.team_members.secondarySkills,
       // Compensation
-      overtimeRate: teamMembers.overtimeRate,
-      siteAllowance: teamMembers.siteAllowance,
-      travelAllowance: teamMembers.travelAllowance,
-      annualSalary: teamMembers.annualSalary,
-      payFrequency: teamMembers.payFrequency,
+      overtimeRate: row.team_members.overtimeRate,
+      siteAllowance: row.team_members.siteAllowance,
+      travelAllowance: row.team_members.travelAllowance,
+      annualSalary: row.team_members.annualSalary,
+      payFrequency: row.team_members.payFrequency,
       // Certifications
-      certifications: teamMembers.certifications,
-      qualifications: teamMembers.qualifications,
-      licenses: teamMembers.licenses,
-      trainingRecords: teamMembers.trainingRecords,
+      certifications: row.team_members.certifications,
+      qualifications: row.team_members.qualifications,
+      licenses: row.team_members.licenses,
+      trainingRecords: row.team_members.trainingRecords,
       // Health & Safety
-      medicalClearance: teamMembers.medicalClearance,
-      medicalExpiryDate: teamMembers.medicalExpiryDate,
-      inductionCompleted: teamMembers.inductionCompleted,
-      inductionDate: teamMembers.inductionDate,
-      safetyCardNumber: teamMembers.safetyCardNumber,
-      safetyCardExpiry: teamMembers.safetyCardExpiry,
-      workingAtHeightsExpiry: teamMembers.workingAtHeightsExpiry,
-      firstAidExpiry: teamMembers.firstAidExpiry,
+      medicalClearance: row.team_members.medicalClearance,
+      medicalExpiryDate: row.team_members.medicalExpiryDate,
+      inductionCompleted: row.team_members.inductionCompleted,
+      inductionDate: row.team_members.inductionDate,
+      safetyCardNumber: row.team_members.safetyCardNumber,
+      safetyCardExpiry: row.team_members.safetyCardExpiry,
+      workingAtHeightsExpiry: row.team_members.workingAtHeightsExpiry,
+      firstAidExpiry: row.team_members.firstAidExpiry,
+      weldingCertificates: row.team_members.weldingCertificates,
+      driverLicenseType: row.team_members.driverLicenseType,
+      driverLicenseExpiry: row.team_members.driverLicenseExpiry,
+      tradeCertificates: row.team_members.tradeCertificates,
       // Leave
-      annualLeaveBalance: teamMembers.annualLeaveBalance,
-      sickLeaveBalance: teamMembers.sickLeaveBalance,
+      annualLeaveBalance: row.team_members.annualLeaveBalance,
+      sickLeaveBalance: row.team_members.sickLeaveBalance,
+      annualLeaveEntitlement: row.team_members.annualLeaveEntitlement,
+      sickLeaveEntitlement: row.team_members.sickLeaveEntitlement,
       // Banking
-      bankAccountNumber: teamMembers.bankAccountNumber,
-      bankSortCode: teamMembers.bankSortCode,
-      taxNumber: teamMembers.taxNumber,
-      kiwisaverRate: teamMembers.kiwisaverRate,
+      bankAccountName: row.team_members.bankAccountName,
+      bankAccountNumber: row.team_members.bankAccountNumber,
+      bankSortCode: row.team_members.bankSortCode,
+      taxNumber: row.team_members.taxNumber,
+      kiwisaverRate: row.team_members.kiwisaverRate,
       // Additional
-      visaType: teamMembers.visaType,
-      visaExpiry: teamMembers.visaExpiry,
-      nextOfKinName: teamMembers.nextOfKinName,
-      nextOfKinPhone: teamMembers.nextOfKinPhone,
-      nextOfKinRelation: teamMembers.nextOfKinRelation,
-      performanceRating: teamMembers.performanceRating,
-      lastReviewDate: teamMembers.lastReviewDate,
-      nextReviewDate: teamMembers.nextReviewDate,
-      notes: teamMembers.notes,
-      // Related data
-      userName: users.name,
-      userUsername: users.username,
-      roleName: roles.name,
-      departmentName: departments.name
-    })
-    .from(teamMembers)
-    .leftJoin(users, eq(teamMembers.userId, users.id))
-    .leftJoin(roles, eq(teamMembers.roleId, roles.id))
-    .leftJoin(departments, eq(teamMembers.departmentId, departments.id))
-    .where(eq(teamMembers.id, id));
-    return member;
+      visaType: row.team_members.visaType,
+      visaExpiry: row.team_members.visaExpiry,
+      nextOfKinName: row.team_members.nextOfKinName,
+      nextOfKinPhone: row.team_members.nextOfKinPhone,
+      nextOfKinRelation: row.team_members.nextOfKinRelation,
+      performanceRating: row.team_members.performanceRating,
+      lastReviewDate: row.team_members.lastReviewDate,
+      nextReviewDate: row.team_members.nextReviewDate,
+      notes: row.team_members.notes,
+      internalNotes: row.team_members.internalNotes,
+      profilePhoto: row.team_members.profilePhoto,
+      // Related data from joins
+      userName: row.users?.name,
+      userUsername: row.users?.username,
+      roleName: row.roles?.name,
+      departmentName: row.departments?.name
+    };
   }
 
   // Audit
