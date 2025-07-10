@@ -25,8 +25,8 @@ export default function TimePayroll() {
   const [showPayrollSetup, setShowPayrollSetup] = useState(false);
 
   // Fetch labor rate cards
-  const { data: laborRates = [] } = useQuery({
-    queryKey: ["/api/labor-rates"],
+  const { data: laborRateCards = [] } = useQuery({
+    queryKey: ["/api/labor-rates/cards"],
   });
 
   // Fetch payroll integration status
@@ -209,7 +209,7 @@ export default function TimePayroll() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {laborRates.map((rate: LaborRateCard) => (
+                {laborRateCards.map((rate: LaborRateCard) => (
                   <div key={rate.id} className="border rounded-lg p-4">
                     <div className="flex items-start justify-between">
                       <div>
