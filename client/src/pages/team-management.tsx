@@ -14,7 +14,9 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activity, ChevronRight, ShieldCheck, Target, UserX, Star, Calendar, UserCheck, MapPin, Clock, AlertTriangle, CheckCircle, ArrowLeft } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activity, ChevronRight, ShieldCheck, Target, UserX, Star, Calendar, UserCheck, MapPin, Clock, AlertTriangle, CheckCircle, ArrowLeft, LayoutGrid, List } from "lucide-react";
 import { PermissionViewer } from "@/components/team/PermissionViewer";
 import { PerformanceDashboard } from "@/components/team/PerformanceDashboard";
 import { HealthSafetyForm } from "@/components/team/HealthSafetyForm";
@@ -105,6 +107,10 @@ export default function TeamManagement() {
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [showPerformanceReview, setShowPerformanceReview] = useState(false);
   const [selectedMemberForReview, setSelectedMemberForReview] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<"table" | "card">("table"); // Default to table view
+
+  // Import necessary for Button link
+  const Link = "span" as any; // Temporary workaround for onClick navigation
 
   // Fetch team members
   const { data: teamMembers = [], isLoading: membersLoading } = useQuery({
@@ -322,102 +328,111 @@ export default function TeamManagement() {
   };
 
   const MemberCard = ({ member }: { member: TeamMember }) => (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="hover:shadow-lg transition-shadow relative overflow-hidden">
       <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-sm font-medium text-blue-600">
+        {/* Main Content */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center space-x-3 flex-1">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <span className="text-sm font-medium text-primary">
                 {member.userName?.[0]}{member.userName?.split(' ')[1]?.[0] || ''}
               </span>
             </div>
-            <div>
-              <h3 className="font-medium">{member.userName}</h3>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-lg truncate">{member.userName}</h3>
               <p className="text-sm text-muted-foreground">{member.userUsername}</p>
-              <div className="flex items-center space-x-2 mt-1">
-                <Badge variant="outline">{member.roleName}</Badge>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <Badge variant="outline" className="text-xs">{member.roleName}</Badge>
                 {member.departmentName && (
-                  <Badge variant="secondary">{member.departmentName}</Badge>
+                  <Badge variant="secondary" className="text-xs">{member.departmentName}</Badge>
                 )}
-
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSelectedMemberForReview(member);
-                setShowPerformanceReview(true);
-              }}
-              title="Performance Review"
-            >
-              <Star className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => syncDataMutation.mutate({ teamMemberId: member.id, syncDirection: 'team-to-user' })}
-              title="Sync to User Account"
-            >
-              <UserCheck className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSelectedMember(member);
-                setIsEditingMember(true);
-              }}
-            >
-              <Edit2 className="w-4 h-4" />
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to remove {member.userName} from the team?
-                    This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => deleteMemberMutation.mutate(member.id)}>
-                    Remove
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+        </div>
+
+        {/* Info Grid */}
+        <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+          <div>
+            <span className="text-muted-foreground block text-xs">Employee #</span>
+            <span className="font-medium">{member.userUsername || "N/A"}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground block text-xs">Hourly Rate</span>
+            <span className="font-medium">{member.hourlyRate ? `$${member.hourlyRate}/hr` : "-"}</span>
+          </div>
+          <div className="col-span-2">
+            <span className="text-muted-foreground block text-xs">Status</span>
+            <Badge variant={member.isActive ? "default" : "secondary"} className="mt-1">
+              {member.isActive ? "Active" : "Inactive"}
+            </Badge>
           </div>
         </div>
         
-        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-          <div>
-            <span className="text-muted-foreground">Employee #:</span>
-            <span className="ml-1">{member.userUsername || "N/A"}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Position:</span>
-            <span className="ml-1">{member.roleName || "N/A"}</span>
-          </div>
-          {member.hourlyRate && (
-            <div>
-              <span className="text-muted-foreground">Hourly Rate:</span>
-              <span className="ml-1">${member.hourlyRate}/hr</span>
+        {/* Action Buttons - Always Visible */}
+        <div className="border-t pt-3 -mx-4 px-4 bg-muted/30">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedMemberForReview(member);
+                  setShowPerformanceReview(true);
+                }}
+                title="Performance Review"
+                className="hover:bg-secondary"
+              >
+                <Star className="w-4 h-4" />
+                <span className="ml-1 text-xs hidden sm:inline">Review</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => syncDataMutation.mutate({ teamMemberId: member.id, syncDirection: 'team-to-user' })}
+                title="Sync to User Account"
+                className="hover:bg-secondary"
+              >
+                <UserCheck className="w-4 h-4" />
+                <span className="ml-1 text-xs hidden sm:inline">Sync</span>
+              </Button>
             </div>
-          )}
-          <div>
-            <span className="text-muted-foreground">Status:</span>
-            <Badge variant={member.isActive ? "default" : "secondary"} className="ml-1">
-              {member.isActive ? "Active" : "Inactive"}
-            </Badge>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedMember(member);
+                  setIsEditingMember(true);
+                }}
+                title="Edit"
+                className="hover:bg-secondary"
+              >
+                <Edit2 className="w-4 h-4" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" title="Delete" className="hover:bg-destructive/10">
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to remove {member.userName} from the team?
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteMemberMutation.mutate(member.id)}>
+                      Remove
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </div>
       </CardContent>
@@ -735,7 +750,19 @@ export default function TeamManagement() {
           </Card>
 
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Team Members ({teamMembers.length})</h2>
+            <div className="flex items-center space-x-4">
+              <h2 className="text-xl font-semibold">Team Members ({teamMembers.length})</h2>
+              <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "table" | "card")} className="h-9">
+                <ToggleGroupItem value="table" aria-label="Table view" className="h-9 px-3">
+                  <List className="h-4 w-4 mr-2" />
+                  Table
+                </ToggleGroupItem>
+                <ToggleGroupItem value="card" aria-label="Card view" className="h-9 px-3">
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  Cards
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
             <div className="text-sm text-muted-foreground">
               Need to create a user account first? → 
               <Button variant="link" className="p-0 h-auto" onClick={() => setActiveTab("users")}>
@@ -755,6 +782,115 @@ export default function TeamManagement() {
                 <p>📝 First: Create user accounts in the "User Accounts" tab</p>
                 <p>👥 Then: Create employee profiles here with detailed information</p>
               </div>
+            </div>
+          ) : viewMode === "table" ? (
+            <div className="rounded-md border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[250px]">Employee</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead className="text-center">Hourly Rate</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teamMembers.map((member: TeamMember) => (
+                    <TableRow key={member.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-sm font-medium text-primary">
+                              {member.userName?.[0]}{member.userName?.split(' ')[1]?.[0] || ''}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-medium">{member.userName}</div>
+                            <div className="text-sm text-muted-foreground">{member.userUsername}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{member.roleName}</Badge>
+                      </TableCell>
+                      <TableCell>{member.departmentName || "-"}</TableCell>
+                      <TableCell className="text-center">
+                        {member.hourlyRate ? (
+                          <span className="font-medium">${member.hourlyRate}/hr</span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={member.isActive ? "default" : "secondary"}>
+                          {member.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedMemberForReview(member);
+                              setShowPerformanceReview(true);
+                            }}
+                            title="Performance Review"
+                            className="hover:bg-secondary"
+                          >
+                            <Star className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => syncDataMutation.mutate({ teamMemberId: member.id, syncDirection: 'team-to-user' })}
+                            title="Sync to User Account"
+                            className="hover:bg-secondary"
+                          >
+                            <UserCheck className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedMember(member);
+                              setIsEditingMember(true);
+                            }}
+                            title="Edit"
+                            className="hover:bg-secondary"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" title="Delete" className="hover:bg-destructive/10">
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to remove {member.userName} from the team?
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteMemberMutation.mutate(member.id)}>
+                                  Remove
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
