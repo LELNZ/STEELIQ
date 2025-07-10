@@ -2967,7 +2967,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           for (const cert of member.safetyCertificates as any[]) {
             if (cert.expiryDate) {
               const expiryDate = new Date(cert.expiryDate);
-              if (expiryDate >= today && expiryDate <= ninetyDaysFromNow) {
+              const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              
+              // Include expired and expiring within 90 days
+              if (daysUntilExpiry <= 90) {
                 expiringQualifications.push({
                   reminder: {
                     id: reminderId++,
@@ -2999,7 +3002,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           for (const cert of member.weldingCertificates as any[]) {
             if (cert.expiryDate) {
               const expiryDate = new Date(cert.expiryDate);
-              if (expiryDate >= today && expiryDate <= ninetyDaysFromNow) {
+              const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              
+              // Include expired and expiring within 90 days
+              if (daysUntilExpiry <= 90) {
                 expiringQualifications.push({
                   reminder: {
                     id: reminderId++,
@@ -3038,7 +3044,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const value = member[field as keyof typeof member];
           if (value) {
             const expiryDate = new Date(value as string);
-            if (expiryDate >= today && expiryDate <= ninetyDaysFromNow) {
+            const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            // Include expired and expiring within 90 days
+            if (daysUntilExpiry <= 90) {
               expiringQualifications.push({
                 reminder: {
                   id: reminderId++,
