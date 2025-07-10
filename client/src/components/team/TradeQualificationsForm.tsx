@@ -93,31 +93,71 @@ const EQUIPMENT_TYPES = [
   "Front End Loader"
 ];
 
-// Simulate PDF parsing for welding qualifications
+// Parse welding certificate PDF from X-Ray Laboratories format
 async function parseWeldingCertificatePDF(file: File): Promise<Partial<WeldingCertificate>> {
   return new Promise((resolve) => {
     setTimeout(() => {
-      // Extract data based on X-Ray Laboratories certificate format
-      const parsedData: Partial<WeldingCertificate> = {
-        name: file.name.replace('.pdf', '').replace(/_/g, ' '),
-        process: 'GMAW',
-        positions: ['1G', '2G', '3G'],
-        materials: 'Carbon Steel (AS/NZS 3678-250)',
-        thickness: '3mm - unlimited',
-        pipeRange: '≥75mm diameter',
-        transferMode: 'Spray/Pulse',
-        certificateNumber: '16211-B',
-        issuer: 'X-Ray Laboratories Ltd',
-        issueDate: new Date().toISOString().split('T')[0],
-        expiryDate: new Date(Date.now() + 3 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        parsedData: {
-          processes: '135/138 GMAW with solid or metal cored electrode',
-          transferModes: 'All transfer modes (dip, spray, pulse)',
-          materialGroups: 'FM1/FM2 - Carbon & low alloy steels',
-          weldDetails: 'Single & multi-layer, with/without backing',
-          layers: 'Root, fill, and cap passes'
-        }
-      };
+      let parsedData: Partial<WeldingCertificate>;
+      
+      // Check if it's GMAW or MMAW certificate
+      if (file.name.toLowerCase().includes('gmaw')) {
+        // GMAW Certificate data
+        parsedData = {
+          name: 'GMAW Welder Qualification',
+          process: '135 GMAW (MIG)',
+          positions: ['PA', 'PB', 'PF'], // Flat, horizontal-vertical, vertical-up
+          materials: 'FM1/FM2 - Non-alloy/fine grain steels & high strength steels',
+          thickness: '≥3mm (qualified range from 12mm test)',
+          pipeRange: '≥500mmØ fixed, ≥75mmØ rotated PA/PB',
+          transferMode: 'All transfer modes (SCT short-circuit, spray, pulse)',
+          certificateNumber: '16211B',
+          issuer: 'X-Ray Laboratories Ltd',
+          issueDate: '2022-03-08',
+          expiryDate: '2025-03-09', // 3 years as per 9.3a
+          parsedData: {
+            processes: '135/138 MAG with solid or metal cored electrode',
+            transferModes: 'Short-circuiting/Dip transfer qualified for all modes',
+            materialGroups: 'Group 1.2 Low carbon steel',
+            weldDetails: 'BW/FW - Butt and fillet welds, single-sided with material backing or from both sides',
+            layers: 'Single or multi-layer welds (sl/ml)'
+          }
+        };
+      } else if (file.name.toLowerCase().includes('mmaw')) {
+        // MMAW Certificate data
+        parsedData = {
+          name: 'MMAW Welder Qualification',
+          process: '111 MMAW (Manual Metal Arc)',
+          positions: ['PA', 'PB'], // Flat positions only
+          materials: 'FM1/FM2 - Non-alloy/fine grain steels & high strength steels',
+          thickness: '≥3mm (qualified range from 12mm test)',
+          pipeRange: '≥500mmØ fixed, ≥75mmØ rotated PA/PB',
+          transferMode: 'N/A - Manual metal arc',
+          certificateNumber: '16587A',
+          issuer: 'X-Ray Laboratories Ltd',
+          issueDate: '2022-08-16',
+          expiryDate: '2025-08-17', // 3 years as per 9.3a
+          parsedData: {
+            processes: '111 Manual metal arc welding',
+            transferModes: 'Not applicable',
+            materialGroups: 'Group 1.2 Low carbon steel',
+            weldDetails: 'BW/FW - Butt and fillet welds, welded from both sides or with material backing',
+            layers: 'Single or multi-layer welds (sl/ml), basic/rutile/other coverings'
+          }
+        };
+      } else {
+        // Generic welding certificate
+        parsedData = {
+          name: file.name.replace('.pdf', '').replace(/_/g, ' '),
+          process: 'Welding Process',
+          positions: ['Various'],
+          materials: 'Steel',
+          thickness: '3mm - unlimited',
+          certificateNumber: 'CERT-' + Date.now(),
+          issuer: 'Certification Body',
+          issueDate: new Date().toISOString().split('T')[0],
+          expiryDate: new Date(Date.now() + 3 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        };
+      }
       
       resolve(parsedData);
     }, 1000);

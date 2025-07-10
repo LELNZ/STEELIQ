@@ -35,13 +35,14 @@ interface SafetyCertificate {
 async function parseFirstAidCertificatePDF(file: File): Promise<Partial<SafetyCertificate>> {
   return new Promise((resolve) => {
     setTimeout(() => {
+      // Based on actual MediTrain certificate format
       const parsedData: Partial<SafetyCertificate> = {
-        name: 'First Aid Certificate',
-        level: 'Comprehensive',
-        issuer: 'St John Ambulance',
-        certificateNumber: `FA${Math.floor(Math.random() * 100000)}`,
-        issueDate: new Date().toISOString().split('T')[0],
-        expiryDate: new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 years
+        name: 'Comprehensive Workplace First Aid',
+        level: 'Comprehensive (includes unit standards 6400, 6401, 6402)',
+        issuer: 'MediTrain Ltd / Skills for Life First Aid',
+        certificateNumber: '00083850',
+        issueDate: '2024-12-16',
+        expiryDate: '2026-12-16', // Valid for 2 years as per certificate
       };
       resolve(parsedData);
     }, 1000);
@@ -297,7 +298,7 @@ export function HealthSafetyFormEnterprise({ member, onUpdate, isEditing = false
               {safetyCertificates.map((cert) => (
                 <div key={cert.id} className="border rounded-lg p-3 space-y-2">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1">
                       <h5 className="font-medium flex items-center gap-2">
                         <Shield className="h-4 w-4" />
                         {cert.name}
@@ -305,6 +306,11 @@ export function HealthSafetyFormEnterprise({ member, onUpdate, isEditing = false
                       <p className="text-sm text-muted-foreground">
                         {cert.issuer} • Certificate #{cert.certificateNumber}
                       </p>
+                      {cert.level && (
+                        <p className="text-sm font-medium mt-1">
+                          Level: {cert.level}
+                        </p>
+                      )}
                     </div>
                     {canEdit && (
                       <Button
