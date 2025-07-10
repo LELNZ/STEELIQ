@@ -294,6 +294,13 @@ export class TeamStorage implements ITeamStorage {
   }
 
   async updateTeamMember(id: number, memberData: any): Promise<TeamMember> {
+    console.log('updateTeamMember called for ID:', id);
+    console.log('Certificate data received:', {
+      safetyCertificates: memberData.safetyCertificates,
+      weldingCertificates: memberData.weldingCertificates,
+      tradeLicenses: memberData.tradeLicenses,
+      equipmentCertificates: memberData.equipmentCertificates
+    });
     
     // Now we can update all fields since we added them to the database
     const updateData: any = {};
@@ -435,6 +442,13 @@ export class TeamStorage implements ITeamStorage {
     }
     
     const row = result[0];
+    
+    console.log('getTeamMemberById - Certificate data from DB:', {
+      safetyCertificates: row.team_members.safetyCertificates,
+      weldingCertificates: row.team_members.weldingCertificates,
+      tradeLicenses: row.team_members.tradeLicenses,
+      equipmentCertificates: row.team_members.equipmentCertificates
+    });
     
     // Manually construct the response object
     return {

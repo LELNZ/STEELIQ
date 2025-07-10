@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,6 +71,15 @@ export function HealthSafetyFormEnterprise({ member, onUpdate, isEditing = false
   const [safetyCertificates, setSafetyCertificates] = useState<SafetyCertificate[]>(member?.safetyCertificates || []);
   const [uploadingCert, setUploadingCert] = useState<string | null>(null);
 
+  // Update local state when member data changes
+  useEffect(() => {
+    console.log('HealthSafetyFormEnterprise: Member data updated', { 
+      safetyCertificates: member?.safetyCertificates,
+      memberName: member?.firstName + ' ' + member?.lastName 
+    });
+    setSafetyCertificates(member?.safetyCertificates || []);
+  }, [member?.safetyCertificates]);
+
   const handleInductionComplete = (passed: boolean, score: number) => {
     if (passed) {
       onUpdate('inductionCompleted', true);
@@ -113,6 +122,35 @@ export function HealthSafetyFormEnterprise({ member, onUpdate, isEditing = false
       const updated = [...safetyCertificates, newCert];
       setSafetyCertificates(updated);
       onUpdate('safetyCertificates', updated);
+      
+      // Create qualification reminder
+      if (member?.id) {
+        try {
+          const reminderData = {
+            teamMemberId: member.id,
+            qualificationType: type === 'firstAid' ? 'First Aid' : type === 'workingAtHeights' ? 'Working at Heights' : 'Safety Certificate',
+            qualificationName: parsedData.name || 'Safety Certificate',
+            issueDate: parsedData.issueDate,
+            expiryDate: parsedData.expiryDate,
+            isActive: true,
+            notifyEmployee: true,
+            notifyManager: true,
+            notifyHR: true
+          };
+          
+          const response = await fetch('/api/qualification-reminders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reminderData)
+          });
+          
+          if (!response.ok) {
+            console.error('Failed to create qualification reminder');
+          }
+        } catch (error) {
+          console.error('Error creating qualification reminder:', error);
+        }
+      }
 
       toast({
         title: "Certificate Uploaded",

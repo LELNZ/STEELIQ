@@ -149,6 +149,12 @@ export default function EmployeeProfile() {
   };
 
   const handleSave = () => {
+    console.log('Saving employee data:', {
+      id: formData.id,
+      name: formData.firstName + ' ' + formData.lastName,
+      safetyCertificates: formData.safetyCertificates,
+      totalFields: Object.keys(formData).length
+    });
     saveMutation.mutate(formData);
   };
 
