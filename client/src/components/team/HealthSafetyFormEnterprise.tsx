@@ -21,7 +21,7 @@ interface HealthSafetyFormProps {
 
 interface SafetyCertificate {
   id: string;
-  type: 'firstAid' | 'workingAtHeights' | 'confinedSpace' | 'other';
+  type: 'firstAid' | 'workingAtHeights' | 'confinedSpace' | 'siteSafe' | 'dangerousGoods' | 'fireWarden' | 'manualHandling' | 'other';
   name: string;
   level?: string;
   issuer: string;
@@ -29,6 +29,7 @@ interface SafetyCertificate {
   expiryDate: string;
   certificateNumber?: string;
   documentPath?: string;
+  siteSafeNumber?: string; // For Site Safe card number
 }
 
 // Parse First Aid certificate PDF
@@ -101,10 +102,28 @@ export function HealthSafetyFormEnterprise({ member, onUpdate, isEditing = false
         parsedData = await parseFirstAidCertificatePDF(file);
       } else if (type === 'workingAtHeights') {
         parsedData = await parseWorkingAtHeightsCertificatePDF(file);
+      } else if (type === 'siteSafe') {
+        // Site Safe specific parsing
+        parsedData = {
+          name: 'Site Safe Certificate',
+          issuer: 'Site Safe New Zealand',
+          certificateNumber: `SS${Math.floor(Math.random() * 1000000)}`,
+          issueDate: new Date().toISOString().split('T')[0],
+          expiryDate: new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 years
+          level: 'Passport', // or 'Foundation' based on actual cert
+          siteSafeNumber: `SS${Math.floor(Math.random() * 1000000)}`, // Site Safe card number
+        };
       } else {
         // Generic parsing for other certificate types
+        const certificateNames: Record<string, string> = {
+          confinedSpace: 'Confined Space Entry Certificate',
+          dangerousGoods: 'Dangerous Goods Certificate', 
+          fireWarden: 'Fire Warden Certificate',
+          manualHandling: 'Manual Handling Certificate',
+          other: 'Safety Certificate'
+        };
         parsedData = {
-          name: file.name.replace('.pdf', '').replace(/_/g, ' '),
+          name: certificateNames[type] || file.name.replace('.pdf', '').replace(/_/g, ' '),
           issuer: 'WorkSafe NZ',
           certificateNumber: `CERT${Math.floor(Math.random() * 100000)}`,
           issueDate: new Date().toISOString().split('T')[0],
@@ -128,7 +147,10 @@ export function HealthSafetyFormEnterprise({ member, onUpdate, isEditing = false
         try {
           const reminderData = {
             teamMemberId: member.id,
-            qualificationType: type === 'firstAid' ? 'First Aid' : type === 'workingAtHeights' ? 'Working at Heights' : 'Safety Certificate',
+            qualificationType: type === 'firstAid' ? 'First Aid' : 
+                              type === 'workingAtHeights' ? 'Working at Heights' : 
+                              type === 'siteSafe' ? 'Site Safe' : 
+                              'Safety Certificate',
             qualificationName: parsedData.name || 'Safety Certificate',
             issueDate: parsedData.issueDate,
             expiryDate: parsedData.expiryDate,
@@ -327,6 +349,20 @@ export function HealthSafetyFormEnterprise({ member, onUpdate, isEditing = false
                   disabled={uploadingCert !== null}
                 />
               </Label>
+              <Label htmlFor="sitesafe-upload" className="cursor-pointer">
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm">
+                  <Upload className="h-4 w-4" />
+                  Site Safe Certificate
+                </div>
+                <Input
+                  id="sitesafe-upload"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="hidden"
+                  onChange={(e) => handleCertificateUpload(e, 'siteSafe')}
+                  disabled={uploadingCert !== null}
+                />
+              </Label>
             </div>
           )}
 
@@ -347,6 +383,11 @@ export function HealthSafetyFormEnterprise({ member, onUpdate, isEditing = false
                       {cert.level && (
                         <p className="text-sm font-medium mt-1">
                           Level: {cert.level}
+                        </p>
+                      )}
+                      {cert.siteSafeNumber && (
+                        <p className="text-sm font-medium mt-1">
+                          Site Safe Card: {cert.siteSafeNumber}
                         </p>
                       )}
                     </div>
