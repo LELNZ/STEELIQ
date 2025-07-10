@@ -12,6 +12,8 @@ import { format } from "date-fns";
 
 // Import form components
 import { HealthSafetyFormEnterprise } from "@/components/team/HealthSafetyFormEnterprise";
+import { TradeQualificationsForm } from "@/components/team/TradeQualificationsForm";
+import { SkillsDevelopmentForm } from "@/components/team/SkillsDevelopmentForm";
 import { PerformanceReviewSystem } from "@/components/team/PerformanceReviewSystem";
 
 interface EmployeeProfile {
@@ -809,109 +811,22 @@ export default function EmployeeProfile() {
 
         {/* Trade Quals Tab */}
         <TabsContent value="trade-quals" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Trade Qualifications</CardTitle>
-              <CardDescription>
-                Professional qualifications and trade certifications
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Skill Level</label>
-                  {isEditing || isNewEmployee ? (
-                    <select
-                      value={formData.skillLevel || ""}
-                      onChange={(e) => handleFieldUpdate("skillLevel", e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md mt-1"
-                    >
-                      <option value="">Select skill level</option>
-                      <option value="apprentice">Apprentice</option>
-                      <option value="tradesman">Tradesman</option>
-                      <option value="advanced">Advanced Tradesman</option>
-                      <option value="foreman">Foreman</option>
-                      <option value="supervisor">Supervisor</option>
-                    </select>
-                  ) : (
-                    <p className="mt-1">{employee?.skillLevel || "Not specified"}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Qualifications</label>
-                  {isEditing || isNewEmployee ? (
-                    <textarea
-                      value={formData.qualifications || ""}
-                      onChange={(e) => handleFieldUpdate("qualifications", e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md mt-1"
-                      placeholder="List qualifications (e.g., Level 4 Welding Certificate, Trade Certificate in Fabrication)"
-                      rows={3}
-                    />
-                  ) : (
-                    <p className="mt-1 whitespace-pre-wrap">{employee?.qualifications || "No qualifications listed"}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Licenses</label>
-                  {isEditing || isNewEmployee ? (
-                    <textarea
-                      value={formData.licenses || ""}
-                      onChange={(e) => handleFieldUpdate("licenses", e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md mt-1"
-                      placeholder="List licenses (e.g., Class 2 Driver License, Forklift License)"
-                      rows={3}
-                    />
-                  ) : (
-                    <p className="mt-1 whitespace-pre-wrap">{employee?.licenses || "No licenses listed"}</p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <TradeQualificationsForm
+            member={formData}
+            onUpdate={handleFieldUpdate}
+            isEditing={isEditing}
+            isNewEmployee={isNewEmployee}
+          />
         </TabsContent>
 
         {/* Skills Tab */}
         <TabsContent value="skills" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Skills & Competencies</CardTitle>
-              <CardDescription>
-                Primary and secondary skills
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Primary Skills</label>
-                  {isEditing || isNewEmployee ? (
-                    <textarea
-                      value={formData.primarySkills || ""}
-                      onChange={(e) => handleFieldUpdate("primarySkills", e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md mt-1"
-                      placeholder="List primary skills (e.g., MIG Welding, TIG Welding, Steel Fabrication)"
-                      rows={3}
-                    />
-                  ) : (
-                    <p className="mt-1 whitespace-pre-wrap">{employee?.primarySkills || "No primary skills listed"}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Secondary Skills</label>
-                  {isEditing || isNewEmployee ? (
-                    <textarea
-                      value={formData.secondarySkills || ""}
-                      onChange={(e) => handleFieldUpdate("secondarySkills", e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md mt-1"
-                      placeholder="List secondary skills (e.g., Blueprint Reading, Quality Control, Team Leadership)"
-                      rows={3}
-                    />
-                  ) : (
-                    <p className="mt-1 whitespace-pre-wrap">{employee?.secondarySkills || "No secondary skills listed"}</p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <SkillsDevelopmentForm
+            member={formData}
+            onUpdate={handleFieldUpdate}
+            isEditing={isEditing}
+            isNewEmployee={isNewEmployee}
+          />
         </TabsContent>
 
         {/* Documents Tab */}
