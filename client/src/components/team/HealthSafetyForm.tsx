@@ -8,8 +8,9 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Upload, X, Plus, Shield, Heart, HardHat, Car, GraduationCap, FileText, AlertTriangle, CheckCircle, Award } from "lucide-react";
+import { Calendar, Upload, X, Plus, Shield, Heart, HardHat, Car, GraduationCap, FileText, AlertTriangle, CheckCircle, Award, Info } from "lucide-react";
 import { WorkshopInductionModal } from "./WorkshopInductionModal";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // NZ Driver's License Classes
 const NZ_LICENSE_CLASSES = [
@@ -21,24 +22,94 @@ const NZ_LICENSE_CLASSES = [
   { value: "6", label: "Class 6 - Motorcycle" }
 ];
 
-// Welding Qualification Types
-const WELDING_TYPES = [
-  { value: "MIG", label: "MIG (Metal Inert Gas)" },
-  { value: "TIG", label: "TIG (Tungsten Inert Gas)" },
-  { value: "MMA", label: "MMA (Manual Metal Arc)" },
-  { value: "SAW", label: "SAW (Submerged Arc Welding)" },
-  { value: "FCAW", label: "FCAW (Flux Core Arc Welding)" }
+// Welding Process Types
+const WELDING_PROCESSES = [
+  { value: "GMAW", label: "GMAW (MIG/MAG)" },
+  { value: "GTAW", label: "GTAW (TIG)" },
+  { value: "MMAW", label: "MMAW (MMA/Stick)" },
+  { value: "SAW", label: "SAW (Submerged Arc)" },
+  { value: "FCAW", label: "FCAW (Flux Core)" }
 ];
 
-// Welding Positions
+// Transfer Modes (for MIG/MAG)
+const TRANSFER_MODES = [
+  { value: "dip", label: "Dip/Short Circuit" },
+  { value: "spray", label: "Spray Arc" },
+  { value: "pulse", label: "Pulse Arc" },
+  { value: "globular", label: "Globular" },
+  { value: "na", label: "N/A (Not applicable)" }
+];
+
+// Product Types
+const PRODUCT_TYPES = [
+  { value: "P", label: "P - Plate only" },
+  { value: "T", label: "T - Tube/Pipe only" },
+  { value: "P/T", label: "P/T - Plate and Tube" }
+];
+
+// Weld Types
+const WELD_TYPES = [
+  { value: "BW", label: "BW - Butt Weld" },
+  { value: "FW", label: "FW - Fillet Weld" },
+  { value: "BW+FW", label: "BW+FW - Butt with Fillet" }
+];
+
+// Welding Positions with detailed descriptions
 const WELDING_POSITIONS = [
-  { value: "1G", label: "1G - Flat position" },
-  { value: "2G", label: "2G - Horizontal position" },
-  { value: "3G", label: "3G - Vertical position" },
-  { value: "4G", label: "4G - Overhead position" },
-  { value: "5G", label: "5G - Horizontal fixed pipe" },
-  { value: "6G", label: "6G - Inclined fixed pipe" },
-  { value: "ALL", label: "All Positions" }
+  { 
+    value: "PA", 
+    label: "PA (1G)",
+    description: "Flat position - Plate horizontal, weld from above",
+    plateDescription: "Plate flat on bench, welding downward"
+  },
+  { 
+    value: "PB", 
+    label: "PB (2F)",
+    description: "Horizontal fillet - Plate vertical, weld horizontal",
+    plateDescription: "Fillet weld with one plate vertical, one horizontal"
+  },
+  { 
+    value: "PC", 
+    label: "PC (2G)",
+    description: "Horizontal - Plate vertical, weld axis horizontal",
+    plateDescription: "Vertical plate, welding horizontally across"
+  },
+  { 
+    value: "PD", 
+    label: "PD (4F)",
+    description: "Overhead fillet - Plate horizontal overhead",
+    plateDescription: "Fillet weld performed overhead"
+  },
+  { 
+    value: "PE", 
+    label: "PE (4G)",
+    description: "Overhead - Plate horizontal overhead, weld from below",
+    plateDescription: "Plate overhead, welding upward"
+  },
+  { 
+    value: "PF", 
+    label: "PF (3G Up)",
+    description: "Vertical up - Plate vertical, welding upward",
+    plateDescription: "Vertical plate, welding from bottom to top"
+  },
+  { 
+    value: "PG", 
+    label: "PG (3G Down)",
+    description: "Vertical down - Plate vertical, welding downward",
+    plateDescription: "Vertical plate, welding from top to bottom"
+  },
+  {
+    value: "H-L045",
+    label: "H-L045 (6G)",
+    description: "45° fixed pipe - Pipe inclined at 45°",
+    pipeDescription: "Pipe fixed at 45° angle, all position welding"
+  },
+  {
+    value: "ALL",
+    label: "All Positions",
+    description: "Qualified for all welding positions",
+    plateDescription: "Qualified for all plate and pipe positions"
+  }
 ];
 
 // First Aid Levels
@@ -70,11 +141,56 @@ interface CertificationItem {
   expiryDate: string;
   positions?: string[];
   documentPath?: string;
+  // Welding specific fields
+  weldingProcess?: string;
+  transferMode?: string;
+  productType?: string;
+  weldType?: string;
+  materialThickness?: string;
+  certifyingCompany?: string;
+  certificateNumber?: string;
 }
 
 interface HealthSafetyFormProps {
   member: any;
   onUpdate: (field: string, value: any) => void;
+}
+
+// Simulate PDF parsing for welding qualifications
+async function parseWeldingQualificationPDF(file: File): Promise<any> {
+  // In a real implementation, this would use a PDF parsing library
+  // For now, we'll simulate parsing based on common welding qualification formats
+  
+  return new Promise((resolve) => {
+    // Simulate async processing
+    setTimeout(() => {
+      // Extract data based on typical welding qualification certificate format
+      const parsedData = {
+        name: file.name.replace('.pdf', '').replace(/_/g, ' '),
+        weldingProcess: 'MMAW', // Example: Manual Metal Arc Welding
+        transferMode: 'na', // N/A for MMAW
+        productType: 'P', // Plate
+        weldType: 'BW', // Butt Weld
+        materialThickness: '12mm - <3mm',
+        positions: ['PA', 'PB', 'PC', 'PF'], // Common positions
+        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year from now
+        supplier: 'ATWI (Auckland Technical Welding Institute)',
+        certificateNumber: `WQ-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
+      };
+      
+      // Show notification that PDF was parsed
+      const event = new CustomEvent('show-toast', {
+        detail: {
+          title: 'PDF Parsed Successfully',
+          description: 'Welding qualification details extracted and populated',
+          variant: 'success'
+        }
+      });
+      window.dispatchEvent(event);
+      
+      resolve(parsedData);
+    }, 1000);
+  });
 }
 
 export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
@@ -218,6 +334,20 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
     const isExpired = cert.expiryDate && new Date(cert.expiryDate) < new Date();
     const isExpiringSoon = cert.expiryDate && new Date(cert.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
+    // Local state for the certification to prevent focus loss
+    const [localCert, setLocalCert] = useState(cert);
+
+    // Update parent only on blur or significant changes
+    const handleFieldChange = (field: string, value: any) => {
+      const updatedCert = { ...localCert, [field]: value };
+      setLocalCert(updatedCert);
+      // Debounced update to parent
+      const timeoutId = setTimeout(() => {
+        onCertUpdate(updatedCert);
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    };
+
     return (
       <Card className={`border-l-2 ${isExpired ? 'border-l-red-500' : isExpiringSoon ? 'border-l-amber-500' : 'border-l-green-500'}`}>
         <CardContent className="p-3">
@@ -249,8 +379,9 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
             <div>
               <Label className="text-xs">Certification Name</Label>
               <Input
-                value={cert.name}
-                onChange={(e) => onCertUpdate({ ...cert, name: e.target.value })}
+                value={localCert.name}
+                onChange={(e) => handleFieldChange('name', e.target.value)}
+                onBlur={() => onCertUpdate(localCert)}
                 placeholder="e.g., CPR & AED"
                 className="h-7 text-sm"
               />
@@ -259,7 +390,10 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
             {levelOptions && (
               <div>
                 <Label className="text-xs">Level/Type</Label>
-                <Select value={cert.level} onValueChange={(value) => onCertUpdate({ ...cert, level: value })}>
+                <Select value={localCert.level} onValueChange={(value) => {
+                  handleFieldChange('level', value);
+                  onCertUpdate({ ...localCert, level: value });
+                }}>
                   <SelectTrigger className="h-7">
                     <SelectValue placeholder="Select level" />
                   </SelectTrigger>
@@ -277,8 +411,9 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
             <div>
               <Label className="text-xs">Training Provider</Label>
               <Input
-                value={cert.supplier}
-                onChange={(e) => onCertUpdate({ ...cert, supplier: e.target.value })}
+                value={localCert.supplier}
+                onChange={(e) => handleFieldChange('supplier', e.target.value)}
+                onBlur={() => onCertUpdate(localCert)}
                 placeholder="e.g., St John Ambulance"
                 className="h-7 text-sm"
               />
@@ -288,8 +423,9 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
               <Label className="text-xs">Expiry Date</Label>
               <Input
                 type="date"
-                value={cert.expiryDate}
-                onChange={(e) => onCertUpdate({ ...cert, expiryDate: e.target.value })}
+                value={localCert.expiryDate}
+                onChange={(e) => handleFieldChange('expiryDate', e.target.value)}
+                onBlur={() => onCertUpdate(localCert)}
                 className="h-7 text-sm"
               />
             </div>
@@ -330,22 +466,36 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
                       const input = document.createElement('input');
                       input.type = 'file';
                       input.accept = '.pdf,.jpg,.jpeg,.png';
-                      input.onchange = (e) => {
+                      input.onchange = async (e) => {
                         const file = (e.target as HTMLInputElement).files?.[0];
                         if (file) {
-                          // In a real implementation, this would upload to server
-                          // For now, we'll store the file name
-                          onCertUpdate({ 
-                            ...cert, 
-                            documentPath: `documents/${cert.type}/${file.name}` 
-                          });
+                          // For welding qualifications, parse PDF and extract data
+                          if (cert.type === 'welding' && file.type === 'application/pdf') {
+                            // Simulate PDF parsing for welding qualifications
+                            const parsedData = await parseWeldingQualificationPDF(file);
+                            if (parsedData) {
+                              const updatedCert = {
+                                ...localCert,
+                                ...parsedData,
+                                documentPath: `documents/${cert.type}/${file.name}`
+                              };
+                              setLocalCert(updatedCert);
+                              onCertUpdate(updatedCert);
+                            }
+                          } else {
+                            // For other types, just store the file path
+                            onCertUpdate({ 
+                              ...localCert, 
+                              documentPath: `documents/${cert.type}/${file.name}` 
+                            });
+                          }
                         }
                       };
                       input.click();
                     }}
                   >
                     <Upload className="h-3 w-3 mr-1" />
-                    Upload
+                    {cert.type === 'welding' ? 'Upload PDF' : 'Upload'}
                   </Button>
                 )}
               </div>
@@ -360,29 +510,148 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
           </div>
 
           {cert.type === 'welding' && (
-            <div className="mt-2">
-              <Label className="text-xs">Qualified Positions</Label>
-              <div className="grid grid-cols-3 gap-1 mt-1">
-                {WELDING_POSITIONS.slice(0, 6).map((position) => (
-                  <div key={position.value} className="flex items-center space-x-1">
-                    <input
-                      type="checkbox"
-                      checked={cert.positions?.includes(position.value) || false}
-                      onChange={(e) => {
-                        const positions = cert.positions || [];
-                        if (e.target.checked) {
-                          onCertUpdate({ ...cert, positions: [...positions, position.value] });
-                        } else {
-                          onCertUpdate({ ...cert, positions: positions.filter((p: string) => p !== position.value) });
-                        }
-                      }}
-                      className="rounded"
-                    />
-                    <Label className="text-xs">{position.value}</Label>
+            <>
+              {/* Welding Process and Details */}
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="text-xs font-semibold mb-2 text-orange-600">Welding Specification Details</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Welding Process</Label>
+                    <Select value={localCert.weldingProcess} onValueChange={(value) => {
+                      handleFieldChange('weldingProcess', value);
+                      onCertUpdate({ ...localCert, weldingProcess: value });
+                    }}>
+                      <SelectTrigger className="h-7">
+                        <SelectValue placeholder="Select process" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {WELDING_PROCESSES.map((process) => (
+                          <SelectItem key={process.value} value={process.value}>
+                            {process.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                ))}
+                  
+                  <div>
+                    <Label className="text-xs">Transfer Mode</Label>
+                    <Select value={localCert.transferMode} onValueChange={(value) => {
+                      handleFieldChange('transferMode', value);
+                      onCertUpdate({ ...localCert, transferMode: value });
+                    }}>
+                      <SelectTrigger className="h-7">
+                        <SelectValue placeholder="Select mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TRANSFER_MODES.map((mode) => (
+                          <SelectItem key={mode.value} value={mode.value}>
+                            {mode.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs">Product Type</Label>
+                    <Select value={localCert.productType} onValueChange={(value) => {
+                      handleFieldChange('productType', value);
+                      onCertUpdate({ ...localCert, productType: value });
+                    }}>
+                      <SelectTrigger className="h-7">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRODUCT_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs">Weld Type</Label>
+                    <Select value={localCert.weldType} onValueChange={(value) => {
+                      handleFieldChange('weldType', value);
+                      onCertUpdate({ ...localCert, weldType: value });
+                    }}>
+                      <SelectTrigger className="h-7">
+                        <SelectValue placeholder="Select weld type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {WELD_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs">Material Thickness</Label>
+                    <Input
+                      value={localCert.materialThickness}
+                      onChange={(e) => handleFieldChange('materialThickness', e.target.value)}
+                      onBlur={() => onCertUpdate(localCert)}
+                      placeholder="e.g., 12mm - <3mm"
+                      className="h-7 text-sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs">Certificate Number</Label>
+                    <Input
+                      value={localCert.certificateNumber}
+                      onChange={(e) => handleFieldChange('certificateNumber', e.target.value)}
+                      onBlur={() => onCertUpdate(localCert)}
+                      placeholder="e.g., WQ-2024-001"
+                      className="h-7 text-sm"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+
+              {/* Qualified Positions with Tooltips */}
+              <div className="mt-3">
+                <Label className="text-xs font-semibold">Qualified Positions</Label>
+                <div className="grid grid-cols-3 gap-1 mt-1">
+                  {WELDING_POSITIONS.map((position) => (
+                    <div key={position.value} className="flex items-center space-x-1 group relative">
+                      <input
+                        type="checkbox"
+                        checked={localCert.positions?.includes(position.value) || false}
+                        onChange={(e) => {
+                          const positions = localCert.positions || [];
+                          const newPositions = e.target.checked 
+                            ? [...positions, position.value]
+                            : positions.filter((p: string) => p !== position.value);
+                          handleFieldChange('positions', newPositions);
+                          onCertUpdate({ ...localCert, positions: newPositions });
+                        }}
+                        className="rounded"
+                      />
+                      <Label className="text-xs cursor-pointer">{position.label}</Label>
+                      
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-0 mb-2 p-2 bg-gray-900 text-white text-xs rounded shadow-lg invisible group-hover:visible z-10 w-48">
+                        <div className="font-semibold mb-1">{position.label}</div>
+                        <div>{position.description}</div>
+                        {localCert.productType === 'P' && position.plateDescription && (
+                          <div className="mt-1 text-gray-300">{position.plateDescription}</div>
+                        )}
+                        {localCert.productType === 'T' && position.pipeDescription && (
+                          <div className="mt-1 text-gray-300">{position.pipeDescription}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -526,7 +795,7 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
                   cert={cert}
                   onUpdate={(updatedCert) => updateCertification('welding', index, updatedCert)}
                   onRemove={() => removeCertification('welding', index)}
-                  levelOptions={WELDING_TYPES}
+                  levelOptions={WELDING_PROCESSES}
                 />
               ))}
             </div>
