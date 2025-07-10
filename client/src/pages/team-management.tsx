@@ -630,14 +630,14 @@ export default function TeamManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="members">📋 Employees</TabsTrigger>
-          <TabsTrigger value="users">🔐 User Accounts</TabsTrigger>
-          <TabsTrigger value="roles">🛡️ Roles & Permissions</TabsTrigger>
-          <TabsTrigger value="departments">🏢 Departments</TabsTrigger>
-          <TabsTrigger value="performance">📊 Performance</TabsTrigger>
-          <TabsTrigger value="capacity">⚖️ Capacity Planning</TabsTrigger>
-          <TabsTrigger value="reminders">⏰ Qualification Reminders</TabsTrigger>
+        <TabsList className="flex w-full">
+          <TabsTrigger value="members" className="flex-1">📋 Employees</TabsTrigger>
+          <TabsTrigger value="users" className="flex-1">🔐 User Accounts</TabsTrigger>
+          <TabsTrigger value="roles" className="flex-1">🛡️ Roles & Permissions</TabsTrigger>
+          <TabsTrigger value="departments" className="flex-1">🏢 Departments</TabsTrigger>
+          <TabsTrigger value="performance" className="flex-1">📊 Performance</TabsTrigger>
+          <TabsTrigger value="capacity" className="flex-1">⚖️ Capacity Planning</TabsTrigger>
+          <TabsTrigger value="reminders" className="flex-1">⏰ Qualification Reminders</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-6">
@@ -1283,62 +1283,7 @@ export default function TeamManagement() {
 
         <TabsContent value="performance" className="space-y-4">
           <PerformanceDashboard 
-            teamData={[
-              {
-                id: 1,
-                name: "Adam Green",
-                role: "Business Owner",
-                department: "Management",
-                metrics: {
-                  efficiency: 94,
-                  qualityScore: 98,
-                  safetyScore: 100,
-                  attendanceRate: 96,
-                  overtimeHours: 12,
-                  billableHours: 168,
-                  projectsCompleted: 8
-                },
-                trend: 'up',
-                alerts: [],
-                certifications: ["Safety Management", "ISO 9001 Lead Auditor"]
-              },
-              {
-                id: 2,
-                name: "Chipo Green", 
-                role: "Senior Estimator",
-                department: "Estimation",
-                metrics: {
-                  efficiency: 88,
-                  qualityScore: 92,
-                  safetyScore: 95,
-                  attendanceRate: 98,
-                  overtimeHours: 8,
-                  billableHours: 156,
-                  projectsCompleted: 12
-                },
-                trend: 'up',
-                alerts: [],
-                certifications: ["Advanced Estimation", "Steel Detailing"]
-              },
-              {
-                id: 3,
-                name: "Manny Magallanes",
-                role: "Senior Welder",
-                department: "Production",
-                metrics: {
-                  efficiency: 85,
-                  qualityScore: 94,
-                  safetyScore: 92,
-                  attendanceRate: 88,
-                  overtimeHours: 24,
-                  billableHours: 144,
-                  projectsCompleted: 6
-                },
-                trend: 'stable',
-                alerts: ["High overtime hours this month"],
-                certifications: ["Advanced Welding", "Safety Supervisor"]
-              }
-            ]}
+            teamData={[]}
             dateRange="Current Month"
           />
         </TabsContent>
