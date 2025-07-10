@@ -2679,13 +2679,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const teamMemberId = parseInt(req.params.teamMemberId);
       
-      const reviews = await db
-        .select()
-        .from(performanceReviews)
-        .where(eq(performanceReviews.teamMemberId, teamMemberId))
-        .orderBy(desc(performanceReviews.reviewPeriodStart));
+      const result = await db.execute(`
+        SELECT * FROM performance_reviews 
+        WHERE team_member_id = $1 
+        ORDER BY review_period_start DESC
+      `, [teamMemberId]);
 
-      res.json(reviews);
+      res.json(result.rows);
     } catch (error) {
       console.error("Error fetching performance reviews:", error);
       res.status(500).json({ error: "Failed to fetch performance reviews" });
@@ -2838,27 +2838,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Qualification expiry reminders
   app.get("/api/qualification-reminders/expiring", async (req, res) => {
     try {
-      const currentDate = new Date();
-      const futureDate = new Date();
-      futureDate.setDate(currentDate.getDate() + 90);
-      
-      const expiringQualifications = await db
-        .select({
-          reminder: qualificationReminders,
-          teamMember: teamMembers,
-          user: users
-        })
-        .from(qualificationReminders)
-        .leftJoin(teamMembers, eq(qualificationReminders.teamMemberId, teamMembers.id))
-        .leftJoin(users, eq(teamMembers.userId, users.id))
-        .where(
-          and(
-            eq(qualificationReminders.isActive, true),
-            gte(qualificationReminders.expiryDate, currentDate),
-            lte(qualificationReminders.expiryDate, futureDate)
-          )
-        )
-        .orderBy(qualificationReminders.expiryDate);
+      const result = await db.execute(`
+        SELECT 
+          qr.id as reminder_id,
+          qr.qualification_type,
+          qr.qualification_name,
+          qr.expiry_date,
+          qr.reminders_sent,
+          qr.is_active,
+          tm.id as team_member_id,
+          tm.first_name,
+          tm.last_name,
+          tm.employee_number,
+          u.id as user_id,
+          u.name as user_name,
+          u.email as user_email
+        FROM qualification_reminders qr
+        LEFT JOIN team_members tm ON qr.team_member_id = tm.id
+        LEFT JOIN users u ON tm.user_id = u.id
+        WHERE qr.is_active = true
+        AND qr.expiry_date >= CURRENT_DATE
+        AND qr.expiry_date <= CURRENT_DATE + INTERVAL '90 days'
+        ORDER BY qr.expiry_date
+      `);
+
+      const expiringQualifications = result.rows.map((row: any) => ({
+        reminder: {
+          id: row.reminder_id,
+          qualificationType: row.qualification_type,
+          qualificationName: row.qualification_name,
+          expiryDate: row.expiry_date,
+          remindersSent: row.reminders_sent,
+          isActive: row.is_active
+        },
+        teamMember: {
+          id: row.team_member_id,
+          firstName: row.first_name,
+          lastName: row.last_name,
+          employeeNumber: row.employee_number
+        },
+        user: {
+          id: row.user_id,
+          name: row.user_name,
+          email: row.user_email
+        }
+      }));
 
       res.json(expiringQualifications);
     } catch (error) {
