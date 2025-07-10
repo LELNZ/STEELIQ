@@ -928,10 +928,10 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              Safety Certificates
+              Equipment Operator Licenses
             </CardTitle>
             <CardDescription>
-              Sitesafe, First Aid, Working at Heights, and other safety certifications
+              Forklift, crane, EWP, and other equipment operator certifications
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

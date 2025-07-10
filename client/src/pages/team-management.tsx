@@ -25,6 +25,7 @@ import { WorkshopInductionModal } from "@/components/team/WorkshopInductionModal
 import { PerformanceReviewSystem } from "@/components/team/PerformanceReviewSystem";
 import { QualificationReminderDashboard } from "@/components/team/QualificationReminderDashboard";
 import { CertificateExpiryNotifications } from "@/components/team/CertificateExpiryNotifications";
+import { TabHelpNote } from "@/components/team/TabHelpNote";
 
 interface Permission {
   module: string;
@@ -637,25 +638,17 @@ export default function TeamManagement() {
 
         <TabsContent value="users" className="space-y-6">
           {/* Industry-Standard User Account Guidance */}
-          <Card className="border-green-200 bg-green-50">
-            <CardContent className="p-4">
-              <div className="flex items-start space-x-3">
-                <Shield className="w-5 h-5 text-green-600 mt-0.5" />
-                <div>
-                  <h3 className="font-medium text-green-900">User Account Management</h3>
-                  <p className="text-sm text-green-700 mt-1">
-                    User accounts control system access and login credentials only. For complete employee information, 
-                    create corresponding profiles in the <strong>Employees</strong> tab.
-                  </p>
-                  <div className="flex items-center space-x-4 mt-2 text-xs text-green-600">
-                    <span>✓ Secure authentication</span>
-                    <span>✓ Role-based access control</span>
-                    <span>✓ Separate from employee records</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <TabHelpNote title="User Account Management" defaultOpen={true}>
+            <p>
+              User accounts control system access and login credentials only. For complete employee information, 
+              create corresponding profiles in the <strong>Employees</strong> tab.
+            </p>
+            <div className="flex items-center space-x-4 mt-2 text-xs">
+              <span>✓ Secure authentication</span>
+              <span>✓ Role-based access control</span>
+              <span>✓ Separate from employee records</span>
+            </div>
+          </TabHelpNote>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -818,26 +811,18 @@ export default function TeamManagement() {
 
         <TabsContent value="members" className="space-y-6">
           {/* Industry-Standard Workflow Guidance */}
-          <Card className="border-blue-200 bg-blue-50">
-            <CardContent className="p-4">
-              <div className="flex items-start space-x-3">
-                <Target className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h3 className="font-medium text-blue-900">Employee Management Workflow</h3>
-                  <p className="text-sm text-blue-700 mt-1">
-                    Following industry standards: 1️⃣ Create <strong>User Account</strong> (login credentials) → 
-                    2️⃣ Create <strong>Employee Profile</strong> (employment details) → 
-                    3️⃣ Assign <strong>Role & Department</strong>
-                  </p>
-                  <div className="flex items-center space-x-4 mt-2 text-xs text-blue-600">
-                    <span>✓ Auto-generated employee numbers</span>
-                    <span>✓ Centralized employee data</span>
-                    <span>✓ Integrated with payroll & time tracking</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <TabHelpNote title="Employee Management Workflow" defaultOpen={true}>
+            <p>
+              Following industry standards: 1️⃣ Create <strong>User Account</strong> (login credentials) → 
+              2️⃣ Create <strong>Employee Profile</strong> (employment details) → 
+              3️⃣ Assign <strong>Role & Department</strong>
+            </p>
+            <div className="flex items-center space-x-4 mt-2 text-xs">
+              <span>✓ Auto-generated employee numbers</span>
+              <span>✓ Centralized employee data</span>
+              <span>✓ Integrated with payroll & time tracking</span>
+            </div>
+          </TabHelpNote>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -993,6 +978,19 @@ export default function TeamManagement() {
         </TabsContent>
 
         <TabsContent value="roles" className="space-y-4">
+          <TabHelpNote title="Roles & Permissions Management" defaultOpen={false}>
+            <p>
+              Define roles with specific permissions and security levels for your organization. 
+              Each role controls what actions users can perform in the system.
+            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-xs">• <strong>Critical Level (≥$140/hr):</strong> Full system access, financial controls</p>
+              <p className="text-xs">• <strong>High Level (≥$100/hr):</strong> Management functions, reporting</p>
+              <p className="text-xs">• <strong>Medium Level (≥$80/hr):</strong> Operational access, job management</p>
+              <p className="text-xs">• <strong>Low Level (&lt;$80/hr):</strong> Basic access, time tracking</p>
+            </div>
+          </TabHelpNote>
+          
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <h2 className="text-xl font-semibold">Roles & Permissions ({roles.length})</h2>
@@ -1159,6 +1157,19 @@ export default function TeamManagement() {
         </TabsContent>
 
         <TabsContent value="departments" className="space-y-4">
+          <TabHelpNote title="Department Structure" defaultOpen={false}>
+            <p>
+              Organize your workforce into functional departments with designated managers.
+              Departments help with project allocation, skill grouping, and performance tracking.
+            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-xs">• <strong>Workshop:</strong> Fabrication, welding, cutting operations</p>
+              <p className="text-xs">• <strong>Site Team:</strong> Installation, field work, site management</p>
+              <p className="text-xs">• <strong>Office:</strong> Design, estimation, project management</p>
+              <p className="text-xs">• <strong>Quality & Safety:</strong> Compliance, inspections, training</p>
+            </div>
+          </TabHelpNote>
+          
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <h2 className="text-xl font-semibold">Departments ({departments.length})</h2>
@@ -1278,6 +1289,19 @@ export default function TeamManagement() {
         </TabsContent>
 
         <TabsContent value="performance" className="space-y-4">
+          <TabHelpNote title="Performance Management" defaultOpen={false}>
+            <p>
+              Track and evaluate team member performance across 8 key industry metrics.
+              Regular reviews help identify training needs and reward excellence.
+            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-xs">• <strong>Production Quality:</strong> Defect rates, rework frequency</p>
+              <p className="text-xs">• <strong>Safety Compliance:</strong> Incident reports, safety training</p>
+              <p className="text-xs">• <strong>Technical Skills:</strong> Welding quality, equipment proficiency</p>
+              <p className="text-xs">• <strong>Teamwork:</strong> Collaboration, mentoring, communication</p>
+            </div>
+          </TabHelpNote>
+          
           <PerformanceDashboard 
             teamData={[]}
             dateRange="Current Month"
@@ -1285,6 +1309,19 @@ export default function TeamManagement() {
         </TabsContent>
 
         <TabsContent value="capacity" className="space-y-4">
+          <TabHelpNote title="Capacity Planning Overview" defaultOpen={false}>
+            <p>
+              Monitor workforce utilization and plan resource allocation for upcoming projects.
+              Ensure optimal team loading while maintaining quality and preventing burnout.
+            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-xs">• <strong>Utilization Target:</strong> 80-85% for sustainable operations</p>
+              <p className="text-xs">• <strong>Buffer Time:</strong> 15-20% for maintenance, training, admin</p>
+              <p className="text-xs">• <strong>Peak Loading:</strong> Maximum 95% for short periods only</p>
+              <p className="text-xs">• <strong>Skills Matrix:</strong> Match capabilities to project requirements</p>
+            </div>
+          </TabHelpNote>
+          
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
@@ -1446,6 +1483,19 @@ export default function TeamManagement() {
 
         {/* Qualification Reminders Tab */}
         <TabsContent value="reminders" className="space-y-6">
+          <TabHelpNote title="Qualification Reminder System" defaultOpen={false}>
+            <p>
+              Stay compliant with automated tracking of all certifications, licenses, and qualifications.
+              Receive proactive notifications before expiry to maintain workforce readiness.
+            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-xs">• <strong>90 Days:</strong> Initial planning reminder</p>
+              <p className="text-xs">• <strong>30 Days:</strong> Booking confirmation required</p>
+              <p className="text-xs">• <strong>7 Days:</strong> Urgent action needed</p>
+              <p className="text-xs">• <strong>Expired:</strong> Immediate compliance risk</p>
+            </div>
+          </TabHelpNote>
+          
           <QualificationReminderDashboard />
         </TabsContent>
       </Tabs>
