@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, FileText, Award, Wrench, Shield, Calendar, AlertCircle, CheckCircle, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Upload, FileText, Award, Wrench, Shield, Calendar, AlertCircle, CheckCircle, X, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -62,24 +63,72 @@ interface EquipmentCertificate {
   documentPath?: string;
 }
 
-// Welding positions as per AS/NZS standards
-const WELDING_POSITIONS = [
-  { value: "1G", label: "1G - Flat" },
-  { value: "2G", label: "2G - Horizontal" },
-  { value: "3G", label: "3G - Vertical" },
-  { value: "4G", label: "4G - Overhead" },
-  { value: "5G", label: "5G - Pipe Fixed Horizontal" },
-  { value: "6G", label: "6G - Pipe Fixed 45°" },
-  { value: "ALL", label: "All Positions" }
-];
+// Welding positions with detailed descriptions
+const WELDING_POSITION_INFO: Record<string, { name: string; description: string }> = {
+  "PA": { name: "PA - Flat Position", description: "Welding from above, workpiece horizontal, torch pointing down" },
+  "PB": { name: "PB - Horizontal-Vertical", description: "Fillet weld with one plate horizontal, one vertical" },
+  "PC": { name: "PC - Horizontal", description: "Welding on vertical surface, travel horizontal" },
+  "PD": { name: "PD - Horizontal-Overhead", description: "Fillet weld overhead position" },
+  "PE": { name: "PE - Overhead", description: "Welding from below, workpiece above welder" },
+  "PF": { name: "PF - Vertical-Up", description: "Welding upward on vertical surface" },
+  "PG": { name: "PG - Vertical-Down", description: "Welding downward on vertical surface" },
+  "1G": { name: "1G - Flat Rotation", description: "Pipe rotated, weld at top (flat position)" },
+  "2G": { name: "2G - Horizontal Fixed", description: "Pipe vertical, weld horizontal" },
+  "3G": { name: "3G - Vertical Fixed", description: "Pipe horizontal, weld vertical" },
+  "4G": { name: "4G - Overhead Fixed", description: "Pipe horizontal, weld overhead" },
+  "5G": { name: "5G - Multiple", description: "Pipe horizontal fixed, all positions" },
+  "6G": { name: "6G - 45° Fixed", description: "Pipe at 45°, tests all positions" }
+};
 
-const WELDING_PROCESSES = [
-  { value: "GMAW", label: "GMAW (MIG)" },
-  { value: "GTAW", label: "GTAW (TIG)" },
-  { value: "SMAW", label: "SMAW (Stick)" },
-  { value: "FCAW", label: "FCAW (Flux Core)" },
-  { value: "SAW", label: "SAW (Submerged Arc)" }
-];
+// Welding processes with detailed explanations
+const WELDING_PROCESS_INFO: Record<string, { name: string; description: string; code: string }> = {
+  "111": { 
+    name: "MMAW/SMAW", 
+    description: "Manual Metal Arc Welding (Stick) - Uses consumable electrode with flux coating",
+    code: "111"
+  },
+  "135": { 
+    name: "GMAW/MIG", 
+    description: "Gas Metal Arc Welding - Semi-automatic, uses solid wire and shielding gas",
+    code: "135"
+  },
+  "136": { 
+    name: "FCAW", 
+    description: "Flux Cored Arc Welding - Uses flux-filled tubular wire, with or without gas",
+    code: "136"
+  },
+  "138": { 
+    name: "GMAW Metal Cored", 
+    description: "Gas Metal Arc with metal cored wire - Higher deposition rates than solid wire",
+    code: "138"
+  },
+  "141": { 
+    name: "GTAW/TIG", 
+    description: "Gas Tungsten Arc Welding - Uses non-consumable tungsten electrode",
+    code: "141"
+  }
+};
+
+// Material group definitions
+const MATERIAL_GROUP_INFO: Record<string, string> = {
+  "FM1": "Non-alloy and fine grain steels (≤360 N/mm² yield)",
+  "FM2": "High strength steels (>360 N/mm² yield)",
+  "FM3": "Quenched and tempered steels",
+  "FM4": "Low vanadium alloyed Cr-Mo steels",
+  "FM5": "Non-vanadium alloyed Cr-Mo steels"
+};
+
+// Thickness qualification explanation
+const THICKNESS_INFO = {
+  title: "Thickness Qualification Range",
+  description: "For AS/NZS ISO 9606.1, a 12mm test plate typically qualifies:",
+  ranges: [
+    "Butt welds: ≥3mm thickness (0.25 × test thickness minimum)",
+    "Fillet welds: All thicknesses for throat thickness",
+    "Upper limit: Generally unlimited for manual processes",
+    "Note: Specific ranges depend on welding process and joint type"
+  ]
+};
 
 const EQUIPMENT_TYPES = [
   "Forklift",
@@ -383,27 +432,140 @@ export function TradeQualificationsForm({ member, onUpdate, isEditing = false, i
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium">Process:</span> {cert.process}
-                      </div>
-                      <div>
-                        <span className="font-medium">Positions:</span> {cert.positions.join(', ')}
-                      </div>
-                      <div>
-                        <span className="font-medium">Materials:</span> {cert.materials}
-                      </div>
-                      <div>
-                        <span className="font-medium">Thickness:</span> {cert.thickness}
-                      </div>
+                      <TooltipProvider>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Process:</span> 
+                          <span>{cert.process}</span>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="h-3 w-3 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p className="font-medium">{cert.process.split(' ')[0]} Process Details</p>
+                              <p className="text-sm">
+                                {cert.process.includes('135') ? WELDING_PROCESS_INFO['135'].description :
+                                 cert.process.includes('111') ? WELDING_PROCESS_INFO['111'].description :
+                                 "Welding process qualification"}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Positions:</span>
+                          <span>{cert.positions.join(', ')}</span>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="h-3 w-3 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm">
+                              <p className="font-medium mb-2">Qualified Positions</p>
+                              {cert.positions.map(pos => (
+                                <div key={pos} className="text-sm mb-1">
+                                  <span className="font-medium">{WELDING_POSITION_INFO[pos]?.name || pos}:</span>
+                                  <br />
+                                  <span className="text-xs text-muted-foreground">
+                                    {WELDING_POSITION_INFO[pos]?.description || "Position qualification"}
+                                  </span>
+                                </div>
+                              ))}
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Materials:</span>
+                          <span className="truncate">{cert.materials}</span>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="h-3 w-3 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm">
+                              <p className="font-medium mb-2">Material Groups</p>
+                              <div className="text-sm space-y-1">
+                                {cert.materials.includes('FM1') && (
+                                  <p><span className="font-medium">FM1:</span> {MATERIAL_GROUP_INFO['FM1']}</p>
+                                )}
+                                {cert.materials.includes('FM2') && (
+                                  <p><span className="font-medium">FM2:</span> {MATERIAL_GROUP_INFO['FM2']}</p>
+                                )}
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Qualified for welding these material groups as per AS/NZS ISO 9606.1
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Thickness:</span>
+                          <span>{cert.thickness}</span>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="h-3 w-3 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm">
+                              <p className="font-medium mb-2">{THICKNESS_INFO.title}</p>
+                              <p className="text-sm mb-2">{THICKNESS_INFO.description}</p>
+                              <ul className="text-sm space-y-1">
+                                {THICKNESS_INFO.ranges.map((range, idx) => (
+                                  <li key={idx} className="text-xs">• {range}</li>
+                                ))}
+                              </ul>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
+                      
                       {cert.pipeRange && (
-                        <div>
-                          <span className="font-medium">Pipe Range:</span> {cert.pipeRange}
-                        </div>
+                        <TooltipProvider>
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">Pipe Range:</span>
+                            <span>{cert.pipeRange}</span>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Info className="h-3 w-3 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p className="font-medium mb-1">Pipe Diameter Range</p>
+                                <p className="text-sm">Qualified to weld pipes with:</p>
+                                <ul className="text-xs mt-1 space-y-1">
+                                  <li>• Fixed position: ≥500mm diameter</li>
+                                  <li>• Rotated position: ≥75mm diameter</li>
+                                  <li>• Applies to PA and PB positions</li>
+                                </ul>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TooltipProvider>
                       )}
+                      
                       {cert.transferMode && (
-                        <div>
-                          <span className="font-medium">Transfer Mode:</span> {cert.transferMode}
-                        </div>
+                        <TooltipProvider>
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">Transfer Mode:</span>
+                            <span>{cert.transferMode}</span>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Info className="h-3 w-3 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p className="font-medium mb-1">Transfer Modes</p>
+                                <p className="text-sm">
+                                  {cert.transferMode.includes('All') ? 
+                                    "Qualified for all transfer modes including short-circuit (dip), spray, and pulse transfer" :
+                                    "Specific transfer mode qualification"}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TooltipProvider>
                       )}
                     </div>
 

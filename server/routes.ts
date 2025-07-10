@@ -2081,6 +2081,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get expiring certificates across all team members
+  app.get("/api/team/expiring-certificates", async (req, res) => {
+    try {
+      const today = new Date();
+      const ninetyDaysFromNow = new Date();
+      ninetyDaysFromNow.setDate(ninetyDaysFromNow.getDate() + 90);
+
+      const members = await teamStorage.getTeamMembers();
+      const expiringCerts: any[] = [];
+
+      members.forEach(member => {
+        // Check safety certificates
+        if (member.safetyCertificates && Array.isArray(member.safetyCertificates)) {
+          member.safetyCertificates.forEach((cert: any) => {
+            if (cert.expiryDate) {
+              const expiryDate = new Date(cert.expiryDate);
+              const daysUntilExpiry = Math.floor((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              
+              if (daysUntilExpiry <= 90) {
+                expiringCerts.push({
+                  employeeName: `${member.firstName} ${member.lastName}`,
+                  employeeNumber: member.employeeNumber,
+                  certificateType: 'Safety',
+                  certificateName: cert.name,
+                  expiryDate: cert.expiryDate,
+                  daysUntilExpiry,
+                  isExpired: daysUntilExpiry < 0
+                });
+              }
+            }
+          });
+        }
+
+        // Check welding certificates
+        if (member.weldingCertificates && Array.isArray(member.weldingCertificates)) {
+          member.weldingCertificates.forEach((cert: any) => {
+            if (cert.expiryDate) {
+              const expiryDate = new Date(cert.expiryDate);
+              const daysUntilExpiry = Math.floor((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              
+              if (daysUntilExpiry <= 90) {
+                expiringCerts.push({
+                  employeeName: `${member.firstName} ${member.lastName}`,
+                  employeeNumber: member.employeeNumber,
+                  certificateType: 'Welding',
+                  certificateName: `${cert.process} - ${cert.name}`,
+                  expiryDate: cert.expiryDate,
+                  daysUntilExpiry,
+                  isExpired: daysUntilExpiry < 0
+                });
+              }
+            }
+          });
+        }
+
+        // Check individual date fields
+        const dateFields = [
+          { field: 'firstAidExpiry', name: 'First Aid Certificate' },
+          { field: 'workingAtHeightsExpiry', name: 'Working at Heights' },
+          { field: 'safetyTrainingExpiry', name: 'Safety Training' },
+          { field: 'medicalExpiryDate', name: 'Medical Clearance' }
+        ];
+
+        dateFields.forEach(({ field, name }) => {
+          const value = member[field as keyof typeof member];
+          if (value) {
+            const expiryDate = new Date(value as string);
+            const daysUntilExpiry = Math.floor((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilExpiry <= 90) {
+              expiringCerts.push({
+                employeeName: `${member.firstName} ${member.lastName}`,
+                employeeNumber: member.employeeNumber,
+                certificateType: 'Safety',
+                certificateName: name,
+                expiryDate: value,
+                daysUntilExpiry,
+                isExpired: daysUntilExpiry < 0
+              });
+            }
+          }
+        });
+      });
+
+      // Sort by days until expiry (most urgent first)
+      expiringCerts.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+
+      res.json(expiringCerts);
+    } catch (error) {
+      console.error("Failed to get expiring certificates:", error);
+      res.status(500).json({ message: "Failed to get expiring certificates" });
+    }
+  });
+
   // Users for assignment
   app.get("/api/users", async (req, res) => {
     try {

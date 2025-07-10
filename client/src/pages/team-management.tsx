@@ -24,6 +24,7 @@ import { HealthSafetyForm } from "@/components/team/HealthSafetyForm";
 import { WorkshopInductionModal } from "@/components/team/WorkshopInductionModal";
 import { PerformanceReviewSystem } from "@/components/team/PerformanceReviewSystem";
 import { QualificationReminderDashboard } from "@/components/team/QualificationReminderDashboard";
+import { CertificateExpiryNotifications } from "@/components/team/CertificateExpiryNotifications";
 
 interface Permission {
   module: string;
@@ -616,6 +617,11 @@ export default function TeamManagement() {
             </Button>
           </Link>
         </div>
+      </div>
+
+      {/* Certificate Expiry Notifications */}
+      <div className="mb-6">
+        <CertificateExpiryNotifications />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
