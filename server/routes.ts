@@ -2942,54 +2942,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Qualification expiry reminders
+  // Qualification expiry reminders - dynamically generated from certificates
   app.get("/api/qualification-reminders/expiring", async (req, res) => {
     try {
-      const result = await db.execute(`
-        SELECT 
-          qr.id as reminder_id,
-          qr.qualification_type,
-          qr.qualification_name,
-          qr.expiry_date,
-          qr.reminders_sent,
-          qr.is_active,
-          tm.id as team_member_id,
-          tm.first_name,
-          tm.last_name,
-          tm.employee_number,
-          u.id as user_id,
-          u.name as user_name,
-          u.email as user_email
-        FROM qualification_reminders qr
-        LEFT JOIN team_members tm ON qr.team_member_id = tm.id
-        LEFT JOIN users u ON tm.user_id = u.id
-        WHERE qr.is_active = true
-        AND qr.expiry_date >= CURRENT_DATE
-        AND qr.expiry_date <= CURRENT_DATE + INTERVAL '90 days'
-        ORDER BY qr.expiry_date
-      `);
+      const today = new Date();
+      const ninetyDaysFromNow = new Date();
+      ninetyDaysFromNow.setDate(ninetyDaysFromNow.getDate() + 90);
 
-      const expiringQualifications = result.rows.map((row: any) => ({
-        reminder: {
-          id: row.reminder_id,
-          qualificationType: row.qualification_type,
-          qualificationName: row.qualification_name,
-          expiryDate: row.expiry_date,
-          remindersSent: row.reminders_sent,
-          isActive: row.is_active
-        },
-        teamMember: {
-          id: row.team_member_id,
-          firstName: row.first_name,
-          lastName: row.last_name,
-          employeeNumber: row.employee_number
-        },
-        user: {
-          id: row.user_id,
-          name: row.user_name,
-          email: row.user_email
+      // Get all active team members with their user info
+      const members = await db
+        .select()
+        .from(teamMembers)
+        .leftJoin(users, eq(teamMembers.userId, users.id))
+        .where(eq(teamMembers.isActive, true));
+
+      const expiringQualifications: any[] = [];
+      let reminderId = 1;
+
+      for (const { team_members: member, users: user } of members) {
+        if (!member || !user) continue;
+
+        // Check safety certificates
+        if (member.safetyCertificates && Array.isArray(member.safetyCertificates)) {
+          for (const cert of member.safetyCertificates as any[]) {
+            if (cert.expiryDate) {
+              const expiryDate = new Date(cert.expiryDate);
+              if (expiryDate >= today && expiryDate <= ninetyDaysFromNow) {
+                expiringQualifications.push({
+                  reminder: {
+                    id: reminderId++,
+                    qualificationType: cert.type || 'first_aid',
+                    qualificationName: cert.name,
+                    expiryDate: cert.expiryDate,
+                    remindersSent: 0,
+                    isActive: true
+                  },
+                  teamMember: {
+                    id: member.id,
+                    firstName: member.firstName,
+                    lastName: member.lastName,
+                    employeeNumber: member.employeeNumber
+                  },
+                  user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email
+                  }
+                });
+              }
+            }
+          }
         }
-      }));
+
+        // Check welding certificates
+        if (member.weldingCertificates && Array.isArray(member.weldingCertificates)) {
+          for (const cert of member.weldingCertificates as any[]) {
+            if (cert.expiryDate) {
+              const expiryDate = new Date(cert.expiryDate);
+              if (expiryDate >= today && expiryDate <= ninetyDaysFromNow) {
+                expiringQualifications.push({
+                  reminder: {
+                    id: reminderId++,
+                    qualificationType: 'welding',
+                    qualificationName: `${cert.process} - ${cert.name}`,
+                    expiryDate: cert.expiryDate,
+                    remindersSent: 0,
+                    isActive: true
+                  },
+                  teamMember: {
+                    id: member.id,
+                    firstName: member.firstName,
+                    lastName: member.lastName,
+                    employeeNumber: member.employeeNumber
+                  },
+                  user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email
+                  }
+                });
+              }
+            }
+          }
+        }
+
+        // Check individual date fields
+        const dateFields = [
+          { field: 'firstAidExpiry', name: 'First Aid Certificate', type: 'first_aid' },
+          { field: 'workingAtHeightsExpiry', name: 'Working at Heights', type: 'heights' },
+          { field: 'driverLicenseExpiry', name: 'Driver License', type: 'drivers' },
+          { field: 'safetyCardExpiry', name: 'Safety Card', type: 'safety_card' }
+        ];
+
+        for (const { field, name, type } of dateFields) {
+          const value = member[field as keyof typeof member];
+          if (value) {
+            const expiryDate = new Date(value as string);
+            if (expiryDate >= today && expiryDate <= ninetyDaysFromNow) {
+              expiringQualifications.push({
+                reminder: {
+                  id: reminderId++,
+                  qualificationType: type,
+                  qualificationName: name,
+                  expiryDate: value,
+                  remindersSent: 0,
+                  isActive: true
+                },
+                teamMember: {
+                  id: member.id,
+                  firstName: member.firstName,
+                  lastName: member.lastName,
+                  employeeNumber: member.employeeNumber
+                },
+                user: {
+                  id: user.id,
+                  name: user.name,
+                  email: user.email
+                }
+              });
+            }
+          }
+        }
+      }
+
+      // Sort by expiry date (most urgent first)
+      expiringQualifications.sort((a, b) => 
+        new Date(a.reminder.expiryDate).getTime() - new Date(b.reminder.expiryDate).getTime()
+      );
 
       res.json(expiringQualifications);
     } catch (error) {
