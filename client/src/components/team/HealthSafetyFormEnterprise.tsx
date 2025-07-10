@@ -21,7 +21,7 @@ interface HealthSafetyFormProps {
 
 interface SafetyCertificate {
   id: string;
-  type: 'firstAid' | 'workingAtHeights' | 'confinedSpace' | 'siteSafe' | 'dangerousGoods' | 'fireWarden' | 'manualHandling' | 'other';
+  type: 'firstAid' | 'workingAtHeights' | 'confinedSpace' | 'siteSafe' | 'dangerousGoods' | 'fireWarden' | 'manualHandling' | 'hazardousSubstances' | 'other';
   name: string;
   level?: string;
   issuer: string;
@@ -120,6 +120,7 @@ export function HealthSafetyFormEnterprise({ member, onUpdate, isEditing = false
           dangerousGoods: 'Dangerous Goods Certificate', 
           fireWarden: 'Fire Warden Certificate',
           manualHandling: 'Manual Handling Certificate',
+          hazardousSubstances: 'Hazardous Substances Certificate',
           other: 'Safety Certificate'
         };
         parsedData = {
@@ -150,6 +151,11 @@ export function HealthSafetyFormEnterprise({ member, onUpdate, isEditing = false
             qualificationType: type === 'firstAid' ? 'First Aid' : 
                               type === 'workingAtHeights' ? 'Working at Heights' : 
                               type === 'siteSafe' ? 'Site Safe' : 
+                              type === 'confinedSpace' ? 'Confined Space' :
+                              type === 'dangerousGoods' ? 'Dangerous Goods' :
+                              type === 'fireWarden' ? 'Fire Warden' :
+                              type === 'manualHandling' ? 'Manual Handling' :
+                              type === 'hazardousSubstances' ? 'Hazardous Substances' :
                               'Safety Certificate',
             qualificationName: parsedData.name || 'Safety Certificate',
             issueDate: parsedData.issueDate,
@@ -275,7 +281,7 @@ export function HealthSafetyFormEnterprise({ member, onUpdate, isEditing = false
             Safety Training & Certifications
           </CardTitle>
           <CardDescription>
-            General safety training and certification records
+            First Aid (all levels) • Site Safe • Working at Heights • Confined Space • Dangerous Goods • Fire Warden • Manual Handling • Hazardous Substances
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -360,6 +366,62 @@ export function HealthSafetyFormEnterprise({ member, onUpdate, isEditing = false
                   accept=".pdf,.jpg,.jpeg,.png"
                   className="hidden"
                   onChange={(e) => handleCertificateUpload(e, 'siteSafe')}
+                  disabled={uploadingCert !== null}
+                />
+              </Label>
+              <Label htmlFor="dangerous-upload" className="cursor-pointer">
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm">
+                  <Upload className="h-4 w-4" />
+                  Dangerous Goods
+                </div>
+                <Input
+                  id="dangerous-upload"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="hidden"
+                  onChange={(e) => handleCertificateUpload(e, 'dangerousGoods')}
+                  disabled={uploadingCert !== null}
+                />
+              </Label>
+              <Label htmlFor="fire-upload" className="cursor-pointer">
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm">
+                  <Upload className="h-4 w-4" />
+                  Fire Warden
+                </div>
+                <Input
+                  id="fire-upload"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="hidden"
+                  onChange={(e) => handleCertificateUpload(e, 'fireWarden')}
+                  disabled={uploadingCert !== null}
+                />
+              </Label>
+              <Label htmlFor="manual-upload" className="cursor-pointer">
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm">
+                  <Upload className="h-4 w-4" />
+                  Manual Handling
+                </div>
+                <Input
+                  id="manual-upload"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="hidden"
+                  onChange={(e) => handleCertificateUpload(e, 'manualHandling')}
+                  disabled={uploadingCert !== null}
+                />
+              </Label>
+              <Label htmlFor="hazardous-upload" className="cursor-pointer">
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm">
+                  <Upload className="h-4 w-4" />
+                  Hazardous Substances
+                </div>
+                <Input
+                  id="hazardous-upload"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="hidden"
+                  onChange={(e) => handleCertificateUpload(e, 'hazardousSubstances')}
                   disabled={uploadingCert !== null}
                 />
               </Label>
