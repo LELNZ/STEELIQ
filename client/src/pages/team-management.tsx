@@ -1534,6 +1534,13 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
     medicalClearance: member?.medicalClearance ?? false,
     medicalExpiryDate: member?.medicalExpiryDate ? new Date(member.medicalExpiryDate).toISOString().split('T')[0] : "",
     
+    // Health & Safety Certifications
+    firstAidCertifications: member?.firstAidCertifications || [],
+    weldingQualifications: member?.weldingQualifications || [],
+    workingAtHeightsCerts: member?.workingAtHeightsCerts || [],
+    tradeQualifications: member?.tradeQualifications || [],
+    driversLicenses: member?.driversLicenses || [],
+    
     // Performance & Review
     performanceRating: member?.performanceRating?.toString() || "",
     lastReviewDate: member?.lastReviewDate ? new Date(member.lastReviewDate).toISOString().split('T')[0] : "",
@@ -1599,6 +1606,13 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
       medicalExpiryDate: formData.medicalExpiryDate ? new Date(formData.medicalExpiryDate) : null,
       lastReviewDate: formData.lastReviewDate ? new Date(formData.lastReviewDate) : null,
       nextReviewDate: formData.nextReviewDate ? new Date(formData.nextReviewDate) : null,
+      
+      // Health & Safety Certifications
+      firstAidCertifications: formData.firstAidCertifications || [],
+      weldingQualifications: formData.weldingQualifications || [],
+      workingAtHeightsCerts: formData.workingAtHeightsCerts || [],
+      tradeQualifications: formData.tradeQualifications || [],
+      driversLicenses: formData.driversLicenses || [],
     };
     
     console.log("Processed data for submission:", processedData);
@@ -2085,7 +2099,7 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
           <TabsContent value="healthsafety" className="flex-1 overflow-hidden p-1">
             <div className="h-full">
               <HealthSafetyForm 
-                member={member}
+                member={formData}
                 onUpdate={(field, value) => setFormData({...formData, [field]: value})}
               />
             </div>
