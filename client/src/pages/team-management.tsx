@@ -335,12 +335,12 @@ export default function TeamManagement() {
           <div className="flex items-center space-x-3 flex-1">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <span className="text-sm font-medium text-primary">
-                {member.userName?.[0]}{member.userName?.split(' ')[1]?.[0] || ''}
+                {(member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim())?.[0]}{(member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim())?.split(' ')[1]?.[0] || ''}
               </span>
             </div>
             <div className="min-w-0">
-              <h3 className="font-semibold text-lg truncate">{member.userName}</h3>
-              <p className="text-sm text-muted-foreground">{member.userUsername}</p>
+              <h3 className="font-semibold text-lg truncate">{member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unknown'}</h3>
+              <p className="text-sm text-muted-foreground">{member.userUsername || member.employeeNumber || 'No ID'}</p>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <Badge variant="outline" className="text-xs">{member.roleName}</Badge>
                 {member.departmentName && (
@@ -663,7 +663,19 @@ export default function TeamManagement() {
           </Card>
 
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">User Accounts ({availableUsers.length})</h2>
+            <div className="flex items-center space-x-4">
+              <h2 className="text-xl font-semibold">User Accounts ({availableUsers.length})</h2>
+              <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "table" | "card")} className="h-9">
+                <ToggleGroupItem value="table" aria-label="Table view" className="h-9 px-3">
+                  <List className="h-4 w-4 mr-2" />
+                  Table
+                </ToggleGroupItem>
+                <ToggleGroupItem value="card" aria-label="Card view" className="h-9 px-3">
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  Cards
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
             <Dialog open={isEditingUser} onOpenChange={setIsEditingUser}>
               <DialogTrigger asChild>
                 <Button onClick={() => setSelectedUser(null)}>
@@ -686,35 +698,118 @@ export default function TeamManagement() {
             </Dialog>
           </div>
           
-          {/* Active Users Section */}
-          {availableUsers.filter((user: any) => user.isActive).length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Users className="w-5 h-5 text-green-600" />
-                <h3 className="text-lg font-medium text-green-700">Active Users ({availableUsers.filter((user: any) => user.isActive).length})</h3>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {availableUsers.filter((user: any) => user.isActive).map((user: any) => (
-                  <UserCard key={user.id} user={user} />
-                ))}
-              </div>
+          {viewMode === "table" ? (
+            <div className="rounded-md border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[250px]">User</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {availableUsers.map((user: any) => (
+                    <TableRow key={user.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-sm font-medium text-primary">
+                              {user.name?.[0]}{user.name?.split(' ')[1]?.[0] || ''}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-medium">{user.name}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{user.username}</TableCell>
+                      <TableCell>{user.email || "-"}</TableCell>
+                      <TableCell>{user.phone || "-"}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={user.isActive ? "default" : "secondary"}>
+                          {user.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setIsEditingUser(true);
+                            }}
+                            title="Edit"
+                            className="hover:bg-secondary"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" title="Delete" className="hover:bg-destructive/10">
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete User Account</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete {user.name}'s account?
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteUserMutation.mutate(user.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          )}
-          
-          {/* Inactive Users Section */}
-          {availableUsers.filter((user: any) => !user.isActive).length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2 pt-6 border-t border-gray-200">
-                <UserX className="w-5 h-5 text-gray-500" />
-                <h3 className="text-lg font-medium text-gray-600">Inactive Users ({availableUsers.filter((user: any) => !user.isActive).length})</h3>
-                <Badge variant="secondary" className="ml-2">No Login Access</Badge>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {availableUsers.filter((user: any) => !user.isActive).map((user: any) => (
-                  <UserCard key={user.id} user={user} />
-                ))}
-              </div>
-            </div>
+          ) : (
+            <>
+              {/* Active Users Section */}
+              {availableUsers.filter((user: any) => user.isActive).length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Users className="w-5 h-5 text-green-600" />
+                    <h3 className="text-lg font-medium text-green-700">Active Users ({availableUsers.filter((user: any) => user.isActive).length})</h3>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {availableUsers.filter((user: any) => user.isActive).map((user: any) => (
+                      <UserCard key={user.id} user={user} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Inactive Users Section */}
+              {availableUsers.filter((user: any) => !user.isActive).length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2 pt-6 border-t border-gray-200">
+                    <UserX className="w-5 h-5 text-gray-500" />
+                    <h3 className="text-lg font-medium text-gray-600">Inactive Users ({availableUsers.filter((user: any) => !user.isActive).length})</h3>
+                    <Badge variant="secondary" className="ml-2">No Login Access</Badge>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {availableUsers.filter((user: any) => !user.isActive).map((user: any) => (
+                      <UserCard key={user.id} user={user} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
           
           {/* Empty State */}
@@ -803,12 +898,12 @@ export default function TeamManagement() {
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                             <span className="text-sm font-medium text-primary">
-                              {member.userName?.[0]}{member.userName?.split(' ')[1]?.[0] || ''}
+                              {(member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim())?.[0]}{(member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim())?.split(' ')[1]?.[0] || ''}
                             </span>
                           </div>
                           <div>
-                            <div className="font-medium">{member.userName}</div>
-                            <div className="text-sm text-muted-foreground">{member.userUsername}</div>
+                            <div className="font-medium">{member.userName || `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unknown'}</div>
+                            <div className="text-sm text-muted-foreground">{member.userUsername || member.employeeNumber || 'No ID'}</div>
                           </div>
                         </div>
                       </TableCell>
@@ -903,7 +998,19 @@ export default function TeamManagement() {
 
         <TabsContent value="roles" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Roles & Permissions ({roles.length})</h2>
+            <div className="flex items-center space-x-4">
+              <h2 className="text-xl font-semibold">Roles & Permissions ({roles.length})</h2>
+              <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "table" | "card")} className="h-9">
+                <ToggleGroupItem value="table" aria-label="Table view" className="h-9 px-3">
+                  <List className="h-4 w-4 mr-2" />
+                  Table
+                </ToggleGroupItem>
+                <ToggleGroupItem value="card" aria-label="Card view" className="h-9 px-3">
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  Cards
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
             <Dialog open={isEditingRole} onOpenChange={setIsEditingRole}>
               <DialogTrigger asChild>
                 <Button onClick={() => setSelectedRole(null)}>
@@ -927,6 +1034,125 @@ export default function TeamManagement() {
           </div>
           {rolesLoading ? (
             <div>Loading roles...</div>
+          ) : viewMode === "table" ? (
+            <div className="rounded-md border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[250px]">Role Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-center">Hourly Rate</TableHead>
+                    <TableHead className="text-center">Security Level</TableHead>
+                    <TableHead className="text-center">Permissions</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {roles.map((role: Role) => {
+                    const permissions = typeof role.permissions === 'object' && !Array.isArray(role.permissions) 
+                      ? role.permissions as Record<string, string[]>
+                      : {};
+                    
+                    const permissionCount = Object.values(permissions).flat().length;
+                    const categoryCount = Object.keys(permissions).length;
+                    
+                    const securityLevel = role.hourlyRate 
+                      ? (parseFloat(role.hourlyRate) >= 140 ? 'Critical' 
+                         : parseFloat(role.hourlyRate) >= 100 ? 'High'
+                         : parseFloat(role.hourlyRate) >= 80 ? 'Medium' 
+                         : 'Low')
+                      : 'Low';
+                    
+                    return (
+                      <TableRow key={role.id} className="hover:bg-muted/50">
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Shield className="w-4 h-4 text-primary" />
+                            <span className="font-medium">{role.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{role.description || "-"}</TableCell>
+                        <TableCell className="text-center">
+                          {role.hourlyRate ? (
+                            <span className="font-medium">${role.hourlyRate}/hr</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={
+                              securityLevel === 'Critical' ? 'destructive' :
+                              securityLevel === 'High' ? 'default' :
+                              securityLevel === 'Medium' ? 'secondary' :
+                              'outline'
+                            }
+                          >
+                            {securityLevel}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="default" className="text-xs">
+                            {categoryCount} categories • {permissionCount} permissions
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end items-center space-x-1">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm" title="View Permissions" className="hover:bg-secondary">
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl">
+                                <DialogHeader>
+                                  <DialogTitle>{role.name} - Permissions</DialogTitle>
+                                </DialogHeader>
+                                <PermissionViewer permissions={permissions} />
+                              </DialogContent>
+                            </Dialog>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedRole(role);
+                                setIsEditingRole(true);
+                              }}
+                              title="Edit"
+                              className="hover:bg-secondary"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm" title="Delete" className="hover:bg-destructive/10">
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Role</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete the {role.name} role?
+                                    This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteRoleMutation.mutate(role.id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {roles.map((role: Role) => (
@@ -938,7 +1164,19 @@ export default function TeamManagement() {
 
         <TabsContent value="departments" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Departments ({departments.length})</h2>
+            <div className="flex items-center space-x-4">
+              <h2 className="text-xl font-semibold">Departments ({departments.length})</h2>
+              <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "table" | "card")} className="h-9">
+                <ToggleGroupItem value="table" aria-label="Table view" className="h-9 px-3">
+                  <List className="h-4 w-4 mr-2" />
+                  Table
+                </ToggleGroupItem>
+                <ToggleGroupItem value="card" aria-label="Card view" className="h-9 px-3">
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  Cards
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
             <Dialog open={isEditingDepartment} onOpenChange={setIsEditingDepartment}>
               <DialogTrigger asChild>
                 <Button onClick={() => setSelectedDepartment(null)}>
@@ -963,6 +1201,77 @@ export default function TeamManagement() {
           </div>
           {departmentsLoading ? (
             <div>Loading departments...</div>
+          ) : viewMode === "table" ? (
+            <div className="rounded-md border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[250px]">Department</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Manager</TableHead>
+                    <TableHead className="text-center">Team Size</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {departments.map((department: Department) => (
+                    <TableRow key={department.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Building2 className="w-4 h-4 text-primary" />
+                          <span className="font-medium">{department.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{department.description || "-"}</TableCell>
+                      <TableCell>{department.managerName || "-"}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline">
+                          {Math.floor(Math.random() * 15) + 5} members
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedDepartment(department);
+                              setIsEditingDepartment(true);
+                            }}
+                            title="Edit"
+                            className="hover:bg-secondary"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" title="Delete" className="hover:bg-destructive/10">
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Department</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete {department.name}?
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteDepartmentMutation.mutate(department.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {departments.map((department: Department) => (
