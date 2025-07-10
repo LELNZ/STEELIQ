@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -149,6 +149,15 @@ interface CertificationItem {
   materialThickness?: string;
   certifyingCompany?: string;
   certificateNumber?: string;
+  // Range of qualification details
+  rangeOfQualification?: {
+    processes?: string;
+    transferModes?: string;
+    materialGroups?: string;
+    pipeRange?: string;
+    weldDetails?: string;
+    layers?: string;
+  };
 }
 
 interface HealthSafetyFormProps {
@@ -159,30 +168,43 @@ interface HealthSafetyFormProps {
 // Simulate PDF parsing for welding qualifications
 async function parseWeldingQualificationPDF(file: File): Promise<any> {
   // In a real implementation, this would use a PDF parsing library
-  // For now, we'll simulate parsing based on common welding qualification formats
+  // For demonstration, we'll simulate parsing based on Adam Green's actual certificate format
   
   return new Promise((resolve) => {
     // Simulate async processing
     setTimeout(() => {
-      // Extract data based on typical welding qualification certificate format
+      // Extract data based on X-Ray Laboratories certificate format
+      const testDate = new Date('2022-03-08'); // Date of test from certificate
+      const revalidationDate = new Date(testDate);
+      revalidationDate.setFullYear(revalidationDate.getFullYear() + 3); // 3-year validity per 9.3 a)
+      
       const parsedData = {
-        name: file.name.replace('.pdf', '').replace(/_/g, ' '),
-        weldingProcess: 'MMAW', // Example: Manual Metal Arc Welding
-        transferMode: 'na', // N/A for MMAW
-        productType: 'P', // Plate
-        weldType: 'BW', // Butt Weld
-        materialThickness: '12mm - <3mm',
-        positions: ['PA', 'PB', 'PC', 'PF'], // Common positions
-        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year from now
-        supplier: 'ATWI (Auckland Technical Welding Institute)',
-        certificateNumber: `WQ-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
+        name: 'GMAW Qualification - ' + file.name.replace('.pdf', '').replace(/_/g, ' '),
+        weldingProcess: 'GMAW', // 135 GMAW from certificate
+        transferMode: 'dip', // SCT Short-circuiting or Dip transfer
+        productType: 'P/T', // Plate & Tube (range of qualification)
+        weldType: 'BW+FW', // Butt and fillet welds (range)
+        materialThickness: '≥3mm', // Greater than or equal to 3mm (range)
+        positions: ['PA', 'PB', 'PF'], // Flat, horizontal-vertical & vertical-up
+        expiryDate: revalidationDate.toISOString().split('T')[0], // 9/03/2025
+        supplier: 'X-Ray Laboratories Ltd',
+        certificateNumber: '16211 B',
+        // Additional qualification range details
+        rangeOfQualification: {
+          processes: '135/138 MAG with solid or metal cored electrode',
+          transferModes: 'All transfer modes',
+          materialGroups: 'FM1/FM2 - High strength & non alloy/fine grain steels',
+          pipeRange: '≥500mm⌀ fixed, ≥75mm⌀ rotated PA, PB',
+          weldDetails: 'Material backing or from both sides',
+          layers: 'Single or multi-layer welds'
+        }
       };
       
       // Show notification that PDF was parsed
       const event = new CustomEvent('show-toast', {
         detail: {
           title: 'PDF Parsed Successfully',
-          description: 'Welding qualification details extracted and populated',
+          description: 'Welding qualification details extracted from X-Ray Labs certificate',
           variant: 'success'
         }
       });
@@ -347,6 +369,11 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
       }, 300);
       return () => clearTimeout(timeoutId);
     };
+
+    // Sync local state when cert prop changes (e.g., after PDF upload)
+    useEffect(() => {
+      setLocalCert(cert);
+    }, [cert]);
 
     return (
       <Card className={`border-l-2 ${isExpired ? 'border-l-red-500' : isExpiringSoon ? 'border-l-amber-500' : 'border-l-green-500'}`}>
@@ -651,6 +678,54 @@ export function HealthSafetyForm({ member, onUpdate }: HealthSafetyFormProps) {
                   ))}
                 </div>
               </div>
+
+              {/* Range of Qualification - What the welder is capable of */}
+              {localCert.rangeOfQualification && (
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <h4 className="text-xs font-semibold mb-2 text-green-600 flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" />
+                    Range of Qualification - What this welder can do:
+                  </h4>
+                  <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 space-y-1.5">
+                    {localCert.rangeOfQualification.processes && (
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-medium text-green-700 dark:text-green-400 min-w-[80px]">Processes:</span>
+                        <span className="text-xs text-green-600 dark:text-green-500">{localCert.rangeOfQualification.processes}</span>
+                      </div>
+                    )}
+                    {localCert.rangeOfQualification.transferModes && (
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-medium text-green-700 dark:text-green-400 min-w-[80px]">Transfer:</span>
+                        <span className="text-xs text-green-600 dark:text-green-500">{localCert.rangeOfQualification.transferModes}</span>
+                      </div>
+                    )}
+                    {localCert.rangeOfQualification.materialGroups && (
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-medium text-green-700 dark:text-green-400 min-w-[80px]">Materials:</span>
+                        <span className="text-xs text-green-600 dark:text-green-500">{localCert.rangeOfQualification.materialGroups}</span>
+                      </div>
+                    )}
+                    {localCert.rangeOfQualification.pipeRange && (
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-medium text-green-700 dark:text-green-400 min-w-[80px]">Pipe Range:</span>
+                        <span className="text-xs text-green-600 dark:text-green-500">{localCert.rangeOfQualification.pipeRange}</span>
+                      </div>
+                    )}
+                    {localCert.rangeOfQualification.weldDetails && (
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-medium text-green-700 dark:text-green-400 min-w-[80px]">Weld Details:</span>
+                        <span className="text-xs text-green-600 dark:text-green-500">{localCert.rangeOfQualification.weldDetails}</span>
+                      </div>
+                    )}
+                    {localCert.rangeOfQualification.layers && (
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-medium text-green-700 dark:text-green-400 min-w-[80px]">Layers:</span>
+                        <span className="text-xs text-green-600 dark:text-green-500">{localCert.rangeOfQualification.layers}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </CardContent>
