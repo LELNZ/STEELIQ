@@ -825,11 +825,35 @@ function NewProjectForm({ onSubmit, clients = [] }: {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Project Identification Section */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-muted-foreground">PROJECT IDENTIFICATION</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-muted-foreground">PROJECT IDENTIFICATION</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">Essential project identifiers for tracking, reporting, and compliance. Project numbers enable cross-system integration with accounting, inventory, and quality management systems.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="name">Project Name*</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="name">Project Name*</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">Descriptive project identifier used in all communications and reports. Should include client name and project type for easy recognition.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="name"
               value={formData.name}
@@ -840,7 +864,19 @@ function NewProjectForm({ onSubmit, clients = [] }: {
           </div>
           
           <div>
-            <Label htmlFor="projectNumber">Project Number</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="projectNumber">Project Number</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">Unique identifier for integration with accounting systems. Format: EST-YYYY-XXX. Auto-generated if left blank.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="projectNumber"
               value={formData.projectNumber}
@@ -851,7 +887,25 @@ function NewProjectForm({ onSubmit, clients = [] }: {
         </div>
         
         <div>
-          <Label htmlFor="projectType">Project Type*</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="projectType">Project Type*</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-sm font-semibold mb-1">Project Types:</p>
+                  <ul className="text-sm space-y-1">
+                    <li>• RFQ: Competitive quote request</li>
+                    <li>• Tender: Formal bid submission</li>
+                    <li>• Budget: Preliminary cost estimate</li>
+                    <li>• Direct Award: Negotiated contract</li>
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <Select 
             value={formData.projectType} 
             onValueChange={(value) => setFormData(prev => ({ ...prev, projectType: value }))}
@@ -869,7 +923,19 @@ function NewProjectForm({ onSubmit, clients = [] }: {
         </div>
         
         <div>
-          <Label htmlFor="clientId">Client</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="clientId">Client</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-sm">Select existing client or create new client profile. Links to contract terms, payment history, and communication preferences.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <Select 
             value={formData.clientId} 
             onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value }))}
@@ -888,7 +954,19 @@ function NewProjectForm({ onSubmit, clients = [] }: {
         </div>
         
         <div>
-          <Label htmlFor="description">Scope Description*</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="description">Scope Description*</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-sm">Detailed project scope including deliverables, specifications, and exclusions. Forms basis of contract and change order management.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <Textarea
             id="description"
             value={formData.description}
@@ -902,11 +980,35 @@ function NewProjectForm({ onSubmit, clients = [] }: {
 
       {/* Timeline & Commercial Section */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-muted-foreground">TIMELINE & COMMERCIAL</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-muted-foreground">TIMELINE & COMMERCIAL</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">Critical dates and financial parameters that drive project planning, resource allocation, and cash flow management. These values integrate with scheduling and procurement systems.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="bidDueDate">Bid Due Date</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="bidDueDate">Bid Due Date</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">Deadline for quote submission. System will send reminders at 7, 3, and 1 day before due date.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="bidDueDate"
               type="date"
@@ -916,7 +1018,19 @@ function NewProjectForm({ onSubmit, clients = [] }: {
           </div>
           
           <div>
-            <Label htmlFor="deliveryDate">Delivery Date</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="deliveryDate">Delivery Date</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">Project completion date. Used for resource planning, material ordering lead times, and milestone scheduling.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="deliveryDate"
               type="date"
@@ -928,7 +1042,19 @@ function NewProjectForm({ onSubmit, clients = [] }: {
         
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <Label htmlFor="targetValue">Target Value ($)</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="targetValue">Target Value ($)</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">Client's budget or expected contract value. Helps optimize pricing strategy and resource allocation.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="targetValue"
               type="number"
@@ -939,7 +1065,19 @@ function NewProjectForm({ onSubmit, clients = [] }: {
           </div>
           
           <div>
-            <Label htmlFor="margin">Target Margin (%)*</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="margin">Target Margin (%)*</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">Gross profit margin target. Industry standard: 15-25% for steel fabrication, adjusted by project complexity.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="margin"
               type="number"
@@ -952,7 +1090,19 @@ function NewProjectForm({ onSubmit, clients = [] }: {
           </div>
           
           <div>
-            <Label htmlFor="validityDays">Quote Validity (days)</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="validityDays">Quote Validity (days)</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">How long the quote remains valid. Standard: 30 days. Affects material price guarantees and resource allocation.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="validityDays"
               type="number"
@@ -965,11 +1115,41 @@ function NewProjectForm({ onSubmit, clients = [] }: {
 
       {/* Risk & Complexity Assessment */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-muted-foreground">RISK & COMPLEXITY</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-muted-foreground">RISK & COMPLEXITY</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">Assess project risks and complexity to determine appropriate margins, resource allocation, and approval requirements. Higher risk projects require additional contingencies.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="riskLevel">Risk Level</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="riskLevel">Risk Level</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm font-semibold mb-1">Risk Categories:</p>
+                    <ul className="text-sm space-y-1">
+                      <li>• Low: Standard designs, repeat clients</li>
+                      <li>• Medium: Custom work, new techniques</li>
+                      <li>• High: Complex engineering, tight deadlines</li>
+                      <li>• Critical: Safety-critical, regulatory compliance</li>
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Select 
               value={formData.riskLevel} 
               onValueChange={(value) => setFormData(prev => ({ ...prev, riskLevel: value }))}
@@ -987,7 +1167,19 @@ function NewProjectForm({ onSubmit, clients = [] }: {
           </div>
           
           <div>
-            <Label htmlFor="complexityScore">Complexity Score (1-5)</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="complexityScore">Complexity Score (1-5)</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">Technical complexity rating. Affects resource allocation, timeline padding, and margin calculations. Score 3+ requires senior team involvement.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Select 
               value={formData.complexityScore} 
               onValueChange={(value) => setFormData(prev => ({ ...prev, complexityScore: value }))}
@@ -1007,14 +1199,38 @@ function NewProjectForm({ onSubmit, clients = [] }: {
         </div>
         
         <div className="space-y-2">
-          <Label>Project Requirements</Label>
+          <div className="flex items-center gap-2">
+            <Label>Project Requirements</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-sm">Document availability and compliance requirements affect project timeline, costs, and approval processes.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <div className="flex items-center space-x-2">
             <Switch
               id="hasDrawings"
               checked={formData.hasDrawings}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasDrawings: checked }))}
             />
-            <Label htmlFor="hasDrawings" className="font-normal">Technical drawings available</Label>
+            <Label htmlFor="hasDrawings" className="font-normal cursor-pointer">
+              Technical drawings available
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="inline-block h-3 w-3 ml-1 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-sm">CAD files, PDF drawings, or sketches. Reduces estimation time by 30%.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Label>
           </div>
           <div className="flex items-center space-x-2">
             <Switch
@@ -1022,7 +1238,19 @@ function NewProjectForm({ onSubmit, clients = [] }: {
               checked={formData.requiresEngineering}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requiresEngineering: checked }))}
             />
-            <Label htmlFor="requiresEngineering" className="font-normal">Requires engineering review</Label>
+            <Label htmlFor="requiresEngineering" className="font-normal cursor-pointer">
+              Requires engineering review
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="inline-block h-3 w-3 ml-1 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-sm">Structural calculations, PE stamps, or design verification needed.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Label>
           </div>
           <div className="flex items-center space-x-2">
             <Switch
@@ -1030,18 +1258,54 @@ function NewProjectForm({ onSubmit, clients = [] }: {
               checked={formData.requiresCompliance}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requiresCompliance: checked }))}
             />
-            <Label htmlFor="requiresCompliance" className="font-normal">Compliance documentation required</Label>
+            <Label htmlFor="requiresCompliance" className="font-normal cursor-pointer">
+              Compliance documentation required
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="inline-block h-3 w-3 ml-1 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-sm">AS/NZS standards, building codes, or safety compliance documentation.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Label>
           </div>
         </div>
       </div>
 
       {/* Resource Planning */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-muted-foreground">RESOURCE PLANNING</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-muted-foreground">RESOURCE PLANNING</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">Resource allocation and scheduling parameters. These values drive workforce planning, equipment booking, and project timeline calculations.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="estimatedHours">Estimated Hours</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="estimatedHours">Estimated Hours</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">Total labor hours estimate. Used for scheduling, cost calculations, and resource allocation. Include all phases: fabrication, finishing, installation.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="estimatedHours"
               type="number"
@@ -1052,7 +1316,25 @@ function NewProjectForm({ onSubmit, clients = [] }: {
           </div>
           
           <div>
-            <Label htmlFor="priority">Priority</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="priority">Priority</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm font-semibold mb-1">Priority Levels:</p>
+                    <ul className="text-sm space-y-1">
+                      <li>• Low: Flexible timeline</li>
+                      <li>• Normal: Standard scheduling</li>
+                      <li>• High: Expedited processing</li>
+                      <li>• Urgent: Immediate attention required</li>
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Select 
               value={formData.priority} 
               onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
