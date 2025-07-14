@@ -81,6 +81,28 @@ async function fixMissingColumns() {
       console.log("× Error adding mapping_rules column:", error.message);
     }
 
+    // Add sync_status column to payroll_integration if it doesn't exist
+    try {
+      await pool.query(`
+        ALTER TABLE payroll_integration 
+        ADD COLUMN IF NOT EXISTS sync_status varchar DEFAULT 'idle'
+      `);
+      console.log("✓ Added sync_status column to payroll_integration table");
+    } catch (error) {
+      console.log("× Error adding sync_status column:", error.message);
+    }
+
+    // Add description column to labor_rate_cards if it doesn't exist
+    try {
+      await pool.query(`
+        ALTER TABLE labor_rate_cards 
+        ADD COLUMN IF NOT EXISTS description text
+      `);
+      console.log("✓ Added description column to labor_rate_cards table");
+    } catch (error) {
+      console.log("× Error adding description column:", error.message);
+    }
+
     console.log("\nColumn fixes completed!");
     process.exit(0);
   } catch (error) {
