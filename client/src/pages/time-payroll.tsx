@@ -26,6 +26,8 @@ export default function TimePayroll() {
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [showPayrollSetup, setShowPayrollSetup] = useState(false);
   const [showAddRateCardDialog, setShowAddRateCardDialog] = useState(false);
+  const [skillLevel, setSkillLevel] = useState("");
+  const [employeeType, setEmployeeType] = useState("");
 
   // Fetch labor rate cards
   const { data: laborRateCards = [] } = useQuery({
@@ -482,21 +484,33 @@ export default function TimePayroll() {
       </Tabs>
 
       {/* Add Labor Rate Card Dialog */}
-      <Dialog open={showAddRateCardDialog} onOpenChange={setShowAddRateCardDialog}>
+      <Dialog open={showAddRateCardDialog} onOpenChange={(open) => {
+        setShowAddRateCardDialog(open);
+        if (!open) {
+          // Reset form when dialog closes
+          setSkillLevel("");
+          setEmployeeType("");
+        }
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add Labor Rate Card</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => {
             e.preventDefault();
-            const formData = new FormData(e.target as HTMLFormElement);
+            const form = e.target as HTMLFormElement;
+            const formData = new FormData(form);
+            
+            // Get select values directly from form elements
+            const skillLevelSelect = form.querySelector('[name="skillLevel"]') as HTMLSelectElement;
+            const employeeTypeSelect = form.querySelector('[name="employeeType"]') as HTMLSelectElement;
             
             const rateCard = {
               name: formData.get('name') as string,
               code: formData.get('code') as string,
               description: formData.get('description') as string,
-              skillLevel: formData.get('skillLevel') as string,
-              employeeType: formData.get('employeeType') as string,
+              skillLevel: skillLevel,
+              employeeType: employeeType,
               baseRate: parseFloat(formData.get('baseRate') as string),
               costRate: parseFloat(formData.get('costRate') as string),
               overtimeMultiplier: parseFloat(formData.get('overtimeMultiplier') as string) || 1.5,
@@ -506,10 +520,32 @@ export default function TimePayroll() {
               effectiveFrom: new Date().toISOString()
             };
 
+            // Validation
+            if (!skillLevel || !employeeType) {
+              toast({
+                title: "Validation Error",
+                description: "Please select both skill level and employee type.",
+                variant: "destructive"
+              });
+              return;
+            }
+
+            console.log('Submitting rate card:', rateCard);
+
             saveLaborRateMutation.mutate(rateCard, {
               onSuccess: () => {
                 setShowAddRateCardDialog(false);
+                setSkillLevel("");
+                setEmployeeType("");
                 queryClient.invalidateQueries({ queryKey: ['/api/labor-rates/cards'] });
+              },
+              onError: (error) => {
+                console.error('Error creating rate card:', error);
+                toast({
+                  title: "Error",
+                  description: "Failed to create rate card. Please try again.",
+                  variant: "destructive"
+                });
               }
             });
           }}>
@@ -528,7 +564,7 @@ export default function TimePayroll() {
               </div>
               <div>
                 <Label htmlFor="skillLevel">Skill Level</Label>
-                <Select name="skillLevel" required>
+                <Select name="skillLevel" value={skillLevel} onValueChange={setSkillLevel} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select skill level" />
                   </SelectTrigger>
@@ -543,7 +579,7 @@ export default function TimePayroll() {
               </div>
               <div>
                 <Label htmlFor="employeeType">Employee Type</Label>
-                <Select name="employeeType" required>
+                <Select name="employeeType" value={employeeType} onValueChange={setEmployeeType} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
