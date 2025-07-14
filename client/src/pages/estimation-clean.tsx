@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -594,11 +595,14 @@ export default function EstimationPage() {
                     New Project
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
+                <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Create Estimation Project</DialogTitle>
                   </DialogHeader>
-                  <NewProjectForm onSubmit={(data) => createProjectMutation.mutate(data)} />
+                  <NewProjectForm 
+                    onSubmit={(data) => createProjectMutation.mutate(data)} 
+                    clients={clients}
+                  />
                 </DialogContent>
               </Dialog>
             )}
@@ -695,64 +699,331 @@ export default function EstimationPage() {
 }
 
 // New Project Form Component
-function NewProjectForm({ onSubmit }: { onSubmit: (data: Partial<EstimationProject>) => void }) {
+function NewProjectForm({ onSubmit, clients = [] }: { 
+  onSubmit: (data: Partial<EstimationProject>) => void;
+  clients?: any[];
+}) {
   const [formData, setFormData] = useState({
+    // Basic Information
     name: "",
+    projectNumber: "",
     description: "",
     clientId: "",
-    margin: "20"
+    projectType: "rfq", // rfq, tender, budget, direct_award
+    
+    // Financial Controls
+    margin: "20",
+    targetValue: "",
+    approvalRequired: false,
+    
+    // Timeline
+    bidDueDate: "",
+    deliveryDate: "",
+    validityDays: "30",
+    
+    // Risk Assessment
+    riskLevel: "medium", // low, medium, high, critical
+    complexityScore: "3", // 1-5 scale
+    
+    // Documentation
+    hasDrawings: false,
+    requiresEngineering: false,
+    requiresCompliance: false,
+    
+    // Resource Planning
+    estimatedHours: "",
+    requiredSkills: [] as string[],
+    priority: "normal" // low, normal, high, urgent
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Calculate smart defaults based on project type
+    const baseMargin = parseInt(formData.margin);
+    const complexityMultiplier = parseInt(formData.complexityScore) / 3;
+    const adjustedMargin = Math.round(baseMargin * complexityMultiplier);
+    
     onSubmit({
       name: formData.name,
       description: formData.description,
       clientId: formData.clientId ? parseInt(formData.clientId) : undefined,
-      margin: parseInt(formData.margin),
+      margin: adjustedMargin,
       status: 'draft' as const,
-      totalCost: 0
+      totalCost: 0,
+      estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : undefined,
+      deliveryDate: formData.deliveryDate ? new Date(formData.deliveryDate) : undefined,
+      projectData: {
+        projectNumber: formData.projectNumber,
+        projectType: formData.projectType,
+        targetValue: formData.targetValue ? parseFloat(formData.targetValue) : undefined,
+        bidDueDate: formData.bidDueDate,
+        validityDays: parseInt(formData.validityDays),
+        riskLevel: formData.riskLevel,
+        complexityScore: parseInt(formData.complexityScore),
+        hasDrawings: formData.hasDrawings,
+        requiresEngineering: formData.requiresEngineering,
+        requiresCompliance: formData.requiresCompliance,
+        requiredSkills: formData.requiredSkills,
+        priority: formData.priority
+      }
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="name">Project Name</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          placeholder="Steel fabrication project name"
-          required
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="Project scope and requirements"
-          rows={3}
-        />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Project Identification Section */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">PROJECT IDENTIFICATION</h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="name">Project Name*</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="e.g., ABC Warehouse Steel Frame"
+              required
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="projectNumber">Project Number</Label>
+            <Input
+              id="projectNumber"
+              value={formData.projectNumber}
+              onChange={(e) => setFormData(prev => ({ ...prev, projectNumber: e.target.value }))}
+              placeholder="e.g., EST-2025-001"
+            />
+          </div>
+        </div>
+        
+        <div>
+          <Label htmlFor="projectType">Project Type*</Label>
+          <Select 
+            value={formData.projectType} 
+            onValueChange={(value) => setFormData(prev => ({ ...prev, projectType: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rfq">RFQ (Request for Quote)</SelectItem>
+              <SelectItem value="tender">Tender Submission</SelectItem>
+              <SelectItem value="budget">Budget Estimate</SelectItem>
+              <SelectItem value="direct_award">Direct Award</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
+          <Label htmlFor="clientId">Client</Label>
+          <Select 
+            value={formData.clientId} 
+            onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select client" />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map((client) => (
+                <SelectItem key={client.id} value={client.id.toString()}>
+                  {client.name} {client.company && `(${client.company})`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
+          <Label htmlFor="description">Scope Description*</Label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            placeholder="Detailed project scope, deliverables, and special requirements..."
+            rows={3}
+            required
+          />
+        </div>
       </div>
 
-      <div>
-        <Label htmlFor="margin">Target Margin (%)</Label>
-        <Input
-          id="margin"
-          type="number"
-          value={formData.margin}
-          onChange={(e) => setFormData(prev => ({ ...prev, margin: e.target.value }))}
-          min="0"
-          max="100"
-        />
+      {/* Timeline & Commercial Section */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">TIMELINE & COMMERCIAL</h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="bidDueDate">Bid Due Date</Label>
+            <Input
+              id="bidDueDate"
+              type="date"
+              value={formData.bidDueDate}
+              onChange={(e) => setFormData(prev => ({ ...prev, bidDueDate: e.target.value }))}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="deliveryDate">Delivery Date</Label>
+            <Input
+              id="deliveryDate"
+              type="date"
+              value={formData.deliveryDate}
+              onChange={(e) => setFormData(prev => ({ ...prev, deliveryDate: e.target.value }))}
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="targetValue">Target Value ($)</Label>
+            <Input
+              id="targetValue"
+              type="number"
+              value={formData.targetValue}
+              onChange={(e) => setFormData(prev => ({ ...prev, targetValue: e.target.value }))}
+              placeholder="0.00"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="margin">Target Margin (%)*</Label>
+            <Input
+              id="margin"
+              type="number"
+              value={formData.margin}
+              onChange={(e) => setFormData(prev => ({ ...prev, margin: e.target.value }))}
+              min="0"
+              max="100"
+              required
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="validityDays">Quote Validity (days)</Label>
+            <Input
+              id="validityDays"
+              type="number"
+              value={formData.validityDays}
+              onChange={(e) => setFormData(prev => ({ ...prev, validityDays: e.target.value }))}
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="flex justify-end gap-2">
-        <Button type="submit">Create Project</Button>
+      {/* Risk & Complexity Assessment */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">RISK & COMPLEXITY</h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="riskLevel">Risk Level</Label>
+            <Select 
+              value={formData.riskLevel} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, riskLevel: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Low - Standard work</SelectItem>
+                <SelectItem value="medium">Medium - Some complexity</SelectItem>
+                <SelectItem value="high">High - Complex requirements</SelectItem>
+                <SelectItem value="critical">Critical - Major project</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="complexityScore">Complexity Score (1-5)</Label>
+            <Select 
+              value={formData.complexityScore} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, complexityScore: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 - Very Simple</SelectItem>
+                <SelectItem value="2">2 - Simple</SelectItem>
+                <SelectItem value="3">3 - Moderate</SelectItem>
+                <SelectItem value="4">4 - Complex</SelectItem>
+                <SelectItem value="5">5 - Very Complex</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Project Requirements</Label>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="hasDrawings"
+              checked={formData.hasDrawings}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasDrawings: checked }))}
+            />
+            <Label htmlFor="hasDrawings" className="font-normal">Technical drawings available</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="requiresEngineering"
+              checked={formData.requiresEngineering}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requiresEngineering: checked }))}
+            />
+            <Label htmlFor="requiresEngineering" className="font-normal">Requires engineering review</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="requiresCompliance"
+              checked={formData.requiresCompliance}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requiresCompliance: checked }))}
+            />
+            <Label htmlFor="requiresCompliance" className="font-normal">Compliance documentation required</Label>
+          </div>
+        </div>
+      </div>
+
+      {/* Resource Planning */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">RESOURCE PLANNING</h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="estimatedHours">Estimated Hours</Label>
+            <Input
+              id="estimatedHours"
+              type="number"
+              value={formData.estimatedHours}
+              onChange={(e) => setFormData(prev => ({ ...prev, estimatedHours: e.target.value }))}
+              placeholder="0"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="priority">Priority</Label>
+            <Select 
+              value={formData.priority} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4 border-t">
+        <Button type="submit">
+          Create Project
+        </Button>
       </div>
     </form>
   );
