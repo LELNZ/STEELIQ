@@ -47,10 +47,11 @@ export default function TimePayroll() {
   // Save labor rate mutation
   const saveLaborRateMutation = useMutation({
     mutationFn: async (rateCard: Partial<LaborRateCard>) => {
-      return apiRequest("/api/labor-rates/cards", {
-        method: rateCard.id ? "PATCH" : "POST",
-        body: JSON.stringify(rateCard),
-      });
+      return apiRequest(
+        rateCard.id ? "PATCH" : "POST",
+        "/api/labor-rates/cards",
+        rateCard
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/labor-rates/cards"] });
@@ -64,9 +65,7 @@ export default function TimePayroll() {
   // Sync payroll mutation
   const syncPayrollMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/payroll/sync", {
-        method: "POST",
-      });
+      return apiRequest("POST", "/api/payroll/sync");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payroll/integration"] });
