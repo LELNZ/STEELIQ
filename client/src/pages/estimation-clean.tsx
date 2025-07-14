@@ -733,7 +733,32 @@ function NewProjectForm({ onSubmit, clients = [] }: {
     // Resource Planning
     estimatedHours: "",
     requiredSkills: [] as string[],
-    priority: "normal" // low, normal, high, urgent
+    priority: "normal", // low, normal, high, urgent
+    
+    // Approval Workflow
+    approvalLevel: "single", // single, dual, multi, board
+    approvalThreshold: "50000", // Dollar amount requiring approval
+    autoEscalate: true,
+    approverRoles: [] as string[],
+    
+    // Document Management
+    documentControl: true,
+    versionControl: true,
+    changeTracking: true,
+    documentRetention: "7", // years
+    
+    // KPI Tracking
+    kpiTracking: true,
+    targetGrossMargin: "25",
+    targetCompletionRate: "95",
+    targetQualityScore: "98",
+    targetSafetyIncidents: "0",
+    
+    // Budget Monitoring
+    budgetVarianceAlert: "5", // percentage
+    costReviewFrequency: "weekly", // daily, weekly, monthly
+    requireCostBreakdown: true,
+    trackChangeOrders: true
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -754,6 +779,7 @@ function NewProjectForm({ onSubmit, clients = [] }: {
       estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : undefined,
       deliveryDate: formData.deliveryDate ? new Date(formData.deliveryDate) : undefined,
       projectData: {
+        // Basic Information
         projectNumber: formData.projectNumber,
         projectType: formData.projectType,
         targetValue: formData.targetValue ? parseFloat(formData.targetValue) : undefined,
@@ -765,7 +791,32 @@ function NewProjectForm({ onSubmit, clients = [] }: {
         requiresEngineering: formData.requiresEngineering,
         requiresCompliance: formData.requiresCompliance,
         requiredSkills: formData.requiredSkills,
-        priority: formData.priority
+        priority: formData.priority,
+        
+        // Approval Workflow
+        approvalLevel: formData.approvalLevel,
+        approvalThreshold: parseFloat(formData.approvalThreshold),
+        autoEscalate: formData.autoEscalate,
+        approverRoles: formData.approverRoles,
+        
+        // Document Management
+        documentControl: formData.documentControl,
+        versionControl: formData.versionControl,
+        changeTracking: formData.changeTracking,
+        documentRetention: parseInt(formData.documentRetention),
+        
+        // KPI Tracking
+        kpiTracking: formData.kpiTracking,
+        targetGrossMargin: formData.kpiTracking ? parseFloat(formData.targetGrossMargin) : null,
+        targetCompletionRate: formData.kpiTracking ? parseFloat(formData.targetCompletionRate) : null,
+        targetQualityScore: formData.kpiTracking ? parseFloat(formData.targetQualityScore) : null,
+        targetSafetyIncidents: formData.kpiTracking ? parseInt(formData.targetSafetyIncidents) : null,
+        
+        // Budget Monitoring
+        budgetVarianceAlert: parseFloat(formData.budgetVarianceAlert),
+        costReviewFrequency: formData.costReviewFrequency,
+        requireCostBreakdown: formData.requireCostBreakdown,
+        trackChangeOrders: formData.trackChangeOrders
       }
     });
   };
@@ -1016,6 +1067,398 @@ function NewProjectForm({ onSubmit, clients = [] }: {
                 <SelectItem value="urgent">Urgent</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Approval Workflow */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-muted-foreground">APPROVAL WORKFLOW</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">Configure multi-level approval chains based on project value and risk. Automatically routes to appropriate managers, directors, or board members based on thresholds.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="approvalLevel">Approval Level</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm font-semibold mb-1">Approval Levels:</p>
+                    <ul className="text-sm space-y-1">
+                      <li>• Single: One manager approval</li>
+                      <li>• Dual: Manager + Director</li>
+                      <li>• Multi: Full management chain</li>
+                      <li>• Board: Requires board approval</li>
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Select 
+              value={formData.approvalLevel} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, approvalLevel: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="single">Single Approval</SelectItem>
+                <SelectItem value="dual">Dual Approval</SelectItem>
+                <SelectItem value="multi">Multi-Level</SelectItem>
+                <SelectItem value="board">Board Level</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="approvalThreshold">Approval Threshold ($)</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">Project values above this amount trigger the approval workflow. Standard thresholds: $50k (Manager), $250k (Director), $1M+ (Board)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Input
+              id="approvalThreshold"
+              type="number"
+              value={formData.approvalThreshold}
+              onChange={(e) => setFormData(prev => ({ ...prev, approvalThreshold: e.target.value }))}
+              placeholder="50000"
+            />
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="autoEscalate"
+            checked={formData.autoEscalate}
+            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, autoEscalate: checked }))}
+          />
+          <Label htmlFor="autoEscalate" className="font-normal cursor-pointer">
+            Auto-escalate if not approved within 48 hours
+          </Label>
+        </div>
+      </div>
+
+      {/* Document Management */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-muted-foreground">DOCUMENT MANAGEMENT</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">Enterprise document control system with version tracking, change logs, and compliance audit trails. Meets ISO 9001:2015 requirements.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="documentControl"
+              checked={formData.documentControl}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, documentControl: checked }))}
+            />
+            <Label htmlFor="documentControl" className="font-normal cursor-pointer">
+              Enable document control (mandatory for tenders)
+            </Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="versionControl"
+              checked={formData.versionControl}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, versionControl: checked }))}
+            />
+            <Label htmlFor="versionControl" className="font-normal cursor-pointer">
+              Track all document versions and revisions
+            </Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="changeTracking"
+              checked={formData.changeTracking}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, changeTracking: checked }))}
+            />
+            <Label htmlFor="changeTracking" className="font-normal cursor-pointer">
+              Enable change tracking with user attribution
+            </Label>
+          </div>
+        </div>
+        
+        <div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="documentRetention">Document Retention (years)</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-sm">Legal requirement for project documentation retention. Standard: 7 years for contracts, 10 years for safety-critical projects.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Select 
+            value={formData.documentRetention} 
+            onValueChange={(value) => setFormData(prev => ({ ...prev, documentRetention: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="3">3 years</SelectItem>
+              <SelectItem value="5">5 years</SelectItem>
+              <SelectItem value="7">7 years (Standard)</SelectItem>
+              <SelectItem value="10">10 years (Safety-critical)</SelectItem>
+              <SelectItem value="permanent">Permanent</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* KPI Tracking */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-muted-foreground">KPI TRACKING & METRICS</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">Set performance targets and track against industry benchmarks. Automated reporting to management dashboards with real-time variance alerts.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
+        <div className="flex items-center space-x-2 mb-4">
+          <Switch
+            id="kpiTracking"
+            checked={formData.kpiTracking}
+            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, kpiTracking: checked }))}
+          />
+          <Label htmlFor="kpiTracking" className="font-normal cursor-pointer">
+            Enable KPI tracking for this project
+          </Label>
+        </div>
+        
+        {formData.kpiTracking && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="targetGrossMargin">Target Gross Margin (%)</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-sm">Industry average: 15-25% for steel fabrication</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Input
+                id="targetGrossMargin"
+                type="number"
+                value={formData.targetGrossMargin}
+                onChange={(e) => setFormData(prev => ({ ...prev, targetGrossMargin: e.target.value }))}
+                placeholder="25"
+              />
+            </div>
+            
+            <div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="targetCompletionRate">On-Time Completion (%)</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-sm">Target for milestone completion rate</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Input
+                id="targetCompletionRate"
+                type="number"
+                value={formData.targetCompletionRate}
+                onChange={(e) => setFormData(prev => ({ ...prev, targetCompletionRate: e.target.value }))}
+                placeholder="95"
+              />
+            </div>
+            
+            <div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="targetQualityScore">Quality Score (%)</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-sm">First-time pass rate for QA inspections</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Input
+                id="targetQualityScore"
+                type="number"
+                value={formData.targetQualityScore}
+                onChange={(e) => setFormData(prev => ({ ...prev, targetQualityScore: e.target.value }))}
+                placeholder="98"
+              />
+            </div>
+            
+            <div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="targetSafetyIncidents">Safety Target (incidents)</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-sm">Zero harm target for safety incidents</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Input
+                id="targetSafetyIncidents"
+                type="number"
+                value={formData.targetSafetyIncidents}
+                onChange={(e) => setFormData(prev => ({ ...prev, targetSafetyIncidents: e.target.value }))}
+                placeholder="0"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Budget Variance Monitoring */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-muted-foreground">BUDGET VARIANCE MONITORING</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">Real-time budget tracking with automated alerts when costs exceed thresholds. Integrates with procurement and change order systems.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="budgetVarianceAlert">Variance Alert Threshold (%)</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">Trigger alerts when actual costs exceed budget by this percentage. Industry standard: 5% warning, 10% critical.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Input
+              id="budgetVarianceAlert"
+              type="number"
+              value={formData.budgetVarianceAlert}
+              onChange={(e) => setFormData(prev => ({ ...prev, budgetVarianceAlert: e.target.value }))}
+              placeholder="5"
+            />
+          </div>
+          
+          <div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="costReviewFrequency">Cost Review Frequency</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-sm">How often to review and report on project costs</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Select 
+              value={formData.costReviewFrequency} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, costReviewFrequency: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="requireCostBreakdown"
+              checked={formData.requireCostBreakdown}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requireCostBreakdown: checked }))}
+            />
+            <Label htmlFor="requireCostBreakdown" className="font-normal cursor-pointer">
+              Require detailed cost breakdown for all expenses
+            </Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="trackChangeOrders"
+              checked={formData.trackChangeOrders}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, trackChangeOrders: checked }))}
+            />
+            <Label htmlFor="trackChangeOrders" className="font-normal cursor-pointer">
+              Track and approve all change orders separately
+            </Label>
           </div>
         </div>
       </div>
