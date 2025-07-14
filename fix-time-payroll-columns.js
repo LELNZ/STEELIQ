@@ -37,6 +37,17 @@ async function fixMissingColumns() {
       console.log("× Error adding device_info column:", error.message);
     }
 
+    // Add task_id column to time_clocks if it doesn't exist
+    try {
+      await pool.query(`
+        ALTER TABLE time_clocks 
+        ADD COLUMN IF NOT EXISTS task_id integer REFERENCES job_tasks(id)
+      `);
+      console.log("✓ Added task_id column to time_clocks table");
+    } catch (error) {
+      console.log("× Error adding task_id column:", error.message);
+    }
+
     // Add api_key column to payroll_integration if it doesn't exist
     try {
       await pool.query(`
