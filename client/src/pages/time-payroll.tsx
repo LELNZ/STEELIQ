@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Timer, Clock, Calendar, MapPin, Users, DollarSign, 
   Smartphone, Wifi, WifiOff, Camera, Upload, Download,
@@ -23,6 +25,7 @@ export default function TimePayroll() {
   const queryClient = useQueryClient();
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [showPayrollSetup, setShowPayrollSetup] = useState(false);
+  const [showAddRateCardDialog, setShowAddRateCardDialog] = useState(false);
 
   // Fetch labor rate cards
   const { data: laborRateCards = [] } = useQuery({
@@ -42,13 +45,13 @@ export default function TimePayroll() {
   // Save labor rate mutation
   const saveLaborRateMutation = useMutation({
     mutationFn: async (rateCard: Partial<LaborRateCard>) => {
-      return apiRequest("/api/labor-rates", {
+      return apiRequest("/api/labor-rates/cards", {
         method: rateCard.id ? "PATCH" : "POST",
         body: JSON.stringify(rateCard),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/labor-rates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/labor-rates/cards"] });
       toast({
         title: "Success",
         description: "Labor rate saved successfully.",
@@ -201,7 +204,7 @@ export default function TimePayroll() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Labor Rate Cards</span>
-                <Button size="sm">
+                <Button size="sm" onClick={() => setShowAddRateCardDialog(true)}>
                   <Users className="w-4 h-4 mr-2" />
                   Add Rate Card
                 </Button>
@@ -477,6 +480,116 @@ export default function TimePayroll() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Add Labor Rate Card Dialog */}
+      <Dialog open={showAddRateCardDialog} onOpenChange={setShowAddRateCardDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add Labor Rate Card</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target as HTMLFormElement);
+            
+            const rateCard = {
+              name: formData.get('name') as string,
+              code: formData.get('code') as string,
+              description: formData.get('description') as string,
+              skillLevel: formData.get('skillLevel') as string,
+              employeeType: formData.get('employeeType') as string,
+              baseRate: parseFloat(formData.get('baseRate') as string),
+              costRate: parseFloat(formData.get('costRate') as string),
+              overtimeMultiplier: parseFloat(formData.get('overtimeMultiplier') as string) || 1.5,
+              weekendMultiplier: parseFloat(formData.get('weekendMultiplier') as string) || 1.5,
+              holidayMultiplier: parseFloat(formData.get('holidayMultiplier') as string) || 2.0,
+              nightShiftMultiplier: parseFloat(formData.get('nightShiftMultiplier') as string) || 1.2,
+              effectiveFrom: new Date().toISOString()
+            };
+
+            saveLaborRateMutation.mutate(rateCard, {
+              onSuccess: () => {
+                setShowAddRateCardDialog(false);
+                queryClient.invalidateQueries({ queryKey: ['/api/labor-rates/cards'] });
+              }
+            });
+          }}>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Rate Card Name</Label>
+                <Input id="name" name="name" placeholder="e.g., Senior Welder" required />
+              </div>
+              <div>
+                <Label htmlFor="code">Code</Label>
+                <Input id="code" name="code" placeholder="e.g., SW01" required />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea id="description" name="description" placeholder="Describe this rate card..." />
+              </div>
+              <div>
+                <Label htmlFor="skillLevel">Skill Level</Label>
+                <Select name="skillLevel" required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select skill level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="apprentice">Apprentice</SelectItem>
+                    <SelectItem value="tradesman">Tradesman</SelectItem>
+                    <SelectItem value="senior">Senior</SelectItem>
+                    <SelectItem value="supervisor">Supervisor</SelectItem>
+                    <SelectItem value="specialist">Specialist</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="employeeType">Employee Type</Label>
+                <Select name="employeeType" required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="contractor">Contractor</SelectItem>
+                    <SelectItem value="subcontractor">Subcontractor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="baseRate">Base Rate ($/hr)</Label>
+                <Input id="baseRate" name="baseRate" type="number" step="0.01" placeholder="120.00" required />
+              </div>
+              <div>
+                <Label htmlFor="costRate">Cost Rate ($/hr)</Label>
+                <Input id="costRate" name="costRate" type="number" step="0.01" placeholder="85.00" required />
+              </div>
+              <div>
+                <Label htmlFor="overtimeMultiplier">Overtime Multiplier</Label>
+                <Input id="overtimeMultiplier" name="overtimeMultiplier" type="number" step="0.1" placeholder="1.5" defaultValue="1.5" />
+              </div>
+              <div>
+                <Label htmlFor="weekendMultiplier">Weekend Multiplier</Label>
+                <Input id="weekendMultiplier" name="weekendMultiplier" type="number" step="0.1" placeholder="1.5" defaultValue="1.5" />
+              </div>
+              <div>
+                <Label htmlFor="holidayMultiplier">Holiday Multiplier</Label>
+                <Input id="holidayMultiplier" name="holidayMultiplier" type="number" step="0.1" placeholder="2.0" defaultValue="2.0" />
+              </div>
+              <div>
+                <Label htmlFor="nightShiftMultiplier">Night Shift Multiplier</Label>
+                <Input id="nightShiftMultiplier" name="nightShiftMultiplier" type="number" step="0.1" placeholder="1.2" defaultValue="1.2" />
+              </div>
+            </div>
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setShowAddRateCardDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saveLaborRateMutation.isPending}>
+                {saveLaborRateMutation.isPending ? "Creating..." : "Create Rate Card"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
