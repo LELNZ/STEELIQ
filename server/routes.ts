@@ -3481,11 +3481,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
+      console.log("Creating labor rate card with data:", req.body);
+      
+      // Validate required fields
+      const { name, skillLevel, employeeType, baseRate, costRate, effectiveFrom } = req.body;
+      if (!name || !skillLevel || !employeeType || baseRate === undefined || costRate === undefined || !effectiveFrom) {
+        return res.status(400).json({ 
+          message: "Missing required fields. Please provide name, skillLevel, employeeType, baseRate, costRate, and effectiveFrom" 
+        });
+      }
+
       const [newRateCard] = await db.insert(laborRateCards).values(req.body).returning();
       res.json(newRateCard);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating labor rate card:", error);
-      res.status(500).json({ message: "Failed to create labor rate card" });
+      console.error("Error details:", error.message);
+      res.status(500).json({ 
+        message: "Failed to create labor rate card",
+        details: error.message
+      });
     }
   });
 

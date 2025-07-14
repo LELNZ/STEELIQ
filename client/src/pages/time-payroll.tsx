@@ -517,7 +517,7 @@ export default function TimePayroll() {
               weekendMultiplier: parseFloat(formData.get('weekendMultiplier') as string) || 1.5,
               holidayMultiplier: parseFloat(formData.get('holidayMultiplier') as string) || 2.0,
               nightShiftMultiplier: parseFloat(formData.get('nightShiftMultiplier') as string) || 1.2,
-              effectiveFrom: new Date().toISOString()
+              effectiveFrom: format(new Date(), 'yyyy-MM-dd')
             };
 
             // Validation
@@ -538,12 +538,18 @@ export default function TimePayroll() {
                 setSkillLevel("");
                 setEmployeeType("");
                 queryClient.invalidateQueries({ queryKey: ['/api/labor-rates/cards'] });
+                toast({
+                  title: "Success",
+                  description: "Labor rate card created successfully!",
+                });
               },
-              onError: (error) => {
+              onError: (error: any) => {
                 console.error('Error creating rate card:', error);
+                console.error('Error details:', error.message);
+                const errorMessage = error.message || "Failed to create rate card. Please try again.";
                 toast({
                   title: "Error",
-                  description: "Failed to create rate card. Please try again.",
+                  description: errorMessage,
                   variant: "destructive"
                 });
               }
