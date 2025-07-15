@@ -1225,42 +1225,6 @@ function EstimationWorkspace({
     </div>
   );
 }
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="clientId">Client</Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-sm">Select existing client or create new client profile. Links to contract terms, payment history, and communication preferences.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <QuickAddClientDialog 
-              onClientAdded={(newClient) => {
-                setFormData(prev => ({ ...prev, clientId: newClient.id.toString() }));
-              }} 
-            />
-          </div>
-          <Select 
-            value={formData.clientId} 
-            onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select client" />
-            </SelectTrigger>
-            <SelectContent>
-              {clients.map((client) => (
-                <SelectItem key={client.id} value={client.id.toString()}>
-                  {client.name} {client.company && `(${client.company})`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
         
         <div>
           <div className="flex items-center gap-2">
