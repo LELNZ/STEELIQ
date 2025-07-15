@@ -18,6 +18,17 @@ import { Readable } from 'stream';
 import { analyzeConstructionDrawing, validateSteelSpecifications } from "./pdf-analysis";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint for deployment monitoring
+  app.get("/api/health", (req, res) => {
+    res.json({
+      status: "healthy",
+      version: process.env.npm_package_version || "1.0.0",
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development"
+    });
+  });
+
   // Configure multer for file uploads
   const upload = multer({ 
     storage: multer.memoryStorage(),
