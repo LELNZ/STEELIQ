@@ -12,7 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Calendar, Clock, AlertCircle, DollarSign, Users, FileText, TrendingUp, Shield, CheckCircle2, Building2, Calculator, CreditCard, MapPin, Target, Milestone } from 'lucide-react';
+import { Calendar, Clock, AlertCircle, DollarSign, Users, FileText, TrendingUp, Shield, CheckCircle2, Building2, Calculator, CreditCard, MapPin, Target, Milestone, Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -63,6 +65,129 @@ interface EnhancedProjectFormProps {
   isLoading?: boolean;
 }
 
+// Quick Add Client Dialog Component
+function QuickAddClientDialog({ onClientAdded }: { onClientAdded: (client: any) => void }) {
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    company: "",
+    email: "",
+    phone: "",
+    address: "",
+    city: "",
+    postcode: ""
+  });
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const createClientMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      return await apiRequest("POST", "/api/clients", data);
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Client added",
+        description: "New client has been added successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      onClientAdded(data);
+      setOpen(false);
+      setFormData({
+        name: "",
+        company: "",
+        email: "",
+        phone: "",
+        address: "",
+        city: "",
+        postcode: ""
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add client",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createClientMutation.mutate(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline" size="icon">
+          <Plus className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Add New Client</DialogTitle>
+          <DialogDescription>
+            Create a new client for this project
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="quick-name">Client Name*</Label>
+            <Input
+              id="quick-name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="John Smith"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="quick-company">Company</Label>
+            <Input
+              id="quick-company"
+              value={formData.company}
+              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+              placeholder="ABC Construction Ltd"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="quick-email">Email</Label>
+            <Input
+              id="quick-email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="john@example.com"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="quick-phone">Phone</Label>
+            <Input
+              id="quick-phone"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="+64 21 123 4567"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={createClientMutation.isPending}>
+              {createClientMutation.isPending ? "Adding..." : "Add Client"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: EnhancedProjectFormProps) {
   const [completenessScore, setCompletenessScore] = useState(0);
   const { toast } = useToast();
@@ -100,6 +225,35 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
       ...initialData
     }
   });
+
+  // Generate WBS Code automatically
+  const generateWBSCode = () => {
+    const projectType = form.getValues('projectType');
+    const clientId = form.getValues('clientId');
+    const currentYear = new Date().getFullYear();
+    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+    
+    // Get project type prefix
+    const typePrefix = {
+      'new_construction': 'NC',
+      'renovation': 'RN',
+      'maintenance': 'MN',
+      'emergency': 'EM',
+      'design_build': 'DB'
+    }[projectType] || 'PRJ';
+    
+    // Generate sequential number based on timestamp
+    const sequential = Date.now().toString().slice(-4);
+    
+    // Format: TYPE-YEAR-MONTH-SEQ (e.g., NC-2025-01-1234)
+    const wbsCode = `${typePrefix}-${currentYear}-${currentMonth}-${sequential}`;
+    
+    form.setValue('wbsCode', wbsCode);
+    toast({
+      title: "WBS Code Generated",
+      description: `Generated code: ${wbsCode}`,
+    });
+  };
 
   // Calculate form completeness (Phase 1 Feature)
   React.useEffect(() => {
@@ -176,8 +330,10 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
                 <TabsTrigger value="milestones">Milestones</TabsTrigger>
               </TabsList>
 
-              {/* Basic Information Tab */}
-              <TabsContent value="basic" className="space-y-4">
+              {/* Tab content container with fixed height */}
+              <div className="min-h-[500px]">
+                {/* Basic Information Tab */}
+                <TabsContent value="basic" className="space-y-4 mt-6">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -201,12 +357,51 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
                     name="wbsCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>WBS Code</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., PRJ-2025-001-STL" {...field} />
-                        </FormControl>
+                        <FormLabel className="flex items-center gap-2">
+                          WBS Code
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button type="button" variant="ghost" size="icon" className="h-4 w-4 p-0">
+                                  <AlertCircle className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-md">
+                                <div className="space-y-2">
+                                  <p className="font-semibold">What is WBS (Work Breakdown Structure)?</p>
+                                  <p>WBS is a hierarchical coding system used by Fortune 500 companies to organize and track projects. It breaks down complex projects into smaller, manageable components.</p>
+                                  <p className="font-semibold">Who uses it?</p>
+                                  <ul className="list-disc pl-4">
+                                    <li>Project Managers - for organizing project tasks</li>
+                                    <li>Finance Teams - for cost tracking and budgeting</li>
+                                    <li>ERP Systems - for enterprise resource planning</li>
+                                    <li>Management - for portfolio oversight</li>
+                                  </ul>
+                                  <p className="font-semibold">Example Structure:</p>
+                                  <p className="font-mono text-sm">NC-2025-01-1234</p>
+                                  <p className="text-sm">NC = New Construction<br/>2025 = Year<br/>01 = Month<br/>1234 = Sequential ID</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </FormLabel>
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input placeholder="e.g., PRJ-2025-001-STL" {...field} />
+                          </FormControl>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm"
+                            onClick={generateWBSCode}
+                            disabled={!form.watch('projectType')}
+                          >
+                            <Calculator className="h-4 w-4 mr-1" />
+                            Generate
+                          </Button>
+                        </div>
                         <FormDescription>
-                          Work Breakdown Structure code for enterprise tracking
+                          Auto-generate or enter custom WBS code for enterprise tracking
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -242,20 +437,25 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Client</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select client" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {clients.map((client: any) => (
-                              <SelectItem key={client.id} value={client.id.toString()}>
-                                {client.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex gap-2">
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="flex-1">
+                                <SelectValue placeholder="Select client" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {clients.map((client: any) => (
+                                <SelectItem key={client.id} value={client.id.toString()}>
+                                  {client.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <QuickAddClientDialog onClientAdded={(client) => {
+                            form.setValue('clientId', client.id.toString());
+                          }} />
+                        </div>
                         <FormDescription>
                           Select existing client or create new one
                         </FormDescription>
@@ -295,7 +495,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
               </TabsContent>
 
               {/* Commercial Tab */}
-              <TabsContent value="commercial" className="space-y-4">
+              <TabsContent value="commercial" className="space-y-4 mt-6">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -425,7 +625,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
               </TabsContent>
 
               {/* Timeline Tab */}
-              <TabsContent value="timeline" className="space-y-4">
+              <TabsContent value="timeline" className="space-y-4 mt-6">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -478,7 +678,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
               </TabsContent>
 
               {/* Risk & Resources Tab */}
-              <TabsContent value="risk" className="space-y-4">
+              <TabsContent value="risk" className="space-y-4 mt-6">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -607,7 +807,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
               </TabsContent>
 
               {/* Milestones Tab */}
-              <TabsContent value="milestones" className="space-y-4">
+              <TabsContent value="milestones" className="space-y-4 mt-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-medium">Key Project Milestones</h3>
@@ -669,6 +869,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
                   ))}
                 </div>
               </TabsContent>
+              </div>
             </Tabs>
 
             {/* Action Buttons */}
