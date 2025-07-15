@@ -57,6 +57,7 @@ import CoatingsTab from "@/components/estimation/coatings-tab";
 import OverheadConfiguration from "@/components/estimation/overhead-configuration";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useEstimationDefaults } from "@/hooks/useEstimationDefaults";
+import { EnhancedProjectForm } from "@/components/estimation/EnhancedProjectForm";
 
 // Types for estimation system
 interface EstimationProject {
@@ -522,7 +523,35 @@ export default function EstimationPage() {
 
   // Create new estimation project
   const createProjectMutation = useMutation({
-    mutationFn: async (projectData: Partial<EstimationProject>) => {
+    mutationFn: async (formData: any) => {
+      // Transform enhanced form data to match backend expectations
+      const projectData = {
+        name: formData.name,
+        description: formData.description,
+        clientId: formData.clientId ? parseInt(formData.clientId) : undefined,
+        clientName: formData.clientName,
+        status: 'draft' as const,
+        totalCost: 0,
+        margin: 20, // Default margin, will be updated from risk assessment
+        estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : undefined,
+        deliveryDate: formData.deliveryDate ? new Date(formData.deliveryDate) : undefined,
+        // Store additional Fortune 500 fields in projectData JSON
+        projectData: {
+          contractType: formData.contractType,
+          projectType: formData.projectType,
+          wbsCode: formData.wbsCode,
+          bidDate: formData.bidDate,
+          targetValue: formData.targetValue ? parseFloat(formData.targetValue) : undefined,
+          quoteValidity: parseInt(formData.quoteValidity || '30'),
+          riskLevel: formData.riskLevel,
+          complexityScore: parseInt(formData.complexityScore || '3'),
+          paymentTerms: formData.paymentTerms,
+          retentionPercentage: formData.retentionPercentage ? parseFloat(formData.retentionPercentage) : undefined,
+          priority: formData.priority,
+          keyMilestones: formData.keyMilestones || []
+        }
+      };
+      
       return await apiRequest("POST", "/api/estimations", projectData);
     },
     onSuccess: (data) => {
@@ -531,7 +560,14 @@ export default function EstimationPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/estimations"] });
       toast({
         title: "Project Created",
-        description: "Estimation project created successfully",
+        description: "Fortune 500 standard estimation project created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Create Project",
+        description: error.message || "Please check all required fields and try again",
+        variant: "destructive",
       });
     }
   });
@@ -596,13 +632,10 @@ export default function EstimationPage() {
                     New Project
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Create Estimation Project</DialogTitle>
-                  </DialogHeader>
-                  <NewProjectForm 
+                <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+                  <EnhancedProjectForm 
                     onSubmit={(data) => createProjectMutation.mutate(data)} 
-                    clients={clients}
+                    isLoading={createProjectMutation.isPending}
                   />
                 </DialogContent>
               </Dialog>
