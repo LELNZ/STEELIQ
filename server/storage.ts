@@ -1016,8 +1016,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEstimationProject(project: InsertEstimationProject): Promise<EstimationProject> {
+    // Ensure projectData is a valid JSONB object
+    const projectToInsert = {
+      ...project,
+      projectData: project.projectData || {}
+    };
+    
     const [created] = await db.insert(estimationProjects)
-      .values(project)
+      .values(projectToInsert)
       .returning();
     return created;
   }

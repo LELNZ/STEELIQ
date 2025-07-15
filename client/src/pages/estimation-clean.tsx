@@ -45,7 +45,8 @@ import {
   BarChart3,
   PieChart,
   LineChart,
-  Edit
+  Edit,
+  UserPlus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -698,243 +699,551 @@ export default function EstimationPage() {
   );
 }
 
+// Quick Add Client Dialog Component
+function QuickAddClientDialog({ onClientAdded }: { onClientAdded: (client: any) => void }) {
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    company: "",
+    email: "",
+    phone: "",
+    address: "",
+    city: "",
+    postcode: "",
+  });
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const createClientMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      return apiRequest("/api/clients", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: (newClient) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      onClientAdded(newClient);
+      setOpen(false);
+      setFormData({
+        name: "",
+        company: "",
+        email: "",
+        phone: "",
+        address: "",
+        city: "",
+        postcode: "",
+      });
+      toast({
+        title: "Success",
+        description: "Client added successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add client",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createClientMutation.mutate(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" type="button">
+          <UserPlus className="h-4 w-4 mr-1" />
+          Quick Add
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Quick Add Client</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="quick-name">Client Name*</Label>
+              <Input
+                id="quick-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Client or Company Name"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="quick-company">Company</Label>
+              <Input
+                id="quick-company"
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                placeholder="Company Name"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="quick-email">Email</Label>
+              <Input
+                id="quick-email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="client@company.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="quick-phone">Phone</Label>
+              <Input
+                id="quick-phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="+64 21 123 4567"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="quick-address">Address</Label>
+            <Input
+              id="quick-address"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              placeholder="123 Main Street"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="quick-city">City</Label>
+              <Input
+                id="quick-city"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                placeholder="Auckland"
+              />
+            </div>
+            <div>
+              <Label htmlFor="quick-postcode">Postcode</Label>
+              <Input
+                id="quick-postcode"
+                value={formData.postcode}
+                onChange={(e) => setFormData({ ...formData, postcode: e.target.value })}
+                placeholder="1010"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={createClientMutation.isPending}>
+              {createClientMutation.isPending ? "Adding..." : "Add Client"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // New Project Form Component
 function NewProjectForm({ onSubmit, clients = [] }: { 
   onSubmit: (data: Partial<EstimationProject>) => void;
   clients?: any[];
 }) {
   const [formData, setFormData] = useState({
-    // Basic Information
     name: "",
     projectNumber: "",
     description: "",
     clientId: "",
-    projectType: "rfq", // rfq, tender, budget, direct_award
-    
-    // Financial Controls
+    projectType: "rfq",
     margin: "20",
     targetValue: "",
-    approvalRequired: false,
-    
-    // Timeline
     bidDueDate: "",
     deliveryDate: "",
-    validityDays: "30",
-    
-    // Risk Assessment
-    riskLevel: "medium", // low, medium, high, critical
-    complexityScore: "3", // 1-5 scale
-    
-    // Documentation
-    hasDrawings: false,
-    requiresEngineering: false,
-    requiresCompliance: false,
-    
-    // Resource Planning
     estimatedHours: "",
-    requiredSkills: [] as string[],
-    priority: "normal", // low, normal, high, urgent
-    
-    // Approval Workflow
-    approvalLevel: "single", // single, dual, multi, board
-    approvalThreshold: "50000", // Dollar amount requiring approval
-    autoEscalate: true,
-    approverRoles: [] as string[],
-    
-    // Document Management
-    documentControl: true,
-    versionControl: true,
-    changeTracking: true,
-    documentRetention: "7", // years
-    
-    // KPI Tracking
-    kpiTracking: true,
-    targetGrossMargin: "25",
-    targetCompletionRate: "95",
-    targetQualityScore: "98",
-    targetSafetyIncidents: "0",
-    
-    // Budget Monitoring
-    budgetVarianceAlert: "5", // percentage
-    costReviewFrequency: "weekly", // daily, weekly, monthly
-    requireCostBreakdown: true,
-    trackChangeOrders: true
+    priority: "normal"
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Calculate smart defaults based on project type
-    const baseMargin = parseInt(formData.margin);
-    const complexityMultiplier = parseInt(formData.complexityScore) / 3;
-    const adjustedMargin = Math.round(baseMargin * complexityMultiplier);
-    
     onSubmit({
       name: formData.name,
       description: formData.description,
       clientId: formData.clientId ? parseInt(formData.clientId) : undefined,
-      margin: adjustedMargin,
+      margin: parseInt(formData.margin),
       status: 'draft' as const,
       totalCost: 0,
       estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : undefined,
       deliveryDate: formData.deliveryDate ? new Date(formData.deliveryDate) : undefined,
       projectData: {
-        // Basic Information
         projectNumber: formData.projectNumber,
         projectType: formData.projectType,
         targetValue: formData.targetValue ? parseFloat(formData.targetValue) : undefined,
         bidDueDate: formData.bidDueDate,
-        validityDays: parseInt(formData.validityDays),
-        riskLevel: formData.riskLevel,
-        complexityScore: parseInt(formData.complexityScore),
-        hasDrawings: formData.hasDrawings,
-        requiresEngineering: formData.requiresEngineering,
-        requiresCompliance: formData.requiresCompliance,
-        requiredSkills: formData.requiredSkills,
-        priority: formData.priority,
-        
-        // Approval Workflow
-        approvalLevel: formData.approvalLevel,
-        approvalThreshold: parseFloat(formData.approvalThreshold),
-        autoEscalate: formData.autoEscalate,
-        approverRoles: formData.approverRoles,
-        
-        // Document Management
-        documentControl: formData.documentControl,
-        versionControl: formData.versionControl,
-        changeTracking: formData.changeTracking,
-        documentRetention: parseInt(formData.documentRetention),
-        
-        // KPI Tracking
-        kpiTracking: formData.kpiTracking,
-        targetGrossMargin: formData.kpiTracking ? parseFloat(formData.targetGrossMargin) : null,
-        targetCompletionRate: formData.kpiTracking ? parseFloat(formData.targetCompletionRate) : null,
-        targetQualityScore: formData.kpiTracking ? parseFloat(formData.targetQualityScore) : null,
-        targetSafetyIncidents: formData.kpiTracking ? parseInt(formData.targetSafetyIncidents) : null,
-        
-        // Budget Monitoring
-        budgetVarianceAlert: parseFloat(formData.budgetVarianceAlert),
-        costReviewFrequency: formData.costReviewFrequency,
-        requireCostBreakdown: formData.requireCostBreakdown,
-        trackChangeOrders: formData.trackChangeOrders
+        priority: formData.priority
       }
     });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Project Identification Section */}
+      {/* Basic Project Information */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-muted-foreground">PROJECT IDENTIFICATION</h3>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="text-sm">Essential project identifiers for tracking, reporting, and compliance. Project numbers enable cross-system integration with accounting, inventory, and quality management systems.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+        <h3 className="text-sm font-semibold text-muted-foreground">PROJECT INFORMATION</h3>
         
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <Label htmlFor="name">Project Name*</Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-sm">Descriptive project identifier used in all communications and reports. Should include client name and project type for easy recognition.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+            <Label htmlFor="name">Project Name*</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="e.g., ABC Warehouse Steel Frame"
+              placeholder="Steel Warehouse Construction"
               required
             />
           </div>
           
           <div>
+            <Label htmlFor="projectNumber">Project Number</Label>
+            <Input
+              id="projectNumber"
+              value={formData.projectNumber}
+              onChange={(e) => setFormData(prev => ({ ...prev, projectNumber: e.target.value }))}
+              placeholder="PRJ-2025-001"
+            />
+          </div>
+        </div>
+        
+        <div>
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            placeholder="Brief description of the project scope"
+            rows={3}
+          />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="clientId">Client</Label>
+            <div className="flex gap-2">
+              <Select 
+                value={formData.clientId} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id.toString()}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <QuickAddClientDialog onClientAdded={(client) => {
+                setFormData(prev => ({ ...prev, clientId: client.id.toString() }));
+              }} />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="projectType">Project Type</Label>
+            <Select 
+              value={formData.projectType} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, projectType: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rfq">RFQ - Request for Quote</SelectItem>
+                <SelectItem value="tender">Tender</SelectItem>
+                <SelectItem value="budget">Budget Estimate</SelectItem>
+                <SelectItem value="direct_award">Direct Award</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+      
+      {/* Financial & Timeline */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">FINANCIAL & TIMELINE</h3>
+        
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="margin">Margin (%)</Label>
+            <Input
+              id="margin"
+              type="number"
+              value={formData.margin}
+              onChange={(e) => setFormData(prev => ({ ...prev, margin: e.target.value }))}
+              placeholder="20"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="targetValue">Target Value ($)</Label>
+            <Input
+              id="targetValue"
+              type="number"
+              value={formData.targetValue}
+              onChange={(e) => setFormData(prev => ({ ...prev, targetValue: e.target.value }))}
+              placeholder="100000"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="estimatedHours">Estimated Hours</Label>
+            <Input
+              id="estimatedHours"
+              type="number"
+              value={formData.estimatedHours}
+              onChange={(e) => setFormData(prev => ({ ...prev, estimatedHours: e.target.value }))}
+              placeholder="480"
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="bidDueDate">Bid Due Date</Label>
+            <Input
+              id="bidDueDate"
+              type="date"
+              value={formData.bidDueDate}
+              onChange={(e) => setFormData(prev => ({ ...prev, bidDueDate: e.target.value }))}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="deliveryDate">Delivery Date</Label>
+            <Input
+              id="deliveryDate"
+              type="date"
+              value={formData.deliveryDate}
+              onChange={(e) => setFormData(prev => ({ ...prev, deliveryDate: e.target.value }))}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="priority">Priority</Label>
+            <Select 
+              value={formData.priority} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-end space-x-2 pt-4 border-t">
+        <Button type="submit">
+          Create Project
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+// Project Overview Component
+function ProjectOverview({ projects, onSelectProject }: {
+  projects: EstimationProject[];
+  onSelectProject: (project: EstimationProject) => void;
+}) {
+  return (
+    <div className="max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {projects.map((project) => (
+          <Card key={project.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <Badge variant={project.status === 'completed' ? 'default' : 'secondary'}>
+                  {project.status}
+                </Badge>
+                <div className="text-right">
+                  <div className="text-lg font-bold">${project.totalCost.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">Total</div>
+                </div>
+              </div>
+              <CardTitle className="text-lg">{project.name}</CardTitle>
+              <p className="text-sm text-muted-foreground">{project.description}</p>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => onSelectProject(project)}
+                className="w-full"
+              >
+                Open Estimation
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Estimation Workspace Component
+function EstimationWorkspace({ 
+  project, 
+  estimationData, 
+  setEstimationData,
+  materials,
+  aiSuggestions,
+  isAiAssistEnabled,
+  onBack,
+  hasUnsavedChanges,
+  onManualSave,
+  saveEstimationMutation
+}: {
+  project: EstimationProject;
+  estimationData: EstimationData | null;
+  setEstimationData: (data: EstimationData | null) => void;
+  materials: any[];
+  aiSuggestions: string[];
+  isAiAssistEnabled: boolean;
+  onBack: () => void;
+  hasUnsavedChanges: boolean;
+  onManualSave: () => void;
+  saveEstimationMutation: any;
+}) {
+  const [activeTab, setActiveTab] = useState("materials");
+
+  // Simple tab change without auto-save
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+  };
+
+  if (!estimationData) return null;
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Project Header - Clean without save controls */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div>
+                <CardTitle className="text-xl">{project.name}</CardTitle>
+                <p className="text-muted-foreground">{project.description}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold">${(estimationData.totals?.total || 0).toLocaleString()}</div>
+              <p className="text-sm text-muted-foreground">Total Estimate</p>
+              <p className="text-xs text-muted-foreground">
+                Labor: ${(estimationData.totals?.labor || 0).toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+      
+      {/* Tabs for estimation sections */}
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="materials">Materials</TabsTrigger>
+          <TabsTrigger value="labor">Labor</TabsTrigger>
+          <TabsTrigger value="equipment">Equipment</TabsTrigger>
+          <TabsTrigger value="subcontractors">Subcontractors</TabsTrigger>
+          <TabsTrigger value="other">Other Costs</TabsTrigger>
+          <TabsTrigger value="summary">Summary</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="materials">
+          <MaterialsTab
+            materials={estimationData.materials}
+            setMaterials={(materials) => setEstimationData({ ...estimationData, materials })}
+            availableMaterials={materials}
+            aiSuggestions={isAiAssistEnabled ? aiSuggestions : []}
+          />
+        </TabsContent>
+        
+        <TabsContent value="labor">
+          <LaborTab
+            labor={estimationData.labor}
+            setLabor={(labor) => setEstimationData({ ...estimationData, labor })}
+          />
+        </TabsContent>
+        
+        <TabsContent value="equipment">
+          <EquipmentTab
+            equipment={estimationData.equipment}
+            setEquipment={(equipment) => setEstimationData({ ...estimationData, equipment })}
+          />
+        </TabsContent>
+        
+        <TabsContent value="subcontractors">
+          <SubcontractorsTab
+            subcontractors={estimationData.subcontractors}
+            setSubcontractors={(subcontractors) => setEstimationData({ ...estimationData, subcontractors })}
+          />
+        </TabsContent>
+        
+        <TabsContent value="other">
+          <OtherCostsTab
+            otherCosts={estimationData.otherCosts}
+            setOtherCosts={(otherCosts) => setEstimationData({ ...estimationData, otherCosts })}
+          />
+        </TabsContent>
+        
+        <TabsContent value="summary">
+          <SummaryTab
+            estimationData={estimationData}
+            project={project}
+            hasUnsavedChanges={hasUnsavedChanges}
+            onManualSave={onManualSave}
+            saveEstimationMutation={saveEstimationMutation}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Label htmlFor="projectNumber">Project Number</Label>
+              <Label htmlFor="clientId">Client</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p className="text-sm">Unique identifier for integration with accounting systems. Format: EST-YYYY-XXX. Auto-generated if left blank.</p>
+                    <p className="text-sm">Select existing client or create new client profile. Links to contract terms, payment history, and communication preferences.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <Input
-              id="projectNumber"
-              value={formData.projectNumber}
-              onChange={(e) => setFormData(prev => ({ ...prev, projectNumber: e.target.value }))}
-              placeholder="e.g., EST-2025-001"
+            <QuickAddClientDialog 
+              onClientAdded={(newClient) => {
+                setFormData(prev => ({ ...prev, clientId: newClient.id.toString() }));
+              }} 
             />
-          </div>
-        </div>
-        
-        <div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="projectType">Project Type*</Label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="text-sm font-semibold mb-1">Project Types:</p>
-                  <ul className="text-sm space-y-1">
-                    <li>• RFQ: Competitive quote request</li>
-                    <li>• Tender: Formal bid submission</li>
-                    <li>• Budget: Preliminary cost estimate</li>
-                    <li>• Direct Award: Negotiated contract</li>
-                  </ul>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <Select 
-            value={formData.projectType} 
-            onValueChange={(value) => setFormData(prev => ({ ...prev, projectType: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="rfq">RFQ (Request for Quote)</SelectItem>
-              <SelectItem value="tender">Tender Submission</SelectItem>
-              <SelectItem value="budget">Budget Estimate</SelectItem>
-              <SelectItem value="direct_award">Direct Award</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="clientId">Client</Label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="text-sm">Select existing client or create new client profile. Links to contract terms, payment history, and communication preferences.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
           <Select 
             value={formData.clientId} 
@@ -1274,12 +1583,15 @@ function NewProjectForm({ onSubmit, clients = [] }: {
           </div>
         </div>
       </div>
-
-      {/* Resource Planning */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-muted-foreground">RESOURCE PLANNING</h3>
-          <TooltipProvider>
+        </TabsContent>
+        
+        {/* Risk & Resources Tab */}
+        <TabsContent value="risk-resources" className="space-y-6">
+          {/* Risk Assessment - moved from project details */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">RISK ASSESSMENT</h3>
+              <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Info className="h-4 w-4 text-muted-foreground cursor-help" />
@@ -1744,6 +2056,8 @@ function NewProjectForm({ onSubmit, clients = [] }: {
           </div>
         </div>
       </div>
+        </TabsContent>
+      </Tabs>
 
       <div className="flex justify-end space-x-2 pt-4 border-t">
         <Button type="submit">
