@@ -18,7 +18,7 @@ import {
   type EstimationProject, type InsertEstimationProject, type TeamMember, type InsertTeamMember,
   type ArchivedEmployee, type InsertArchivedEmployee, type EmployeeAuditLog, type InsertEmployeeAuditLog
 } from "@shared/schema";
-import { desc, eq, lt, asc, like, and, or, sql } from "drizzle-orm";
+import { desc, eq, lt, asc, like, and, or, sql, inArray } from "drizzle-orm";
 import { db } from "./db";
 
 export interface IStorage {
@@ -51,6 +51,7 @@ export interface IStorage {
   updateMaterial(id: number, material: Partial<InsertMaterial>): Promise<Material>;
   deleteMaterial(id: number): Promise<void>;
   searchMaterials(query: string): Promise<Material[]>;
+  getMaterialsByCategories(categories: string[]): Promise<Material[]>;
 
   // Inventory
   getInventory(): Promise<Inventory[]>;
@@ -303,6 +304,15 @@ export class DatabaseStorage implements IStorage {
         )
       )
     ).orderBy(asc(materials.code));
+  }
+
+  async getMaterialsByCategories(categories: string[]): Promise<Material[]> {
+    return await db.select().from(materials).where(
+      and(
+        eq(materials.isActive, true),
+        inArray(materials.category, categories)
+      )
+    );
   }
 
   // Inventory

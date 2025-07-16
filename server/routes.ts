@@ -1973,7 +1973,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/coating-systems", async (req, res) => {
     try {
-      const coatingSystems = await storage.getCoatingSystems();
+      // Query coating systems from materials table
+      const coatingSystems = await storage.getMaterialsByCategories([
+        'Alkyd Systems',
+        'Epoxy Systems',
+        'Polyurethane Systems',
+        'Zinc Silicate Systems',
+        'Galvanizing',
+        'Intumescent',
+        'Coating Systems'
+      ]);
       res.json(coatingSystems);
     } catch (error: any) {
       console.error("Error fetching coating systems:", error);
