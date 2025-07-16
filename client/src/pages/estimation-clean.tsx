@@ -46,7 +46,8 @@ import {
   PieChart,
   LineChart,
   Edit,
-  UserPlus
+  UserPlus,
+  Workflow
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -595,6 +596,16 @@ export default function EstimationPage() {
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Back to Projects
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => window.location.href = `/projects/${currentProject.id}/lifecycle`}
+                  className="flex items-center gap-2"
+                  size="sm"
+                >
+                  <Workflow className="h-4 w-4" />
+                  Process Tracking
                 </Button>
                 
                 <Button 

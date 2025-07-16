@@ -1488,6 +1488,96 @@ export type InsertCoatingSystem = z.infer<typeof insertCoatingSystemSchema>;
 export type SurfaceAreaConfig = typeof surfaceAreaConfigs.$inferSelect;
 export type InsertSurfaceAreaConfig = z.infer<typeof insertSurfaceAreaConfigSchema>;
 
+// Project Lifecycle Tracking Tables
+export const projectLifecyclePhases = pgTable("project_lifecycle_phases", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  phaseCode: varchar("phase_code", { length: 50 }).notNull(),
+  phaseName: text("phase_name").notNull(),
+  phaseCategory: text("phase_category").notNull(),
+  sequenceOrder: integer("sequence_order").notNull(),
+  status: varchar("status", { length: 50 }).default("pending"),
+  plannedStart: timestamp("planned_start"),
+  actualStart: timestamp("actual_start"),
+  plannedEnd: timestamp("planned_end"),
+  actualEnd: timestamp("actual_end"),
+  blockingReason: text("blocking_reason"),
+  completionCriteria: jsonb("completion_criteria").default({}),
+  automationRules: jsonb("automation_rules").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const projectLifecycleTasks = pgTable("project_lifecycle_tasks", {
+  id: serial("id").primaryKey(),
+  phaseId: integer("phase_id").references(() => projectLifecyclePhases.id),
+  taskCode: varchar("task_code", { length: 50 }).notNull(),
+  taskName: text("task_name").notNull(),
+  taskDescription: text("task_description"),
+  responsibleParty: varchar("responsible_party", { length: 50 }),
+  assignedTo: integer("assigned_to").references(() => users.id),
+  status: varchar("status", { length: 50 }).default("pending"),
+  dueDate: timestamp("due_date"),
+  startedDate: timestamp("started_date"),
+  completedDate: timestamp("completed_date"),
+  completedBy: integer("completed_by").references(() => users.id),
+  requiredDocuments: jsonb("required_documents").default([]),
+  attachedDocuments: jsonb("attached_documents").default([]),
+  approvalRequired: boolean("approval_required").default(false),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedDate: timestamp("approved_date"),
+  automationTrigger: varchar("automation_trigger", { length: 100 }),
+  dependencies: jsonb("dependencies").default([]),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const projectStakeholders = pgTable("project_stakeholders", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  stakeholderType: varchar("stakeholder_type", { length: 50 }).notNull(),
+  companyName: text("company_name"),
+  contactPerson: text("contact_person"),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 50 }),
+  portalAccess: boolean("portal_access").default(false),
+  portalRole: varchar("portal_role", { length: 50 }),
+  notificationPreferences: jsonb("notification_preferences").default({ email: true, sms: false, in_app: true }),
+  accessPermissions: jsonb("access_permissions").default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const projectLifecycleEvents = pgTable("project_lifecycle_events", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  phaseId: integer("phase_id").references(() => projectLifecyclePhases.id),
+  taskId: integer("task_id").references(() => projectLifecycleTasks.id),
+  eventType: varchar("event_type", { length: 50 }).notNull(),
+  eventDescription: text("event_description"),
+  triggeredBy: integer("triggered_by").references(() => users.id),
+  triggeredBySystem: boolean("triggered_by_system").default(false),
+  oldValue: jsonb("old_value"),
+  newValue: jsonb("new_value"),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const projectLifecycleTemplates = pgTable("project_lifecycle_templates", {
+  id: serial("id").primaryKey(),
+  templateName: text("template_name").notNull(),
+  templateDescription: text("template_description"),
+  projectType: varchar("project_type", { length: 50 }),
+  phases: jsonb("phases").notNull(),
+  tasks: jsonb("tasks").notNull(),
+  automationRules: jsonb("automation_rules").default({}),
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Estimation System Tables
 export const estimationProjects = pgTable("estimation_projects", {
   id: serial("id").primaryKey(),
