@@ -33,7 +33,7 @@ const projectFormSchema = z.object({
   
   // Timeline & Commercial
   bidDate: z.string().optional(),
-  deliveryDate: z.string().min(1, 'Delivery date is required'),
+  deliveryDate: z.string().optional(),
   targetValue: z.string().optional(),
   quoteValidity: z.string().default('30'),
   
@@ -220,7 +220,14 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
     retentionPercentage: '10',
     estimatedHours: '',
     priority: 'medium',
-    keyMilestones: [],
+    keyMilestones: [
+      { name: 'Quote Acceptance', date: '', percentage: '0' },
+      { name: 'Shop Drawings Approval', date: '', percentage: '20' },
+      { name: 'Material Procurement', date: '', percentage: '30' },
+      { name: 'Fabrication Complete', date: '', percentage: '70' },
+      { name: 'Delivery & Installation', date: '', percentage: '90' },
+      { name: 'Final Inspection', date: '', percentage: '100' }
+    ],
     ...initialData
   };
 

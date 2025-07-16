@@ -1019,6 +1019,11 @@ export class DatabaseStorage implements IStorage {
     // Remove projectData field as it doesn't exist in the database yet
     const { projectData, ...projectToInsert } = project;
     
+    // Convert deliveryDate string to Date object if it exists
+    if (projectToInsert.deliveryDate && typeof projectToInsert.deliveryDate === 'string') {
+      projectToInsert.deliveryDate = new Date(projectToInsert.deliveryDate);
+    }
+    
     const [created] = await db.insert(estimationProjects)
       .values(projectToInsert)
       .returning();
