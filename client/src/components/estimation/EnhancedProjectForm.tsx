@@ -202,28 +202,31 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
     enabled: false // Will implement in backend
   });
 
+  // Define default values separately to track what's been changed
+  const defaultValues = {
+    name: '',
+    description: '',
+    clientId: '',
+    contractType: 'fixed_price',
+    projectType: 'new_construction',
+    wbsCode: '',
+    bidDate: '',
+    deliveryDate: '',
+    targetValue: '',
+    quoteValidity: '30',
+    riskLevel: 'medium',
+    complexityScore: '3',
+    paymentTerms: 'net_30',
+    retentionPercentage: '10',
+    estimatedHours: '',
+    priority: 'medium',
+    keyMilestones: [],
+    ...initialData
+  };
+
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      clientId: '',
-      contractType: 'fixed_price',
-      projectType: 'new_construction',
-      wbsCode: '',
-      bidDate: '',
-      deliveryDate: '',
-      targetValue: '',
-      quoteValidity: '30',
-      riskLevel: 'medium',
-      complexityScore: '3',
-      paymentTerms: 'net_30',
-      retentionPercentage: '10',
-      estimatedHours: '',
-      priority: 'medium',
-      keyMilestones: [],
-      ...initialData
-    }
+    defaultValues
   });
 
   // Generate WBS Code automatically
@@ -259,10 +262,26 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
   React.useEffect(() => {
     const values = form.watch();
     const fields = Object.keys(projectFormSchema.shape);
+    
+    // Only count fields that have been modified from their default values
     const filledFields = fields.filter(field => {
-      const value = values[field as keyof ProjectFormValues];
-      return value && value !== '' && (!Array.isArray(value) || value.length > 0);
+      const currentValue = values[field as keyof ProjectFormValues];
+      const defaultValue = defaultValues[field as keyof ProjectFormValues];
+      
+      // Skip empty values
+      if (!currentValue || currentValue === '') return false;
+      
+      // For arrays, check if they have meaningful content
+      if (Array.isArray(currentValue)) {
+        return currentValue.length > 0 && currentValue.some(item => 
+          Object.values(item).some(val => val && val !== '')
+        );
+      }
+      
+      // For other fields, check if they've been changed from default
+      return currentValue !== defaultValue;
     });
+    
     const score = Math.round((filledFields.length / fields.length) * 100);
     setCompletenessScore(score);
   }, [form.watch()]);
