@@ -217,6 +217,7 @@ export default function EstimationPage() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const { overheadSettings } = useBusinessSettings();
   const estimationDefaults = useEstimationDefaults();
 
