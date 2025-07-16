@@ -2012,7 +2012,7 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
               <div>
                 <p className="text-sm text-muted-foreground">Materials</p>
                 <p className="text-2xl font-bold text-blue-600">${totals.materials.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">{estimationData.materials.length} items</p>
+                <p className="text-xs text-muted-foreground">{(estimationData.materials || []).length} items</p>
               </div>
               <Package className="h-8 w-8 text-blue-600" />
             </div>
@@ -2025,7 +2025,7 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
               <div>
                 <p className="text-sm text-muted-foreground">Labor</p>
                 <p className="text-2xl font-bold text-green-600">${totals.labor.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">{estimationData.labor.length} tasks</p>
+                <p className="text-xs text-muted-foreground">{(estimationData.labor || []).length} tasks</p>
               </div>
               <Users className="h-8 w-8 text-green-600" />
             </div>
@@ -2038,7 +2038,7 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
               <div>
                 <p className="text-sm text-muted-foreground">Equipment</p>
                 <p className="text-2xl font-bold text-orange-600">${totals.equipment.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">{estimationData.equipment.length} items</p>
+                <p className="text-xs text-muted-foreground">{(estimationData.equipment || []).length} items</p>
               </div>
               <Wrench className="h-8 w-8 text-orange-600" />
             </div>
@@ -2051,7 +2051,7 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
               <div>
                 <p className="text-sm text-muted-foreground">Consumables</p>
                 <p className="text-2xl font-bold text-purple-600">${totals.consumables.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">{estimationData.consumables.length} items</p>
+                <p className="text-xs text-muted-foreground">{(estimationData.consumables || []).length} items</p>
               </div>
               <Zap className="h-8 w-8 text-purple-600" />
             </div>
@@ -2064,7 +2064,7 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
               <div>
                 <p className="text-sm text-muted-foreground">Coatings</p>
                 <p className="text-2xl font-bold text-cyan-600">${totals.coatings.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">{estimationData.coatings.length} systems</p>
+                <p className="text-xs text-muted-foreground">{(estimationData.coatings || []).length} systems</p>
               </div>
               <Building2 className="h-8 w-8 text-cyan-600" />
             </div>
@@ -2077,7 +2077,7 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
               <div>
                 <p className="text-sm text-muted-foreground">Subcontractors</p>
                 <p className="text-2xl font-bold text-indigo-600">${totals.subcontractors.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">{estimationData.subcontractors.length} contractors</p>
+                <p className="text-xs text-muted-foreground">{(estimationData.subcontractors || []).length} contractors</p>
               </div>
               <UserPlus className="h-8 w-8 text-indigo-600" />
             </div>
