@@ -115,11 +115,11 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
   };
 
   const handleRemove = (id: string) => {
-    setSubcontractors(subcontractors.filter(s => s.id !== id));
+    setSubcontractors((subcontractors || []).filter(s => s.id !== id));
   };
 
   const updateMarkup = (id: string, markup: number) => {
-    setSubcontractors(subcontractors.map(s => {
+    setSubcontractors((subcontractors || []).map(s => {
       if (s.id === id) {
         const totalCost = s.quotedAmount * (1 + markup / 100);
         return { ...s, markup, totalCost };
@@ -141,7 +141,7 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
     });
   };
 
-  const totalCost = subcontractors.reduce((sum, s) => sum + s.totalCost, 0);
+  const totalCost = (subcontractors || []).reduce((sum, s) => sum + s.totalCost, 0);
 
   return (
     <div className="space-y-4">
@@ -165,7 +165,7 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
           </div>
         </CardHeader>
         <CardContent>
-          {subcontractors.length === 0 ? (
+          {(!subcontractors || subcontractors.length === 0) ? (
             <div className="text-center py-8 text-muted-foreground">
               <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No subcontractors added yet</p>
