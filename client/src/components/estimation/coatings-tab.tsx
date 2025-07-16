@@ -121,10 +121,11 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
     const isGalvanizing = newCoating.coatingType === "galvanizing";
     const hasValidMeasurement = isGalvanizing ? newCoating.weightKg > 0 : newCoating.surfaceArea > 0;
     
-    if (!newCoating.coatingName || !hasValidMeasurement || newCoating.unitCost <= 0) {
+    // Only require coating name and measurement - allow 0 unit cost for editing
+    if (!newCoating.coatingName || !hasValidMeasurement) {
       toast({
-        title: "Invalid Input",
-        description: "Please fill in all required fields with valid values",
+        title: "Missing Required Fields",
+        description: "Please enter coating name and " + (isGalvanizing ? "weight" : "surface area"),
         variant: "destructive"
       });
       return;
@@ -286,14 +287,15 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                           }`}
                           onClick={() => {
                             setSelectedCoatingSystemId(system.id.toString());
+                            const coatingType = getCoatingType(system.category);
                             setNewCoating({
                               ...newCoating,
                               coatingName: system.name,
-                              coatingType: getCoatingType(system.category),
+                              coatingType: coatingType,
                               category: getCoatingCategory(system.category),
                               unitCost: parseFloat(system.pricePerKg || system.unitCost || 0),
-                              surfaceArea: totalMaterialSurfaceArea,
-                              weightKg: system.category?.toLowerCase().includes('galvanizing') ? totalMaterialWeight : 0,
+                              surfaceArea: coatingType === "galvanizing" ? 0 : totalMaterialSurfaceArea,
+                              weightKg: coatingType === "galvanizing" ? totalMaterialWeight : 0,
                               notes: `${system.asNzsReference || ''} ${system.applicationMethod || ''} ${system.layersDft || ''}`.trim()
                             });
                           }}
@@ -333,6 +335,75 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                       ))
                     )}
                   </div>
+                  
+                  {/* Editable fields for selected coating */}
+                  {selectedCoatingSystemId && (
+                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium">Edit Details</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="editUnitCost">
+                            Unit Cost ({newCoating.coatingType === "galvanizing" ? "$/kg" : "$/m²"}) *
+                          </Label>
+                          <Input
+                            id="editUnitCost"
+                            type="number"
+                            step="0.01"
+                            value={newCoating.unitCost}
+                            onChange={(e) => setNewCoating({...newCoating, unitCost: parseFloat(e.target.value) || 0})}
+                            placeholder="Enter price if missing"
+                          />
+                        </div>
+                        
+                        {newCoating.coatingType === "galvanizing" ? (
+                          <div className="space-y-2">
+                            <Label htmlFor="editWeightKg">Weight (kg) *</Label>
+                            <Input
+                              id="editWeightKg"
+                              type="number"
+                              step="0.01"
+                              value={newCoating.weightKg}
+                              onChange={(e) => setNewCoating({...newCoating, weightKg: parseFloat(e.target.value) || 0})}
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Label htmlFor="editSurfaceArea">Surface Area (m²) *</Label>
+                            <Input
+                              id="editSurfaceArea"
+                              type="number"
+                              step="0.01"
+                              value={newCoating.surfaceArea}
+                              onChange={(e) => setNewCoating({...newCoating, surfaceArea: parseFloat(e.target.value) || 0})}
+                            />
+                          </div>
+                        )}
+                        
+                        {newCoating.coatingType !== "galvanizing" && (
+                          <div className="space-y-2">
+                            <Label htmlFor="editCoats">Number of Coats</Label>
+                            <Input
+                              id="editCoats"
+                              type="number"
+                              min="1"
+                              value={newCoating.coats}
+                              onChange={(e) => setNewCoating({...newCoating, coats: parseInt(e.target.value) || 1})}
+                            />
+                          </div>
+                        )}
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              checked={newCoating.isInhouse}
+                              onCheckedChange={(checked) => setNewCoating({...newCoating, isInhouse: checked})}
+                            />
+                            <Label>In-house work</Label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
