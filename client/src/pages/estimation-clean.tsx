@@ -464,14 +464,24 @@ export default function EstimationPage() {
       const response = await fetch(`/api/estimations/${project.id}`);
       if (response.ok) {
         const existingData = await response.json();
-        setEstimationData(existingData);
+        // Handle the nested project structure from the server
+        if (existingData.project) {
+          // Server returns data with nested project, normalize it
+          const normalizedData = {
+            ...existingData,
+            project: existingData.project
+          };
+          setEstimationData(normalizedData);
+        } else {
+          setEstimationData(existingData);
+        }
         // Reset original data reference for new project
         originalDataRef.current = null;
         // Will be set in the useEffect when estimationData updates
         return;
       }
     } catch (error) {
-      console.log("No existing estimation data, creating new");
+      console.log("No existing estimation data, creating new", error);
     }
 
     // Create new estimation data if none exists
