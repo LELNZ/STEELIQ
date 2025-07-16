@@ -54,6 +54,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { MaterialsTab } from "@/components/estimation/materials-tab-clean";
 import PdfAnalysisTab from "@/components/estimation/pdf-analysis-tab";
 import { EnhancedLaborTab } from "@/components/estimation/enhanced-labor-tab";
+import { EnhancedEquipmentTab } from "@/components/estimation/enhanced-equipment-tab";
+import { EnhancedConsumablesTab } from "@/components/estimation/enhanced-consumables-tab";
 import CoatingsTab from "@/components/estimation/coatings-tab";
 import OverheadConfiguration from "@/components/estimation/overhead-configuration";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
@@ -1239,40 +1241,40 @@ function EstimationWorkspace({
         </TabsContent>
         
         <TabsContent value="labor">
-          <LaborTab
+          <EnhancedLaborTab
             labor={estimationData.labor}
             setLabor={(labor) => setEstimationData({ ...estimationData, labor })}
           />
         </TabsContent>
         
         <TabsContent value="equipment">
-          <EquipmentTab
+          <EnhancedEquipmentTab
             equipment={estimationData.equipment}
             setEquipment={(equipment) => setEstimationData({ ...estimationData, equipment })}
           />
         </TabsContent>
         
         <TabsContent value="subcontractors">
-          <SubcontractorsTab
-            subcontractors={estimationData.subcontractors}
-            setSubcontractors={(subcontractors) => setEstimationData({ ...estimationData, subcontractors })}
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Subcontractors</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Subcontractor management coming soon...</p>
+            </CardContent>
+          </Card>
         </TabsContent>
         
         <TabsContent value="other">
-          <OtherCostsTab
-            otherCosts={estimationData.otherCosts}
-            setOtherCosts={(otherCosts) => setEstimationData({ ...estimationData, otherCosts })}
+          <EnhancedConsumablesTab
+            consumables={estimationData.consumables}
+            setConsumables={(consumables) => setEstimationData({ ...estimationData, consumables })}
           />
         </TabsContent>
         
         <TabsContent value="summary">
           <SummaryTab
             estimationData={estimationData}
-            project={project}
-            hasUnsavedChanges={hasUnsavedChanges}
-            onManualSave={onManualSave}
-            saveEstimationMutation={saveEstimationMutation}
           />
         </TabsContent>
       </Tabs>
