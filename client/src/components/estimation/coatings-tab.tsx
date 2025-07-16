@@ -137,25 +137,6 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
       totalCost: calculateTotal(newCoating)
     };
 
-    // Add to material library coating systems if new
-    try {
-      await fetch('/api/coating-systems', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: coating.coatingName,
-          coating_type: coating.coatingType,
-          pricing_method: isGalvanizing ? 'per_kg' : 'per_m2',
-          price_per_unit: coating.unitCost,
-          coverage_rate: isGalvanizing ? 1 : coating.surfaceArea,
-          preparation_required: coating.category,
-          is_active: true
-        })
-      });
-    } catch (error) {
-      console.log('Note: Coating system not added to library');
-    }
-
     onCoatingsChange([...coatings, coating]);
     setNewCoating(defaultCoating);
     setShowAddDialog(false);
@@ -227,122 +208,118 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
               Add Coating
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-            <DialogHeader>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden">
+            <DialogHeader className="pb-2">
               <DialogTitle>Add Coating System</DialogTitle>
             </DialogHeader>
             
             <Tabs defaultValue="library" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="library">Select from Library</TabsTrigger>
-                <TabsTrigger value="custom">Create Custom</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 h-9">
+                <TabsTrigger value="library" className="text-sm">Select from Library</TabsTrigger>
+                <TabsTrigger value="custom" className="text-sm">Create Custom</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="library" className="space-y-4 max-h-[60vh] overflow-y-auto">
-                <div className="space-y-4">
-                  {/* Search Bar */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      placeholder="Search coating systems by name, code, or category..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                  
-                  {/* Category Filter */}
-                  <div className="flex gap-2 flex-wrap">
-                    <Badge 
-                      variant={selectedCategory === "all" ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => setSelectedCategory("all")}
-                    >
-                      All ({coatingSystems.length})
-                    </Badge>
-                    {coatingCategories.map(category => (
-                      <Badge
-                        key={category}
-                        variant={selectedCategory === category ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => setSelectedCategory(category)}
+              <TabsContent value="library" className="space-y-3 mt-3">
+                <div className="flex gap-3">
+                  {/* Left side - Coating list */}
+                  <div className="flex-1 space-y-3">
+                    {/* Search Bar */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        placeholder="Search coating systems..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9 h-9 text-sm"
+                      />
+                    </div>
+                    
+                    {/* Category Filter */}
+                    <div className="flex gap-1.5 flex-wrap">
+                      <Badge 
+                        variant={selectedCategory === "all" ? "default" : "outline"}
+                        className="cursor-pointer text-xs py-0.5 px-2"
+                        onClick={() => setSelectedCategory("all")}
                       >
-                        {category}
+                        All ({coatingSystems.length})
                       </Badge>
-                    ))}
-                  </div>
-                  
-                  {/* Coating Systems List */}
-                  <div className="space-y-2">
-                    {filteredCoatingSystems.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">
-                        No coating systems found matching your search
-                      </p>
-                    ) : (
-                      filteredCoatingSystems.map((system: any) => (
-                        <Card 
-                          key={system.id} 
-                          className={`cursor-pointer transition-all hover:shadow-md ${
-                            selectedCoatingSystemId === system.id.toString() ? 'ring-2 ring-primary' : ''
-                          }`}
-                          onClick={() => {
-                            setSelectedCoatingSystemId(system.id.toString());
-                            const coatingType = getCoatingType(system.category);
-                            setNewCoating({
-                              ...newCoating,
-                              coatingName: system.name,
-                              coatingType: coatingType,
-                              category: getCoatingCategory(system.category),
-                              unitCost: parseFloat(system.pricePerKg || system.unitCost || 0),
-                              surfaceArea: coatingType === "galvanizing" ? 0 : totalMaterialSurfaceArea,
-                              weightKg: coatingType === "galvanizing" ? totalMaterialWeight : 0,
-                              notes: `${system.asNzsReference || ''} ${system.applicationMethod || ''} ${system.layersDft || ''}`.trim()
-                            });
-                          }}
+                      {coatingCategories.slice(0, 5).map(category => (
+                        <Badge
+                          key={category}
+                          variant={selectedCategory === category ? "default" : "outline"}
+                          className="cursor-pointer text-xs py-0.5 px-2"
+                          onClick={() => setSelectedCategory(category)}
                         >
-                          <CardContent className="p-4">
+                          {category}
+                        </Badge>
+                      ))}
+                    </div>
+                    
+                    {/* Coating Systems List */}
+                    <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-2">
+                      {filteredCoatingSystems.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-4 text-sm">
+                          No coating systems found
+                        </p>
+                      ) : (
+                        filteredCoatingSystems.map((system: any) => (
+                          <Card 
+                            key={system.id} 
+                            className={`cursor-pointer transition-all p-2 ${
+                              selectedCoatingSystemId === system.id.toString() ? 'ring-2 ring-primary bg-primary/5' : 'hover:bg-gray-50'
+                            }`}
+                            onClick={() => {
+                              setSelectedCoatingSystemId(system.id.toString());
+                              const coatingType = getCoatingType(system.category);
+                              setNewCoating({
+                                ...newCoating,
+                                coatingName: system.name,
+                                coatingType: coatingType,
+                                category: getCoatingCategory(system.category),
+                                unitCost: parseFloat(system.pricePerKg || system.unitCost || 0),
+                                surfaceArea: coatingType === "galvanizing" ? 0 : totalMaterialSurfaceArea,
+                                weightKg: coatingType === "galvanizing" ? totalMaterialWeight : 0,
+                                notes: `${system.asNzsReference || ''} ${system.applicationMethod || ''} ${system.layersDft || ''}`.trim()
+                              });
+                            }}
+                          >
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-medium">{system.name}</h4>
-                                  <Badge variant="outline" className="text-xs">
-                                    {system.code}
-                                  </Badge>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-medium text-sm">{system.name}</h4>
+                                  {system.code && (
+                                    <Badge variant="outline" className="text-xs py-0 px-1">
+                                      {system.code}
+                                    </Badge>
+                                  )}
                                 </div>
-                                <p className="text-sm text-muted-foreground">{system.category}</p>
+                                <div className="flex items-center gap-3 mt-1">
+                                  <p className="text-xs text-muted-foreground">{system.category}</p>
+                                  {system.layersDft && (
+                                    <span className="text-xs text-muted-foreground">• {system.layersDft}</span>
+                                  )}
+                                  {system.durabilityYears && (
+                                    <span className="text-xs text-muted-foreground">• {system.durabilityYears} years</span>
+                                  )}
+                                </div>
                               </div>
                               <div className="text-right">
-                                <p className="font-medium">${system.pricePerKg || system.unitCost || 0}/kg</p>
+                                <p className="font-medium text-sm">${system.pricePerKg || system.unitCost || 0}/kg</p>
                               </div>
                             </div>
-                            
-                            <div className="grid grid-cols-3 gap-4 mt-3 text-sm">
-                              <div className="flex items-center gap-1">
-                                <Layers className="h-4 w-4 text-muted-foreground" />
-                                <span>{system.layersDft || 'N/A'}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Shield className="h-4 w-4 text-muted-foreground" />
-                                <span>{system.durabilityYears || 'N/A'} years</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <FileText className="h-4 w-4 text-muted-foreground" />
-                                <span>{system.asNzsReference || 'N/A'}</span>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))
-                    )}
+                          </Card>
+                        ))
+                      )}
+                    </div>
                   </div>
                   
-                  {/* Editable fields for selected coating */}
+                  {/* Right side - Edit fields */}
                   {selectedCoatingSystemId && (
-                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                      <h4 className="font-medium">Edit Details</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="editUnitCost">
+                    <div className="w-96 space-y-3 bg-gray-50 p-3 rounded-lg">
+                      <h4 className="font-medium text-sm">Edit Details</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="editUnitCost" className="text-sm">
                             Unit Cost ({newCoating.coatingType === "galvanizing" ? "$/kg" : "$/m²"}) *
                           </Label>
                           <Input
@@ -351,88 +328,146 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                             step="0.01"
                             value={newCoating.unitCost}
                             onChange={(e) => setNewCoating({...newCoating, unitCost: parseFloat(e.target.value) || 0})}
-                            placeholder="Enter price if missing"
+                            placeholder="Enter price"
+                            className="h-8 text-sm"
                           />
                         </div>
                         
                         {newCoating.coatingType === "galvanizing" ? (
-                          <div className="space-y-2">
-                            <Label htmlFor="editWeightKg">Weight (kg) *</Label>
+                          <div className="space-y-1">
+                            <Label htmlFor="editWeightKg" className="text-sm">Weight (kg) *</Label>
                             <Input
                               id="editWeightKg"
                               type="number"
                               step="0.01"
                               value={newCoating.weightKg}
                               onChange={(e) => setNewCoating({...newCoating, weightKg: parseFloat(e.target.value) || 0})}
+                              className="h-8 text-sm"
                             />
                           </div>
                         ) : (
-                          <div className="space-y-2">
-                            <Label htmlFor="editSurfaceArea">Surface Area (m²) *</Label>
+                          <div className="space-y-1">
+                            <Label htmlFor="editSurfaceArea" className="text-sm">Surface Area (m²) *</Label>
                             <Input
                               id="editSurfaceArea"
                               type="number"
                               step="0.01"
                               value={newCoating.surfaceArea}
                               onChange={(e) => setNewCoating({...newCoating, surfaceArea: parseFloat(e.target.value) || 0})}
+                              className="h-8 text-sm"
                             />
                           </div>
                         )}
                         
                         {newCoating.coatingType !== "galvanizing" && (
-                          <div className="space-y-2">
-                            <Label htmlFor="editCoats">Number of Coats</Label>
+                          <div className="space-y-1">
+                            <Label htmlFor="editCoats" className="text-sm">Number of Coats</Label>
                             <Input
                               id="editCoats"
                               type="number"
                               min="1"
                               value={newCoating.coats}
                               onChange={(e) => setNewCoating({...newCoating, coats: parseInt(e.target.value) || 1})}
+                              className="h-8 text-sm"
                             />
                           </div>
                         )}
                         
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
+                        <div className="space-y-1">
+                          <Label className="text-sm">Work Type</Label>
+                          <div className="flex items-center space-x-2 mt-2">
                             <Switch
                               checked={newCoating.isInhouse}
                               onCheckedChange={(checked) => setNewCoating({...newCoating, isInhouse: checked})}
                             />
-                            <Label>In-house work</Label>
+                            <Label className="text-sm">{newCoating.isInhouse ? 'In-house' : 'Subcontracted'}</Label>
                           </div>
                         </div>
+                        
+                        {!newCoating.isInhouse && (
+                          <>
+                            <div className="space-y-1">
+                              <Label htmlFor="supplier" className="text-sm">Supplier</Label>
+                              <Input
+                                id="supplier"
+                                value={newCoating.supplier}
+                                onChange={(e) => setNewCoating({...newCoating, supplier: e.target.value})}
+                                placeholder="Supplier name"
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <Label htmlFor="leadTime" className="text-sm">Lead Time (days)</Label>
+                              <Input
+                                id="leadTime"
+                                type="number"
+                                value={newCoating.leadTime}
+                                onChange={(e) => setNewCoating({...newCoating, leadTime: parseInt(e.target.value) || 0})}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          </>
+                        )}
+                        
+                        <div className="col-span-2 space-y-1">
+                          <Label htmlFor="notes" className="text-sm">Notes</Label>
+                          <Textarea
+                            id="notes"
+                            value={newCoating.notes}
+                            onChange={(e) => setNewCoating({...newCoating, notes: e.target.value})}
+                            placeholder="Additional information"
+                            className="min-h-[60px] text-sm"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="outline" onClick={() => setShowAddDialog(false)} className="h-8 text-sm">
+                          Cancel
+                        </Button>
+                        <Button onClick={handleAddCoating} className="h-8 text-sm">
+                          Add Coating
+                        </Button>
                       </div>
                     </div>
                   )}
-                  
+                </div>
+                
+                {/* Footer for when no coating is selected */}
+                {!selectedCoatingSystemId && (
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={() => setShowAddDialog(false)} className="h-8 text-sm">
+                      Cancel
+                    </Button>
                     <Button 
                       onClick={handleAddCoating}
                       disabled={!selectedCoatingSystemId}
+                      className="h-8 text-sm"
                     >
-                      Add Selected Coating
+                      Select a Coating System
                     </Button>
                   </DialogFooter>
-                </div>
+                )}
               </TabsContent>
               
-              <TabsContent value="custom" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="coatingName">Coating Name *</Label>
+              <TabsContent value="custom" className="space-y-3 mt-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="coatingName" className="text-sm">Coating Name *</Label>
                     <Input
                       id="coatingName"
                       value={newCoating.coatingName}
                       onChange={(e) => setNewCoating({...newCoating, coatingName: e.target.value})}
-                      placeholder="e.g., Epoxy Primer, Hot Dip Galvanizing"
+                      placeholder="e.g., Epoxy Primer"
+                      className="h-8 text-sm"
                     />
                   </div>
                 
-                  <div className="space-y-2">
-                    <Label htmlFor="coatingType">Coating Type *</Label>
+                  <div className="space-y-1">
+                    <Label htmlFor="coatingType" className="text-sm">Coating Type *</Label>
                     <Select value={newCoating.coatingType} onValueChange={(value: any) => setNewCoating({...newCoating, coatingType: value})}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-8 text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -443,10 +478,10 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                     </Select>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
+                  <div className="space-y-1">
+                    <Label htmlFor="category" className="text-sm">Category</Label>
                     <Select value={newCoating.category} onValueChange={(value: any) => setNewCoating({...newCoating, category: value})}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-8 text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -459,44 +494,47 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                   </div>
                   
                   {newCoating.coatingType === "galvanizing" ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="weightKg">Weight (kg) *</Label>
+                    <div className="space-y-1">
+                      <Label htmlFor="weightKg" className="text-sm">Weight (kg) *</Label>
                       <Input
                         id="weightKg"
                         type="number"
                         step="0.01"
                         value={newCoating.weightKg}
                         onChange={(e) => setNewCoating({...newCoating, weightKg: parseFloat(e.target.value) || 0})}
+                        className="h-8 text-sm"
                       />
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <Label htmlFor="surfaceArea">Surface Area (m²) *</Label>
+                    <div className="space-y-1">
+                      <Label htmlFor="surfaceArea" className="text-sm">Surface Area (m²) *</Label>
                       <Input
                         id="surfaceArea"
                         type="number"
                         step="0.01"
                         value={newCoating.surfaceArea}
                         onChange={(e) => setNewCoating({...newCoating, surfaceArea: parseFloat(e.target.value) || 0})}
+                        className="h-8 text-sm"
                       />
                     </div>
                   )}
                   
                   {newCoating.coatingType !== "galvanizing" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="coats">Number of Coats</Label>
+                    <div className="space-y-1">
+                      <Label htmlFor="coats" className="text-sm">Number of Coats</Label>
                       <Input
                         id="coats"
                         type="number"
                         min="1"
                         value={newCoating.coats}
                         onChange={(e) => setNewCoating({...newCoating, coats: parseInt(e.target.value) || 1})}
+                        className="h-8 text-sm"
                       />
                     </div>
                   )}
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="unitCost">
+                  <div className="space-y-1">
+                    <Label htmlFor="unitCost" className="text-sm">
                       Unit Cost ({newCoating.coatingType === "galvanizing" ? "$/kg" : "$/m²"}) *
                     </Label>
                     <Input
@@ -505,60 +543,69 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                       step="0.01"
                       value={newCoating.unitCost}
                       onChange={(e) => setNewCoating({...newCoating, unitCost: parseFloat(e.target.value) || 0})}
+                      className="h-8 text-sm"
                     />
                   </div>
                   
-                  <div className="col-span-2 space-y-2">
-                    <div className="flex items-center space-x-2">
+                  <div className="space-y-1">
+                    <Label className="text-sm">Work Type</Label>
+                    <div className="flex items-center space-x-2 mt-2">
                       <Switch
                         checked={newCoating.isInhouse}
                         onCheckedChange={(checked) => setNewCoating({...newCoating, isInhouse: checked})}
                       />
-                      <Label>In-house work</Label>
-                      {!newCoating.isInhouse && <Badge variant="outline">Subcontracted</Badge>}
+                      <Label className="text-sm">{newCoating.isInhouse ? 'In-house' : 'Subcontracted'}</Label>
                     </div>
                   </div>
                   
                   {!newCoating.isInhouse && (
                     <>
-                      <div className="space-y-2">
-                        <Label htmlFor="supplier">Supplier</Label>
+                      <div className="space-y-1">
+                        <Label htmlFor="supplier" className="text-sm">Supplier</Label>
                         <Input
                           id="supplier"
                           value={newCoating.supplier}
                           onChange={(e) => setNewCoating({...newCoating, supplier: e.target.value})}
-                          placeholder="Select from contacts or enter name"
+                          placeholder="Supplier name"
+                          className="h-8 text-sm"
                         />
                       </div>
                       
-                      <div className="space-y-2">
-                        <Label htmlFor="leadTime">Lead Time (days)</Label>
+                      <div className="space-y-1">
+                        <Label htmlFor="leadTime" className="text-sm">Lead Time (days)</Label>
                         <Input
                           id="leadTime"
                           type="number"
                           value={newCoating.leadTime}
                           onChange={(e) => setNewCoating({...newCoating, leadTime: parseInt(e.target.value) || 0})}
+                          className="h-8 text-sm"
                         />
                       </div>
                     </>
                   )}
                   
-                  <div className="col-span-2 space-y-2">
-                    <Label htmlFor="notes">Notes</Label>
+                  <div className="col-span-3 space-y-1">
+                    <Label htmlFor="notes" className="text-sm">Notes</Label>
                     <Textarea
                       id="notes"
                       value={newCoating.notes}
                       onChange={(e) => setNewCoating({...newCoating, notes: e.target.value})}
                       placeholder="Special requirements, standards, or additional information"
+                      className="min-h-[60px] text-sm"
                     />
                   </div>
                 </div>
                 
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-                  <Button onClick={handleAddCoating}>Add Custom Coating</Button>
+                  <Button variant="outline" onClick={() => setShowAddDialog(false)} className="h-8 text-sm">
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddCoating} className="h-8 text-sm">
+                    Add Custom Coating
+                  </Button>
                 </DialogFooter>
               </TabsContent>
+
             </Tabs>
           </DialogContent>
         </Dialog>

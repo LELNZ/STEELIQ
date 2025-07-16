@@ -1973,15 +1973,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/coating-systems", async (req, res) => {
     try {
-      // Query coating systems from materials table
+      // Query coating systems from materials table - include all coating-related categories
       const coatingSystems = await storage.getMaterialsByCategories([
         'Alkyd Systems',
-        'Epoxy Systems',
+        'Epoxy Systems', 
         'Polyurethane Systems',
         'Zinc Silicate Systems',
-        'Galvanizing',
-        'Intumescent',
-        'Coating Systems'
+        'Galvanizing Systems',
+        'Intumescent Systems',
+        'Powder Coating Systems',
+        'Etch Primer Systems',
+        'Zinc Metal Spray Systems',
+        'Weather Resistant Systems'
       ]);
       res.json(coatingSystems);
     } catch (error: any) {
