@@ -98,10 +98,10 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
     };
 
     if (editingId) {
-      setSubcontractors(subcontractors.map(s => s.id === editingId ? newSubcontractor : s));
+      setSubcontractors((subcontractors || []).map(s => s.id === editingId ? newSubcontractor : s));
       setEditingId(null);
     } else {
-      setSubcontractors([...subcontractors, newSubcontractor]);
+      setSubcontractors([...(subcontractors || []), newSubcontractor]);
     }
 
     setShowAddDialog(false);
