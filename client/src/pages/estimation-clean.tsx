@@ -47,7 +47,8 @@ import {
   LineChart,
   Edit,
   UserPlus,
-  Workflow
+  Workflow,
+  Building2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
