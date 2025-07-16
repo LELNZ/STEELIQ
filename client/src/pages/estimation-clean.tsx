@@ -54,7 +54,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { MaterialsTab } from "@/components/estimation/materials-tab-clean";
 import PdfAnalysisTab from "@/components/estimation/pdf-analysis-tab";
 import { EnhancedLaborTab } from "@/components/estimation/enhanced-labor-tab";
-import { EnhancedEquipmentTab } from "@/components/estimation/enhanced-equipment-tab";
+import EnhancedEquipmentTab from "@/components/estimation/enhanced-equipment-tab";
 import { EnhancedConsumablesTab } from "@/components/estimation/enhanced-consumables-tab";
 import { SubcontractorsTab } from "@/components/estimation/subcontractors-tab";
 import CoatingsTab from "@/components/estimation/coatings-tab";
