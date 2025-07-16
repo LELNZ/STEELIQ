@@ -383,3 +383,5 @@ export default function EnhancedConsumablesTab({ consumables, onUpdate }: Enhanc
     </div>
   );
 }
+
+export { EnhancedConsumablesTab };

@@ -56,6 +56,7 @@ import PdfAnalysisTab from "@/components/estimation/pdf-analysis-tab";
 import { EnhancedLaborTab } from "@/components/estimation/enhanced-labor-tab";
 import { EnhancedEquipmentTab } from "@/components/estimation/enhanced-equipment-tab";
 import { EnhancedConsumablesTab } from "@/components/estimation/enhanced-consumables-tab";
+import { SubcontractorsTab } from "@/components/estimation/subcontractors-tab";
 import CoatingsTab from "@/components/estimation/coatings-tab";
 import OverheadConfiguration from "@/components/estimation/overhead-configuration";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
@@ -146,6 +147,25 @@ interface CoatingCost {
   notes: string;
 }
 
+interface SubcontractorCost {
+  id: string;
+  contractor: string;
+  service: string;
+  description: string;
+  quotedAmount: number;
+  markup: number;
+  totalCost: number;
+  startDate?: Date;
+  endDate?: Date;
+  contactPerson?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  paymentTerms?: string;
+  insurance?: boolean;
+  safetyDocs?: boolean;
+  notes?: string;
+}
+
 interface EstimationData {
   project: EstimationProject;
   materials: MaterialCost[];
@@ -153,6 +173,7 @@ interface EstimationData {
   equipment: EquipmentCost[];
   consumables: ConsumableCost[];
   coatings: CoatingCost[];
+  subcontractors: SubcontractorCost[];
   overheads: {
     percentage: number;
     amount: number;
@@ -170,6 +191,7 @@ interface EstimationData {
     equipment: number;
     consumables: number;
     coatings: number;
+    subcontractors: number;
     directCosts: number;
     overheads: number;
     margin: number;
@@ -351,9 +373,10 @@ export default function EstimationPage() {
       const equipment = estimationData.equipment.reduce((sum, item) => sum + (item.totalCost || 0), 0);
       const consumables = estimationData.consumables.reduce((sum, item) => sum + (item.totalCost || 0), 0);
       const coatings = (estimationData.coatings || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
+      const subcontractors = (estimationData.subcontractors || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
       
       // INDUSTRY STANDARD: Margin calculated on direct costs before overheads
-      const directCosts = materials + labor + equipment + consumables + coatings;
+      const directCosts = materials + labor + equipment + consumables + coatings + subcontractors;
       const overheadsAmount = directCosts * (estimationData.overheads.percentage / 100);
       const marginAmount = directCosts * (estimationData.margin.percentage / 100);
       const total = directCosts + overheadsAmount + marginAmount;
@@ -369,6 +392,7 @@ export default function EstimationPage() {
         equipment,
         consumables,
         coatings,
+        subcontractors,
         directCosts,
         overheads: overheadsAmount,
         margin: marginAmount,
@@ -494,6 +518,7 @@ export default function EstimationPage() {
       equipment: [],
       consumables: [],
       coatings: [],
+      subcontractors: [],
       overheads: { percentage: 20, amount: 0, projectModifier: 0 },
       margin: { percentage: 20, amount: 0 },
       totals: {
@@ -502,6 +527,7 @@ export default function EstimationPage() {
         equipment: 0,
         consumables: 0,
         coatings: 0,
+        subcontractors: 0,
         directCosts: 0,
         overheads: 0,
         margin: 0,
@@ -1255,14 +1281,10 @@ function EstimationWorkspace({
         </TabsContent>
         
         <TabsContent value="subcontractors">
-          <Card>
-            <CardHeader>
-              <CardTitle>Subcontractors</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Subcontractor management coming soon...</p>
-            </CardContent>
-          </Card>
+          <SubcontractorsTab
+            subcontractors={estimationData.subcontractors}
+            setSubcontractors={(subcontractors) => setEstimationData({ ...estimationData, subcontractors })}
+          />
         </TabsContent>
         
         <TabsContent value="other">
@@ -1879,9 +1901,10 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
     const equipment = estimationData.equipment.reduce((sum, item) => sum + (item.totalCost || 0), 0);
     const consumables = estimationData.consumables.reduce((sum, item) => sum + (item.totalCost || 0), 0);
     const coatings = (estimationData.coatings || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
+    const subcontractors = (estimationData.subcontractors || []).reduce((sum, item) => sum + (item.totalCost || 0), 0);
     
-    // FIXED: Include coatings and use consistent calculation logic
-    const directCosts = materials + labor + equipment + consumables + coatings;
+    // FIXED: Include coatings and subcontractors in consistent calculation logic
+    const directCosts = materials + labor + equipment + consumables + coatings + subcontractors;
     const overheads = directCosts * (estimationData.overheads.percentage / 100);
     const margin = directCosts * (estimationData.margin.percentage / 100);
     const revenueBeforeGST = directCosts + overheads + margin;
@@ -1916,6 +1939,7 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
       equipment, 
       consumables,
       coatings,
+      subcontractors,
       directCosts,
       overheads, 
       margin, 
@@ -1980,7 +2004,7 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
       </Card>
 
       {/* Cost Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -2032,6 +2056,32 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Coatings</p>
+                <p className="text-2xl font-bold text-cyan-600">${totals.coatings.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">{estimationData.coatings.length} systems</p>
+              </div>
+              <Building2 className="h-8 w-8 text-cyan-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Subcontractors</p>
+                <p className="text-2xl font-bold text-indigo-600">${totals.subcontractors.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">{estimationData.subcontractors.length} contractors</p>
+              </div>
+              <UserPlus className="h-8 w-8 text-indigo-600" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Financial Summary */}
@@ -2053,7 +2103,7 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      <p>Raw materials, direct labor, equipment rental, and consumables directly used in fabrication</p>
+                      <p>Raw materials, direct labor, equipment rental, consumables, and subcontractor services directly used in fabrication</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
