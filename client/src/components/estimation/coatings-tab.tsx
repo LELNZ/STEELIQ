@@ -208,7 +208,7 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
               Add Coating
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden">
+          <DialogContent className="max-w-5xl w-[80vw] h-[85vh] overflow-hidden">
             <DialogHeader className="pb-2">
               <DialogTitle>Add Coating System</DialogTitle>
             </DialogHeader>
@@ -219,10 +219,10 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                 <TabsTrigger value="custom" className="text-sm">Create Custom</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="library" className="space-y-3 mt-3">
-                <div className="flex gap-3">
+              <TabsContent value="library" className="space-y-3 mt-3 h-[calc(85vh-120px)]">
+                <div className="flex gap-3 h-full">
                   {/* Left side - Coating list */}
-                  <div className="flex-1 space-y-3">
+                  <div className="flex-1 space-y-3 overflow-y-auto h-[calc(85vh-200px)]">
                     {/* Search Bar */}
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -315,7 +315,7 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                   
                   {/* Right side - Edit fields */}
                   {selectedCoatingSystemId && (
-                    <div className="w-96 space-y-3 bg-gray-50 p-3 rounded-lg">
+                    <div className="w-96 space-y-3 bg-gray-50 p-3 rounded-lg h-[calc(85vh-200px)] overflow-y-auto">
                       <h4 className="font-medium text-sm">Edit Details</h4>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
@@ -451,7 +451,7 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                 )}
               </TabsContent>
               
-              <TabsContent value="custom" className="space-y-3 mt-3">
+              <TabsContent value="custom" className="space-y-3 mt-3 h-[calc(85vh-120px)] overflow-y-auto">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label htmlFor="coatingName" className="text-sm">Coating Name *</Label>

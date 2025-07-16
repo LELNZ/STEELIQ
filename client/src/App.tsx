@@ -33,7 +33,7 @@ import OrganizationSettings from "@/pages/settings/organization";
 import FinancialSettings from "@/pages/settings/financial";
 import OperationsSettings from "@/pages/settings/operations";
 import TimePayroll from "@/pages/time-payroll";
-import ProjectLifecycleTracker from "@/pages/ProjectLifecycleTracker";
+import ProjectLifecycleTracker from "@/pages/project-lifecycle-tracker";
 
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";

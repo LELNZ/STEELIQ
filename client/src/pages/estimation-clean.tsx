@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -639,7 +640,7 @@ export default function EstimationPage() {
 
                 <Button
                   variant="outline"
-                  onClick={() => window.location.href = `/projects/${currentProject.id}/lifecycle`}
+                  onClick={() => navigate(`/projects/${currentProject.id}/lifecycle`)}
                   className="flex items-center gap-2"
                   size="sm"
                 >
@@ -1216,6 +1217,7 @@ function EstimationWorkspace({
   saveEstimationMutation: any;
 }) {
   const [activeTab, setActiveTab] = useState("materials");
+  const [, navigate] = useLocation();
 
   // Simple tab change without auto-save
   const handleTabChange = (newTab: string) => {
@@ -1262,9 +1264,8 @@ function EstimationWorkspace({
         <TabsContent value="materials">
           <MaterialsTab
             materials={estimationData.materials}
-            setMaterials={(materials) => setEstimationData({ ...estimationData, materials })}
+            onUpdate={(materials) => setEstimationData({ ...estimationData, materials })}
             availableMaterials={materials}
-            aiSuggestions={isAiAssistEnabled ? aiSuggestions : []}
           />
         </TabsContent>
         
