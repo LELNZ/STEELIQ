@@ -112,7 +112,14 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
   });
 
   const handleAdd = () => {
+    console.log("handleAdd called with formData:", formData);
+    
     if (!formData.contractor || !formData.service || !formData.quotedAmount) {
+      console.log("Validation failed:", {
+        contractor: formData.contractor,
+        service: formData.service,
+        quotedAmount: formData.quotedAmount
+      });
       toast({
         title: "Missing Information",
         description: "Please fill in contractor name, service, and quoted amount",
@@ -144,11 +151,18 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
       setSubcontractors((subcontractors || []).map(s => s.id === editingId ? newSubcontractor : s));
       setEditingId(null);
     } else {
+      console.log("Adding new subcontractor:", newSubcontractor);
       setSubcontractors([...(subcontractors || []), newSubcontractor]);
     }
 
+    console.log("Closing dialog and resetting form");
     setShowAddDialog(false);
     resetForm();
+    
+    toast({
+      title: "Success",
+      description: `Subcontractor ${newSubcontractor.contractor} added successfully`,
+    });
   };
 
   const handleEdit = (subcontractor: SubcontractorCost) => {
