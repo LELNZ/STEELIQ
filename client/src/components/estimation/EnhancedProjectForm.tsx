@@ -289,7 +289,8 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
       return currentValue !== defaultValue;
     });
     
-    const score = Math.round((filledFields.length / fields.length) * 100);
+    // Only show score if user has started filling the form
+    const score = filledFields.length > 0 ? Math.round((filledFields.length / fields.length) * 100) : 0;
     setCompletenessScore(score);
   }, [form.watch()]);
 
@@ -316,14 +317,16 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
             </CardDescription>
           </div>
           <div className="flex items-center gap-4">
-            {/* Completeness Score */}
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">Form Completeness</div>
-              <div className="flex items-center gap-2">
-                <Progress value={completenessScore} className="w-24" />
-                <span className="text-sm font-medium">{completenessScore}%</span>
+            {/* Completeness Score - Only show when user has started filling */}
+            {completenessScore > 0 && (
+              <div className="text-right">
+                <div className="text-sm text-muted-foreground">Form Completeness</div>
+                <div className="flex items-center gap-2">
+                  <Progress value={completenessScore} className="w-24" />
+                  <span className="text-sm font-medium">{completenessScore}%</span>
+                </div>
               </div>
-            </div>
+            )}
             {/* Template Actions */}
             <div className="flex gap-2">
               <TooltipProvider>
