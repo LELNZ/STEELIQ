@@ -318,7 +318,14 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
         </CardContent>
       </Card>
 
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+      <Dialog open={showAddDialog} onOpenChange={(open) => {
+        console.log("Dialog open state changing to:", open);
+        setShowAddDialog(open);
+        if (!open) {
+          resetForm();
+          setEditingId(null);
+        }
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
@@ -552,7 +559,14 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
             }}>
               Cancel
             </Button>
-            <Button onClick={handleAdd}>
+            <Button 
+              onClick={(e) => {
+                e.preventDefault();
+                console.log("Button clicked, calling handleAdd");
+                handleAdd();
+              }}
+              type="button"
+            >
               {editingId ? "Update" : "Add"} Subcontractor
             </Button>
           </DialogFooter>

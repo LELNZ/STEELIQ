@@ -25,7 +25,7 @@ interface LaborItem {
 
 interface EnhancedLaborTabProps {
   labor: LaborItem[];
-  onUpdate: (labor: LaborItem[]) => void;
+  setLabor: (labor: LaborItem[]) => void;
 }
 
 const LABOR_CATEGORIES = {
@@ -49,7 +49,7 @@ const SKILL_RATES = {
   }
 };
 
-export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
+export function EnhancedLaborTab({ labor, setLabor }: EnhancedLaborTabProps) {
   const [activeTab, setActiveTab] = useState('workshop');
   const [newItem, setNewItem] = useState<Partial<LaborItem>>({
     category: 'workshop',
@@ -92,7 +92,7 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
     const updatedLabor = [...labor, item];
     console.log('Adding labor item:', item);
     console.log('New labor array length:', updatedLabor.length);
-    onUpdate(updatedLabor);
+    setLabor(updatedLabor);
     
     // Reset form but keep current tab context
     const location = activeTab === 'onsite' ? 'site' : 'workshop';
@@ -119,13 +119,13 @@ export function EnhancedLaborTab({ labor, onUpdate }: EnhancedLaborTabProps) {
       return item;
     });
     console.log('Updating labor array:', updatedLabor);
-    onUpdate(updatedLabor);
+    setLabor(updatedLabor);
   };
 
   const removeLaborItem = (id: string) => {
     const updatedLabor = labor.filter(item => item.id !== id);
     console.log('Removing labor item, new array:', updatedLabor);
-    onUpdate(updatedLabor);
+    setLabor(updatedLabor);
   };
 
   const updateRate = (location: 'workshop' | 'site', skillLevel: string) => {

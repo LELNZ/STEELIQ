@@ -24,7 +24,7 @@ interface EquipmentItem {
 
 interface EnhancedEquipmentTabProps {
   equipment: EquipmentItem[];
-  onUpdate: (equipment: EquipmentItem[]) => void;
+  setEquipment: (equipment: EquipmentItem[]) => void;
 }
 
 const EQUIPMENT_CATEGORIES = {
@@ -56,7 +56,7 @@ const STANDARD_EQUIPMENT = {
   }
 };
 
-export default function EnhancedEquipmentTab({ equipment, onUpdate }: EnhancedEquipmentTabProps) {
+export default function EnhancedEquipmentTab({ equipment, setEquipment }: EnhancedEquipmentTabProps) {
   const [newItem, setNewItem] = useState<Partial<EquipmentItem>>({
     equipmentType: 'inhouse',
     category: 'transport',
@@ -82,7 +82,7 @@ export default function EnhancedEquipmentTab({ equipment, onUpdate }: EnhancedEq
       notes: newItem.notes
     };
 
-    onUpdate([...equipment, item]);
+    setEquipment([...equipment, item]);
     setNewItem({
       equipmentType: 'inhouse',
       category: 'transport',
@@ -102,11 +102,11 @@ export default function EnhancedEquipmentTab({ equipment, onUpdate }: EnhancedEq
       }
       return item;
     });
-    onUpdate(updatedEquipment);
+    setEquipment(updatedEquipment);
   };
 
   const removeEquipmentItem = (id: string) => {
-    onUpdate(equipment.filter(item => item.id !== id));
+    setEquipment(equipment.filter(item => item.id !== id));
   };
 
   const updateStandardRates = (equipmentType: 'inhouse' | 'rental', category: string) => {

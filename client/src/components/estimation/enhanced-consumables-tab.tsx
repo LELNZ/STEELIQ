@@ -23,7 +23,7 @@ interface ConsumableItem {
 
 interface EnhancedConsumablesTabProps {
   consumables: ConsumableItem[];
-  onUpdate: (consumables: ConsumableItem[]) => void;
+  setConsumables: (consumables: ConsumableItem[]) => void;
 }
 
 const CONSUMABLE_CATEGORIES = {
@@ -88,7 +88,7 @@ const CONSUMABLE_CATEGORIES = {
   }
 };
 
-export default function EnhancedConsumablesTab({ consumables, onUpdate }: EnhancedConsumablesTabProps) {
+export default function EnhancedConsumablesTab({ consumables, setConsumables }: EnhancedConsumablesTabProps) {
   const [newItem, setNewItem] = useState<Partial<ConsumableItem>>({
     category: 'welding',
     itemType: 'welding_rod',
@@ -113,7 +113,7 @@ export default function EnhancedConsumablesTab({ consumables, onUpdate }: Enhanc
       notes: newItem.notes
     };
 
-    onUpdate([...consumables, item]);
+    setConsumables([...consumables, item]);
     setNewItem({
       category: 'welding',
       itemType: 'welding_rod',
@@ -133,11 +133,11 @@ export default function EnhancedConsumablesTab({ consumables, onUpdate }: Enhanc
       }
       return item;
     });
-    onUpdate(updatedConsumables);
+    setConsumables(updatedConsumables);
   };
 
   const removeConsumableItem = (id: string) => {
-    onUpdate(consumables.filter(item => item.id !== id));
+    setConsumables(consumables.filter(item => item.id !== id));
   };
 
   const updateItemType = (category: string, itemType: string) => {

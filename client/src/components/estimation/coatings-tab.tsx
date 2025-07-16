@@ -8,9 +8,10 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Calculator, Trash2, Plus, Building2, Users } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Calculator, Trash2, Plus, Building2, Users, Palette } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 interface CoatingCost {
   id: string;
@@ -38,7 +39,13 @@ interface CoatingsTabProps {
 export default function CoatingsTab({ coatings, onCoatingsChange, materials = [] }: CoatingsTabProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingCoating, setEditingCoating] = useState<CoatingCost | null>(null);
+  const [selectedCoatingSystemId, setSelectedCoatingSystemId] = useState<string>("");
   const { toast } = useToast();
+  
+  // Query coating systems from material library
+  const { data: coatingSystems = [] } = useQuery({
+    queryKey: ["/api/coating-systems"]
+  });
 
   // Calculate total surface area and weight from materials for auto-population
   const totalMaterialSurfaceArea = materials.reduce((sum, material) => 
@@ -167,7 +174,13 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
           <p className="text-sm text-gray-600">Manage paint systems, galvanizing, and powder coating</p>
         </div>
         
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <Dialog open={showAddDialog} onOpenChange={(open) => {
+          setShowAddDialog(open);
+          if (!open) {
+            setSelectedCoatingSystemId("");
+            setNewCoating(defaultCoating);
+          }
+        }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
@@ -178,16 +191,74 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
             <DialogHeader>
               <DialogTitle>Add Coating System</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4">
+              {/* Coating System Selection */}
               <div className="space-y-2">
-                <Label htmlFor="coatingName">Coating Name *</Label>
-                <Input
-                  id="coatingName"
-                  value={newCoating.coatingName}
-                  onChange={(e) => setNewCoating({...newCoating, coatingName: e.target.value})}
-                  placeholder="e.g., Epoxy Primer, Hot Dip Galvanizing"
-                />
+                <Label>Select from Material Library</Label>
+                <Select
+                  value={selectedCoatingSystemId}
+                  onValueChange={(value) => {
+                    setSelectedCoatingSystemId(value);
+                    if (value && value !== "custom") {
+                      const system = coatingSystems.find((s: any) => s.id.toString() === value);
+                      if (system) {
+                        setNewCoating({
+                          ...newCoating,
+                          coatingName: system.name,
+                          coatingType: system.coatingType || "paint",
+                          category: system.category || "primer",
+                          unitCost: system.pricePerUnit || 0,
+                          notes: system.notes || ""
+                        });
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select existing coating system or create custom..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="custom">
+                      <div className="flex items-center">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Custom Coating
+                      </div>
+                    </SelectItem>
+                    {coatingSystems.length > 0 && (
+                      <>
+                        <Separator className="my-1" />
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">Available Coating Systems</div>
+                        {coatingSystems.map((system: any) => (
+                          <SelectItem key={system.id} value={system.id.toString()}>
+                            <div className="flex items-center gap-2">
+                              <Palette className="h-4 w-4" />
+                              <span>{system.name}</span>
+                              {system.coatingType && (
+                                <Badge variant="outline" className="ml-2 text-xs">
+                                  {system.coatingType}
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
+              
+              <Separator />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="coatingName">Coating Name *</Label>
+                  <Input
+                    id="coatingName"
+                    value={newCoating.coatingName}
+                    onChange={(e) => setNewCoating({...newCoating, coatingName: e.target.value})}
+                    placeholder="e.g., Epoxy Primer, Hot Dip Galvanizing"
+                  />
+                </div>
               
               <div className="space-y-2">
                 <Label htmlFor="coatingType">Coating Type *</Label>
@@ -317,6 +388,7 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                 <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
                 <Button onClick={handleAddCoating}>Add Coating</Button>
               </div>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -426,7 +498,7 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const updated = calculateTotal(coating.surfaceArea, coating.coats, coating.unitCost);
+                        const updated = calculateTotal(coating);
                         handleUpdateCoating(coating.id, { totalCost: updated });
                       }}
                     >
