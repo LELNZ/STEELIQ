@@ -1844,6 +1844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Project Lifecycle Tracking API
   const { lifecycleTrackingService } = await import('./lifecycleTracking');
+  const { lifecycleTemplateService } = await import('./lifecycleTemplates');
   
   // Initialize lifecycle for a project
   app.post("/api/projects/:projectId/lifecycle/initialize", async (req, res) => {
@@ -1936,6 +1937,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching stakeholder view:", error);
       res.status(500).json({ error: "Failed to fetch stakeholder view" });
+    }
+  });
+
+  // Lifecycle Template Management Routes
+  app.get("/api/lifecycle-templates", async (req, res) => {
+    try {
+      const templates = await lifecycleTemplateService.getAllTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching lifecycle templates:", error);
+      res.status(500).json({ error: "Failed to fetch lifecycle templates" });
+    }
+  });
+
+  app.get("/api/lifecycle-templates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const template = await lifecycleTemplateService.getTemplateById(id);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching lifecycle template:", error);
+      res.status(500).json({ error: "Failed to fetch lifecycle template" });
+    }
+  });
+
+  app.post("/api/lifecycle-templates", async (req, res) => {
+    try {
+      const template = await lifecycleTemplateService.createTemplate(req.body);
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating lifecycle template:", error);
+      res.status(500).json({ error: "Failed to create lifecycle template" });
+    }
+  });
+
+  app.put("/api/lifecycle-templates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const template = await lifecycleTemplateService.updateTemplate(id, req.body);
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating lifecycle template:", error);
+      res.status(500).json({ error: "Failed to update lifecycle template" });
+    }
+  });
+
+  app.delete("/api/lifecycle-templates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await lifecycleTemplateService.deleteTemplate(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting lifecycle template:", error);
+      res.status(500).json({ error: "Failed to delete lifecycle template" });
+    }
+  });
+
+  app.post("/api/lifecycle-templates/:id/duplicate", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { name } = req.body;
+      const duplicate = await lifecycleTemplateService.duplicateTemplate(id, name);
+      res.status(201).json(duplicate);
+    } catch (error) {
+      console.error("Error duplicating lifecycle template:", error);
+      res.status(500).json({ error: "Failed to duplicate lifecycle template" });
+    }
+  });
+
+  app.get("/api/lifecycle-templates/industry/:industry", async (req, res) => {
+    try {
+      const industry = req.params.industry;
+      const templates = await lifecycleTemplateService.getTemplatesForIndustry(industry);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching industry templates:", error);
+      res.status(500).json({ error: "Failed to fetch industry templates" });
+    }
+  });
+
+  app.get("/api/lifecycle-templates/default/steel-fabrication", async (req, res) => {
+    try {
+      const template = await lifecycleTemplateService.getDefaultSteelFabricationTemplate();
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching default template:", error);
+      res.status(500).json({ error: "Failed to fetch default template" });
     }
   });
 
@@ -3651,6 +3742,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching clock status:", error);
       res.status(500).json({ message: "Failed to fetch clock status" });
+    }
+  });
+
+  // Project lifecycle routes
+  app.get('/api/projects/:id/lifecycle', async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const lifecycle = await lifecycleTrackingService.getProjectLifecycle(projectId);
+      res.json(lifecycle);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/projects/:id/lifecycle/initialize', async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { templateId } = req.body;
+      const result = await lifecycleTrackingService.initializeProjectLifecycle(projectId, templateId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update task status
+  app.patch('/api/projects/:id/lifecycle/tasks/:taskId', async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      const { status, notes, completedAt } = req.body;
+      const userId = 1; // TODO: Get from auth
+      
+      const result = await lifecycleTrackingService.updateTaskStatus(taskId, status, userId, notes);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get project events
+  app.get('/api/projects/:id/lifecycle/events', async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      // Get events from database
+      const events = await db.select({
+        id: projectLifecycleEvents.id,
+        eventType: projectLifecycleEvents.eventType,
+        description: projectLifecycleEvents.eventDescription,
+        createdAt: projectLifecycleEvents.createdAt,
+        userId: projectLifecycleEvents.triggeredBy,
+        metadata: projectLifecycleEvents.metadata
+      })
+      .from(projectLifecycleEvents)
+      .where(eq(projectLifecycleEvents.projectId, projectId))
+      .orderBy(desc(projectLifecycleEvents.createdAt))
+      .limit(limit);
+
+      // Add user names (placeholder for now)
+      const eventsWithUsers = events.map(e => ({
+        ...e,
+        description: e.description || '',
+        userName: 'System User',
+        userId: e.userId || 1
+      }));
+
+      res.json(eventsWithUsers);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Upload document for task
+  app.post('/api/projects/:id/lifecycle/documents', upload.single('document'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const projectId = parseInt(req.params.id);
+      const taskId = parseInt(req.body.taskId);
+      
+      // TODO: Save document metadata to database
+      // For now, just return success
+      res.json({ 
+        success: true, 
+        document: {
+          filename: req.file.originalname,
+          size: req.file.size,
+          uploadedAt: new Date()
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 
