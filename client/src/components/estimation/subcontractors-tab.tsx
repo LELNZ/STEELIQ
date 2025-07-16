@@ -8,8 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Phone, Mail, Calendar, DollarSign, Shield, FileText, Edit, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import type { Supplier, InsertSupplier } from "@shared/schema";
+import { SupplierForm } from "@/components/forms/supplier-form";
 
 interface SubcontractorCost {
   id: string;
@@ -67,6 +72,44 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
   });
   
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showCreateSupplierDialog, setShowCreateSupplierDialog] = useState(false);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
+
+  // Load suppliers
+  const { data: suppliers = [] } = useQuery<Supplier[]>({
+    queryKey: ["/api/suppliers"],
+  });
+
+  // Filter for subcontractor-type suppliers
+  const subcontractorSuppliers = suppliers.filter(s => 
+    s.type === "supplier" || s.type === "vendor"
+  );
+
+  // Create new supplier mutation
+  const createSupplierMutation = useMutation({
+    mutationFn: async (newSupplier: Partial<Supplier>) => {
+      return await apiRequest("/api/suppliers", {
+        method: "POST",
+        body: JSON.stringify(newSupplier),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      setShowCreateSupplierDialog(false);
+      toast({
+        title: "Supplier Created",
+        description: "New supplier has been added to the system",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create supplier",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleAdd = () => {
     if (!formData.contractor || !formData.service || !formData.quotedAmount) {
@@ -139,6 +182,7 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
       safetyDocs: false,
       paymentTerms: "30 days",
     });
+    setSelectedSupplierId("");
   };
 
   const totalCost = (subcontractors || []).reduce((sum, s) => sum + s.totalCost, 0);
@@ -272,11 +316,60 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="contractor">Contractor Name</Label>
+                <Select
+                  value={selectedSupplierId}
+                  onValueChange={(value) => {
+                    if (value === "create-new") {
+                      setShowCreateSupplierDialog(true);
+                    } else {
+                      setSelectedSupplierId(value);
+                      const supplier = suppliers.find(s => s.id.toString() === value);
+                      if (supplier) {
+                        setFormData({
+                          ...formData,
+                          contractor: supplier.name,
+                          contactPerson: supplier.contactName || "",
+                          contactPhone: supplier.phone || "",
+                          contactEmail: supplier.email || "",
+                          paymentTerms: supplier.paymentTerms || "30 days"
+                        });
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select existing or create new..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="create-new">
+                      <div className="flex items-center">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create New Supplier
+                      </div>
+                    </SelectItem>
+                    {subcontractorSuppliers.length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">Existing Suppliers</div>
+                        {subcontractorSuppliers.map((supplier) => (
+                          <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                            {supplier.name}
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+                {selectedSupplierId && selectedSupplierId !== "create-new" && (
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    Or manually enter a different name below
+                  </div>
+                )}
                 <Input
                   id="contractor"
                   value={formData.contractor}
                   onChange={(e) => setFormData({ ...formData, contractor: e.target.value })}
-                  placeholder="ABC Construction Ltd"
+                  placeholder="Or type contractor name manually..."
+                  className="mt-2"
                 />
               </div>
               <div>
@@ -449,6 +542,45 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
               {editingId ? "Update" : "Add"} Subcontractor
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCreateSupplierDialog} onOpenChange={setShowCreateSupplierDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Supplier</DialogTitle>
+          </DialogHeader>
+          <SupplierForm
+            onSubmit={async (data: InsertSupplier) => {
+              try {
+                const newSupplier = await apiRequest("/api/suppliers", {
+                  method: "POST",
+                  body: JSON.stringify(data),
+                });
+                queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+                setSelectedSupplierId(newSupplier.id.toString());
+                setFormData({
+                  ...formData,
+                  contractor: newSupplier.name,
+                  contactPerson: newSupplier.contactName || "",
+                  contactPhone: newSupplier.phone || "",
+                  contactEmail: newSupplier.email || "",
+                  paymentTerms: newSupplier.paymentTerms || "30 days"
+                });
+                setShowCreateSupplierDialog(false);
+                toast({
+                  title: "Supplier Created",
+                  description: "New supplier has been added and selected",
+                });
+              } catch (error) {
+                toast({
+                  title: "Error",
+                  description: "Failed to create supplier",
+                  variant: "destructive",
+                });
+              }
+            }}
+          />
         </DialogContent>
       </Dialog>
     </div>
