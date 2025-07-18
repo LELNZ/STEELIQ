@@ -1875,11 +1875,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update task status
   app.patch("/api/lifecycle/tasks/:taskId", async (req, res) => {
     try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const taskId = parseInt(req.params.taskId);
       const { status, notes } = req.body;
-      const userId = req.user?.id || 1; // TODO: Get from auth
       
-      const result = await lifecycleTrackingService.updateTaskStatus(taskId, status, userId, notes);
+      const result = await lifecycleTrackingService.updateTaskStatus(taskId, status, user.id, notes);
       res.json(result);
     } catch (error) {
       console.error("Error updating task status:", error);
@@ -1890,11 +1896,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update phase status
   app.patch("/api/lifecycle/phases/:phaseId", async (req, res) => {
     try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const phaseId = parseInt(req.params.phaseId);
       const { status, blockingReason } = req.body;
-      const userId = req.user?.id || 1; // TODO: Get from auth
       
-      const result = await lifecycleTrackingService.updatePhaseStatus(phaseId, status, userId, blockingReason);
+      const result = await lifecycleTrackingService.updatePhaseStatus(phaseId, status, user.id, blockingReason);
       res.json(result);
     } catch (error) {
       console.error("Error updating phase status:", error);
@@ -3770,11 +3782,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update task status
   app.patch('/api/projects/:id/lifecycle/tasks/:taskId', async (req, res) => {
     try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const taskId = parseInt(req.params.taskId);
       const { status, notes, completedAt } = req.body;
-      const userId = 1; // TODO: Get from auth
       
-      const result = await lifecycleTrackingService.updateTaskStatus(taskId, status, userId, notes);
+      const result = await lifecycleTrackingService.updateTaskStatus(taskId, status, user.id, notes);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3806,7 +3824,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...e,
         description: e.description || '',
         userName: 'System User',
-        userId: e.userId || 1
+        userId: e.userId || 9 // Default to Adam Green's ID if no user specified
       }));
 
       res.json(eventsWithUsers);
