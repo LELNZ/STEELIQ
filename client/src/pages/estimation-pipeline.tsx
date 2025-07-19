@@ -148,21 +148,26 @@ export default function EstimationPipeline() {
 
   const KanbanView = () => (
     <div className="grid grid-cols-5 gap-4 h-[calc(100vh-24rem)]">
-      {pipelineStages.map(stage => (
-        <div key={stage.key} className="flex flex-col">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-semibold">{stage.label}</h3>
-            <Badge variant="secondary">
-              {getEstimationsByStatus(stage.key).length}
-              {stage.target > 0 && `/${stage.target}`}
-            </Badge>
-          </div>
-          <ScrollArea 
-            className="flex-1 bg-gray-50 rounded-lg p-2"
-            onDrop={(e) => handleDrop(e, stage.key)}
-            onDragOver={(e) => e.preventDefault()}
-          >
-            <div className="space-y-2">
+      {pipelineStages.map(stage => {
+        const isWonColumn = stage.key === 'accepted';
+        const columnBgClass = isWonColumn ? 'bg-green-50' : 'bg-gray-50';
+        const headerClass = isWonColumn ? 'text-green-700' : '';
+        
+        return (
+          <div key={stage.key} className="flex flex-col">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className={cn("font-semibold", headerClass)}>{stage.label}</h3>
+              <Badge variant={isWonColumn ? "default" : "secondary"} className={isWonColumn ? "bg-green-600" : ""}>
+                {getEstimationsByStatus(stage.key).length}
+                {stage.target > 0 && `/${stage.target}`}
+              </Badge>
+            </div>
+            <ScrollArea 
+              className={cn("flex-1 rounded-lg p-2", columnBgClass)}
+              onDrop={(e) => handleDrop(e, stage.key)}
+              onDragOver={(e) => e.preventDefault()}
+            >
+              <div className="space-y-2">
               {getEstimationsByStatus(stage.key).map(estimation => (
                 <Card 
                   key={estimation.id}
@@ -230,9 +235,10 @@ export default function EstimationPipeline() {
                 </Card>
               ))}
             </div>
-          </ScrollArea>
-        </div>
-      ))}
+            </ScrollArea>
+          </div>
+        );
+      })}
     </div>
   );
 
