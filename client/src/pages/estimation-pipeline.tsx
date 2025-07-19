@@ -197,40 +197,44 @@ export default function EstimationPipeline() {
               {getEstimationsByStatus(stage.key).map(estimation => (
                 <Card 
                   key={estimation.id}
-                  className="cursor-move hover:shadow-md transition-shadow"
+                  className="cursor-move hover:shadow-md transition-shadow min-w-0"
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData('estimationId', estimation.id.toString())}
                   onClick={() => window.location.href = `/estimation?id=${estimation.id}`}
                 >
                   <CardContent className="p-3">
-                    <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-start justify-between mb-2 gap-2">
                       <div className="flex-1 min-w-0">
-                        <span className="font-medium text-sm block truncate">{estimation.name}</span>
-                        {estimation.currentPhase && (
-                          <span className="text-xs text-muted-foreground">{estimation.currentPhase}</span>
+                        <p className="font-medium text-sm truncate" title={estimation.name}>
+                          {estimation.name}
+                        </p>
+                        {estimation.projectNumber && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {estimation.projectNumber}
+                          </p>
                         )}
                       </div>
                       {estimation.lifecycleProgress !== undefined && (
-                        <div className="w-12 h-12 relative flex-shrink-0 ml-2">
-                          <svg className="transform -rotate-90 w-12 h-12">
+                        <div className="w-10 h-10 relative flex-shrink-0">
+                          <svg className="transform -rotate-90 w-10 h-10">
                             <circle
-                              cx="24"
-                              cy="24"
-                              r="20"
+                              cx="20"
+                              cy="20"
+                              r="16"
                               stroke="currentColor"
-                              strokeWidth="4"
+                              strokeWidth="3"
                               fill="none"
                               className="text-gray-200"
                             />
                             <circle
-                              cx="24"
-                              cy="24"
-                              r="20"
+                              cx="20"
+                              cy="20"
+                              r="16"
                               stroke="currentColor"
-                              strokeWidth="4"
+                              strokeWidth="3"
                               fill="none"
-                              strokeDasharray={`${2 * Math.PI * 20}`}
-                              strokeDashoffset={`${2 * Math.PI * 20 * (1 - (estimation.lifecycleProgress || 0) / 100)}`}
+                              strokeDasharray={`${2 * Math.PI * 16}`}
+                              strokeDashoffset={`${2 * Math.PI * 16 * (1 - (estimation.lifecycleProgress || 0) / 100)}`}
                               className="text-blue-600 transition-all duration-300"
                             />
                           </svg>
@@ -240,17 +244,17 @@ export default function EstimationPipeline() {
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">
+                    <p className="text-xs text-muted-foreground mb-2 truncate" title={estimation.clientName || 'No client'}>
                       {estimation.clientName || 'No client'}
                     </p>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
                       <span className="text-sm font-semibold">
                         ${parseFloat(estimation.totalCost || '0').toLocaleString()}
                       </span>
                       {estimation.currentPhase && (
-                        <Badge variant="outline" className="text-xs">
+                        <span className="text-xs text-muted-foreground truncate">
                           {estimation.currentPhase}
-                        </Badge>
+                        </span>
                       )}
                     </div>
                     {stage.key === 'accepted' && (

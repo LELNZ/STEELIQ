@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,10 @@ import {
   Search,
   Info,
   Edit2,
-  DollarSign
+  DollarSign,
+  ChevronDown,
+  ChevronRight,
+  HelpCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -62,6 +65,31 @@ interface MaterialCost {
   weightPerMeter?: number;
   totalSurfaceArea?: number;
   totalWeight?: number;
+  // STRUMIS-style designation and assembly tracking
+  designation?: string; // e.g., "C1", "B2", "PF1"
+  drawingReference?: string; // Drawing sheet reference
+  assemblyMark?: string; // Assembly mark for fabrication
+  phase?: string; // Construction phase
+  level?: string; // Building level/floor
+  gridLine?: string; // Grid reference (e.g., "A-1")
+  // Child items for connections and accessories
+  childItems?: MaterialChildItem[];
+  parentId?: string; // If this is a child item
+  isExpanded?: boolean; // For UI tree view
+}
+
+interface MaterialChildItem {
+  id: string;
+  type: 'stiffener' | 'endplate' | 'baseplate' | 'cleat' | 'bolt' | 'weld' | 'other';
+  description: string;
+  quantity: number;
+  unit: string;
+  unitCost: number;
+  totalCost: number;
+  thickness?: number; // For plates
+  size?: string; // For bolts, cleats
+  length?: number; // For welds
+  notes?: string;
 }
 
 interface MaterialsTabProps {
@@ -168,6 +196,8 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showAiSuggestions, setShowAiSuggestions] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<MaterialCost[]>([]);
+  const [isAddChildDialogOpen, setIsAddChildDialogOpen] = useState(false);
+  const [addChildItemMaterialId, setAddChildItemMaterialId] = useState<string | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -246,7 +276,120 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
           // Update surface area and weight totals for coating integration
           updated.totalSurfaceArea = updated.quantity * (updated.surfaceAreaPerMeter || 0);
           updated.totalWeight = updated.quantity * (updated.weightPerMeter || 0);
+          
+          // Add child items total if any
+          if (updated.childItems && updated.childItems.length > 0) {
+            const childTotal = updated.childItems.reduce((sum, child) => sum + child.totalCost, 0);
+            updated.totalCost += childTotal;
+          }
         }
+        return updated;
+      }
+      return material;
+    });
+    onUpdate(updatedMaterials);
+  };
+
+  // Toggle expanded state for materials with child items
+  const toggleMaterialExpanded = (id: string) => {
+    const updatedMaterials = materials.map(material => {
+      if (material.id === id) {
+        return { ...material, isExpanded: !material.isExpanded };
+      }
+      return material;
+    });
+    onUpdate(updatedMaterials);
+  };
+
+  // Add child item to a material
+  const addChildItem = (materialId: string) => {
+    setAddChildItemMaterialId(materialId);
+    setIsAddChildDialogOpen(true);
+  };
+
+  // Handle child item submission from dialog
+  const handleAddChildItem = (childData: Partial<MaterialChildItem>) => {
+    if (!addChildItemMaterialId) return;
+
+    const newChildItem: MaterialChildItem = {
+      id: Date.now().toString(),
+      type: childData.type || 'stiffener',
+      description: childData.description || '',
+      quantity: childData.quantity || 1,
+      unit: childData.unit || 'ea',
+      unitCost: childData.unitCost || 0,
+      totalCost: (childData.quantity || 1) * (childData.unitCost || 0),
+      thickness: childData.thickness,
+      size: childData.size,
+      length: childData.length,
+      notes: childData.notes || ''
+    };
+
+    const updatedMaterials = materials.map(material => {
+      if (material.id === addChildItemMaterialId) {
+        const childItems = material.childItems || [];
+        const updated = { 
+          ...material, 
+          childItems: [...childItems, newChildItem],
+          isExpanded: true 
+        };
+        
+        // Recalculate total including child items
+        const adjustedQuantity = updated.quantity * (1 + updated.wasteFactor / 100);
+        updated.totalCost = adjustedQuantity * updated.unitCost + updated.handlingCost;
+        const childTotal = updated.childItems.reduce((sum, child) => sum + child.totalCost, 0);
+        updated.totalCost += childTotal;
+        
+        return updated;
+      }
+      return material;
+    });
+    onUpdate(updatedMaterials);
+    setIsAddChildDialogOpen(false);
+    setAddChildItemMaterialId(null);
+  };
+
+  // Update child item
+  const updateChildItem = (materialId: string, childId: string, updates: Partial<MaterialChildItem>) => {
+    const updatedMaterials = materials.map(material => {
+      if (material.id === materialId && material.childItems) {
+        const updatedChildItems = material.childItems.map(child => {
+          if (child.id === childId) {
+            const updatedChild = { ...child, ...updates };
+            updatedChild.totalCost = updatedChild.quantity * updatedChild.unitCost;
+            return updatedChild;
+          }
+          return child;
+        });
+        
+        const updated = { ...material, childItems: updatedChildItems };
+        
+        // Recalculate total including child items
+        const adjustedQuantity = updated.quantity * (1 + updated.wasteFactor / 100);
+        updated.totalCost = adjustedQuantity * updated.unitCost + updated.handlingCost;
+        const childTotal = updatedChildItems.reduce((sum, child) => sum + child.totalCost, 0);
+        updated.totalCost += childTotal;
+        
+        return updated;
+      }
+      return material;
+    });
+    onUpdate(updatedMaterials);
+  };
+
+  // Remove child item
+  const removeChildItem = (materialId: string, childId: string) => {
+    const updatedMaterials = materials.map(material => {
+      if (material.id === materialId && material.childItems) {
+        const updatedChildItems = material.childItems.filter(child => child.id !== childId);
+        const updated = { ...material, childItems: updatedChildItems };
+        
+        // Recalculate total
+        const adjustedQuantity = updated.quantity * (1 + updated.wasteFactor / 100);
+        updated.totalCost = adjustedQuantity * updated.unitCost + updated.handlingCost;
+        const childTotal = updatedChildItems.reduce((sum, child) => sum + child.totalCost, 0);
+        updated.totalCost += childTotal;
+        
         return updated;
       }
       return material;
@@ -389,8 +532,10 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
+                  <tr className="border-b text-sm">
                     <th className="text-left p-2">Material</th>
+                    <th className="text-left p-2">Designation</th>
+                    <th className="text-left p-2">Drawing Ref</th>
                     <th className="text-left p-2">Quantity</th>
                     <th className="text-left p-2">Unit Cost</th>
                     <th className="text-left p-2">Waste %</th>
@@ -399,70 +544,172 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                   </tr>
                 </thead>
                 <tbody>
-                  {materials.map((material) => (
-                    <tr key={material.id} className="border-b hover:bg-gray-50">
-                      <td className="p-2">
-                        <MaterialSearch
-                          value={material.materialName}
-                          onChange={(value) => updateMaterialField(material.id, 'materialName', value)}
-                          onSelect={(selectedMaterial) => handleMaterialSelect(material.id, selectedMaterial)}
-                          availableMaterials={availableMaterials}
-                          placeholder="Search materials..."
-                          className="min-w-[200px]"
-                        />
-                        <div className="text-xs text-gray-500 mt-1">{material.materialCode}</div>
-                      </td>
-                      <td className="p-2">
-                        <Input
-                          type="number"
-                          value={material.quantity}
-                          onChange={(e) => updateMaterialField(material.id, 'quantity', parseFloat(e.target.value) || 0)}
-                          className="w-20"
-                        />
-                        <div className="text-xs text-gray-500">{material.unit}</div>
-                      </td>
-                      <td className="p-2">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={material.unitCost}
-                          onChange={(e) => updateMaterialField(material.id, 'unitCost', parseFloat(e.target.value) || 0)}
-                          className="w-24"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <Input
-                          type="number"
-                          value={material.wasteFactor}
-                          onChange={(e) => updateMaterialField(material.id, 'wasteFactor', parseFloat(e.target.value) || 0)}
-                          className="w-20"
-                        />
-                      </td>
-                      <td className="p-2 font-medium">
-                        ${material.totalCost.toLocaleString()}
-                      </td>
-                      <td className="p-2">
-                        <div className="flex gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setEditingMaterial(material);
-                              setIsEditDialogOpen(true);
-                            }}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeMaterial(material.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
+                  {materials.filter(m => !m.parentId).map((material) => (
+                    <React.Fragment key={material.id}>
+                      <tr className="border-b hover:bg-gray-50">
+                        <td className="p-2">
+                          <div className="flex items-center gap-2">
+                            {material.childItems && material.childItems.length > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => toggleMaterialExpanded(material.id)}
+                              >
+                                {material.isExpanded ? 
+                                  <ChevronDown className="h-4 w-4" /> : 
+                                  <ChevronRight className="h-4 w-4" />
+                                }
+                              </Button>
+                            )}
+                            <div className="flex-1">
+                              <MaterialSearch
+                                value={material.materialName}
+                                onChange={(value) => updateMaterialField(material.id, 'materialName', value)}
+                                onSelect={(selectedMaterial) => handleMaterialSelect(material.id, selectedMaterial)}
+                                availableMaterials={availableMaterials}
+                                placeholder="Search materials..."
+                                className="min-w-[200px]"
+                              />
+                              <div className="text-xs text-gray-500 mt-1">{material.materialCode}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            value={material.designation || ''}
+                            onChange={(e) => updateMaterialField(material.id, 'designation', e.target.value)}
+                            placeholder="C1, B2..."
+                            className="w-20 text-sm"
+                            title="Member designation (e.g., C1 for Column 1, B2 for Beam 2)"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            value={material.drawingReference || ''}
+                            onChange={(e) => updateMaterialField(material.id, 'drawingReference', e.target.value)}
+                            placeholder="S-101"
+                            className="w-24 text-sm"
+                            title="Drawing sheet reference"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            type="number"
+                            value={material.quantity}
+                            onChange={(e) => updateMaterialField(material.id, 'quantity', parseFloat(e.target.value) || 0)}
+                            className="w-20"
+                          />
+                          <div className="text-xs text-gray-500">{material.unit}</div>
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={material.unitCost}
+                            onChange={(e) => updateMaterialField(material.id, 'unitCost', parseFloat(e.target.value) || 0)}
+                            className="w-24"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            type="number"
+                            value={material.wasteFactor}
+                            onChange={(e) => updateMaterialField(material.id, 'wasteFactor', parseFloat(e.target.value) || 0)}
+                            className="w-20"
+                          />
+                        </td>
+                        <td className="p-2 font-medium">
+                          ${material.totalCost.toLocaleString()}
+                        </td>
+                        <td className="p-2">
+                          <div className="flex gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => addChildItem(material.id)}
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Add stiffener, end plate, or connection detail</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingMaterial(material);
+                                setIsEditDialogOpen(true);
+                              }}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeMaterial(material.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                      {/* Child Items */}
+                      {material.isExpanded && material.childItems?.map((child) => (
+                        <tr key={child.id} className="bg-gray-50 border-b">
+                          <td className="p-2 pl-12">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs">
+                                {child.type}
+                              </Badge>
+                              <span className="text-sm">{child.description}</span>
+                            </div>
+                          </td>
+                          <td className="p-2" colSpan={2}>
+                            {child.size && <span className="text-xs text-gray-600">Size: {child.size}</span>}
+                            {child.thickness && <span className="text-xs text-gray-600">Thickness: {child.thickness}mm</span>}
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              value={child.quantity}
+                              onChange={(e) => updateChildItem(material.id, child.id, { quantity: parseFloat(e.target.value) || 0 })}
+                              className="w-20 h-8"
+                            />
+                            <div className="text-xs text-gray-500">{child.unit}</div>
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={child.unitCost}
+                              onChange={(e) => updateChildItem(material.id, child.id, { unitCost: parseFloat(e.target.value) || 0 })}
+                              className="w-24 h-8"
+                            />
+                          </td>
+                          <td className="p-2">-</td>
+                          <td className="p-2 font-medium">
+                            ${child.totalCost.toLocaleString()}
+                          </td>
+                          <td className="p-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeChildItem(material.id, child.id)}
+                              className="h-8"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
@@ -493,6 +740,16 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
         onSave={updateMaterial}
         availableMaterials={availableMaterials}
       />
+
+      {/* Add Child Item Dialog */}
+      <Dialog open={isAddChildDialogOpen} onOpenChange={setIsAddChildDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add Connection Detail</DialogTitle>
+          </DialogHeader>
+          <AddChildItemForm onSubmit={handleAddChildItem} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -517,7 +774,13 @@ function AddMaterialForm({
     wasteFactor: "5",
     supplier: "",
     leadTime: "",
-    notes: ""
+    notes: "",
+    designation: "",
+    drawingReference: "",
+    assemblyMark: "",
+    phase: "",
+    sequenceNumber: undefined as number | undefined,
+    gridLine: ""
   });
 
   const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
@@ -557,7 +820,13 @@ function AddMaterialForm({
       handlingCost: handlingCalc.cost,
       supplier: formData.supplier,
       leadTime: formData.leadTime ? parseInt(formData.leadTime) : undefined,
-      notes: formData.notes
+      notes: formData.notes,
+      designation: formData.designation,
+      drawingReference: formData.drawingReference,
+      assemblyMark: formData.assemblyMark,
+      phase: formData.phase,
+      sequenceNumber: formData.sequenceNumber,
+      gridLine: formData.gridLine
     });
   };
 
@@ -586,6 +855,149 @@ function AddMaterialForm({
               setSelectedMaterial(null);
             }}
           />
+        </div>
+      </div>
+
+      {/* Fortune 500/STRUMIS Fields */}
+      <div className="space-y-4">
+        <div className="border-t pt-4">
+          <h4 className="text-sm font-medium mb-4 text-muted-foreground">Drawing Reference Fields</h4>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="designation">
+                Designation
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="inline ml-1 h-3 w-3 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Element reference from drawings (e.g., B1, C2, S3)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
+              <Input
+                id="designation"
+                value={formData.designation || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, designation: e.target.value }))}
+                placeholder="e.g., B1, C2"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="drawingReference">
+                Drawing Ref
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="inline ml-1 h-3 w-3 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Drawing number where this item appears</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
+              <Input
+                id="drawingReference"
+                value={formData.drawingReference || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, drawingReference: e.target.value }))}
+                placeholder="e.g., S-101, A-201"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="assemblyMark">
+                Assembly Mark
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="inline ml-1 h-3 w-3 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Unique identifier for fabrication tracking</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
+              <Input
+                id="assemblyMark"
+                value={formData.assemblyMark || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, assemblyMark: e.target.value }))}
+                placeholder="e.g., A101, B202"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            <div>
+              <Label htmlFor="phase">
+                Phase
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="inline ml-1 h-3 w-3 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Construction phase (e.g., Phase 1, Foundation)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
+              <Input
+                id="phase"
+                value={formData.phase || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, phase: e.target.value }))}
+                placeholder="e.g., Phase 1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="sequenceNumber">
+                Sequence
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="inline ml-1 h-3 w-3 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Erection sequence number</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
+              <Input
+                id="sequenceNumber"
+                type="number"
+                value={formData.sequenceNumber || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, sequenceNumber: parseInt(e.target.value) || undefined }))}
+                placeholder="e.g., 10, 20"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="gridLine">
+                Grid Line
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="inline ml-1 h-3 w-3 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Grid line reference (e.g., A-1, B-2)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
+              <Input
+                id="gridLine"
+                value={formData.gridLine || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, gridLine: e.target.value }))}
+                placeholder="e.g., A-1, B-2"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -796,6 +1208,70 @@ function EditMaterialDialog({
               rows={3}
             />
           </div>
+
+          {/* Fortune 500/STRUMIS Fields */}
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-4 text-muted-foreground">Drawing Reference Fields</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="edit-designation">Designation</Label>
+                <Input
+                  id="edit-designation"
+                  value={formData.designation || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, designation: e.target.value }))}
+                  placeholder="e.g., B1, C2"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-drawing-ref">Drawing Ref</Label>
+                <Input
+                  id="edit-drawing-ref"
+                  value={formData.drawingReference || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, drawingReference: e.target.value }))}
+                  placeholder="e.g., S-101"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-assembly-mark">Assembly Mark</Label>
+                <Input
+                  id="edit-assembly-mark"
+                  value={formData.assemblyMark || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, assemblyMark: e.target.value }))}
+                  placeholder="e.g., A101"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4 mt-4">
+              <div>
+                <Label htmlFor="edit-phase">Phase</Label>
+                <Input
+                  id="edit-phase"
+                  value={formData.phase || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phase: e.target.value }))}
+                  placeholder="e.g., Phase 1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-sequence">Sequence</Label>
+                <Input
+                  id="edit-sequence"
+                  type="number"
+                  value={formData.sequenceNumber || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, sequenceNumber: parseInt(e.target.value) || undefined }))}
+                  placeholder="e.g., 10"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-grid-line">Grid Line</Label>
+                <Input
+                  id="edit-grid-line"
+                  value={formData.gridLine || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, gridLine: e.target.value }))}
+                  placeholder="e.g., A-1"
+                />
+              </div>
+            </div>
+          </div>
         </div>
         
         <div className="flex justify-end space-x-2">
@@ -804,5 +1280,195 @@ function EditMaterialDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Add Child Item Form Component
+function AddChildItemForm({ onSubmit }: { onSubmit: (data: Partial<MaterialChildItem>) => void }) {
+  const [formData, setFormData] = useState({
+    type: 'stiffener' as MaterialChildItem['type'],
+    description: '',
+    quantity: 1,
+    unit: 'ea',
+    unitCost: 0,
+    thickness: undefined as number | undefined,
+    size: '',
+    length: undefined as number | undefined,
+    notes: ''
+  });
+
+  const connectionTypes = [
+    { value: 'stiffener', label: 'Stiffener', fields: ['thickness', 'size'] },
+    { value: 'endplate', label: 'End Plate', fields: ['thickness', 'size'] },
+    { value: 'baseplate', label: 'Base Plate', fields: ['thickness', 'size'] },
+    { value: 'cleat', label: 'Cleat', fields: ['size', 'thickness'] },
+    { value: 'bolt', label: 'Bolts', fields: ['size'] },
+    { value: 'weld', label: 'Welding', fields: ['length'] },
+    { value: 'other', label: 'Other', fields: [] }
+  ];
+
+  const selectedType = connectionTypes.find(t => t.value === formData.type);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+    // Reset form
+    setFormData({
+      type: 'stiffener',
+      description: '',
+      quantity: 1,
+      unit: 'ea',
+      unitCost: 0,
+      thickness: undefined,
+      size: '',
+      length: undefined,
+      notes: ''
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="child-type">Connection Type</Label>
+        <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as any }))}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {connectionTypes.map(type => (
+              <SelectItem key={type.value} value={type.value}>
+                {type.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="child-description">Description</Label>
+        <Input
+          id="child-description"
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          placeholder={
+            formData.type === 'stiffener' ? 'e.g., Web Stiffener 150x10' :
+            formData.type === 'endplate' ? 'e.g., End Plate 200x200x16' :
+            formData.type === 'baseplate' ? 'e.g., Base Plate 400x400x25' :
+            formData.type === 'cleat' ? 'e.g., Angle Cleat 100x100x10' :
+            formData.type === 'bolt' ? 'e.g., M20 Grade 8.8' :
+            formData.type === 'weld' ? 'e.g., 6mm Fillet Weld' :
+            'Description'
+          }
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <Label htmlFor="child-quantity">Quantity</Label>
+          <Input
+            id="child-quantity"
+            type="number"
+            min="1"
+            value={formData.quantity}
+            onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="child-unit">Unit</Label>
+          <Select value={formData.unit} onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ea">Each</SelectItem>
+              <SelectItem value="m">Meters</SelectItem>
+              <SelectItem value="kg">Kilograms</SelectItem>
+              <SelectItem value="set">Set</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
+          <Label htmlFor="child-unit-cost">Unit Cost ($)</Label>
+          <Input
+            id="child-unit-cost"
+            type="number"
+            step="0.01"
+            value={formData.unitCost}
+            onChange={(e) => setFormData(prev => ({ ...prev, unitCost: parseFloat(e.target.value) || 0 }))}
+          />
+        </div>
+      </div>
+
+      {/* Dynamic fields based on type */}
+      {selectedType && (
+        <div className="grid grid-cols-2 gap-4">
+          {selectedType.fields.includes('thickness') && (
+            <div>
+              <Label htmlFor="child-thickness">Thickness (mm)</Label>
+              <Input
+                id="child-thickness"
+                type="number"
+                value={formData.thickness || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, thickness: parseFloat(e.target.value) || undefined }))}
+                placeholder="e.g., 10"
+              />
+            </div>
+          )}
+          
+          {selectedType.fields.includes('size') && (
+            <div>
+              <Label htmlFor="child-size">Size</Label>
+              <Input
+                id="child-size"
+                value={formData.size}
+                onChange={(e) => setFormData(prev => ({ ...prev, size: e.target.value }))}
+                placeholder={
+                  formData.type === 'bolt' ? 'e.g., M20x60' :
+                  formData.type === 'cleat' ? 'e.g., 100x100x10' :
+                  'e.g., 150x150'
+                }
+              />
+            </div>
+          )}
+          
+          {selectedType.fields.includes('length') && (
+            <div>
+              <Label htmlFor="child-length">Weld Length (mm)</Label>
+              <Input
+                id="child-length"
+                type="number"
+                value={formData.length || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, length: parseFloat(e.target.value) || undefined }))}
+                placeholder="Total length"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      <div>
+        <Label htmlFor="child-notes">Notes</Label>
+        <Textarea
+          id="child-notes"
+          value={formData.notes}
+          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+          rows={2}
+          placeholder="Additional details or specifications"
+        />
+      </div>
+
+      <div>
+        <p className="text-sm text-muted-foreground">
+          Total Cost: ${(formData.quantity * formData.unitCost).toFixed(2)}
+        </p>
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button type="submit">Add Connection Detail</Button>
+      </div>
+    </form>
   );
 }

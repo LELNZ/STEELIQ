@@ -1,8 +1,29 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import JobEditModal from "./job-edit-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   FileText, 
   ChevronRight, 
@@ -10,7 +31,12 @@ import {
   User, 
   Calendar,
   AlertTriangle,
-  Zap
+  Zap,
+  Eye,
+  Edit,
+  Trash2,
+  Copy,
+  MoreVertical
 } from "lucide-react";
 import { Job } from "@shared/schema";
 
@@ -20,9 +46,74 @@ interface JobListProps {
 }
 
 export default function JobList({ searchQuery, statusFilter }: JobListProps) {
+  const [deleteJobId, setDeleteJobId] = useState<number | null>(null);
+  const [editJobId, setEditJobId] = useState<number | null>(null);
+  const { toast } = useToast();
+  
   const { data: jobs, isLoading } = useQuery<Job[]>({
     queryKey: ["/api/jobs"],
   });
+
+  const deleteJobMutation = useMutation({
+    mutationFn: async (jobId: number) => {
+      await apiRequest(`/api/jobs/${jobId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+      toast({
+        title: "Job deleted",
+        description: "The job has been archived successfully.",
+      });
+      setDeleteJobId(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete job",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const copyJobMutation = useMutation({
+    mutationFn: async (jobId: number) => {
+      await apiRequest(`/api/jobs/${jobId}/copy`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+      toast({
+        title: "Job copied",
+        description: "A copy of the job has been created successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to copy job",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleView = (jobId: number) => {
+    window.location.href = `/jobs/${jobId}`;
+  };
+
+  const handleEdit = (jobId: number) => {
+    setEditJobId(jobId);
+  };
+
+  const handleDelete = (jobId: number) => {
+    setDeleteJobId(jobId);
+  };
+
+  const handleCopy = (jobId: number) => {
+    copyJobMutation.mutate(jobId);
+  };
 
   const getStatusBadge = (status: string, priority: string) => {
     if (priority === "rush") {
@@ -100,6 +191,7 @@ export default function JobList({ searchQuery, statusFilter }: JobListProps) {
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -150,9 +242,35 @@ export default function JobList({ searchQuery, statusFilter }: JobListProps) {
                         <p className="text-xs text-muted-foreground">Estimated value</p>
                       </div>
                       {getStatusBadge(job.status, job.priority)}
-                      <Button variant="ghost" size="icon">
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleView(job.id)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(job.id)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Job
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleCopy(job.id)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copy Job
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleDelete(job.id)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Job
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
 
@@ -220,5 +338,35 @@ export default function JobList({ searchQuery, statusFilter }: JobListProps) {
         )}
       </CardContent>
     </Card>
+
+    {/* Delete Confirmation Dialog */}
+    <AlertDialog open={!!deleteJobId} onOpenChange={(open) => !open && setDeleteJobId(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action will archive the job. You can restore it from the archives if needed.
+            This action cannot be undone immediately.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => deleteJobId && deleteJobMutation.mutate(deleteJobId)}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Delete Job
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Job Edit Modal */}
+    <JobEditModal 
+      jobId={editJobId} 
+      open={!!editJobId} 
+      onOpenChange={(open) => !open && setEditJobId(null)} 
+    />
+    </>
   );
 }

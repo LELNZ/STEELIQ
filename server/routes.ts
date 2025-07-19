@@ -155,6 +155,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/jobs/:id/copy", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const job = await storage.getJob(id);
+      
+      if (!job) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+      
+      // Create a copy of the job with a new job number
+      const newJobNumber = `JOB-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+      const jobCopy = {
+        ...job,
+        id: undefined,
+        jobNumber: newJobNumber,
+        projectName: `${job.projectName} (Copy)`,
+        status: 'pending' as const,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      delete jobCopy.id;
+      
+      const newJob = await storage.createJob(jobCopy);
+      res.json(newJob);
+    } catch (error) {
+      console.error("Error copying job:", error);
+      res.status(500).json({ error: "Failed to copy job" });
+    }
+  });
+
   // Materials routes
   app.get("/api/materials", async (req, res) => {
     try {
