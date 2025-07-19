@@ -1136,6 +1136,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(estimationProjects.id, id));
   }
 
+  async getJobByEstimationId(estimationId: number): Promise<Job | null> {
+    const [job] = await db
+      .select()
+      .from(jobs)
+      .where(eq(jobs.estimationId, estimationId))
+      .limit(1);
+    return job || null;
+  }
+
   async createJobFromEstimation(jobData: any): Promise<Job> {
     // Get client details
     let clientDetails = { name: '', contact: '', phone: '', email: '', address: '' };

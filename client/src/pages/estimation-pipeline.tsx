@@ -81,21 +81,31 @@ export default function EstimationPipeline() {
     mutationFn: async (estimationId: number) => {
       return apiRequest('POST', '/api/estimations/convert-to-job', { estimationId });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/estimations'] });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       toast({
-        title: "Success",
-        description: "Estimation converted to active job successfully"
+        title: "Job Created Successfully!",
+        description: `Job ${data.jobNumber} has been created from this estimation. The job is now active and ready for production.`
       });
     },
     onError: (error: any) => {
       console.error('Convert to job error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to convert estimation to job",
-        variant: "destructive"
-      });
+      // Check if it's a duplicate job error
+      if (error.message?.includes('already exists')) {
+        const errorData = JSON.parse(error.message.split('400: ')[1] || '{}');
+        toast({
+          title: "Job Already Exists",
+          description: `This estimation has already been converted to job ${errorData.jobNumber}. Each estimation can only create one job.`,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to convert estimation to job",
+          variant: "destructive"
+        });
+      }
     }
   });
 
@@ -145,13 +155,19 @@ export default function EstimationPipeline() {
     const estimationId = parseInt(e.dataTransfer.getData('estimationId'));
     const estimation = estimations.find(est => est.id === estimationId);
     
-    if (estimation) {
-      // Special handling for accepted status
+    if (estimation && estimation.status !== newStatus) {
+      // Special handling for accepted status - only convert to job, don't update status separately
       if (newStatus === 'accepted' && estimation.status !== 'accepted') {
         if (confirm('Convert this estimation to an active job?')) {
           convertToJob.mutate(estimationId);
+          // Don't update status here - job creation will handle it
+          return;
+        } else {
+          // User cancelled, don't change status
+          return;
         }
       }
+      // For all other status changes, just update the status
       updateStatus.mutate({ id: estimationId, status: newStatus });
     }
   };
@@ -184,12 +200,18 @@ export default function EstimationPipeline() {
                   className="cursor-move hover:shadow-md transition-shadow"
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData('estimationId', estimation.id.toString())}
+                  onClick={() => window.location.href = `/estimation?id=${estimation.id}`}
                 >
                   <CardContent className="p-3">
                     <div className="flex items-start justify-between mb-2">
-                      <span className="font-medium text-sm">{estimation.name}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium text-sm block truncate">{estimation.name}</span>
+                        {estimation.currentPhase && (
+                          <span className="text-xs text-muted-foreground">{estimation.currentPhase}</span>
+                        )}
+                      </div>
                       {estimation.lifecycleProgress !== undefined && (
-                        <div className="w-12 h-12 relative">
+                        <div className="w-12 h-12 relative flex-shrink-0 ml-2">
                           <svg className="transform -rotate-90 w-12 h-12">
                             <circle
                               cx="24"

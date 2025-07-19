@@ -2545,3 +2545,58 @@ export type CostCenter = typeof costCenters.$inferSelect;
 export type InsertCostCenter = typeof costCenters.$inferInsert;
 export type BusinessUnit = typeof businessUnits.$inferSelect;
 export type InsertBusinessUnit = typeof businessUnits.$inferInsert;
+
+// Archive tables for Fortune 500 compliance and data retention
+export const jobsArchive = pgTable("jobs_archive", {
+  id: serial("id").primaryKey(),
+  originalId: integer("original_id").notNull(),
+  jobNumber: text("job_number").notNull(),
+  clientName: text("client_name").notNull(),
+  clientContact: text("client_contact"),
+  clientPhone: text("client_phone"),
+  clientEmail: text("client_email"),
+  clientAddress: text("client_address"),
+  projectDescription: text("project_description"),
+  status: text("status").notNull(),
+  priority: text("priority"),
+  estimatedValue: decimal("estimated_value", { precision: 10, scale: 2 }),
+  actualCost: decimal("actual_cost", { precision: 10, scale: 2 }),
+  materialCost: decimal("material_cost", { precision: 10, scale: 2 }),
+  laborCost: decimal("labor_cost", { precision: 10, scale: 2 }),
+  overheadCost: decimal("overhead_cost", { precision: 10, scale: 2 }),
+  profitMargin: decimal("profit_margin", { precision: 5, scale: 2 }),
+  completedDate: timestamp("completed_date"),
+  assignedTo: integer("assigned_to"),
+  estimationId: integer("estimation_id"),
+  notes: text("notes"),
+  internalNotes: text("internal_notes"),
+  originalCreatedAt: timestamp("original_created_at"),
+  archivedAt: timestamp("archived_at").defaultNow().notNull(),
+  archivedBy: integer("archived_by").notNull(),
+  archiveReason: text("archive_reason").notNull(),
+  restoredAt: timestamp("restored_at"),
+  restoredBy: integer("restored_by"),
+  fullData: jsonb("full_data") // Complete job data as JSON
+});
+
+export const estimationsArchive = pgTable("estimations_archive", {
+  id: serial("id").primaryKey(),
+  originalId: integer("original_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  clientId: integer("client_id"),
+  clientName: text("client_name"),
+  status: text("status").notNull(),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }).notNull(),
+  margin: decimal("margin", { precision: 5, scale: 2 }).notNull(),
+  deliveryDate: timestamp("delivery_date"),
+  estimatedHours: decimal("estimated_hours", { precision: 10, scale: 2 }),
+  projectData: jsonb("project_data"),
+  originalCreatedAt: timestamp("original_created_at"),
+  archivedBy: integer("archived_by").notNull(),
+  archivedAt: timestamp("archived_at").defaultNow().notNull(),
+  archiveReason: text("archive_reason").notNull(),
+  restoredAt: timestamp("restored_at"),
+  restoredBy: integer("restored_by"),
+  fullData: jsonb("full_data") // Complete estimation data as JSON
+});

@@ -133,6 +133,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/jobs/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { reason = "Deleted by user" } = req.body;
+      
+      // Get current user from session
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Archive the job before deletion
+      const { ArchivingService } = await import('./archiving');
+      await ArchivingService.archiveJob(id, user.id, reason);
+      
+      res.json({ success: true, message: "Job archived and deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      res.status(500).json({ error: "Failed to delete job" });
+    }
+  });
+
   // Materials routes
   app.get("/api/materials", async (req, res) => {
     try {
@@ -1895,6 +1917,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Estimation not found" });
       }
       
+      // Check if a job already exists for this estimation
+      const existingJob = await storage.getJobByEstimationId(estimationId);
+      if (existingJob) {
+        return res.status(400).json({ 
+          error: "A job already exists for this estimation",
+          jobId: existingJob.id,
+          jobNumber: existingJob.jobNumber
+        });
+      }
+      
       // Create job from estimation
       const jobData = {
         number: `JOB-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
@@ -2218,6 +2250,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error saving estimation:", error);
       res.setHeader('Content-Type', 'application/json');
       res.status(500).json({ error: "Failed to save estimation", details: error.message });
+    }
+  });
+
+  // Delete estimation
+  app.delete('/api/estimations/:id', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const { reason = "Deleted by user" } = req.body;
+      
+      // Archive the estimation before deletion
+      const { ArchivingService } = await import('./archiving');
+      await ArchivingService.archiveEstimation(id, user.id, reason);
+      
+      res.json({ success: true, message: "Estimation archived and deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting estimation:", error);
+      res.status(500).json({ error: "Failed to delete estimation" });
     }
   });
 
