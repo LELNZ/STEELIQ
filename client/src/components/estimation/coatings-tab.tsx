@@ -79,16 +79,18 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
   }, [coatingSystems, searchTerm, selectedCategory]);
   
   // Helper functions to map coating types and categories
-  const getCoatingType = (category: string): "paint" | "galvanizing" | "powder_coating" => {
-    if (category?.toLowerCase().includes('galvaniz')) return "galvanizing";
-    if (category?.toLowerCase().includes('powder')) return "powder_coating";
+  const getCoatingType = (category: string | undefined): "paint" | "galvanizing" | "powder_coating" => {
+    const cat = category?.toLowerCase() || '';
+    if (cat.includes('galvaniz')) return "galvanizing";
+    if (cat.includes('powder')) return "powder_coating";
     return "paint";
   };
   
-  const getCoatingCategory = (category: string): "primer" | "topcoat" | "finish" | "protective" => {
-    if (category?.toLowerCase().includes('primer')) return "primer";
-    if (category?.toLowerCase().includes('topcoat')) return "topcoat";
-    if (category?.toLowerCase().includes('finish')) return "finish";
+  const getCoatingCategory = (category: string | undefined): "primer" | "topcoat" | "finish" | "protective" => {
+    const cat = category?.toLowerCase() || '';
+    if (cat.includes('primer')) return "primer";
+    if (cat.includes('topcoat')) return "topcoat";
+    if (cat.includes('finish')) return "finish";
     return "protective";
   };
 
