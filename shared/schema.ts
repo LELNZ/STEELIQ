@@ -324,6 +324,7 @@ export const jobs = pgTable("jobs", {
   deliveryInstructions: text("delivery_instructions"),
   specialRequirements: text("special_requirements"),
   optimizationId: text("optimization_id"), // Link to optimization result
+  estimationId: integer("estimation_id"), // Link to estimation project
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

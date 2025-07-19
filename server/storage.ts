@@ -1137,26 +1137,45 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createJobFromEstimation(jobData: any): Promise<Job> {
+    // Get client details
+    let clientDetails = { name: '', contact: '', phone: '', email: '', address: '' };
+    if (jobData.clientId) {
+      const client = await this.getClient(jobData.clientId);
+      if (client) {
+        clientDetails = {
+          name: client.name || '',
+          contact: client.primaryContactName || '',
+          phone: client.primaryContactPhone || '',
+          email: client.primaryContactEmail || '',
+          address: client.address || ''
+        };
+      }
+    }
+    
     const [job] = await db
       .insert(jobs)
       .values({
-        number: jobData.number,
-        clientId: jobData.clientId,
-        description: jobData.description,
+        job_number: jobData.number,
+        client_name: clientDetails.name,
+        client_contact: clientDetails.contact,
+        client_phone: clientDetails.phone,
+        client_email: clientDetails.email,
+        client_address: clientDetails.address,
+        project_description: jobData.description,
         status: jobData.status,
-        startDate: jobData.startDate,
-        endDate: jobData.endDate,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        priority: 'medium',
+        estimated_value: jobData.totalCost,
+        material_cost: jobData.projectData?.materials?.reduce((sum: number, m: any) => sum + (m.totalCost || 0), 0) || 0,
+        labor_cost: jobData.projectData?.labor?.reduce((sum: number, l: any) => sum + (l.totalCost || 0), 0) || 0,
+        overhead_cost: jobData.projectData?.overheadCost || 0,
+        profit_margin: jobData.margin,
+        start_date: jobData.startDate,
+        due_date: jobData.endDate,
+        created_at: new Date(),
+        notes: `Created from estimation #${jobData.estimationId}`,
+        estimation_id: jobData.estimationId
       })
       .returning();
-    
-    // Store the estimation link
-    await db.execute(sql`
-      UPDATE jobs 
-      SET estimation_id = ${jobData.estimationId}
-      WHERE id = ${job.id}
-    `);
     
     return job;
   }

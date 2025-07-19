@@ -91,6 +91,14 @@ export default function EstimationPipeline() {
         title: "Success",
         description: "Estimation converted to active job successfully"
       });
+    },
+    onError: (error: any) => {
+      console.error('Convert to job error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to convert estimation to job",
+        variant: "destructive"
+      });
     }
   });
 
@@ -107,6 +115,14 @@ export default function EstimationPipeline() {
       toast({
         title: "Status Updated",
         description: "Estimation status has been updated"
+      });
+    },
+    onError: (error: any) => {
+      console.error('Update status error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update estimation status",
+        variant: "destructive"
       });
     }
   });
