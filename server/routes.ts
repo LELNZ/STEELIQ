@@ -1842,6 +1842,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update estimation status
+  app.patch("/api/estimations/:id/status", AuthService.validateSession, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      const validStatuses = ['draft', 'in_progress', 'completed', 'sent', 'accepted', 'declined'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      
+      await storage.updateEstimationStatus(id, status);
+      res.json({ success: true, message: "Status updated successfully" });
+    } catch (error) {
+      console.error("Error updating estimation status:", error);
+      res.status(500).json({ error: "Failed to update status" });
+    }
+  });
+
+  // Convert estimation to job
+  app.post("/api/estimations/convert-to-job", AuthService.validateSession, async (req, res) => {
+    try {
+      const { estimationId } = req.body;
+      const userId = req.session.userId!;
+      
+      // Get estimation details
+      const estimation = await storage.getEstimationProject(estimationId);
+      if (!estimation) {
+        return res.status(404).json({ error: "Estimation not found" });
+      }
+      
+      // Create job from estimation
+      const jobData = {
+        number: `JOB-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
+        estimationId: estimationId,
+        clientId: estimation.clientId,
+        description: estimation.description || estimation.name,
+        status: 'active' as const,
+        startDate: new Date(),
+        endDate: estimation.deliveryDate || undefined,
+        totalCost: parseFloat(estimation.totalCost),
+        margin: parseFloat(estimation.margin),
+        projectData: estimation.projectData,
+        createdBy: userId,
+      };
+      
+      const job = await storage.createJobFromEstimation(jobData);
+      
+      // Update estimation status to accepted
+      await storage.updateEstimationStatus(estimationId, 'accepted');
+      
+      // Create initial resource allocations
+      if (estimation.projectData?.labor) {
+        await storage.createResourceAllocations(job.id, estimation.projectData.labor);
+      }
+      
+      res.json({ 
+        success: true, 
+        message: "Estimation converted to job successfully",
+        jobId: job.id,
+        jobNumber: job.number
+      });
+    } catch (error) {
+      console.error("Error converting estimation to job:", error);
+      res.status(500).json({ error: "Failed to convert estimation to job" });
+    }
+  });
+
   // Project Lifecycle Tracking API
   const { lifecycleTrackingService } = await import('./lifecycleTracking');
   const { lifecycleTemplateService } = await import('./lifecycleTemplates');

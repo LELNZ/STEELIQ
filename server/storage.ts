@@ -967,11 +967,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Estimation Management
-  async getEstimationProjects(): Promise<EstimationProject[]> {
+  async getEstimationProjects(): Promise<any[]> {
     try {
-      return await db.select().from(estimationProjects).orderBy(desc(estimationProjects.updatedAt));
+      const projects = await db.execute(sql`
+        SELECT 
+          ep.*,
+          c.name as client_name
+        FROM estimation_projects ep
+        LEFT JOIN clients c ON ep.client_id = c.id
+        ORDER BY ep.updated_at DESC
+      `);
+      
+      return projects.rows.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        clientId: p.client_id,
+        clientName: p.client_name,
+        status: p.status,
+        totalCost: p.total_cost,
+        margin: p.margin,
+        deliveryDate: p.delivery_date,
+        estimatedHours: p.estimated_hours,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
+        lifecycleProgress: p.lifecycle_progress || 0,
+        currentPhase: p.current_phase,
+        projectNumber: p.project_number || `EST-${p.id}`
+      }));
     } catch (error) {
-      console.log('No estimation projects table exists yet');
+      console.log('Error fetching estimation projects:', error);
       return [];
     }
   }
@@ -1102,6 +1127,65 @@ export class DatabaseStorage implements IStorage {
         estimationData
       };
     });
+  }
+
+  async updateEstimationStatus(id: number, status: string): Promise<void> {
+    await db
+      .update(estimationProjects)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(estimationProjects.id, id));
+  }
+
+  async createJobFromEstimation(jobData: any): Promise<Job> {
+    const [job] = await db
+      .insert(jobs)
+      .values({
+        number: jobData.number,
+        clientId: jobData.clientId,
+        description: jobData.description,
+        status: jobData.status,
+        startDate: jobData.startDate,
+        endDate: jobData.endDate,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    // Store the estimation link
+    await db.execute(sql`
+      UPDATE jobs 
+      SET estimation_id = ${jobData.estimationId}
+      WHERE id = ${job.id}
+    `);
+    
+    return job;
+  }
+
+  async createResourceAllocations(jobId: number, laborData: any[]): Promise<void> {
+    // Create resource allocations for the job based on labor requirements
+    for (const labor of laborData) {
+      await db.execute(sql`
+        INSERT INTO resource_allocations (
+          job_id,
+          resource_type,
+          description,
+          hours,
+          rate,
+          skill_level,
+          location,
+          created_at
+        ) VALUES (
+          ${jobId},
+          'labor',
+          ${labor.description},
+          ${labor.hours},
+          ${labor.rate},
+          ${labor.skillLevel || 'standard'},
+          ${labor.location || 'workshop'},
+          NOW()
+        )
+      `);
+    }
   }
 }
 

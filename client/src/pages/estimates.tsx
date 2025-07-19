@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { 
   FileText, 
   Search, 
@@ -15,7 +16,8 @@ import {
   Eye,
   Edit,
   Copy,
-  Trash2
+  Trash2,
+  Activity
 } from "lucide-react";
 import { ActionIcons } from "@/components/ui/action-icons";
 
@@ -29,6 +31,8 @@ interface Estimate {
   createdDate: string;
   expiryDate: string;
   validDays: number;
+  lifecycleProgress?: number;
+  currentPhase?: string;
 }
 
 export default function EstimatesPage() {
@@ -233,6 +237,22 @@ export default function EstimatesPage() {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Lifecycle Progress Indicator */}
+                  {estimate.lifecycleProgress !== undefined && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <Activity className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">
+                            Lifecycle Progress: {estimate.currentPhase || 'Pre-Fabrication'}
+                          </span>
+                        </div>
+                        <span className="font-medium">{estimate.lifecycleProgress}%</span>
+                      </div>
+                      <Progress value={estimate.lifecycleProgress} className="h-2" />
+                    </div>
+                  )}
                 </div>
                 
                 <ActionIcons
