@@ -79,10 +79,7 @@ export default function EstimationPipeline() {
   // Convert to Job mutation
   const convertToJob = useMutation({
     mutationFn: async (estimationId: number) => {
-      return apiRequest('/api/estimations/convert-to-job', {
-        method: 'POST',
-        body: JSON.stringify({ estimationId })
-      });
+      return apiRequest('POST', '/api/estimations/convert-to-job', { estimationId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/estimations'] });
@@ -105,10 +102,7 @@ export default function EstimationPipeline() {
   // Update status mutation
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      return apiRequest(`/api/estimations/${id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status })
-      });
+      return apiRequest('PATCH', `/api/estimations/${id}/status`, { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/estimations'] });
