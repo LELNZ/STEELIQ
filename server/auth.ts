@@ -170,31 +170,46 @@ export class AuthService {
 
   // Validate session token
   static async validateSession(token: string) {
-    const [session] = await db
-      .select()
-      .from(authSessions)
-      .where(and(
-        eq(authSessions.token, token),
-        gt(authSessions.expiresAt, new Date())
-      ));
+    try {
+      const sessions = await db
+        .select()
+        .from(authSessions)
+        .where(and(
+          eq(authSessions.token, token),
+          gt(authSessions.expiresAt, new Date())
+        ))
+        .limit(1);
 
-    if (!session) {
+      if (!sessions || sessions.length === 0) {
+        return null;
+      }
+
+      const session = sessions[0];
+
+      // Get user data
+      const users_result = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, session.userId))
+        .limit(1);
+
+      if (!users_result || users_result.length === 0) {
+        return null;
+      }
+
+      const user = users_result[0];
+
+      if (!user.isActive) {
+        return null;
+      }
+
+      // Remove sensitive data
+      const { password, twoFactorSecret, twoFactorBackupCodes, ...userResponse } = user;
+      return userResponse;
+    } catch (error) {
+      console.error('Session validation error:', error);
       return null;
     }
-
-    // Get user data
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.userId));
-
-    if (!user || !user.isActive) {
-      return null;
-    }
-
-    // Remove sensitive data
-    const { password, twoFactorSecret, twoFactorBackupCodes, ...userResponse } = user;
-    return userResponse;
   }
 
   // Logout user (invalidate session)

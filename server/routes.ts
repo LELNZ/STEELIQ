@@ -1843,8 +1843,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update estimation status
-  app.patch("/api/estimations/:id/status", AuthService.validateSession, async (req, res) => {
+  app.patch("/api/estimations/:id/status", async (req, res) => {
     try {
+      // Validate authentication
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return res.status(401).json({ error: "No authentication token" });
+      }
+      
+      const user = await AuthService.validateSession(token);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const id = parseInt(req.params.id);
       const { status } = req.body;
       
@@ -1862,10 +1873,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Convert estimation to job
-  app.post("/api/estimations/convert-to-job", AuthService.validateSession, async (req, res) => {
+  app.post("/api/estimations/convert-to-job", async (req, res) => {
     try {
+      // Validate authentication
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return res.status(401).json({ error: "No authentication token" });
+      }
+      
+      const user = await AuthService.validateSession(token);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const { estimationId } = req.body;
-      const userId = req.session.userId!;
+      const userId = user.id;
       
       // Get estimation details
       const estimation = await storage.getEstimationProject(estimationId);
