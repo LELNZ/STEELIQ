@@ -639,10 +639,10 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-medium">{coating.coatingName}</h4>
-                      <Badge className={getCoatingTypeColor(coating.coatingType)}>
-                        {coating.coatingType.replace('_', ' ')}
+                      <Badge className={getCoatingTypeColor(coating.coatingType || 'paint')}>
+                        {(coating.coatingType || 'paint').replace('_', ' ')}
                       </Badge>
-                      <Badge variant="outline">{coating.category}</Badge>
+                      <Badge variant="outline">{coating.category || 'protective'}</Badge>
                       {coating.isInhouse ? (
                         <Badge variant="secondary">
                           <Building2 className="w-3 h-3 mr-1" />
