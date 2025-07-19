@@ -29,7 +29,6 @@ const navigation = [
     items: [
       { name: "Dashboard", href: "/", icon: LayoutDashboard },
       { name: "Jobs & Cutting", href: "/jobs", icon: Briefcase, badge: "12" },
-      { name: "Estimates & Quotes", href: "/estimates", icon: FileText, badge: "2", badgeVariant: "info" },
       { name: "AI Estimation Engine", href: "/estimation", icon: Bot, badge: "ENHANCED", badgeVariant: "success" },
       { name: "Estimation Pipeline", href: "/estimation-pipeline", icon: TrendingUp, badge: "NEW", badgeVariant: "info" },
       { name: "Material Library", href: "/materials", icon: Package },
