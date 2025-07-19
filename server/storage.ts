@@ -1155,25 +1155,23 @@ export class DatabaseStorage implements IStorage {
     const [job] = await db
       .insert(jobs)
       .values({
-        job_number: jobData.number,
-        client_name: clientDetails.name,
-        client_contact: clientDetails.contact,
-        client_phone: clientDetails.phone,
-        client_email: clientDetails.email,
-        client_address: clientDetails.address,
-        project_description: jobData.description,
+        jobNumber: jobData.number,
+        clientName: clientDetails.name,
+        clientContact: clientDetails.contact,
+        clientPhone: clientDetails.phone,
+        clientEmail: clientDetails.email,
+        clientAddress: clientDetails.address,
+        projectDescription: jobData.description,
         status: jobData.status,
         priority: 'medium',
-        estimated_value: jobData.totalCost,
-        material_cost: jobData.projectData?.materials?.reduce((sum: number, m: any) => sum + (m.totalCost || 0), 0) || 0,
-        labor_cost: jobData.projectData?.labor?.reduce((sum: number, l: any) => sum + (l.totalCost || 0), 0) || 0,
-        overhead_cost: jobData.projectData?.overheadCost || 0,
-        profit_margin: jobData.margin,
-        start_date: jobData.startDate,
-        due_date: jobData.endDate,
-        created_at: new Date(),
+        estimatedValue: jobData.totalCost,
+        materialCost: jobData.projectData?.materials?.reduce((sum: number, m: any) => sum + (m.totalCost || 0), 0) || 0,
+        laborCost: jobData.projectData?.labor?.reduce((sum: number, l: any) => sum + (l.totalCost || 0), 0) || 0,
+        overheadCost: jobData.projectData?.overheadCost || 0,
+        profitMargin: jobData.margin,
+        createdAt: new Date(),
         notes: `Created from estimation #${jobData.estimationId}`,
-        estimation_id: jobData.estimationId
+        estimationId: jobData.estimationId
       })
       .returning();
     

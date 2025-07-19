@@ -71,7 +71,7 @@ export default function EstimationPipeline() {
   const { data: estimations = [], isLoading } = useQuery({
     queryKey: ['/api/estimations'],
     queryFn: async () => {
-      const response = await apiRequest('/api/estimations');
+      const response = await apiRequest('GET', '/api/estimations');
       return response as EstimationProject[];
     }
   });
