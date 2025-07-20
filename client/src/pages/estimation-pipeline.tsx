@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ViewSwitcher } from '@/components/ui/view-switcher';
+import EstimationTable from '@/components/estimations/estimation-table';
 import { 
   ArrowRight, 
   CheckCircle, 
@@ -65,7 +67,7 @@ const pipelineStages = [
 export default function EstimationPipeline() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedView, setSelectedView] = useState('kanban');
+  const [viewMode, setViewMode] = useState<'table' | 'card' | 'list'>('table');
 
   // Fetch estimations
   const { data: estimations = [], isLoading } = useQuery({
@@ -438,33 +440,31 @@ export default function EstimationPipeline() {
         </Card>
       </div>
 
-      {/* View Tabs */}
-      <Tabs value={selectedView} onValueChange={setSelectedView}>
-        <TabsList>
-          <TabsTrigger value="kanban">Kanban Board</TabsTrigger>
-          <TabsTrigger value="list">List View</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="kanban" className="mt-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-96">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            <KanbanView />
-          )}
-        </TabsContent>
-        
-        <TabsContent value="list" className="mt-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-96">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            <ListView />
-          )}
-        </TabsContent>
-      </Tabs>
+      {/* View Switcher */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Estimations</h2>
+        <ViewSwitcher 
+          view={viewMode} 
+          onViewChange={setViewMode} 
+          storageKey="estimation-view-preference" 
+        />
+      </div>
+
+      {/* Content based on view mode */}
+      {isLoading ? (
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : viewMode === 'table' ? (
+        <EstimationTable 
+          estimations={estimations} 
+          onStatusChange={(id, status) => updateStatus.mutate({ id, status })}
+        />
+      ) : viewMode === 'card' ? (
+        <KanbanView />
+      ) : (
+        <ListView />
+      )}
     </div>
   );
 }

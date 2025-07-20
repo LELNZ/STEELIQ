@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { LoadingState } from "@/components/ui/loading-spinner";
 import JobList from "@/components/jobs/job-list";
+import JobTable from "@/components/jobs/job-table";
 import InventoryAlerts from "@/components/inventory/inventory-alerts";
 import SetupWizard from "@/components/setup/setup-wizard";
+import { ViewSwitcher } from "@/components/ui/view-switcher";
 import { 
   Briefcase, 
   Leaf, 
@@ -30,6 +32,7 @@ import { JobStats, ActivityItem } from "@/types";
 
 export default function Dashboard() {
   const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'card' | 'list'>('table');
 
   const { data: stats, isLoading: statsLoading } = useQuery<JobStats>({
     queryKey: ["/api/analytics/stats"],
@@ -195,7 +198,27 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Jobs List */}
         <div className="lg:col-span-2">
-          <JobList />
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Recent Jobs</CardTitle>
+              <ViewSwitcher 
+                view={viewMode} 
+                onViewChange={setViewMode} 
+                storageKey="dashboard-jobs-view-preference" 
+              />
+            </CardHeader>
+            <CardContent className="p-0">
+              {jobsLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <p className="text-muted-foreground">Loading jobs...</p>
+                </div>
+              ) : viewMode === 'table' ? (
+                <JobTable jobs={jobs || []} />
+              ) : (
+                <JobList />
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar */}

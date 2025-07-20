@@ -10,15 +10,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import JobList from "@/components/jobs/job-list";
+import JobTable from "@/components/jobs/job-table";
 import NewJobModal from "@/components/jobs/new-job-modal";
+import { ViewSwitcher } from "@/components/ui/view-switcher";
 import { Plus, Zap, Download, Search, Filter, ListOrdered } from "lucide-react";
 
 export default function Jobs() {
   const [showNewJobModal, setShowNewJobModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<'table' | 'card' | 'list'>('table');
 
-  const { data: jobs, isLoading } = useQuery({
+  const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["/api/jobs"],
   });
 
@@ -75,17 +78,24 @@ export default function Jobs() {
               <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon">
-            <Filter className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon">
-            <ListOrdered className="h-4 w-4" />
-          </Button>
+          <ViewSwitcher 
+            view={viewMode} 
+            onViewChange={setViewMode} 
+            storageKey="jobs-view-preference" 
+          />
         </div>
       </div>
 
-      {/* Jobs List */}
-      <JobList searchQuery={searchQuery} statusFilter={statusFilter} />
+      {/* Jobs Display - based on view mode */}
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Loading jobs...</p>
+        </div>
+      ) : viewMode === 'table' ? (
+        <JobTable jobs={jobs} searchQuery={searchQuery} statusFilter={statusFilter} />
+      ) : (
+        <JobList searchQuery={searchQuery} statusFilter={statusFilter} />
+      )}
 
       {/* New Job Modal */}
       <NewJobModal 
