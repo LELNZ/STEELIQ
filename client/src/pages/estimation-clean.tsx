@@ -64,6 +64,8 @@ import OverheadConfiguration from "@/components/estimation/overhead-configuratio
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useEstimationDefaults } from "@/hooks/useEstimationDefaults";
 import { EnhancedProjectForm } from "@/components/estimation/EnhancedProjectForm";
+import { ViewSwitcher } from "@/components/ui/view-switcher";
+import EstimationTable from "@/components/estimations/estimation-table";
 
 // Types for estimation system
 interface EstimationProject {
@@ -1173,35 +1175,68 @@ function ProjectOverview({ projects, onSelectProject }: {
   projects: EstimationProject[];
   onSelectProject: (project: EstimationProject) => void;
 }) {
+  const [viewMode, setViewMode] = useState<'table' | 'card' | 'list'>(() => {
+    const saved = localStorage.getItem('ai-estimation-view-preference');
+    return (saved as 'table' | 'card' | 'list') || 'table';
+  });
+
+  const handleViewChange = (view: 'table' | 'card' | 'list') => {
+    setViewMode(view);
+    localStorage.setItem('ai-estimation-view-preference', view);
+  };
+
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project) => (
-          <Card key={project.id} className="cursor-pointer hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <Badge variant={project.status === 'completed' ? 'default' : 'secondary'}>
-                  {project.status}
-                </Badge>
-                <div className="text-right">
-                  <div className="text-lg font-bold">${project.totalCost.toLocaleString()}</div>
-                  <div className="text-sm text-muted-foreground">Total</div>
-                </div>
-              </div>
-              <CardTitle className="text-lg">{project.name}</CardTitle>
-              <p className="text-sm text-muted-foreground">{project.description}</p>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={() => onSelectProject(project)}
-                className="w-full"
-              >
-                Open Estimation
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+    <div className="max-w-7xl mx-auto space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Estimation Projects</h2>
+        <ViewSwitcher 
+          view={viewMode} 
+          onViewChange={handleViewChange} 
+          storageKey="ai-estimation-view-preference" 
+        />
       </div>
+
+      {viewMode === 'table' ? (
+        <EstimationTable 
+          estimations={projects.map(p => ({
+            ...p,
+            totalCost: p.totalCost.toString(),
+            margin: p.margin?.toString() || '',
+            estimatedHours: '',
+            createdAt: p.createdAt?.toString() || new Date().toISOString(),
+            updatedAt: p.updatedAt?.toString() || new Date().toISOString()
+          }))} 
+          onStatusChange={() => {}}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map((project) => (
+            <Card key={project.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <Badge variant={project.status === 'completed' ? 'default' : 'secondary'}>
+                    {project.status}
+                  </Badge>
+                  <div className="text-right">
+                    <div className="text-lg font-bold">${project.totalCost.toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground">Total</div>
+                  </div>
+                </div>
+                <CardTitle className="text-lg">{project.name}</CardTitle>
+                <p className="text-sm text-muted-foreground">{project.description}</p>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => onSelectProject(project)}
+                  className="w-full"
+                >
+                  Open Estimation
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

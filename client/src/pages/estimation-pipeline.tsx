@@ -6,8 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ViewSwitcher } from '@/components/ui/view-switcher';
-import EstimationTable from '@/components/estimations/estimation-table';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,7 +77,6 @@ const pipelineStages = [
 export default function EstimationPipeline() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [viewMode, setViewMode] = useState<'table' | 'card' | 'list'>('table');
 
   // Fetch estimations
   const { data: estimations = [], isLoading } = useQuery({
@@ -193,7 +191,7 @@ export default function EstimationPipeline() {
         const headerClass = isWonColumn ? 'text-green-700' : '';
         
         return (
-          <div key={stage.key} className="flex flex-col">
+          <div key={stage.key} className="flex flex-col min-w-0">
             <div className="mb-4 flex items-center justify-between">
               <h3 className={cn("font-semibold", headerClass)}>{stage.label}</h3>
               <Badge variant={isWonColumn ? "default" : "secondary"} className={isWonColumn ? "bg-green-600" : ""}>
@@ -202,15 +200,15 @@ export default function EstimationPipeline() {
               </Badge>
             </div>
             <ScrollArea 
-              className={cn("flex-1 rounded-lg p-2", columnBgClass)}
+              className={cn("flex-1 rounded-lg p-3", columnBgClass)}
               onDrop={(e) => handleDrop(e, stage.key)}
               onDragOver={(e) => e.preventDefault()}
             >
-              <div className="space-y-2">
+              <div className="space-y-2 w-full">
               {getEstimationsByStatus(stage.key).map(estimation => (
                 <Card 
                   key={estimation.id}
-                  className="cursor-pointer hover:shadow-md transition-all duration-200 bg-white overflow-hidden"
+                  className="cursor-pointer hover:shadow-md transition-all duration-200 bg-white w-full"
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData('estimationId', estimation.id.toString())}
                   onClick={(e) => {
@@ -219,21 +217,21 @@ export default function EstimationPipeline() {
                     window.location.href = `/estimation/${estimation.id}`;
                   }}
                 >
-                  <CardContent className="p-2.5">
-                    <div className="flex items-start justify-between mb-1.5 gap-1">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate leading-tight" title={estimation.name}>
+                  <CardContent className="p-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0 pr-2">
+                        <p className="font-semibold text-sm truncate" title={estimation.name}>
                           {estimation.name}
                         </p>
                         {estimation.projectNumber && (
-                          <p className="text-xs text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground">
                             {estimation.projectNumber}
                           </p>
                         )}
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 flex-shrink-0">
                             <MoreVertical className="h-3 w-3" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -270,24 +268,28 @@ export default function EstimationPipeline() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-1 truncate" title={estimation.clientName || 'No client'}>
+                    <p className="text-xs text-muted-foreground mb-2 truncate" title={estimation.clientName || 'No client'}>
                       {estimation.clientName || 'No client'}
                     </p>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold">
-                        ${parseFloat(estimation.totalCost || '0').toLocaleString()}
-                      </span>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold">
+                          ${parseFloat(estimation.totalCost || '0').toLocaleString()}
+                        </span>
+                        {estimation.lifecycleProgress !== undefined && (
+                          <span className="text-xs text-muted-foreground">
+                            {estimation.lifecycleProgress}%
+                          </span>
+                        )}
+                      </div>
                       {estimation.lifecycleProgress !== undefined && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Progress value={estimation.lifecycleProgress || 0} className="w-12 h-1.5" />
-                          <span>{estimation.lifecycleProgress || 0}%</span>
-                        </div>
+                        <Progress value={estimation.lifecycleProgress || 0} className="h-1.5" />
                       )}
                     </div>
                     {stage.key === 'accepted' && (
                       <Button 
                         size="sm" 
-                        className="w-full mt-2 h-7 text-xs"
+                        className="w-full mt-3 h-8"
                         onClick={(e) => {
                           e.stopPropagation();
                           convertToJob.mutate(estimation.id);
@@ -464,30 +466,13 @@ export default function EstimationPipeline() {
         </Card>
       </div>
 
-      {/* View Switcher */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Estimations</h2>
-        <ViewSwitcher 
-          view={viewMode} 
-          onViewChange={setViewMode} 
-          storageKey="estimation-view-preference" 
-        />
-      </div>
-
-      {/* Content based on view mode */}
+      {/* Kanban View */}
       {isLoading ? (
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      ) : viewMode === 'table' ? (
-        <EstimationTable 
-          estimations={estimations} 
-          onStatusChange={(id, status) => updateStatus.mutate({ id, status })}
-        />
-      ) : viewMode === 'card' ? (
-        <KanbanView />
       ) : (
-        <ListView />
+        <KanbanView />
       )}
     </div>
   );
