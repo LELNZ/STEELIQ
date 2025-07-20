@@ -2377,7 +2377,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate quote from estimation
   app.post('/api/estimations/:id/generate-quote', async (req, res) => {
     try {
-      const user = await AuthService.getAuthenticatedUser(req);
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
       if (!user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
@@ -2500,7 +2502,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get quotes for an estimation
   app.get('/api/estimations/:id/quotes', async (req, res) => {
     try {
-      const user = await AuthService.getAuthenticatedUser(req);
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
       if (!user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
@@ -2517,7 +2521,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single quote
   app.get('/api/quotes/:id', async (req, res) => {
     try {
-      const user = await AuthService.getAuthenticatedUser(req);
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
       if (!user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
@@ -2538,7 +2544,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update quote
   app.patch('/api/quotes/:id', async (req, res) => {
     try {
-      const user = await AuthService.getAuthenticatedUser(req);
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
       if (!user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
@@ -2567,7 +2575,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Send quote to client
   app.post('/api/quotes/:id/send', async (req, res) => {
     try {
-      const user = await AuthService.getAuthenticatedUser(req);
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
       if (!user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
@@ -2618,7 +2628,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get quote history
   app.get('/api/quotes/:id/history', async (req, res) => {
     try {
-      const user = await AuthService.getAuthenticatedUser(req);
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
       if (!user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
