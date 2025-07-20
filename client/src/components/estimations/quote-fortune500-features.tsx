@@ -16,9 +16,9 @@ import {
   Zap
 } from "lucide-react";
 
-// Fortune 500/STRUMIS/Procore-inspired quote features
+// Enterprise-grade quote features
 export const Fortune500QuoteFeatures = {
-  // 1. STRUMIS-style Quote Tracking
+  // 1. Professional Quote Tracking
   trackingFeatures: {
     versionControl: {
       icon: History,
@@ -55,7 +55,7 @@ export const Fortune500QuoteFeatures = {
     }
   },
 
-  // 2. Procore-style Analytics
+  // 2. Advanced Analytics
   analyticsFeatures: {
     winRateAnalysis: {
       icon: BarChart,
@@ -81,7 +81,7 @@ export const Fortune500QuoteFeatures = {
     }
   },
 
-  // 3. Fortune 500 Automation
+  // 3. Enterprise Automation
   automationFeatures: {
     smartTemplates: {
       icon: Zap,
@@ -122,7 +122,7 @@ export function QuoteFortune500Banner() {
           <div className="flex items-start gap-3">
             <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
             <div>
-              <p className="font-medium">STRUMIS Integration</p>
+              <p className="font-medium">Industry Integration</p>
               <p className="text-sm text-muted-foreground">
                 Full fabrication workflow tracking
               </p>
@@ -131,7 +131,7 @@ export function QuoteFortune500Banner() {
           <div className="flex items-start gap-3">
             <BarChart className="h-5 w-5 text-blue-600 mt-0.5" />
             <div>
-              <p className="font-medium">Procore Analytics</p>
+              <p className="font-medium">Advanced Analytics</p>
               <p className="text-sm text-muted-foreground">
                 Real-time project insights
               </p>
@@ -140,7 +140,7 @@ export function QuoteFortune500Banner() {
           <div className="flex items-start gap-3">
             <Zap className="h-5 w-5 text-yellow-600 mt-0.5" />
             <div>
-              <p className="font-medium">Fortune 500 Automation</p>
+              <p className="font-medium">Enterprise Automation</p>
               <p className="text-sm text-muted-foreground">
                 AI-powered quote optimization
               </p>

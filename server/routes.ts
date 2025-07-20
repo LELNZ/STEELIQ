@@ -2477,31 +2477,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Quote not found" });
       }
       
-      // For now, convert the HTML preview to PDF using the browser's print functionality
-      // In production, you would use a proper PDF library like puppeteer or wkhtmltopdf
+      // Use PDFKit to generate a real PDF
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument({ margin: 50 });
       
-      res.setHeader('Content-Type', 'text/html');
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            @media print {
-              body { margin: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          ${quote.previewHtml}
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(() => window.close(), 100);
-            }
-          </script>
-        </body>
-        </html>
-      `);
+      // Create buffer to store PDF
+      const chunks: Buffer[] = [];
+      doc.on('data', chunks.push.bind(chunks));
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        
+        // Set proper headers for PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="quote-${quote.quoteNumber}.pdf"`);
+        res.send(pdfBuffer);
+      });
+      
+      // Get estimation details
+      const estimation = await storage.getEstimationProject(parseInt(req.params.estimationId));
+      if (!estimation) {
+        throw new Error("Estimation not found");
+      }
+      
+      // PDF Header
+      doc.fontSize(24).text('QUOTATION', 50, 50);
+      doc.fontSize(18).text(`${quote.quoteNumber}`, 50, 80);
+      
+      // Company Info
+      doc.fontSize(12)
+        .text('Lateral Engineering Limited', 50, 120)
+        .text('123 Engineering Street', 50, 135)
+        .text('Auckland, New Zealand', 50, 150)
+        .text('Phone: +64 9 123 4567', 50, 165)
+        .text('Email: info@lateralengineering.co.nz', 50, 180);
+      
+      // Quote Date
+      doc.text(`Date: ${new Date(quote.createdAt).toLocaleDateString()}`, 400, 120);
+      doc.text(`Valid Until: ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}`, 400, 135);
+      
+      // Get client details
+      let clientName = 'Client Name';
+      let clientCompany = '';
+      let clientEmail = '';
+      
+      if (estimation.project?.clientId) {
+        const client = await storage.getClient(estimation.project.clientId);
+        if (client) {
+          clientName = client.name || client.primaryContactName || 'Client Name';
+          clientCompany = client.company || '';
+          clientEmail = client.primaryContactEmail || '';
+        }
+      }
+      
+      // Client Info
+      doc.fontSize(14).text('QUOTATION FOR:', 50, 220);
+      doc.fontSize(12)
+        .text(clientName, 50, 240)
+        .text(clientCompany, 50, 255)
+        .text(clientEmail, 50, 270);
+      
+      // Project Details
+      doc.fontSize(14).text('PROJECT DETAILS:', 50, 310);
+      doc.fontSize(12)
+        .text(`Project: ${estimation.project?.name}`, 50, 330)
+        .text(`Description: ${estimation.project?.description || 'N/A'}`, 50, 345, { width: 500 });
+      
+      // Move to new position for items
+      let yPos = 400;
+      
+      // Cost Breakdown Header
+      doc.fontSize(14).text('COST BREAKDOWN:', 50, yPos);
+      yPos += 30;
+      
+      // Table Headers
+      doc.fontSize(10)
+        .text('Description', 50, yPos)
+        .text('Amount', 450, yPos, { align: 'right' });
+      
+      // Draw line
+      doc.moveTo(50, yPos + 15).lineTo(550, yPos + 15).stroke();
+      yPos += 25;
+      
+      // Materials
+      if (estimation.materials?.length > 0) {
+        doc.fontSize(11).text('Materials', 50, yPos);
+        doc.fontSize(10).text(`$${(estimation.materials.reduce((sum: number, m: any) => sum + (parseFloat(m.totalCost) || 0), 0)).toFixed(2)}`, 450, yPos, { align: 'right' });
+        yPos += 20;
+      }
+      
+      // Labor
+      if (estimation.labor?.length > 0) {
+        doc.fontSize(11).text('Labor', 50, yPos);
+        doc.fontSize(10).text(`$${(estimation.labor.reduce((sum: number, l: any) => sum + (parseFloat(l.totalCost) || 0), 0)).toFixed(2)}`, 450, yPos, { align: 'right' });
+        yPos += 20;
+      }
+      
+      // Equipment
+      if (estimation.equipment?.length > 0) {
+        doc.fontSize(11).text('Equipment', 50, yPos);
+        doc.fontSize(10).text(`$${(estimation.equipment.reduce((sum: number, e: any) => sum + (parseFloat(e.totalCost) || 0), 0)).toFixed(2)}`, 450, yPos, { align: 'right' });
+        yPos += 20;
+      }
+      
+      // Overheads
+      if (estimation.overheads?.amount) {
+        doc.fontSize(11).text('Overheads', 50, yPos);
+        doc.fontSize(10).text(`$${parseFloat(estimation.overheads.amount).toFixed(2)}`, 450, yPos, { align: 'right' });
+        yPos += 20;
+      }
+      
+      // Margin
+      if (estimation.margin?.amount) {
+        doc.fontSize(11).text('Margin', 50, yPos);
+        doc.fontSize(10).text(`$${parseFloat(estimation.margin.amount).toFixed(2)}`, 450, yPos, { align: 'right' });
+        yPos += 20;
+      }
+      
+      // Subtotal line
+      doc.moveTo(50, yPos).lineTo(550, yPos).stroke();
+      yPos += 10;
+      
+      // Subtotal
+      doc.fontSize(11).text('Subtotal', 50, yPos);
+      doc.fontSize(11).text(`$${parseFloat(quote.subtotal).toFixed(2)}`, 450, yPos, { align: 'right' });
+      yPos += 20;
+      
+      // GST
+      doc.fontSize(11).text('GST (15%)', 50, yPos);
+      doc.fontSize(11).text(`$${parseFloat(quote.taxAmount).toFixed(2)}`, 450, yPos, { align: 'right' });
+      yPos += 20;
+      
+      // Total line
+      doc.moveTo(400, yPos).lineTo(550, yPos).stroke();
+      yPos += 10;
+      
+      // Total
+      doc.fontSize(14).text('TOTAL', 50, yPos);
+      doc.fontSize(14).text(`$${parseFloat(quote.totalAmount).toFixed(2)}`, 450, yPos, { align: 'right' });
+      
+      // Terms and Conditions
+      if (yPos < 600) {
+        yPos = 600;
+      } else {
+        doc.addPage();
+        yPos = 50;
+      }
+      
+      doc.fontSize(12).text('TERMS AND CONDITIONS:', 50, yPos);
+      doc.fontSize(10)
+        .text('1. This quote is valid for 30 days from the date of issue.', 50, yPos + 20)
+        .text('2. Payment terms: 50% deposit on acceptance, balance on completion.', 50, yPos + 35)
+        .text('3. Prices exclude any additional work not specified in this quote.', 50, yPos + 50)
+        .text('4. All prices are in NZD and include GST.', 50, yPos + 65);
+      
+      // Finalize the PDF
+      doc.end();
+      
     } catch (error) {
       console.error("Error generating PDF:", error);
       res.status(500).json({ error: "Failed to generate PDF" });
