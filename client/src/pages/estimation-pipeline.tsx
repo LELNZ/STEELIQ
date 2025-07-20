@@ -197,10 +197,14 @@ export default function EstimationPipeline() {
               {getEstimationsByStatus(stage.key).map(estimation => (
                 <Card 
                   key={estimation.id}
-                  className="cursor-move hover:shadow-md transition-shadow min-w-0"
+                  className="cursor-pointer hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 min-w-0 bg-white"
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData('estimationId', estimation.id.toString())}
-                  onClick={() => window.location.href = `/estimation?id=${estimation.id}`}
+                  onClick={(e) => {
+                    // Prevent navigation when clicking the Create Job button
+                    if ((e.target as HTMLElement).closest('button')) return;
+                    window.location.href = `/estimation/${estimation.id}`;
+                  }}
                 >
                   <CardContent className="p-3">
                     <div className="flex items-start justify-between mb-2 gap-2">
@@ -298,7 +302,11 @@ export default function EstimationPipeline() {
               const Icon = config.icon;
               
               return (
-                <tr key={estimation.id} className="border-b hover:bg-gray-50">
+                <tr key={estimation.id} className="border-b hover:bg-gray-50 transition-colors cursor-pointer" onClick={(e) => {
+                    // Prevent navigation when clicking buttons
+                    if ((e.target as HTMLElement).closest('button')) return;
+                    window.location.href = `/estimation/${estimation.id}`;
+                  }}>
                   <td className="p-4">
                     <div>
                       <p className="font-medium">{estimation.name}</p>
@@ -330,7 +338,13 @@ export default function EstimationPipeline() {
                   </td>
                   <td className="p-4">
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">View</Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => window.location.href = `/estimation/${estimation.id}`}
+                      >
+                        View
+                      </Button>
                       {estimation.status === 'accepted' && (
                         <Button 
                           size="sm"
