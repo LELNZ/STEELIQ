@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -218,6 +218,7 @@ export default function EstimationPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
+  const [match, params] = useRoute("/estimation/:id");
   const { overheadSettings } = useBusinessSettings();
   const estimationDefaults = useEstimationDefaults();
 
@@ -240,6 +241,18 @@ export default function EstimationPage() {
   const { data: suppliers = [] } = useQuery({
     queryKey: ["/api/suppliers"],
   });
+
+  // Load estimation from URL parameter if present
+  useEffect(() => {
+    if (match && params?.id) {
+      const estimationId = parseInt(params.id);
+      const project = projects.find(p => p.id === estimationId);
+      if (project) {
+        setCurrentProject(project);
+        initializeEstimationData(project);
+      }
+    }
+  }, [match, params?.id, projects]);
 
   // Store original data on mount to track changes - only once per project load
   useEffect(() => {

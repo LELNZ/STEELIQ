@@ -70,6 +70,7 @@ function Router() {
       <Route path="/jobs" component={Jobs} />
       <Route path="/estimates" component={Estimates} />
       <Route path="/estimation" component={EstimationPage} />
+      <Route path="/estimation/:id" component={EstimationPage} />
 
       <Route path="/client-portal" component={ClientPortal} />
       <Route path="/mobile-inspection" component={MobileInspection} />
