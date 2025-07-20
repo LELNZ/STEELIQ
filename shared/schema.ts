@@ -1581,6 +1581,23 @@ export const estimationProjects = pgTable("estimation_projects", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const estimationData = pgTable("estimation_data", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id).unique().notNull(),
+  materials: jsonb("materials").default('[]'),
+  labor: jsonb("labor").default('[]'),
+  equipment: jsonb("equipment").default('[]'),
+  consumables: jsonb("consumables").default('[]'),
+  coatings: jsonb("coatings").default('[]'),
+  overheads: jsonb("overheads").default('{}'),
+  margin: jsonb("margin").default('{}'),
+  totals: jsonb("totals").default('{}'),
+  overheadPercentage: decimal("overhead_percentage", { precision: 5, scale: 2 }).default("20"),
+  marginPercentage: decimal("margin_percentage", { precision: 5, scale: 2 }).default("20"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const estimationMaterials = pgTable("estimation_materials", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => estimationProjects.id),

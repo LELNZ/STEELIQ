@@ -3,7 +3,7 @@ import {
   cuttingPlans, cutSequences, remnants, optimizationSimulations, coatingSystems, surfaceAreaConfigs,
   suppliers, materialSuppliers, supplierPriceHistory, supplierContacts,
   clients, clientContacts, locations, savedFilters,
-  estimationProjects, estimationMaterials, estimationLabor, estimationEquipment, estimationConsumables,
+  estimationProjects, estimationData, estimationMaterials, estimationLabor, estimationEquipment, estimationConsumables,
   teamMembers, archivedEmployees, employeeAuditLog,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
@@ -1092,6 +1092,30 @@ export class DatabaseStorage implements IStorage {
       .where(eq(estimationProjects.id, id))
       .returning();
     return updated;
+  }
+
+  async getEstimationData(projectId: number): Promise<any> {
+    const [data] = await db
+      .select()
+      .from(estimationData)
+      .where(eq(estimationData.projectId, projectId));
+    
+    if (!data) {
+      return null;
+    }
+    
+    return {
+      materials: data.materials,
+      labor: data.labor,
+      equipment: data.equipment,
+      consumables: data.consumables,
+      coatings: data.coatings,
+      overheads: data.overheads,
+      margin: data.margin,
+      totals: data.totals,
+      overhead_percentage: data.overheadPercentage,
+      margin_percentage: data.marginPercentage
+    };
   }
 
   async saveEstimationData(projectId: number, estimationData: any): Promise<any> {
