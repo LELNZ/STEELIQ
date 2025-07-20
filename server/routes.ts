@@ -2478,7 +2478,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Use PDFKit to generate a real PDF
-      const PDFDocument = require('pdfkit');
+      const PDFKit = await import('pdfkit');
+      const PDFDocument = PDFKit.default || PDFKit;
       const doc = new PDFDocument({ margin: 50 });
       
       // Create buffer to store PDF

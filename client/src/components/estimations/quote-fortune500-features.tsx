@@ -231,7 +231,7 @@ export function QuoteMetrics({ estimation }: { estimation: any }) {
             <div>
               <p className="text-sm text-muted-foreground">Quote Value</p>
               <p className="text-2xl font-bold">
-                ${(parseFloat(estimation.totalCost || '0') * 1.15).toLocaleString()}
+                ${(parseFloat(estimation.project?.totalCost || estimation.totalCost || '0') * 1.15).toLocaleString()}
               </p>
             </div>
             <TrendingUp className="h-8 w-8 text-green-600" />
