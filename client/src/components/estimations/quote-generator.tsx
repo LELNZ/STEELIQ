@@ -35,7 +35,7 @@ import {
   Info
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -127,18 +127,28 @@ Best regards,
 export default function QuoteGenerator({ estimation, open, onOpenChange }: QuoteGeneratorProps) {
   const [settings, setSettings] = useState<QuoteSettings>(defaultSettings);
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
+  const [selectedQuoteId, setSelectedQuoteId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState('template');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch existing quotes for this estimation
+  const { data: quotes = [] } = useQuery({
+    queryKey: [`/api/estimations/${estimation.id}/quotes`],
+    enabled: open
+  });
 
   const generateQuoteMutation = useMutation({
     mutationFn: async (data: any) => {
       return apiRequest('POST', `/api/estimations/${estimation.id}/generate-quote`, data);
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/estimations/${estimation.id}/quotes`] });
       toast({
         title: "Quote Generated",
-        description: "The quote has been generated successfully.",
+        description: `Quote ${data.quoteNumber} has been saved successfully.`,
       });
+      setSelectedQuoteId(data.id);
     },
     onError: (error: any) => {
       toast({
@@ -151,13 +161,15 @@ export default function QuoteGenerator({ estimation, open, onOpenChange }: Quote
 
   const sendQuoteMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest('POST', `/api/estimations/${estimation.id}/send-quote`, data);
+      const { quoteId, ...emailData } = data;
+      return apiRequest('POST', `/api/quotes/${quoteId}/send`, emailData);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/estimations'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/estimations/${estimation.id}/quotes`] });
       toast({
         title: "Quote Sent",
-        description: `Quote has been sent to ${estimation.project.clientName}`,
+        description: `Quote has been sent to ${estimation.project?.clientName || 'the client'}`,
       });
       onOpenChange(false);
     },
@@ -193,23 +205,72 @@ export default function QuoteGenerator({ estimation, open, onOpenChange }: Quote
     }
   };
 
-  const handleSendQuote = () => {
-    const emailData = {
-      settings,
-      template: selectedTemplate,
-      to: estimation.project.clientEmail,
-      cc: settings.ccEmails,
-      subject: settings.emailSubject
-        .replace('{{PROJECT_NAME}}', estimation.project.name)
-        .replace('{{QUOTE_NUMBER}}', `Q-${estimation.project.projectNumber || estimation.id}`),
-      message: settings.emailMessage
-        .replace('{{CLIENT_NAME}}', estimation.project.clientName)
-        .replace('{{PROJECT_NAME}}', estimation.project.name)
-        .replace('{{VALIDITY_DAYS}}', '30')
-        .replace('{{COMPANY_NAME}}', 'Lateral Engineering Limited')
+  const handleGenerateQuote = () => {
+    // Generate quote content based on estimation data
+    const content = {
+      materials: estimation.materials || [],
+      labor: estimation.labor || [],
+      equipment: estimation.equipment || [],
+      consumables: estimation.consumables || [],
+      coatings: estimation.coatings || [],
+      subcontractors: estimation.subcontractors || [],
+      project: estimation.project || {}
     };
 
-    sendQuoteMutation.mutate(emailData);
+    // Generate preview HTML (simplified version)
+    const previewHtml = `
+      <div style="font-family: Arial, sans-serif;">
+        <h1>Quote for ${estimation.project?.name || 'Project'}</h1>
+        <p>Client: ${estimation.project?.clientName || 'Client'}</p>
+        <p>Date: ${format(new Date(), 'dd/MM/yyyy')}</p>
+        <p>Total: $${estimation.totalCost || '0'}</p>
+      </div>
+    `;
+
+    const quoteData = {
+      settings,
+      template: selectedTemplate,
+      content,
+      previewHtml,
+      displayOptions: {
+        displayFormat: settings.displayFormat,
+        pricingDisplay: settings.pricingDisplay,
+        showCostBreakdown: settings.showCostBreakdown,
+        showMarkups: settings.showMarkups,
+        showSubtotals: settings.showSubtotals,
+        showTaxes: settings.showTaxes,
+        showPaymentTerms: settings.showPaymentTerms,
+        showValidityPeriod: settings.showValidityPeriod
+      }
+    };
+
+    generateQuoteMutation.mutate(quoteData);
+  };
+
+  const handleSendQuote = () => {
+    if (!selectedQuoteId) {
+      toast({
+        title: "No Quote Selected",
+        description: "Please generate a quote first before sending.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const emailData = {
+      recipientEmail: estimation.project?.clientEmail || '',
+      emailSubject: settings.emailSubject
+        .replace('{{PROJECT_NAME}}', estimation.project?.name || '')
+        .replace('{{QUOTE_NUMBER}}', quotes.find((q: any) => q.id === selectedQuoteId)?.quoteNumber || ''),
+      message: settings.emailMessage
+        .replace('{{CLIENT_NAME}}', estimation.project?.clientName || '')
+        .replace('{{PROJECT_NAME}}', estimation.project?.name || '')
+        .replace('{{VALIDITY_DAYS}}', '30')
+        .replace('{{COMPANY_NAME}}', 'Lateral Engineering Limited'),
+      ccEmails: settings.ccEmails
+    };
+
+    sendQuoteMutation.mutate({ ...emailData, quoteId: selectedQuoteId });
   };
 
   return (
@@ -225,7 +286,7 @@ export default function QuoteGenerator({ estimation, open, onOpenChange }: Quote
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="template" className="flex-1 overflow-hidden flex flex-col">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="template">Template</TabsTrigger>
             <TabsTrigger value="display">Display Options</TabsTrigger>
@@ -550,6 +611,57 @@ export default function QuoteGenerator({ estimation, open, onOpenChange }: Quote
             </TabsContent>
 
             <TabsContent value="send" className="space-y-4">
+              {/* Quote Selection */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Quote Versions</span>
+                    <Button 
+                      onClick={handleGenerateQuote}
+                      disabled={generateQuoteMutation.isPending}
+                      size="sm"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Generate New Quote
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {quotes.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                      <p>No quotes generated yet</p>
+                      <p className="text-sm mt-2">Click "Generate New Quote" to create your first quote</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {quotes.map((quote: any) => (
+                        <div 
+                          key={quote.id}
+                          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                            selectedQuoteId === quote.id ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                          }`}
+                          onClick={() => setSelectedQuoteId(quote.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-medium">{quote.quoteNumber}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Version {quote.version} • Created {format(new Date(quote.createdAt), 'dd/MM/yyyy HH:mm')}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">${quote.totalAmount?.toLocaleString() || '0'}</p>
+                              <p className="text-sm text-muted-foreground">{quote.status}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Email Settings</CardTitle>
@@ -559,7 +671,7 @@ export default function QuoteGenerator({ estimation, open, onOpenChange }: Quote
                     <Label htmlFor="emailTo">To</Label>
                     <Input 
                       id="emailTo"
-                      value={estimation.project.clientEmail || estimation.project.clientName}
+                      value={estimation.project?.clientEmail || estimation.project?.clientName || ''}
                       disabled
                     />
                   </div>
@@ -569,8 +681,8 @@ export default function QuoteGenerator({ estimation, open, onOpenChange }: Quote
                     <Input 
                       id="emailSubject"
                       value={settings.emailSubject
-                        .replace('{{PROJECT_NAME}}', estimation.project.name)
-                        .replace('{{QUOTE_NUMBER}}', `Q-${estimation.project.projectNumber || estimation.id}`)}
+                        .replace('{{PROJECT_NAME}}', estimation.project?.name || '')
+                        .replace('{{QUOTE_NUMBER}}', `Q-${estimation.project?.projectNumber || estimation.id}`)}
                       onChange={(e) => setSettings({...settings, emailSubject: e.target.value})}
                     />
                   </div>
@@ -629,15 +741,23 @@ export default function QuoteGenerator({ estimation, open, onOpenChange }: Quote
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          {
+          {activeTab === "send" ? (
             <Button 
               onClick={handleSendQuote}
-              disabled={sendQuoteMutation.isPending}
+              disabled={sendQuoteMutation.isPending || !selectedQuoteId}
             >
               <Send className="h-4 w-4 mr-2" />
               Send Quote
             </Button>
-          }
+          ) : (
+            <Button 
+              onClick={handleGenerateQuote}
+              disabled={generateQuoteMutation.isPending}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Generate Quote
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

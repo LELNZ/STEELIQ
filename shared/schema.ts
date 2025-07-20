@@ -651,26 +651,8 @@ export const invoices = pgTable("invoices", {
 })
 
 // Quotes - customer quotes and supplier quotes
-export const quotes = pgTable("quotes", {
-  id: serial("id").primaryKey(),
-  quoteNumber: text("quote_number").notNull().unique(),
-  type: text("type").notNull(), // supplier_quote, customer_quote
-  supplierId: integer("supplier_id").references(() => suppliers.id),
-  jobId: integer("job_id").references(() => jobs.id),
-  status: text("status").notNull().default("draft"), // draft, sent, accepted, rejected, expired
-  quoteDate: timestamp("quote_date").defaultNow().notNull(),
-  expiryDate: timestamp("expiry_date"),
-  acceptedDate: timestamp("accepted_date"),
-  subtotal: decimal("subtotal", { precision: 12, scale: 2 }),
-  gstAmount: decimal("gst_amount", { precision: 10, scale: 2 }),
-  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }),
-  currency: text("currency").default("NZD"),
-  notes: text("notes"),
-  termsConditions: text("terms_conditions"),
-  createdBy: integer("created_by").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-})
+// NOTE: quotes table has been moved to end of file with estimation-specific quotes
+// Old quotes table removed to avoid duplicate declaration
 
 // Payment Records - track all payments
 export const payments = pgTable("payments", {
@@ -1179,11 +1161,12 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   updatedAt: true,
 });
 
-export const insertQuoteSchema = createInsertSchema(quotes).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+// NOTE: insertQuoteSchema has been moved to end of file with new quotes table
+// export const insertQuoteSchema = createInsertSchema(quotes).omit({
+//   id: true,
+//   createdAt: true,
+//   updatedAt: true,
+// });
 
 export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
@@ -2600,3 +2583,83 @@ export const estimationsArchive = pgTable("estimations_archive", {
   restoredBy: integer("restored_by"),
   fullData: jsonb("full_data") // Complete estimation data as JSON
 });
+
+// Quotes table
+export const quotes = pgTable("quotes", {
+  id: serial("id").primaryKey(),
+  estimationId: integer("estimation_id").notNull().references(() => estimationProjects.id),
+  clientId: integer("client_id").references(() => clients.id),
+  quoteNumber: text("quote_number").unique().notNull(),
+  version: integer("version").default(1),
+  
+  // Quote Configuration
+  template: text("template").notNull(),
+  settings: jsonb("settings").notNull(),
+  displayFormat: text("display_format"),
+  pricingDisplay: text("pricing_display"),
+  
+  // Quote Content
+  content: jsonb("content").notNull(),
+  previewHtml: text("preview_html"),
+  
+  // Visibility Settings
+  showCostBreakdown: boolean("show_cost_breakdown").default(true),
+  showMarkups: boolean("show_markups").default(false),
+  showSubtotals: boolean("show_subtotals").default(true),
+  showTaxes: boolean("show_taxes").default(true),
+  showPaymentTerms: boolean("show_payment_terms").default(true),
+  showValidityPeriod: boolean("show_validity_period").default(true),
+  
+  // Financial Summary
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }),
+  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
+  
+  // Status and Tracking
+  status: text("status").default('draft'),
+  sentAt: timestamp("sent_at"),
+  sentTo: text("sent_to"),
+  sentBy: integer("sent_by").references(() => users.id),
+  viewedAt: timestamp("viewed_at"),
+  acceptedAt: timestamp("accepted_at"),
+  declinedAt: timestamp("declined_at"),
+  
+  // Metadata
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  
+  // Email Settings
+  emailSubject: text("email_subject"),
+  emailMessage: text("email_message"),
+  ccEmails: text("cc_emails").array()
+});
+
+// Quote history table
+export const quoteHistory = pgTable("quote_history", {
+  id: serial("id").primaryKey(),
+  quoteId: integer("quote_id").notNull().references(() => quotes.id),
+  action: text("action").notNull(),
+  changes: jsonb("changes"),
+  performedBy: integer("performed_by").references(() => users.id),
+  performedAt: timestamp("performed_at").defaultNow(),
+  notes: text("notes")
+});
+
+// Quote views table
+export const quoteViews = pgTable("quote_views", {
+  id: serial("id").primaryKey(),
+  quoteId: integer("quote_id").notNull().references(() => quotes.id),
+  viewedAt: timestamp("viewed_at").defaultNow(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  durationSeconds: integer("duration_seconds")
+});
+
+// Type exports
+export type Quote = typeof quotes.$inferSelect;
+export type InsertQuote = typeof quotes.$inferInsert;
+export type QuoteHistory = typeof quoteHistory.$inferSelect;
+export type InsertQuoteHistory = typeof quoteHistory.$inferInsert;
+export type QuoteView = typeof quoteViews.$inferSelect;
+export type InsertQuoteView = typeof quoteViews.$inferInsert;

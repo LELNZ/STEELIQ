@@ -16,7 +16,9 @@ import {
   type Client, type InsertClient, type ClientContact, type InsertClientContact,
   type Location, type InsertLocation, type SavedFilter, type InsertSavedFilter,
   type EstimationProject, type InsertEstimationProject, type TeamMember, type InsertTeamMember,
-  type ArchivedEmployee, type InsertArchivedEmployee, type EmployeeAuditLog, type InsertEmployeeAuditLog
+  type ArchivedEmployee, type InsertArchivedEmployee, type EmployeeAuditLog, type InsertEmployeeAuditLog,
+  quotes, quoteHistory, quoteViews,
+  type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView
 } from "@shared/schema";
 import { desc, eq, lt, asc, like, and, or, sql, inArray } from "drizzle-orm";
 import { db } from "./db";
@@ -178,6 +180,24 @@ export interface IStorage {
   updateSavedFilter(id: number, filter: Partial<InsertSavedFilter>): Promise<SavedFilter>;
   deleteSavedFilter(id: number): Promise<boolean>;
   applySavedFilter(id: number): Promise<SavedFilter>;
+
+  // Quotes
+  getQuotes(estimationId?: number): Promise<Quote[]>;
+  getQuote(id: number): Promise<Quote | undefined>;
+  getQuoteByNumber(quoteNumber: string): Promise<Quote | undefined>;
+  createQuote(quote: InsertQuote): Promise<Quote>;
+  updateQuote(id: number, quote: Partial<InsertQuote>): Promise<Quote>;
+  deleteQuote(id: number): Promise<boolean>;
+  getQuoteVersions(estimationId: number): Promise<Quote[]>;
+  getLatestQuoteVersion(estimationId: number): Promise<Quote | undefined>;
+  
+  // Quote History
+  addQuoteHistory(history: InsertQuoteHistory): Promise<QuoteHistory>;
+  getQuoteHistory(quoteId: number): Promise<QuoteHistory[]>;
+  
+  // Quote Views
+  recordQuoteView(view: InsertQuoteView): Promise<QuoteView>;
+  getQuoteViews(quoteId: number): Promise<QuoteView[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1212,6 +1232,82 @@ export class DatabaseStorage implements IStorage {
         )
       `);
     }
+  }
+
+  // Quotes
+  async getQuotes(estimationId?: number): Promise<Quote[]> {
+    if (estimationId) {
+      return await db.select().from(quotes)
+        .where(eq(quotes.estimationId, estimationId))
+        .orderBy(desc(quotes.version));
+    }
+    return await db.select().from(quotes).orderBy(desc(quotes.createdAt));
+  }
+
+  async getQuote(id: number): Promise<Quote | undefined> {
+    const [quote] = await db.select().from(quotes).where(eq(quotes.id, id));
+    return quote || undefined;
+  }
+
+  async getQuoteByNumber(quoteNumber: string): Promise<Quote | undefined> {
+    const [quote] = await db.select().from(quotes).where(eq(quotes.quoteNumber, quoteNumber));
+    return quote || undefined;
+  }
+
+  async createQuote(quote: InsertQuote): Promise<Quote> {
+    const [newQuote] = await db.insert(quotes).values(quote).returning();
+    return newQuote;
+  }
+
+  async updateQuote(id: number, quote: Partial<InsertQuote>): Promise<Quote> {
+    const [updatedQuote] = await db.update(quotes)
+      .set({ ...quote, updatedAt: new Date() })
+      .where(eq(quotes.id, id))
+      .returning();
+    return updatedQuote;
+  }
+
+  async deleteQuote(id: number): Promise<boolean> {
+    const result = await db.delete(quotes).where(eq(quotes.id, id));
+    return !!result;
+  }
+
+  async getQuoteVersions(estimationId: number): Promise<Quote[]> {
+    return await db.select().from(quotes)
+      .where(eq(quotes.estimationId, estimationId))
+      .orderBy(desc(quotes.version));
+  }
+
+  async getLatestQuoteVersion(estimationId: number): Promise<Quote | undefined> {
+    const [quote] = await db.select().from(quotes)
+      .where(eq(quotes.estimationId, estimationId))
+      .orderBy(desc(quotes.version))
+      .limit(1);
+    return quote || undefined;
+  }
+
+  // Quote History
+  async addQuoteHistory(history: InsertQuoteHistory): Promise<QuoteHistory> {
+    const [newHistory] = await db.insert(quoteHistory).values(history).returning();
+    return newHistory;
+  }
+
+  async getQuoteHistory(quoteId: number): Promise<QuoteHistory[]> {
+    return await db.select().from(quoteHistory)
+      .where(eq(quoteHistory.quoteId, quoteId))
+      .orderBy(desc(quoteHistory.performedAt));
+  }
+
+  // Quote Views
+  async recordQuoteView(view: InsertQuoteView): Promise<QuoteView> {
+    const [newView] = await db.insert(quoteViews).values(view).returning();
+    return newView;
+  }
+
+  async getQuoteViews(quoteId: number): Promise<QuoteView[]> {
+    return await db.select().from(quoteViews)
+      .where(eq(quoteViews.quoteId, quoteId))
+      .orderBy(desc(quoteViews.viewedAt));
   }
 }
 

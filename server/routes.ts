@@ -2383,24 +2383,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const id = parseInt(req.params.id);
-      const { settings, template } = req.body;
+      const { settings, template, content, previewHtml, displayOptions } = req.body;
       
       // Get the estimation
-      const estimation = await storage.getEstimation(id);
+      const estimation = await storage.getEstimationProject(id);
       if (!estimation) {
         return res.status(404).json({ error: "Estimation not found" });
       }
       
-      // Generate quote based on settings
-      // In a real implementation, this would generate a PDF or formatted document
-      const quote = {
-        id: `Q-${estimation.project.projectNumber || id}`,
+      // Get latest quote version for this estimation
+      const latestQuote = await storage.getLatestQuoteVersion(id);
+      const version = latestQuote ? (latestQuote.version || 0) + 1 : 1;
+      
+      // Generate quote number
+      const date = new Date();
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      const quoteNumber = `Q-${year}-${month}${day}-${random}-V${version}`;
+      
+      // Calculate financial summary
+      const totalCost = parseFloat(estimation.totalCost || '0');
+      const taxRate = 0.15; // 15% GST
+      const subtotal = totalCost;
+      const taxAmount = subtotal * taxRate;
+      const totalAmount = subtotal + taxAmount;
+      
+      // Create quote
+      const quote = await storage.createQuote({
         estimationId: id,
+        clientId: estimation.clientId,
+        quoteNumber,
+        version,
         template,
         settings,
-        generatedAt: new Date(),
-        generatedBy: user.id
-      };
+        displayFormat: displayOptions?.displayFormat || 'standard',
+        pricingDisplay: displayOptions?.pricingDisplay || 'detailed',
+        content,
+        previewHtml,
+        showCostBreakdown: displayOptions?.showCostBreakdown ?? true,
+        showMarkups: displayOptions?.showMarkups ?? false,
+        showSubtotals: displayOptions?.showSubtotals ?? true,
+        showTaxes: displayOptions?.showTaxes ?? true,
+        showPaymentTerms: displayOptions?.showPaymentTerms ?? true,
+        showValidityPeriod: displayOptions?.showValidityPeriod ?? true,
+        subtotal: subtotal.toString(),
+        taxAmount: taxAmount.toString(),
+        totalAmount: totalAmount.toString(),
+        status: 'draft',
+        createdBy: user.id
+      });
+      
+      // Add history entry
+      await storage.addQuoteHistory({
+        quoteId: quote.id,
+        action: 'created',
+        performedBy: user.id,
+        notes: `Quote version ${version} generated from estimation`
+      });
       
       res.json(quote);
     } catch (error) {
@@ -2453,6 +2494,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error sending quote:", error);
       res.status(500).json({ error: "Failed to send quote" });
+    }
+  });
+
+  // Get quotes for an estimation
+  app.get('/api/estimations/:id/quotes', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const quotes = await storage.getQuoteVersions(id);
+      res.json(quotes);
+    } catch (error) {
+      console.error("Error fetching quotes:", error);
+      res.status(500).json({ error: "Failed to fetch quotes" });
+    }
+  });
+  
+  // Get single quote
+  app.get('/api/quotes/:id', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const quote = await storage.getQuote(id);
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      
+      res.json(quote);
+    } catch (error) {
+      console.error("Error fetching quote:", error);
+      res.status(500).json({ error: "Failed to fetch quote" });
+    }
+  });
+  
+  // Update quote
+  app.patch('/api/quotes/:id', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const quote = await storage.updateQuote(id, updates);
+      
+      // Add history entry
+      await storage.addQuoteHistory({
+        quoteId: id,
+        action: 'updated',
+        performedBy: user.id,
+        changes: updates,
+        notes: 'Quote updated'
+      });
+      
+      res.json(quote);
+    } catch (error) {
+      console.error("Error updating quote:", error);
+      res.status(500).json({ error: "Failed to update quote" });
+    }
+  });
+  
+  // Send quote to client
+  app.post('/api/quotes/:id/send', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const { recipientEmail, message, ccEmails, emailSubject } = req.body;
+      
+      // Get the quote
+      const quote = await storage.getQuote(id);
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      
+      // Update quote with sent details
+      await storage.updateQuote(id, {
+        status: 'sent',
+        sentAt: new Date(),
+        sentTo: recipientEmail,
+        sentBy: user.id,
+        emailSubject,
+        emailMessage: message,
+        ccEmails: ccEmails || []
+      });
+      
+      // Add history entry
+      await storage.addQuoteHistory({
+        quoteId: id,
+        action: 'sent',
+        performedBy: user.id,
+        changes: { recipientEmail, ccEmails },
+        notes: `Quote sent to ${recipientEmail}`
+      });
+      
+      // In a real implementation, this would send an email with the quote
+      res.json({
+        success: true,
+        sentTo: recipientEmail,
+        ccTo: ccEmails,
+        sentAt: new Date(),
+        message: "Quote sent successfully"
+      });
+    } catch (error) {
+      console.error("Error sending quote:", error);
+      res.status(500).json({ error: "Failed to send quote" });
+    }
+  });
+  
+  // Get quote history
+  app.get('/api/quotes/:id/history', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const history = await storage.getQuoteHistory(id);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching quote history:", error);
+      res.status(500).json({ error: "Failed to fetch quote history" });
+    }
+  });
+  
+  // Record quote view (public endpoint for tracking when clients view quotes)
+  app.post('/api/quotes/:id/view', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { durationSeconds } = req.body;
+      
+      const view = await storage.recordQuoteView({
+        quoteId: id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'] || '',
+        durationSeconds: durationSeconds || 0
+      });
+      
+      // Update quote viewed status
+      const quote = await storage.getQuote(id);
+      if (quote && !quote.viewedAt) {
+        await storage.updateQuote(id, { viewedAt: new Date() });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error recording quote view:", error);
+      res.status(500).json({ error: "Failed to record quote view" });
     }
   });
 
