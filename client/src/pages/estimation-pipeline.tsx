@@ -324,7 +324,7 @@ export default function EstimationPipeline() {
           </thead>
           <tbody>
             {estimations.map(estimation => {
-              const config = statusConfig[estimation.status];
+              const config = statusConfig[estimation.status] || statusConfig.draft;
               const Icon = config.icon;
               
               return (
