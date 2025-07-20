@@ -184,31 +184,31 @@ export default function EstimationPipeline() {
   };
 
   const KanbanView = () => (
-    <div className="grid grid-cols-5 gap-4 h-[calc(100vh-24rem)]">
+    <div className="grid grid-cols-5 gap-4 h-[calc(100vh-20rem)]">
       {pipelineStages.map(stage => {
         const isWonColumn = stage.key === 'accepted';
         const columnBgClass = isWonColumn ? 'bg-green-50' : 'bg-gray-50';
         const headerClass = isWonColumn ? 'text-green-700' : '';
         
         return (
-          <div key={stage.key} className="flex flex-col min-w-0">
-            <div className="mb-4 flex items-center justify-between">
+          <div key={stage.key} className="flex flex-col h-full">
+            <div className="mb-3 flex items-center justify-between px-1">
               <h3 className={cn("font-semibold", headerClass)}>{stage.label}</h3>
               <Badge variant={isWonColumn ? "default" : "secondary"} className={isWonColumn ? "bg-green-600" : ""}>
                 {getEstimationsByStatus(stage.key).length}
                 {stage.target > 0 && `/${stage.target}`}
               </Badge>
             </div>
-            <ScrollArea 
-              className={cn("flex-1 rounded-lg p-3", columnBgClass)}
+            <div 
+              className={cn("flex-1 rounded-lg p-3 overflow-y-auto", columnBgClass)}
               onDrop={(e) => handleDrop(e, stage.key)}
               onDragOver={(e) => e.preventDefault()}
             >
-              <div className="space-y-2 w-full">
+              <div className="space-y-3 min-h-full">
               {getEstimationsByStatus(stage.key).map(estimation => (
                 <Card 
                   key={estimation.id}
-                  className="cursor-pointer hover:shadow-md transition-all duration-200 bg-white w-full"
+                  className="cursor-pointer hover:shadow-md transition-all duration-200 bg-white w-full min-h-[140px] flex flex-col"
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData('estimationId', estimation.id.toString())}
                   onClick={(e) => {
@@ -217,7 +217,7 @@ export default function EstimationPipeline() {
                     window.location.href = `/estimation/${estimation.id}`;
                   }}
                 >
-                  <CardContent className="p-3">
+                  <CardContent className="p-3 flex-1 flex flex-col">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0 pr-2">
                         <p className="font-semibold text-sm truncate" title={estimation.name}>
@@ -268,10 +268,10 @@ export default function EstimationPipeline() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-2 truncate" title={estimation.clientName || 'No client'}>
+                    <p className="text-xs text-muted-foreground mb-1 truncate" title={estimation.clientName || 'No client'}>
                       {estimation.clientName || 'No client'}
                     </p>
-                    <div className="space-y-2">
+                    <div className="mt-auto space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-bold">
                           ${parseFloat(estimation.totalCost || '0').toLocaleString()}
@@ -283,13 +283,13 @@ export default function EstimationPipeline() {
                         )}
                       </div>
                       {estimation.lifecycleProgress !== undefined && (
-                        <Progress value={estimation.lifecycleProgress || 0} className="h-1.5" />
+                        <Progress value={estimation.lifecycleProgress || 0} className="h-1" />
                       )}
                     </div>
                     {stage.key === 'accepted' && (
                       <Button 
                         size="sm" 
-                        className="w-full mt-3 h-8"
+                        className="w-full mt-2 h-7 text-xs"
                         onClick={(e) => {
                           e.stopPropagation();
                           convertToJob.mutate(estimation.id);
@@ -302,8 +302,8 @@ export default function EstimationPipeline() {
                   </CardContent>
                 </Card>
               ))}
+              </div>
             </div>
-            </ScrollArea>
           </div>
         );
       })}
