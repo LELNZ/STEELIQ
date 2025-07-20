@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -13,10 +12,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Users, Building2, Plus, Edit, Trash2, Search, Phone, Mail, MapPin, Calendar, DollarSign, Clock, Truck, Contact, Grid3X3, List, Table as TableIcon, Upload, Download, FileSpreadsheet, CheckCircle, AlertCircle, Info, FileText } from "lucide-react";
-import { ActionIcons } from "@/components/ui/action-icons";
+import { Users, Building2, Plus, Edit, Trash2, Search, Phone, Mail, MapPin, Calendar, DollarSign, Clock, Truck, Contact, Grid3X3, List, Table as TableIcon, Upload, Download, FileSpreadsheet, CheckCircle, AlertCircle, Info, FileText, Eye } from "lucide-react";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ActionMenu } from "@/components/ui/action-menu";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { tableStyles } from "@/lib/design-system";
 import { SupplierForm, type SupplierFormData } from "@/components/forms/supplier-form";
 import { ClientForm, type ClientFormData } from "@/components/forms/client-form";
 import type { Supplier, Client } from "@shared/schema";
@@ -576,24 +577,36 @@ export default function ContactsPage() {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg">{supplier.name}</CardTitle>
-                          <ActionIcons
-                            onEdit={() => setEditingSupplier(supplier)}
-                            onDelete={() => {
-                              setSupplierToDelete(supplier);
-                              setIsDeleteDialogOpen(true);
-                            }}
-                            editTitle="Edit Supplier"
-                            deleteTitle="Delete Supplier"
-                            compact={false}
+                          <ActionMenu
+                            items={[
+                              {
+                                label: 'View Details',
+                                icon: <Eye className="h-4 w-4" />,
+                                onClick: () => setEditingSupplier(supplier)
+                              },
+                              {
+                                label: 'Edit Supplier',
+                                icon: <Edit className="h-4 w-4" />,
+                                onClick: () => setEditingSupplier(supplier)
+                              },
+                              {
+                                label: 'Delete Supplier',
+                                icon: <Trash2 className="h-4 w-4" />,
+                                onClick: () => {
+                                  setSupplierToDelete(supplier);
+                                  setIsDeleteDialogOpen(true);
+                                },
+                                variant: 'destructive',
+                                separator: true
+                              }
+                            ]}
                           />
                         </div>
                         <CardDescription>
                           <div className="flex items-center space-x-2">
-                            <Badge variant={supplier.isActive ? "default" : "secondary"}>
-                              {supplier.isActive ? "Active" : "Inactive"}
-                            </Badge>
+                            <StatusBadge status={supplier.isActive ? 'active' : 'inactive'} />
                             {supplier.isPreferredSupplier && (
-                              <Badge variant="outline">Preferred</Badge>
+                              <StatusBadge label="Preferred" variant="outline" />
                             )}
                           </div>
                         </CardDescription>
@@ -649,11 +662,9 @@ export default function ContactsPage() {
                             <h3 className="font-medium">{supplier.name}</h3>
                             <span className="text-sm text-muted-foreground">•</span>
                             <span className="text-sm text-muted-foreground">{supplier.company}</span>
-                            <Badge variant={supplier.isActive ? "default" : "secondary"} className="ml-2">
-                              {supplier.isActive ? "Active" : "Inactive"}
-                            </Badge>
+                            <StatusBadge status={supplier.isActive ? 'active' : 'inactive'} className="ml-2" />
                             {supplier.isPreferredSupplier && (
-                              <Badge variant="outline">Preferred</Badge>
+                              <StatusBadge label="Preferred" variant="outline" />
                             )}
                           </div>
                           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
@@ -678,18 +689,30 @@ export default function ContactsPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <ActionIcons
-                          onEdit={() => setEditingSupplier(supplier)}
-                          onDelete={() => {
-                            setSupplierToDelete(supplier);
-                            setIsDeleteDialogOpen(true);
-                          }}
-                          editTitle="Edit Supplier"
-                          deleteTitle="Delete Supplier"
-                          compact={false}
-                        />
-                      </div>
+                      <ActionMenu
+                        items={[
+                          {
+                            label: 'View Details',
+                            icon: <Eye className="h-4 w-4" />,
+                            onClick: () => setEditingSupplier(supplier)
+                          },
+                          {
+                            label: 'Edit Supplier',
+                            icon: <Edit className="h-4 w-4" />,
+                            onClick: () => setEditingSupplier(supplier)
+                          },
+                          {
+                            label: 'Delete Supplier',
+                            icon: <Trash2 className="h-4 w-4" />,
+                            onClick: () => {
+                              setSupplierToDelete(supplier);
+                              setIsDeleteDialogOpen(true);
+                            },
+                            variant: 'destructive',
+                            separator: true
+                          }
+                        ]}
+                      />
                     </div>
                   ))}
                 </div>
@@ -736,24 +759,36 @@ export default function ContactsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-1">
-                            <Badge variant={supplier.isActive ? "default" : "secondary"}>
-                              {supplier.isActive ? "Active" : "Inactive"}
-                            </Badge>
+                            <StatusBadge status={supplier.isActive ? 'active' : 'inactive'} />
                             {supplier.isPreferredSupplier && (
-                              <Badge variant="outline">Preferred</Badge>
+                              <StatusBadge label="Preferred" variant="outline" />
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <ActionIcons
-                            onEdit={() => setEditingSupplier(supplier)}
-                            onDelete={() => {
-                              setSupplierToDelete(supplier);
-                              setIsDeleteDialogOpen(true);
-                            }}
-                            editTitle="Edit Supplier"
-                            deleteTitle="Delete Supplier"
-                            compact={false}
+                        <TableCell className={tableStyles.actionsCell}>
+                          <ActionMenu
+                            items={[
+                              {
+                                label: 'View Details',
+                                icon: <Eye className="h-4 w-4" />,
+                                onClick: () => setEditingSupplier(supplier)
+                              },
+                              {
+                                label: 'Edit Supplier',
+                                icon: <Edit className="h-4 w-4" />,
+                                onClick: () => setEditingSupplier(supplier)
+                              },
+                              {
+                                label: 'Delete Supplier',
+                                icon: <Trash2 className="h-4 w-4" />,
+                                onClick: () => {
+                                  setSupplierToDelete(supplier);
+                                  setIsDeleteDialogOpen(true);
+                                },
+                                variant: 'destructive',
+                                separator: true
+                              }
+                            ]}
                           />
                         </TableCell>
                       </TableRow>

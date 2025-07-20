@@ -6,17 +6,8 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
 import { 
-  MoreVertical, 
   Eye, 
   Edit, 
   Copy, 
@@ -26,10 +17,14 @@ import {
   Clock,
   FileText,
   CheckCircle,
-  XCircle
+  XCircle,
+  FileCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ActionMenu } from "@/components/ui/action-menu";
+import { tableStyles } from "@/lib/design-system";
 
 interface EstimationProject {
   id: number;
@@ -54,14 +49,7 @@ interface EstimationTableProps {
   onStatusChange: (id: number, status: string) => void;
 }
 
-const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  draft: { label: 'Draft', color: 'bg-gray-100 text-gray-800', icon: FileText },
-  in_progress: { label: 'In Progress', color: 'bg-blue-100 text-blue-800', icon: Clock },
-  completed: { label: 'Completed', color: 'bg-purple-100 text-purple-800', icon: CheckCircle },
-  sent: { label: 'Sent to Client', color: 'bg-yellow-100 text-yellow-800', icon: ArrowRight },
-  accepted: { label: 'Accepted', color: 'bg-green-100 text-green-800', icon: CheckCircle },
-  declined: { label: 'Declined', color: 'bg-red-100 text-red-800', icon: XCircle }
-};
+
 
 export default function EstimationTable({ estimations, onStatusChange }: EstimationTableProps) {
   const [, navigate] = useLocation();
@@ -109,12 +97,10 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
               </TableCell>
             </TableRow>
           ) : (
-            estimations.map((estimation) => {
-              const StatusIcon = statusConfig[estimation.status]?.icon || FileText;
-              return (
+            estimations.map((estimation) => (
                 <TableRow 
                   key={estimation.id}
-                  className="cursor-pointer hover:bg-muted/50"
+                  className={tableStyles.clickableRow}
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest('button')) return;
                     handleView(estimation.id);
@@ -133,10 +119,7 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
                   </TableCell>
                   <TableCell>{estimation.clientName || '-'}</TableCell>
                   <TableCell>
-                    <Badge className={cn(statusConfig[estimation.status]?.color || 'bg-gray-100 text-gray-800', "text-xs")}>
-                      <StatusIcon className="w-3 h-3 mr-1" />
-                      {statusConfig[estimation.status]?.label || estimation.status}
-                    </Badge>
+                    <StatusBadge status={estimation.status} />
                   </TableCell>
                   <TableCell>
                     {estimation.lifecycleProgress !== undefined ? (
@@ -179,40 +162,36 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
                     ) : '-'}
                   </TableCell>
                   <TableCell>{formatDate(estimation.updatedAt)}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleView(estimation.id)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/estimation/${estimation.id}`)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit Estimation
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => onStatusChange(estimation.id, 'sent')}
-                          disabled={estimation.status === 'sent' || estimation.status === 'accepted'}
-                        >
-                          <ArrowRight className="mr-2 h-4 w-4" />
-                          Send to Client
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <TableCell className={tableStyles.actionsCell}>
+                    <ActionMenu
+                      items={[
+                        {
+                          label: 'View Details',
+                          icon: <Eye className="h-4 w-4" />,
+                          onClick: () => handleView(estimation.id)
+                        },
+                        {
+                          label: 'Edit Estimation',
+                          icon: <Edit className="h-4 w-4" />,
+                          onClick: () => navigate(`/estimation/${estimation.id}`)
+                        },
+                        {
+                          label: 'Duplicate',
+                          icon: <Copy className="h-4 w-4" />,
+                          onClick: () => console.log('Duplicate', estimation.id)
+                        },
+                        {
+                          label: 'Send to Client',
+                          icon: <ArrowRight className="h-4 w-4" />,
+                          onClick: () => onStatusChange(estimation.id, 'sent'),
+                          disabled: estimation.status === 'sent' || estimation.status === 'accepted',
+                          separator: true
+                        }
+                      ]}
+                    />
                   </TableCell>
                 </TableRow>
-              );
-            })
+            ))
           )}
         </TableBody>
       </Table>

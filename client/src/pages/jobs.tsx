@@ -13,7 +13,8 @@ import JobList from "@/components/jobs/job-list";
 import JobTable from "@/components/jobs/job-table";
 import NewJobModal from "@/components/jobs/new-job-modal";
 import { ViewSwitcher } from "@/components/ui/view-switcher";
-import { Plus, Zap, Download, Search, Filter, ListOrdered } from "lucide-react";
+import { MetricCard } from "@/components/ui/metric-card";
+import { Plus, Zap, Download, Search, Filter, ListOrdered, Briefcase, TrendingUp, Clock, CheckCircle } from "lucide-react";
 
 export default function Jobs() {
   const [showNewJobModal, setShowNewJobModal] = useState(false);
@@ -25,6 +26,12 @@ export default function Jobs() {
     queryKey: ["/api/jobs"],
   });
 
+  // Calculate metrics
+  const activeJobs = jobs.filter((job: any) => job.status === 'active' || job.status === 'in_progress').length;
+  const completedJobs = jobs.filter((job: any) => job.status === 'completed').length;
+  const totalValue = jobs.reduce((sum: number, job: any) => sum + (parseFloat(job.estimatedValue) || 0), 0);
+  const efficiency = jobs.length > 0 ? Math.round((completedJobs / jobs.length) * 100) : 0;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -33,6 +40,37 @@ export default function Jobs() {
           <h1 className="text-3xl font-bold text-foreground">Jobs & Cutting</h1>
           <p className="text-muted-foreground">Manage cutting jobs and optimize material usage</p>
         </div>
+      </div>
+
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          title="Active Jobs"
+          value={activeJobs}
+          subtitle={`${jobs.length > 0 ? Math.round((activeJobs / jobs.length) * 100) : 0}% of total`}
+          icon={<Briefcase />}
+          trend={{ value: 8, isPositive: true }}
+        />
+        <MetricCard
+          title="Material Efficiency"
+          value={`${efficiency}%`}
+          subtitle="Target: 95%"
+          icon={<TrendingUp />}
+          trend={{ value: 5, isPositive: true }}
+        />
+        <MetricCard
+          title="Weekly Volume"
+          value={`${jobs.filter((j: any) => j.status === 'active').length} jobs`}
+          subtitle="of 51 capacity"
+          icon={<Clock />}
+        />
+        <MetricCard
+          title="Total Value"
+          value={`$${totalValue.toLocaleString()}`}
+          subtitle="This month"
+          icon={<CheckCircle />}
+          trend={{ value: 12, isPositive: true }}
+        />
       </div>
 
       {/* Action Bar */}

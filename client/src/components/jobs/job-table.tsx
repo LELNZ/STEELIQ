@@ -10,15 +10,6 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +21,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { 
-  MoreVertical, 
   Eye, 
   Edit, 
   Copy, 
@@ -42,6 +32,9 @@ import {
 import JobEditModal from "./job-edit-modal";
 import type { Job } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ActionMenu } from "@/components/ui/action-menu";
+import { tableStyles } from "@/lib/design-system";
 
 interface JobTableProps {
   jobs: Job[];
@@ -49,20 +42,7 @@ interface JobTableProps {
   statusFilter?: string;
 }
 
-const statusConfig: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
-  in_progress: { label: 'In Progress', color: 'bg-blue-100 text-blue-800' },
-  completed: { label: 'Completed', color: 'bg-green-100 text-green-800' },
-  on_hold: { label: 'On Hold', color: 'bg-orange-100 text-orange-800' },
-  cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-800' }
-};
 
-const priorityConfig = {
-  low: { label: 'Low', color: 'bg-gray-100 text-gray-800' },
-  medium: { label: 'Medium', color: 'bg-blue-100 text-blue-800' },
-  high: { label: 'High', color: 'bg-orange-100 text-orange-800' },
-  urgent: { label: 'Urgent', color: 'bg-red-100 text-red-800' }
-};
 
 export default function JobTable({ jobs, searchQuery = "", statusFilter = "all" }: JobTableProps) {
   const [deleteJobId, setDeleteJobId] = useState<number | null>(null);
@@ -187,14 +167,10 @@ export default function JobTable({ jobs, searchQuery = "", statusFilter = "all" 
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={cn(statusConfig[job.status]?.color || 'bg-gray-100 text-gray-800', "text-xs")}>
-                      {statusConfig[job.status]?.label || job.status}
-                    </Badge>
+                    <StatusBadge status={job.status} />
                   </TableCell>
                   <TableCell>
-                    <Badge className={cn(priorityConfig[job.priority].color, "text-xs")} variant="outline">
-                      {priorityConfig[job.priority].label}
-                    </Badge>
+                    <StatusBadge priority={job.priority} />
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
@@ -208,36 +184,33 @@ export default function JobTable({ jobs, searchQuery = "", statusFilter = "all" 
                       {formatDate(job.createdAt)}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleView(job.id)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditJobId(job.id)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit Job
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => copyJobMutation.mutate(job.id)}>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Copy Job
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => setDeleteJobId(job.id)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete Job
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <TableCell className={tableStyles.actionsCell}>
+                    <ActionMenu
+                      items={[
+                        {
+                          label: 'View Details',
+                          icon: <Eye className="h-4 w-4" />,
+                          onClick: () => handleView(job.id)
+                        },
+                        {
+                          label: 'Edit Job',
+                          icon: <Edit className="h-4 w-4" />,
+                          onClick: () => setEditJobId(job.id)
+                        },
+                        {
+                          label: 'Copy Job',
+                          icon: <Copy className="h-4 w-4" />,
+                          onClick: () => copyJobMutation.mutate(job.id)
+                        },
+                        {
+                          label: 'Delete Job',
+                          icon: <Trash2 className="h-4 w-4" />,
+                          onClick: () => setDeleteJobId(job.id),
+                          variant: 'destructive',
+                          separator: true
+                        }
+                      ]}
+                    />
                   </TableCell>
                 </TableRow>
               ))
