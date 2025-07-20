@@ -2405,10 +2405,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
       const quoteNumber = `Q-${year}-${month}${day}-${random}-V${version}`;
       
-      // Calculate financial summary
-      const totalCost = parseFloat(estimation.project?.totalCost || estimation.totalCost || '0');
+      // Get estimation data for accurate calculations
+      const estimationData = await storage.getEstimationData(id);
+      
+      // Calculate financial summary from estimation data
+      const totals = estimationData?.totals || {};
+      const directCosts = parseFloat(totals.directCosts || '0');
+      const overheads = parseFloat(totals.overheads || '0');
+      const margin = parseFloat(totals.margin || '0');
+      const subtotal = parseFloat(totals.totalBeforeGst || directCosts + overheads + margin);
       const taxRate = 0.15; // 15% GST
-      const subtotal = totalCost;
       const taxAmount = subtotal * taxRate;
       const totalAmount = subtotal + taxAmount;
       
@@ -2559,39 +2565,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       doc.moveTo(50, yPos + 15).lineTo(550, yPos + 15).stroke();
       yPos += 25;
       
-      // Materials
-      if (estimation.materials?.length > 0) {
-        doc.fontSize(11).text('Materials', 50, yPos);
-        doc.fontSize(10).text(`$${(estimation.materials.reduce((sum: number, m: any) => sum + (parseFloat(m.totalCost) || 0), 0)).toFixed(2)}`, 450, yPos, { align: 'right' });
-        yPos += 20;
+      // Get estimation data for accurate totals
+      const estimationData = await storage.getEstimationData(parseInt(req.params.estimationId));
+      const totals = estimationData?.totals || {};
+      
+      // Define what to show based on quote settings
+      const showBreakdown = quote.showCostBreakdown !== false;
+      const showMarkups = quote.showMarkups === true;
+      
+      if (showBreakdown) {
+        // Materials
+        if (totals.materials > 0) {
+          doc.fontSize(11).text('Materials', 50, yPos);
+          doc.fontSize(10).text(`$${(totals.materials || 0).toFixed(2)}`, 450, yPos, { align: 'right' });
+          yPos += 20;
+        }
+        
+        // Labor
+        if (totals.labor > 0) {
+          doc.fontSize(11).text('Labor', 50, yPos);
+          doc.fontSize(10).text(`$${(totals.labor || 0).toFixed(2)}`, 450, yPos, { align: 'right' });
+          yPos += 20;
+        }
+        
+        // Equipment
+        if (totals.equipment > 0) {
+          doc.fontSize(11).text('Equipment', 50, yPos);
+          doc.fontSize(10).text(`$${(totals.equipment || 0).toFixed(2)}`, 450, yPos, { align: 'right' });
+          yPos += 20;
+        }
+        
+        // Consumables
+        if (totals.consumables > 0) {
+          doc.fontSize(11).text('Consumables', 50, yPos);
+          doc.fontSize(10).text(`$${(totals.consumables || 0).toFixed(2)}`, 450, yPos, { align: 'right' });
+          yPos += 20;
+        }
+        
+        // Coatings
+        if (totals.coatings > 0) {
+          doc.fontSize(11).text('Coatings', 50, yPos);
+          doc.fontSize(10).text(`$${(totals.coatings || 0).toFixed(2)}`, 450, yPos, { align: 'right' });
+          yPos += 20;
+        }
+        
+        // Subcontractors
+        if (totals.subcontractors > 0) {
+          doc.fontSize(11).text('Subcontractors', 50, yPos);
+          doc.fontSize(10).text(`$${(totals.subcontractors || 0).toFixed(2)}`, 450, yPos, { align: 'right' });
+          yPos += 20;
+        }
+        
+        // Add separator for direct costs if showing markups
+        if (showMarkups) {
+          yPos += 5;
+          doc.moveTo(350, yPos).lineTo(550, yPos).stroke();
+          yPos += 10;
+          
+          doc.fontSize(10).text('Direct Costs Subtotal', 50, yPos);
+          doc.fontSize(10).text(`$${(totals.directCosts || 0).toFixed(2)}`, 450, yPos, { align: 'right' });
+          yPos += 25;
+        }
       }
       
-      // Labor
-      if (estimation.labor?.length > 0) {
-        doc.fontSize(11).text('Labor', 50, yPos);
-        doc.fontSize(10).text(`$${(estimation.labor.reduce((sum: number, l: any) => sum + (parseFloat(l.totalCost) || 0), 0)).toFixed(2)}`, 450, yPos, { align: 'right' });
-        yPos += 20;
-      }
-      
-      // Equipment
-      if (estimation.equipment?.length > 0) {
-        doc.fontSize(11).text('Equipment', 50, yPos);
-        doc.fontSize(10).text(`$${(estimation.equipment.reduce((sum: number, e: any) => sum + (parseFloat(e.totalCost) || 0), 0)).toFixed(2)}`, 450, yPos, { align: 'right' });
-        yPos += 20;
-      }
-      
-      // Overheads
-      if (estimation.overheads?.amount) {
-        doc.fontSize(11).text('Overheads', 50, yPos);
-        doc.fontSize(10).text(`$${parseFloat(estimation.overheads.amount).toFixed(2)}`, 450, yPos, { align: 'right' });
-        yPos += 20;
-      }
-      
-      // Margin
-      if (estimation.margin?.amount) {
-        doc.fontSize(11).text('Margin', 50, yPos);
-        doc.fontSize(10).text(`$${parseFloat(estimation.margin.amount).toFixed(2)}`, 450, yPos, { align: 'right' });
-        yPos += 20;
+      // Show overheads and margin if enabled
+      if (showMarkups) {
+        // Overheads
+        if (totals.overheads > 0) {
+          doc.fontSize(11).text(`Overheads (${estimationData.overhead_percentage || 20}%)`, 50, yPos);
+          doc.fontSize(10).text(`$${(totals.overheads || 0).toFixed(2)}`, 450, yPos, { align: 'right' });
+          yPos += 20;
+        }
+        
+        // Margin
+        if (totals.margin > 0) {
+          doc.fontSize(11).text(`Margin (${estimationData.margin_percentage || 20}%)`, 50, yPos);
+          doc.fontSize(10).text(`$${(totals.margin || 0).toFixed(2)}`, 450, yPos, { align: 'right' });
+          yPos += 20;
+        }
       }
       
       // Subtotal line

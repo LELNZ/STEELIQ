@@ -133,7 +133,12 @@ Best regards,
 
 // Fortune 500-standard quote preview HTML generator
 function generateQuotePreviewHTML({ estimation, settings, template, quoteNumber }: any) {
-  const subtotal = parseFloat(estimation.totalCost || '0');
+  // Get totals from estimation data
+  const totals = estimation.totals || {};
+  const directCosts = parseFloat(totals.directCosts || '0');
+  const overheads = parseFloat(totals.overheads || '0');
+  const margin = parseFloat(totals.margin || '0');
+  const subtotal = parseFloat(totals.totalBeforeGst || (directCosts + overheads + margin));
   const taxRate = 0.15; // 15% GST
   const taxAmount = subtotal * taxRate;
   const totalAmount = subtotal + taxAmount;
@@ -357,37 +362,82 @@ function generateQuotePreviewHTML({ estimation, settings, template, quoteNumber 
 function generateItemRows(estimation: any, settings: any) {
   let rows = '';
   
-  // Materials
-  if (estimation.materials?.length > 0) {
-    rows += '<tr class="category-header"><td colspan="4">MATERIALS</td></tr>';
-    estimation.materials.forEach((item: any) => {
-      rows += `
-        <tr>
-          <td>${item.description || item.material?.name || 'Material'}</td>
-          <td style="text-align: center">${item.quantity || 0} ${item.unit || 'EA'}</td>
-          <td style="text-align: right">${settings.showUnitPrices ? `$${(item.unitCost || 0).toFixed(2)}` : '-'}</td>
-          <td style="text-align: right">$${(item.totalCost || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2 })}</td>
-        </tr>
-      `;
-    });
+  const totals = estimation.totals || {};
+  
+  // Show based on display format setting
+  if (settings.displayFormat === 'detailed' && settings.showCostBreakdown) {
+    // Materials
+    if (estimation.materials?.length > 0) {
+      rows += '<tr class="category-header"><td colspan="4">MATERIALS</td></tr>';
+      estimation.materials.forEach((item: any) => {
+        rows += `
+          <tr>
+            <td>${item.description || item.materialCode || 'Material'}</td>
+            <td style="text-align: center">${item.quantity || 0} ${item.unit || 'EA'}</td>
+            <td style="text-align: right">${settings.showUnitPrices ? `$${(item.unitCost || 0).toFixed(2)}` : '-'}</td>
+            <td style="text-align: right">$${(item.totalCost || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2 })}</td>
+          </tr>
+        `;
+      });
+    }
+
+    // Labor
+    if (estimation.labor?.length > 0) {
+      rows += '<tr class="category-header"><td colspan="4">LABOR</td></tr>';
+      estimation.labor.forEach((item: any) => {
+        rows += `
+          <tr>
+            <td>${item.description || 'Labor'}</td>
+            <td style="text-align: center">${item.hours || 0} hrs</td>
+            <td style="text-align: right">${settings.showUnitPrices ? `$${(item.rate || 0).toFixed(2)}/hr` : '-'}</td>
+            <td style="text-align: right">$${(item.totalCost || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2 })}</td>
+          </tr>
+        `;
+      });
+    }
+
+    // Equipment
+    if (estimation.equipment?.length > 0) {
+      rows += '<tr class="category-header"><td colspan="4">EQUIPMENT</td></tr>';
+      estimation.equipment.forEach((item: any) => {
+        rows += `
+          <tr>
+            <td>${item.name || 'Equipment'}</td>
+            <td style="text-align: center">${item.hours || 0} hrs</td>
+            <td style="text-align: right">${settings.showUnitPrices ? `$${(item.rate || 0).toFixed(2)}/hr` : '-'}</td>
+            <td style="text-align: right">$${(item.totalCost || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2 })}</td>
+          </tr>
+        `;
+      });
+    }
+  } else if (settings.displayFormat === 'grouped' || settings.displayFormat === 'summary') {
+    // Summary view - just category totals
+    if (totals.materials > 0) {
+      rows += `<tr><td>Materials</td><td colspan="2" style="text-align: center">-</td><td style="text-align: right">$${totals.materials.toLocaleString('en-NZ', { minimumFractionDigits: 2 })}</td></tr>`;
+    }
+    if (totals.labor > 0) {
+      rows += `<tr><td>Labor</td><td colspan="2" style="text-align: center">-</td><td style="text-align: right">$${totals.labor.toLocaleString('en-NZ', { minimumFractionDigits: 2 })}</td></tr>`;
+    }
+    if (totals.equipment > 0) {
+      rows += `<tr><td>Equipment</td><td colspan="2" style="text-align: center">-</td><td style="text-align: right">$${totals.equipment.toLocaleString('en-NZ', { minimumFractionDigits: 2 })}</td></tr>`;
+    }
+    if (totals.consumables > 0) {
+      rows += `<tr><td>Consumables</td><td colspan="2" style="text-align: center">-</td><td style="text-align: right">$${totals.consumables.toLocaleString('en-NZ', { minimumFractionDigits: 2 })}</td></tr>`;
+    }
+    if (totals.coatings > 0) {
+      rows += `<tr><td>Coatings</td><td colspan="2" style="text-align: center">-</td><td style="text-align: right">$${totals.coatings.toLocaleString('en-NZ', { minimumFractionDigits: 2 })}</td></tr>`;
+    }
   }
 
-  // Labor
-  if (estimation.labor?.length > 0) {
-    rows += '<tr class="category-header"><td colspan="4">LABOR</td></tr>';
-    estimation.labor.forEach((item: any) => {
-      rows += `
-        <tr>
-          <td>${item.description || 'Labor'}</td>
-          <td style="text-align: center">${item.hours || 0} hrs</td>
-          <td style="text-align: right">${settings.showUnitPrices ? `$${(item.rate || 0).toFixed(2)}/hr` : '-'}</td>
-          <td style="text-align: right">$${(item.totalCost || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2 })}</td>
-        </tr>
-      `;
-    });
+  // Show markups if enabled
+  if (settings.showMarkups && settings.showCostBreakdown) {
+    if (totals.overheads > 0) {
+      rows += `<tr style="border-top: 1px solid #e0e0e0;"><td>Overheads</td><td colspan="2" style="text-align: center">-</td><td style="text-align: right">$${totals.overheads.toLocaleString('en-NZ', { minimumFractionDigits: 2 })}</td></tr>`;
+    }
+    if (totals.margin > 0) {
+      rows += `<tr><td>Margin</td><td colspan="2" style="text-align: center">-</td><td style="text-align: right">$${totals.margin.toLocaleString('en-NZ', { minimumFractionDigits: 2 })}</td></tr>`;
+    }
   }
-
-  // Add other categories similarly...
   
   return rows;
 }
