@@ -7,6 +7,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { 
   Eye, 
   Edit, 
@@ -18,13 +19,28 @@ import {
   FileText,
   CheckCircle,
   XCircle,
-  FileCheck
+  FileCheck,
+  Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { tableStyles } from "@/lib/design-system";
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface EstimationProject {
   id: number;
@@ -49,10 +65,36 @@ interface EstimationTableProps {
   onStatusChange: (id: number, status: string) => void;
 }
 
-
-
 export default function EstimationTable({ estimations, onStatusChange }: EstimationTableProps) {
   const [, navigate] = useLocation();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [estimationToDelete, setEstimationToDelete] = useState<EstimationProject | null>(null);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const deleteEstimationMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest(`/api/estimations/${id}`, {
+        method: 'DELETE'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/estimations'] });
+      toast({
+        title: "Estimation deleted",
+        description: "The estimation has been successfully deleted.",
+      });
+      setDeleteDialogOpen(false);
+      setEstimationToDelete(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete estimation",
+        variant: "destructive",
+      });
+    }
+  });
 
   const handleView = (id: number) => {
     navigate(`/estimation/${id}`);
@@ -72,24 +114,25 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
   };
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[150px]">Project #</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead className="w-[120px]">Status</TableHead>
-            <TableHead className="w-[100px]">Progress</TableHead>
-            <TableHead className="w-[120px]">Value</TableHead>
-            <TableHead className="w-[80px]">Margin</TableHead>
-            <TableHead className="w-[100px]">Est. Hours</TableHead>
-            <TableHead className="w-[100px]">Delivery</TableHead>
-            <TableHead className="w-[100px]">Updated</TableHead>
-            <TableHead className="w-[50px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <>
+      <div className={tableStyles.wrapper}>
+        <Table>
+          <TableHeader className={tableStyles.header}>
+            <TableRow className={tableStyles.headerRow}>
+              <TableHead className={cn(tableStyles.headerCell, "w-[150px]")}>Project #</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "min-w-[250px]")}>Name</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[180px]")}>Client</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[120px] text-center")}>Status</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[120px] text-center")}>Progress</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[120px] text-center")}>Value</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[80px] text-center")}>Margin</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[100px] text-center")}>Est. Hours</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[120px] text-center")}>Delivery</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[120px] text-center")}>Updated</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, tableStyles.actionsCell, "w-[80px]")}>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className={tableStyles.body}>
           {estimations.length === 0 ? (
             <TableRow>
               <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
@@ -100,7 +143,7 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
             estimations.map((estimation) => (
                 <TableRow 
                   key={estimation.id}
-                  className={tableStyles.clickableRow}
+                  className={cn(tableStyles.row, "cursor-pointer")}
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest('button')) return;
                     handleView(estimation.id);
@@ -118,12 +161,12 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
                     </div>
                   </TableCell>
                   <TableCell>{estimation.clientName || '-'}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <StatusBadge status={estimation.status} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {estimation.lifecycleProgress !== undefined ? (
-                      <div className="space-y-1">
+                      <div className="space-y-1 flex flex-col items-center">
                         <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-primary transition-all duration-300"
@@ -133,35 +176,47 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
                         <p className="text-xs text-muted-foreground">{estimation.lifecycleProgress}%</p>
                       </div>
                     ) : (
-                      '-'
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1">
                       <DollarSign className="h-3 w-3 text-muted-foreground" />
-                      {formatCurrency(estimation.totalCost)}
+                      <span className="font-medium">{formatCurrency(estimation.totalCost)}</span>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    {estimation.margin ? `${estimation.margin}%` : '-'}
+                  <TableCell className="text-center">
+                    <span className={cn(
+                      "font-medium",
+                      estimation.margin && parseFloat(estimation.margin) > 20 ? "text-green-600" : 
+                      estimation.margin && parseFloat(estimation.margin) > 15 ? "text-blue-600" :
+                      estimation.margin && parseFloat(estimation.margin) > 10 ? "text-orange-600" :
+                      "text-red-600"
+                    )}>
+                      {estimation.margin ? `${estimation.margin}%` : '-'}
+                    </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {estimation.estimatedHours ? (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center justify-center gap-1">
                         <Clock className="h-3 w-3 text-muted-foreground" />
-                        {estimation.estimatedHours}h
+                        <span>{estimation.estimatedHours}h</span>
                       </div>
-                    ) : '-'}
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {estimation.deliveryDate ? (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center justify-center gap-1">
                         <Calendar className="h-3 w-3 text-muted-foreground" />
-                        {formatDate(estimation.deliveryDate)}
+                        <span>{formatDate(estimation.deliveryDate)}</span>
                       </div>
-                    ) : '-'}
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
-                  <TableCell>{formatDate(estimation.updatedAt)}</TableCell>
+                  <TableCell className="text-center text-muted-foreground">{formatDate(estimation.updatedAt)}</TableCell>
                   <TableCell className={tableStyles.actionsCell}>
                     <ActionMenu
                       items={[
@@ -186,6 +241,15 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
                           onClick: () => onStatusChange(estimation.id, 'sent'),
                           disabled: estimation.status === 'sent' || estimation.status === 'accepted',
                           separator: true
+                        },
+                        {
+                          label: 'Delete',
+                          icon: <Trash2 className="h-4 w-4" />,
+                          onClick: () => {
+                            setEstimationToDelete(estimation);
+                            setDeleteDialogOpen(true);
+                          },
+                          variant: 'destructive'
                         }
                       ]}
                     />
@@ -194,7 +258,31 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
             ))
           )}
         </TableBody>
-      </Table>
-    </div>
+        </Table>
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Estimation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{estimationToDelete?.name}"? 
+              This action cannot be undone and will permanently remove the estimation 
+              and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => estimationToDelete && deleteEstimationMutation.mutate(estimationToDelete.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -120,21 +120,21 @@ export default function JobTable({ jobs, searchQuery = "", statusFilter = "all" 
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className={tableStyles.wrapper}>
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[120px]">Job Number</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Project</TableHead>
-              <TableHead className="w-[100px]">Status</TableHead>
-              <TableHead className="w-[100px]">Priority</TableHead>
-              <TableHead className="w-[120px]">Est. Value</TableHead>
-              <TableHead className="w-[100px]">Created</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+          <TableHeader className={tableStyles.header}>
+            <TableRow className={tableStyles.headerRow}>
+              <TableHead className={cn(tableStyles.headerCell, "w-[140px]")}>Job Number</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[200px]")}>Client</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "min-w-[250px]")}>Project</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[120px] text-center")}>Status</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[100px] text-center")}>Priority</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[120px] text-center")}>Est. Value</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, "w-[100px] text-center")}>Created</TableHead>
+              <TableHead className={cn(tableStyles.headerCell, tableStyles.actionsCell, "w-[80px]")}>Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className={tableStyles.body}>
             {filteredJobs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
@@ -145,44 +145,45 @@ export default function JobTable({ jobs, searchQuery = "", statusFilter = "all" 
               filteredJobs.map((job) => (
                 <TableRow 
                   key={job.id} 
-                  className="cursor-pointer hover:bg-muted/50"
+                  className={cn(tableStyles.row, "cursor-pointer")}
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest('button')) return;
                     handleView(job.id);
                   }}
                 >
-                  <TableCell className="font-medium">
+                  <TableCell className={cn(tableStyles.cell, "font-medium")}>
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      {job.jobNumber}
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <FileText className="h-4 w-4 text-primary" />
+                      </div>
+                      <span>{job.jobNumber}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{job.clientName}</TableCell>
-                  <TableCell>
+                  <TableCell className={tableStyles.cell}>{job.clientName}</TableCell>
+                  <TableCell className={tableStyles.cell}>
                     <div>
                       <p className="font-medium">{job.projectName}</p>
                       {job.projectAddress && (
-                        <p className="text-xs text-muted-foreground">{job.projectAddress}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{job.projectAddress}</p>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={cn(tableStyles.cell, "text-center")}>
                     <StatusBadge status={job.status} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={cn(tableStyles.cell, "text-center")}>
                     <StatusBadge priority={job.priority} />
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
+                  <TableCell className={cn(tableStyles.cell, "text-center")}>
+                    <div className="flex items-center justify-center gap-1">
                       <DollarSign className="h-3 w-3 text-muted-foreground" />
-                      {job.estimatedValue ? `${job.estimatedValue.toLocaleString()}` : '-'}
+                      <span className="font-medium">
+                        {job.estimatedValue ? `$${job.estimatedValue.toLocaleString()}` : '-'}
+                      </span>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />
-                      {formatDate(job.createdAt)}
-                    </div>
+                  <TableCell className={cn(tableStyles.cell, "text-center text-muted-foreground")}>
+                    {formatDate(job.createdAt)}
                   </TableCell>
                   <TableCell className={tableStyles.actionsCell}>
                     <ActionMenu
