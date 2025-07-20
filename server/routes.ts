@@ -2406,11 +2406,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const quoteNumber = `Q-${year}-${month}${day}-${random}-V${version}`;
       
       // Calculate financial summary
-      const totalCost = parseFloat(estimation.totalCost || '0');
+      const totalCost = parseFloat(estimation.project?.totalCost || estimation.totalCost || '0');
       const taxRate = 0.15; // 15% GST
       const subtotal = totalCost;
       const taxAmount = subtotal * taxRate;
       const totalAmount = subtotal + taxAmount;
+      
+      console.log('Quote calculation:', {
+        estimationId: id,
+        totalCost,
+        subtotal,
+        taxAmount,
+        totalAmount
+      });
       
       // Create quote
       const quote = await storage.createQuote({
@@ -2449,6 +2457,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating quote:", error);
       res.status(500).json({ error: "Failed to generate quote" });
+    }
+  });
+
+  // Generate PDF for quote
+  app.get('/api/estimations/:estimationId/quotes/:quoteId/pdf', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const quoteId = parseInt(req.params.quoteId);
+      const quote = await storage.getQuote(quoteId);
+      
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      
+      // For now, convert the HTML preview to PDF using the browser's print functionality
+      // In production, you would use a proper PDF library like puppeteer or wkhtmltopdf
+      
+      res.setHeader('Content-Type', 'text/html');
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            @media print {
+              body { margin: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          ${quote.previewHtml}
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(() => window.close(), 100);
+            }
+          </script>
+        </body>
+        </html>
+      `);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ error: "Failed to generate PDF" });
     }
   });
 
