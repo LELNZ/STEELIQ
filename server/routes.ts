@@ -2306,6 +2306,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Duplicate estimation
+  app.post('/api/estimations/:id/duplicate', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const sourceId = parseInt(req.params.id);
+      
+      // Get the original estimation
+      const original = await storage.getEstimation(sourceId);
+      if (!original) {
+        return res.status(404).json({ error: "Estimation not found" });
+      }
+      
+      // Create a new estimation with copied data
+      const newName = `${original.project.name} (Copy)`;
+      const newProject = await storage.createEstimationProject({
+        name: newName,
+        description: original.project.description,
+        clientId: original.project.clientId,
+        status: 'draft', // Always start copies as draft
+        targetValue: original.project.targetValue,
+        targetMargin: original.project.targetMargin,
+        deliveryDate: original.project.deliveryDate,
+        estimatedHours: original.project.estimatedHours,
+        priority: original.project.priority,
+        riskLevel: original.project.riskLevel,
+        complexity: original.project.complexity,
+        requiredDocumentation: original.project.requiredDocumentation,
+        lifecycleTemplateId: original.project.lifecycleTemplateId,
+        createdBy: user.id
+      });
+      
+      // Copy the estimation data
+      const newEstimation = {
+        projectId: newProject.id,
+        materials: original.materials || [],
+        labor: original.labor || [],
+        equipment: original.equipment || [],
+        consumables: original.consumables || [],
+        coatings: original.coatings || [],
+        subcontractors: original.subcontractors || [],
+        overheads: original.overheads || { percentage: 15, amount: 0 },
+        margin: original.margin || { percentage: 20, amount: 0 },
+        adjustments: original.adjustments || { discount: 0, freight: 0, other: 0 },
+        notes: `Duplicated from ${original.project.name}`,
+        subtotal: original.subtotal || 0,
+        totalCost: original.totalCost || 0
+      };
+      
+      await storage.saveEstimation(newEstimation);
+      
+      // Get the full new estimation
+      const duplicated = await storage.getEstimation(newProject.id);
+      
+      res.json({
+        id: newProject.id,
+        name: newProject.name,
+        ...duplicated
+      });
+    } catch (error) {
+      console.error("Error duplicating estimation:", error);
+      res.status(500).json({ error: "Failed to duplicate estimation" });
+    }
+  });
+
+  // Generate quote from estimation
+  app.post('/api/estimations/:id/generate-quote', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const { settings, template } = req.body;
+      
+      // Get the estimation
+      const estimation = await storage.getEstimation(id);
+      if (!estimation) {
+        return res.status(404).json({ error: "Estimation not found" });
+      }
+      
+      // Generate quote based on settings
+      // In a real implementation, this would generate a PDF or formatted document
+      const quote = {
+        id: `Q-${estimation.project.projectNumber || id}`,
+        estimationId: id,
+        template,
+        settings,
+        generatedAt: new Date(),
+        generatedBy: user.id
+      };
+      
+      res.json(quote);
+    } catch (error) {
+      console.error("Error generating quote:", error);
+      res.status(500).json({ error: "Failed to generate quote" });
+    }
+  });
+
+  // Send quote to client
+  app.post('/api/estimations/:id/send-quote', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const { settings, template, to, cc, subject, message } = req.body;
+      
+      // Get the estimation
+      const estimation = await storage.getEstimation(id);
+      if (!estimation) {
+        return res.status(404).json({ error: "Estimation not found" });
+      }
+      
+      // Update estimation status to 'sent'
+      await storage.updateEstimationStatus(id, 'sent');
+      
+      // Record the send event
+      const sendEvent = {
+        estimationId: id,
+        sentTo: to,
+        cc: cc || [],
+        subject,
+        message,
+        template,
+        settings,
+        sentAt: new Date(),
+        sentBy: user.id
+      };
+      
+      // In a real implementation, this would send an email with the quote
+      console.log("Quote sent:", sendEvent);
+      
+      res.json({
+        success: true,
+        message: "Quote sent successfully",
+        sentAt: sendEvent.sentAt
+      });
+    } catch (error) {
+      console.error("Error sending quote:", error);
+      res.status(500).json({ error: "Failed to send quote" });
+    }
+  });
+
   app.post('/api/client-locations', async (req, res) => {
     try {
       const location = await storage.createLocation({

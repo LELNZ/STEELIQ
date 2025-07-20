@@ -74,8 +74,8 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
 
   const deleteEstimationMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest(`/api/estimations/${id}`, {
-        method: 'DELETE'
+      await apiRequest('DELETE', `/api/estimations/${id}`, {
+        reason: 'Deleted by user'
       });
     },
     onSuccess: () => {
@@ -99,6 +99,29 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
   const handleView = (id: number) => {
     navigate(`/estimation/${id}`);
   };
+
+  const duplicateEstimation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('POST', `/api/estimations/${id}/duplicate`);
+      return response;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/estimations'] });
+      toast({
+        title: "Estimation duplicated",
+        description: `Created new estimation: ${data.name}`,
+      });
+      // Navigate to the new estimation
+      navigate(`/estimation/${data.id}`);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to duplicate estimation",
+        variant: "destructive",
+      });
+    }
+  });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -223,7 +246,7 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
                         {
                           label: 'View Details',
                           icon: <Eye className="h-4 w-4" />,
-                          onClick: () => handleView(estimation.id)
+                          onClick: () => navigate(`/estimation/${estimation.id}?view=readonly`)
                         },
                         {
                           label: 'Edit Estimation',
@@ -233,14 +256,7 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
                         {
                           label: 'Duplicate',
                           icon: <Copy className="h-4 w-4" />,
-                          onClick: () => console.log('Duplicate', estimation.id)
-                        },
-                        {
-                          label: 'Send to Client',
-                          icon: <ArrowRight className="h-4 w-4" />,
-                          onClick: () => onStatusChange(estimation.id, 'sent'),
-                          disabled: estimation.status === 'sent' || estimation.status === 'accepted',
-                          separator: true
+                          onClick: () => duplicateEstimation.mutate(estimation.id)
                         },
                         {
                           label: 'Delete',

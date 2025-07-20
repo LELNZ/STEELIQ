@@ -66,6 +66,7 @@ import { useEstimationDefaults } from "@/hooks/useEstimationDefaults";
 import { EnhancedProjectForm } from "@/components/estimation/EnhancedProjectForm";
 import { ViewSwitcher } from "@/components/ui/view-switcher";
 import EstimationTable from "@/components/estimations/estimation-table";
+import QuoteGenerator from "@/components/estimations/quote-generator";
 
 // Types for estimation system
 interface EstimationProject {
@@ -210,6 +211,7 @@ export default function EstimationPage() {
   const [estimationData, setEstimationData] = useState<EstimationData | null>(null);
   const [isAiAssistEnabled, setIsAiAssistEnabled] = useState(true);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [showQuoteGenerator, setShowQuoteGenerator] = useState(false);
   
   // Navigation state management
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -663,6 +665,16 @@ export default function EstimationPage() {
                   <Workflow className="h-4 w-4" />
                   Process Tracking
                 </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setShowQuoteGenerator(true)}
+                  className="flex items-center gap-2"
+                  size="sm"
+                >
+                  <FileText className="h-4 w-4" />
+                  Generate Quote
+                </Button>
                 
                 <Button 
                   onClick={handleManualSave}
@@ -795,6 +807,19 @@ export default function EstimationPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Quote Generator Dialog */}
+      {currentProject && estimationData && (
+        <QuoteGenerator
+          estimation={{
+            id: currentProject.id,
+            project: currentProject,
+            ...estimationData
+          }}
+          open={showQuoteGenerator}
+          onOpenChange={setShowQuoteGenerator}
+        />
+      )}
     </div>
   );
 }
