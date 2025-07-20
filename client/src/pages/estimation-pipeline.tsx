@@ -8,6 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ViewSwitcher } from '@/components/ui/view-switcher';
 import EstimationTable from '@/components/estimations/estimation-table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   ArrowRight, 
   CheckCircle, 
@@ -23,7 +30,11 @@ import {
   Settings,
   Activity,
   Zap,
-  ChevronRight
+  ChevronRight,
+  MoreVertical,
+  Eye,
+  Edit,
+  Copy
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -199,19 +210,19 @@ export default function EstimationPipeline() {
               {getEstimationsByStatus(stage.key).map(estimation => (
                 <Card 
                   key={estimation.id}
-                  className="cursor-pointer hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 min-w-0 bg-white"
+                  className="cursor-pointer hover:shadow-md transition-all duration-200 bg-white overflow-hidden"
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData('estimationId', estimation.id.toString())}
                   onClick={(e) => {
-                    // Prevent navigation when clicking the Create Job button
+                    // Prevent navigation when clicking buttons
                     if ((e.target as HTMLElement).closest('button')) return;
                     window.location.href = `/estimation/${estimation.id}`;
                   }}
                 >
-                  <CardContent className="p-3">
-                    <div className="flex items-start justify-between mb-2 gap-2">
+                  <CardContent className="p-2.5">
+                    <div className="flex items-start justify-between mb-1.5 gap-1">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate" title={estimation.name}>
+                        <p className="font-medium text-sm truncate leading-tight" title={estimation.name}>
                           {estimation.name}
                         </p>
                         {estimation.projectNumber && (
@@ -220,54 +231,67 @@ export default function EstimationPipeline() {
                           </p>
                         )}
                       </div>
-                      {estimation.lifecycleProgress !== undefined && (
-                        <div className="w-10 h-10 relative flex-shrink-0">
-                          <svg className="transform -rotate-90 w-10 h-10">
-                            <circle
-                              cx="20"
-                              cy="20"
-                              r="16"
-                              stroke="currentColor"
-                              strokeWidth="3"
-                              fill="none"
-                              className="text-gray-200"
-                            />
-                            <circle
-                              cx="20"
-                              cy="20"
-                              r="16"
-                              stroke="currentColor"
-                              strokeWidth="3"
-                              fill="none"
-                              strokeDasharray={`${2 * Math.PI * 16}`}
-                              strokeDashoffset={`${2 * Math.PI * 16 * (1 - (estimation.lifecycleProgress || 0) / 100)}`}
-                              className="text-blue-600 transition-all duration-300"
-                            />
-                          </svg>
-                          <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold">
-                            {estimation.lifecycleProgress || 0}%
-                          </span>
-                        </div>
-                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <MoreVertical className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/estimation/${estimation.id}`;
+                          }}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/estimation/${estimation.id}`;
+                          }}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Estimation
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateStatus.mutate({ id: estimation.id, status: 'sent' });
+                            }}
+                            disabled={estimation.status === 'sent' || estimation.status === 'accepted'}
+                          >
+                            <ArrowRight className="mr-2 h-4 w-4" />
+                            Send to Client
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-2 truncate" title={estimation.clientName || 'No client'}>
+                    <p className="text-xs text-muted-foreground mb-1 truncate" title={estimation.clientName || 'No client'}>
                       {estimation.clientName || 'No client'}
                     </p>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-semibold">
                         ${parseFloat(estimation.totalCost || '0').toLocaleString()}
                       </span>
-                      {estimation.currentPhase && (
-                        <span className="text-xs text-muted-foreground truncate">
-                          {estimation.currentPhase}
-                        </span>
+                      {estimation.lifecycleProgress !== undefined && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Progress value={estimation.lifecycleProgress || 0} className="w-12 h-1.5" />
+                          <span>{estimation.lifecycleProgress || 0}%</span>
+                        </div>
                       )}
                     </div>
                     {stage.key === 'accepted' && (
                       <Button 
                         size="sm" 
-                        className="w-full mt-2"
-                        onClick={() => convertToJob.mutate(estimation.id)}
+                        className="w-full mt-2 h-7 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          convertToJob.mutate(estimation.id);
+                        }}
                       >
                         <Zap className="h-3 w-3 mr-1" />
                         Create Job
