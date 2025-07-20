@@ -54,7 +54,7 @@ interface EstimationTableProps {
   onStatusChange: (id: number, status: string) => void;
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-800', icon: FileText },
   in_progress: { label: 'In Progress', color: 'bg-blue-100 text-blue-800', icon: Clock },
   completed: { label: 'Completed', color: 'bg-purple-100 text-purple-800', icon: CheckCircle },
@@ -110,7 +110,7 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
             </TableRow>
           ) : (
             estimations.map((estimation) => {
-              const StatusIcon = statusConfig[estimation.status].icon;
+              const StatusIcon = statusConfig[estimation.status]?.icon || FileText;
               return (
                 <TableRow 
                   key={estimation.id}
@@ -133,9 +133,9 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
                   </TableCell>
                   <TableCell>{estimation.clientName || '-'}</TableCell>
                   <TableCell>
-                    <Badge className={cn(statusConfig[estimation.status].color, "text-xs")}>
+                    <Badge className={cn(statusConfig[estimation.status]?.color || 'bg-gray-100 text-gray-800', "text-xs")}>
                       <StatusIcon className="w-3 h-3 mr-1" />
-                      {statusConfig[estimation.status].label}
+                      {statusConfig[estimation.status]?.label || estimation.status}
                     </Badge>
                   </TableCell>
                   <TableCell>
