@@ -1,0 +1,401 @@
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Activity,
+  Download,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Calendar,
+  Filter,
+  Settings,
+} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+export function PriceFeedsTab() {
+  const [selectedSupplier, setSelectedSupplier] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [showActiveOnly, setShowActiveOnly] = useState(true);
+
+  const { data: priceFeeds, isLoading } = useQuery({
+    queryKey: ["/api/supplier-integration/price-feeds", selectedSupplier, selectedCategory],
+  });
+
+  const { data: suppliers } = useQuery({
+    queryKey: ["/api/suppliers"],
+  });
+
+  const getPriceChangeIcon = (change: number) => {
+    if (change > 0) return <TrendingUp className="h-4 w-4 text-red-500" />;
+    if (change < 0) return <TrendingDown className="h-4 w-4 text-green-500" />;
+    return <Minus className="h-4 w-4 text-gray-400" />;
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+      case "error":
+        return <Badge className="bg-red-100 text-red-800">Error</Badge>;
+      case "paused":
+        return <Badge className="bg-yellow-100 text-yellow-800">Paused</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filters and Actions */}
+      <Card className="p-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Supplier</Label>
+              <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All suppliers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Suppliers</SelectItem>
+                  {suppliers?.map((supplier: any) => (
+                    <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Category</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="structural">Structural Steel</SelectItem>
+                  <SelectItem value="plate">Plate & Sheet</SelectItem>
+                  <SelectItem value="merchant">Merchant Bar</SelectItem>
+                  <SelectItem value="hollow">Hollow Sections</SelectItem>
+                  <SelectItem value="consumables">Consumables</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-end">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="active-only" 
+                  checked={showActiveOnly}
+                  onCheckedChange={(checked) => setShowActiveOnly(checked as boolean)}
+                />
+                <Label htmlFor="active-only">Active feeds only</Label>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 items-end">
+            <Button variant="outline" size="sm">
+              <Filter className="h-4 w-4 mr-2" />
+              More Filters
+            </Button>
+            <Button size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Sync All
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Price Feeds Configuration */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Live Price Feeds */}
+        <div className="lg:col-span-2">
+          <Card>
+            <div className="p-4 border-b">
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold">Live Price Feeds</h3>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Configure
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                      <DialogTitle>Price Feed Configuration</DialogTitle>
+                      <DialogDescription>
+                        Configure supplier API connections and update frequencies
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Tabs defaultValue="api">
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="api">API Settings</TabsTrigger>
+                        <TabsTrigger value="mapping">Field Mapping</TabsTrigger>
+                        <TabsTrigger value="schedule">Update Schedule</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="api" className="space-y-4">
+                        <div>
+                          <Label>API Endpoint</Label>
+                          <Input placeholder="https://api.supplier.com/prices" />
+                        </div>
+                        <div>
+                          <Label>Authentication Type</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select auth type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="api-key">API Key</SelectItem>
+                              <SelectItem value="oauth">OAuth 2.0</SelectItem>
+                              <SelectItem value="basic">Basic Auth</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="mapping">
+                        <p className="text-sm text-muted-foreground">
+                          Map supplier fields to your system fields
+                        </p>
+                      </TabsContent>
+                      <TabsContent value="schedule">
+                        <p className="text-sm text-muted-foreground">
+                          Set update frequency and timing
+                        </p>
+                      </TabsContent>
+                    </Tabs>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+            <div className="p-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Supplier</TableHead>
+                    <TableHead>Items</TableHead>
+                    <TableHead>Last Update</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      Steel & Tube Holdings
+                    </TableCell>
+                    <TableCell>1,245</TableCell>
+                    <TableCell>2 mins ago</TableCell>
+                    <TableCell>{getStatusBadge("active")}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm">
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      Fletcher Steel
+                    </TableCell>
+                    <TableCell>892</TableCell>
+                    <TableCell>15 mins ago</TableCell>
+                    <TableCell>{getStatusBadge("active")}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm">
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      Vulcan Steel
+                    </TableCell>
+                    <TableCell>567</TableCell>
+                    <TableCell>1 hour ago</TableCell>
+                    <TableCell>{getStatusBadge("error")}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm">
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </div>
+
+        {/* Recent Price Changes */}
+        <div>
+          <Card>
+            <div className="p-4 border-b">
+              <h3 className="font-semibold">Recent Price Changes</h3>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <TrendingUp className="h-5 w-5 text-red-500" />
+                  <div>
+                    <p className="font-medium text-sm">100x100x6 SHS</p>
+                    <p className="text-xs text-muted-foreground">Steel & Tube</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium text-red-600">+5.2%</p>
+                  <p className="text-xs text-muted-foreground">$145.60/m</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <TrendingDown className="h-5 w-5 text-green-500" />
+                  <div>
+                    <p className="font-medium text-sm">250UC89.5</p>
+                    <p className="text-xs text-muted-foreground">Fletcher</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium text-green-600">-2.8%</p>
+                  <p className="text-xs text-muted-foreground">$89.50/m</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Minus className="h-5 w-5 text-gray-500" />
+                  <div>
+                    <p className="font-medium text-sm">16mm Plate</p>
+                    <p className="text-xs text-muted-foreground">Vulcan</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium text-gray-600">0.0%</p>
+                  <p className="text-xs text-muted-foreground">$2,450/t</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Price History Table */}
+      <Card>
+        <div className="p-4 border-b">
+          <div className="flex justify-between items-center">
+            <h3 className="font-semibold">Material Price History</h3>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
+        </div>
+        <div className="p-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Material</TableHead>
+                <TableHead>Supplier</TableHead>
+                <TableHead>Current Price</TableHead>
+                <TableHead>Previous Price</TableHead>
+                <TableHead>Change</TableHead>
+                <TableHead>Last Updated</TableHead>
+                <TableHead>Trend (30d)</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-medium">100x100x6 SHS</TableCell>
+                <TableCell>Steel & Tube Holdings</TableCell>
+                <TableCell>$145.60/m</TableCell>
+                <TableCell className="text-muted-foreground">$138.40/m</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    {getPriceChangeIcon(5.2)}
+                    <span className="text-red-600">+5.2%</span>
+                  </div>
+                </TableCell>
+                <TableCell>2 mins ago</TableCell>
+                <TableCell>
+                  <div className="h-8 w-16 bg-red-100 rounded" />
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">250UC89.5</TableCell>
+                <TableCell>Fletcher Steel</TableCell>
+                <TableCell>$89.50/m</TableCell>
+                <TableCell className="text-muted-foreground">$92.08/m</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    {getPriceChangeIcon(-2.8)}
+                    <span className="text-green-600">-2.8%</span>
+                  </div>
+                </TableCell>
+                <TableCell>15 mins ago</TableCell>
+                <TableCell>
+                  <div className="h-8 w-16 bg-green-100 rounded" />
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+    </div>
+  );
+}

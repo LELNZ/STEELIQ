@@ -61,6 +61,69 @@ export const emailAccounts = pgTable("email_accounts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Drawing Intelligence tables
+export const drawingProjects = pgTable("drawing_projects", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // general, structural, assembly, detail, workshop
+  standards: varchar("standards", { length: 50 }).default("AS/NZS"),
+  notes: text("notes"),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const drawings = pgTable("drawings", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => drawingProjects.id).notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  fileSize: integer("file_size").notNull(),
+  fileType: varchar("file_type", { length: 50 }).notNull(),
+  uploadedBy: integer("uploaded_by").references(() => users.id).notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  status: varchar("status", { length: 50 }).default("pending"), // pending, analyzing, analyzed, error
+  analysisResult: jsonb("analysis_result"),
+  steelMembers: integer("steel_members").default(0),
+  connections: integer("connections").default(0),
+  totalWeight: decimal("total_weight", { precision: 10, scale: 2 }).default("0"),
+  revisionNumber: varchar("revision_number", { length: 10 }),
+  baseDrawingId: integer("base_drawing_id").references(() => drawings.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const drawingRevisions = pgTable("drawing_revisions", {
+  id: serial("id").primaryKey(),
+  drawingId: integer("drawing_id").references(() => drawings.id).notNull(),
+  baseRevisionId: integer("base_revision_id").references(() => drawings.id).notNull(),
+  compareRevisionId: integer("compare_revision_id").references(() => drawings.id).notNull(),
+  comparisonResult: jsonb("comparison_result"),
+  changedMembers: integer("changed_members").default(0),
+  changedConnections: integer("changed_connections").default(0),
+  weightChange: decimal("weight_change", { precision: 10, scale: 2 }).default("0"),
+  costImpact: decimal("cost_impact", { precision: 10, scale: 2 }).default("0"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const materialTakeoffs = pgTable("material_takeoffs", {
+  id: serial("id").primaryKey(),
+  drawingId: integer("drawing_id").references(() => drawings.id).notNull(),
+  projectId: integer("project_id").references(() => drawingProjects.id).notNull(),
+  mark: varchar("mark", { length: 50 }).notNull(),
+  section: varchar("section", { length: 100 }).notNull(),
+  grade: varchar("grade", { length: 50 }),
+  length: integer("length").notNull(),
+  quantity: integer("quantity").notNull(),
+  weight: decimal("weight", { precision: 10, scale: 2 }).notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  drawingRef: varchar("drawing_ref", { length: 50 }),
+  phase: varchar("phase", { length: 100 }),
+  wastage: integer("wastage").default(5),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Supplier invoice parsing templates
 export const supplierTemplates = pgTable("supplier_templates", {
   id: serial("id").primaryKey(),
@@ -298,7 +361,7 @@ export const enhancedDrawingAnalysis = pgTable("enhanced_drawing_analysis", {
 });
 
 // Drawing Revisions and Comparison
-export const drawingRevisions = pgTable("drawing_revisions", {
+export const enhancedDrawingRevisions = pgTable("enhanced_drawing_revisions", {
   id: serial("id").primaryKey(),
   originalDrawingId: integer("original_drawing_id").references(() => enhancedDrawingAnalysis.id).notNull(),
   revisionDrawingId: integer("revision_drawing_id").references(() => enhancedDrawingAnalysis.id).notNull(),

@@ -1,0 +1,505 @@
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Star,
+  Clock,
+  Package,
+  AlertCircle,
+  CheckCircle,
+  Download,
+  Filter,
+  Calendar,
+  DollarSign,
+  Truck,
+  ShieldCheck,
+  XCircle,
+  Award,
+} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+export function PerformanceTab() {
+  const [dateRange, setDateRange] = useState("30days");
+  const [selectedSupplier, setSelectedSupplier] = useState("all");
+
+  const { data: performanceData } = useQuery({
+    queryKey: ["/api/supplier-integration/performance", dateRange, selectedSupplier],
+  });
+
+  const { data: suppliers } = useQuery({
+    queryKey: ["/api/suppliers"],
+  });
+
+  const getPerformanceColor = (score: number) => {
+    if (score >= 90) return "text-green-600";
+    if (score >= 70) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getStarRating = (score: number) => {
+    const stars = Math.round(score / 20);
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${
+          i < stars ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+        }`}
+      />
+    ));
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <Card className="p-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Date Range</Label>
+              <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7days">Last 7 days</SelectItem>
+                  <SelectItem value="30days">Last 30 days</SelectItem>
+                  <SelectItem value="90days">Last 90 days</SelectItem>
+                  <SelectItem value="12months">Last 12 months</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Supplier</Label>
+              <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All suppliers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Suppliers</SelectItem>
+                  {suppliers?.map((supplier: any) => (
+                    <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button variant="outline" className="w-full">
+                <Download className="h-4 w-4 mr-2" />
+                Export Report
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Performance Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <Award className="h-8 w-8 text-yellow-600" />
+            <span className="text-2xl font-bold text-yellow-600">85%</span>
+          </div>
+          <p className="font-medium">Overall Performance</p>
+          <Progress value={85} className="mt-2" />
+          <p className="text-xs text-muted-foreground mt-2">+3% from last month</p>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <Clock className="h-8 w-8 text-blue-600" />
+            <span className="text-2xl font-bold">92%</span>
+          </div>
+          <p className="font-medium">On-Time Delivery</p>
+          <Progress value={92} className="mt-2" />
+          <p className="text-xs text-muted-foreground mt-2">Target: 95%</p>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <ShieldCheck className="h-8 w-8 text-green-600" />
+            <span className="text-2xl font-bold">98%</span>
+          </div>
+          <p className="font-medium">Quality Score</p>
+          <Progress value={98} className="mt-2" />
+          <p className="text-xs text-muted-foreground mt-2">0 defects this month</p>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <DollarSign className="h-8 w-8 text-purple-600" />
+            <span className="text-2xl font-bold">-2.3%</span>
+          </div>
+          <p className="font-medium">Cost Savings</p>
+          <Progress value={23} className="mt-2" />
+          <p className="text-xs text-muted-foreground mt-2">$45,230 saved</p>
+        </Card>
+      </div>
+
+      {/* Detailed Performance Metrics */}
+      <Tabs defaultValue="scorecard" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="scorecard">Scorecard</TabsTrigger>
+          <TabsTrigger value="delivery">Delivery</TabsTrigger>
+          <TabsTrigger value="quality">Quality</TabsTrigger>
+          <TabsTrigger value="pricing">Pricing</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="scorecard">
+          <Card>
+            <div className="p-4 border-b">
+              <h3 className="font-semibold">Supplier Scorecard</h3>
+            </div>
+            <div className="p-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Supplier</TableHead>
+                    <TableHead>Overall Score</TableHead>
+                    <TableHead>Delivery</TableHead>
+                    <TableHead>Quality</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Communication</TableHead>
+                    <TableHead>Rating</TableHead>
+                    <TableHead>Trend</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      Steel & Tube Holdings
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold ${getPerformanceColor(92)}`}>
+                          92%
+                        </span>
+                        <Badge className="bg-green-100 text-green-800">
+                          Excellent
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>95%</TableCell>
+                    <TableCell>98%</TableCell>
+                    <TableCell>88%</TableCell>
+                    <TableCell>90%</TableCell>
+                    <TableCell>
+                      <div className="flex">{getStarRating(92)}</div>
+                    </TableCell>
+                    <TableCell>
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      Fletcher Steel
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold ${getPerformanceColor(85)}`}>
+                          85%
+                        </span>
+                        <Badge className="bg-green-100 text-green-800">
+                          Good
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>88%</TableCell>
+                    <TableCell>95%</TableCell>
+                    <TableCell>82%</TableCell>
+                    <TableCell>85%</TableCell>
+                    <TableCell>
+                      <div className="flex">{getStarRating(85)}</div>
+                    </TableCell>
+                    <TableCell>
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      Vulcan Steel
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold ${getPerformanceColor(72)}`}>
+                          72%
+                        </span>
+                        <Badge className="bg-yellow-100 text-yellow-800">
+                          Average
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>75%</TableCell>
+                    <TableCell>85%</TableCell>
+                    <TableCell>70%</TableCell>
+                    <TableCell>68%</TableCell>
+                    <TableCell>
+                      <div className="flex">{getStarRating(72)}</div>
+                    </TableCell>
+                    <TableCell>
+                      <TrendingDown className="h-4 w-4 text-red-600" />
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="delivery">
+          <Card>
+            <div className="p-4 border-b">
+              <h3 className="font-semibold">Delivery Performance</h3>
+            </div>
+            <div className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium mb-4">On-Time Delivery Rate</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm">Steel & Tube Holdings</span>
+                        <span className="text-sm font-medium">95%</span>
+                      </div>
+                      <Progress value={95} />
+                    </div>
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm">Fletcher Steel</span>
+                        <span className="text-sm font-medium">88%</span>
+                      </div>
+                      <Progress value={88} />
+                    </div>
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm">Vulcan Steel</span>
+                        <span className="text-sm font-medium">75%</span>
+                      </div>
+                      <Progress value={75} />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-4">Average Lead Time (days)</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <span>Steel & Tube Holdings</span>
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium">3.2</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <span>Fletcher Steel</span>
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium">4.5</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <span>Vulcan Steel</span>
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium">5.8</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="quality">
+          <Card>
+            <div className="p-4 border-b">
+              <h3 className="font-semibold">Quality Metrics</h3>
+            </div>
+            <div className="p-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Supplier</TableHead>
+                    <TableHead>Defect Rate</TableHead>
+                    <TableHead>Returns</TableHead>
+                    <TableHead>Certifications</TableHead>
+                    <TableHead>Last Audit</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      Steel & Tube Holdings
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-green-600 font-medium">0.2%</span>
+                    </TableCell>
+                    <TableCell>1</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Badge variant="outline">ISO 9001</Badge>
+                        <Badge variant="outline">AS/NZS</Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>Jan 15, 2025</TableCell>
+                    <TableCell>
+                      <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Compliant
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">Fletcher Steel</TableCell>
+                    <TableCell>
+                      <span className="text-green-600 font-medium">0.5%</span>
+                    </TableCell>
+                    <TableCell>2</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Badge variant="outline">ISO 9001</Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>Dec 10, 2024</TableCell>
+                    <TableCell>
+                      <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Compliant
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">Vulcan Steel</TableCell>
+                    <TableCell>
+                      <span className="text-yellow-600 font-medium">1.5%</span>
+                    </TableCell>
+                    <TableCell>5</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Badge variant="outline">ISO 9001</Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>Nov 5, 2024</TableCell>
+                    <TableCell>
+                      <Badge className="bg-yellow-100 text-yellow-800">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        Review
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="pricing">
+          <Card>
+            <div className="p-4 border-b">
+              <h3 className="font-semibold">Pricing Analysis</h3>
+            </div>
+            <div className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium mb-4">Price Competitiveness</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Supplier</TableHead>
+                        <TableHead>vs Market</TableHead>
+                        <TableHead>Trend</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>Steel & Tube</TableCell>
+                        <TableCell>
+                          <span className="text-green-600">-2.5%</span>
+                        </TableCell>
+                        <TableCell>
+                          <TrendingDown className="h-4 w-4 text-green-600" />
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Fletcher</TableCell>
+                        <TableCell>
+                          <span className="text-yellow-600">+0.8%</span>
+                        </TableCell>
+                        <TableCell>
+                          <TrendingUp className="h-4 w-4 text-red-600" />
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Vulcan</TableCell>
+                        <TableCell>
+                          <span className="text-red-600">+4.2%</span>
+                        </TableCell>
+                        <TableCell>
+                          <TrendingUp className="h-4 w-4 text-red-600" />
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-4">Cost Savings Achieved</h4>
+                  <div className="space-y-3">
+                    <div className="p-3 bg-green-50 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span>Volume Discounts</span>
+                        <span className="font-medium text-green-600">$23,450</span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span>Early Payment</span>
+                        <span className="font-medium text-blue-600">$12,340</span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-purple-50 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span>Price Negotiations</span>
+                        <span className="font-medium text-purple-600">$9,440</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

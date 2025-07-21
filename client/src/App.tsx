@@ -38,6 +38,8 @@ import LifecycleTemplates from "@/pages/lifecycle-templates";
 import EstimationPipeline from "@/pages/estimation-pipeline";
 import OrganizationSettingsPage from "@/pages/organization-settings";
 import EmailCostImport from "@/pages/EmailCostImport";
+import DrawingIntelligence from "@/pages/DrawingIntelligence";
+import SupplierIntegrationHub from "@/pages/SupplierIntegrationHub";
 
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
@@ -97,6 +99,8 @@ function Router() {
       <Route path="/estimation-pipeline" component={EstimationPipeline} />
       <Route path="/preferences" component={UserPreferences} />
       <Route path="/email-cost-import" component={EmailCostImport} />
+      <Route path="/drawing-intelligence" component={DrawingIntelligence} />
+      <Route path="/supplier-integration" component={SupplierIntegrationHub} />
       <Route path="/financial" component={FinancialDashboard} />
       <Route path="/optimization" component={CuttingOptimizationFixed} />
       <Route path="/cutting-plan-test" component={CuttingPlanTest} />

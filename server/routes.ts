@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs, drawings, drawingProjects, materialTakeoffs } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -5165,6 +5165,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error calculating cost variance:', error);
       res.status(500).json({ message: 'Failed to calculate cost variance' });
+    }
+  });
+
+  // Drawing Intelligence Routes
+  app.get('/api/drawing-intelligence/drawings', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const drawingsList = await db.select({
+        id: drawings.id,
+        fileName: drawings.fileName,
+        projectName: drawingProjects.name,
+        uploadedBy: users.name,
+        uploadedAt: drawings.uploadedAt,
+        type: drawingProjects.type,
+        status: drawings.status,
+        steelMembers: drawings.steelMembers,
+        connections: drawings.connections,
+        totalWeight: drawings.totalWeight,
+        revisionNumber: drawings.revisionNumber,
+      })
+      .from(drawings)
+      .leftJoin(drawingProjects, eq(drawings.projectId, drawingProjects.id))
+      .leftJoin(users, eq(drawings.uploadedBy, users.id));
+      
+      res.json(drawingsList);
+    } catch (error) {
+      console.error('Error fetching drawings:', error);
+      res.status(500).json({ message: 'Failed to fetch drawings' });
+    }
+  });
+
+  app.post('/api/drawing-intelligence/analyze', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Handle file upload with multer
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        upload.single('file')(req, res, (err) => {
+          if (err) reject(err);
+          else resolve(req.file);
+        });
+      });
+
+      if (!uploadResult) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const settings = JSON.parse(req.body.settings || '{}');
+
+      // Create or find project
+      let projectId: number;
+      if (settings.name) {
+        const [project] = await db.insert(drawingProjects).values({
+          name: settings.name,
+          type: settings.type || 'general',
+          standards: settings.standards || 'AS/NZS',
+          notes: settings.notes,
+          userId: user.id,
+        }).returning();
+        projectId = project.id;
+      } else {
+        return res.status(400).json({ error: "Project name is required" });
+      }
+
+      // Create drawing record
+      const [drawing] = await db.insert(drawings).values({
+        projectId,
+        fileName: uploadResult.originalname,
+        fileSize: uploadResult.size,
+        fileType: uploadResult.mimetype,
+        uploadedBy: user.id,
+        status: 'analyzing',
+      }).returning();
+
+      // Simulate AI analysis (in production, this would call actual AI service)
+      setTimeout(async () => {
+        const analysisResult = {
+          steelMembers: Math.floor(Math.random() * 50) + 10,
+          connections: Math.floor(Math.random() * 100) + 20,
+          totalWeight: Math.random() * 10000 + 1000,
+          members: [
+            { mark: "B1", section: "310UB40.4", length: 9000 },
+            { mark: "C1", section: "250UC89.5", length: 6000 },
+          ],
+        };
+
+        await db.update(drawings)
+          .set({
+            status: 'analyzed',
+            analysisResult,
+            steelMembers: analysisResult.steelMembers,
+            connections: analysisResult.connections,
+            totalWeight: analysisResult.totalWeight.toFixed(2),
+          })
+          .where(eq(drawings.id, drawing.id));
+      }, 5000);
+
+      res.json({ 
+        id: drawing.id, 
+        message: "Drawing analysis started",
+        estimatedTime: "5-10 seconds"
+      });
+    } catch (error) {
+      console.error('Error analyzing drawing:', error);
+      res.status(500).json({ message: 'Failed to analyze drawing' });
+    }
+  });
+
+  app.get('/api/drawing-intelligence/projects', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const projects = await db.select()
+        .from(drawingProjects)
+        .where(eq(drawingProjects.userId, user.id));
+      
+      res.json(projects);
+    } catch (error) {
+      console.error('Error fetching drawing projects:', error);
+      res.status(500).json({ message: 'Failed to fetch drawing projects' });
+    }
+  });
+
+  app.post('/api/drawing-intelligence/takeoff', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { projectId, drawingId, materials } = req.body;
+
+      // Insert material takeoff items
+      const takeoffItems = await db.insert(materialTakeoffs).values(
+        materials.map((item: any) => ({
+          ...item,
+          projectId,
+          drawingId,
+        }))
+      ).returning();
+
+      res.json(takeoffItems);
+    } catch (error) {
+      console.error('Error creating material takeoff:', error);
+      res.status(500).json({ message: 'Failed to create material takeoff' });
     }
   });
 
