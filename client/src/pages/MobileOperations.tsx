@@ -17,10 +17,10 @@ import {
   Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { TimeTrackingTab } from "@/components/mobile-operations/TimeTrackingTab";
-import { SiteInspectionTab } from "@/components/mobile-operations/SiteInspectionTab";
-import { DocumentCaptureTab } from "@/components/mobile-operations/DocumentCaptureTab";
-import { OfflineSyncTab } from "@/components/mobile-operations/OfflineSyncTab";
+import TimeTrackingTab from "@/components/mobile-operations/TimeTrackingTab";
+import SiteInspectionTab from "@/components/mobile-operations/SiteInspectionTab";
+import DocumentCaptureTab from "@/components/mobile-operations/DocumentCaptureTab";
+import OfflineSyncTab from "@/components/mobile-operations/OfflineSyncTab";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 

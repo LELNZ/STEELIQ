@@ -5331,6 +5331,281 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mobile Operations API endpoints
+  app.get('/api/mobile-operations/stats', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Return mock stats for now - in production this would query real data
+      const stats = {
+        activeWorkers: 4,
+        checkinsToday: 12,
+        photosToday: 45,
+        offlineQueue: 3,
+        scansToday: 28,
+        complianceRate: 94,
+        activeDevices: 8
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching mobile operations stats:', error);
+      res.status(500).json({ message: 'Failed to fetch mobile operations stats' });
+    }
+  });
+
+  app.get('/api/mobile-operations/time-entries', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { site, date } = req.query;
+      
+      // Return mock time entries - in production this would query time_clocks table
+      const timeEntries = [
+        {
+          id: "1",
+          employeeName: "Adam Green",
+          employeeNumber: "EMP2025061",
+          clockIn: "2025-07-21T07:32:00",
+          location: {
+            lat: -37.8136,
+            lng: 144.9631,
+            address: "123 Industrial Dr",
+            accuracy: 5
+          },
+          jobSite: "Warehouse Project Site",
+          deviceInfo: {
+            model: "iPhone 12",
+            battery: 85,
+            signal: "strong"
+          },
+          status: "active",
+          totalHours: 4.5,
+          breaks: []
+        }
+      ];
+      
+      res.json(timeEntries);
+    } catch (error) {
+      console.error('Error fetching time entries:', error);
+      res.status(500).json({ message: 'Failed to fetch time entries' });
+    }
+  });
+
+  app.get('/api/mobile-operations/inspections', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { type } = req.query;
+      
+      // Return mock inspections - in production this would query inspections table
+      const inspections = [
+        {
+          id: "1",
+          projectName: "Warehouse Project",
+          siteName: "Site A - North Wing",
+          inspector: "Adam Green",
+          date: "2025-07-21T09:15:00",
+          status: "in-progress",
+          type: "safety",
+          completionRate: 75,
+          issuesFound: 3,
+          photosAttached: 12,
+          gpsLocation: {
+            lat: -37.8136,
+            lng: 144.9631,
+            accuracy: 5
+          },
+          items: [
+            { category: "PPE Compliance", completed: 15, total: 20 },
+            { category: "Equipment Safety", completed: 10, total: 15 },
+            { category: "Site Hazards", completed: 20, total: 25 }
+          ]
+        }
+      ];
+      
+      res.json(inspections);
+    } catch (error) {
+      console.error('Error fetching inspections:', error);
+      res.status(500).json({ message: 'Failed to fetch inspections' });
+    }
+  });
+
+  app.get('/api/mobile-operations/documents', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { category } = req.query;
+      
+      // Return mock documents - in production this would query documents table
+      const documents = [];
+      
+      res.json(documents);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      res.status(500).json({ message: 'Failed to fetch documents' });
+    }
+  });
+
+  app.get('/api/mobile-operations/sync-queue', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Return mock sync queue - in production this would query sync_queue table
+      const syncQueue = [];
+      
+      res.json(syncQueue);
+    } catch (error) {
+      console.error('Error fetching sync queue:', error);
+      res.status(500).json({ message: 'Failed to fetch sync queue' });
+    }
+  });
+
+  app.get('/api/mobile-operations/devices', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Return mock devices - in production this would query devices table
+      const devices = [
+        {
+          id: "1",
+          deviceName: "iPhone 12",
+          userName: "Adam Green",
+          lastSync: "2 mins ago",
+          pendingItems: 0,
+          storageUsed: 156,
+          batteryLevel: 85,
+          connectionStatus: "online"
+        },
+        {
+          id: "2",
+          deviceName: "Samsung S21",
+          userName: "Manny Magallanes",
+          lastSync: "5 mins ago",
+          pendingItems: 2,
+          storageUsed: 234,
+          batteryLevel: 67,
+          connectionStatus: "online"
+        },
+        {
+          id: "3",
+          deviceName: "iPad Pro",
+          userName: "Chipo Green",
+          lastSync: "15 mins ago",
+          pendingItems: 5,
+          storageUsed: 512,
+          batteryLevel: 42,
+          connectionStatus: "offline"
+        }
+      ];
+      
+      res.json(devices);
+    } catch (error) {
+      console.error('Error fetching devices:', error);
+      res.status(500).json({ message: 'Failed to fetch devices' });
+    }
+  });
+
+  app.get('/api/inspection-templates', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Return inspection templates
+      const templates = [
+        { id: 1, name: "Standard Safety Checklist", items: 120, standard: "AS/NZS 4801" },
+        { id: 2, name: "Welding Quality Control", items: 35, standard: "ISO 9606" },
+        { id: 3, name: "Site Progress Report", items: 25, standard: "Custom" },
+        { id: 4, name: "AS/NZS Compliance", items: 50, standard: "AS/NZS" }
+      ];
+      
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching inspection templates:', error);
+      res.status(500).json({ message: 'Failed to fetch inspection templates' });
+    }
+  });
+
+  app.get('/api/job-sites', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Return job sites
+      const sites = [
+        { id: "1", name: "Warehouse Project Site", address: "123 Industrial Dr, Melbourne" },
+        { id: "2", name: "Tower Construction Site", address: "456 High St, Sydney" },
+        { id: "3", name: "Bridge Renovation Site", address: "789 River Rd, Brisbane" }
+      ];
+      
+      res.json(sites);
+    } catch (error) {
+      console.error('Error fetching job sites:', error);
+      res.status(500).json({ message: 'Failed to fetch job sites' });
+    }
+  });
+
+  app.post('/api/mobile-operations/sync', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { items } = req.body;
+      
+      // Mock sync process - in production this would process the sync queue
+      res.json({
+        success: true,
+        syncedItems: items === "all" ? "all" : (items?.length || 0),
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error syncing data:', error);
+      res.status(500).json({ message: 'Failed to sync data' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

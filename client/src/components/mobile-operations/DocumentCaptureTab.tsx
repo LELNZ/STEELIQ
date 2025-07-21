@@ -1,596 +1,451 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useQuery } from "@tanstack/react-query";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Camera,
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Camera, 
+  FileText, 
   Upload,
-  FileText,
-  Image,
-  Tag,
-  Calendar,
-  User,
-  MapPin,
-  FileType,
-  Maximize2,
   Download,
+  Search,
+  Filter,
+  Clock,
+  MapPin,
+  User,
+  Image,
+  FileBarChart,
+  Scan,
+  Tag,
+  MoreVertical,
+  Eye,
   Share2,
   Trash2,
-  Edit3,
-  Plus,
-  Search,
-  Grid,
-  List,
-  Check,
-  X,
-  Eye,
+  FolderOpen,
+  FileSpreadsheet,
+  AlertCircle,
+  CheckCircle2
 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Document {
   id: string;
   fileName: string;
-  type: "photo" | "document" | "drawing";
-  category: string;
-  project: string;
-  location: string;
+  type: "photo" | "scan" | "report" | "drawing";
+  category: "safety" | "quality" | "progress" | "materials" | "timesheet";
+  projectName: string;
+  siteName: string;
   uploadedBy: string;
   uploadedAt: string;
-  size: string;
+  fileSize: string;
+  status: "pending" | "synced" | "failed";
   tags: string[];
   gpsLocation?: {
     lat: number;
     lng: number;
+    address: string;
   };
-  metadata: {
-    deviceModel?: string;
-    dimensions?: string;
-    processedText?: string;
+  thumbnail?: string;
+  ocrText?: string;
+  linkedTo?: {
+    type: "job" | "inspection" | "material";
+    id: string;
+    name: string;
   };
-  status: "uploading" | "processing" | "completed" | "failed";
 }
 
-export function DocumentCaptureTab() {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [showCapture, setShowCapture] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("all");
+export default function DocumentCaptureTab() {
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedView, setSelectedView] = useState<"grid" | "list">("grid");
 
-  const { data: documents = [] } = useQuery<Document[]>({
+  const { data: documents = [], isLoading } = useQuery<Document[]>({
     queryKey: ["/api/mobile-operations/documents", selectedCategory],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedCategory !== "all") params.append("category", selectedCategory);
+      
+      const response = await fetch(`/api/mobile-operations/documents?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch documents");
+      return response.json();
+    },
   });
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "completed":
-        return (
-          <Badge className="bg-green-100 text-green-800">
-            <Check className="h-3 w-3 mr-1" />
-            Processed
-          </Badge>
-        );
-      case "processing":
-        return (
-          <Badge className="bg-blue-100 text-blue-800">
-            <Upload className="h-3 w-3 mr-1" />
-            Processing
-          </Badge>
-        );
-      case "uploading":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800">
-            <Upload className="h-3 w-3 mr-1" />
-            Uploading
-          </Badge>
-        );
-      case "failed":
-        return (
-          <Badge className="bg-red-100 text-red-800">
-            <X className="h-3 w-3 mr-1" />
-            Failed
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
+  // Mock data for demonstration
+  const mockDocuments: Document[] = [
+    {
+      id: "1",
+      fileName: "beam_installation_01.jpg",
+      type: "photo",
+      category: "progress",
+      projectName: "Warehouse Project",
+      siteName: "Site A - North Wing",
+      uploadedBy: "Adam Green",
+      uploadedAt: new Date().toISOString(),
+      fileSize: "2.4 MB",
+      status: "synced",
+      tags: ["beam", "installation", "structural"],
+      gpsLocation: {
+        lat: -37.8136,
+        lng: 144.9631,
+        address: "123 Industrial Dr"
+      },
+      thumbnail: "/api/placeholder/200/200",
+      linkedTo: {
+        type: "job",
+        id: "JOB-2025-001",
+        name: "Steel Frame Assembly"
+      }
+    },
+    {
+      id: "2",
+      fileName: "safety_inspection_report.pdf",
+      type: "report",
+      category: "safety",
+      projectName: "Tower Construction",
+      siteName: "Level 5",
+      uploadedBy: "Manny Magallanes",
+      uploadedAt: new Date(Date.now() - 3600000).toISOString(),
+      fileSize: "456 KB",
+      status: "pending",
+      tags: ["safety", "inspection", "compliance"],
+      ocrText: "Site Safety Inspection Report..."
+    },
+    {
+      id: "3",
+      fileName: "material_receipt_scan.pdf",
+      type: "scan",
+      category: "materials",
+      projectName: "Bridge Renovation",
+      siteName: "Storage Area",
+      uploadedBy: "Vili Pelenato",
+      uploadedAt: new Date(Date.now() - 7200000).toISOString(),
+      fileSize: "1.1 MB",
+      status: "synced",
+      tags: ["receipt", "delivery", "SHS200x200"],
+      ocrText: "Delivery Note #DN-2025-456...",
+      linkedTo: {
+        type: "material",
+        id: "MAT-001",
+        name: "SHS 200x200x6"
+      }
     }
-  };
+  ];
+
+  const displayDocuments = mockDocuments.length > 0 ? mockDocuments : documents;
+
+  const filteredDocuments = displayDocuments.filter(doc =>
+    doc.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "photo":
-        return <Image className="h-4 w-4 text-blue-600" />;
-      case "document":
-        return <FileText className="h-4 w-4 text-green-600" />;
+        return <Image className="h-4 w-4" />;
+      case "scan":
+        return <Scan className="h-4 w-4" />;
+      case "report":
+        return <FileBarChart className="h-4 w-4" />;
       case "drawing":
-        return <FileType className="h-4 w-4 text-purple-600" />;
+        return <FileText className="h-4 w-4" />;
       default:
         return <FileText className="h-4 w-4" />;
     }
   };
 
-  return (
-    <div className="space-y-4">
-      {/* Actions Bar */}
-      <Card className="p-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Documents</SelectItem>
-                <SelectItem value="safety">Safety</SelectItem>
-                <SelectItem value="quality">Quality</SelectItem>
-                <SelectItem value="progress">Progress</SelectItem>
-                <SelectItem value="materials">Materials</SelectItem>
-                <SelectItem value="compliance">Compliance</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          <Dialog open={showCapture} onOpenChange={setShowCapture}>
-            <DialogTrigger asChild>
-              <Button>
-                <Camera className="h-4 w-4 mr-2" />
-                Capture Document
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Document Capture</DialogTitle>
-                <DialogDescription>
-                  Take a photo or upload a document from your device
-                </DialogDescription>
-              </DialogHeader>
-              <Tabs defaultValue="camera" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="camera">Camera</TabsTrigger>
-                  <TabsTrigger value="upload">Upload</TabsTrigger>
-                  <TabsTrigger value="scan">QR/Barcode</TabsTrigger>
-                </TabsList>
-                <TabsContent value="camera" className="space-y-4">
-                  <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center">
-                    <p className="text-white">Camera preview would appear here</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Category</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="safety">Safety Documentation</SelectItem>
-                          <SelectItem value="quality">Quality Control</SelectItem>
-                          <SelectItem value="progress">Progress Photos</SelectItem>
-                          <SelectItem value="materials">Material Receipts</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Project</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select project" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="warehouse">Warehouse Project</SelectItem>
-                          <SelectItem value="platform">Steel Platform Project</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      Location: 123 Industrial Dr (±5m accuracy)
-                    </span>
-                  </div>
-                </TabsContent>
-                <TabsContent value="upload" className="space-y-4">
-                  <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                    <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Drag and drop files here, or click to browse
-                    </p>
-                    <Button variant="outline">Choose Files</Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Supported formats: JPG, PNG, PDF, DWG, DXF (Max 50MB)
-                  </p>
-                </TabsContent>
-                <TabsContent value="scan" className="space-y-4">
-                  <div className="aspect-[4/3] bg-black rounded-lg flex items-center justify-center">
-                    <p className="text-white">QR/Barcode scanner would appear here</p>
-                  </div>
-                  <p className="text-sm text-center text-muted-foreground">
-                    Point camera at QR code or barcode to scan
-                  </p>
-                </TabsContent>
-              </Tabs>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowCapture(false)}>
-                  Cancel
-                </Button>
-                <Button>
-                  <Camera className="h-4 w-4 mr-2" />
-                  Capture
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </Card>
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case "safety":
+        return "bg-red-100 text-red-800";
+      case "quality":
+        return "bg-blue-100 text-blue-800";
+      case "progress":
+        return "bg-green-100 text-green-800";
+      case "materials":
+        return "bg-purple-100 text-purple-800";
+      case "timesheet":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
 
-      {/* Document Statistics */}
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "synced":
+        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case "pending":
+        return <Clock className="h-4 w-4 text-yellow-600" />;
+      case "failed":
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return null;
+    }
+  };
+
+  // Calculate stats
+  const totalDocuments = displayDocuments.length;
+  const pendingSync = displayDocuments.filter(d => d.status === "pending").length;
+  const totalSize = displayDocuments.reduce((sum, d) => {
+    const size = parseFloat(d.fileSize);
+    return sum + (d.fileSize.includes("MB") ? size : size / 1024);
+  }, 0);
+
+  return (
+    <div className="space-y-6">
+      {/* Header Controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4 flex-1">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search documents..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="safety">Safety</SelectItem>
+              <SelectItem value="quality">Quality</SelectItem>
+              <SelectItem value="progress">Progress</SelectItem>
+              <SelectItem value="materials">Materials</SelectItem>
+              <SelectItem value="timesheet">Timesheets</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-1 border rounded-lg p-1">
+            <Button
+              variant={selectedView === "grid" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSelectedView("grid")}
+              className="h-8 px-3"
+            >
+              Grid
+            </Button>
+            <Button
+              variant={selectedView === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSelectedView("list")}
+              className="h-8 px-3"
+            >
+              List
+            </Button>
+          </div>
+        </div>
+
+        <Button>
+          <Camera className="h-4 w-4 mr-2" />
+          Capture
+        </Button>
+      </div>
+
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
+              <p className="text-sm text-muted-foreground">Total Documents</p>
+              <p className="text-2xl font-bold">{totalDocuments}</p>
+            </div>
+            <FileText className="h-8 w-8 text-muted-foreground" />
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Pending Sync</p>
+              <p className="text-2xl font-bold">{pendingSync}</p>
+            </div>
+            <Upload className="h-8 w-8 text-yellow-600" />
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Size</p>
+              <p className="text-2xl font-bold">{totalSize.toFixed(1)} MB</p>
+            </div>
+            <FolderOpen className="h-8 w-8 text-muted-foreground" />
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
               <p className="text-sm text-muted-foreground">Today's Captures</p>
-              <p className="text-2xl font-bold">124</p>
-              <p className="text-xs text-muted-foreground mt-1">82 photos, 42 docs</p>
+              <p className="text-2xl font-bold">45</p>
             </div>
             <Camera className="h-8 w-8 text-blue-600" />
           </div>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Storage Used</p>
-              <p className="text-2xl font-bold">2.4 GB</p>
-              <Progress value={24} className="h-1 mt-2" />
-            </div>
-            <FileText className="h-8 w-8 text-purple-600" />
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Processing Queue</p>
-              <p className="text-2xl font-bold">8</p>
-              <p className="text-xs text-muted-foreground mt-1">~2 min remaining</p>
-            </div>
-            <Upload className="h-8 w-8 text-orange-600" />
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">OCR Processed</p>
-              <p className="text-2xl font-bold">94%</p>
-              <p className="text-xs text-muted-foreground mt-1">Text extracted</p>
-            </div>
-            <Eye className="h-8 w-8 text-green-600" />
-          </div>
-        </Card>
       </div>
 
-      {/* Document Grid/List View */}
-      {viewMode === "grid" ? (
+      {/* Documents View */}
+      {isLoading ? (
+        <div className="text-center py-8 text-muted-foreground">Loading documents...</div>
+      ) : selectedView === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="aspect-[4/3] bg-muted relative">
-              <img
-                src="/api/placeholder/400/300"
-                alt="Document"
-                className="w-full h-full object-cover"
-              />
-              <Badge className="absolute top-2 right-2 bg-white/90">
-                <Image className="h-3 w-3 mr-1" />
-                Photo
-              </Badge>
-            </div>
-            <div className="p-4">
-              <h4 className="font-medium truncate">Welding_Station_3_Quality.jpg</h4>
-              <p className="text-sm text-muted-foreground mt-1">Steel Platform Project</p>
-              <div className="flex items-center justify-between mt-3">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <User className="h-3 w-3" />
-                  <span>Manny M.</span>
+          {filteredDocuments.map((doc) => (
+            <Card key={doc.id} className="overflow-hidden">
+              {doc.type === "photo" && doc.thumbnail ? (
+                <div className="aspect-square bg-gray-100 relative">
+                  <img 
+                    src={doc.thumbnail} 
+                    alt={doc.fileName}
+                    className="object-cover w-full h-full"
+                  />
+                  <div className="absolute top-2 right-2">
+                    {getStatusIcon(doc.status)}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  <span>10:30 AM</span>
+              ) : (
+                <div className="aspect-square bg-gray-50 flex items-center justify-center relative">
+                  <div className="text-center">
+                    {getTypeIcon(doc.type)}
+                    <p className="text-xs text-muted-foreground mt-2">{doc.fileSize}</p>
+                  </div>
+                  <div className="absolute top-2 right-2">
+                    {getStatusIcon(doc.status)}
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1 mt-2">
-                <MapPin className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Welding Bay 3</span>
-              </div>
-              <div className="flex gap-1 mt-2">
-                <Badge variant="outline" className="text-xs">Quality</Badge>
-                <Badge variant="outline" className="text-xs">Welding</Badge>
-              </div>
-            </div>
-            <div className="px-4 pb-4 flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1">
-                <Eye className="h-3 w-3" />
-              </Button>
-              <Button variant="outline" size="sm" className="flex-1">
-                <Download className="h-3 w-3" />
-              </Button>
-              <Button variant="outline" size="sm" className="flex-1">
-                <Share2 className="h-3 w-3" />
-              </Button>
-            </div>
-          </Card>
+              )}
+              
+              <div className="p-3 space-y-2">
+                <h4 className="font-medium text-sm truncate">{doc.fileName}</h4>
+                <Badge className={cn("text-xs", getCategoryColor(doc.category))}>
+                  {doc.category}
+                </Badge>
+                
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{doc.uploadedBy}</span>
+                  <span>{format(new Date(doc.uploadedAt), "MMM d")}</span>
+                </div>
 
-          <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="aspect-[4/3] bg-muted relative flex items-center justify-center">
-              <FileText className="h-16 w-16 text-muted-foreground" />
-              <Badge className="absolute top-2 right-2 bg-white/90">
-                <FileText className="h-3 w-3 mr-1" />
-                Document
-              </Badge>
-            </div>
-            <div className="p-4">
-              <h4 className="font-medium truncate">Safety_Inspection_Report.pdf</h4>
-              <p className="text-sm text-muted-foreground mt-1">Warehouse Project</p>
-              <div className="flex items-center justify-between mt-3">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <User className="h-3 w-3" />
-                  <span>Adam G.</span>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  <span>9:15 AM</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 mt-2">
-                <MapPin className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Site Office</span>
-              </div>
-              <div className="flex gap-1 mt-2">
-                <Badge variant="outline" className="text-xs">Safety</Badge>
-                <Badge variant="outline" className="text-xs">Inspection</Badge>
-              </div>
-            </div>
-            <div className="px-4 pb-4 flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1">
-                <Eye className="h-3 w-3" />
-              </Button>
-              <Button variant="outline" size="sm" className="flex-1">
-                <Download className="h-3 w-3" />
-              </Button>
-              <Button variant="outline" size="sm" className="flex-1">
-                <Share2 className="h-3 w-3" />
-              </Button>
-            </div>
-          </Card>
+                {doc.tags.length > 0 && (
+                  <div className="flex gap-1 flex-wrap">
+                    {doc.tags.slice(0, 2).map((tag, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                    {doc.tags.length > 2 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{doc.tags.length - 2}
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
-          <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="aspect-[4/3] bg-muted relative">
-              <img
-                src="/api/placeholder/400/300"
-                alt="Progress"
-                className="w-full h-full object-cover"
-              />
-              <Badge className="absolute top-2 right-2 bg-white/90">
-                <Image className="h-3 w-3 mr-1" />
-                Photo
-              </Badge>
-              {getStatusBadge("processing")}
-            </div>
-            <div className="p-4">
-              <h4 className="font-medium truncate">North_Wing_Progress_01.jpg</h4>
-              <p className="text-sm text-muted-foreground mt-1">Warehouse Project</p>
-              <div className="flex items-center justify-between mt-3">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <User className="h-3 w-3" />
-                  <span>Chipo G.</span>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  <span>8:45 AM</span>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="w-full">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-red-600">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <div className="flex items-center gap-1 mt-2">
-                <MapPin className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">North Wing</span>
-              </div>
-              <div className="flex gap-1 mt-2">
-                <Badge variant="outline" className="text-xs">Progress</Badge>
-                <Badge variant="outline" className="text-xs">Structure</Badge>
-              </div>
-            </div>
-            <div className="px-4 pb-4">
-              <Progress value={65} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">Processing... 65%</p>
-            </div>
-          </Card>
+            </Card>
+          ))}
         </div>
       ) : (
-        <Card>
-          <div className="p-4 border-b">
-            <h3 className="font-semibold">Recent Documents</h3>
-          </div>
-          <div className="p-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Project/Location</TableHead>
-                  <TableHead>Uploaded By</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Size</TableHead>
-                  <TableHead>Tags</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell>{getTypeIcon("photo")}</TableCell>
-                  <TableCell>
-                    <p className="font-medium">Welding_Station_3_Quality.jpg</p>
-                  </TableCell>
-                  <TableCell>
+        <div className="space-y-2">
+          {filteredDocuments.map((doc) => (
+            <Card key={doc.id} className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="flex items-center gap-3">
+                    {getTypeIcon(doc.type)}
                     <div>
-                      <p className="text-sm">Steel Platform Project</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        Welding Bay 3
-                      </p>
+                      <h4 className="font-medium">{doc.fileName}</h4>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span>{doc.projectName}</span>
+                        <span>{doc.fileSize}</span>
+                        <span>{format(new Date(doc.uploadedAt), "MMM d, h:mm a")}</span>
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell>Manny M.</TableCell>
-                  <TableCell>10:30 AM</TableCell>
-                  <TableCell>4.2 MB</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Badge variant="outline" className="text-xs">Quality</Badge>
-                      <Badge variant="outline" className="text-xs">Welding</Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge("completed")}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>{getTypeIcon("document")}</TableCell>
-                  <TableCell>
-                    <p className="font-medium">Safety_Inspection_Report.pdf</p>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="text-sm">Warehouse Project</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        Site Office
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell>Adam G.</TableCell>
-                  <TableCell>9:15 AM</TableCell>
-                  <TableCell>1.8 MB</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Badge variant="outline" className="text-xs">Safety</Badge>
-                      <Badge variant="outline" className="text-xs">Inspection</Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge("completed")}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Badge className={cn("text-xs", getCategoryColor(doc.category))}>
+                      {doc.category}
+                    </Badge>
+                    {getStatusIcon(doc.status)}
+                  </div>
+                </div>
 
-      {/* Smart Tagging */}
-      <Card>
-        <div className="p-4 border-b">
-          <h3 className="font-semibold">Smart Document Processing</h3>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-red-600">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </Card>
+          ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
-          <div>
-            <h4 className="font-medium mb-3">Auto-detected Categories</h4>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between p-2 bg-muted rounded">
-                <span className="text-sm">Safety Documentation</span>
-                <Badge>32 docs</Badge>
-              </div>
-              <div className="flex items-center justify-between p-2 bg-muted rounded">
-                <span className="text-sm">Quality Control Photos</span>
-                <Badge>28 docs</Badge>
-              </div>
-              <div className="flex items-center justify-between p-2 bg-muted rounded">
-                <span className="text-sm">Progress Reports</span>
-                <Badge>45 docs</Badge>
-              </div>
-              <div className="flex items-center justify-between p-2 bg-muted rounded">
-                <span className="text-sm">Material Receipts</span>
-                <Badge>19 docs</Badge>
-              </div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-3">OCR Text Extraction</h4>
-            <div className="bg-muted rounded-lg p-4">
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm font-medium">Latest Extraction</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    From: Safety_Inspection_Report.pdf
-                  </p>
-                </div>
-                <div className="text-sm bg-background p-3 rounded">
-                  "Site Safety Inspection - Warehouse Project
-                  Date: 21/07/2025
-                  Inspector: Adam Green
-                  All PPE requirements met..."
-                </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  View Full Text
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
+      )}
     </div>
   );
 }

@@ -20,7 +20,8 @@ import {
   Bot,
   Timer,
   TrendingUp,
-  Mail
+  Mail,
+  Smartphone
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -35,6 +36,7 @@ const navigation = [
       { name: "Email Cost Import", href: "/email-cost-import", icon: Mail, badge: "PHASE 1", badgeVariant: "info" },
       { name: "Drawing Intelligence", href: "/drawing-intelligence", icon: FileText, badge: "PHASE 1", badgeVariant: "info" },
       { name: "Supplier Integration", href: "/supplier-integration", icon: Zap, badge: "PHASE 1", badgeVariant: "info" },
+      { name: "Mobile Operations", href: "/mobile-operations", icon: Smartphone, badge: "PHASE 1", badgeVariant: "info" },
       { name: "Material Library", href: "/materials", icon: Package },
       { name: "Inventory", href: "/inventory", icon: Warehouse, badge: "3", badgeVariant: "warning" },
       { name: "Contacts", href: "/contacts", icon: Users },
