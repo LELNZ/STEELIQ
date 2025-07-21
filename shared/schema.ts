@@ -43,6 +43,101 @@ export const authSessions = pgTable("auth_sessions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Email Cost Import System Tables
+
+// Email accounts configuration for cost import
+export const emailAccounts = pgTable("email_accounts", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  provider: text("provider").notNull(), // gmail, outlook, imap
+  email: text("email").notNull().unique(),
+  accessToken: text("access_token"), // Encrypted OAuth token
+  refreshToken: text("refresh_token"), // Encrypted refresh token
+  imapConfig: jsonb("imap_config"), // IMAP server details if needed
+  isActive: boolean("is_active").default(true),
+  lastSyncAt: timestamp("last_sync_at"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Supplier invoice parsing templates
+export const supplierTemplates = pgTable("supplier_templates", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  supplierEmail: text("supplier_email"), // Email domain to match
+  templateName: text("template_name").notNull(),
+  parsingRules: jsonb("parsing_rules"), // AI training data and patterns
+  fieldMappings: jsonb("field_mappings"), // Maps invoice fields to our system
+  sampleInvoices: jsonb("sample_invoices"), // Sample data for training
+  accuracy: decimal("accuracy", { precision: 5, scale: 2 }), // Template accuracy percentage
+  lastUsedAt: timestamp("last_used_at"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Imported cost records from emails
+export const importedCosts = pgTable("imported_costs", {
+  id: serial("id").primaryKey(),
+  emailAccountId: integer("email_account_id").references(() => emailAccounts.id),
+  emailMessageId: text("email_message_id"), // Unique email ID
+  emailSubject: text("email_subject"),
+  emailDate: timestamp("email_date"),
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  supplierName: text("supplier_name"),
+  invoiceNumber: text("invoice_number"),
+  purchaseOrderNumber: text("purchase_order_number"),
+  jobId: integer("job_id").references(() => jobs.id),
+  jobNumber: text("job_number"), // For display/matching
+  status: text("status").notNull().default("pending"), // pending, matched, reviewed, approved, rejected
+  matchConfidence: decimal("match_confidence", { precision: 5, scale: 2 }), // AI confidence score
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
+  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }),
+  netAmount: decimal("net_amount", { precision: 10, scale: 2 }),
+  currency: text("currency").default("NZD"),
+  invoiceDate: date("invoice_date"),
+  dueDate: date("due_date"),
+  attachments: jsonb("attachments"), // File references
+  extractedData: jsonb("extracted_data"), // Raw extracted data
+  lineItems: jsonb("line_items"), // Detailed line items
+  reviewNotes: text("review_notes"),
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Cost variance tracking
+export const costVariances = pgTable("cost_variances", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => jobs.id).notNull(),
+  costCategory: text("cost_category").notNull(), // materials, labor, subcontractor, equipment, consumables
+  estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }),
+  actualCost: decimal("actual_cost", { precision: 10, scale: 2 }),
+  variance: decimal("variance", { precision: 10, scale: 2 }), // actual - estimated
+  variancePercentage: decimal("variance_percentage", { precision: 5, scale: 2 }),
+  notes: text("notes"),
+  reportDate: date("report_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Email sync logs
+export const emailSyncLogs = pgTable("email_sync_logs", {
+  id: serial("id").primaryKey(),
+  emailAccountId: integer("email_account_id").references(() => emailAccounts.id),
+  syncType: text("sync_type"), // manual, scheduled, webhook
+  startedAt: timestamp("started_at").notNull(),
+  completedAt: timestamp("completed_at"),
+  status: text("status"), // running, completed, failed
+  messagesProcessed: integer("messages_processed").default(0),
+  costsImported: integer("costs_imported").default(0),
+  errors: jsonb("errors"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Material categories and types
 export const materialCategories = pgTable("material_categories", {
   id: serial("id").primaryKey(),

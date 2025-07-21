@@ -19,7 +19,8 @@ import {
   Calculator,
   Bot,
   Timer,
-  TrendingUp
+  TrendingUp,
+  Mail
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -31,6 +32,7 @@ const navigation = [
       { name: "Jobs & Cutting", href: "/jobs", icon: Briefcase, badge: "12" },
       { name: "AI Estimation Engine", href: "/estimation", icon: Bot, badge: "ENHANCED", badgeVariant: "success" },
       { name: "Estimation Pipeline", href: "/estimation-pipeline", icon: TrendingUp, badge: "NEW", badgeVariant: "info" },
+      { name: "Email Cost Import", href: "/email-cost-import", icon: Mail, badge: "PHASE 1", badgeVariant: "info" },
       { name: "Material Library", href: "/materials", icon: Package },
       { name: "Inventory", href: "/inventory", icon: Warehouse, badge: "3", badgeVariant: "warning" },
       { name: "Contacts", href: "/contacts", icon: Users },

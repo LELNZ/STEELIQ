@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -4812,6 +4812,359 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Email Cost Import Routes
+  app.get('/api/email-accounts', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const accounts = await db.select({
+        id: emailAccounts.id,
+        name: emailAccounts.name,
+        provider: emailAccounts.provider,
+        email: emailAccounts.email,
+        isActive: emailAccounts.isActive,
+        lastSyncAt: emailAccounts.lastSyncAt,
+      }).from(emailAccounts);
+      
+      res.json(accounts);
+    } catch (error) {
+      console.error('Error fetching email accounts:', error);
+      res.status(500).json({ message: 'Failed to fetch email accounts' });
+    }
+  });
+
+  app.post('/api/email-accounts', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { name, provider, email, accessToken, refreshToken, imapConfig } = req.body;
+      
+      const [account] = await db.insert(emailAccounts).values({
+        name,
+        provider,
+        email,
+        accessToken, // Should be encrypted in production
+        refreshToken, // Should be encrypted in production
+        imapConfig,
+        createdBy: user.id,
+      }).returning();
+      
+      res.json(account);
+    } catch (error) {
+      console.error('Error creating email account:', error);
+      res.status(500).json({ message: 'Failed to create email account' });
+    }
+  });
+
+  app.delete('/api/email-accounts/:id', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      await db.delete(emailAccounts).where(eq(emailAccounts.id, parseInt(req.params.id)));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting email account:', error);
+      res.status(500).json({ message: 'Failed to delete email account' });
+    }
+  });
+
+  // Supplier Templates Routes
+  app.get('/api/supplier-templates', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const templates = await db.select({
+        id: supplierTemplates.id,
+        supplierId: supplierTemplates.supplierId,
+        supplierEmail: supplierTemplates.supplierEmail,
+        templateName: supplierTemplates.templateName,
+        accuracy: supplierTemplates.accuracy,
+        lastUsedAt: supplierTemplates.lastUsedAt,
+        supplier: suppliers.name,
+      })
+      .from(supplierTemplates)
+      .leftJoin(suppliers, eq(supplierTemplates.supplierId, suppliers.id));
+      
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching supplier templates:', error);
+      res.status(500).json({ message: 'Failed to fetch supplier templates' });
+    }
+  });
+
+  app.post('/api/supplier-templates', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [template] = await db.insert(supplierTemplates).values({
+        ...req.body,
+        createdBy: user.id,
+      }).returning();
+      
+      res.json(template);
+    } catch (error) {
+      console.error('Error creating supplier template:', error);
+      res.status(500).json({ message: 'Failed to create supplier template' });
+    }
+  });
+
+  // Imported Costs Routes
+  app.get('/api/imported-costs', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { status, jobId, supplierId } = req.query;
+      let query = db.select({
+        id: importedCosts.id,
+        emailSubject: importedCosts.emailSubject,
+        emailDate: importedCosts.emailDate,
+        supplierName: importedCosts.supplierName,
+        invoiceNumber: importedCosts.invoiceNumber,
+        purchaseOrderNumber: importedCosts.purchaseOrderNumber,
+        jobNumber: importedCosts.jobNumber,
+        status: importedCosts.status,
+        matchConfidence: importedCosts.matchConfidence,
+        totalAmount: importedCosts.totalAmount,
+        currency: importedCosts.currency,
+        invoiceDate: importedCosts.invoiceDate,
+        createdAt: importedCosts.createdAt,
+      }).from(importedCosts);
+      
+      if (status) {
+        query = query.where(eq(importedCosts.status, status as string));
+      }
+      if (jobId) {
+        query = query.where(eq(importedCosts.jobId, parseInt(jobId as string)));
+      }
+      if (supplierId) {
+        query = query.where(eq(importedCosts.supplierId, parseInt(supplierId as string)));
+      }
+      
+      const costs = await query.orderBy(desc(importedCosts.createdAt));
+      res.json(costs);
+    } catch (error) {
+      console.error('Error fetching imported costs:', error);
+      res.status(500).json({ message: 'Failed to fetch imported costs' });
+    }
+  });
+
+  app.get('/api/imported-costs/:id', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [cost] = await db.select()
+        .from(importedCosts)
+        .where(eq(importedCosts.id, parseInt(req.params.id)));
+      
+      if (!cost) {
+        return res.status(404).json({ message: 'Imported cost not found' });
+      }
+      
+      res.json(cost);
+    } catch (error) {
+      console.error('Error fetching imported cost:', error);
+      res.status(500).json({ message: 'Failed to fetch imported cost' });
+    }
+  });
+
+  app.patch('/api/imported-costs/:id', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { status, jobId, reviewNotes } = req.body;
+      
+      const updateData: any = { updatedAt: new Date() };
+      if (status) updateData.status = status;
+      if (jobId !== undefined) updateData.jobId = jobId;
+      if (reviewNotes !== undefined) updateData.reviewNotes = reviewNotes;
+      
+      if (status === 'reviewed') {
+        updateData.reviewedBy = user.id;
+        updateData.reviewedAt = new Date();
+      } else if (status === 'approved') {
+        updateData.approvedBy = user.id;
+        updateData.approvedAt = new Date();
+      }
+      
+      const [updated] = await db.update(importedCosts)
+        .set(updateData)
+        .where(eq(importedCosts.id, parseInt(req.params.id)))
+        .returning();
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating imported cost:', error);
+      res.status(500).json({ message: 'Failed to update imported cost' });
+    }
+  });
+
+  // Email Sync Routes
+  app.post('/api/email-sync/:accountId', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const accountId = parseInt(req.params.accountId);
+      
+      // Create sync log
+      const [syncLog] = await db.insert(emailSyncLogs).values({
+        emailAccountId: accountId,
+        syncType: 'manual',
+        startedAt: new Date(),
+        status: 'running',
+      }).returning();
+      
+      // In a real implementation, this would trigger an async job
+      // For now, we'll just return the sync log
+      res.json({
+        message: 'Email sync started',
+        syncLogId: syncLog.id,
+      });
+    } catch (error) {
+      console.error('Error starting email sync:', error);
+      res.status(500).json({ message: 'Failed to start email sync' });
+    }
+  });
+
+  // Cost Variance Routes
+  app.get('/api/cost-variances', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { jobId } = req.query;
+      let query = db.select({
+        id: costVariances.id,
+        jobId: costVariances.jobId,
+        costCategory: costVariances.costCategory,
+        estimatedCost: costVariances.estimatedCost,
+        actualCost: costVariances.actualCost,
+        variance: costVariances.variance,
+        variancePercentage: costVariances.variancePercentage,
+        notes: costVariances.notes,
+        reportDate: costVariances.reportDate,
+        jobNumber: jobs.jobNumber,
+        clientName: jobs.clientName,
+      })
+      .from(costVariances)
+      .leftJoin(jobs, eq(costVariances.jobId, jobs.id));
+      
+      if (jobId) {
+        query = query.where(eq(costVariances.jobId, parseInt(jobId as string)));
+      }
+      
+      const variances = await query.orderBy(desc(costVariances.reportDate));
+      res.json(variances);
+    } catch (error) {
+      console.error('Error fetching cost variances:', error);
+      res.status(500).json({ message: 'Failed to fetch cost variances' });
+    }
+  });
+
+  app.post('/api/cost-variances/calculate/:jobId', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const jobId = parseInt(req.params.jobId);
+      
+      // Get job with estimation data
+      const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId));
+      if (!job || !job.estimationData) {
+        return res.status(404).json({ message: 'Job or estimation data not found' });
+      }
+      
+      const estimation = job.estimationData as any;
+      
+      // Get actual costs from imported costs
+      const actualCosts = await db.select({
+        totalAmount: sql<number>`COALESCE(SUM(${importedCosts.totalAmount}), 0)`,
+      })
+      .from(importedCosts)
+      .where(and(
+        eq(importedCosts.jobId, jobId),
+        eq(importedCosts.status, 'approved')
+      ));
+      
+      const totalActual = actualCosts[0]?.totalAmount || 0;
+      const totalEstimated = estimation.summary?.totalCost || 0;
+      const variance = totalActual - totalEstimated;
+      const variancePercentage = totalEstimated > 0 ? (variance / totalEstimated) * 100 : 0;
+      
+      // Store variance record
+      const [varianceRecord] = await db.insert(costVariances).values({
+        jobId,
+        costCategory: 'total',
+        estimatedCost: totalEstimated.toString(),
+        actualCost: totalActual.toString(),
+        variance: variance.toString(),
+        variancePercentage: variancePercentage.toString(),
+        reportDate: new Date().toISOString().split('T')[0],
+      }).returning();
+      
+      res.json({
+        ...varianceRecord,
+        jobNumber: job.jobNumber,
+        clientName: job.clientName,
+      });
+    } catch (error) {
+      console.error('Error calculating cost variance:', error);
+      res.status(500).json({ message: 'Failed to calculate cost variance' });
     }
   });
 
