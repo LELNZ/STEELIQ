@@ -6285,6 +6285,226 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Resource Planning & Capacity Management API endpoints
+  app.get('/api/resource-planning/capacity/overview', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const capacityData = {
+        workshopCapacity: 78,
+        laborUtilization: 82,
+        equipmentUsage: 65,
+        scheduleHealth: "good",
+        weeklyCapacity: [
+          { date: "Mon", planned: 85, actual: 78, optimal: 80 },
+          { date: "Tue", planned: 90, actual: 92, optimal: 80 },
+          { date: "Wed", planned: 75, actual: 71, optimal: 80 },
+          { date: "Thu", planned: 80, actual: 82, optimal: 80 },
+          { date: "Fri", planned: 70, actual: 65, optimal: 80 },
+          { date: "Sat", planned: 40, actual: 45, optimal: 40 }
+        ],
+        departmentCapacity: [
+          { department: "Cutting", capacity: 85, available: 15, status: "high" },
+          { department: "Welding", capacity: 92, available: 8, status: "critical" },
+          { department: "Assembly", capacity: 65, available: 35, status: "optimal" },
+          { department: "Finishing", capacity: 73, available: 27, status: "optimal" },
+          { department: "QC/Inspection", capacity: 58, available: 42, status: "low" }
+        ]
+      };
+
+      res.json(capacityData);
+    } catch (error) {
+      console.error('Error fetching capacity overview:', error);
+      res.status(500).json({ message: 'Failed to fetch capacity overview' });
+    }
+  });
+
+  app.get('/api/resource-planning/labor/allocation', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const laborAllocation = {
+        teamAllocation: [
+          {
+            id: 1,
+            name: "Adam Green",
+            role: "Senior Welder",
+            currentJob: "JOB-2025-001",
+            allocation: 100,
+            hoursToday: 8,
+            hoursWeek: 40,
+            skills: ["MIG", "TIG", "6G"],
+            status: "allocated"
+          },
+          {
+            id: 2,
+            name: "Manny Magallanes",
+            role: "Fabricator",
+            currentJob: "JOB-2025-002",
+            allocation: 75,
+            hoursToday: 6,
+            hoursWeek: 35,
+            skills: ["Cutting", "Assembly", "QC"],
+            status: "allocated"
+          },
+          {
+            id: 3,
+            name: "Chipo Green",
+            role: "Finisher",
+            currentJob: "JOB-2025-001",
+            allocation: 50,
+            hoursToday: 4,
+            hoursWeek: 28,
+            skills: ["Grinding", "Painting", "QC"],
+            status: "partial"
+          },
+          {
+            id: 4,
+            name: "Vili Pelenato",
+            role: "Apprentice Welder",
+            currentJob: null,
+            allocation: 0,
+            hoursToday: 0,
+            hoursWeek: 12,
+            skills: ["MIG", "Cutting"],
+            status: "available"
+          }
+        ],
+        skillGaps: [
+          { skill: "Crane Operation", demand: 32, available: 8, gap: 24 },
+          { skill: "Aluminum Welding", demand: 20, available: 12, gap: 8 },
+          { skill: "CNC Programming", demand: 16, available: 0, gap: 16 }
+        ]
+      };
+
+      res.json(laborAllocation);
+    } catch (error) {
+      console.error('Error fetching labor allocation:', error);
+      res.status(500).json({ message: 'Failed to fetch labor allocation' });
+    }
+  });
+
+  app.get('/api/resource-planning/equipment/schedule', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const equipmentSchedule = {
+        equipment: [
+          {
+            id: 1,
+            name: "Plasma Cutter #1",
+            type: "Cutting",
+            status: "operating",
+            currentJob: "JOB-2025-001",
+            utilization: 85,
+            efficiency: 92
+          },
+          {
+            id: 2,
+            name: "Press Brake #2",
+            type: "Forming",
+            status: "idle",
+            currentJob: null,
+            utilization: 65,
+            efficiency: 88
+          },
+          {
+            id: 3,
+            name: "Welding Bay 1",
+            type: "Welding",
+            status: "operating",
+            currentJob: "JOB-2025-002",
+            utilization: 92,
+            efficiency: 95
+          }
+        ],
+        todaySchedule: [
+          { time: "08:00", equipment: "Plasma Cutter #1", job: "JOB-2025-001", duration: "4h", operator: "Manny M." },
+          { time: "08:30", equipment: "Welding Bay 1", job: "JOB-2025-002", duration: "6h", operator: "Adam G." },
+          { time: "10:00", equipment: "Press Brake #2", job: "JOB-2025-003", duration: "2h", operator: "Vili P." }
+        ]
+      };
+
+      res.json(equipmentSchedule);
+    } catch (error) {
+      console.error('Error fetching equipment schedule:', error);
+      res.status(500).json({ message: 'Failed to fetch equipment schedule' });
+    }
+  });
+
+  app.get('/api/resource-planning/project/timeline', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const projectTimeline = {
+        projects: [
+          {
+            id: 1,
+            jobNumber: "JOB-2025-001",
+            name: "Steel Frame Warehouse",
+            client: "BuildCorp Ltd",
+            startDate: "Jan 15",
+            dueDate: "Mar 1",
+            progress: 65,
+            status: "on-track",
+            phase: "Fabrication",
+            resourceConflicts: 0
+          },
+          {
+            id: 2,
+            jobNumber: "JOB-2025-002",
+            name: "Bridge Support Structure",
+            client: "Metro Development",
+            startDate: "Jan 20",
+            dueDate: "Feb 28",
+            progress: 35,
+            status: "at-risk",
+            phase: "Cutting",
+            resourceConflicts: 2
+          }
+        ],
+        resourceConflicts: [
+          {
+            date: "Feb 5",
+            type: "Labor",
+            resource: "Senior Welders",
+            projects: ["JOB-2025-001", "JOB-2025-002"],
+            impact: "2-day delay risk"
+          }
+        ],
+        milestones: [
+          { project: "JOB-2025-001", milestone: "Material Delivery", date: "Jan 20", status: "completed" },
+          { project: "JOB-2025-001", milestone: "Cutting Complete", date: "Feb 5", status: "in-progress" }
+        ]
+      };
+
+      res.json(projectTimeline);
+    } catch (error) {
+      console.error('Error fetching project timeline:', error);
+      res.status(500).json({ message: 'Failed to fetch project timeline' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
