@@ -5606,6 +5606,342 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Production Floor Tracking routes
+  app.get('/api/production-floor/stats', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Return production stats
+      const stats = {
+        activeWorkOrders: 12,
+        machinesOperating: 8,
+        dailyOutput: 42,
+        qualityScore: 96,
+        efficiency: 87,
+        defectRate: 2,
+        onTimeDelivery: 94,
+        utilizationRate: 78
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching production stats:', error);
+      res.status(500).json({ message: 'Failed to fetch production stats' });
+    }
+  });
+
+  app.get('/api/production-floor/work-orders', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Return work orders
+      const workOrders = [
+        {
+          id: "1",
+          workOrderNumber: "WO-2025-001",
+          jobNumber: "JOB-2025-001",
+          projectName: "Steel Platform for Manufacturing Plant",
+          clientName: "ABC Manufacturing Ltd",
+          status: "in-progress",
+          priority: "high",
+          startDate: "2025-01-20",
+          dueDate: "2025-02-15",
+          completionProgress: 65,
+          assignedTeam: "Team A",
+          currentStation: "Welding Bay 2",
+          totalWeight: 12.5,
+          completedWeight: 8.1,
+          operations: {
+            cutting: { progress: 100, status: "completed" },
+            drilling: { progress: 100, status: "completed" },
+            welding: { progress: 60, status: "in-progress" },
+            painting: { progress: 0, status: "pending" }
+          },
+          qualityChecks: 3,
+          issues: 1
+        },
+        {
+          id: "2",
+          workOrderNumber: "WO-2025-002",
+          jobNumber: "JOB-2025-002",
+          projectName: "Warehouse Mezzanine Floor",
+          clientName: "XYZ Logistics",
+          status: "pending",
+          priority: "normal",
+          startDate: "2025-01-25",
+          dueDate: "2025-02-28",
+          completionProgress: 0,
+          assignedTeam: "Team B",
+          currentStation: "Preparation",
+          totalWeight: 18.2,
+          completedWeight: 0,
+          operations: {
+            cutting: { progress: 0, status: "pending" },
+            drilling: { progress: 0, status: "pending" },
+            welding: { progress: 0, status: "pending" },
+            painting: { progress: 0, status: "pending" }
+          },
+          qualityChecks: 0,
+          issues: 0
+        }
+      ];
+      
+      res.json(workOrders);
+    } catch (error) {
+      console.error('Error fetching work orders:', error);
+      res.status(500).json({ message: 'Failed to fetch work orders' });
+    }
+  });
+
+  app.patch('/api/production-floor/work-orders/:id/status', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      // In production, update the work order status in database
+      res.json({ success: true, id, status });
+    } catch (error) {
+      console.error('Error updating work order status:', error);
+      res.status(500).json({ message: 'Failed to update work order status' });
+    }
+  });
+
+  app.get('/api/production-floor/machines', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Return machine data
+      const machines = [
+        {
+          id: "1",
+          name: "Plasma Cutter #1",
+          type: "Cutting",
+          model: "HyperTherm PowerMax 125",
+          status: "operating",
+          currentJob: "WO-2025-001",
+          operator: "John Smith",
+          efficiency: 92,
+          utilizationRate: 85,
+          temperature: 72,
+          powerConsumption: 28,
+          runTime: 6.5,
+          idleTime: 1.2,
+          maintenanceSchedule: {
+            lastMaintenance: "2025-01-15",
+            nextMaintenance: "2025-02-15",
+            hoursUntilMaintenance: 120
+          },
+          production: {
+            currentOutput: 145,
+            targetOutput: 160,
+            qualityRate: 98,
+            cycleTime: 3.2
+          },
+          alerts: []
+        },
+        {
+          id: "2",
+          name: "Press Brake #2",
+          type: "Forming",
+          model: "Amada HG-1003",
+          status: "idle",
+          currentJob: null,
+          operator: null,
+          efficiency: 78,
+          utilizationRate: 65,
+          temperature: 68,
+          powerConsumption: 0,
+          runTime: 4.2,
+          idleTime: 2.8,
+          maintenanceSchedule: {
+            lastMaintenance: "2025-01-10",
+            nextMaintenance: "2025-02-10",
+            hoursUntilMaintenance: 48
+          },
+          production: {
+            currentOutput: 0,
+            targetOutput: 0,
+            qualityRate: 95,
+            cycleTime: 0
+          },
+          alerts: [
+            {
+              type: "warning",
+              message: "Maintenance due in 48 hours",
+              timestamp: "2025-01-21T10:00:00Z"
+            }
+          ]
+        }
+      ];
+      
+      res.json(machines);
+    } catch (error) {
+      console.error('Error fetching machines:', error);
+      res.status(500).json({ message: 'Failed to fetch machines' });
+    }
+  });
+
+  app.get('/api/production-floor/quality-inspections', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Return quality inspections
+      const inspections = [
+        {
+          id: "1",
+          workOrderNumber: "WO-2025-001",
+          projectName: "Steel Platform for Manufacturing Plant",
+          inspectionType: "weld",
+          inspector: "Mike Johnson",
+          date: "2025-01-21T09:30:00Z",
+          status: "passed",
+          overallScore: 96,
+          criticalDefects: 0,
+          majorDefects: 0,
+          minorDefects: 2,
+          checkpoints: [
+            {
+              category: "Weld Quality",
+              items: [
+                { name: "Penetration", passed: true, notes: "Full penetration achieved" },
+                { name: "Surface finish", passed: true, notes: "Smooth, no spatter" },
+                { name: "Dimensions", passed: null, notes: "Minor deviation within tolerance", severity: "minor" }
+              ]
+            }
+          ],
+          photos: ["weld-inspection-001.jpg"],
+          certificate: {
+            number: "CERT-2025-001",
+            issuedDate: "2025-01-21",
+            standard: "AS/NZS 1554"
+          }
+        }
+      ];
+      
+      res.json(inspections);
+    } catch (error) {
+      console.error('Error fetching quality inspections:', error);
+      res.status(500).json({ message: 'Failed to fetch quality inspections' });
+    }
+  });
+
+  app.get('/api/production-floor/quality-metrics', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Return quality metrics
+      const metrics = {
+        passRate: 96,
+        firstPassYield: 92,
+        defectDensity: 3.2,
+        customerComplaints: 1,
+        reworkRate: 4,
+        inspectionBacklog: 5
+      };
+      
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error fetching quality metrics:', error);
+      res.status(500).json({ message: 'Failed to fetch quality metrics' });
+    }
+  });
+
+  app.get('/api/production-floor/metrics', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+
+
+      // Return production metrics
+      const metrics = {
+        dailyOutput: [
+          { date: "2025-01-15", planned: 45, actual: 42, efficiency: 93 },
+          { date: "2025-01-16", planned: 45, actual: 48, efficiency: 107 },
+          { date: "2025-01-17", planned: 45, actual: 44, efficiency: 98 },
+          { date: "2025-01-18", planned: 45, actual: 46, efficiency: 102 },
+          { date: "2025-01-19", planned: 45, actual: 41, efficiency: 91 },
+          { date: "2025-01-20", planned: 45, actual: 43, efficiency: 96 },
+          { date: "2025-01-21", planned: 45, actual: 42, efficiency: 93 }
+        ],
+        machineUtilization: [
+          { machine: "Plasma Cutter #1", utilization: 85, targetUtilization: 80 },
+          { machine: "Press Brake #2", utilization: 65, targetUtilization: 75 },
+          { machine: "Welding Bay 1", utilization: 92, targetUtilization: 85 },
+          { machine: "Welding Bay 2", utilization: 78, targetUtilization: 85 },
+          { machine: "Drill Press #1", utilization: 70, targetUtilization: 70 }
+        ],
+        qualityMetrics: [
+          { metric: "First Pass Yield", value: 92, target: 95, trend: "up" },
+          { metric: "Defect Rate", value: 2, target: 3, trend: "down" },
+          { metric: "Rework Rate", value: 4, target: 5, trend: "stable" }
+        ],
+        productionByType: [
+          { type: "Beams", value: 35, percentage: 35 },
+          { type: "Columns", value: 25, percentage: 25 },
+          { type: "Plates", value: 20, percentage: 20 },
+          { type: "Frames", value: 15, percentage: 15 },
+          { type: "Other", value: 5, percentage: 5 }
+        ],
+        oeeBreakdown: {
+          availability: 92,
+          performance: 87,
+          quality: 96,
+          oee: 77
+        },
+        kpis: [
+          { name: "Output", value: 42, unit: "tonnes", target: 45, status: "warning" },
+          { name: "Efficiency", value: 87, unit: "%", target: 85, status: "on-track" },
+          { name: "Quality", value: 96, unit: "%", target: 95, status: "on-track" },
+          { name: "Safety", value: 125, unit: "days", target: 100, status: "on-track" },
+          { name: "Delivery", value: 94, unit: "%", target: 95, status: "warning" },
+          { name: "Utilization", value: 78, unit: "%", target: 80, status: "warning" }
+        ]
+      };
+      
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error fetching production metrics:', error);
+      res.status(500).json({ message: 'Failed to fetch production metrics' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

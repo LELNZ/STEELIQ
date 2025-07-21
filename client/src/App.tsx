@@ -41,6 +41,7 @@ import EmailCostImport from "@/pages/EmailCostImport";
 import DrawingIntelligence from "@/pages/DrawingIntelligence";
 import SupplierIntegrationHub from "@/pages/SupplierIntegrationHub";
 import MobileOperations from "@/pages/MobileOperations";
+import ProductionFloor from "@/pages/ProductionFloor";
 
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
@@ -103,6 +104,7 @@ function Router() {
       <Route path="/drawing-intelligence" component={DrawingIntelligence} />
       <Route path="/supplier-integration" component={SupplierIntegrationHub} />
       <Route path="/mobile-operations" component={MobileOperations} />
+      <Route path="/production-floor" component={ProductionFloor} />
       <Route path="/financial" component={FinancialDashboard} />
       <Route path="/optimization" component={CuttingOptimizationFixed} />
       <Route path="/cutting-plan-test" component={CuttingPlanTest} />
