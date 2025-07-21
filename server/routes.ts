@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -4472,6 +4472,183 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching labor rate cards:", error);
       res.status(500).json({ message: "Failed to fetch labor rate cards" });
+    }
+  });
+
+  // Organization Settings Routes
+  app.get("/api/organization/settings/:key", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { key } = req.params;
+      const [setting] = await db.select()
+        .from(organizationSettings)
+        .where(eq(organizationSettings.settingKey, key));
+      
+      res.json(setting || null);
+    } catch (error) {
+      console.error("Error fetching organization setting:", error);
+      res.status(500).json({ message: "Failed to fetch organization setting" });
+    }
+  });
+
+  app.put("/api/organization/settings", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { settingKey, settingValue, settingType, description } = req.body;
+      
+      // Check if setting exists
+      const [existing] = await db.select()
+        .from(organizationSettings)
+        .where(eq(organizationSettings.settingKey, settingKey));
+      
+      if (existing) {
+        // Update existing setting
+        await db.update(organizationSettings)
+          .set({
+            settingValue,
+            settingType,
+            description,
+            updatedAt: new Date()
+          })
+          .where(eq(organizationSettings.settingKey, settingKey));
+      } else {
+        // Insert new setting
+        await db.insert(organizationSettings)
+          .values({
+            settingKey,
+            settingValue,
+            settingType,
+            description
+          });
+      }
+      
+      res.json({ success: true, message: "Setting updated successfully" });
+    } catch (error) {
+      console.error("Error updating organization setting:", error);
+      res.status(500).json({ message: "Failed to update organization setting" });
+    }
+  });
+
+  // Company Locations Routes
+  app.get("/api/organization/locations", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const locations = await db.select()
+        .from(companyLocations)
+        .orderBy(companyLocations.isPrimary);
+      
+      res.json(locations);
+    } catch (error) {
+      console.error("Error fetching company locations:", error);
+      res.status(500).json({ message: "Failed to fetch company locations" });
+    }
+  });
+
+  app.post("/api/organization/locations", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [location] = await db.insert(companyLocations)
+        .values(req.body)
+        .returning();
+      
+      res.json(location);
+    } catch (error) {
+      console.error("Error creating company location:", error);
+      res.status(500).json({ message: "Failed to create company location" });
+    }
+  });
+
+  app.put("/api/organization/locations/:id", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const [location] = await db.update(companyLocations)
+        .set({
+          ...req.body,
+          updatedAt: new Date()
+        })
+        .where(eq(companyLocations.id, parseInt(id)))
+        .returning();
+      
+      res.json(location);
+    } catch (error) {
+      console.error("Error updating company location:", error);
+      res.status(500).json({ message: "Failed to update company location" });
+    }
+  });
+
+  app.delete("/api/organization/locations/:id", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      await db.delete(companyLocations)
+        .where(eq(companyLocations.id, parseInt(id)));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting company location:", error);
+      res.status(500).json({ message: "Failed to delete company location" });
+    }
+  });
+
+  // Logo upload route
+  app.post("/api/organization/upload-logo", upload.single("logo"), async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // In production, you would upload to cloud storage
+      // For now, we'll store the base64 data
+      const logoPath = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+      
+      res.json({ path: logoPath });
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      res.status(500).json({ message: "Failed to upload logo" });
     }
   });
 

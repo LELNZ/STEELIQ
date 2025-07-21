@@ -48,7 +48,7 @@ const navigation = [
   {
     name: "Settings",
     items: [
-      { name: "Organization Settings", href: "/settings/organization", icon: Building2 },
+      { name: "Organization Settings", href: "/organization-settings", icon: Building2 },
       { name: "Financial Settings", href: "/settings/financial", icon: DollarSign },
       { name: "Operations Settings", href: "/settings/operations", icon: Settings2 },
       { name: "My Preferences", href: "/preferences", icon: Settings },

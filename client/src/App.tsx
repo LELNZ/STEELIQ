@@ -36,6 +36,7 @@ import TimePayroll from "@/pages/time-payroll";
 import ProjectLifecycleTracker from "@/pages/project-lifecycle-tracker";
 import LifecycleTemplates from "@/pages/lifecycle-templates";
 import EstimationPipeline from "@/pages/estimation-pipeline";
+import OrganizationSettingsPage from "@/pages/organization-settings";
 
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
@@ -84,6 +85,7 @@ function Router() {
       <Route path="/settings/financial" component={FinancialSettings} />
       <Route path="/settings/operations" component={OperationsSettings} />
       <Route path="/settings/lifecycle-templates" component={LifecycleTemplates} />
+      <Route path="/organization-settings" component={OrganizationSettingsPage} />
       <Route path="/global-settings" component={GlobalSettings} />
       <Route path="/labor-rates" component={LaborRates} />
       <Route path="/team-management" component={TeamManagement} />

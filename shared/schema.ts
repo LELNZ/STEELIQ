@@ -2680,3 +2680,294 @@ export type QuoteHistory = typeof quoteHistory.$inferSelect;
 export type InsertQuoteHistory = typeof quoteHistory.$inferInsert;
 export type QuoteView = typeof quoteViews.$inferSelect;
 export type InsertQuoteView = typeof quoteViews.$inferInsert;
+
+// Quote Customization Tables
+
+// Organization Settings
+export const organizationSettings = pgTable("organization_settings", {
+  id: serial("id").primaryKey(),
+  settingKey: varchar("setting_key", { length: 255 }).unique().notNull(),
+  settingValue: jsonb("setting_value"),
+  settingType: varchar("setting_type", { length: 100 }), // branding, email, document, financial
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Company Locations
+export const companyLocations = pgTable("company_locations", {
+  id: serial("id").primaryKey(),
+  locationName: varchar("location_name", { length: 255 }).notNull(),
+  isPrimary: boolean("is_primary").default(false),
+  addressLine1: varchar("address_line1", { length: 255 }),
+  addressLine2: varchar("address_line2", { length: 255 }),
+  city: varchar("city", { length: 100 }),
+  stateProvince: varchar("state_province", { length: 100 }),
+  postalCode: varchar("postal_code", { length: 20 }),
+  country: varchar("country", { length: 100 }).default("New Zealand"),
+  phone: varchar("phone", { length: 50 }),
+  email: varchar("email", { length: 255 }),
+  gstNumber: varchar("gst_number", { length: 50 }),
+  businessNumber: varchar("business_number", { length: 50 }),
+  logoPath: text("logo_path"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Quote Templates
+export const quoteTemplates = pgTable("quote_templates", {
+  id: serial("id").primaryKey(),
+  templateName: varchar("template_name", { length: 255 }).notNull(),
+  templateCode: varchar("template_code", { length: 50 }).unique().notNull(),
+  templateType: varchar("template_type", { length: 50 }).default("professional"),
+  description: text("description"),
+  
+  // Layout Configuration
+  layoutConfig: jsonb("layout_config"),
+  headerConfig: jsonb("header_config"),
+  footerConfig: jsonb("footer_config"),
+  
+  // Design Settings
+  primaryColor: varchar("primary_color", { length: 7 }).default("#1e3a8a"),
+  secondaryColor: varchar("secondary_color", { length: 7 }).default("#0369a1"),
+  accentColor: varchar("accent_color", { length: 7 }).default("#059669"),
+  fontFamily: varchar("font_family", { length: 100 }).default("Arial"),
+  fontSizeBody: integer("font_size_body").default(11),
+  fontSizeHeading: integer("font_size_heading").default(16),
+  
+  // Section Visibility
+  showExecutiveSummary: boolean("show_executive_summary").default(true),
+  showScopeOfWork: boolean("show_scope_of_work").default(true),
+  showPricingBreakdown: boolean("show_pricing_breakdown").default(true),
+  showMaterialDetails: boolean("show_material_details").default(true),
+  showLaborBreakdown: boolean("show_labor_breakdown").default(true),
+  showPaymentTerms: boolean("show_payment_terms").default(true),
+  showTermsConditions: boolean("show_terms_conditions").default(true),
+  showProjectTimeline: boolean("show_project_timeline").default(false),
+  showHandlingCosts: boolean("show_handling_costs").default(false),
+  
+  // Watermark Settings
+  enableWatermark: boolean("enable_watermark").default(false),
+  watermarkType: varchar("watermark_type", { length: 50 }),
+  watermarkOpacity: decimal("watermark_opacity", { precision: 3, scale: 2 }).default("0.15"),
+  watermarkPosition: varchar("watermark_position", { length: 50 }).default("center"),
+  
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Email Configuration
+export const emailConfigurations = pgTable("email_configurations", {
+  id: serial("id").primaryKey(),
+  configName: varchar("config_name", { length: 255 }).notNull(),
+  providerType: varchar("provider_type", { length: 50 }).default("smtp"),
+  
+  // SMTP Settings
+  smtpHost: varchar("smtp_host", { length: 255 }),
+  smtpPort: integer("smtp_port").default(587),
+  smtpUsername: varchar("smtp_username", { length: 255 }),
+  smtpPasswordEncrypted: text("smtp_password_encrypted"),
+  smtpEncryption: varchar("smtp_encryption", { length: 20 }).default("tls"),
+  
+  // OAuth Settings
+  oauthClientId: varchar("oauth_client_id", { length: 255 }),
+  oauthClientSecretEncrypted: text("oauth_client_secret_encrypted"),
+  oauthRefreshTokenEncrypted: text("oauth_refresh_token_encrypted"),
+  
+  // General Settings
+  fromEmail: varchar("from_email", { length: 255 }).notNull(),
+  fromName: varchar("from_name", { length: 255 }),
+  replyToEmail: varchar("reply_to_email", { length: 255 }),
+  
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  lastTestedAt: timestamp("last_tested_at"),
+  testStatus: varchar("test_status", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Email Templates
+export const emailTemplates = pgTable("email_templates", {
+  id: serial("id").primaryKey(),
+  templateName: varchar("template_name", { length: 255 }).notNull(),
+  templateCode: varchar("template_code", { length: 100 }).unique().notNull(),
+  templateType: varchar("template_type", { length: 50 }),
+  subjectLine: text("subject_line").notNull(),
+  emailBodyHtml: text("email_body_html"),
+  emailBodyPlain: text("email_body_plain"),
+  availableVariables: jsonb("available_variables"),
+  isFollowUp: boolean("is_follow_up").default(false),
+  followUpDays: integer("follow_up_days").array(),
+  stopOnReply: boolean("stop_on_reply").default(true),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Terms and Conditions Library
+export const termsConditionsLibrary = pgTable("terms_conditions_library", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  category: varchar("category", { length: 100 }),
+  content: text("content").notNull(),
+  version: varchar("version", { length: 20 }),
+  isDefault: boolean("is_default").default(false),
+  applicableTo: varchar("applicable_to", { length: 50 }).array(),
+  validFrom: date("valid_from"),
+  validUntil: date("valid_until"),
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Quote Documents
+export const quoteDocuments = pgTable("quote_documents", {
+  id: serial("id").primaryKey(),
+  quoteId: integer("quote_id"),
+  documentType: varchar("document_type", { length: 50 }),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  filePath: text("file_path").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: varchar("mime_type", { length: 100 }),
+  isEncrypted: boolean("is_encrypted").default(false),
+  passwordProtected: boolean("password_protected").default(false),
+  viewCount: integer("view_count").default(0),
+  lastViewedAt: timestamp("last_viewed_at"),
+  requiresSignature: boolean("requires_signature").default(false),
+  signatureStatus: varchar("signature_status", { length: 50 }),
+  signedAt: timestamp("signed_at"),
+  signedBy: varchar("signed_by", { length: 255 }),
+  signatureIp: varchar("signature_ip", { length: 45 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Client Portal Access
+export const clientPortalAccess = pgTable("client_portal_access", {
+  id: serial("id").primaryKey(),
+  accessToken: varchar("access_token", { length: 255 }).unique().notNull(),
+  quoteId: integer("quote_id"),
+  clientEmail: varchar("client_email", { length: 255 }).notNull(),
+  clientName: varchar("client_name", { length: 255 }),
+  accessType: varchar("access_type", { length: 50 }).default("view_only"),
+  expiresAt: timestamp("expires_at"),
+  maxViews: integer("max_views"),
+  currentViews: integer("current_views").default(0),
+  firstViewedAt: timestamp("first_viewed_at"),
+  lastViewedAt: timestamp("last_viewed_at"),
+  acceptedAt: timestamp("accepted_at"),
+  rejectedAt: timestamp("rejected_at"),
+  rejectionReason: text("rejection_reason"),
+  emailNotificationsSent: jsonb("email_notifications_sent"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// E-Signature Configuration
+export const esignatureConfigurations = pgTable("esignature_configurations", {
+  id: serial("id").primaryKey(),
+  provider: varchar("provider", { length: 50 }).notNull(),
+  isDefault: boolean("is_default").default(false),
+  signatureFieldConfig: jsonb("signature_field_config"),
+  docusignAccountId: varchar("docusign_account_id", { length: 255 }),
+  docusignClientId: varchar("docusign_client_id", { length: 255 }),
+  docusignClientSecretEncrypted: text("docusign_client_secret_encrypted"),
+  docusignAccessTokenEncrypted: text("docusign_access_token_encrypted"),
+  docusignRefreshTokenEncrypted: text("docusign_refresh_token_encrypted"),
+  adobeAccountId: varchar("adobe_account_id", { length: 255 }),
+  adobeClientId: varchar("adobe_client_id", { length: 255 }),
+  adobeClientSecretEncrypted: text("adobe_client_secret_encrypted"),
+  adobeAccessTokenEncrypted: text("adobe_access_token_encrypted"),
+  adobeRefreshTokenEncrypted: text("adobe_refresh_token_encrypted"),
+  webhookUrl: text("webhook_url"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Quote Activity Log
+export const quoteActivityLogs = pgTable("quote_activity_logs", {
+  id: serial("id").primaryKey(),
+  quoteId: integer("quote_id"),
+  activityType: varchar("activity_type", { length: 100 }).notNull(),
+  activityDetails: jsonb("activity_details"),
+  performedBy: varchar("performed_by", { length: 255 }),
+  performedByType: varchar("performed_by_type", { length: 50 }),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Handling Costs Configuration
+export const handlingCostsConfig = pgTable("handling_costs_config", {
+  id: serial("id").primaryKey(),
+  configName: varchar("config_name", { length: 255 }).notNull(),
+  calculationMethod: varchar("calculation_method", { length: 50 }).default("percentage"),
+  percentageValue: decimal("percentage_value", { precision: 5, scale: 2 }),
+  fixedAmount: decimal("fixed_amount", { precision: 12, scale: 2 }),
+  perUnitRate: decimal("per_unit_rate", { precision: 10, scale: 2 }),
+  unitType: varchar("unit_type", { length: 50 }),
+  showAsSeparateLine: boolean("show_as_separate_line").default(true),
+  lineItemLabel: varchar("line_item_label", { length: 255 }).default("Handling & Processing"),
+  includeInSubtotal: boolean("include_in_subtotal").default(true),
+  applyToMaterials: boolean("apply_to_materials").default(true),
+  applyToConsumables: boolean("apply_to_consumables").default(false),
+  minimumThreshold: decimal("minimum_threshold", { precision: 12, scale: 2 }),
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Currency Configuration
+export const currencyConfigurations = pgTable("currency_configurations", {
+  id: serial("id").primaryKey(),
+  currencyCode: varchar("currency_code", { length: 3 }).notNull(),
+  currencyName: varchar("currency_name", { length: 100 }),
+  currencySymbol: varchar("currency_symbol", { length: 10 }),
+  exchangeRate: decimal("exchange_rate", { precision: 10, scale: 6 }).default("1.000000"),
+  isBaseCurrency: boolean("is_base_currency").default(false),
+  decimalPlaces: integer("decimal_places").default(2),
+  thousandSeparator: varchar("thousand_separator", { length: 1 }).default(","),
+  decimalSeparator: varchar("decimal_separator", { length: 1 }).default("."),
+  symbolPosition: varchar("symbol_position", { length: 10 }).default("before"),
+  isActive: boolean("is_active").default(true),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schemas for new tables
+export const insertOrganizationSettingSchema = createInsertSchema(organizationSettings);
+export const insertCompanyLocationSchema = createInsertSchema(companyLocations);
+export const insertQuoteTemplateSchema = createInsertSchema(quoteTemplates);
+export const insertEmailConfigurationSchema = createInsertSchema(emailConfigurations);
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates);
+export const insertTermsConditionsSchema = createInsertSchema(termsConditionsLibrary);
+export const insertHandlingCostsConfigSchema = createInsertSchema(handlingCostsConfig);
+
+// Type exports for new tables
+export type OrganizationSetting = typeof organizationSettings.$inferSelect;
+export type InsertOrganizationSetting = z.infer<typeof insertOrganizationSettingSchema>;
+
+export type CompanyLocation = typeof companyLocations.$inferSelect;
+export type InsertCompanyLocation = z.infer<typeof insertCompanyLocationSchema>;
+
+export type QuoteTemplate = typeof quoteTemplates.$inferSelect;
+export type InsertQuoteTemplate = z.infer<typeof insertQuoteTemplateSchema>;
+
+export type EmailConfiguration = typeof emailConfigurations.$inferSelect;
+export type InsertEmailConfiguration = z.infer<typeof insertEmailConfigurationSchema>;
+
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+
+export type TermsConditions = typeof termsConditionsLibrary.$inferSelect;
+export type InsertTermsConditions = z.infer<typeof insertTermsConditionsSchema>;
+
+export type HandlingCostsConfiguration = typeof handlingCostsConfig.$inferSelect;
+export type InsertHandlingCostsConfiguration = z.infer<typeof insertHandlingCostsConfigSchema>;
+
+export type ClientPortalAccess = typeof clientPortalAccess.$inferSelect;
+export type QuoteActivityLog = typeof quoteActivityLogs.$inferSelect;
+export type ESignatureConfiguration = typeof esignatureConfigurations.$inferSelect;
+export type CurrencyConfiguration = typeof currencyConfigurations.$inferSelect;
