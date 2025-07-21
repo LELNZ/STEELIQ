@@ -39,6 +39,7 @@ const navigation = [
       { name: "Supplier Integration", href: "/supplier-integration", icon: Zap, badge: "PHASE 1", badgeVariant: "info" },
       { name: "Mobile Operations", href: "/mobile-operations", icon: Smartphone, badge: "PHASE 1", badgeVariant: "info" },
       { name: "Production Floor", href: "/production-floor", icon: Factory, badge: "PHASE 1", badgeVariant: "info" },
+      { name: "Financial Intelligence", href: "/financial-intelligence", icon: TrendingUp, badge: "PHASE 1", badgeVariant: "info" },
       { name: "Material Library", href: "/materials", icon: Package },
       { name: "Inventory", href: "/inventory", icon: Warehouse, badge: "3", badgeVariant: "warning" },
       { name: "Contacts", href: "/contacts", icon: Users },

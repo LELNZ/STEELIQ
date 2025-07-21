@@ -5942,6 +5942,349 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Financial Intelligence Routes
+  app.get('/api/financial-intelligence/stats', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Return financial statistics
+      const stats = {
+        revenue: 2345678,
+        expenses: 1876543,
+        profit: 469135,
+        profitMargin: 20.0,
+        cashOnHand: 523890,
+        accountsReceivable: 387654,
+        accountsPayable: 234567,
+        overduedInvoices: 45678
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching financial stats:', error);
+      res.status(500).json({ message: 'Failed to fetch financial stats' });
+    }
+  });
+
+  // Financial Analytics endpoints
+  app.get('/api/financial-intelligence/analytics/metrics', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const metrics = [
+        { period: "Jan 2025", revenue: 1890000, expenses: 1512000, profit: 378000, profitMargin: 20.0, grossMargin: 35.5, ebitda: 425000, cashFlow: 392000, workingCapital: 523000 },
+        { period: "Dec 2024", revenue: 2145000, expenses: 1687000, profit: 458000, profitMargin: 21.4, grossMargin: 36.2, ebitda: 503000, cashFlow: 478000, workingCapital: 498000 },
+        { period: "Nov 2024", revenue: 1987000, expenses: 1590000, profit: 397000, profitMargin: 20.0, grossMargin: 34.8, ebitda: 442000, cashFlow: 415000, workingCapital: 476000 },
+        { period: "Oct 2024", revenue: 2234000, expenses: 1765000, profit: 469000, profitMargin: 21.0, grossMargin: 35.8, ebitda: 514000, cashFlow: 489000, workingCapital: 512000 },
+        { period: "Sep 2024", revenue: 2098000, expenses: 1658000, profit: 440000, profitMargin: 21.0, grossMargin: 35.2, ebitda: 485000, cashFlow: 456000, workingCapital: 498000 },
+        { period: "Aug 2024", revenue: 1956000, expenses: 1565000, profit: 391000, profitMargin: 20.0, grossMargin: 34.5, ebitda: 436000, cashFlow: 412000, workingCapital: 467000 }
+      ];
+      
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error fetching analytics metrics:', error);
+      res.status(500).json({ message: 'Failed to fetch analytics metrics' });
+    }
+  });
+
+  app.get('/api/financial-intelligence/analytics/kpis', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const kpis = [
+        { name: "Revenue Growth", value: 12.5, target: 10, trend: "up", change: 2.5, status: "on-track", unit: "%" },
+        { name: "Gross Margin", value: 35.5, target: 35, trend: "up", change: 0.5, status: "on-track", unit: "%" },
+        { name: "Net Profit Margin", value: 20.0, target: 22.5, trend: "stable", change: 0, status: "warning", unit: "%" },
+        { name: "Cash Conversion", value: 87, target: 85, trend: "up", change: 2, status: "on-track", unit: "%" }
+      ];
+      
+      res.json(kpis);
+    } catch (error) {
+      console.error('Error fetching KPIs:', error);
+      res.status(500).json({ message: 'Failed to fetch KPIs' });
+    }
+  });
+
+  // Cash Flow Management endpoints
+  app.get('/api/financial-intelligence/cashflow/data', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const cashFlowData = Array.from({ length: 30 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (29 - i));
+        return {
+          date: date.toISOString(),
+          inflow: Math.floor(Math.random() * 50000) + 30000,
+          outflow: Math.floor(Math.random() * 40000) + 25000,
+          netCashFlow: 0,
+          balance: 523890 + (Math.random() - 0.5) * 100000
+        };
+      });
+
+      res.json(cashFlowData);
+    } catch (error) {
+      console.error('Error fetching cash flow data:', error);
+      res.status(500).json({ message: 'Failed to fetch cash flow data' });
+    }
+  });
+
+  app.get('/api/financial-intelligence/cashflow/invoices', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const invoices = [
+        { id: "1", invoiceNumber: "INV-2025-001", clientName: "BuildCorp Ltd", amount: 125000, dueDate: "2025-02-15", status: "pending", paymentTerms: "Net 30" },
+        { id: "2", invoiceNumber: "INV-2025-002", clientName: "SteelWorks Inc", amount: 87500, dueDate: "2025-01-31", status: "overdue", daysOverdue: 10, paymentTerms: "Net 30" },
+        { id: "3", invoiceNumber: "INV-2024-245", clientName: "Construction Partners", amount: 156000, dueDate: "2025-01-25", status: "paid", paymentTerms: "Net 30" },
+        { id: "4", invoiceNumber: "INV-2025-003", clientName: "Industrial Projects", amount: 92000, dueDate: "2025-02-28", status: "pending", paymentTerms: "Net 45" },
+        { id: "5", invoiceNumber: "INV-2025-004", clientName: "Metro Development", amount: 178000, dueDate: "2025-02-10", status: "pending", paymentTerms: "Net 30" }
+      ];
+
+      res.json(invoices);
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      res.status(500).json({ message: 'Failed to fetch invoices' });
+    }
+  });
+
+  app.get('/api/financial-intelligence/cashflow/bills', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const bills = [
+        { id: "1", billNumber: "BILL-2025-001", vendorName: "Asmuss Steel", amount: 78500, dueDate: "2025-02-05", status: "pending", category: "Materials" },
+        { id: "2", billNumber: "BILL-2025-002", vendorName: "Industrial Equipment Co", amount: 23400, dueDate: "2025-01-30", status: "overdue", category: "Equipment" },
+        { id: "3", billNumber: "BILL-2025-003", vendorName: "Professional Services Ltd", amount: 12500, dueDate: "2025-02-15", status: "pending", category: "Services" },
+        { id: "4", billNumber: "BILL-2025-004", vendorName: "Power & Energy Solutions", amount: 8900, dueDate: "2025-02-10", status: "pending", category: "Utilities" },
+        { id: "5", billNumber: "BILL-2025-005", vendorName: "Safety Equipment Direct", amount: 4200, dueDate: "2025-02-20", status: "pending", category: "Safety" }
+      ];
+
+      res.json(bills);
+    } catch (error) {
+      console.error('Error fetching bills:', error);
+      res.status(500).json({ message: 'Failed to fetch bills' });
+    }
+  });
+
+  app.get('/api/financial-intelligence/cashflow/forecast', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const forecast = [
+        { period: "Next 30 Days", projectedInflow: 425000, projectedOutflow: 380000, projectedBalance: 568890, confidence: 92 },
+        { period: "30-60 Days", projectedInflow: 520000, projectedOutflow: 470000, projectedBalance: 618890, confidence: 85 },
+        { period: "60-90 Days", projectedInflow: 480000, projectedOutflow: 495000, projectedBalance: 603890, confidence: 78 }
+      ];
+
+      res.json(forecast);
+    } catch (error) {
+      console.error('Error fetching cash flow forecast:', error);
+      res.status(500).json({ message: 'Failed to fetch cash flow forecast' });
+    }
+  });
+
+  // Cost Analysis endpoints
+  app.get('/api/financial-intelligence/costs/jobs', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const jobCosts = [
+        { id: "1", jobNumber: "JOB-2025-001", projectName: "Steel Frame Warehouse", clientName: "BuildCorp Ltd", revenue: 325000, directCosts: 195000, overheads: 39000, profit: 91000, profitMargin: 28.0, status: "completed", materialCost: 115000, laborCost: 65000, equipmentCost: 15000, subcontractorCost: 0, otherCost: 0 },
+        { id: "2", jobNumber: "JOB-2025-002", projectName: "Bridge Support Structure", clientName: "Metro Development", revenue: 478000, directCosts: 334600, overheads: 66920, profit: 76480, profitMargin: 16.0, status: "in-progress", materialCost: 198000, laborCost: 98600, equipmentCost: 38000, subcontractorCost: 0, otherCost: 0 },
+        { id: "3", jobNumber: "JOB-2025-003", projectName: "Industrial Platform", clientName: "SteelWorks Inc", revenue: 156000, directCosts: 101400, overheads: 20280, profit: 34320, profitMargin: 22.0, status: "completed", materialCost: 58000, laborCost: 35400, equipmentCost: 8000, subcontractorCost: 0, otherCost: 0 },
+        { id: "4", jobNumber: "JOB-2025-004", projectName: "Manufacturing Plant Extension", clientName: "Industrial Projects", revenue: 892000, directCosts: 642240, overheads: 128448, profit: 121312, profitMargin: 13.6, status: "in-progress", materialCost: 385000, laborCost: 198240, equipmentCost: 45000, subcontractorCost: 14000, otherCost: 0 }
+      ];
+
+      res.json(jobCosts);
+    } catch (error) {
+      console.error('Error fetching job costs:', error);
+      res.status(500).json({ message: 'Failed to fetch job costs' });
+    }
+  });
+
+  app.get('/api/financial-intelligence/costs/categories', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const categories = [
+        { category: "Materials", amount: 756000, percentage: 45, budget: 700000, variance: 8.0, trend: "up" },
+        { category: "Labor", amount: 396640, percentage: 30, budget: 420000, variance: -5.6, trend: "down" },
+        { category: "Equipment", amount: 106000, percentage: 15, budget: 100000, variance: 6.0, trend: "up" },
+        { category: "Subcontractors", amount: 14000, percentage: 5, budget: 25000, variance: -44.0, trend: "down" },
+        { category: "Overhead", amount: 254648, percentage: 5, budget: 250000, variance: 1.9, trend: "stable" }
+      ];
+
+      res.json(categories);
+    } catch (error) {
+      console.error('Error fetching cost categories:', error);
+      res.status(500).json({ message: 'Failed to fetch cost categories' });
+    }
+  });
+
+  app.get('/api/financial-intelligence/costs/materials', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const materials = [
+        { material: "UC 310x97", quantity: 125, unitCost: 145.50, totalCost: 18187.50, supplier: "Asmuss Steel", priceChange: 3.5 },
+        { material: "SHS 100x100x6", quantity: 200, unitCost: 78.25, totalCost: 15650.00, supplier: "Fletcher Steel", priceChange: -2.1 },
+        { material: "UB 610x229x125", quantity: 85, unitCost: 312.00, totalCost: 26520.00, supplier: "Asmuss Steel", priceChange: 5.2 },
+        { material: "12mm Plate", quantity: 45, unitCost: 125.00, totalCost: 5625.00, supplier: "Steel & Tube", priceChange: 0.0 },
+        { material: "RHS 250x150x9", quantity: 150, unitCost: 185.75, totalCost: 27862.50, supplier: "Asmuss Steel", priceChange: 4.1 }
+      ];
+
+      res.json(materials);
+    } catch (error) {
+      console.error('Error fetching material analysis:', error);
+      res.status(500).json({ message: 'Failed to fetch material analysis' });
+    }
+  });
+
+  app.get('/api/financial-intelligence/costs/labor', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const labor = [
+        { employee: "Adam Green", hours: 160, rate: 120, totalCost: 19200, efficiency: 95, overtimeHours: 8 },
+        { employee: "Manny Magallanes", hours: 168, rate: 95, totalCost: 15960, efficiency: 92, overtimeHours: 12 },
+        { employee: "Chipo Green", hours: 152, rate: 85, totalCost: 12920, efficiency: 88, overtimeHours: 0 },
+        { employee: "Vili Pelenato", hours: 176, rate: 75, totalCost: 13200, efficiency: 90, overtimeHours: 16 }
+      ];
+
+      res.json(labor);
+    } catch (error) {
+      console.error('Error fetching labor analysis:', error);
+      res.status(500).json({ message: 'Failed to fetch labor analysis' });
+    }
+  });
+
+  // Budget Tracking endpoints
+  app.get('/api/financial-intelligence/budgets/tracking', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const budgets = [
+        { id: "1", category: "Materials", period: "Q1 2025", budgetAmount: 700000, actualAmount: 485000, variance: -215000, variancePercentage: -30.7, remaining: 215000, status: "on-track", lastUpdated: new Date().toISOString(), projectedTotal: 680000, alerts: [] },
+        { id: "2", category: "Labor", period: "Q1 2025", budgetAmount: 420000, actualAmount: 285000, variance: -135000, variancePercentage: -32.1, remaining: 135000, status: "on-track", lastUpdated: new Date().toISOString(), projectedTotal: 405000, alerts: [] },
+        { id: "3", category: "Equipment", period: "Q1 2025", budgetAmount: 100000, actualAmount: 78000, variance: -22000, variancePercentage: -22.0, remaining: 22000, status: "warning", lastUpdated: new Date().toISOString(), projectedTotal: 108000, alerts: ["Projected to exceed budget by 8%"] },
+        { id: "4", category: "Subcontractors", period: "Q1 2025", budgetAmount: 50000, actualAmount: 12000, variance: -38000, variancePercentage: -76.0, remaining: 38000, status: "on-track", lastUpdated: new Date().toISOString(), projectedTotal: 35000, alerts: [] },
+        { id: "5", category: "Overhead", period: "Q1 2025", budgetAmount: 250000, actualAmount: 198000, variance: -52000, variancePercentage: -20.8, remaining: 52000, status: "over-budget", lastUpdated: new Date().toISOString(), projectedTotal: 265000, alerts: ["Over budget by $15,000", "Review overhead costs immediately"] }
+      ];
+
+      res.json(budgets);
+    } catch (error) {
+      console.error('Error fetching budget tracking:', error);
+      res.status(500).json({ message: 'Failed to fetch budget tracking' });
+    }
+  });
+
+  app.get('/api/financial-intelligence/budgets/alerts', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const alerts = [
+        { id: "1", type: "critical", category: "Materials", message: "Material costs projected to exceed budget by 18% this quarter due to steel price increases", actionRequired: true, timestamp: new Date().toISOString() },
+        { id: "2", type: "warning", category: "Equipment", message: "Equipment rental costs trending 8% above budget - consider purchasing vs renting analysis", actionRequired: false, timestamp: new Date().toISOString() },
+        { id: "3", type: "info", category: "Labor", message: "Labor costs 12% under budget due to efficiency improvements", actionRequired: false, timestamp: new Date().toISOString() }
+      ];
+
+      res.json(alerts);
+    } catch (error) {
+      console.error('Error fetching budget alerts:', error);
+      res.status(500).json({ message: 'Failed to fetch budget alerts' });
+    }
+  });
+
+  app.get('/api/financial-intelligence/budgets/forecast', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const forecast = [
+        { period: "Feb 2025", projected: 580000, budget: 550000, confidence: 88 },
+        { period: "Mar 2025", projected: 620000, budget: 600000, confidence: 82 },
+        { period: "Apr 2025", projected: 590000, budget: 600000, confidence: 75 },
+        { period: "May 2025", projected: 610000, budget: 600000, confidence: 70 },
+        { period: "Jun 2025", projected: 630000, budget: 650000, confidence: 65 }
+      ];
+
+      res.json(forecast);
+    } catch (error) {
+      console.error('Error fetching budget forecast:', error);
+      res.status(500).json({ message: 'Failed to fetch budget forecast' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
