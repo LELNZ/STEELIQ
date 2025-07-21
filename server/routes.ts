@@ -2420,7 +2420,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Quote calculation:', {
         estimationId: id,
-        totalCost,
+        directCosts,
+        overheads,
+        margin,
         subtotal,
         taxAmount,
         totalAmount
