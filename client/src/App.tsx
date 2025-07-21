@@ -21,7 +21,6 @@ import Contacts from "@/pages/contacts";
 import Suppliers from "@/pages/suppliers";
 import SupplierContacts from "@/pages/supplier-contacts";
 
-import FinancialDashboard from "@/pages/financial-dashboard";
 import SettingsPage from "@/pages/settings";
 import GlobalSettings from "@/pages/global-settings";
 import UserPreferences from "@/pages/user-preferences";
@@ -109,7 +108,6 @@ function Router() {
       <Route path="/production-floor" component={ProductionFloor} />
       <Route path="/financial-intelligence" component={FinancialIntelligence} />
       <Route path="/resource-planning" component={ResourcePlanning} />
-      <Route path="/financial" component={FinancialDashboard} />
       <Route path="/optimization" component={CuttingOptimizationFixed} />
       <Route path="/cutting-plan-test" component={CuttingPlanTest} />
       <Route component={NotFound} />
