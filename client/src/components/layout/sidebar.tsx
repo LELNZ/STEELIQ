@@ -29,47 +29,49 @@ import { Badge } from "@/components/ui/badge";
 
 const navigation = [
   {
-    name: "Main",
+    name: "Core Operations",
     items: [
       { name: "Dashboard", href: "/", icon: LayoutDashboard },
-      { name: "Jobs & Cutting", href: "/jobs", icon: Briefcase, badge: "12" },
-      { name: "AI Estimation Engine", href: "/estimation", icon: Bot, badge: "ENHANCED", badgeVariant: "success" },
-      { name: "Estimation Pipeline", href: "/estimation-pipeline", icon: TrendingUp, badge: "NEW", badgeVariant: "info" },
-      { name: "Email Cost Import", href: "/email-cost-import", icon: Mail, badge: "PHASE 1", badgeVariant: "info" },
-      { name: "Drawing Intelligence", href: "/drawing-intelligence", icon: FileText, badge: "PHASE 1", badgeVariant: "info" },
-      { name: "Supplier Integration", href: "/supplier-integration", icon: Zap, badge: "PHASE 1", badgeVariant: "info" },
-      { name: "Mobile Operations", href: "/mobile-operations", icon: Smartphone, badge: "PHASE 1", badgeVariant: "info" },
-      { name: "Production Floor", href: "/production-floor", icon: Factory, badge: "PHASE 1", badgeVariant: "info" },
-      { name: "Financial Intelligence", href: "/financial-intelligence", icon: TrendingUp, badge: "PHASE 1", badgeVariant: "info" },
-      { name: "Resource Planning", href: "/resource-planning", icon: Calendar, badge: "PHASE 1", badgeVariant: "info" },
+      { name: "Jobs & Production", href: "/jobs", icon: Briefcase, badge: "12" },
+      { name: "AI Estimation Engine", href: "/estimation", icon: Bot },
+      { name: "Estimation Pipeline", href: "/estimation-pipeline", icon: TrendingUp },
       { name: "Material Library", href: "/materials", icon: Package },
       { name: "Inventory", href: "/inventory", icon: Warehouse, badge: "3", badgeVariant: "warning" },
-      { name: "Contacts", href: "/contacts", icon: Users },
-      { name: "Financial", href: "/financial", icon: DollarSign },
-      { name: "Optimization", href: "/optimization", icon: Slice },
+      { name: "Cutting Optimization", href: "/optimization", icon: Slice },
     ],
   },
   {
-    name: "Reports",
+    name: "Intelligence Systems",
     items: [
-      { name: "Analytics", href: "/analytics", icon: BarChart3 },
-      { name: "Cost Analysis", href: "/costs", icon: DollarSign },
+      { name: "Financial Intelligence", href: "/financial-intelligence", icon: TrendingUp },
+      { name: "Drawing Intelligence", href: "/drawing-intelligence", icon: FileText },
+      { name: "Email Cost Import", href: "/email-cost-import", icon: Mail },
     ],
   },
   {
-    name: "Settings",
+    name: "Field Operations",
+    items: [
+      { name: "Mobile Operations", href: "/mobile-operations", icon: Smartphone },
+      { name: "Production Floor", href: "/production-floor", icon: Factory },
+      { name: "Resource Planning", href: "/resource-planning", icon: Calendar },
+    ],
+  },
+  {
+    name: "Integration Hub",
+    items: [
+      { name: "Supplier Integration", href: "/supplier-integration", icon: Zap },
+      { name: "Contacts", href: "/contacts", icon: Users },
+    ],
+  },
+  {
+    name: "Settings & Management",
     items: [
       { name: "Organization Settings", href: "/organization-settings", icon: Building2 },
       { name: "Financial Settings", href: "/settings/financial", icon: DollarSign },
       { name: "Operations Settings", href: "/settings/operations", icon: Settings2 },
-      { name: "My Preferences", href: "/preferences", icon: Settings },
-    ],
-  },
-  {
-    name: "Management",
-    items: [
       { name: "Team Management", href: "/team-management", icon: Users },
       { name: "Time & Payroll", href: "/time-payroll", icon: Timer },
+      { name: "My Preferences", href: "/preferences", icon: Settings },
     ],
   },
 ];
