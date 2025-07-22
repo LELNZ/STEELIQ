@@ -286,12 +286,12 @@ export default function Dashboard() {
       </div>
 
       {/* Main Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Jobs List */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Jobs List - more compact on mobile */}
         <div className="lg:col-span-2">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Recent Jobs</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-4 lg:p-6">
+              <CardTitle className="text-base sm:text-lg">Recent Jobs</CardTitle>
               <ViewSwitcher 
                 view={viewMode} 
                 onViewChange={setViewMode} 
@@ -300,31 +300,31 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="p-0">
               {jobsLoading ? (
-                <div className="flex items-center justify-center h-64">
-                  <div className="space-y-4">
-                    <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-muted-foreground">Loading jobs...</p>
+                <div className="flex items-center justify-center h-32 sm:h-48 lg:h-64">
+                  <div className="space-y-2 sm:space-y-4">
+                    <div className="h-6 w-6 sm:h-8 sm:w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-muted-foreground text-xs sm:text-sm">Loading jobs...</p>
                   </div>
                 </div>
               ) : jobs && jobs.length > 0 ? (
-                <div className="transition-all duration-300 ease-in-out">
+                <div className="transition-all duration-300 ease-in-out max-h-64 sm:max-h-96 overflow-y-auto">
                   {viewMode === 'table' ? (
-                    <JobTable jobs={jobs} />
+                    <JobTable jobs={jobs.slice(0, 5)} /> {/* Limit to 5 recent jobs */}
                   ) : (
                     <JobList />
                   )}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                  <Briefcase className="h-12 w-12 text-muted-foreground/50" />
-                  <div className="text-center">
-                    <h3 className="font-medium text-lg">No Jobs Yet</h3>
-                    <p className="text-muted-foreground text-sm mt-1">
-                      Create your first job to get started with optimization
+                <div className="flex flex-col items-center justify-center h-32 sm:h-48 lg:h-64 space-y-2 sm:space-y-4">
+                  <Briefcase className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground/50" />
+                  <div className="text-center px-4">
+                    <h3 className="font-medium text-sm sm:text-lg">No Jobs Yet</h3>
+                    <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+                      Create your first job to get started
                     </p>
                   </div>
-                  <Button variant="default" className="mt-4">
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button variant="default" size="sm" className="mt-2 sm:mt-4">
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     Create First Job
                   </Button>
                 </div>

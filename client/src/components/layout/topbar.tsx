@@ -1,4 +1,4 @@
-import { Bell, User, Clock, LogOut, Shield, Timer } from "lucide-react";
+import { Bell, User, Clock, LogOut, Shield, Timer, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import logoIcon from "@assets/LEL Symbol black only.png";
@@ -22,12 +22,26 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 
-export default function TopBar() {
+interface TopBarProps {
+  onMenuClick?: () => void;
+}
+
+export default function TopBar({ onMenuClick }: TopBarProps) {
   return (
     <header className="bg-card border-b border-border px-2 sm:px-4 lg:px-6 py-2 sm:py-3">
       <div className="flex items-center justify-between gap-2">
-        {/* Logo and title - more compact on mobile */}
-        <div className="flex items-center min-w-0 flex-1">
+        {/* Mobile menu button and logo */}
+        <div className="flex items-center min-w-0 flex-1 gap-2">
+          {/* Hamburger menu button - only on mobile */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden h-8 w-8"
+            onClick={onMenuClick}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0">
               <img 

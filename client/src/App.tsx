@@ -8,6 +8,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
+import React from "react";
 import Dashboard from "@/pages/dashboard";
 import Jobs from "@/pages/jobs";
 import Materials from "@/pages/materials";
@@ -123,6 +124,7 @@ function Router() {
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   
   if (!isAuthenticated) {
     return (
@@ -134,11 +136,23 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <TopBar />
+      <TopBar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
       <div className="flex min-h-screen pt-0">
-        <div className="hidden md:block">
+        {/* Mobile sidebar overlay */}
+        <div 
+          className={`md:hidden fixed inset-0 bg-black/50 z-40 transition-opacity ${
+            isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          onClick={() => setIsSidebarOpen(false)}
+        />
+        
+        {/* Sidebar */}
+        <div className={`${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0 fixed md:relative transition-transform duration-200 z-50 md:z-auto`}>
           <Sidebar />
         </div>
+        
         <main className="flex-1 p-2 sm:p-4 md:p-6 pb-20 max-w-full overflow-x-hidden">
           {children}
         </main>
