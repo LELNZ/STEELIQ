@@ -1,64 +1,45 @@
 {
-  "name": "Lateral Engineering Limited - Steel Fabrication Management",
+  "name": "Lateral Engineering Steel Fabrication",
   "short_name": "LEL Steel",
-  "description": "Professional steel fabrication management system with cutting optimization, estimation, and project tracking",
+  "description": "Steel fabrication management system with cutting optimization and remnant tracking",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0070f3",
-  "orientation": "any",
+  "theme_color": "#1e40af",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icon-192.svg",
+      "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
-      "src": "/icon-512.svg",
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ],
-  "categories": ["business", "productivity"],
-  "shortcuts": [
-    {
-      "name": "Time Clock",
-      "short_name": "Clock In",
-      "description": "Quick access to time tracking",
-      "url": "/time-payroll",
-      "icons": [{ "src": "/icon-clock.png", "sizes": "96x96" }]
+      "type": "image/png"
     },
     {
-      "name": "Jobs",
-      "short_name": "Jobs",
-      "description": "View active jobs",
-      "url": "/jobs",
-      "icons": [{ "src": "/icon-jobs.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Mobile Ops",
-      "short_name": "Field Ops",
-      "description": "Field operations tools",
-      "url": "/mobile-operations",
-      "icons": [{ "src": "/icon-mobile.png", "sizes": "96x96" }]
+      "src": "/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [
     {
-      "src": "/screenshot-desktop.png",
-      "sizes": "1920x1080",
+      "src": "/screenshot-1.png",
+      "sizes": "540x720",
       "type": "image/png",
-      "form_factor": "wide"
+      "label": "Dashboard"
     },
     {
-      "src": "/screenshot-mobile.png",
-      "sizes": "1080x1920",
+      "src": "/screenshot-2.png",
+      "sizes": "540x720",
       "type": "image/png",
-      "form_factor": "narrow"
+      "label": "Cutting Optimization"
     }
   ],
+  "categories": ["business", "productivity"],
   "prefer_related_applications": false,
   "related_applications": []
 }

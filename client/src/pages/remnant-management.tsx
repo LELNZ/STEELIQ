@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Package2, QrCode, BarChart3, Search, Plus, History, Printer, Settings, Eye } from "lucide-react";
+import { Package2, QrCode, BarChart3, Search, Plus, History, Printer, Settings, Eye, CheckCircle2, XCircle } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +17,8 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ZebraPrinterService, defaultPrinterConfig, type LabelData } from "@/lib/labelPrinter";
+import { offlineSync } from "@/lib/offlineSync";
 
 interface Remnant {
   id: number;
@@ -73,6 +75,9 @@ export default function RemnantManagement() {
   const [selectedTab, setSelectedTab] = useState("overview");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showLabelDialog, setShowLabelDialog] = useState(false);
+  const [showPrinterSetup, setShowPrinterSetup] = useState(false);
+  const [printerConfig, setPrinterConfig] = useState(defaultPrinterConfig);
+  const [printerStatus, setPrinterStatus] = useState<{ online: boolean; status: string } | null>(null);
   const [selectedRemnant, setSelectedRemnant] = useState<Remnant | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
@@ -102,6 +107,12 @@ export default function RemnantManagement() {
     includePhoto: false
   });
 
+  // Initialize offline sync on component mount
+  useEffect(() => {
+    offlineSync.initialize();
+    offlineSync.setupNetworkListeners();
+  }, []);
+
   // Fetch remnants
   const { data: remnants = [], isLoading } = useQuery<Remnant[]>({
     queryKey: ["/api/remnants"]
@@ -115,10 +126,28 @@ export default function RemnantManagement() {
   // Create remnant mutation
   const createRemnantMutation = useMutation({
     mutationFn: async (data: any) => {
+      // Check if offline
+      if (!offlineSync.isOnline()) {
+        // Store operation for later sync
+        await offlineSync.addPendingOperation({
+          type: 'CREATE',
+          endpoint: '/api/remnants',
+          data: data
+        });
+        
+        // Optimistically update UI
+        return { ...data, id: Date.now(), status: 'pending_sync' };
+      }
+      
       return await apiRequest("/api/remnants", "POST", data);
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "Remnant created successfully" });
+      toast({ 
+        title: "Success", 
+        description: offlineSync.isOnline() 
+          ? "Remnant created successfully" 
+          : "Remnant saved locally - will sync when online"
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/remnants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/remnants/stats"] });
       setShowAddDialog(false);
@@ -177,13 +206,37 @@ export default function RemnantManagement() {
   // Generate label mutation
   const generateLabelMutation = useMutation({
     mutationFn: async (remnantId: number) => {
-      return await apiRequest(`/api/remnants/${remnantId}/label`, "POST", labelSettings);
+      const response = await apiRequest(`/api/remnants/${remnantId}/label`, "POST", labelSettings);
+      
+      // Now send to printer
+      if (response && response.remnant) {
+        const printer = new ZebraPrinterService(printerConfig);
+        const labelData: LabelData = {
+          qrCode: response.remnant.qrCode,
+          materialCode: response.remnant.materialCode,
+          dimensions: `${response.remnant.length}mm`,
+          location: response.remnant.location || "N/A",
+          millCertificate: response.remnant.millCertificate,
+          date: new Date().toLocaleDateString(),
+          remnantId: response.remnant.id.toString()
+        };
+        
+        // Add width and thickness if available
+        if (response.remnant.width) {
+          labelData.dimensions += ` × ${response.remnant.width}mm`;
+        }
+        if (response.remnant.thickness) {
+          labelData.dimensions += ` × ${response.remnant.thickness}mm`;
+        }
+        
+        await printer.printLabel(labelData);
+      }
+      
+      return response;
     },
     onSuccess: (data) => {
-      toast({ title: "Success", description: "Label generated successfully" });
+      toast({ title: "Success", description: "Label printed successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/remnants"] });
-      // In production, this would trigger print dialog or send to label printer
-      console.log("Print data:", data.printData);
       setShowLabelDialog(false);
     },
     onError: (error) => {
@@ -343,7 +396,7 @@ export default function RemnantManagement() {
                 <QrCode className="mr-2 h-4 w-4" />
                 Scan QR Code
               </Button>
-              <Button variant="outline" className="justify-start">
+              <Button variant="outline" className="justify-start" onClick={() => setShowPrinterSetup(true)}>
                 <Printer className="mr-2 h-4 w-4" />
                 Print Labels
               </Button>
@@ -835,6 +888,131 @@ export default function RemnantManagement() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Printer Setup Dialog */}
+      <Dialog open={showPrinterSetup} onOpenChange={setShowPrinterSetup}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Printer Configuration</DialogTitle>
+            <DialogDescription>
+              Configure your Zebra label printer for remnant labeling
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Printer Status */}
+            {printerStatus && (
+              <div className={`flex items-center gap-2 p-3 rounded-lg ${
+                printerStatus.online ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+              }`}>
+                {printerStatus.online ? (
+                  <CheckCircle2 className="h-5 w-5" />
+                ) : (
+                  <XCircle className="h-5 w-5" />
+                )}
+                <span className="font-medium">
+                  {printerStatus.online ? 'Printer Online' : 'Printer Offline'}
+                </span>
+                <span className="text-sm">- {printerStatus.status}</span>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="printerIp">Printer IP Address</Label>
+              <Input
+                id="printerIp"
+                value={printerConfig.ip}
+                onChange={(e) => setPrinterConfig({ ...printerConfig, ip: e.target.value })}
+                placeholder="192.168.1.100"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="printerPort">Port</Label>
+              <Input
+                id="printerPort"
+                type="number"
+                value={printerConfig.port}
+                onChange={(e) => setPrinterConfig({ ...printerConfig, port: parseInt(e.target.value) })}
+                placeholder="9100"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dpi">Print Resolution (DPI)</Label>
+              <Select
+                value={printerConfig.dpi.toString()}
+                onValueChange={(value) => setPrinterConfig({ ...printerConfig, dpi: parseInt(value) as 203 | 300 | 600 })}
+              >
+                <SelectTrigger id="dpi">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="203">203 DPI</SelectItem>
+                  <SelectItem value="300">300 DPI (Recommended)</SelectItem>
+                  <SelectItem value="600">600 DPI</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="labelWidth">Label Width (mm)</Label>
+                <Input
+                  id="labelWidth"
+                  type="number"
+                  value={printerConfig.labelWidth}
+                  onChange={(e) => setPrinterConfig({ ...printerConfig, labelWidth: parseInt(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="labelHeight">Label Height (mm)</Label>
+                <Input
+                  id="labelHeight"
+                  type="number"
+                  value={printerConfig.labelHeight}
+                  onChange={(e) => setPrinterConfig({ ...printerConfig, labelHeight: parseInt(e.target.value) })}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const printer = new ZebraPrinterService(printerConfig);
+                  const status = await printer.getStatus();
+                  setPrinterStatus(status);
+                }}
+              >
+                Test Connection
+              </Button>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setShowPrinterSetup(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    const printer = new ZebraPrinterService(printerConfig);
+                    const success = await printer.testConnection();
+                    if (success) {
+                      toast({ title: "Success", description: "Test print sent successfully" });
+                    } else {
+                      toast({ 
+                        title: "Error", 
+                        description: "Failed to connect to printer",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Test Print
+                </Button>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

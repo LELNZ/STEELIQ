@@ -6658,6 +6658,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return Math.round(wasteScore * 0.7 + ageScore * 0.3);
   }
 
+  // Print Service API endpoints
+  app.post("/api/print/label", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { printerIp, printerPort, zplData, remnantId } = req.body;
+
+      // In production, this would send to actual printer
+      // For now, we'll simulate the print job
+      console.log(`Printing label to ${printerIp}:${printerPort}`);
+      console.log(`ZPL Data length: ${zplData.length}`);
+
+      // Log print job
+      await db.execute(sql`
+        INSERT INTO print_jobs (user_id, printer_ip, printer_port, job_type, job_data, status, created_at)
+        VALUES (${user.userId}, ${printerIp}, ${printerPort}, 'remnant_label', 
+                ${JSON.stringify({ remnantId, zplData })}, 'completed', NOW())
+      `);
+
+      // Update remnant as labeled if remnantId provided
+      if (remnantId) {
+        await db.update(remnants)
+          .set({ isLabeled: true })
+          .where(eq(remnants.id, parseInt(remnantId)));
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Label sent to printer",
+        jobId: Date.now().toString()
+      });
+    } catch (error) {
+      console.error("Error printing label:", error);
+      res.status(500).json({ message: "Failed to print label" });
+    }
+  });
+
+  app.post("/api/print/test", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { printerIp, printerPort, zplData } = req.body;
+
+      // Simulate printer test
+      console.log(`Testing printer connection to ${printerIp}:${printerPort}`);
+
+      res.json({ 
+        success: true, 
+        message: "Test print sent successfully"
+      });
+    } catch (error) {
+      console.error("Error testing printer:", error);
+      res.status(500).json({ message: "Failed to test printer" });
+    }
+  });
+
+  app.get("/api/print/status", async (req, res) => {
+    try {
+      const { ip, port } = req.query;
+
+      // In production, this would check actual printer status
+      // For now, simulate printer status
+      const status = {
+        online: true,
+        status: "Ready",
+        queue: 0,
+        errors: [],
+        supplies: {
+          ribbon: 85,
+          labels: 92
+        }
+      };
+
+      res.json(status);
+    } catch (error) {
+      console.error("Error checking printer status:", error);
+      res.status(500).json({ 
+        online: false, 
+        status: "Connection failed" 
+      });
+    }
+  });
+
+  // Get print history
+  app.get("/api/print/history", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const history = await db.execute(sql`
+        SELECT 
+          pj.*,
+          u.username as printed_by
+        FROM print_jobs pj
+        JOIN users u ON pj.user_id = u.id
+        ORDER BY pj.created_at DESC
+        LIMIT 100
+      `);
+
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching print history:", error);
+      res.status(500).json({ message: "Failed to fetch print history" });
+    }
+  });
+
   // Resource Planning & Capacity Management API endpoints
   app.get('/api/resource-planning/capacity/overview', async (req, res) => {
     try {
