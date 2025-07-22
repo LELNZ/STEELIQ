@@ -226,24 +226,30 @@ export default function EstimationPage() {
   const { overheadSettings } = useBusinessSettings();
   const estimationDefaults = useEstimationDefaults();
 
-  // Fetch existing estimation projects
-  const { data: projects = [] } = useQuery<EstimationProject[]>({
+  // Performance optimized queries with loading states
+  const { data: projects = [], isLoading: projectsLoading, error: projectsError } = useQuery<EstimationProject[]>({
     queryKey: ["/api/estimations"],
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 2,
   });
 
   // Fetch materials for AI assistance
-  const { data: materials = [] } = useQuery({
+  const { data: materials = [], isLoading: materialsLoading } = useQuery({
     queryKey: ["/api/materials"],
+    staleTime: 10 * 60 * 1000, // 10 minutes - materials don't change often
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
   });
 
   // Fetch clients for project assignment
-  const { data: clients = [] } = useQuery({
+  const { data: clients = [], isLoading: clientsLoading } = useQuery({
     queryKey: ["/api/clients"],
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch suppliers for coating subcontractors
-  const { data: suppliers = [] } = useQuery({
+  const { data: suppliers = [], isLoading: suppliersLoading } = useQuery({
     queryKey: ["/api/suppliers"],
+    staleTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Load estimation from URL parameter if present
@@ -674,6 +680,69 @@ export default function EstimationPage() {
       });
     }
   });
+
+  // Check loading states for Week 3 optimization
+  const isLoading = projectsLoading || materialsLoading || clientsLoading || suppliersLoading;
+
+  // Error state handling
+  if (projectsError) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Unable to Load Estimations</h2>
+            <p className="text-muted-foreground mb-4">
+              We encountered an error while loading your estimation data.
+            </p>
+            <Button
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ["/api/estimations"] });
+              }}
+              variant="default"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Loading skeleton for better perceived performance
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-8xl mx-auto space-y-6">
+          {/* Header skeleton */}
+          <div className="animate-pulse">
+            <div className="h-12 bg-muted rounded-lg w-64 mb-4" />
+            <div className="h-6 bg-muted rounded w-96" />
+          </div>
+
+          {/* Tabs skeleton */}
+          <div className="flex gap-4 mb-8">
+            <div className="h-10 w-32 bg-muted rounded animate-pulse" />
+            <div className="h-10 w-32 bg-muted rounded animate-pulse" />
+            <div className="h-10 w-32 bg-muted rounded animate-pulse" />
+          </div>
+
+          {/* Content skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <div className="h-48 bg-muted rounded-lg animate-pulse" />
+              <div className="h-48 bg-muted rounded-lg animate-pulse" />
+            </div>
+            <div className="space-y-4">
+              <div className="h-32 bg-muted rounded-lg animate-pulse" />
+              <div className="h-32 bg-muted rounded-lg animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-6">

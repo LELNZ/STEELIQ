@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,9 @@ import {
   Clock,
   User,
   Calendar,
-  Play
+  Play,
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 import { JobStats, ActivityItem } from "@/types";
 
@@ -34,20 +37,35 @@ export default function Dashboard() {
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'card' | 'list'>('table');
 
-  const { data: stats, isLoading: statsLoading } = useQuery<JobStats>({
+  // Performance optimization: Use parallel queries with stale time
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<JobStats>({
     queryKey: ["/api/analytics/stats"],
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    retry: 2, // Retry failed requests
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  const { data: jobs, isLoading: jobsLoading } = useQuery({
+  const { data: jobs, isLoading: jobsLoading, error: jobsError } = useQuery({
     queryKey: ["/api/jobs"],
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    select: (data: any[]) => data?.slice(0, 10), // Only show latest 10 jobs on dashboard
+    retry: 2,
   });
 
-  const { data: materials } = useQuery<any[]>({
+  const { data: materials } = useQuery<any[], Error, number>({
     queryKey: ["/api/materials"],
+    staleTime: 10 * 60 * 1000, // Materials don't change often
+    select: (data: any[]) => data?.length || 0, // Only need count for dashboard
   });
 
-  const { data: inventory } = useQuery<any[]>({
+  const { data: inventory } = useQuery<any[], Error, { totalItems: number; lowStock: number }>({
     queryKey: ["/api/inventory"],
+    staleTime: 5 * 60 * 1000,
+    select: (data: any[]) => ({
+      totalItems: data?.length || 0,
+      lowStock: data?.filter((item: any) => item.quantity < item.minQuantity).length || 0
+    }),
   });
 
   // Mock activity data - in real app this would come from API
@@ -72,13 +90,84 @@ export default function Dashboard() {
     }
   ];
 
+  // Error state with retry button
+  if (statsError || jobsError) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center space-y-4">
+        <div className="text-center space-y-2">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+          <h2 className="text-xl font-semibold">Unable to Load Dashboard</h2>
+          <p className="text-muted-foreground max-w-md">
+            We encountered an error while loading your dashboard data. Please try again.
+          </p>
+        </div>
+        <Button
+          onClick={() => {
+            queryClient.invalidateQueries({ queryKey: ["/api/analytics/stats"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+          }}
+          variant="default"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  // Show skeleton loading for better perceived performance
   if (statsLoading) {
     return (
-      <LoadingState 
-        message="Loading dashboard statistics..." 
-        size="xl" 
-        className="min-h-[400px]" 
-      />
+      <div className="space-y-6">
+        {/* Skeleton Action Bar */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="h-10 w-24 bg-muted animate-pulse rounded-md" />
+            <div className="h-10 w-28 bg-muted animate-pulse rounded-md" />
+            <div className="h-10 w-20 bg-muted animate-pulse rounded-md" />
+          </div>
+        </div>
+
+        {/* Skeleton Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="h-4 w-24 bg-muted animate-pulse rounded mb-2" />
+                <div className="h-8 w-16 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Skeleton Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <div className="h-6 w-32 bg-muted animate-pulse rounded" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-28 bg-muted animate-pulse rounded" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     );
   }
 
@@ -101,7 +190,7 @@ export default function Dashboard() {
           </Button>
         </div>
         <div className="flex items-center space-x-2">
-          {(materials?.length || 0) === 0 && (
+          {(materials || 0) === 0 && (
             <Button 
               onClick={() => setShowSetupWizard(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -210,12 +299,33 @@ export default function Dashboard() {
             <CardContent className="p-0">
               {jobsLoading ? (
                 <div className="flex items-center justify-center h-64">
-                  <p className="text-muted-foreground">Loading jobs...</p>
+                  <div className="space-y-4">
+                    <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-muted-foreground">Loading jobs...</p>
+                  </div>
                 </div>
-              ) : viewMode === 'table' ? (
-                <JobTable jobs={jobs || []} />
+              ) : jobs && jobs.length > 0 ? (
+                <div className="transition-all duration-300 ease-in-out">
+                  {viewMode === 'table' ? (
+                    <JobTable jobs={jobs} />
+                  ) : (
+                    <JobList />
+                  )}
+                </div>
               ) : (
-                <JobList />
+                <div className="flex flex-col items-center justify-center h-64 space-y-4">
+                  <Briefcase className="h-12 w-12 text-muted-foreground/50" />
+                  <div className="text-center">
+                    <h3 className="font-medium text-lg">No Jobs Yet</h3>
+                    <p className="text-muted-foreground text-sm mt-1">
+                      Create your first job to get started with optimization
+                    </p>
+                  </div>
+                  <Button variant="default" className="mt-4">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Job
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>

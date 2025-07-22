@@ -43,7 +43,7 @@ export default function ImportedCostsTab() {
   });
 
   // Fetch jobs for assignment
-  const { data: jobs = [] } = useQuery({
+  const { data: jobs = [] } = useQuery<any[]>({
     queryKey: ["/api/jobs"],
   });
 
