@@ -3,19 +3,16 @@
   <rect width="512" height="512" fill="#ffffff"/>
   <!-- Content centered with safe zone padding (80% of icon) -->
   <g transform="translate(256, 256)">
-    <!-- LEL Logo based on company design (smaller for safe zone) -->
-    <g transform="scale(6.4) translate(-20, -16)">
+    <!-- LEL Logo simplified design (smaller for safe zone) -->
+    <g transform="scale(8) translate(-16, -12)">
       <!-- Top horizontal bar -->
-      <rect x="8" y="0" width="24" height="6" rx="1" fill="#000000"/>
+      <rect x="4" y="0" width="24" height="4" rx="2" fill="#000000"/>
       
       <!-- Middle horizontal bar -->
-      <rect x="8" y="10" width="24" height="6" rx="1" fill="#000000"/>
+      <rect x="4" y="8" width="24" height="4" rx="2" fill="#000000"/>
       
-      <!-- Bottom L shape -->
-      <path d="M 8 20 L 8 32 Q 8 34 10 34 L 22 34 L 22 28 L 14 28 L 14 20 Z" fill="#000000"/>
-      
-      <!-- Right vertical bar connecting to top -->
-      <path d="M 32 0 L 38 0 Q 40 0 40 2 L 40 20 Q 40 26 34 26 L 8 26 L 8 20 L 34 20 Q 34 20 34 20 L 34 6 L 32 6 Z" fill="#000000"/>
+      <!-- Bottom L shape and right vertical -->
+      <path d="M 4 16 L 4 24 Q 4 24 4 24 L 12 24 L 12 20 L 8 20 L 8 16 L 28 16 Q 32 16 32 12 L 32 0 L 28 0 L 28 12 L 4 12 L 4 16 Z" fill="#000000"/>
     </g>
   </g>
 </svg>
