@@ -24,40 +24,46 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function TopBar() {
   return (
-    <header className="bg-card border-b border-border px-3 sm:px-6 py-3 sm:py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
+    <header className="bg-card border-b border-border px-2 sm:px-4 lg:px-6 py-2 sm:py-3">
+      <div className="flex items-center justify-between gap-2">
+        {/* Logo and title - more compact on mobile */}
+        <div className="flex items-center min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0">
               <img 
                 src={logoIcon} 
-                alt="Lateral Engineering Logo" 
-                className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
+                alt="LEL" 
+                className="w-full h-full object-contain"
               />
             </div>
-            <div>
-              <h1 className="text-base sm:text-xl font-bold text-foreground">Lateral Engineering</h1>
-              <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">Steel Management</p>
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base lg:text-xl font-bold text-foreground truncate">
+                <span className="sm:hidden">LEL</span>
+                <span className="hidden sm:inline">Lateral Engineering</span>
+              </h1>
+              <p className="text-muted-foreground text-xs hidden lg:block">Steel Management</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center space-x-2 bg-accent/10 px-3 py-1 rounded-full">
+          {/* Real-time sync badge - only on large screens */}
+          <div className="hidden xl:flex items-center gap-2 bg-accent/10 px-3 py-1 rounded-full ml-4">
             <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
             <span className="text-accent text-sm font-medium">Real-time Sync</span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          {/* Search and filters - hidden on mobile */}
-          <div className="hidden lg:flex items-center space-x-4">
+        {/* Right side actions - compact on mobile */}
+        <div className="flex items-center gap-1 sm:gap-2 lg:gap-4 flex-shrink-0">
+          {/* Search and filters - only on desktop */}
+          <div className="hidden xl:flex items-center gap-4">
             <div className="relative">
               <Input
                 type="text"
                 placeholder="Search jobs, materials..."
-                className="w-80"
+                className="w-64 lg:w-80"
               />
             </div>
             <Select defaultValue="all">
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-36 lg:w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -69,11 +75,11 @@ export default function TopBar() {
             </Select>
           </div>
 
-          {/* Notifications */}
+          {/* Notifications - smaller on mobile */}
           <div className="relative">
-            <Button variant="ghost" size="icon">
-              <Bell className="h-5 w-5" />
-              <Badge className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center p-0">
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Badge className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center p-0">
                 2
               </Badge>
             </Button>
@@ -156,26 +162,26 @@ function UserMenu() {
   };
 
   return (
-    <div className="flex items-center space-x-3">
-      {/* Clock Status Indicator */}
-      <div className="flex items-center space-x-2">
-        <div className={`flex items-center space-x-1 ${getClockStatusColor()}`}>
-          <Timer className="h-4 w-4" />
-          <span className="text-xs font-medium">{getClockStatusText()}</span>
+    <div className="flex items-center gap-1 sm:gap-2">
+      {/* Clock Status Indicator - hidden on mobile, visible on tablet+ */}
+      <div className="hidden sm:flex items-center gap-1">
+        <div className={`flex items-center gap-1 ${getClockStatusColor()}`}>
+          <Timer className="h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="text-[10px] sm:text-xs font-medium">{getClockStatusText()}</span>
         </div>
       </div>
 
       {/* User Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center space-x-3 hover:bg-accent">
-            <div className="text-right">
-              <p className="text-sm font-medium text-foreground">{user.name || user.username}</p>
-              <p className="text-xs text-muted-foreground">{user.role || 'User'}</p>
+          <Button variant="ghost" className="flex items-center gap-1 sm:gap-2 px-1 sm:px-2 hover:bg-accent">
+            <div className="text-right hidden sm:block">
+              <p className="text-xs sm:text-sm font-medium text-foreground leading-tight">{user.name || user.username}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">{user.role || 'User'}</p>
             </div>
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10">
               <AvatarImage src={user.profileImageUrl} alt={user.name} />
-              <AvatarFallback>
+              <AvatarFallback className="text-xs sm:text-sm">
                 {user.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : user.username?.[0]?.toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
@@ -190,11 +196,6 @@ function UserMenu() {
                 <Badge variant="secondary" className="text-xs">
                   {user.department || user.role || 'User'}
                 </Badge>
-                {user.hourlyRate && (
-                  <span className="text-xs text-muted-foreground">
-                    ${user.hourlyRate}/hr
-                  </span>
-                )}
               </div>
             </div>
           </DropdownMenuLabel>
