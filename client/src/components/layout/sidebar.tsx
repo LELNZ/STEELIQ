@@ -81,11 +81,11 @@ export default function Sidebar() {
   const [location] = useLocation();
 
   return (
-    <div className="w-64 flex-shrink-0 p-4 pt-8">
-      <div className="bg-card rounded-xl shadow-lg border h-full">
+    <div className="w-64 flex-shrink-0 p-4 pt-8 h-screen">
+      <div className="bg-card rounded-xl shadow-lg border h-full flex flex-col overflow-hidden">
 
         {/* Navigation */}
-        <nav className="p-4">
+        <nav className="p-4 overflow-y-auto flex-1">
           {navigation.map((section) => (
             <div key={section.name} className="mb-6">
               <h3 className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">

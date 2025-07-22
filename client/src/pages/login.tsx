@@ -61,14 +61,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Company Logo & Header */}
         <div className="text-center space-y-4">
-          <div className="mx-auto w-64 h-32 bg-white rounded-xl flex items-center justify-center shadow-lg border p-4">
+          <div className="mx-auto w-32 h-32 bg-white rounded-xl flex items-center justify-center shadow-lg border overflow-hidden">
             <img 
               src={companyLogo} 
               alt="Lateral Engineering Logo" 
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover scale-150"
             />
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Steel Fabrication Management System</p>
         </div>
 
         {/* Login Form */}

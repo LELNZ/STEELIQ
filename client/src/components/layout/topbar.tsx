@@ -53,7 +53,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
             <div className="min-w-0">
               <h1 className="text-sm sm:text-base lg:text-xl font-bold text-foreground truncate">
                 <span className="sm:hidden">LEL</span>
-                <span className="hidden sm:inline">Lateral Engineering</span>
+                <span className="hidden sm:inline">Lateral Engineering Limited</span>
               </h1>
               <p className="text-muted-foreground text-xs hidden lg:block">Steel Management</p>
             </div>
