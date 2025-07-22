@@ -797,13 +797,14 @@ export default function CuttingOptimizationFixed() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Cutting Optimization</h1>
-          <p className="text-muted-foreground">Generate professional workshop cutting plans</p>
+          <h1 className="text-2xl font-bold">Cutting Optimization</h1>
+          <p className="text-sm text-muted-foreground">Generate professional workshop cutting plans</p>
         </div>
         <Button
+          size="sm"
           variant={showHistory ? "default" : "outline"}
           onClick={() => setShowHistory(!showHistory)}
         >

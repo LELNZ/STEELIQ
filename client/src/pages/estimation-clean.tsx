@@ -745,13 +745,13 @@ export default function EstimationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-4">
       {/* Header */}
-      <div className="max-w-7xl mx-auto mb-6">
+      <div className="max-w-7xl mx-auto mb-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight">AI Estimation Engine</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl font-bold tracking-tight">AI Estimation Engine</h1>
+            <p className="text-sm text-muted-foreground">
               Comprehensive estimation platform with quotation monitoring and pipeline analytics
             </p>
           </div>

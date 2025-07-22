@@ -31,38 +31,38 @@ export default function InventoryPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Inventory Management</h1>
-          <p className="text-muted-foreground">Track material stock levels and manage inventory</p>
+          <h1 className="text-2xl font-bold text-foreground">Inventory Management</h1>
+          <p className="text-sm text-muted-foreground">Track material stock levels and manage inventory</p>
         </div>
       </div>
 
       {/* Action Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button className="bg-secondary hover:bg-secondary/90">
-            <Plus className="w-4 h-4 mr-2" />
+      <div className="flex flex-col lg:flex-row gap-3 lg:gap-0 lg:items-center lg:justify-between">
+        <div className="flex items-center gap-2">
+          <Button size="sm" className="bg-secondary hover:bg-secondary/90">
+            <Plus className="w-4 h-4 mr-1" />
             Add Stock
           </Button>
-          <Button variant="outline">
-            <QrCode className="w-4 h-4 mr-2" />
-            Scan QR Code
+          <Button size="sm" variant="outline">
+            <QrCode className="w-4 h-4 mr-1" />
+            Scan QR
           </Button>
-          <Button variant="outline">
-            <Barcode className="w-4 h-4 mr-2" />
-            Generate Labels
+          <Button size="sm" variant="outline">
+            <Barcode className="w-4 h-4 mr-1" />
+            Labels
           </Button>
         </div>
 
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Search inventory..."
-            className="pl-10 w-80"
+            className="pl-8 w-48 lg:w-64 h-8"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />

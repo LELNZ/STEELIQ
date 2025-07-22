@@ -40,24 +40,25 @@ export default function Materials() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Material Library</h1>
-          <p className="text-muted-foreground">Manage your steel catalogue with organized categories and pricing</p>
+          <h1 className="text-2xl font-bold text-foreground">Material Library</h1>
+          <p className="text-sm text-muted-foreground">Manage your steel catalogue with organized categories and pricing</p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-2">
           <Button 
+            size="sm"
             variant="outline"
             onClick={() => setShowUploadModal(true)}
           >
-            <Upload className="w-4 h-4 mr-2" />
-            Import CSV
+            <Upload className="w-4 h-4 mr-1" />
+            Import
           </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
+          <Button size="sm" variant="outline" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-1" />
+            Export
           </Button>
         </div>
       </div>

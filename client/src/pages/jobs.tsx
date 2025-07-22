@@ -33,12 +33,12 @@ export default function Jobs() {
   const efficiency = jobs.length > 0 ? Math.round((completedJobs / jobs.length) * 100) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Jobs & Cutting</h1>
-          <p className="text-muted-foreground">Manage cutting jobs and optimize material usage</p>
+          <h1 className="text-2xl font-bold text-foreground">Jobs & Cutting</h1>
+          <p className="text-sm text-muted-foreground">Manage cutting jobs and optimize material usage</p>
         </div>
       </div>
 
@@ -74,38 +74,39 @@ export default function Jobs() {
       </div>
 
       {/* Action Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col lg:flex-row gap-3 lg:gap-0 lg:items-center lg:justify-between">
+        <div className="flex items-center gap-2">
           <Button 
+            size="sm"
             className="bg-secondary hover:bg-secondary/90"
             onClick={() => setShowNewJobModal(true)}
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 mr-1" />
             New Job
           </Button>
-          <Button className="bg-accent hover:bg-accent/90">
-            <Zap className="w-4 h-4 mr-2" />
-            Optimize All
+          <Button size="sm" className="bg-accent hover:bg-accent/90">
+            <Zap className="w-4 h-4 mr-1" />
+            Optimize
           </Button>
-          <Button variant="outline">
-            <Download className="w-4 h-4 mr-2" />
+          <Button size="sm" variant="outline">
+            <Download className="w-4 h-4 mr-1" />
             Export
           </Button>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search jobs, materials..."
-              className="pl-10 w-80"
+              placeholder="Search jobs..."
+              className="pl-8 w-48 lg:w-64 h-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-32 h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
