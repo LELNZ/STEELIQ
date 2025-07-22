@@ -1,16 +1,23 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <!-- Safe zone background with padding for maskable icon -->
-  <rect width="512" height="512" fill="#1e40af"/>
+  <rect width="512" height="512" fill="#ffffff"/>
   <!-- Content centered with safe zone padding (80% of icon) -->
   <g transform="translate(256, 256)">
-    <!-- LEL Letters -->
-    <text x="0" y="-40" text-anchor="middle" font-family="Arial, sans-serif" font-size="96" font-weight="bold" fill="white">LEL</text>
-    <!-- Steel beam icon (smaller for safe zone) -->
-    <g transform="translate(-80, 16)">
-      <rect x="0" y="0" width="160" height="16" fill="white"/>
-      <rect x="0" y="16" width="16" height="48" fill="white"/>
-      <rect x="144" y="16" width="16" height="48" fill="white"/>
-      <rect x="0" y="64" width="160" height="16" fill="white"/>
+    <!-- LEL Logo with custom E design (smaller for safe zone) -->
+    <g transform="scale(5.2) translate(-24, -12)">
+      <!-- L (left) -->
+      <rect x="0" y="0" width="5" height="20" fill="#000000"/>
+      <rect x="0" y="15" width="12" height="5" fill="#000000"/>
+      
+      <!-- E (middle with custom design) -->
+      <rect x="17" y="0" width="14" height="5" fill="#000000"/>
+      <rect x="17" y="7.5" width="14" height="5" fill="#000000"/>
+      <rect x="17" y="15" width="14" height="5" fill="#000000"/>
+      <rect x="17" y="0" width="5" height="20" fill="#000000"/>
+      
+      <!-- L (right) -->
+      <rect x="36" y="0" width="5" height="20" fill="#000000"/>
+      <rect x="36" y="15" width="12" height="5" fill="#000000"/>
     </g>
   </g>
 </svg>

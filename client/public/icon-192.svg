@@ -1,14 +1,21 @@
 <svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
-  <rect width="192" height="192" fill="#1e40af"/>
+  <rect width="192" height="192" fill="#ffffff"/>
   <g transform="translate(96, 96)">
-    <!-- LEL Letters -->
-    <text x="0" y="-20" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white">LEL</text>
-    <!-- Steel beam icon -->
-    <g transform="translate(-40, 10)">
-      <rect x="0" y="0" width="80" height="8" fill="white"/>
-      <rect x="0" y="8" width="8" height="24" fill="white"/>
-      <rect x="72" y="8" width="8" height="24" fill="white"/>
-      <rect x="0" y="32" width="80" height="8" fill="white"/>
+    <!-- LEL Logo with custom E design -->
+    <g transform="scale(2.5) translate(-24, -12)">
+      <!-- L (left) -->
+      <rect x="0" y="0" width="5" height="20" fill="#000000"/>
+      <rect x="0" y="15" width="12" height="5" fill="#000000"/>
+      
+      <!-- E (middle with custom design) -->
+      <rect x="17" y="0" width="14" height="5" fill="#000000"/>
+      <rect x="17" y="7.5" width="14" height="5" fill="#000000"/>
+      <rect x="17" y="15" width="14" height="5" fill="#000000"/>
+      <rect x="17" y="0" width="5" height="20" fill="#000000"/>
+      
+      <!-- L (right) -->
+      <rect x="36" y="0" width="5" height="20" fill="#000000"/>
+      <rect x="36" y="15" width="12" height="5" fill="#000000"/>
     </g>
   </g>
 </svg>

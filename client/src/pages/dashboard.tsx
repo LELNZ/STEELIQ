@@ -172,20 +172,22 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Action Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button className="bg-secondary hover:bg-secondary/90">
-            <Plus className="w-4 h-4 mr-2" />
-            New Job
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2 sm:gap-4">
+          <Button className="bg-secondary hover:bg-secondary/90" size="sm">
+            <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">New Job</span>
+            <span className="sm:hidden">New</span>
           </Button>
-          <Button className="bg-accent hover:bg-accent/90">
-            <Zap className="w-4 h-4 mr-2" />
-            Optimize All
+          <Button className="bg-accent hover:bg-accent/90" size="sm">
+            <Zap className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Optimize All</span>
+            <span className="sm:hidden">Optimize</span>
           </Button>
-          <Button variant="outline">
-            <Download className="w-4 h-4 mr-2" />
+          <Button variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-1 sm:mr-2" />
             Export
           </Button>
         </div>
@@ -203,81 +205,81 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">Active Jobs</p>
-                <p className="text-3xl font-bold text-foreground mt-1">
+              <div className="flex-1">
+                <p className="text-muted-foreground text-xs sm:text-sm font-medium">Active Jobs</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">
                   {stats?.activeJobs ?? 0}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
-                <Briefcase className="text-secondary text-xl" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <Briefcase className="text-secondary w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
               </div>
             </div>
-            <div className="mt-4 flex items-center">
-              <TrendingUp className="w-4 h-4 text-accent mr-1" />
-              <span className="text-accent text-sm font-medium">+8%</span>
-              <span className="text-muted-foreground text-sm ml-1">from last week</span>
+            <div className="mt-2 sm:mt-3 lg:mt-4 flex items-center">
+              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-accent mr-1" />
+              <span className="text-accent text-xs sm:text-sm font-medium">+8%</span>
+              <span className="text-muted-foreground text-xs sm:text-sm ml-1 hidden sm:inline">from last week</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">Material Efficiency</p>
-                <p className="text-3xl font-bold text-foreground mt-1">
+              <div className="flex-1">
+                <p className="text-muted-foreground text-xs sm:text-sm font-medium">Material Efficiency</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">
                   {stats?.avgEfficiency ? Number(stats.avgEfficiency).toFixed(1) : '0.0'}%
                 </p>
               </div>
-              <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
-                <Leaf className="text-accent text-xl" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <Leaf className="text-accent w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
               </div>
             </div>
-            <div className="mt-4 flex items-center">
-              <span className="text-accent text-sm font-medium">Target: 95%</span>
+            <div className="mt-2 sm:mt-3 lg:mt-4 flex items-center">
+              <span className="text-accent text-xs sm:text-sm font-medium">Target: 95%</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">Weekly Volume</p>
-                <p className="text-3xl font-bold text-foreground mt-1">
-                  {stats?.weeklyVolume ?? 0} jobs
+              <div className="flex-1">
+                <p className="text-muted-foreground text-xs sm:text-sm font-medium">Weekly Volume</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">
+                  {stats?.weeklyVolume ?? 0} <span className="text-base sm:text-lg lg:text-xl">jobs</span>
                 </p>
               </div>
-              <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center">
-                <Weight className="text-warning text-xl" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-warning/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <Weight className="text-warning w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
               </div>
             </div>
-            <div className="mt-4 flex items-center">
-              <span className="text-muted-foreground text-sm">of 5t capacity</span>
+            <div className="mt-2 sm:mt-3 lg:mt-4 flex items-center">
+              <span className="text-muted-foreground text-xs sm:text-sm">of 5t capacity</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">Total Value</p>
-                <p className="text-3xl font-bold text-foreground mt-1">
+              <div className="flex-1">
+                <p className="text-muted-foreground text-xs sm:text-sm font-medium">Total Value</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">
                   ${stats?.totalValue?.toLocaleString() ?? '0'}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
-                <DollarSign className="text-accent text-xl" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <DollarSign className="text-accent w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
               </div>
             </div>
-            <div className="mt-4 flex items-center">
-              <span className="text-accent text-sm font-medium">This month</span>
+            <div className="mt-2 sm:mt-3 lg:mt-4 flex items-center">
+              <span className="text-accent text-xs sm:text-sm font-medium">This month</span>
             </div>
           </CardContent>
         </Card>
