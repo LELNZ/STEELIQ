@@ -136,8 +136,10 @@ function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <TopBar />
       <div className="flex min-h-screen pt-0">
-        <Sidebar />
-        <main className="flex-1 p-6 pb-20">
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
+        <main className="flex-1 p-2 sm:p-4 md:p-6 pb-20 max-w-full overflow-x-hidden">
           {children}
         </main>
       </div>

@@ -71,6 +71,74 @@
   --sidebar-ring: 213 50% 58%; /* #6366F1 */
 }
 
+/* Mobile-specific adjustments for PWA */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Ensure proper scaling on high-res mobile devices */
+  html {
+    font-size: 16px !important;
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* Fix for sidebar on mobile */
+  .sidebar {
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+  
+  /* Adjust main content padding on mobile */
+  main {
+    padding: 0.5rem !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Fix tables on mobile */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Adjust cards and containers */
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Fix form inputs on mobile */
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+}
+
+/* Samsung S24 Ultra specific (large mobile screens) */
+@media (min-width: 412px) and (max-width: 768px) {
+  /* Adjust layout for larger mobile screens */
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Better card spacing */
+  .space-y-4 > * + * {
+    margin-top: 0.75rem !important;
+  }
+}
+
+/* PWA standalone mode adjustments */
+@media (display-mode: standalone) {
+  /* Account for safe areas on modern phones */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

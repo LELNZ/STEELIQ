@@ -24,31 +24,31 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function TopBar() {
   return (
-    <header className="bg-card border-b border-border px-6 py-4">
+    <header className="bg-card border-b border-border px-3 sm:px-6 py-3 sm:py-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 flex items-center justify-center">
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
               <img 
                 src={logoIcon} 
                 alt="Lateral Engineering Logo" 
-                className="w-8 h-8 object-contain"
+                className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
               />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Lateral Engineering</h1>
-              <p className="text-muted-foreground text-sm">Steel Management</p>
+              <h1 className="text-base sm:text-xl font-bold text-foreground">Lateral Engineering</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">Steel Management</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2 bg-accent/10 px-3 py-1 rounded-full">
+          <div className="hidden md:flex items-center space-x-2 bg-accent/10 px-3 py-1 rounded-full">
             <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
             <span className="text-accent text-sm font-medium">Real-time Sync</span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
-          {/* Search and filters */}
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          {/* Search and filters - hidden on mobile */}
+          <div className="hidden lg:flex items-center space-x-4">
             <div className="relative">
               <Input
                 type="text"
