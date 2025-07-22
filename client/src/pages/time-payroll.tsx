@@ -28,6 +28,21 @@ export default function TimePayroll() {
   const [showAddRateCardDialog, setShowAddRateCardDialog] = useState(false);
   const [skillLevel, setSkillLevel] = useState("");
   const [employeeType, setEmployeeType] = useState("");
+  const [showMobileSyncDialog, setShowMobileSyncDialog] = useState(false);
+  const [mobileTimeData, setMobileTimeData] = useState<any>(null);
+
+  // Check for mobile sync on mount
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('sync') === 'mobile') {
+      const mobileData = sessionStorage.getItem('mobileTimeEntries');
+      if (mobileData) {
+        setMobileTimeData(JSON.parse(mobileData));
+        setShowMobileSyncDialog(true);
+        sessionStorage.removeItem('mobileTimeEntries');
+      }
+    }
+  }, []);
 
   // Fetch labor rate cards
   const { data: laborRateCards = [] } = useQuery({
@@ -629,6 +644,93 @@ export default function TimePayroll() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mobile Sync Dialog */}
+      <Dialog open={showMobileSyncDialog} onOpenChange={setShowMobileSyncDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5" />
+              Mobile Time Entries Import
+            </DialogTitle>
+          </DialogHeader>
+          
+          {mobileTimeData && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-sm font-medium text-blue-900">Import Summary</p>
+                <div className="grid grid-cols-3 gap-4 mt-2">
+                  <div>
+                    <p className="text-xs text-blue-700">Date</p>
+                    <p className="font-medium">{format(new Date(mobileTimeData.date), 'PPP')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-blue-700">Site</p>
+                    <p className="font-medium">{mobileTimeData.site === 'all' ? 'All Sites' : mobileTimeData.site}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-blue-700">Total Hours</p>
+                    <p className="font-medium">{mobileTimeData.totalHours.toFixed(1)}h</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-2">Time Entries ({mobileTimeData.entries.length})</h4>
+                <div className="max-h-[300px] overflow-y-auto space-y-2">
+                  {mobileTimeData.entries.map((entry: any, idx: number) => (
+                    <div key={idx} className="border rounded-lg p-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">{entry.employeeName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {entry.employeeNumber} • {entry.jobSite}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">{entry.totalHours?.toFixed(1) || '0'}h</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(entry.clockIn), 'HH:mm')} - {entry.clockOut ? format(new Date(entry.clockOut), 'HH:mm') : 'Active'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <MapPin className="h-3 w-3 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">{entry.location.address}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Import these time entries to the payroll system?
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setShowMobileSyncDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      toast({
+                        title: "Time Entries Imported",
+                        description: `Successfully imported ${mobileTimeData.entries.length} time entries from Mobile Operations`,
+                      });
+                      setShowMobileSyncDialog(false);
+                      // Refresh the time clock data
+                      queryClient.invalidateQueries({ queryKey: ["/api/time/summary"] });
+                    }}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Import to Payroll
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -154,6 +154,27 @@ export default function TimeTrackingTab() {
             <MapPinned className="h-4 w-4 mr-1" />
             Map View
           </Button>
+          <Button
+            size="sm"
+            variant="default"
+            onClick={() => {
+              // Store time entries for payroll sync
+              const dataForPayroll = {
+                date: format(selectedDate, "yyyy-MM-dd"),
+                site: selectedSite,
+                entries: timeEntries.filter(entry => entry.status === "completed"),
+                totalHours: totalHoursToday,
+                activeWorkers: activeWorkers
+              };
+              sessionStorage.setItem('mobileTimeEntries', JSON.stringify(dataForPayroll));
+              
+              // Navigate to Time & Payroll
+              window.location.href = '/time-payroll?sync=mobile';
+            }}
+          >
+            <Clock className="h-4 w-4 mr-1" />
+            Sync to Payroll
+          </Button>
         </div>
       </div>
 

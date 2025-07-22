@@ -423,6 +423,68 @@ export default function CostAnalysisTab() {
         </CardContent>
       </Card>
 
+      {/* Email Import Integration */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Email Cost Import Integration
+              </CardTitle>
+              <CardDescription>
+                Sync actual costs from supplier invoices with job profitability analysis
+              </CardDescription>
+            </div>
+            <Button 
+              onClick={() => window.location.href = '/email-cost-import'}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Activity className="h-4 w-4" />
+              View Import Dashboard
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="border border-gray-100">
+                <CardContent className="pt-6">
+                  <div className="text-2xl font-bold">12</div>
+                  <p className="text-sm text-muted-foreground">Pending cost reviews</p>
+                </CardContent>
+              </Card>
+              <Card className="border border-gray-100">
+                <CardContent className="pt-6">
+                  <div className="text-2xl font-bold text-red-600">+15.2%</div>
+                  <p className="text-sm text-muted-foreground">Average cost variance</p>
+                </CardContent>
+              </Card>
+              <Card className="border border-gray-100">
+                <CardContent className="pt-6">
+                  <div className="text-2xl font-bold">87%</div>
+                  <p className="text-sm text-muted-foreground">Auto-match accuracy</p>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div className="bg-blue-50 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-blue-900">Email Cost Import Active</p>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Automatically importing supplier invoices from connected email accounts. 
+                    Costs are matched to jobs using PO numbers and analyzed for variances against estimates.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Cost Optimization Insights */}
       <Card>
         <CardHeader>

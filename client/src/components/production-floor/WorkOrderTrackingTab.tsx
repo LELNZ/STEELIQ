@@ -199,6 +199,45 @@ export default function WorkOrderTrackingTab() {
           <FileText className="h-4 w-4 mr-2" />
           Create Work Order
         </Button>
+
+        <Button 
+          variant="default"
+          onClick={() => {
+            // Store active work orders for resource planning sync
+            const activeOrders = filteredWorkOrders.filter(order => 
+              order.status === 'in-progress' || order.status === 'pending'
+            );
+            
+            const dataForResourcePlanning = {
+              date: new Date().toISOString(),
+              workOrders: activeOrders.map(order => ({
+                id: order.id,
+                workOrderNumber: order.workOrderNumber,
+                projectName: order.projectName,
+                priority: order.priority,
+                dueDate: order.dueDate,
+                assignedTeam: order.assignedTeam,
+                totalWeight: order.totalWeight,
+                operations: order.operations,
+                completionProgress: order.completionProgress
+              })),
+              totalActiveOrders: activeOrders.length,
+              resourceRequirements: {
+                teams: activeOrders.map(o => o.assignedTeam).filter((v, i, a) => a.indexOf(v) === i),
+                urgentOrders: activeOrders.filter(o => o.priority === 'urgent').length,
+                totalWeight: activeOrders.reduce((sum, o) => sum + o.totalWeight, 0)
+              }
+            };
+            
+            sessionStorage.setItem('productionFloorData', JSON.stringify(dataForResourcePlanning));
+            
+            // Navigate to Resource Planning
+            window.location.href = '/resource-planning?sync=production';
+          }}
+        >
+          <Users className="h-4 w-4 mr-2" />
+          Sync to Resources
+        </Button>
       </div>
 
       {/* Work Orders Table */}

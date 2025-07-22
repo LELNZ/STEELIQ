@@ -88,6 +88,29 @@ export default function ImportedCostsTab() {
     }
   };
 
+  const handleSyncToFinancial = () => {
+    const approvedCosts = costs.filter((cost: ImportedCost) => cost.status === 'approved');
+    if (approvedCosts.length === 0) {
+      toast({
+        title: "No Approved Costs",
+        description: "Approve some costs before syncing to Financial Intelligence",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Store approved costs in sessionStorage for Financial Intelligence to retrieve
+    sessionStorage.setItem('importedCosts', JSON.stringify(approvedCosts));
+    
+    toast({
+      title: "Sync Started",
+      description: `Syncing ${approvedCosts.length} approved costs to Financial Intelligence...`,
+    });
+    
+    // Navigate to Financial Intelligence
+    window.location.href = '/financial-intelligence?tab=costs';
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -97,18 +120,28 @@ export default function ImportedCostsTab() {
             Review and approve supplier invoices imported from emails
           </p>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Costs</SelectItem>
-            <SelectItem value="pending">Pending Review</SelectItem>
-            <SelectItem value="reviewed">Reviewed</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleSyncToFinancial}
+            variant="default"
+            className="flex items-center gap-2"
+          >
+            <CheckCircle className="h-4 w-4" />
+            Sync to Financial
+          </Button>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Costs</SelectItem>
+              <SelectItem value="pending">Pending Review</SelectItem>
+              <SelectItem value="reviewed">Reviewed</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {isLoading ? (

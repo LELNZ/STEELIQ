@@ -530,10 +530,54 @@ export default function EstimationPage() {
       console.log("No existing estimation data, creating new", error);
     }
 
-    // Create new estimation data if none exists
+    // Check for drawing import data from Drawing Intelligence
+    let importedMaterials: MaterialCost[] = [];
+    const drawingImportData = sessionStorage.getItem('drawingImportData');
+    if (drawingImportData) {
+      try {
+        const importData = JSON.parse(drawingImportData);
+        
+        // Convert imported materials to estimation format
+        if (importData.materials && Array.isArray(importData.materials)) {
+          importedMaterials = importData.materials.map((material: any, index: number) => ({
+            id: `import-${Date.now()}-${index}`,
+            materialCode: material.materialCode || '',
+            materialName: material.materialName || '',
+            quantity: material.quantity || 0,
+            unit: material.unit || 'm',
+            unitCost: material.unitCost || 0,
+            wasteFactor: material.wasteFactor || 5,
+            handlingTime: material.handlingTime || 0,
+            handlingCost: material.handlingCost || 0,
+            supplier: material.supplier || 'Drawing Import',
+            notes: material.notes || '',
+            totalCost: material.totalCost || 0
+          }));
+          
+          // Clear the sessionStorage to prevent re-import
+          sessionStorage.removeItem('drawingImportData');
+          
+          // Show success message
+          toast({
+            title: "Materials Imported",
+            description: `Successfully imported ${importedMaterials.length} materials from Drawing Intelligence`,
+          });
+        }
+        
+        // Update project name if provided
+        if (importData.projectName && !project.name) {
+          project.name = importData.projectName;
+        }
+      } catch (error) {
+        console.error('Error parsing drawing import data:', error);
+        sessionStorage.removeItem('drawingImportData');
+      }
+    }
+
+    // Create new estimation data with imported materials if any
     const data: EstimationData = {
       project,
-      materials: [],
+      materials: importedMaterials,
       labor: [],
       equipment: [],
       consumables: [],

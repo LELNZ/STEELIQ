@@ -30,6 +30,7 @@ import {
   TrendingUp,
   Layers,
   FileText,
+  Send,
 } from "lucide-react";
 import {
   Dialog,
@@ -58,6 +59,7 @@ export function MaterialTakeoffTab() {
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [wastageFactors, setWastageFactors] = useState({
     beams: 5,
@@ -132,6 +134,47 @@ export function MaterialTakeoffTab() {
       description: `Exporting material takeoff as ${format.toUpperCase()}...`,
     });
     setShowExportDialog(false);
+  };
+
+  const handleImportToNewEstimation = () => {
+    // Prepare materials for estimation
+    const selectedMaterials = materials.filter(m => selectedItems.has(m.id));
+    const estimationData = {
+      projectName: projects.find(p => p.id === selectedProject)?.name || "New Project",
+      materials: selectedMaterials.map(material => ({
+        materialCode: material.section,
+        materialName: `${material.section} Grade ${material.grade}`,
+        quantity: material.quantity * material.length / 1000, // Convert to meters
+        unit: "m",
+        unitCost: material.unitPrice,
+        wasteFactor: material.wastage,
+        supplier: "Drawing Import",
+        notes: `Mark: ${material.mark}, Drawing: ${material.drawingRef}, Phase: ${material.phase}`,
+        handlingTime: 0,
+        handlingCost: 0,
+        totalCost: material.totalPrice
+      }))
+    };
+
+    // Store data in sessionStorage for the estimation page to retrieve
+    sessionStorage.setItem('drawingImportData', JSON.stringify(estimationData));
+    
+    // Navigate to AI Estimation Engine
+    window.location.href = '/estimation';
+    
+    toast({
+      title: "Import Started",
+      description: "Navigating to AI Estimation Engine with material data...",
+    });
+  };
+
+  const handleImportToExistingEstimation = () => {
+    toast({
+      title: "Coming Soon",
+      description: "Select existing estimation feature will be available soon",
+      variant: "default",
+    });
+    setShowImportDialog(false);
   };
 
   const toggleItemSelection = (id: string) => {
@@ -305,10 +348,20 @@ export function MaterialTakeoffTab() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Generated Material List</CardTitle>
-                <Button onClick={() => setShowExportDialog(true)}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Takeoff
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setShowImportDialog(true)}
+                    disabled={selectedItems.size === 0}
+                    variant="default"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Import to Estimation
+                  </Button>
+                  <Button onClick={() => setShowExportDialog(true)} variant="outline">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Takeoff
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -416,6 +469,72 @@ export function MaterialTakeoffTab() {
                   {materials.length} total
                 </p>
               )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import to Estimation Dialog */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import to AI Estimation Engine</DialogTitle>
+            <DialogDescription>
+              Transfer selected materials to create or update an estimation
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="rounded-lg bg-muted p-4">
+              <p className="text-sm font-medium mb-2">Selected Materials Summary</p>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Items:</span>{" "}
+                  <span className="font-medium">{selectedItems.size}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Total Weight:</span>{" "}
+                  <span className="font-medium">
+                    {(materials
+                      .filter(m => selectedItems.has(m.id))
+                      .reduce((sum, m) => sum + m.weight, 0) / 1000
+                    ).toFixed(2)}t
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Material Cost:</span>{" "}
+                  <span className="font-medium">
+                    ${materials
+                      .filter(m => selectedItems.has(m.id))
+                      .reduce((sum, m) => sum + m.totalPrice, 0)
+                      .toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Project:</span>{" "}
+                  <span className="font-medium">
+                    {projects.find(p => p.id === selectedProject)?.name}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <Button
+                onClick={() => handleImportToNewEstimation()}
+                className="w-full"
+                variant="default"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Create New Estimation
+              </Button>
+              <Button
+                onClick={() => handleImportToExistingEstimation()}
+                className="w-full"
+                variant="outline"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Add to Existing Estimation
+              </Button>
             </div>
           </div>
         </DialogContent>
