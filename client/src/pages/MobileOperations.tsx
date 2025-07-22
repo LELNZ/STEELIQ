@@ -23,11 +23,23 @@ import DocumentCaptureTab from "@/components/mobile-operations/DocumentCaptureTa
 import OfflineSyncTab from "@/components/mobile-operations/OfflineSyncTab";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useOffline } from "@/hooks/useOffline";
+
+interface MobileOperationStats {
+  activeWorkers: number;
+  checkinsToday: number;
+  photosToday: number;
+  offlineQueue: number;
+  scansToday: number;
+  complianceRate: number;
+  activeDevices: number;
+}
 
 export default function MobileOperations() {
   const [activeTab, setActiveTab] = useState("time-tracking");
+  const { isOnline, isSyncing } = useOffline({ enableSync: true });
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<MobileOperationStats>({
     queryKey: ["/api/mobile-operations/stats"],
     refetchInterval: 10000, // Refresh every 10 seconds
   });
@@ -42,7 +54,24 @@ export default function MobileOperations() {
             Field operations management and mobile workforce tools
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {isOnline ? (
+            <Badge variant="outline" className="text-green-600">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Online
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-orange-600">
+              <WifiOff className="w-3 h-3 mr-1" />
+              Offline
+            </Badge>
+          )}
+          {isSyncing && (
+            <Badge variant="outline" className="text-blue-600">
+              <Navigation className="w-3 h-3 mr-1 animate-spin" />
+              Syncing
+            </Badge>
+          )}
           <Button variant="outline" size="sm">
             <QrCode className="h-4 w-4 mr-2" />
             QR Scanner

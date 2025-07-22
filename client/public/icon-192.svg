@@ -1,0 +1,9 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="40" fill="#0070F3"/>
+  <rect x="32" y="48" width="128" height="16" fill="white"/>
+  <rect x="32" y="76" width="96" height="16" fill="white" opacity="0.8"/>
+  <rect x="32" y="104" width="112" height="16" fill="white" opacity="0.6"/>
+  <rect x="32" y="132" width="80" height="16" fill="white" opacity="0.4"/>
+  <path d="M96 24L116 44H76L96 24Z" fill="white"/>
+  <text x="96" y="176" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">LEL</text>
+</svg>

@@ -1,0 +1,64 @@
+{
+  "name": "Lateral Engineering Limited - Steel Fabrication Management",
+  "short_name": "LEL Steel",
+  "description": "Professional steel fabrication management system with cutting optimization, estimation, and project tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0070f3",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Time Clock",
+      "short_name": "Clock In",
+      "description": "Quick access to time tracking",
+      "url": "/time-payroll",
+      "icons": [{ "src": "/icon-clock.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Jobs",
+      "short_name": "Jobs",
+      "description": "View active jobs",
+      "url": "/jobs",
+      "icons": [{ "src": "/icon-jobs.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Mobile Ops",
+      "short_name": "Field Ops",
+      "description": "Field operations tools",
+      "url": "/mobile-operations",
+      "icons": [{ "src": "/icon-mobile.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": []
+}

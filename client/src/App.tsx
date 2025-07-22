@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
@@ -154,6 +155,7 @@ function App() {
               <Router />
             </Layout>
             <Toaster />
+            <PwaInstallPrompt />
           </TooltipProvider>
         </AuthProvider>
       </QueryClientProvider>

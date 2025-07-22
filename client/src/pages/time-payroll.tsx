@@ -19,10 +19,12 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import type { LaborRateCard, PayrollIntegration } from "@shared/schema";
+import { useOffline } from "@/hooks/useOffline";
 
 export default function TimePayroll() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isOnline, isSyncing, saveOffline, loadOffline } = useOffline({ enableSync: true });
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [showPayrollSetup, setShowPayrollSetup] = useState(false);
   const [showAddRateCardDialog, setShowAddRateCardDialog] = useState(false);
@@ -178,6 +180,115 @@ export default function TimePayroll() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Time Clock Card with Offline Support */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Quick Clock In/Out</span>
+                <div className="flex items-center gap-2">
+                  {isOnline ? (
+                    <Badge variant="outline" className="text-green-600">
+                      <Wifi className="w-3 h-3 mr-1" />
+                      Online
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-orange-600">
+                      <WifiOff className="w-3 h-3 mr-1" />
+                      Offline
+                    </Badge>
+                  )}
+                  {isSyncing && (
+                    <Badge variant="outline" className="text-blue-600">
+                      <Upload className="w-3 h-3 mr-1" />
+                      Syncing
+                    </Badge>
+                  )}
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Select Job</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a job" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="job1">JOB-2025-001 - Warehouse Project</SelectItem>
+                      <SelectItem value="job2">JOB-2025-002 - Bridge Construction</SelectItem>
+                      <SelectItem value="job3">JOB-2025-003 - Office Building</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Task</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select task" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="welding">Welding</SelectItem>
+                      <SelectItem value="cutting">Cutting</SelectItem>
+                      <SelectItem value="assembly">Assembly</SelectItem>
+                      <SelectItem value="inspection">Inspection</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <Button 
+                    className="w-full" 
+                    size="lg"
+                    onClick={async () => {
+                      const timeEntry = {
+                        timestamp: new Date().toISOString(),
+                        type: 'clock_in',
+                        job: 'JOB-2025-001',
+                        task: 'welding',
+                        location: { lat: -36.8485, lng: 174.7633 },
+                        isOffline: !isOnline
+                      };
+                      
+                      if (!isOnline) {
+                        // Save offline
+                        await saveOffline('pending_time_entry', timeEntry);
+                        toast({
+                          title: "Clocked In (Offline)",
+                          description: "Your time entry will sync when back online",
+                        });
+                      } else {
+                        // Save online
+                        try {
+                          await apiRequest("POST", "/api/time/clock", timeEntry);
+                          toast({
+                            title: "Clocked In",
+                            description: "Time tracking started successfully",
+                          });
+                        } catch (error) {
+                          await saveOffline('pending_time_entry', timeEntry);
+                          toast({
+                            title: "Saved Offline",
+                            description: "Will retry when connection is restored",
+                            variant: "destructive"
+                          });
+                        }
+                      }
+                    }}
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    Clock In
+                  </Button>
+                </div>
+              </div>
+              {!isOnline && (
+                <p className="text-sm text-muted-foreground mt-4">
+                  <AlertCircle className="w-4 h-4 inline mr-1" />
+                  You're working offline. Time entries will be synced automatically when you're back online.
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
