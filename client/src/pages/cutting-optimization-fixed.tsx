@@ -62,6 +62,91 @@ export default function CuttingOptimizationFixed() {
     light: { loading: 0.5, unloading: 0.5, total: 1 }, // 0-5kg single person
   });
 
+  // Cutting time estimation settings
+  const cuttingTimeFactors = {
+    // Base time per cut in minutes (straight 90° cut)
+    baseTimes: {
+      // By material hardness/type
+      mild_steel: 10,     // Standard mild steel
+      stainless: 15,      // Stainless steel (harder)
+      aluminum: 5,        // Aluminum (softer)
+      high_tensile: 20,   // High tensile steel
+    },
+    // Multipliers for cut complexity
+    angleMultipliers: {
+      straight: 1.0,      // 90° cuts
+      single_angle: 1.3,  // One angled cut (not 90°)
+      double_angle: 1.6,  // Both ends angled
+      compound: 2.0,      // Complex compound angles
+    },
+    // Size multipliers (based on cross-sectional area)
+    sizeMultipliers: {
+      small: 0.8,         // <100mm²
+      medium: 1.0,        // 100-500mm²
+      large: 1.3,         // 500-2000mm²
+      xlarge: 1.8,        // >2000mm²
+    },
+    // Setup time for first cut of each material type
+    setupTime: 5,
+    // Time to measure and mark
+    measureMarkTime: 2,
+  };
+
+  // Calculate cutting time for a single cut
+  const calculateCuttingTime = (cut: CutRequirement, material?: Material) => {
+    // Determine material type (default to mild steel)
+    let baseTime = cuttingTimeFactors.baseTimes.mild_steel;
+    
+    if (material?.name?.toLowerCase().includes('stainless')) {
+      baseTime = cuttingTimeFactors.baseTimes.stainless;
+    } else if (material?.name?.toLowerCase().includes('aluminum')) {
+      baseTime = cuttingTimeFactors.baseTimes.aluminum;
+    } else if (material?.name?.toLowerCase().includes('high tensile') || 
+               material?.name?.toLowerCase().includes('ht')) {
+      baseTime = cuttingTimeFactors.baseTimes.high_tensile;
+    }
+
+    // Determine angle complexity
+    let angleMultiplier = cuttingTimeFactors.angleMultipliers.straight;
+    const hasFirstAngle = cut.firstCutAngle !== 90;
+    const hasSecondAngle = cut.secondCutAngle !== 90;
+    
+    if (hasFirstAngle && hasSecondAngle) {
+      angleMultiplier = cuttingTimeFactors.angleMultipliers.double_angle;
+    } else if (hasFirstAngle || hasSecondAngle) {
+      angleMultiplier = cuttingTimeFactors.angleMultipliers.single_angle;
+    }
+
+    // Determine size multiplier based on material dimensions
+    let sizeMultiplier = cuttingTimeFactors.sizeMultipliers.medium;
+    if (material) {
+      // Calculate cross-sectional area approximation
+      const width = material.width || material.diameter || 100;
+      const thickness = material.thickness || material.depth || 10;
+      const area = width * thickness;
+      
+      if (area < 100) sizeMultiplier = cuttingTimeFactors.sizeMultipliers.small;
+      else if (area < 500) sizeMultiplier = cuttingTimeFactors.sizeMultipliers.medium;
+      else if (area < 2000) sizeMultiplier = cuttingTimeFactors.sizeMultipliers.large;
+      else sizeMultiplier = cuttingTimeFactors.sizeMultipliers.xlarge;
+    }
+
+    // Calculate total time for this cut
+    const cuttingTime = baseTime * angleMultiplier * sizeMultiplier;
+    const totalTime = cuttingTime + cuttingTimeFactors.measureMarkTime;
+
+    return {
+      cuttingTime: Math.round(totalTime * 10) / 10, // Round to 1 decimal
+      setupTime: cuttingTimeFactors.setupTime,
+      details: {
+        baseTime,
+        angleMultiplier,
+        sizeMultiplier,
+        measureMarkTime: cuttingTimeFactors.measureMarkTime
+      }
+    };
+  };
+
   // Fetch materials
   const { data: materialsData = [] } = useQuery<Material[]>({
     queryKey: ["/api/materials"],
@@ -251,6 +336,10 @@ export default function CuttingOptimizationFixed() {
             const category = getMaterialWeightCategory(materialCode, cut.length);
             const handlingTime = handlingTimes[category].total;
             
+            // Calculate cutting time using material properties
+            const material = materialsData.find(m => m.code === materialCode);
+            const timeEstimate = calculateCuttingTime(cut, material);
+            
             // Add cut to this bar
             barCuts.push({
               id: cut.id,
@@ -262,7 +351,7 @@ export default function CuttingOptimizationFixed() {
               secondCutAngle: cut.secondCutAngle,
               description: cut.description,
               materialCode: materialCode,
-              cuttingTime: (cut.firstCutAngle === 90 && cut.secondCutAngle === 90) ? 10 : 12,
+              cuttingTime: timeEstimate.cuttingTime,
               handlingTime: handlingTime,
               kerfWidth: kerfWidth,
               weight: weightData.totalWeight,
@@ -292,6 +381,10 @@ export default function CuttingOptimizationFixed() {
               const category = getMaterialWeightCategory(materialCode, cut.length);
               const handlingTime = handlingTimes[category].total;
               
+              // Calculate cutting time using material properties
+              const material = materialsData.find(m => m.code === materialCode);
+              const timeEstimate = calculateCuttingTime(cut, material);
+              
               // Add cut to this bar
               barCuts.push({
                 id: cut.id,
@@ -303,7 +396,7 @@ export default function CuttingOptimizationFixed() {
                 secondCutAngle: cut.secondCutAngle,
                 description: cut.description,
                 materialCode: materialCode,
-                cuttingTime: (cut.firstCutAngle === 90 && cut.secondCutAngle === 90) ? 10 : 12,
+                cuttingTime: timeEstimate.cuttingTime,
                 handlingTime: handlingTime,
                 kerfWidth: kerfWidth,
                 weight: weightData.totalWeight,
@@ -436,6 +529,10 @@ export default function CuttingOptimizationFixed() {
             const category = getMaterialWeightCategory(materialCode, cut.length);
             const handlingTime = handlingTimes[category].total;
             
+            // Calculate cutting time using material properties
+            const material = materialsData.find(m => m.code === materialCode);
+            const timeEstimate = calculateCuttingTime(cut, material);
+            
             // Cut fits on this bar
             barCuts.push({
               id: cut.id,
@@ -447,7 +544,7 @@ export default function CuttingOptimizationFixed() {
               secondCutAngle: cut.secondCutAngle,
               description: cut.description,
               materialCode: materialCode,
-              cuttingTime: (cut.firstCutAngle === 90 && cut.secondCutAngle === 90) ? 10 : 12,
+              cuttingTime: timeEstimate.cuttingTime,
               handlingTime: handlingTime,
               kerfWidth: kerfWidth
             });
@@ -468,6 +565,10 @@ export default function CuttingOptimizationFixed() {
           const totalCutLength = barCuts.reduce((sum, cut) => sum + cut.length, 0);
           const wasteLength = stockBar.length - currentPosition;
           const efficiency = ((totalCutLength / stockBar.length) * 100);
+          
+          // Calculate total times
+          const totalCuttingTime = barCuts.reduce((sum, cut) => sum + (cut.cuttingTime || 10), 0);
+          const totalHandlingTime = barCuts.reduce((sum, cut) => sum + (cut.handlingTime || 3), 0);
 
           plans.push({
             id: `${materialCode}-bar-${stockIndex + 1}`,
@@ -477,8 +578,8 @@ export default function CuttingOptimizationFixed() {
             efficiency: Math.round(efficiency * 10) / 10,
             totalCuts: barCuts.length,
             materialCode: materialCode,
-            totalCuttingTime: barCuts.reduce((sum, cut) => sum + (cut.cuttingTime || 10), 0),
-            totalHandlingTime: barCuts.reduce((sum, cut) => sum + (cut.handlingTime || 3), 0)
+            totalCuttingTime: totalCuttingTime,
+            totalHandlingTime: totalHandlingTime
           });
         }
       });
@@ -1388,6 +1489,68 @@ export default function CuttingOptimizationFixed() {
       {/* Results Section */}
       {optimizationResult ? (
         <div className="space-y-4">
+          {/* Time Estimation Summary */}
+          <Card className="border-green-200 bg-green-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-green-600" />
+                Time Estimation Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-white rounded-lg border">
+                  <p className="text-sm text-muted-foreground mb-1">Total Cuts</p>
+                  <p className="text-2xl font-bold">
+                    {optimizationResult.reduce((sum, plan) => sum + plan.totalCuts, 0)}
+                  </p>
+                </div>
+                <div className="text-center p-4 bg-white rounded-lg border">
+                  <p className="text-sm text-muted-foreground mb-1">Cutting Time</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {Math.round(optimizationResult.reduce((sum, plan) => sum + plan.totalCuttingTime, 0))} min
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    ({(optimizationResult.reduce((sum, plan) => sum + plan.totalCuttingTime, 0) / 60).toFixed(1)} hours)
+                  </p>
+                </div>
+                <div className="text-center p-4 bg-white rounded-lg border">
+                  <p className="text-sm text-muted-foreground mb-1">Handling Time</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {Math.round(optimizationResult.reduce((sum, plan) => sum + plan.totalHandlingTime, 0))} min
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    ({(optimizationResult.reduce((sum, plan) => sum + plan.totalHandlingTime, 0) / 60).toFixed(1)} hours)
+                  </p>
+                </div>
+                <div className="text-center p-4 bg-white rounded-lg border">
+                  <p className="text-sm text-muted-foreground mb-1">Total Time</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {Math.round(
+                      optimizationResult.reduce((sum, plan) => sum + plan.totalCuttingTime + plan.totalHandlingTime, 0)
+                    )} min
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    ({(
+                      optimizationResult.reduce((sum, plan) => sum + plan.totalCuttingTime + plan.totalHandlingTime, 0) / 60
+                    ).toFixed(1)} hours)
+                  </p>
+                </div>
+              </div>
+              
+              {/* Time breakdown details */}
+              <div className="mt-4 text-sm text-muted-foreground">
+                <p className="font-medium mb-2">Time Calculation Factors:</p>
+                <ul className="space-y-1 text-xs">
+                  <li>• Base cutting time: 10min (mild steel), 15min (stainless), 5min (aluminum)</li>
+                  <li>• Angle cuts add 30% (single) or 60% (double) to cutting time</li>
+                  <li>• Material size affects cutting speed (larger sections take longer)</li>
+                  <li>• Handling time based on weight: light (1min), medium (3min), heavy (5min), crane (10min)</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Create Estimate Button */}
           <Card>
             <CardContent className="p-4">

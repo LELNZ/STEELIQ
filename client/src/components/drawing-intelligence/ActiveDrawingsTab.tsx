@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ import {
   User,
   BarChart3,
   MoreVertical,
+  PenTool,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -48,6 +50,7 @@ interface Drawing {
 
 export function ActiveDrawingsTab() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [, setLocation] = useLocation();
 
   const { data: drawings = [] } = useQuery<Drawing[]>({
     queryKey: ["/api/drawing-intelligence/drawings"],
@@ -72,6 +75,11 @@ export function ActiveDrawingsTab() {
   const handleDelete = (drawing: Drawing) => {
     // Delete drawing
     console.log("Delete drawing:", drawing);
+  };
+
+  const handlePDFMarkup = (drawing: Drawing) => {
+    // Open drawing in PDF markup tool
+    setLocation(`/pdf-markup?id=${drawing.id}`);
   };
 
   const handleGenerateTakeoff = (drawing: Drawing) => {
@@ -218,6 +226,10 @@ export function ActiveDrawingsTab() {
                         <DropdownMenuItem onClick={() => handleView(drawing)}>
                           <Eye className="h-4 w-4 mr-2" />
                           View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handlePDFMarkup(drawing)}>
+                          <PenTool className="h-4 w-4 mr-2" />
+                          PDF Markup
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleGenerateTakeoff(drawing)}>
                           <Package className="h-4 w-4 mr-2" />

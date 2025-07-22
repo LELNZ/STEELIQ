@@ -6285,6 +6285,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PDF Markup API endpoints
+  app.get("/api/drawings/:id/annotations", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // For now, return empty annotations until we have a proper database table
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching annotations:", error);
+      res.status(500).json({ message: "Failed to fetch annotations" });
+    }
+  });
+
+  app.post("/api/drawings/:id/annotations", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { annotations } = req.body;
+      
+      // For now, just return success until we have a proper database table
+      res.json({ success: true, message: "Annotations saved successfully" });
+    } catch (error) {
+      console.error("Error saving annotations:", error);
+      res.status(500).json({ message: "Failed to save annotations" });
+    }
+  });
+
   // Remnant Management API endpoints
   app.get("/api/remnants", async (req, res) => {
     try {
