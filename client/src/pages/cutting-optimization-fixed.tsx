@@ -14,11 +14,14 @@ import {
   Zap,
   Clock,
   History,
-  Info
+  Info,
+  Recycle
 } from "lucide-react";
 import InstantMaterialSearch from "@/components/materials/instant-material-search";
 import StandardCuttingPlan from "@/components/optimization/standard-cutting-plan";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { apiRequest } from "@/lib/queryClient";
+import { toast } from "@/hooks/use-toast";
 import type { Material } from "@shared/schema";
 
 interface CutRequirement {
@@ -424,6 +427,16 @@ export default function CuttingOptimizationFixed() {
           const efficiency = ((totalCutLength / currentBar.length) * 100);
           const wastePercentage = (wasteLength / currentBar.length) * 100;
 
+          // Check if waste piece is large enough to be a remnant (>500mm)
+          const remnantInfo = wasteLength > 500 ? {
+            length: wasteLength,
+            materialCode: materialCode,
+            stockBarId: currentBar.id || `${materialCode}-stock-${currentBar.barNumber}`,
+            jobId: selectedJob?.value,
+            millCertNumber: currentBar.millCertNumber,
+            barNumber: currentBar.barNumber
+          } : null;
+
           plans.push({
             id: `${materialCode}-bar-${currentBar.barNumber}`,
             stockLength: currentBar.length,
@@ -435,7 +448,8 @@ export default function CuttingOptimizationFixed() {
             materialCode: materialCode,
             totalCuttingTime: barCuts.reduce((sum, cut) => sum + (cut.cuttingTime || 10), 0),
             totalHandlingTime: barCuts.reduce((sum, cut) => sum + (cut.handlingTime || 3), 0),
-            totalWeight: barCuts.reduce((sum, cut) => sum + (cut.weight || 0), 0)
+            totalWeight: barCuts.reduce((sum, cut) => sum + (cut.weight || 0), 0),
+            remnantInfo: remnantInfo
           });
         }
         
@@ -570,6 +584,15 @@ export default function CuttingOptimizationFixed() {
           const totalCuttingTime = barCuts.reduce((sum, cut) => sum + (cut.cuttingTime || 10), 0);
           const totalHandlingTime = barCuts.reduce((sum, cut) => sum + (cut.handlingTime || 3), 0);
 
+          // Check if waste piece is large enough to be a remnant (>500mm)
+          const remnantInfo = wasteLength > 500 ? {
+            length: wasteLength,
+            materialCode: materialCode,
+            stockBarId: stockBar.id || `${materialCode}-stock-${stockIndex + 1}`,
+            jobId: selectedJob?.value,
+            millCertNumber: stockBar.millCertNumber
+          } : null;
+
           plans.push({
             id: `${materialCode}-bar-${stockIndex + 1}`,
             stockLength: stockBar.length,
@@ -579,13 +602,68 @@ export default function CuttingOptimizationFixed() {
             totalCuts: barCuts.length,
             materialCode: materialCode,
             totalCuttingTime: totalCuttingTime,
-            totalHandlingTime: totalHandlingTime
+            totalHandlingTime: totalHandlingTime,
+            remnantInfo: remnantInfo
           });
         }
       });
     });
 
     return plans;
+  };
+
+  // Create remnants from cutting plans
+  const createRemnantsFromPlans = async (plans: any[]) => {
+    const remnantsToCreate = [];
+    
+    // Extract remnant info from all plans that have remnants >500mm
+    for (const plan of plans) {
+      if (plan.remnantInfo && plan.wasteLength > 500) {
+        remnantsToCreate.push({
+          materialCode: plan.remnantInfo.materialCode,
+          length: plan.remnantInfo.length,
+          width: 0, // We'll need to get this from material data
+          thickness: 0, // We'll need to get this from material data
+          quantity: 1,
+          location: "To Be Assigned",
+          source: "Cutting Optimization",
+          millCertNumber: plan.remnantInfo.millCertNumber || "",
+          rackNumber: "",
+          binNumber: "",
+          jobId: selectedJob?.value || null,
+          barcode: `REM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          notes: `Generated from cutting plan ${plan.id}`
+        });
+      }
+    }
+    
+    if (remnantsToCreate.length === 0) {
+      return;
+    }
+    
+    try {
+      // Create all remnants
+      const promises = remnantsToCreate.map(remnant => 
+        apiRequest("/api/remnants", {
+          method: "POST",
+          body: JSON.stringify(remnant)
+        })
+      );
+      
+      await Promise.all(promises);
+      
+      toast({
+        title: "Remnants Created",
+        description: `${remnantsToCreate.length} remnant${remnantsToCreate.length > 1 ? 's' : ''} created from cutting plans`,
+      });
+    } catch (error) {
+      console.error("Failed to create remnants:", error);
+      toast({
+        title: "Error Creating Remnants",
+        description: "Failed to create remnants from cutting plans",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handlers
@@ -1551,30 +1629,60 @@ export default function CuttingOptimizationFixed() {
             </CardContent>
           </Card>
 
-          {/* Create Estimate Button */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">Create Professional Estimate</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Convert this cutting plan into a detailed estimate with material costs, labor calculations, and markup
-                  </p>
+          {/* Actions Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Create Remnants Card */}
+            {(() => {
+              const remnantsCount = optimizationResult.filter(plan => plan.remnantInfo && plan.wasteLength > 500).length;
+              return remnantsCount > 0 ? (
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold">Create Remnants</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {remnantsCount} remnant{remnantsCount > 1 ? 's' : ''} available from waste pieces &gt;500mm
+                        </p>
+                      </div>
+                      <Button 
+                        onClick={() => createRemnantsFromPlans(optimizationResult)}
+                        className="flex items-center gap-2"
+                        variant="secondary"
+                      >
+                        <Recycle className="h-4 w-4" />
+                        Create Remnants
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null;
+            })()}
+
+            {/* Create Estimate Button */}
+            <Card className={optimizationResult.filter(plan => plan.remnantInfo && plan.wasteLength > 500).length === 0 ? "md:col-span-2" : ""}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">Create Professional Estimate</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Convert this cutting plan into a detailed estimate with material costs, labor calculations, and markup
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      // Navigate to estimate creation with cutting plan data
+                      console.log('Creating estimate from cutting plan:', optimizationResult);
+                      // TODO: Implement estimate creation navigation
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Package className="h-4 w-4" />
+                    Create Estimate
+                  </Button>
                 </div>
-                <Button 
-                  onClick={() => {
-                    // Navigate to estimate creation with cutting plan data
-                    console.log('Creating estimate from cutting plan:', optimizationResult);
-                    // TODO: Implement estimate creation navigation
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <Package className="h-4 w-4" />
-                  Create Estimate
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
           <StandardCuttingPlan 
             plans={optimizationResult}

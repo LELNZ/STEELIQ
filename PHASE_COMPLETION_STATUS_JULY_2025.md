@@ -30,11 +30,14 @@
 #### 🔄 IN DEVELOPMENT (Week 4):
 - **Remnant Management System**
   - ✅ Database schema replacement (comprehensive tracking)
-  - 🔄 API routes development
-  - ⏳ QR/Barcode generation system
+  - ✅ API routes development (CRUD operations functional)
+  - ✅ Cutting optimizer integration (automatic remnant detection >500mm)
+  - ✅ Visual remnant indicators in cutting plans
+  - ✅ Create remnants from cutting plans functionality
+  - 🔄 QR/Barcode generation system
   - ⏳ Label printing functionality
   - ⏳ Mill certificate tracking
-  - ⏳ Reuse optimization (>500mm pieces)
+  - ⏳ Mobile scanning interface
   - Target: 95% material utilization
 
 #### ⏳ REMAINING FOR PHASE 1:

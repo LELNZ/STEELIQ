@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Package2, QrCode, BarChart3, Search, Plus, History, Printer, Settings } from "lucide-react";
+import { Package2, QrCode, BarChart3, Search, Plus, History, Printer, Settings, Eye } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,6 +76,7 @@ export default function RemnantManagement() {
   const [selectedRemnant, setSelectedRemnant] = useState<Remnant | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
+  const [showQRDialog, setShowQRDialog] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -408,6 +409,13 @@ export default function RemnantManagement() {
                       <TableCell>
                         <ActionMenu
                           items={[
+                            {
+                              label: "View QR Code",
+                              onClick: () => {
+                                setSelectedRemnant(remnant);
+                                setShowQRDialog(true);
+                              }
+                            },
                             {
                               label: "View",
                               onClick: () => {
@@ -761,6 +769,74 @@ export default function RemnantManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* QR Code Display Dialog */}
+      <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remnant QR Code</DialogTitle>
+            <DialogDescription>
+              Scan this QR code to quickly identify this remnant
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRemnant && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg text-center">
+                {/* QR Code Display */}
+                <div className="mx-auto mb-4 p-4 bg-white rounded border-2 border-gray-200">
+                  <div className="w-48 h-48 mx-auto bg-gray-100 rounded flex items-center justify-center">
+                    <div className="text-center">
+                      <QrCode className="w-24 h-24 mx-auto mb-2 text-gray-400" />
+                      <p className="text-xs text-gray-500">{selectedRemnant.qrCode}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Remnant Details */}
+                <div className="space-y-2 text-left">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Material:</span>
+                    <span className="font-medium">{selectedRemnant.materialCode}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Length:</span>
+                    <span className="font-medium">{selectedRemnant.length}mm</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Location:</span>
+                    <span className="font-medium">
+                      {selectedRemnant.location || "N/A"}
+                      {selectedRemnant.rackNumber && ` - Rack ${selectedRemnant.rackNumber}`}
+                      {selectedRemnant.binNumber && ` - Bin ${selectedRemnant.binNumber}`}
+                    </span>
+                  </div>
+                  {selectedRemnant.millCertificate && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Mill Cert:</span>
+                      <span className="font-medium">{selectedRemnant.millCertificate}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowQRDialog(false)}>
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setShowQRDialog(false);
+                    setShowLabelDialog(true);
+                  }}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print Label
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
