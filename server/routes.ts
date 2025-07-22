@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs, drawings, drawingProjects, materialTakeoffs } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -6284,6 +6284,353 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch budget forecast' });
     }
   });
+
+  // Remnant Management API endpoints
+  app.get("/api/remnants", async (req, res) => {
+    try {
+      const { status, location, materialCode, minLength } = req.query;
+      
+      const results = await db.select()
+        .from(remnants)
+        .orderBy(desc(remnants.id));
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching remnants:", error);
+      res.status(500).json({ message: "Failed to fetch remnants" });
+    }
+  });
+
+  app.get("/api/remnants/stats", async (req, res) => {
+    try {
+      // Get remnant statistics
+      const stats = {
+        totalRemnants: 0,
+        totalValue: 0,
+        averageLength: 0,
+        utilizationRate: 0,
+        topMaterials: [],
+        ageDistribution: {
+          "0-30 days": 0,
+          "31-90 days": 0,
+          "91-180 days": 0,
+          ">180 days": 0
+        }
+      };
+
+      const allRemnants = await db.select().from(remnants).where(eq(remnants.status, "available"));
+      
+      stats.totalRemnants = allRemnants.length;
+      stats.totalValue = allRemnants.reduce((sum, r) => sum + Number(r.currentValue || 0), 0);
+      stats.averageLength = allRemnants.length > 0 
+        ? allRemnants.reduce((sum, r) => sum + Number(r.length || 0), 0) / allRemnants.length 
+        : 0;
+
+      // Calculate age distribution
+      const now = new Date();
+      allRemnants.forEach(remnant => {
+        const ageInDays = Math.floor((now.getTime() - new Date(remnant.createdDate).getTime()) / (1000 * 60 * 60 * 24));
+        if (ageInDays <= 30) stats.ageDistribution["0-30 days"]++;
+        else if (ageInDays <= 90) stats.ageDistribution["31-90 days"]++;
+        else if (ageInDays <= 180) stats.ageDistribution["91-180 days"]++;
+        else stats.ageDistribution[">180 days"]++;
+      });
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching remnant stats:", error);
+      res.status(500).json({ message: "Failed to fetch remnant statistics" });
+    }
+  });
+
+  app.get("/api/remnants/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const [remnant] = await db.select()
+        .from(remnants)
+        .where(eq(remnants.id, parseInt(id)))
+        .limit(1);
+
+      if (!remnant) {
+        return res.status(404).json({ message: "Remnant not found" });
+      }
+
+      res.json(remnant);
+    } catch (error) {
+      console.error("Error fetching remnant:", error);
+      res.status(500).json({ message: "Failed to fetch remnant" });
+    }
+  });
+
+  app.post("/api/remnants", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Generate unique QR and barcode
+      const timestamp = Date.now();
+      const qrCode = `REM-${timestamp}-${Math.random().toString(36).substr(2, 9)}`;
+      const barcode = `${timestamp}${Math.floor(Math.random() * 1000)}`;
+
+      // Create remnant record
+      const [remnant] = await db.insert(remnants)
+        .values({
+          ...req.body,
+          qrCode,
+          barcode,
+          status: "available",
+          createdBy: user.userId,
+          updatedBy: user.userId
+        })
+        .returning();
+
+      // Create history entry
+      await db.execute(sql`
+        INSERT INTO remnant_history (remnant_id, action, user_id, new_length, notes, created_at)
+        VALUES (${remnant.id}, 'created', ${user.userId}, ${remnant.length}, 
+                ${`Remnant created from ${req.body.parentJobNumber || 'manual entry'}`}, NOW())
+      `);
+
+      res.json(remnant);
+    } catch (error) {
+      console.error("Error creating remnant:", error);
+      res.status(500).json({ message: "Failed to create remnant" });
+    }
+  });
+
+  app.patch("/api/remnants/:id", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const updates = req.body;
+
+      // Get current remnant data
+      const [current] = await db.select().from(remnants).where(eq(remnants.id, parseInt(id)));
+      if (!current) {
+        return res.status(404).json({ message: "Remnant not found" });
+      }
+
+      // Update remnant
+      const [updated] = await db.update(remnants)
+        .set({
+          ...updates,
+          lastUpdated: new Date(),
+          updatedBy: user.userId
+        })
+        .where(eq(remnants.id, parseInt(id)))
+        .returning();
+
+      // Log history if length changed
+      if (updates.length && Number(updates.length) !== Number(current.length)) {
+        await db.execute(sql`
+          INSERT INTO remnant_history (remnant_id, action, previous_length, new_length, length_used, user_id, notes, created_at)
+          VALUES (${parseInt(id)}, 'modified', ${current.length}, ${updates.length}, 
+                  ${Number(current.length) - Number(updates.length)}, ${user.userId}, ${updates.notes}, NOW())
+        `);
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating remnant:", error);
+      res.status(500).json({ message: "Failed to update remnant" });
+    }
+  });
+
+  app.delete("/api/remnants/:id", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      // Update status to consumed instead of deleting
+      await db.update(remnants)
+        .set({ 
+          status: "consumed",
+          consumedDate: new Date(),
+          notes: reason || "Manually marked as consumed"
+        })
+        .where(eq(remnants.id, parseInt(id)));
+
+      // Add history entry
+      await db.execute(sql`
+        INSERT INTO remnant_history (remnant_id, action, user_id, notes, created_at)
+        VALUES (${parseInt(id)}, 'consumed', ${user.userId}, ${reason || "Manually marked as consumed"}, NOW())
+      `);
+
+      res.json({ message: "Remnant marked as consumed" });
+    } catch (error) {
+      console.error("Error consuming remnant:", error);
+      res.status(500).json({ message: "Failed to consume remnant" });
+    }
+  });
+
+  // Remnant label generation
+  app.post("/api/remnants/:id/label", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const { labelType, labelSize, includePhoto } = req.body;
+
+      // Get remnant details
+      const [remnant] = await db.select().from(remnants).where(eq(remnants.id, parseInt(id)));
+      if (!remnant) {
+        return res.status(404).json({ message: "Remnant not found" });
+      }
+
+      // Create label record
+      const [label] = await db.execute(sql`
+        INSERT INTO remnant_labels (remnant_id, label_type, label_size, include_photo, printed_by, printed_at)
+        VALUES (${parseInt(id)}, ${labelType || "both"}, ${labelSize || "medium"}, 
+                ${includePhoto || false}, ${user.userId}, NOW())
+        RETURNING *
+      `);
+
+      // Update remnant as labeled
+      await db.update(remnants)
+        .set({ isLabeled: true })
+        .where(eq(remnants.id, parseInt(id)));
+
+      res.json({
+        label,
+        remnant,
+        printData: {
+          qrCode: remnant.qrCode,
+          barcode: remnant.barcode,
+          materialCode: remnant.materialCode,
+          materialName: remnant.materialName,
+          length: remnant.length,
+          location: remnant.location,
+          rackNumber: remnant.rackNumber,
+          binNumber: remnant.binNumber
+        }
+      });
+    } catch (error) {
+      console.error("Error generating label:", error);
+      res.status(500).json({ message: "Failed to generate label" });
+    }
+  });
+
+  // Remnant suggestions for jobs
+  app.get("/api/remnants/suggestions/:jobId", async (req, res) => {
+    try {
+      const { jobId } = req.params;
+      
+      // Get job material requirements
+      const jobMaterialsList = await db.execute(sql`
+        SELECT * FROM job_materials WHERE job_id = ${parseInt(jobId)}
+      `);
+
+      const suggestions = [];
+
+      for (const material of jobMaterialsList) {
+        // Find suitable remnants
+        const suitableRemnants = await db.select()
+          .from(remnants)
+          .where(and(
+            eq(remnants.materialCode, material.materialCode),
+            gte(remnants.length, material.length),
+            eq(remnants.status, "available")
+          ))
+          .orderBy(asc(remnants.length)); // Prefer smaller remnants that still fit
+
+        for (const remnant of suitableRemnants) {
+          const wasteIfUsed = Number(remnant.length) - Number(material.length);
+          const costSavings = Number(material.length) * Number(remnant.costPerKg || 0) * Number(material.weight || 0) / 1000;
+          
+          suggestions.push({
+            jobId: parseInt(jobId),
+            materialCode: material.materialCode,
+            requiredLength: material.length,
+            remnantId: remnant.id,
+            suggestedRemnantLength: remnant.length,
+            wasteIfUsed,
+            costSavings,
+            suggestionScore: calculateSuggestionScore(wasteIfUsed, new Date(remnant.createdDate)),
+            remnantDetails: remnant
+          });
+        }
+      }
+
+      // Sort by score
+      suggestions.sort((a, b) => b.suggestionScore - a.suggestionScore);
+
+      res.json(suggestions);
+    } catch (error) {
+      console.error("Error generating remnant suggestions:", error);
+      res.status(500).json({ message: "Failed to generate remnant suggestions" });
+    }
+  });
+
+  // Accept remnant suggestion
+  app.post("/api/remnants/suggestions/accept", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { remnantId, jobId, lengthUsed } = req.body;
+
+      // Reserve remnant for job
+      await db.update(remnants)
+        .set({
+          status: "reserved",
+          reservedForJobId: jobId,
+          reuseCount: sql`${remnants.reuseCount} + 1`
+        })
+        .where(eq(remnants.id, remnantId));
+
+      // Add to history
+      await db.execute(sql`
+        INSERT INTO remnant_history (remnant_id, action, job_id, length_used, user_id, notes, created_at)
+        VALUES (${remnantId}, 'reserved', ${jobId}, ${lengthUsed}, ${user.userId}, 
+                ${`Reserved for job ${jobId}`}, NOW())
+      `);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error accepting remnant suggestion:", error);
+      res.status(500).json({ message: "Failed to accept remnant suggestion" });
+    }
+  });
+
+  // Helper function to calculate suggestion score
+  function calculateSuggestionScore(wasteIfUsed: number, createdAt: Date): number {
+    // Score based on waste (less waste = higher score)
+    const wasteScore = Math.max(0, 100 - (wasteIfUsed / 10));
+    
+    // Score based on age (older = higher score to use FIFO)
+    const ageInDays = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+    const ageScore = Math.min(100, ageInDays * 2);
+    
+    // Combined score (weighted average)
+    return Math.round(wasteScore * 0.7 + ageScore * 0.3);
+  }
 
   // Resource Planning & Capacity Management API endpoints
   app.get('/api/resource-planning/capacity/overview', async (req, res) => {

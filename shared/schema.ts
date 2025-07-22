@@ -1,5 +1,5 @@
 import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, numeric, date } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -533,13 +533,47 @@ export const cutSequences = pgTable("cut_sequences", {
 // Remnants tracking
 export const remnants = pgTable("remnants", {
   id: serial("id").primaryKey(),
-  originalInventoryId: integer("original_inventory_id").references(() => inventory.id).notNull(),
-  newInventoryId: integer("new_inventory_id").references(() => inventory.id).notNull(),
-  originalLength: decimal("original_length", { precision: 10, scale: 2 }).notNull(),
-  remnantLength: decimal("remnant_length", { precision: 10, scale: 2 }).notNull(),
+  originalMaterialId: integer("original_material_id").references(() => materials.id),
+  materialCode: varchar("material_code", { length: 50 }).notNull(),
+  materialName: varchar("material_name", { length: 255 }).notNull(),
+  length: decimal("length", { precision: 10, scale: 2 }).notNull(),
+  width: decimal("width", { precision: 10, scale: 2 }),
+  thickness: decimal("thickness", { precision: 10, scale: 2 }),
+  weight: decimal("weight", { precision: 10, scale: 3 }),
+  location: varchar("location", { length: 100 }),
+  rackNumber: varchar("rack_number", { length: 50 }),
+  binNumber: varchar("bin_number", { length: 50 }),
+  millCertNumber: varchar("mill_cert_number", { length: 100 }),
+  heatNumber: varchar("heat_number", { length: 100 }),
+  parentJobId: integer("parent_job_id").references(() => jobs.id),
+  parentJobNumber: varchar("parent_job_number", { length: 50 }),
+  createdDate: timestamp("created_date").defaultNow(),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  status: varchar("status", { length: 20 }).default("available"),
+  qrCode: varchar("qr_code", { length: 255 }).unique(),
+  barcode: varchar("barcode", { length: 255 }).unique(),
+  costPerKg: decimal("cost_per_kg", { precision: 10, scale: 2 }),
+  originalValue: decimal("original_value", { precision: 10, scale: 2 }),
+  currentValue: decimal("current_value", { precision: 10, scale: 2 }),
+  reuseCount: integer("reuse_count").default(0),
+  reservedForJobId: integer("reserved_for_job_id").references(() => jobs.id),
+  consumedDate: timestamp("consumed_date"),
+  notes: text("notes"),
+  photoUrl: varchar("photo_url", { length: 500 }),
+  colorCode: varchar("color_code", { length: 7 }),
+  materialGrade: varchar("material_grade", { length: 50 }),
+  surfaceFinish: varchar("surface_finish", { length: 50 }),
+  complianceStandards: text("compliance_standards").array().default(sql`'{}'::text[]`),
+  isPrimeMaterial: boolean("is_prime_material").default(false),
+  createdBy: integer("created_by").references(() => users.id),
+  updatedBy: integer("updated_by").references(() => users.id),
+  // Legacy fields
+  originalInventoryId: integer("original_inventory_id").references(() => inventory.id),
+  newInventoryId: integer("new_inventory_id").references(() => inventory.id),
+  originalLength: decimal("original_length", { precision: 10, scale: 2 }),
+  remnantLength: decimal("remnant_length", { precision: 10, scale: 2 }),
   isLabeled: boolean("is_labeled").default(false),
-  photoUploaded: boolean("photo_uploaded").default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  photoUploaded: boolean("photo_uploaded").default(false)
 });
 
 // Optimization simulations tracking
@@ -1169,15 +1203,33 @@ export const cutSequencesRelations = relations(cutSequences, ({ one }) => ({
 }));
 
 export const remnantsRelations = relations(remnants, ({ one }) => ({
+  originalMaterial: one(materials, {
+    fields: [remnants.originalMaterialId],
+    references: [materials.id],
+  }),
+  parentJob: one(jobs, {
+    fields: [remnants.parentJobId],
+    references: [jobs.id],
+  }),
+  reservedForJob: one(jobs, {
+    fields: [remnants.reservedForJobId],
+    references: [jobs.id],
+  }),
+  createdByUser: one(users, {
+    fields: [remnants.createdBy],
+    references: [users.id],
+  }),
+  updatedByUser: one(users, {
+    fields: [remnants.updatedBy],
+    references: [users.id],
+  }),
   originalInventory: one(inventory, {
     fields: [remnants.originalInventoryId],
     references: [inventory.id],
-    relationName: "originalInventory",
   }),
   newInventory: one(inventory, {
     fields: [remnants.newInventoryId],
     references: [inventory.id],
-    relationName: "newInventory",
   }),
 }));
 

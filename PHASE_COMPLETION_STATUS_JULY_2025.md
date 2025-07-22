@@ -29,9 +29,12 @@
 
 #### 🔄 IN DEVELOPMENT (Week 4):
 - **Remnant Management System**
-  - QR/Barcode labeling
-  - Mill certificate tracking
-  - Reuse optimization (>500mm pieces)
+  - ✅ Database schema replacement (comprehensive tracking)
+  - 🔄 API routes development
+  - ⏳ QR/Barcode generation system
+  - ⏳ Label printing functionality
+  - ⏳ Mill certificate tracking
+  - ⏳ Reuse optimization (>500mm pieces)
   - Target: 95% material utilization
 
 #### ⏳ REMAINING FOR PHASE 1:

@@ -38,6 +38,7 @@ const navigation = [
       { name: "Material Library", href: "/materials", icon: Package },
       { name: "Inventory", href: "/inventory", icon: Warehouse, badge: "3", badgeVariant: "warning" },
       { name: "Cutting Optimization", href: "/optimization", icon: Slice },
+      { name: "Remnant Management", href: "/remnant-management", icon: Package },
     ],
   },
   {
