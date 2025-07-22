@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Shield, Clock, User, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import companyLogo from "@assets/LEL Variations Logo Symbol 01-01_1753176530831.jpg";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
@@ -59,15 +60,14 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Company Logo & Header */}
-        <div className="text-center space-y-2">
-          <div className="mx-auto w-20 h-20 bg-white rounded-xl flex items-center justify-center shadow-lg border">
+        <div className="text-center space-y-4">
+          <div className="mx-auto w-64 h-32 bg-white rounded-xl flex items-center justify-center shadow-lg border p-4">
             <img 
-              src="/lel-logo.png" 
+              src={companyLogo} 
               alt="Lateral Engineering Logo" 
-              className="w-12 h-12 object-contain"
+              className="w-full h-full object-contain"
             />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lateral Engineering</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">Steel Fabrication Management System</p>
         </div>
 

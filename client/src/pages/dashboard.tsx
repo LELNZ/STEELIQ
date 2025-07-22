@@ -309,7 +309,7 @@ export default function Dashboard() {
               ) : jobs && jobs.length > 0 ? (
                 <div className="transition-all duration-300 ease-in-out max-h-64 sm:max-h-96 overflow-y-auto">
                   {viewMode === 'table' ? (
-                    <JobTable jobs={jobs.slice(0, 5)} /> {/* Limit to 5 recent jobs */}
+                    <JobTable jobs={jobs.slice(0, 5)} />
                   ) : (
                     <JobList />
                   )}

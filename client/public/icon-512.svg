@@ -1,21 +1,19 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" fill="#ffffff"/>
   <g transform="translate(256, 256)">
-    <!-- LEL Logo with custom E design -->
-    <g transform="scale(6.5) translate(-24, -12)">
-      <!-- L (left) -->
-      <rect x="0" y="0" width="5" height="20" fill="#000000"/>
-      <rect x="0" y="15" width="12" height="5" fill="#000000"/>
+    <!-- LEL Logo based on company design -->
+    <g transform="scale(8) translate(-20, -16)">
+      <!-- Top horizontal bar -->
+      <rect x="8" y="0" width="24" height="6" rx="1" fill="#000000"/>
       
-      <!-- E (middle with custom design) -->
-      <rect x="17" y="0" width="14" height="5" fill="#000000"/>
-      <rect x="17" y="7.5" width="14" height="5" fill="#000000"/>
-      <rect x="17" y="15" width="14" height="5" fill="#000000"/>
-      <rect x="17" y="0" width="5" height="20" fill="#000000"/>
+      <!-- Middle horizontal bar -->
+      <rect x="8" y="10" width="24" height="6" rx="1" fill="#000000"/>
       
-      <!-- L (right) -->
-      <rect x="36" y="0" width="5" height="20" fill="#000000"/>
-      <rect x="36" y="15" width="12" height="5" fill="#000000"/>
+      <!-- Bottom L shape -->
+      <path d="M 8 20 L 8 32 Q 8 34 10 34 L 22 34 L 22 28 L 14 28 L 14 20 Z" fill="#000000"/>
+      
+      <!-- Right vertical bar connecting to top -->
+      <path d="M 32 0 L 38 0 Q 40 0 40 2 L 40 20 Q 40 26 34 26 L 8 26 L 8 20 L 34 20 Q 34 20 34 20 L 34 6 L 32 6 Z" fill="#000000"/>
     </g>
   </g>
 </svg>
