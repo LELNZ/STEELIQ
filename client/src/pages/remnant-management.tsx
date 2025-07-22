@@ -114,10 +114,7 @@ export default function RemnantManagement() {
   // Create remnant mutation
   const createRemnantMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/remnants", {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
+      return await apiRequest("/api/remnants", "POST", data);
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Remnant created successfully" });
@@ -138,10 +135,7 @@ export default function RemnantManagement() {
   // Update remnant mutation
   const updateRemnantMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/remnants/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data)
-      });
+      return await apiRequest(`/api/remnants/${id}`, "PATCH", data);
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Remnant updated successfully" });
@@ -160,10 +154,7 @@ export default function RemnantManagement() {
   // Delete (consume) remnant mutation
   const deleteRemnantMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/remnants/${id}`, {
-        method: "DELETE",
-        body: JSON.stringify({ reason: deleteReason })
-      });
+      return await apiRequest(`/api/remnants/${id}`, "DELETE", { reason: deleteReason });
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Remnant marked as consumed" });
@@ -185,10 +176,7 @@ export default function RemnantManagement() {
   // Generate label mutation
   const generateLabelMutation = useMutation({
     mutationFn: async (remnantId: number) => {
-      return await apiRequest(`/api/remnants/${remnantId}/label`, {
-        method: "POST",
-        body: JSON.stringify(labelSettings)
-      });
+      return await apiRequest(`/api/remnants/${remnantId}/label`, "POST", labelSettings);
     },
     onSuccess: (data) => {
       toast({ title: "Success", description: "Label generated successfully" });
@@ -276,28 +264,28 @@ export default function RemnantManagement() {
           <MetricCard
             title="Total Remnants"
             value={stats.totalRemnants.toString()}
-            description="Available for reuse"
-            icon={Package2}
+            subtitle="Available for reuse"
+            icon={<Package2 className="h-5 w-5" />}
             trend={{ value: 12, isPositive: true }}
           />
           <MetricCard
             title="Total Value"
             value={`$${stats.totalValue.toFixed(2)}`}
-            description="Current inventory value"
-            icon={BarChart3}
+            subtitle="Current inventory value"
+            icon={<BarChart3 className="h-5 w-5" />}
             trend={{ value: 8, isPositive: true }}
           />
           <MetricCard
             title="Average Length"
             value={`${stats.averageLength.toFixed(0)}mm`}
-            description="Per remnant piece"
-            icon={Package2}
+            subtitle="Per remnant piece"
+            icon={<Package2 className="h-5 w-5" />}
           />
           <MetricCard
             title="Utilization Rate"
             value={`${stats.utilizationRate}%`}
-            description="Remnant reuse efficiency"
-            icon={BarChart3}
+            subtitle="Remnant reuse efficiency"
+            icon={<BarChart3 className="h-5 w-5" />}
             trend={{ value: 5, isPositive: true }}
           />
         </div>
@@ -419,22 +407,24 @@ export default function RemnantManagement() {
                       <TableCell>${remnant.currentValue?.toFixed(2) || "0.00"}</TableCell>
                       <TableCell>
                         <ActionMenu
-                          onView={() => {
-                            setSelectedRemnant(remnant);
-                            // In production, this would open a detail view
-                          }}
-                          onEdit={() => {
-                            setSelectedRemnant(remnant);
-                            // In production, this would open edit dialog
-                          }}
-                          onDelete={() => {
-                            setSelectedRemnant(remnant);
-                            setShowDeleteDialog(true);
-                          }}
-                          customActions={[
+                          items={[
+                            {
+                              label: "View",
+                              onClick: () => {
+                                setSelectedRemnant(remnant);
+                                // In production, this would open a detail view
+                              }
+                            },
+                            {
+                              label: "Edit",
+                              onClick: () => {
+                                setSelectedRemnant(remnant);
+                                // In production, this would open edit dialog
+                              }
+                            },
                             {
                               label: "Print Label",
-                              icon: Printer,
+                              icon: <Printer className="h-4 w-4" />,
                               onClick: () => {
                                 setSelectedRemnant(remnant);
                                 setShowLabelDialog(true);
@@ -442,11 +432,20 @@ export default function RemnantManagement() {
                             },
                             {
                               label: "View History",
-                              icon: History,
+                              icon: <History className="h-4 w-4" />,
                               onClick: () => {
                                 // In production, show remnant history
                                 console.log("View history for", remnant.id);
                               }
+                            },
+                            {
+                              label: "Delete",
+                              onClick: () => {
+                                setSelectedRemnant(remnant);
+                                setShowDeleteDialog(true);
+                              },
+                              variant: "destructive",
+                              separator: true
                             }
                           ]}
                         />
