@@ -1,0 +1,16 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Safe zone background with padding for maskable icon -->
+  <rect width="512" height="512" fill="#1e40af"/>
+  <!-- Content centered with safe zone padding (80% of icon) -->
+  <g transform="translate(256, 256)">
+    <!-- LEL Letters -->
+    <text x="0" y="-40" text-anchor="middle" font-family="Arial, sans-serif" font-size="96" font-weight="bold" fill="white">LEL</text>
+    <!-- Steel beam icon (smaller for safe zone) -->
+    <g transform="translate(-80, 16)">
+      <rect x="0" y="0" width="160" height="16" fill="white"/>
+      <rect x="0" y="16" width="16" height="48" fill="white"/>
+      <rect x="144" y="16" width="16" height="48" fill="white"/>
+      <rect x="0" y="64" width="160" height="16" fill="white"/>
+    </g>
+  </g>
+</svg>
