@@ -141,18 +141,18 @@ export default function Settings() {
   const dynamicRate = calculateOverheadRate();
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Business Settings</h1>
-          <p className="text-muted-foreground">Configure company-wide overhead costs, margin targets, and project modifiers for accurate estimation</p>
+          <h1 className="text-2xl font-bold">Business Settings</h1>
+          <p className="text-sm text-muted-foreground">Configure company-wide overhead costs, margin targets, and project modifiers for accurate estimation</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={resetToDefaults}>
+          <Button size="sm" variant="outline" onClick={resetToDefaults}>
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset to Defaults
           </Button>
-          <Button onClick={saveSettings}>
+          <Button size="sm" onClick={saveSettings}>
             <Save className="w-4 h-4 mr-2" />
             Save Settings
           </Button>

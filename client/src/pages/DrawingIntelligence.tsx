@@ -12,13 +12,12 @@ export default function DrawingIntelligence() {
   const [activeTab, setActiveTab] = useState("upload");
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
+    <div className="container mx-auto p-4">
+      <div className="mb-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold">Drawing Intelligence</h1>
-          <Badge variant="info" className="text-sm">PHASE 1</Badge>
+          <h1 className="text-2xl font-bold">Drawing Intelligence</h1>
         </div>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-sm text-muted-foreground mt-1">
           AI-powered drawing analysis for automated material takeoff and quantity extraction
         </p>
       </div>

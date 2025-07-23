@@ -604,15 +604,15 @@ export default function TeamManagement() {
   );
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="container mx-auto py-4">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-3xl font-bold">Team Management</h1>
-          <p className="text-muted-foreground">Manage team members, roles, and departments</p>
+          <h1 className="text-2xl font-bold">Team Management</h1>
+          <p className="text-sm text-muted-foreground">Manage team members, roles, and departments</p>
         </div>
         <div className="flex space-x-2">
           <Link href="/team-management/employee/new">
-            <Button>
+            <Button size="sm">
               <UserPlus className="w-4 h-4 mr-2" />
               Add Member
             </Button>
@@ -666,7 +666,7 @@ export default function TeamManagement() {
             </div>
             <Dialog open={isEditingUser} onOpenChange={setIsEditingUser}>
               <DialogTrigger asChild>
-                <Button onClick={() => setSelectedUser(null)}>
+                <Button size="sm" onClick={() => setSelectedUser(null)}>
                   <UserPlus className="w-4 h-4 mr-2" />
                   Create User Account
                 </Button>
@@ -1007,7 +1007,7 @@ export default function TeamManagement() {
             </div>
             <Dialog open={isEditingRole} onOpenChange={setIsEditingRole}>
               <DialogTrigger asChild>
-                <Button onClick={() => setSelectedRole(null)}>
+                <Button size="sm" onClick={() => setSelectedRole(null)}>
                   <Shield className="w-4 h-4 mr-2" />
                   Create Role
                 </Button>
@@ -1186,7 +1186,7 @@ export default function TeamManagement() {
             </div>
             <Dialog open={isEditingDepartment} onOpenChange={setIsEditingDepartment}>
               <DialogTrigger asChild>
-                <Button onClick={() => setSelectedDepartment(null)}>
+                <Button size="sm" onClick={() => setSelectedDepartment(null)}>
                   <Building2 className="w-4 h-4 mr-2" />
                   Create Department
                 </Button>

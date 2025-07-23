@@ -94,11 +94,11 @@ export default function TimePayroll() {
   });
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Time & Payroll Management</h1>
-          <p className="text-muted-foreground">Integrated time tracking, labor rates, and payroll processing</p>
+          <h1 className="text-2xl font-bold">Time & Payroll Management</h1>
+          <p className="text-sm text-muted-foreground">Integrated time tracking, labor rates, and payroll processing</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">

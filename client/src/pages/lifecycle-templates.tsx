@@ -257,15 +257,15 @@ export default function LifecycleTemplates() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-4 space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Lifecycle Templates</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold">Lifecycle Templates</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Manage project lifecycle templates for different industries and project types
           </p>
         </div>
-        <Button onClick={() => {
+        <Button size="sm" onClick={() => {
           resetForm();
           setShowTemplateDialog(true);
         }}>

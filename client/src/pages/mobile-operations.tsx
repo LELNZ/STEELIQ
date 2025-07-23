@@ -96,12 +96,12 @@ export default function MobileOperations() {
   };
   
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 space-y-4">
       {/* Header with Status */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Mobile Operations</h1>
-          <p className="text-muted-foreground">Field operations management for teams on the go</p>
+          <h1 className="text-2xl font-bold">Mobile Operations</h1>
+          <p className="text-sm text-muted-foreground">Field operations management for teams on the go</p>
         </div>
         
         {/* Status Indicators */}

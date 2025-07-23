@@ -45,18 +45,15 @@ export default function FinancialIntelligence() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Financial Intelligence</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-2xl font-bold text-gray-900">Financial Intelligence</h1>
+          <p className="text-sm text-gray-600 mt-1">
             Real-time financial insights and analytics for strategic decision making
           </p>
         </div>
-        <Badge variant="secondary" className="text-sm">
-          PHASE 1
-        </Badge>
       </div>
 
       {/* Key Metrics */}

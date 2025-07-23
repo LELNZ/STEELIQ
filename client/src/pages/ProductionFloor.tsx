@@ -44,12 +44,12 @@ export default function ProductionFloor() {
   });
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-4 space-y-4">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Production Floor Tracking</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold">Production Floor Tracking</h1>
+          <p className="text-sm text-muted-foreground">
             Real-time monitoring and control of steel fabrication operations
           </p>
         </div>

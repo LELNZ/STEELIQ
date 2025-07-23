@@ -40,16 +40,13 @@ export default function ResourcePlanning() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="p-8">
+      <div className="p-4">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold">Resource Planning & Capacity Management</h1>
-            <Badge variant="info" className="text-base px-3 py-1">
-              PHASE 1
-            </Badge>
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1">
+            <h1 className="text-2xl font-bold">Resource Planning & Capacity Management</h1>
           </div>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-sm text-muted-foreground">
             Optimize workshop capacity, manage labor allocation, and schedule equipment for maximum efficiency
           </p>
         </div>
