@@ -300,13 +300,13 @@ export default function RemnantManagement() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto p-3 sm:p-4 lg:p-6 space-y-4">
+      <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold">Remnant Management System</h1>
-          <p className="text-muted-foreground">Track and optimize steel remnants for maximum utilization</p>
+          <h1 className="text-2xl font-bold text-foreground">Remnant Management System</h1>
+          <p className="text-sm text-muted-foreground">Track and optimize steel remnants for maximum utilization</p>
         </div>
-        <Button onClick={() => setShowAddDialog(true)}>
+        <Button size="sm" onClick={() => setShowAddDialog(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Remnant
         </Button>
@@ -314,32 +314,32 @@ export default function RemnantManagement() {
 
       {/* Statistics Overview */}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Total Remnants"
             value={stats.totalRemnants.toString()}
             subtitle="Available for reuse"
-            icon={<Package2 className="h-5 w-5" />}
+            icon={<Package2 className="h-4 w-4 sm:h-5 sm:w-5" />}
             trend={{ value: 12, isPositive: true }}
           />
           <MetricCard
             title="Total Value"
             value={`$${stats.totalValue.toFixed(2)}`}
             subtitle="Current inventory value"
-            icon={<BarChart3 className="h-5 w-5" />}
+            icon={<BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />}
             trend={{ value: 8, isPositive: true }}
           />
           <MetricCard
             title="Average Length"
             value={`${stats.averageLength.toFixed(0)}mm`}
             subtitle="Per remnant piece"
-            icon={<Package2 className="h-5 w-5" />}
+            icon={<Package2 className="h-4 w-4 sm:h-5 sm:w-5" />}
           />
           <MetricCard
             title="Utilization Rate"
             value={`${stats.utilizationRate}%`}
             subtitle="Remnant reuse efficiency"
-            icon={<BarChart3 className="h-5 w-5" />}
+            icon={<BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />}
             trend={{ value: 5, isPositive: true }}
           />
         </div>

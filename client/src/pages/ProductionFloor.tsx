@@ -44,23 +44,24 @@ export default function ProductionFloor() {
   });
 
   return (
-    <div className="container mx-auto py-4 space-y-4">
+    <div className="container mx-auto p-4 space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Production Floor Tracking</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl font-bold text-gray-900">Production Floor Tracking</h1>
+          <p className="text-sm text-gray-600 mt-1">
             Real-time monitoring and control of steel fabrication operations
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="hidden sm:flex">
             <BarChart3 className="h-4 w-4 mr-2" />
             Production Report
           </Button>
-          <Button size="sm">
-            <ClipboardList className="h-4 w-4 mr-2" />
-            New Work Order
+          <Button size="sm" className="whitespace-nowrap">
+            <ClipboardList className="h-4 w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">New Work Order</span>
+            <span className="sm:hidden">New Order</span>
           </Button>
         </div>
       </div>

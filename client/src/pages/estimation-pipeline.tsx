@@ -393,21 +393,21 @@ export default function EstimationPipeline() {
   );
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-3 sm:p-4 lg:p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Estimation Pipeline</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold text-foreground">Estimation Pipeline</h1>
+          <p className="text-sm text-muted-foreground">
             Track and manage all quotes through the sales process
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button size="sm" variant="outline">
             <Settings className="h-4 w-4 mr-2" />
             Configure
           </Button>
-          <Button>
+          <Button size="sm">
             <Activity className="h-4 w-4 mr-2" />
             Analytics
           </Button>
@@ -415,52 +415,52 @@ export default function EstimationPipeline() {
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pipeline Value</p>
-                <p className="text-2xl font-bold">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Pipeline Value</p>
+                <p className="text-xl font-bold text-foreground mt-0.5">
                   ${metrics.totalValue.toLocaleString()}
                 </p>
               </div>
-              <DollarSign className="h-8 w-8 text-muted-foreground" />
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Won Value</p>
-                <p className="text-2xl font-bold text-green-600">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Won Value</p>
+                <p className="text-xl font-bold text-green-600 mt-0.5">
                   ${metrics.acceptedValue.toLocaleString()}
                 </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-green-600" />
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Win Rate</p>
-                <p className="text-2xl font-bold">{metrics.conversionRate}%</p>
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Win Rate</p>
+                <p className="text-xl font-bold text-foreground mt-0.5">{metrics.conversionRate}%</p>
               </div>
-              <Activity className="h-8 w-8 text-muted-foreground" />
+              <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Avg Days to Close</p>
-                <p className="text-2xl font-bold">{metrics.avgDaysToClose}</p>
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Avg Days to Close</p>
+                <p className="text-xl font-bold text-foreground mt-0.5">{metrics.avgDaysToClose}</p>
               </div>
-              <Calendar className="h-8 w-8 text-muted-foreground" />
+              <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>

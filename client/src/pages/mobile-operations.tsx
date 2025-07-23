@@ -100,8 +100,8 @@ export default function MobileOperations() {
       {/* Header with Status */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Mobile Operations</h1>
-          <p className="text-sm text-muted-foreground">Field operations management for teams on the go</p>
+          <h1 className="text-2xl font-bold text-gray-900">Mobile Operations</h1>
+          <p className="text-sm text-gray-600 mt-1">Field operations management for teams on the go</p>
         </div>
         
         {/* Status Indicators */}
@@ -149,51 +149,54 @@ export default function MobileOperations() {
       )}
       
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium">Active Workers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <span className="text-2xl font-bold">12</span>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Active Workers</p>
+                <p className="text-xl font-bold text-foreground mt-0.5">12</p>
+              </div>
+              <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium">Sites Active</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-muted-foreground" />
-              <span className="text-2xl font-bold">3</span>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Sites Active</p>
+                <p className="text-xl font-bold text-foreground mt-0.5">3</p>
+              </div>
+              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium">Hours Today</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-muted-foreground" />
-              <span className="text-2xl font-bold">84.5</span>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Hours Today</p>
+                <p className="text-xl font-bold text-foreground mt-0.5">84.5</p>
+              </div>
+              <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium">Documents</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">+23 today</Badge>
-              <span className="text-2xl font-bold">156</span>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Documents</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <p className="text-xl font-bold text-foreground">156</p>
+                  <Badge variant="outline" className="text-xs h-5">+23</Badge>
+                </div>
+              </div>
+              <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
@@ -201,11 +204,11 @@ export default function MobileOperations() {
       
       {/* Main Tabs */}
       <Tabs defaultValue="time-tracking" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="time-tracking">Time Tracking</TabsTrigger>
-          <TabsTrigger value="site-inspection">Site Inspection</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="offline-sync">Offline Sync</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+          <TabsTrigger value="time-tracking" className="text-xs sm:text-sm">Time Tracking</TabsTrigger>
+          <TabsTrigger value="site-inspection" className="text-xs sm:text-sm">Site Inspection</TabsTrigger>
+          <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
+          <TabsTrigger value="offline-sync" className="text-xs sm:text-sm">Offline Sync</TabsTrigger>
         </TabsList>
         
         <TabsContent value="time-tracking">
