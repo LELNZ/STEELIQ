@@ -57,82 +57,107 @@ export default function FinancialIntelligence() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue (YTD)</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-7 w-32" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{formatCurrency(stats?.revenue || 0)}</div>
-                <p className="text-xs text-muted-foreground flex items-center">
-                  <ArrowUpRight className="h-3 w-3 text-green-600 mr-1" />
-                  +12.5% from last year
-                </p>
-              </>
-            )}
+          <CardContent className="p-3 sm:p-4 lg:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Revenue (YTD)</p>
+                {isLoading ? (
+                  <Skeleton className="h-7 w-32 mt-1" />
+                ) : (
+                  <>
+                    <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">
+                      {formatCurrency(stats?.revenue || 0)}
+                    </p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-2 flex items-center">
+                      <ArrowUpRight className="h-3 w-3 text-accent mr-1" />
+                      <span className="text-accent font-medium">+12.5%</span>
+                      <span className="ml-1 hidden sm:inline">from last year</span>
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
-            <PieChart className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-7 w-20" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{stats?.profitMargin || 0}%</div>
-                <p className="text-xs text-muted-foreground">
-                  Target: 22.5%
-                </p>
-              </>
-            )}
+          <CardContent className="p-3 sm:p-4 lg:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Profit Margin</p>
+                {isLoading ? (
+                  <Skeleton className="h-7 w-20 mt-1" />
+                ) : (
+                  <>
+                    <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">
+                      {stats?.profitMargin || 0}%
+                    </p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-2">
+                      Target: 22.5%
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <PieChart className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cash on Hand</CardTitle>
-            <DollarSign className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-7 w-32" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{formatCurrency(stats?.cashOnHand || 0)}</div>
-                <p className="text-xs text-muted-foreground">
-                  45 days of operating expenses
-                </p>
-              </>
-            )}
+          <CardContent className="p-3 sm:p-4 lg:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Cash on Hand</p>
+                {isLoading ? (
+                  <Skeleton className="h-7 w-32 mt-1" />
+                ) : (
+                  <>
+                    <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">
+                      {formatCurrency(stats?.cashOnHand || 0)}
+                    </p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-2">
+                      45 days of expenses
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue Invoices</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-7 w-32" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{formatCurrency(stats?.overduedInvoices || 0)}</div>
-                <p className="text-xs text-muted-foreground flex items-center">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  8 invoices past due
-                </p>
-              </>
-            )}
+          <CardContent className="p-3 sm:p-4 lg:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Overdue Invoices</p>
+                {isLoading ? (
+                  <Skeleton className="h-7 w-32 mt-1" />
+                ) : (
+                  <>
+                    <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">
+                      {formatCurrency(stats?.overduedInvoices || 0)}
+                    </p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-2 flex items-center">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      8 invoices past due
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

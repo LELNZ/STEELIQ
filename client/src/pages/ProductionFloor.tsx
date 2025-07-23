@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -66,82 +66,110 @@ export default function ProductionFloor() {
       </div>
 
       {/* Real-time Production Metrics */}
-      <div className="grid gap-4 md:grid-cols-8">
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Active Orders</p>
-              <p className="text-2xl font-bold">{stats?.activeWorkOrders || 0}</p>
-              <p className="text-xs text-muted-foreground mt-1">In production</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Active Orders</p>
+                <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">{stats?.activeWorkOrders || 0}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">In production</p>
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+              </div>
             </div>
-            <ClipboardList className="h-8 w-8 text-blue-600" />
-          </div>
+          </CardContent>
         </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Machines Active</p>
-              <p className="text-2xl font-bold">{stats?.machinesOperating || 0}/12</p>
-              <p className="text-xs text-muted-foreground mt-1">Operating</p>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Machines Active</p>
+                <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">{stats?.machinesOperating || 0}/12</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Operating</p>
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+              </div>
             </div>
-            <Wrench className="h-8 w-8 text-green-600" />
-          </div>
+          </CardContent>
         </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Daily Output</p>
-              <p className="text-2xl font-bold">{stats?.dailyOutput || 0}t</p>
-              <p className="text-xs text-muted-foreground mt-1">Tonnes today</p>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Daily Output</p>
+                <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">{stats?.dailyOutput || 0}t</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Tonnes today</p>
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <Package className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+              </div>
             </div>
-            <Package className="h-8 w-8 text-purple-600" />
-          </div>
+          </CardContent>
         </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Quality Score</p>
-              <p className="text-2xl font-bold">{stats?.qualityScore || 0}%</p>
-              <p className="text-xs text-muted-foreground mt-1">Pass rate</p>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Quality Score</p>
+                <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">{stats?.qualityScore || 0}%</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Pass rate</p>
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+              </div>
             </div>
-            <CheckCircle2 className="h-8 w-8 text-emerald-600" />
-          </div>
+          </CardContent>
         </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Efficiency</p>
-              <p className="text-2xl font-bold">{stats?.efficiency || 0}%</p>
-              <p className="text-xs text-green-600 mt-1">↑ 5% today</p>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Efficiency</p>
+                <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">{stats?.efficiency || 0}%</p>
+                <p className="text-xs text-green-600 mt-0.5">↑ 5% today</p>
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <Gauge className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+              </div>
             </div>
-            <Gauge className="h-8 w-8 text-orange-600" />
-          </div>
+          </CardContent>
         </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Defect Rate</p>
-              <p className="text-2xl font-bold">{stats?.defectRate || 0}%</p>
-              <p className="text-xs text-red-600 mt-1">↓ 2% week</p>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Defect Rate</p>
+                <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">{stats?.defectRate || 0}%</p>
+                <p className="text-xs text-red-600 mt-0.5">↓ 2% week</p>
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+              </div>
             </div>
-            <AlertCircle className="h-8 w-8 text-red-600" />
-          </div>
+          </CardContent>
         </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">On-Time</p>
-              <p className="text-2xl font-bold">{stats?.onTimeDelivery || 0}%</p>
-              <p className="text-xs text-muted-foreground mt-1">Delivery rate</p>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">On-Time</p>
+                <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">{stats?.onTimeDelivery || 0}%</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Delivery rate</p>
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600" />
+              </div>
             </div>
-            <Clock className="h-8 w-8 text-teal-600" />
-          </div>
+          </CardContent>
         </Card>
 
         <Card className="p-4">

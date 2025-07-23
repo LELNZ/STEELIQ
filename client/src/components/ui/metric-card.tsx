@@ -25,25 +25,38 @@ export function MetricCard({
 }: MetricCardProps) {
   return (
     <Card className={cn(cardStyles.base, className)}>
-      <CardHeader className={cardStyles.header}>
-        <CardTitle className={cardStyles.title}>{title}</CardTitle>
-        {icon && <div className={cardStyles.icon}>{icon}</div>}
-      </CardHeader>
-      <CardContent>
-        <div className={cardStyles.metric}>{value}</div>
-        {subtitle && <p className={cardStyles.subtitle}>{subtitle}</p>}
-        {trend && (
-          <div className={cn(
-            "flex items-center gap-1 mt-2 text-xs font-medium",
-            trend.isPositive ? "text-green-600" : "text-red-600"
-          )}>
-            {trend.isPositive ? (
-              <ArrowUp className="h-3 w-3" />
-            ) : (
-              <ArrowDown className="h-3 w-3" />
+      <CardContent className="p-3 sm:p-4 lg:p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className={cardStyles.title}>{title}</p>
+            <p className={cardStyles.metric}>{value}</p>
+          </div>
+          {icon && (
+            <div className={cn(cardStyles.icon, "ml-2")}>
+              {icon}
+            </div>
+          )}
+        </div>
+        {(subtitle || trend) && (
+          <div className="mt-2 sm:mt-3 lg:mt-4">
+            {trend ? (
+              <div className="flex items-center">
+                {trend.isPositive ? (
+                  <ArrowUp className="w-3 h-3 sm:w-4 sm:h-4 text-accent mr-1" />
+                ) : (
+                  <ArrowDown className="w-3 h-3 sm:w-4 sm:h-4 text-red-500 mr-1" />
+                )}
+                <span className={cn(
+                  "text-xs sm:text-sm font-medium",
+                  trend.isPositive ? "text-accent" : "text-red-500"
+                )}>
+                  {trend.isPositive ? '+' : '-'}{Math.abs(trend.value)}%
+                </span>
+                <span className="text-muted-foreground text-xs sm:text-sm ml-1 hidden sm:inline">from last month</span>
+              </div>
+            ) : subtitle && (
+              <p className={cardStyles.subtitle}>{subtitle}</p>
             )}
-            {Math.abs(trend.value)}%
-            <span className="text-muted-foreground ml-1">from last month</span>
           </div>
         )}
       </CardContent>

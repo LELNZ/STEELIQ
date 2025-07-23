@@ -122,11 +122,12 @@ export const tableStyles = {
 // Card styles with metrics (Dashboard style)
 export const cardStyles = {
   base: "rounded-lg border bg-card transition-all hover:shadow-md",
-  header: "flex flex-row items-center justify-between space-y-0 pb-2",
-  title: "text-sm font-medium",
-  metric: "text-2xl font-bold",
-  subtitle: "text-xs text-muted-foreground",
-  icon: "h-4 w-4 text-muted-foreground"
+  header: "flex flex-row items-center justify-between space-y-0",
+  title: "text-xs sm:text-sm font-medium text-muted-foreground",
+  metric: "text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1",
+  subtitle: "text-xs sm:text-sm text-muted-foreground",
+  icon: "w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0",
+  iconInner: "w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary"
 };
 
 // Action menu styles

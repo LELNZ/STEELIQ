@@ -43,32 +43,32 @@ export default function Jobs() {
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         <MetricCard
           title="Active Jobs"
           value={activeJobs}
           subtitle={`${jobs.length > 0 ? Math.round((activeJobs / jobs.length) * 100) : 0}% of total`}
-          icon={<Briefcase />}
+          icon={<Briefcase className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />}
           trend={{ value: 8, isPositive: true }}
         />
         <MetricCard
           title="Material Efficiency"
           value={`${efficiency}%`}
           subtitle="Target: 95%"
-          icon={<TrendingUp />}
+          icon={<TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />}
           trend={{ value: 5, isPositive: true }}
         />
         <MetricCard
           title="Weekly Volume"
           value={`${jobs.filter((j: any) => j.status === 'active').length} jobs`}
           subtitle="of 51 capacity"
-          icon={<Clock />}
+          icon={<Clock className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />}
         />
         <MetricCard
           title="Total Value"
           value={`$${totalValue.toLocaleString()}`}
           subtitle="This month"
-          icon={<CheckCircle />}
+          icon={<CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />}
           trend={{ value: 12, isPositive: true }}
         />
       </div>

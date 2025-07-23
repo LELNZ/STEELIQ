@@ -52,62 +52,70 @@ export default function ResourcePlanning() {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6">
           <Card>
-            <CardHeader className="pb-3">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-medium">Workshop Capacity</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Workshop Capacity</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">78%</p>
+                  <Progress value={78} className="mt-2 h-1.5" />
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">Optimal: 75-85%</p>
+                </div>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">78%</div>
-              <Progress value={78} className="mt-2 h-2" />
-              <p className="text-xs text-muted-foreground mt-1">Optimal: 75-85%</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-medium">Labor Utilization</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Labor Utilization</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">82%</p>
+                  <Progress value={82} className="mt-2 h-1.5" />
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">4 available workers</p>
+                </div>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">82%</div>
-              <Progress value={82} className="mt-2 h-2" />
-              <p className="text-xs text-muted-foreground mt-1">4 available workers</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-medium">Equipment Usage</CardTitle>
-                <Wrench className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Equipment Usage</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">65%</p>
+                  <Progress value={65} className="mt-2 h-1.5" />
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">2 machines idle</p>
+                </div>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                  <Wrench className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">65%</div>
-              <Progress value={65} className="mt-2 h-2" />
-              <p className="text-xs text-muted-foreground mt-1">2 machines idle</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-medium">Schedule Health</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Schedule Health</p>
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                    Good
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">3 conflicts resolved</p>
+                </div>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                Good
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">3 conflicts resolved</p>
             </CardContent>
           </Card>
         </div>
