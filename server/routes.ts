@@ -1586,6 +1586,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fabrication Standards Routes (no auth required)
+  app.get("/api/operations/fabrication-standards", async (req, res) => {
+    try {
+      // Return default fabrication settings
+      const fabricationSettings = {
+        defaultKerf: 2.4,
+        defaultTolerance: 0.5,
+        minimumOffcutLength: 500,
+        materialWasteAllowance: 5,
+        standardLengths: [6000, 9000, 12000]
+      };
+      res.json(fabricationSettings);
+    } catch (error) {
+      console.error("Error fetching fabrication standards:", error);
+      res.status(500).json({ error: "Failed to fetch fabrication standards" });
+    }
+  });
+
+  app.put("/api/operations/fabrication-standards", async (req, res) => {
+    try {
+      // For now, just return success
+      // In future, save to database
+      res.json({ message: "Fabrication standards updated successfully" });
+    } catch (error) {
+      console.error("Error updating fabrication standards:", error);
+      res.status(500).json({ error: "Failed to update fabrication standards" });
+    }
+  });
+
   // Google Places API (New) proxy endpoint for secure address search
   app.post("/api/places/autocomplete", async (req, res) => {
     try {

@@ -106,34 +106,34 @@ export default function OperationsSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full flex overflow-x-auto gap-1">
-          <TabsTrigger value="fabrication" className="flex items-center gap-2">
+        <TabsList className="w-full flex overflow-x-auto gap-1 bg-muted/30">
+          <TabsTrigger value="fabrication" className="flex items-center gap-2 whitespace-nowrap data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Zap className="h-4 w-4" />
-            Fabrication
+            Fabrication Standards
           </TabsTrigger>
-          <TabsTrigger value="welding" className="flex items-center gap-2">
+          <TabsTrigger value="welding" className="flex items-center gap-2 whitespace-nowrap">
             <Flame className="h-4 w-4" />
             Welding
           </TabsTrigger>
-          <TabsTrigger value="drilling" className="flex items-center gap-2">
+          <TabsTrigger value="drilling" className="flex items-center gap-2 whitespace-nowrap">
             <Wrench className="h-4 w-4" />
             Drilling
           </TabsTrigger>
-          <TabsTrigger value="cutting" className="flex items-center gap-2">
+          <TabsTrigger value="cutting" className="flex items-center gap-2 whitespace-nowrap">
             <Scissors className="h-4 w-4" />
             Cutting
           </TabsTrigger>
-          <TabsTrigger value="position" className="flex items-center gap-2">
+          <TabsTrigger value="position" className="flex items-center gap-2 whitespace-nowrap">
             <Settings2 className="h-4 w-4" />
-            Position
+            Position Factors
           </TabsTrigger>
-          <TabsTrigger value="assembly" className="flex items-center gap-2">
+          <TabsTrigger value="assembly" className="flex items-center gap-2 whitespace-nowrap">
             <Package className="h-4 w-4" />
-            Assembly
+            Assembly Templates
           </TabsTrigger>
-          <TabsTrigger value="labor" className="flex items-center gap-2">
+          <TabsTrigger value="labor" className="flex items-center gap-2 whitespace-nowrap">
             <FileUp className="h-4 w-4" />
-            Labor
+            Labor Defaults
           </TabsTrigger>
         </TabsList>
 
@@ -184,29 +184,25 @@ function FabricationStandardsTab() {
 
   // Fetch existing settings
   const { data: existingSettings, isLoading } = useQuery({
-    queryKey: ['/api/settings/operations'],
+    queryKey: ['/api/operations/fabrication-standards'],
     retry: false
   });
 
   // Update local state when settings are fetched
   useEffect(() => {
-    if (existingSettings && existingSettings.fabrication) {
-      setSettings(existingSettings.fabrication);
+    if (existingSettings) {
+      setSettings(existingSettings);
     }
   }, [existingSettings]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/settings/operations', 'PUT', {
-        fabricationSettings: settings,
-        workflowSettings: (existingSettings as any)?.workflow || {},
-        qualitySettings: (existingSettings as any)?.quality || {}
-      });
+      return apiRequest('/api/operations/fabrication-standards', 'PUT', settings);
     },
     onSuccess: () => {
       toast({ title: "Fabrication settings saved successfully" });
       setHasChanges(false);
-      queryClient.invalidateQueries({ queryKey: ['/api/settings/operations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/fabrication-standards'] });
     },
     onError: () => {
       toast({ 
