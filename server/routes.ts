@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -1287,6 +1287,302 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error setting primary supplier:", error);
       res.status(500).json({ error: "Failed to set primary supplier" });
+    }
+  });
+
+  // Operations Standards Routes
+  
+  // Welding Standards
+  app.get("/api/operations/welding-standards", async (req, res) => {
+    try {
+      const standards = await db.select().from(weldingStandards).orderBy(weldingStandards.name);
+      res.json(standards);
+    } catch (error) {
+      console.error("Error fetching welding standards:", error);
+      res.status(500).json({ error: "Failed to fetch welding standards" });
+    }
+  });
+
+  app.post("/api/operations/welding-standards", async (req, res) => {
+    try {
+      const data = req.body;
+      const [standard] = await db.insert(weldingStandards).values(data).returning();
+      res.status(201).json(standard);
+    } catch (error) {
+      console.error("Error creating welding standard:", error);
+      res.status(500).json({ error: "Failed to create welding standard" });
+    }
+  });
+
+  app.put("/api/operations/welding-standards/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = req.body;
+      const [standard] = await db.update(weldingStandards)
+        .set({ ...data, updated_at: new Date() })
+        .where(eq(weldingStandards.id, id))
+        .returning();
+      res.json(standard);
+    } catch (error) {
+      console.error("Error updating welding standard:", error);
+      res.status(500).json({ error: "Failed to update welding standard" });
+    }
+  });
+
+  app.delete("/api/operations/welding-standards/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(weldingStandards).where(eq(weldingStandards.id, id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting welding standard:", error);
+      res.status(500).json({ error: "Failed to delete welding standard" });
+    }
+  });
+
+  // Drilling Standards
+  app.get("/api/operations/drilling-standards", async (req, res) => {
+    try {
+      const standards = await db.select().from(drillingStandards).orderBy(drillingStandards.name);
+      res.json(standards);
+    } catch (error) {
+      console.error("Error fetching drilling standards:", error);
+      res.status(500).json({ error: "Failed to fetch drilling standards" });
+    }
+  });
+
+  app.post("/api/operations/drilling-standards", async (req, res) => {
+    try {
+      const data = req.body;
+      const [standard] = await db.insert(drillingStandards).values(data).returning();
+      res.status(201).json(standard);
+    } catch (error) {
+      console.error("Error creating drilling standard:", error);
+      res.status(500).json({ error: "Failed to create drilling standard" });
+    }
+  });
+
+  app.put("/api/operations/drilling-standards/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = req.body;
+      const [standard] = await db.update(drillingStandards)
+        .set({ ...data, updated_at: new Date() })
+        .where(eq(drillingStandards.id, id))
+        .returning();
+      res.json(standard);
+    } catch (error) {
+      console.error("Error updating drilling standard:", error);
+      res.status(500).json({ error: "Failed to update drilling standard" });
+    }
+  });
+
+  app.delete("/api/operations/drilling-standards/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(drillingStandards).where(eq(drillingStandards.id, id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting drilling standard:", error);
+      res.status(500).json({ error: "Failed to delete drilling standard" });
+    }
+  });
+
+  // Cutting Standards
+  app.get("/api/operations/cutting-standards", async (req, res) => {
+    try {
+      const standards = await db.select().from(cuttingStandards).orderBy(cuttingStandards.name);
+      res.json(standards);
+    } catch (error) {
+      console.error("Error fetching cutting standards:", error);
+      res.status(500).json({ error: "Failed to fetch cutting standards" });
+    }
+  });
+
+  app.post("/api/operations/cutting-standards", async (req, res) => {
+    try {
+      const data = req.body;
+      const [standard] = await db.insert(cuttingStandards).values(data).returning();
+      res.status(201).json(standard);
+    } catch (error) {
+      console.error("Error creating cutting standard:", error);
+      res.status(500).json({ error: "Failed to create cutting standard" });
+    }
+  });
+
+  app.put("/api/operations/cutting-standards/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = req.body;
+      const [standard] = await db.update(cuttingStandards)
+        .set({ ...data, updated_at: new Date() })
+        .where(eq(cuttingStandards.id, id))
+        .returning();
+      res.json(standard);
+    } catch (error) {
+      console.error("Error updating cutting standard:", error);
+      res.status(500).json({ error: "Failed to update cutting standard" });
+    }
+  });
+
+  app.delete("/api/operations/cutting-standards/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(cuttingStandards).where(eq(cuttingStandards.id, id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting cutting standard:", error);
+      res.status(500).json({ error: "Failed to delete cutting standard" });
+    }
+  });
+
+  // Position Factors
+  app.get("/api/operations/position-factors", async (req, res) => {
+    try {
+      const factors = await db.select().from(positionFactors).orderBy(positionFactors.position);
+      res.json(factors);
+    } catch (error) {
+      console.error("Error fetching position factors:", error);
+      res.status(500).json({ error: "Failed to fetch position factors" });
+    }
+  });
+
+  app.post("/api/operations/position-factors", async (req, res) => {
+    try {
+      const data = req.body;
+      const [factor] = await db.insert(positionFactors).values(data).returning();
+      res.status(201).json(factor);
+    } catch (error) {
+      console.error("Error creating position factor:", error);
+      res.status(500).json({ error: "Failed to create position factor" });
+    }
+  });
+
+  app.put("/api/operations/position-factors/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = req.body;
+      const [factor] = await db.update(positionFactors)
+        .set({ ...data, updated_at: new Date() })
+        .where(eq(positionFactors.id, id))
+        .returning();
+      res.json(factor);
+    } catch (error) {
+      console.error("Error updating position factor:", error);
+      res.status(500).json({ error: "Failed to update position factor" });
+    }
+  });
+
+  app.delete("/api/operations/position-factors/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(positionFactors).where(eq(positionFactors.id, id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting position factor:", error);
+      res.status(500).json({ error: "Failed to delete position factor" });
+    }
+  });
+
+  // Assembly Templates
+  app.get("/api/operations/assembly-templates", async (req, res) => {
+    try {
+      const templates = await db.select().from(assemblyTemplates).orderBy(assemblyTemplates.code);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching assembly templates:", error);
+      res.status(500).json({ error: "Failed to fetch assembly templates" });
+    }
+  });
+
+  app.post("/api/operations/assembly-templates", async (req, res) => {
+    try {
+      const data = req.body;
+      if (data.components && typeof data.components === 'string') {
+        data.components = JSON.parse(data.components);
+      }
+      const [template] = await db.insert(assemblyTemplates).values(data).returning();
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating assembly template:", error);
+      res.status(500).json({ error: "Failed to create assembly template" });
+    }
+  });
+
+  app.put("/api/operations/assembly-templates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = req.body;
+      if (data.components && typeof data.components === 'string') {
+        data.components = JSON.parse(data.components);
+      }
+      const [template] = await db.update(assemblyTemplates)
+        .set({ ...data, updated_at: new Date() })
+        .where(eq(assemblyTemplates.id, id))
+        .returning();
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating assembly template:", error);
+      res.status(500).json({ error: "Failed to update assembly template" });
+    }
+  });
+
+  app.delete("/api/operations/assembly-templates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(assemblyTemplates).where(eq(assemblyTemplates.id, id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting assembly template:", error);
+      res.status(500).json({ error: "Failed to delete assembly template" });
+    }
+  });
+
+  // Labor Defaults
+  app.get("/api/operations/labor-defaults", async (req, res) => {
+    try {
+      const defaults = await db.select().from(laborDefaults).orderBy(laborDefaults.operation_type);
+      res.json(defaults);
+    } catch (error) {
+      console.error("Error fetching labor defaults:", error);
+      res.status(500).json({ error: "Failed to fetch labor defaults" });
+    }
+  });
+
+  app.post("/api/operations/labor-defaults", async (req, res) => {
+    try {
+      const data = req.body;
+      const [defaultValue] = await db.insert(laborDefaults).values(data).returning();
+      res.status(201).json(defaultValue);
+    } catch (error) {
+      console.error("Error creating labor default:", error);
+      res.status(500).json({ error: "Failed to create labor default" });
+    }
+  });
+
+  app.put("/api/operations/labor-defaults/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = req.body;
+      const [defaultValue] = await db.update(laborDefaults)
+        .set({ ...data, updated_at: new Date() })
+        .where(eq(laborDefaults.id, id))
+        .returning();
+      res.json(defaultValue);
+    } catch (error) {
+      console.error("Error updating labor default:", error);
+      res.status(500).json({ error: "Failed to update labor default" });
+    }
+  });
+
+  app.delete("/api/operations/labor-defaults/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(laborDefaults).where(eq(laborDefaults.id, id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting labor default:", error);
+      res.status(500).json({ error: "Failed to delete labor default" });
     }
   });
 

@@ -33,7 +33,7 @@ import EmployeeProfile from "@/pages/employee-profile";
 import TimeManagement from "@/pages/time-management";
 import OrganizationSettings from "@/pages/settings/organization";
 import FinancialSettings from "@/pages/settings/financial";
-import OperationsSettings from "@/pages/settings/operations";
+import OperationsSettings from "@/pages/operations-settings";
 import TimePayroll from "@/pages/time-payroll";
 import ProjectLifecycleTracker from "@/pages/project-lifecycle-tracker";
 import LifecycleTemplates from "@/pages/lifecycle-templates";

@@ -454,6 +454,123 @@ export const wpsAlerts = pgTable("wps_alerts", {
   resolvedAt: timestamp("resolved_at"),
 });
 
+// Operations Standards Tables
+
+// Welding Standards
+export const weldingStandards = pgTable("welding_standards", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  weld_type: varchar("weld_type", { length: 50 }).notNull(), // fillet, butt_single_v, butt_double_v, seal, plug
+  size: decimal("size", { precision: 10, scale: 2 }), // in mm
+  time_per_meter: decimal("time_per_meter", { precision: 10, scale: 2 }).notNull(), // minutes per meter
+  description: text("description"),
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Drilling Standards
+export const drillingStandards = pgTable("drilling_standards", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  method: varchar("method", { length: 50 }).notNull(), // mag_drill, hand_drill, laser, plasma, punch
+  diameter_min: decimal("diameter_min", { precision: 10, scale: 2 }), // mm
+  diameter_max: decimal("diameter_max", { precision: 10, scale: 2 }), // mm
+  time_per_hole: decimal("time_per_hole", { precision: 10, scale: 2 }).notNull(), // minutes
+  description: text("description"),
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Cutting Standards
+export const cuttingStandards = pgTable("cutting_standards", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  material_type: varchar("material_type", { length: 50 }).notNull(), // mild_steel, stainless, aluminum, high_tensile
+  thickness_min: decimal("thickness_min", { precision: 10, scale: 2 }), // mm
+  thickness_max: decimal("thickness_max", { precision: 10, scale: 2 }), // mm
+  time_per_meter: decimal("time_per_meter", { precision: 10, scale: 2 }).notNull(), // minutes
+  equipment: varchar("equipment", { length: 100 }), // bandsaw, plasma, laser, oxy
+  description: text("description"),
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Position Factors
+export const positionFactors = pgTable("position_factors", {
+  id: serial("id").primaryKey(),
+  position: varchar("position", { length: 50 }).notNull().unique(), // flat, horizontal, vertical, overhead
+  factor: decimal("factor", { precision: 4, scale: 2 }).notNull(), // multiplier e.g., 1.0, 1.2, 1.5, 2.0
+  description: text("description"),
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Assembly Templates
+export const assemblyTemplates = pgTable("assembly_templates", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 50 }).notNull().unique(), // e.g., COL-A1
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  main_material: varchar("main_material", { length: 100 }), // e.g., 250UC89.5
+  components: jsonb("components"), // Array of component details
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Labor Defaults
+export const laborDefaults = pgTable("labor_defaults", {
+  id: serial("id").primaryKey(),
+  operation_type: varchar("operation_type", { length: 100 }).notNull().unique(),
+  default_allocation: varchar("default_allocation", { length: 50 }).notNull(), // workshop, onsite, subcontractor
+  site_premium_percentage: decimal("site_premium_percentage", { precision: 5, scale: 2 }).notNull().default("0"),
+  description: text("description"),
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Material Sub Items
+export const materialSubItems = pgTable("material_sub_items", {
+  id: serial("id").primaryKey(),
+  material_id: integer("material_id").notNull(), // Parent material in estimation
+  estimation_id: integer("estimation_id").references(() => estimationProjects.id).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // stiffener, end_plate, base_plate, cleat, holes, bolts, welding
+  name: varchar("name", { length: 200 }).notNull(),
+  quantity: integer("quantity").notNull(),
+  unit: varchar("unit", { length: 20 }).notNull(), // each, meters, kg
+  unit_cost: decimal("unit_cost", { precision: 10, scale: 2 }),
+  total_cost: decimal("total_cost", { precision: 10, scale: 2 }),
+  
+  // Labor allocation
+  labor_allocation: varchar("labor_allocation", { length: 50 }).notNull().default("workshop"), // workshop, onsite, subcontractor
+  labor_hours: decimal("labor_hours", { precision: 10, scale: 2 }),
+  
+  // Technical details
+  material_spec: varchar("material_spec", { length: 100 }), // e.g., FL100x10
+  dimensions: jsonb("dimensions"), // { length: 100, width: 50, thickness: 10 }
+  weight: decimal("weight", { precision: 10, scale: 3 }), // kg
+  
+  // Operations
+  welding_length: decimal("welding_length", { precision: 10, scale: 2 }), // mm
+  welding_type: varchar("welding_type", { length: 50 }), // fillet, butt, etc.
+  holes_diameter: decimal("holes_diameter", { precision: 10, scale: 2 }), // mm
+  holes_count: integer("holes_count"),
+  
+  // Processing
+  processing_time: decimal("processing_time", { precision: 10, scale: 2 }), // total time in minutes
+  
+  // Metadata
+  notes: text("notes"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+  created_by: integer("created_by")
+});
+
 // Legacy Jobs table for compatibility
 export const jobs = pgTable("jobs", {
   id: serial("id").primaryKey(),
