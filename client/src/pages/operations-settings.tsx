@@ -106,7 +106,7 @@ export default function OperationsSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 lg:grid-cols-7 w-full overflow-x-auto">
+        <TabsList className="w-full flex overflow-x-auto gap-1">
           <TabsTrigger value="fabrication" className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
             Fabrication
@@ -682,9 +682,21 @@ function WeldingStandardsTab() {
   );
 }
 
-// Similar components for other tabs...
-// Due to length, I'll create placeholder components for now
+// Drilling Standards Tab
 function DrillingStandardsTab() {
+  const { data: standards = [], isLoading } = useQuery({
+    queryKey: ['/api/operations/drilling-standards']
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center p-8">
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </div>;
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -692,13 +704,50 @@ function DrillingStandardsTab() {
         <CardDescription>Configure time standards for hole drilling operations</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-muted-foreground">Drilling standards configuration coming soon...</p>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-2">Name</th>
+                <th className="text-left p-2">Size (mm)</th>
+                <th className="text-left p-2">Material Type</th>
+                <th className="text-left p-2">Time/Hole</th>
+                <th className="text-left p-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {standards.map((standard: any) => (
+                <tr key={standard.id} className="border-b hover:bg-muted/50">
+                  <td className="p-2">{standard.name}</td>
+                  <td className="p-2">{standard.hole_diameter || '-'}</td>
+                  <td className="p-2">{standard.material_type?.replace(/_/g, ' ')}</td>
+                  <td className="p-2">{standard.time_per_hole} min</td>
+                  <td className="p-2">
+                    <span className={`text-xs px-2 py-1 rounded ${standard.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {standard.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   );
 }
 
 function CuttingStandardsTab() {
+  const { data: standards = [], isLoading } = useQuery({
+    queryKey: ['/api/operations/cutting-standards']
+  });
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center p-8">
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </div>;
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -706,13 +755,54 @@ function CuttingStandardsTab() {
         <CardDescription>Configure time standards for cutting operations</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-muted-foreground">Cutting standards configuration coming soon...</p>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-2">Name</th>
+                <th className="text-left p-2">Material Type</th>
+                <th className="text-left p-2">Thickness Range (mm)</th>
+                <th className="text-left p-2">Time/Meter</th>
+                <th className="text-left p-2">Equipment</th>
+                <th className="text-left p-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {standards.map((standard: any) => (
+                <tr key={standard.id} className="border-b hover:bg-muted/50">
+                  <td className="p-2">{standard.name}</td>
+                  <td className="p-2">{standard.material_type?.replace(/_/g, ' ')}</td>
+                  <td className="p-2">
+                    {standard.thickness_min || 0} - {standard.thickness_max || '∞'}
+                  </td>
+                  <td className="p-2">{standard.time_per_meter} min</td>
+                  <td className="p-2">{standard.equipment || '-'}</td>
+                  <td className="p-2">
+                    <span className={`text-xs px-2 py-1 rounded ${standard.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {standard.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   );
 }
 
 function PositionFactorsTab() {
+  const { data: factors = [], isLoading } = useQuery({
+    queryKey: ['/api/operations/position-factors']
+  });
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center p-8">
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </div>;
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -720,13 +810,48 @@ function PositionFactorsTab() {
         <CardDescription>Configure multipliers for different welding positions</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-muted-foreground">Position factors configuration coming soon...</p>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-2">Position</th>
+                <th className="text-left p-2">Factor</th>
+                <th className="text-left p-2">Description</th>
+                <th className="text-left p-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {factors.map((factor: any) => (
+                <tr key={factor.id} className="border-b hover:bg-muted/50">
+                  <td className="p-2 font-medium">{factor.position}</td>
+                  <td className="p-2">{factor.factor}x</td>
+                  <td className="p-2 text-sm text-muted-foreground">{factor.description}</td>
+                  <td className="p-2">
+                    <span className={`text-xs px-2 py-1 rounded ${factor.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {factor.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   );
 }
 
 function AssemblyTemplatesTab() {
+  const { data: templates = [], isLoading } = useQuery({
+    queryKey: ['/api/operations/assembly-templates']
+  });
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center p-8">
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </div>;
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -734,13 +859,54 @@ function AssemblyTemplatesTab() {
         <CardDescription>Create reusable assembly templates with predefined components</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-muted-foreground">Assembly templates configuration coming soon...</p>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-2">Code</th>
+                <th className="text-left p-2">Name</th>
+                <th className="text-left p-2">Main Material</th>
+                <th className="text-left p-2">Components</th>
+                <th className="text-left p-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {templates.map((template: any) => (
+                <tr key={template.id} className="border-b hover:bg-muted/50">
+                  <td className="p-2 font-medium">{template.code}</td>
+                  <td className="p-2">{template.name}</td>
+                  <td className="p-2">{template.main_material || '-'}</td>
+                  <td className="p-2">
+                    <div className="text-sm">
+                      {Array.isArray(template.components) ? template.components.length : 0} items
+                    </div>
+                  </td>
+                  <td className="p-2">
+                    <span className={`text-xs px-2 py-1 rounded ${template.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {template.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   );
 }
 
 function LaborDefaultsTab() {
+  const { data: defaults = [], isLoading } = useQuery({
+    queryKey: ['/api/operations/labor-defaults']
+  });
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center p-8">
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </div>;
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -748,7 +914,38 @@ function LaborDefaultsTab() {
         <CardDescription>Set default labor allocations and site premiums</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-muted-foreground">Labor defaults configuration coming soon...</p>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-2">Operation Type</th>
+                <th className="text-left p-2">Default Allocation</th>
+                <th className="text-left p-2">Site Premium %</th>
+                <th className="text-left p-2">Description</th>
+                <th className="text-left p-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {defaults.map((item: any) => (
+                <tr key={item.id} className="border-b hover:bg-muted/50">
+                  <td className="p-2 font-medium">
+                    {item.operation_type?.replace(/_/g, ' ')}
+                  </td>
+                  <td className="p-2">
+                    <span className="capitalize">{item.default_allocation}</span>
+                  </td>
+                  <td className="p-2">{item.site_premium_percentage}%</td>
+                  <td className="p-2 text-sm text-muted-foreground">{item.description}</td>
+                  <td className="p-2">
+                    <span className={`text-xs px-2 py-1 rounded ${item.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {item.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   );
