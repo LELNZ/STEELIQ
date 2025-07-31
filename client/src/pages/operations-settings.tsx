@@ -90,7 +90,7 @@ type AssemblyTemplate = z.infer<typeof assemblyTemplateSchema> & { id?: number }
 type LaborDefault = z.infer<typeof laborDefaultSchema> & { id?: number };
 
 export default function OperationsSettings() {
-  const [activeTab, setActiveTab] = useState("fabrication");
+  const [activeTab, setActiveTab] = useState("welding"); // Start with welding tab
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -106,36 +106,38 @@ export default function OperationsSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full flex overflow-x-auto gap-1 bg-muted/30">
-          <TabsTrigger value="fabrication" className="flex items-center gap-2 whitespace-nowrap data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Zap className="h-4 w-4" />
-            Fabrication Standards
-          </TabsTrigger>
-          <TabsTrigger value="welding" className="flex items-center gap-2 whitespace-nowrap">
-            <Flame className="h-4 w-4" />
-            Welding
-          </TabsTrigger>
-          <TabsTrigger value="drilling" className="flex items-center gap-2 whitespace-nowrap">
-            <Wrench className="h-4 w-4" />
-            Drilling
-          </TabsTrigger>
-          <TabsTrigger value="cutting" className="flex items-center gap-2 whitespace-nowrap">
-            <Scissors className="h-4 w-4" />
-            Cutting
-          </TabsTrigger>
-          <TabsTrigger value="position" className="flex items-center gap-2 whitespace-nowrap">
-            <Settings2 className="h-4 w-4" />
-            Position Factors
-          </TabsTrigger>
-          <TabsTrigger value="assembly" className="flex items-center gap-2 whitespace-nowrap">
-            <Package className="h-4 w-4" />
-            Assembly Templates
-          </TabsTrigger>
-          <TabsTrigger value="labor" className="flex items-center gap-2 whitespace-nowrap">
-            <FileUp className="h-4 w-4" />
-            Labor Defaults
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto">
+          <TabsList className="flex gap-1 bg-muted/30 min-w-max">
+            <TabsTrigger value="welding" className="flex items-center gap-2 whitespace-nowrap">
+              <Flame className="h-4 w-4" />
+              Welding
+            </TabsTrigger>
+            <TabsTrigger value="fabrication" className="flex items-center gap-2 whitespace-nowrap bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
+              <Zap className="h-4 w-4" />
+              Fabrication Standards
+            </TabsTrigger>
+            <TabsTrigger value="drilling" className="flex items-center gap-2 whitespace-nowrap">
+              <Wrench className="h-4 w-4" />
+              Drilling
+            </TabsTrigger>
+            <TabsTrigger value="cutting" className="flex items-center gap-2 whitespace-nowrap">
+              <Scissors className="h-4 w-4" />
+              Cutting
+            </TabsTrigger>
+            <TabsTrigger value="position" className="flex items-center gap-2 whitespace-nowrap">
+              <Settings2 className="h-4 w-4" />
+              Position Factors
+            </TabsTrigger>
+            <TabsTrigger value="assembly" className="flex items-center gap-2 whitespace-nowrap">
+              <Package className="h-4 w-4" />
+              Assembly Templates
+            </TabsTrigger>
+            <TabsTrigger value="labor" className="flex items-center gap-2 whitespace-nowrap">
+              <FileUp className="h-4 w-4" />
+              Labor Defaults
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="fabrication">
           <FabricationStandardsTab />
