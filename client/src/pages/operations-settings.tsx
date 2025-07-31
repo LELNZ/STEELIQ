@@ -90,7 +90,7 @@ type AssemblyTemplate = z.infer<typeof assemblyTemplateSchema> & { id?: number }
 type LaborDefault = z.infer<typeof laborDefaultSchema> & { id?: number };
 
 export default function OperationsSettings() {
-  const [activeTab, setActiveTab] = useState("fabrication");
+  const [activeTab, setActiveTab] = useState("welding");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -106,7 +106,7 @@ export default function OperationsSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className="grid grid-cols-4 lg:grid-cols-7 w-full overflow-x-auto">
           <TabsTrigger value="fabrication" className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
             Fabrication
@@ -190,7 +190,7 @@ function FabricationStandardsTab() {
 
   // Update local state when settings are fetched
   useEffect(() => {
-    if (existingSettings?.fabrication) {
+    if (existingSettings && existingSettings.fabrication) {
       setSettings(existingSettings.fabrication);
     }
   }, [existingSettings]);
@@ -199,8 +199,8 @@ function FabricationStandardsTab() {
     mutationFn: async () => {
       return apiRequest('/api/settings/operations', 'PUT', {
         fabricationSettings: settings,
-        workflowSettings: existingSettings?.workflow || {},
-        qualitySettings: existingSettings?.quality || {}
+        workflowSettings: (existingSettings as any)?.workflow || {},
+        qualitySettings: (existingSettings as any)?.quality || {}
       });
     },
     onSuccess: () => {
