@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Plus, Pencil, Trash2, Download, Upload, Flame, Wrench, Scissors, Settings2, Package, FileUp } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Download, Upload, Flame, Wrench, Scissors, Settings2, Package, FileUp, Zap } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -90,7 +90,7 @@ type AssemblyTemplate = z.infer<typeof assemblyTemplateSchema> & { id?: number }
 type LaborDefault = z.infer<typeof laborDefaultSchema> & { id?: number };
 
 export default function OperationsSettings() {
-  const [activeTab, setActiveTab] = useState("welding");
+  const [activeTab, setActiveTab] = useState("fabrication");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -106,7 +106,11 @@ export default function OperationsSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
+          <TabsTrigger value="fabrication" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Fabrication
+          </TabsTrigger>
           <TabsTrigger value="welding" className="flex items-center gap-2">
             <Flame className="h-4 w-4" />
             Welding
@@ -121,17 +125,21 @@ export default function OperationsSettings() {
           </TabsTrigger>
           <TabsTrigger value="position" className="flex items-center gap-2">
             <Settings2 className="h-4 w-4" />
-            Position Factors
+            Position
           </TabsTrigger>
           <TabsTrigger value="assembly" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
-            Assembly Templates
+            Assembly
           </TabsTrigger>
           <TabsTrigger value="labor" className="flex items-center gap-2">
             <FileUp className="h-4 w-4" />
-            Labor Defaults
+            Labor
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="fabrication">
+          <FabricationStandardsTab />
+        </TabsContent>
 
         <TabsContent value="welding">
           <WeldingStandardsTab />
@@ -158,6 +166,237 @@ export default function OperationsSettings() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// Fabrication Standards Tab Component
+function FabricationStandardsTab() {
+  const [settings, setSettings] = useState({
+    defaultKerf: 2.4,
+    defaultTolerance: 0.5,
+    minimumOffcutLength: 500,
+    materialWasteAllowance: 5,
+    standardLengths: [6000, 9000, 12000]
+  });
+  const [hasChanges, setHasChanges] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch existing settings
+  const { data: existingSettings, isLoading } = useQuery({
+    queryKey: ['/api/settings/operations'],
+    retry: false
+  });
+
+  // Update local state when settings are fetched
+  useEffect(() => {
+    if (existingSettings?.fabrication) {
+      setSettings(existingSettings.fabrication);
+    }
+  }, [existingSettings]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/settings/operations', 'PUT', {
+        fabricationSettings: settings,
+        workflowSettings: existingSettings?.workflow || {},
+        qualitySettings: existingSettings?.quality || {}
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Fabrication settings saved successfully" });
+      setHasChanges(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/settings/operations'] });
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to save settings", 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const updateSetting = (key: keyof typeof settings, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+    setHasChanges(true);
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Fabrication Standards</CardTitle>
+          <CardDescription>
+            Configure default settings for cutting optimization and fabrication processes
+          </CardDescription>
+        </div>
+        <Button 
+          onClick={() => saveMutation.mutate()} 
+          disabled={!hasChanges || saveMutation.isPending}
+          size="sm"
+        >
+          {saveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Save Changes
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Default Kerf Width */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="kerf">Default Kerf Width (mm)</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Standard cutting kerf width used in optimization calculations.</p>
+                  <p>Typical values: 2.4mm for plasma, 1.5mm for laser</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Input
+            id="kerf"
+            type="number"
+            step="0.1"
+            value={settings.defaultKerf}
+            onChange={(e) => updateSetting('defaultKerf', parseFloat(e.target.value) || 2.4)}
+            className="max-w-xs"
+          />
+        </div>
+
+        {/* Default Tolerance */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="tolerance">Default Tolerance (mm)</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Additional tolerance added to cuts for safety margin</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Input
+            id="tolerance"
+            type="number"
+            step="0.1"
+            value={settings.defaultTolerance}
+            onChange={(e) => updateSetting('defaultTolerance', parseFloat(e.target.value) || 0.5)}
+            className="max-w-xs"
+          />
+        </div>
+
+        {/* Minimum Offcut Length */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="offcut">Minimum Offcut Length (mm)</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Minimum length for a piece to be saved as a remnant</p>
+                  <p>Pieces shorter than this are considered waste</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Input
+            id="offcut"
+            type="number"
+            value={settings.minimumOffcutLength}
+            onChange={(e) => updateSetting('minimumOffcutLength', parseInt(e.target.value) || 500)}
+            className="max-w-xs"
+          />
+        </div>
+
+        {/* Material Waste Allowance */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="waste">Material Waste Allowance (%)</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Expected waste percentage for material ordering</p>
+                  <p>Typically 5-10% depending on material type</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Input
+            id="waste"
+            type="number"
+            step="0.1"
+            value={settings.materialWasteAllowance}
+            onChange={(e) => updateSetting('materialWasteAllowance', parseFloat(e.target.value) || 5)}
+            className="max-w-xs"
+          />
+        </div>
+
+        {/* Standard Lengths */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label>Standard Stock Lengths (mm)</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Common stock lengths available from suppliers</p>
+                  <p>Used for optimization calculations</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {settings.standardLengths.map((length, index) => (
+              <div key={index} className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  value={length}
+                  onChange={(e) => {
+                    const newLengths = [...settings.standardLengths];
+                    newLengths[index] = parseInt(e.target.value) || 0;
+                    updateSetting('standardLengths', newLengths);
+                  }}
+                  className="w-24"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    const newLengths = settings.standardLengths.filter((_, i) => i !== index);
+                    updateSetting('standardLengths', newLengths);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                updateSetting('standardLengths', [...settings.standardLengths, 6000]);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Length
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
