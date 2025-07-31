@@ -90,7 +90,7 @@ type AssemblyTemplate = z.infer<typeof assemblyTemplateSchema> & { id?: number }
 type LaborDefault = z.infer<typeof laborDefaultSchema> & { id?: number };
 
 export default function OperationsSettings() {
-  const [activeTab, setActiveTab] = useState("welding");
+  const [activeTab, setActiveTab] = useState("fabrication");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
