@@ -95,46 +95,53 @@ export default function OperationsSettings() {
   const queryClient = useQueryClient();
 
   return (
-    <div className="min-h-screen bg-background p-4 space-y-4">
+    <div className="min-h-screen bg-background p-2 sm:p-4 space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold">Operations Settings</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl font-semibold">Operations Settings</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Configure time standards and defaults for estimation calculations
           </p>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="w-full overflow-x-auto">
-          <TabsList className="flex gap-1 bg-muted/30 min-w-max p-1">
-            <TabsTrigger value="fabrication" className="flex items-center gap-2 whitespace-nowrap data-[state=active]:bg-purple-600 data-[state=active]:text-white bg-purple-100 text-purple-700 hover:bg-purple-200">
-              <Zap className="h-4 w-4" />
-              Fabrication
+        <div className="w-full overflow-x-auto pb-2" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <TabsList className="flex flex-nowrap gap-1 bg-muted/30 p-1 w-max" style={{ minWidth: '100%' }}>
+            <TabsTrigger value="fabrication" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 data-[state=active]:bg-purple-600 data-[state=active]:text-white bg-purple-100 text-purple-700 hover:bg-purple-200">
+              <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Fabrication</span>
+              <span className="sm:hidden">Fab</span>
             </TabsTrigger>
-            <TabsTrigger value="welding" className="flex items-center gap-2 whitespace-nowrap">
-              <Flame className="h-4 w-4" />
-              Welding
+            <TabsTrigger value="welding" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+              <Flame className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Welding</span>
+              <span className="sm:hidden">Weld</span>
             </TabsTrigger>
-            <TabsTrigger value="drilling" className="flex items-center gap-2 whitespace-nowrap">
-              <Wrench className="h-4 w-4" />
-              Drilling
+            <TabsTrigger value="drilling" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+              <Wrench className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Drilling</span>
+              <span className="sm:hidden">Drill</span>
             </TabsTrigger>
-            <TabsTrigger value="cutting" className="flex items-center gap-2 whitespace-nowrap">
-              <Scissors className="h-4 w-4" />
-              Cutting
+            <TabsTrigger value="cutting" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+              <Scissors className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Cutting</span>
+              <span className="sm:hidden">Cut</span>
             </TabsTrigger>
-            <TabsTrigger value="position" className="flex items-center gap-2 whitespace-nowrap">
-              <Settings2 className="h-4 w-4" />
-              Position Factors
+            <TabsTrigger value="position" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+              <Settings2 className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Position Factors</span>
+              <span className="sm:hidden">Pos</span>
             </TabsTrigger>
-            <TabsTrigger value="assembly" className="flex items-center gap-2 whitespace-nowrap">
-              <Package className="h-4 w-4" />
-              Assembly Templates
+            <TabsTrigger value="assembly" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+              <Package className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Assembly Templates</span>
+              <span className="sm:hidden">Asm</span>
             </TabsTrigger>
-            <TabsTrigger value="labor" className="flex items-center gap-2 whitespace-nowrap">
-              <FileUp className="h-4 w-4" />
-              Labor Defaults
+            <TabsTrigger value="labor" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+              <FileUp className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Labor Defaults</span>
+              <span className="sm:hidden">Labor</span>
             </TabsTrigger>
           </TabsList>
         </div>
