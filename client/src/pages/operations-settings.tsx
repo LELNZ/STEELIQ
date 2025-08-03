@@ -90,7 +90,7 @@ type AssemblyTemplate = z.infer<typeof assemblyTemplateSchema> & { id?: number }
 type LaborDefault = z.infer<typeof laborDefaultSchema> & { id?: number };
 
 export default function OperationsSettings() {
-  const [activeTab, setActiveTab] = useState("welding"); // Start with welding tab
+  const [activeTab, setActiveTab] = useState("fabrication"); // Start with fabrication tab to ensure visibility
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -107,14 +107,14 @@ export default function OperationsSettings() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="w-full overflow-x-auto">
-          <TabsList className="flex gap-1 bg-muted/30 min-w-max">
+          <TabsList className="flex gap-1 bg-muted/30 min-w-max p-1">
+            <TabsTrigger value="fabrication" className="flex items-center gap-2 whitespace-nowrap data-[state=active]:bg-purple-600 data-[state=active]:text-white bg-purple-100 text-purple-700 hover:bg-purple-200">
+              <Zap className="h-4 w-4" />
+              Fabrication
+            </TabsTrigger>
             <TabsTrigger value="welding" className="flex items-center gap-2 whitespace-nowrap">
               <Flame className="h-4 w-4" />
               Welding
-            </TabsTrigger>
-            <TabsTrigger value="fabrication" className="flex items-center gap-2 whitespace-nowrap bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
-              <Zap className="h-4 w-4" />
-              Fabrication Standards
             </TabsTrigger>
             <TabsTrigger value="drilling" className="flex items-center gap-2 whitespace-nowrap">
               <Wrench className="h-4 w-4" />
@@ -192,8 +192,14 @@ function FabricationStandardsTab() {
 
   // Update local state when settings are fetched
   useEffect(() => {
-    if (existingSettings) {
-      setSettings(existingSettings);
+    if (existingSettings && typeof existingSettings === 'object') {
+      setSettings({
+        defaultKerf: existingSettings.defaultKerf || 2.4,
+        defaultTolerance: existingSettings.defaultTolerance || 0.5,
+        minimumOffcutLength: existingSettings.minimumOffcutLength || 500,
+        materialWasteAllowance: existingSettings.materialWasteAllowance || 5,
+        standardLengths: existingSettings.standardLengths || [6000, 9000, 12000]
+      });
     }
   }, [existingSettings]);
 
@@ -714,7 +720,7 @@ function DrillingStandardsTab() {
               </tr>
             </thead>
             <tbody>
-              {standards.map((standard: any) => (
+              {Array.isArray(standards) && standards.map((standard: any) => (
                 <tr key={standard.id} className="border-b hover:bg-muted/50">
                   <td className="p-2">{standard.name}</td>
                   <td className="p-2">{standard.hole_diameter || '-'}</td>
@@ -766,7 +772,7 @@ function CuttingStandardsTab() {
               </tr>
             </thead>
             <tbody>
-              {standards.map((standard: any) => (
+              {Array.isArray(standards) && standards.map((standard: any) => (
                 <tr key={standard.id} className="border-b hover:bg-muted/50">
                   <td className="p-2">{standard.name}</td>
                   <td className="p-2">{standard.material_type?.replace(/_/g, ' ')}</td>
@@ -819,7 +825,7 @@ function PositionFactorsTab() {
               </tr>
             </thead>
             <tbody>
-              {factors.map((factor: any) => (
+              {Array.isArray(factors) && factors.map((factor: any) => (
                 <tr key={factor.id} className="border-b hover:bg-muted/50">
                   <td className="p-2 font-medium">{factor.position}</td>
                   <td className="p-2">{factor.factor}x</td>
@@ -869,7 +875,7 @@ function AssemblyTemplatesTab() {
               </tr>
             </thead>
             <tbody>
-              {templates.map((template: any) => (
+              {Array.isArray(templates) && templates.map((template: any) => (
                 <tr key={template.id} className="border-b hover:bg-muted/50">
                   <td className="p-2 font-medium">{template.code}</td>
                   <td className="p-2">{template.name}</td>
@@ -924,7 +930,7 @@ function LaborDefaultsTab() {
               </tr>
             </thead>
             <tbody>
-              {defaults.map((item: any) => (
+              {Array.isArray(defaults) && defaults.map((item: any) => (
                 <tr key={item.id} className="border-b hover:bg-muted/50">
                   <td className="p-2 font-medium">
                     {item.operation_type?.replace(/_/g, ' ')}
