@@ -277,6 +277,21 @@
     @apply bg-primary text-primary-foreground;
   }
 
+  /* Override any purple styling on tabs */
+  button[role="tab"][data-state="active"] {
+    background-color: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+  }
+
+  /* Ensure dropdown menu triggers are visible */
+  [data-radix-collection-item] button[aria-haspopup="menu"],
+  button[data-state="closed"],
+  button[data-state="open"] {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: inline-flex !important;
+  }
+
   /* Alert enhancements */
   .form-alert {
     @apply border-l-4 border-l-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200;
