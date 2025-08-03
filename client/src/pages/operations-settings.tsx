@@ -104,7 +104,7 @@ export default function OperationsSettings() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background p-2 sm:p-4 space-y-4" data-version="v2">
+    <div className="min-h-screen bg-background p-2 sm:p-4 space-y-4" data-version={`v3-${Date.now()}`}>
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold">Operations Settings</h1>
