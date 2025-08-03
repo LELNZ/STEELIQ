@@ -277,19 +277,81 @@
     @apply bg-primary text-primary-foreground;
   }
 
-  /* Override any purple styling on tabs */
-  button[role="tab"][data-state="active"] {
-    background-color: hsl(var(--primary)) !important;
-    color: hsl(var(--primary-foreground)) !important;
+  /* Override any purple styling on tabs - use blue primary color */
+  button[role="tab"][data-state="active"],
+  [data-state="active"].TabsTrigger,
+  [role="tab"][aria-selected="true"] {
+    background-color: hsl(217 91% 60%) !important;
+    color: white !important;
   }
 
-  /* Ensure dropdown menu triggers are visible */
-  [data-radix-collection-item] button[aria-haspopup="menu"],
+  /* Ensure dropdown menu triggers and ghost buttons are visible */
+  button.h-8.w-8,
+  button[variant="ghost"],
+  [data-radix-collection-item] button,
+  button[aria-haspopup="menu"],
   button[data-state="closed"],
-  button[data-state="open"] {
+  button[data-state="open"],
+  .MoreVertical {
     visibility: visible !important;
     opacity: 1 !important;
     display: inline-flex !important;
+  }
+
+  /* Force visibility for action buttons in tables */
+  td button[variant="ghost"],
+  td .h-8.w-8,
+  table button.h-8.w-8 {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: inline-flex !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+  }
+
+  /* Force ghost button visibility */
+  button[data-variant="ghost"],
+  button.bg-transparent {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* Fix active tab colors - remove ALL purple */
+  [data-value="fabrication"][data-state="active"],
+  [data-value="welding"][data-state="active"],
+  [data-value="drilling"][data-state="active"],
+  [data-value="cutting"][data-state="active"],
+  [data-value="position"][data-state="active"],
+  [data-value="assembly"][data-state="active"],
+  [data-value="labor"][data-state="active"] {
+    background-color: hsl(217 91% 60%) !important;
+    color: white !important;
+  }
+
+  /* Force all action menu buttons to have visible background */
+  td button.h-8.w-8,
+  td > button[class*="h-8"][class*="w-8"],
+  button[class*="hover:bg-accent"],
+  td button[style*="visibility"],
+  .h-8.w-8[aria-haspopup="menu"] {
+    background-color: hsl(0 0% 90% / 0.3) !important;
+    border: 1px solid hsl(0 0% 80% / 0.3) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: inline-flex !important;
+  }
+  
+  td button.h-8.w-8:hover,
+  button[class*="hover:bg-accent"]:hover {
+    background-color: hsl(0 0% 90% / 0.8) !important;
+  }
+
+  /* Ensure MoreVertical icon is visible */
+  .lucide-more-vertical,
+  svg.h-4.w-4 {
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: hsl(0 0% 20%) !important;
   }
 
   /* Alert enhancements */

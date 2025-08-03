@@ -757,7 +757,7 @@ function WeldingStandardsTab() {
                   <td className="p-2 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" style={{ visibility: "visible", opacity: 1, display: "inline-flex" }}>
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -866,7 +866,7 @@ function DrillingStandardsTab() {
                   <td className="p-2 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" style={{ visibility: "visible", opacity: 1, display: "inline-flex" }}>
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -976,7 +976,7 @@ function CuttingStandardsTab() {
                   <td className="p-2 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" style={{ visibility: "visible", opacity: 1, display: "inline-flex" }}>
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -1080,7 +1080,7 @@ function PositionFactorsTab() {
                   <td className="p-2 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" style={{ visibility: "visible", opacity: 1, display: "inline-flex" }}>
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -1190,7 +1190,7 @@ function AssemblyTemplatesTab() {
                   <td className="p-2 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" style={{ visibility: "visible", opacity: 1, display: "inline-flex" }}>
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -1300,7 +1300,7 @@ function LaborDefaultsTab() {
                   <td className="p-2 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" style={{ visibility: "visible", opacity: 1, display: "inline-flex" }}>
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
