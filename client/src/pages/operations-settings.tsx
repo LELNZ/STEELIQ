@@ -289,12 +289,13 @@ function FabricationStandardsTab() {
   // Update local state when settings are fetched
   useEffect(() => {
     if (existingSettings && typeof existingSettings === 'object') {
+      const settings = existingSettings as any;
       setSettings({
-        defaultKerf: existingSettings.defaultKerf || 2.4,
-        defaultTolerance: existingSettings.defaultTolerance || 0.5,
-        minimumOffcutLength: existingSettings.minimumOffcutLength || 500,
-        materialWasteAllowance: existingSettings.materialWasteAllowance || 5,
-        standardLengths: existingSettings.standardLengths || [6000, 9000, 12000]
+        defaultKerf: settings.defaultKerf || 2.4,
+        defaultTolerance: settings.defaultTolerance || 0.5,
+        minimumOffcutLength: settings.minimumOffcutLength || 500,
+        materialWasteAllowance: settings.materialWasteAllowance || 5,
+        standardLengths: settings.standardLengths || [6000, 9000, 12000]
       });
     }
   }, [existingSettings]);
@@ -554,6 +555,10 @@ function WeldingStandardsTab() {
     setEditingStandard(standard);
     form.reset(standard);
     setIsAddOpen(true);
+  };
+
+  const handleCopy = (standard: WeldingStandard) => {
+    toast({ title: "Copy functionality coming soon" });
   };
 
   const handleCloseDialog = () => {

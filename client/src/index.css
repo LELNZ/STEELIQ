@@ -354,6 +354,20 @@
     color: hsl(0 0% 20%) !important;
   }
 
+  /* Force table action columns to be visible */
+  th.w-10,
+  td:last-child {
+    min-width: 60px !important;
+    width: 60px !important;
+    display: table-cell !important;
+  }
+
+  /* Force all table cells to show */
+  table td, table th {
+    display: table-cell !important;
+    visibility: visible !important;
+  }
+
   /* Alert enhancements */
   .form-alert {
     @apply border-l-4 border-l-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200;
