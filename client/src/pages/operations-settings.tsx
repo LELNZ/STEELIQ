@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Plus, Pencil, Trash2, Download, Upload, Flame, Wrench, Scissors, Settings2, Package, FileUp, Zap } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Download, Upload, Flame, Wrench, Scissors, Settings2, Package, FileUp, Zap, MoreVertical, Copy, Edit } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -18,6 +18,13 @@ import {
   DialogTrigger,
   DialogFooter 
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -104,18 +111,19 @@ export default function OperationsSettings() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background p-2 sm:p-4 space-y-4" data-version={`v3-${Date.now()}`}>
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-semibold">Operations Settings</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Configure time standards and defaults for estimation calculations
-          </p>
-          <p className="text-xs text-green-600 mt-1">Updated: August 3, 2025 - v4</p>
+    <TooltipProvider>
+      <div className="min-h-screen bg-background p-2 sm:p-4 space-y-4" data-version={`v3-${Date.now()}`}>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-semibold">Operations Settings</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Configure time standards and defaults for estimation calculations
+            </p>
+            <p className="text-xs text-green-600 mt-1">Updated: August 3, 2025 - v5</p>
+          </div>
         </div>
-      </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div 
           className="w-full overflow-x-auto pb-2" 
           style={{ 
@@ -132,73 +140,130 @@ export default function OperationsSettings() {
               flexDirection: 'row' 
             }}
           >
-            <TabsTrigger value="fabrication" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+            <TabsTrigger value="fabrication" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 group">
               <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Fabrication</span>
               <span className="sm:hidden">Fab</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Configure default settings for cutting optimization and fabrication processes</p>
+                </TooltipContent>
+              </Tooltip>
             </TabsTrigger>
-            <TabsTrigger value="welding" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+            <TabsTrigger value="welding" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 group">
               <Flame className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Welding</span>
               <span className="sm:hidden">Weld</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Configure time standards for different welding types and positions</p>
+                </TooltipContent>
+              </Tooltip>
             </TabsTrigger>
-            <TabsTrigger value="drilling" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+            <TabsTrigger value="drilling" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 group">
               <Wrench className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Drilling</span>
               <span className="sm:hidden">Drill</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Configure time standards for different hole drilling operations</p>
+                </TooltipContent>
+              </Tooltip>
             </TabsTrigger>
-            <TabsTrigger value="cutting" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+            <TabsTrigger value="cutting" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 group">
               <Scissors className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Cutting</span>
               <span className="sm:hidden">Cut</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Configure time standards for different cutting methods and materials</p>
+                </TooltipContent>
+              </Tooltip>
             </TabsTrigger>
-            <TabsTrigger value="position" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+            <TabsTrigger value="position" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 group">
               <Settings2 className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Position Factors</span>
               <span className="sm:hidden">Pos</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Configure difficulty multipliers for different working positions</p>
+                </TooltipContent>
+              </Tooltip>
             </TabsTrigger>
-            <TabsTrigger value="assembly" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+            <TabsTrigger value="assembly" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 group">
               <Package className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Assembly Templates</span>
               <span className="sm:hidden">Asm</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Configure standard assembly templates for common steel structures</p>
+                </TooltipContent>
+              </Tooltip>
             </TabsTrigger>
-            <TabsTrigger value="labor" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+            <TabsTrigger value="labor" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 group">
               <FileUp className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Labor Defaults</span>
               <span className="sm:hidden">Labor</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Configure default labor rates and times for different operations</p>
+                </TooltipContent>
+              </Tooltip>
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="fabrication">
+        <TabsContent value="fabrication" className="mt-4">
           <FabricationStandardsTab />
         </TabsContent>
 
-        <TabsContent value="welding">
+        <TabsContent value="welding" className="mt-4">
           <WeldingStandardsTab />
         </TabsContent>
 
-        <TabsContent value="drilling">
+        <TabsContent value="drilling" className="mt-4">
           <DrillingStandardsTab />
         </TabsContent>
 
-        <TabsContent value="cutting">
+        <TabsContent value="cutting" className="mt-4">
           <CuttingStandardsTab />
         </TabsContent>
 
-        <TabsContent value="position">
+        <TabsContent value="position" className="mt-4">
           <PositionFactorsTab />
         </TabsContent>
 
-        <TabsContent value="assembly">
+        <TabsContent value="assembly" className="mt-4">
           <AssemblyTemplatesTab />
         </TabsContent>
 
-        <TabsContent value="labor">
+        <TabsContent value="labor" className="mt-4">
           <LaborDefaultsTab />
         </TabsContent>
-      </Tabs>
-    </div>
+        </Tabs>
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -674,7 +739,7 @@ function WeldingStandardsTab() {
                 <th className="text-left p-2">Size (mm)</th>
                 <th className="text-left p-2">Time/Meter</th>
                 <th className="text-left p-2">Status</th>
-                <th className="text-left p-2">Actions</th>
+                <th className="text-right p-2 w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -689,23 +754,32 @@ function WeldingStandardsTab() {
                       {standard.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="p-2">
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        onClick={() => handleEdit(standard)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        onClick={() => standard.id && deleteMutation.mutate(standard.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  <td className="p-2 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(standard)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleCopy(standard)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => standard.id && deleteMutation.mutate(standard.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
@@ -725,6 +799,32 @@ function DrillingStandardsTab() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/operations/drilling-standards/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({ title: "Drilling standard deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/drilling-standards'] });
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to delete drilling standard", 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleCopy = (standard: any) => {
+    // TODO: Implement copy functionality
+    toast({ title: "Copy functionality coming soon" });
+  };
+
+  const handleEdit = (standard: any) => {
+    // TODO: Implement edit functionality
+    toast({ title: "Edit functionality coming soon" });
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center p-8">
@@ -748,6 +848,7 @@ function DrillingStandardsTab() {
                 <th className="text-left p-2">Material Type</th>
                 <th className="text-left p-2">Time/Hole</th>
                 <th className="text-left p-2">Status</th>
+                <th className="text-right p-2 w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -761,6 +862,33 @@ function DrillingStandardsTab() {
                     <span className={`text-xs px-2 py-1 rounded ${standard.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                       {standard.is_active ? 'Active' : 'Inactive'}
                     </span>
+                  </td>
+                  <td className="p-2 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(standard)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleCopy(standard)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => deleteMutation.mutate(standard.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
@@ -776,6 +904,33 @@ function CuttingStandardsTab() {
   const { data: standards = [], isLoading } = useQuery({
     queryKey: ['/api/operations/cutting-standards']
   });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/operations/cutting-standards/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({ title: "Cutting standard deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/cutting-standards'] });
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to delete cutting standard", 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleCopy = (standard: any) => {
+    toast({ title: "Copy functionality coming soon" });
+  };
+
+  const handleEdit = (standard: any) => {
+    toast({ title: "Edit functionality coming soon" });
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center p-8">
@@ -800,6 +955,7 @@ function CuttingStandardsTab() {
                 <th className="text-left p-2">Time/Meter</th>
                 <th className="text-left p-2">Equipment</th>
                 <th className="text-left p-2">Status</th>
+                <th className="text-right p-2 w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -817,6 +973,33 @@ function CuttingStandardsTab() {
                       {standard.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
+                  <td className="p-2 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(standard)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleCopy(standard)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => deleteMutation.mutate(standard.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -831,6 +1014,33 @@ function PositionFactorsTab() {
   const { data: factors = [], isLoading } = useQuery({
     queryKey: ['/api/operations/position-factors']
   });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/operations/position-factors/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({ title: "Position factor deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/position-factors'] });
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to delete position factor", 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleCopy = (factor: any) => {
+    toast({ title: "Copy functionality coming soon" });
+  };
+
+  const handleEdit = (factor: any) => {
+    toast({ title: "Edit functionality coming soon" });
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center p-8">
@@ -853,6 +1063,7 @@ function PositionFactorsTab() {
                 <th className="text-left p-2">Factor</th>
                 <th className="text-left p-2">Description</th>
                 <th className="text-left p-2">Status</th>
+                <th className="text-right p-2 w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -865,6 +1076,33 @@ function PositionFactorsTab() {
                     <span className={`text-xs px-2 py-1 rounded ${factor.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                       {factor.is_active ? 'Active' : 'Inactive'}
                     </span>
+                  </td>
+                  <td className="p-2 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(factor)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleCopy(factor)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => deleteMutation.mutate(factor.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
@@ -880,6 +1118,33 @@ function AssemblyTemplatesTab() {
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['/api/operations/assembly-templates']
   });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/operations/assembly-templates/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({ title: "Assembly template deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/assembly-templates'] });
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to delete assembly template", 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleCopy = (template: any) => {
+    toast({ title: "Copy functionality coming soon" });
+  };
+
+  const handleEdit = (template: any) => {
+    toast({ title: "Edit functionality coming soon" });
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center p-8">
@@ -903,6 +1168,7 @@ function AssemblyTemplatesTab() {
                 <th className="text-left p-2">Main Material</th>
                 <th className="text-left p-2">Components</th>
                 <th className="text-left p-2">Status</th>
+                <th className="text-right p-2 w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -921,6 +1187,33 @@ function AssemblyTemplatesTab() {
                       {template.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
+                  <td className="p-2 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(template)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleCopy(template)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => deleteMutation.mutate(template.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -935,6 +1228,33 @@ function LaborDefaultsTab() {
   const { data: defaults = [], isLoading } = useQuery({
     queryKey: ['/api/operations/labor-defaults']
   });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/operations/labor-defaults/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({ title: "Labor default deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/labor-defaults'] });
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to delete labor default", 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleCopy = (item: any) => {
+    toast({ title: "Copy functionality coming soon" });
+  };
+
+  const handleEdit = (item: any) => {
+    toast({ title: "Edit functionality coming soon" });
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center p-8">
@@ -958,6 +1278,7 @@ function LaborDefaultsTab() {
                 <th className="text-left p-2">Site Premium %</th>
                 <th className="text-left p-2">Description</th>
                 <th className="text-left p-2">Status</th>
+                <th className="text-right p-2 w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -975,6 +1296,33 @@ function LaborDefaultsTab() {
                     <span className={`text-xs px-2 py-1 rounded ${item.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                       {item.is_active ? 'Active' : 'Inactive'}
                     </span>
+                  </td>
+                  <td className="p-2 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(item)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleCopy(item)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => deleteMutation.mutate(item.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
