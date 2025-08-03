@@ -94,8 +94,17 @@ export default function OperationsSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Force re-render on mount to ensure mobile app displays correctly
+  useEffect(() => {
+    // Add a small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      setActiveTab("fabrication");
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-background p-2 sm:p-4 space-y-4">
+    <div className="min-h-screen bg-background p-2 sm:p-4 space-y-4" data-version="v2">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold">Operations Settings</h1>
@@ -105,10 +114,24 @@ export default function OperationsSettings() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="w-full overflow-x-auto pb-2" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <TabsList className="flex flex-nowrap gap-1 bg-muted/30 p-1 w-max" style={{ minWidth: '100%' }}>
-            <TabsTrigger value="fabrication" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 data-[state=active]:bg-purple-600 data-[state=active]:text-white bg-purple-100 text-purple-700 hover:bg-purple-200">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div 
+          className="w-full overflow-x-auto pb-2" 
+          style={{ 
+            WebkitOverflowScrolling: 'touch',
+            msOverflowStyle: 'auto',
+            scrollbarWidth: 'thin'
+          }}
+        >
+          <TabsList 
+            className="flex flex-nowrap gap-1 bg-muted/30 p-1 w-max" 
+            style={{ 
+              minWidth: '100%',
+              display: 'flex',
+              flexDirection: 'row' 
+            }}
+          >
+            <TabsTrigger value="fabrication" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
               <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Fabrication</span>
               <span className="sm:hidden">Fab</span>
