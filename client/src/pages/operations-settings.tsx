@@ -111,6 +111,7 @@ export default function OperationsSettings() {
           <p className="text-xs sm:text-sm text-muted-foreground">
             Configure time standards and defaults for estimation calculations
           </p>
+          <p className="text-xs text-green-600 mt-1">Updated: August 3, 2025 - v4</p>
         </div>
       </div>
 
