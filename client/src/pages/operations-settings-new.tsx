@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Pencil, Trash2, Plus, Info } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
@@ -30,107 +30,108 @@ import {
 
 export default function OperationsSettings() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold mb-2">Operations Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Configure time standards and defaults for estimation calculations.
-        </p>
-      </div>
+    <TooltipProvider>
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-2xl font-bold mb-2">Operations Settings</h1>
+          <p className="text-sm text-muted-foreground">
+            Configure time standards and defaults for estimation calculations.
+          </p>
+        </div>
 
-      <Tabs defaultValue="fabrication" className="space-y-4">
-        <TabsList className="grid grid-cols-7 gap-2 p-1 h-auto">
-          <TabsTrigger value="fabrication" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <span className="flex items-center gap-1">
-              Fabrication
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Configure workshop operations settings including remnant thresholds, quality standards, and safety protocols</p>
-                </TooltipContent>
-              </Tooltip>
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="welding" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <span className="flex items-center gap-1">
-              Welding
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Manage welding time standards for different weld types, sizes, and materials (time per meter)</p>
-                </TooltipContent>
-              </Tooltip>
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="drilling" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <span className="flex items-center gap-1">
-              Drilling
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Set drilling time standards for various hole diameters, materials, and machine types</p>
-                </TooltipContent>
-              </Tooltip>
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="cutting" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <span className="flex items-center gap-1">
-              Cutting
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Configure cutting time standards for different materials, thicknesses, and machine types</p>
-                </TooltipContent>
-              </Tooltip>
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="position-factors" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <span className="flex items-center gap-1">
-              Position Factors
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Define difficulty multipliers for operations in challenging positions (overhead, vertical, confined spaces)</p>
-                </TooltipContent>
-              </Tooltip>
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="assembly-templates" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <span className="flex items-center gap-1">
-              Assembly Templates
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Create reusable assembly templates with predefined labor allocations for common configurations</p>
-                </TooltipContent>
-              </Tooltip>
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="labor-defaults" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <span className="flex items-center gap-1">
-              Labor Defaults
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Set default labor allocations and site premiums for different operation types used in estimations</p>
-                </TooltipContent>
-              </Tooltip>
-            </span>
-          </TabsTrigger>
+        <Tabs defaultValue="fabrication" className="space-y-4">
+          <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted/50">
+            <TabsTrigger value="fabrication" className="flex-1 min-w-[100px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <span className="flex items-center gap-1 text-xs">
+                Fabrication
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Configure workshop operations settings including remnant thresholds, quality standards, and safety protocols</p>
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="welding" className="flex-1 min-w-[100px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <span className="flex items-center gap-1 text-xs">
+                Welding
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Manage welding time standards for different weld types, sizes, and materials (time per meter)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="drilling" className="flex-1 min-w-[100px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <span className="flex items-center gap-1 text-xs">
+                Drilling
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Set drilling time standards for various hole diameters, materials, and machine types</p>
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="cutting" className="flex-1 min-w-[100px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <span className="flex items-center gap-1 text-xs">
+                Cutting
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Configure cutting time standards for different materials, thicknesses, and machine types</p>
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="position-factors" className="flex-1 min-w-[120px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <span className="flex items-center gap-1 text-xs">
+                Position Factors
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Define difficulty multipliers for operations in challenging positions (overhead, vertical, confined spaces)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="assembly-templates" className="flex-1 min-w-[130px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <span className="flex items-center gap-1 text-xs">
+                Assembly Templates
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Create reusable assembly templates with predefined labor allocations for common configurations</p>
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="labor-defaults" className="flex-1 min-w-[110px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <span className="flex items-center gap-1 text-xs">
+                Labor Defaults
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Set default labor allocations and site premiums for different operation types used in estimations</p>
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            </TabsTrigger>
         </TabsList>
 
         <TabsContent value="fabrication">
@@ -162,6 +163,7 @@ export default function OperationsSettings() {
         </TabsContent>
       </Tabs>
     </div>
+    </TooltipProvider>
   );
 }
 
