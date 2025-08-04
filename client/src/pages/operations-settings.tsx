@@ -738,7 +738,7 @@ function WeldingStandardsTab() {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b">
                 <th className="text-left p-2">Name</th>
@@ -746,7 +746,7 @@ function WeldingStandardsTab() {
                 <th className="text-left p-2">Size (mm)</th>
                 <th className="text-left p-2">Time/Meter</th>
                 <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-24">Actions</th>
+                <th className="text-right p-2 w-24" style={{ width: '96px', minWidth: '96px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -842,7 +842,7 @@ function DrillingStandardsTab() {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b">
                 <th className="text-left p-2">Name</th>
@@ -850,7 +850,7 @@ function DrillingStandardsTab() {
                 <th className="text-left p-2">Material Type</th>
                 <th className="text-left p-2">Time/Hole</th>
                 <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-24">Actions</th>
+                <th className="text-right p-2 w-24" style={{ width: '96px', minWidth: '96px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -943,7 +943,7 @@ function CuttingStandardsTab() {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b">
                 <th className="text-left p-2">Name</th>
@@ -952,7 +952,7 @@ function CuttingStandardsTab() {
                 <th className="text-left p-2">Time/Meter</th>
                 <th className="text-left p-2">Equipment</th>
                 <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-24">Actions</th>
+                <th className="text-right p-2 w-24" style={{ width: '96px', minWidth: '96px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1048,14 +1048,14 @@ function PositionFactorsTab() {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b">
                 <th className="text-left p-2">Position</th>
                 <th className="text-left p-2">Factor</th>
                 <th className="text-left p-2">Description</th>
                 <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-24">Actions</th>
+                <th className="text-right p-2 w-24" style={{ width: '96px', minWidth: '96px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1147,7 +1147,7 @@ function AssemblyTemplatesTab() {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b">
                 <th className="text-left p-2">Code</th>
@@ -1155,7 +1155,7 @@ function AssemblyTemplatesTab() {
                 <th className="text-left p-2">Main Material</th>
                 <th className="text-left p-2">Components</th>
                 <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-24">Actions</th>
+                <th className="text-right p-2 w-24" style={{ width: '96px', minWidth: '96px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1252,7 +1252,7 @@ function LaborDefaultsTab() {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b">
                 <th className="text-left p-2">Operation Type</th>
@@ -1260,7 +1260,7 @@ function LaborDefaultsTab() {
                 <th className="text-left p-2">Site Premium %</th>
                 <th className="text-left p-2">Description</th>
                 <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-24">Actions</th>
+                <th className="text-right p-2 w-24" style={{ width: '96px', minWidth: '96px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
