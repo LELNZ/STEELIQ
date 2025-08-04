@@ -746,7 +746,7 @@ function WeldingStandardsTab() {
                 <th className="text-left p-2" style={{ width: '15%' }}>Size (mm)</th>
                 <th className="text-left p-2" style={{ width: '15%' }}>Time/Meter</th>
                 <th className="text-left p-2" style={{ width: '10%' }}>Status</th>
-                <th className="text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
+                <th className="welding-actions-header text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -801,6 +801,10 @@ function DrillingStandardsTab() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Debug logging
+  console.log('Drilling Standards:', standards);
+  console.log('Drilling Standards Length:', Array.isArray(standards) ? standards.length : 0);
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -858,11 +862,11 @@ function DrillingStandardsTab() {
                 <th className="text-left p-2" style={{ width: '20%' }}>Material Type</th>
                 <th className="text-left p-2" style={{ width: '15%' }}>Time/Hole</th>
                 <th className="text-left p-2" style={{ width: '15%' }}>Status</th>
-                <th className="text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
+                <th className="drilling-actions-header text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {Array.isArray(standards) && standards.map((standard: any) => (
+              {Array.isArray(standards) && standards.length > 0 ? standards.map((standard: any) => (
                 <tr key={standard.id} className="border-b hover:bg-muted/50">
                   <td className="p-2">{standard.name}</td>
                   <td className="p-2">{standard.hole_diameter || '-'}</td>
@@ -896,7 +900,13 @@ function DrillingStandardsTab() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )) : (
+                <tr>
+                  <td colSpan={6} className="text-center p-4 text-muted-foreground">
+                    No drilling standards configured
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -968,7 +978,7 @@ function CuttingStandardsTab() {
                 <th className="text-left p-2" style={{ width: '15%' }}>Time/Meter</th>
                 <th className="text-left p-2" style={{ width: '15%' }}>Equipment</th>
                 <th className="text-left p-2" style={{ width: '10%' }}>Status</th>
-                <th className="text-right p-2" style={{ width: '10%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
+                <th className="cutting-actions-header text-right p-2" style={{ width: '10%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1079,7 +1089,7 @@ function PositionFactorsTab() {
                 <th className="text-left p-2" style={{ width: '15%' }}>Factor</th>
                 <th className="text-left p-2" style={{ width: '35%' }}>Description</th>
                 <th className="text-left p-2" style={{ width: '15%' }}>Status</th>
-                <th className="text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
+                <th className="position-actions-header text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1187,7 +1197,7 @@ function AssemblyTemplatesTab() {
                 <th className="text-left p-2" style={{ width: '20%' }}>Main Material</th>
                 <th className="text-left p-2" style={{ width: '15%' }}>Components</th>
                 <th className="text-left p-2" style={{ width: '10%' }}>Status</th>
-                <th className="text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
+                <th className="assembly-actions-header text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1300,7 +1310,7 @@ function LaborDefaultsTab() {
                 <th className="text-left p-2" style={{ width: '15%' }}>Site Premium %</th>
                 <th className="text-left p-2" style={{ width: '25%' }}>Description</th>
                 <th className="text-left p-2" style={{ width: '10%' }}>Status</th>
-                <th className="text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
+                <th className="labor-actions-header text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
