@@ -750,7 +750,9 @@ function WeldingStandardsTab() {
               </tr>
             </thead>
             <tbody>
-              {Array.isArray(standards) && standards.map((standard: WeldingStandard) => (
+              {Array.isArray(standards) && standards.map((standard: WeldingStandard) => {
+                console.log('Rendering welding standard:', standard);
+                return (
                 <tr key={standard.id} className="border-b hover:bg-muted/50">
                   <td className="p-2">{standard.name}</td>
                   <td className="p-2">{standard.weld_type.replace(/_/g, ' ')}</td>
@@ -761,13 +763,14 @@ function WeldingStandardsTab() {
                       {standard.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="p-2 text-right">
-                    <div className="flex gap-1 justify-end">
+                  <td className="p-2 text-right" style={{ minWidth: '120px' }}>
+                    <div className="flex gap-1 justify-end" style={{ visibility: 'visible', opacity: 1 }}>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEdit(standard)}
-                        className="h-8"
+                        className="h-8 px-2"
+                        style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -775,14 +778,15 @@ function WeldingStandardsTab() {
                         variant="outline" 
                         size="sm"
                         onClick={() => standard.id && deleteMutation.mutate(standard.id)}
-                        className="h-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
@@ -863,21 +867,23 @@ function DrillingStandardsTab() {
                       {standard.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="p-2 text-right">
-                    <div className="flex gap-1 justify-end">
+                  <td className="p-2 text-right" style={{ minWidth: '120px' }}>
+                    <div className="flex gap-1 justify-end" style={{ visibility: 'visible', opacity: 1 }}>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEdit(standard)}
-                        className="h-8"
+                        className="h-8 px-2"
+                        style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => deleteMutation.mutate(standard.id)}
-                        className="h-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => standard.id && deleteMutation.mutate(standard.id)}
+                        className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -966,21 +972,23 @@ function CuttingStandardsTab() {
                       {standard.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="p-2 text-right">
-                    <div className="flex gap-1 justify-end">
+                  <td className="p-2 text-right" style={{ minWidth: '120px' }}>
+                    <div className="flex gap-1 justify-end" style={{ visibility: 'visible', opacity: 1 }}>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEdit(standard)}
-                        className="h-8"
+                        className="h-8 px-2"
+                        style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => deleteMutation.mutate(standard.id)}
-                        className="h-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => standard.id && deleteMutation.mutate(standard.id)}
+                        className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -1063,21 +1071,23 @@ function PositionFactorsTab() {
                       {factor.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="p-2 text-right">
-                    <div className="flex gap-1 justify-end">
+                  <td className="p-2 text-right" style={{ minWidth: '120px' }}>
+                    <div className="flex gap-1 justify-end" style={{ visibility: 'visible', opacity: 1 }}>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEdit(factor)}
-                        className="h-8"
+                        className="h-8 px-2"
+                        style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => deleteMutation.mutate(factor.id)}
-                        className="h-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => factor.id && deleteMutation.mutate(factor.id)}
+                        className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -1166,21 +1176,23 @@ function AssemblyTemplatesTab() {
                       {template.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="p-2 text-right">
-                    <div className="flex gap-1 justify-end">
+                  <td className="p-2 text-right" style={{ minWidth: '120px' }}>
+                    <div className="flex gap-1 justify-end" style={{ visibility: 'visible', opacity: 1 }}>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEdit(template)}
-                        className="h-8"
+                        className="h-8 px-2"
+                        style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => deleteMutation.mutate(template.id)}
-                        className="h-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => template.id && deleteMutation.mutate(template.id)}
+                        className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -1269,21 +1281,23 @@ function LaborDefaultsTab() {
                       {item.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="p-2 text-right">
-                    <div className="flex gap-1 justify-end">
+                  <td className="p-2 text-right" style={{ minWidth: '120px' }}>
+                    <div className="flex gap-1 justify-end" style={{ visibility: 'visible', opacity: 1 }}>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEdit(item)}
-                        className="h-8"
+                        className="h-8 px-2"
+                        style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => deleteMutation.mutate(item.id)}
-                        className="h-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => item.id && deleteMutation.mutate(item.id)}
+                        className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
