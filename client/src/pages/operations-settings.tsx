@@ -112,7 +112,7 @@ export default function OperationsSettings() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-background p-2 sm:p-4 space-y-4" data-version={`v3-${Date.now()}`}>
+      <div id="operations-settings" className="min-h-screen bg-background p-2 sm:p-4 space-y-4" data-version={`v3-${Date.now()}`}>
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold">Operations Settings</h1>
@@ -741,12 +741,12 @@ function WeldingStandardsTab() {
           <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b">
-                <th className="text-left p-2">Name</th>
-                <th className="text-left p-2">Type</th>
-                <th className="text-left p-2">Size (mm)</th>
-                <th className="text-left p-2">Time/Meter</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-24" style={{ width: '96px', minWidth: '96px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
+                <th className="text-left p-2" style={{ width: '25%' }}>Name</th>
+                <th className="text-left p-2" style={{ width: '20%' }}>Type</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Size (mm)</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Time/Meter</th>
+                <th className="text-left p-2" style={{ width: '10%' }}>Status</th>
+                <th className="text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -837,20 +837,28 @@ function DrillingStandardsTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Drilling Standards</CardTitle>
-        <CardDescription>Configure time standards for hole drilling operations</CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Drilling Standards</CardTitle>
+            <CardDescription>Configure time standards for hole drilling operations</CardDescription>
+          </div>
+          <Button onClick={() => toast({ title: "Create functionality coming soon" })}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Standard
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b">
-                <th className="text-left p-2">Name</th>
-                <th className="text-left p-2">Size (mm)</th>
-                <th className="text-left p-2">Material Type</th>
-                <th className="text-left p-2">Time/Hole</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-24" style={{ width: '96px', minWidth: '96px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
+                <th className="text-left p-2" style={{ width: '20%' }}>Name</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Size (mm)</th>
+                <th className="text-left p-2" style={{ width: '20%' }}>Material Type</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Time/Hole</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Status</th>
+                <th className="text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -938,21 +946,29 @@ function CuttingStandardsTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Cutting Standards</CardTitle>
-        <CardDescription>Configure time standards for cutting operations</CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Cutting Standards</CardTitle>
+            <CardDescription>Configure time standards for cutting operations</CardDescription>
+          </div>
+          <Button onClick={() => toast({ title: "Create functionality coming soon" })}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Standard
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b">
-                <th className="text-left p-2">Name</th>
-                <th className="text-left p-2">Material Type</th>
-                <th className="text-left p-2">Thickness Range (mm)</th>
-                <th className="text-left p-2">Time/Meter</th>
-                <th className="text-left p-2">Equipment</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-24" style={{ width: '96px', minWidth: '96px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Name</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Material Type</th>
+                <th className="text-left p-2" style={{ width: '20%' }}>Thickness Range (mm)</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Time/Meter</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Equipment</th>
+                <th className="text-left p-2" style={{ width: '10%' }}>Status</th>
+                <th className="text-right p-2" style={{ width: '10%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1043,19 +1059,27 @@ function PositionFactorsTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Position Factors</CardTitle>
-        <CardDescription>Configure multipliers for different welding positions</CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Position Factors</CardTitle>
+            <CardDescription>Configure multipliers for different welding positions</CardDescription>
+          </div>
+          <Button onClick={() => toast({ title: "Create functionality coming soon" })}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Factor
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b">
-                <th className="text-left p-2">Position</th>
-                <th className="text-left p-2">Factor</th>
-                <th className="text-left p-2">Description</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-24" style={{ width: '96px', minWidth: '96px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
+                <th className="text-left p-2" style={{ width: '20%' }}>Position</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Factor</th>
+                <th className="text-left p-2" style={{ width: '35%' }}>Description</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Status</th>
+                <th className="text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1142,20 +1166,28 @@ function AssemblyTemplatesTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Assembly Templates</CardTitle>
-        <CardDescription>Create reusable assembly templates with predefined components</CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Assembly Templates</CardTitle>
+            <CardDescription>Create reusable assembly templates with predefined components</CardDescription>
+          </div>
+          <Button onClick={() => toast({ title: "Create functionality coming soon" })}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Template
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b">
-                <th className="text-left p-2">Code</th>
-                <th className="text-left p-2">Name</th>
-                <th className="text-left p-2">Main Material</th>
-                <th className="text-left p-2">Components</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-24" style={{ width: '96px', minWidth: '96px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Code</th>
+                <th className="text-left p-2" style={{ width: '25%' }}>Name</th>
+                <th className="text-left p-2" style={{ width: '20%' }}>Main Material</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Components</th>
+                <th className="text-left p-2" style={{ width: '10%' }}>Status</th>
+                <th className="text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1247,20 +1279,28 @@ function LaborDefaultsTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Labor Defaults</CardTitle>
-        <CardDescription>Set default labor allocations and site premiums</CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Labor Defaults</CardTitle>
+            <CardDescription>Set default labor allocations and site premiums</CardDescription>
+          </div>
+          <Button onClick={() => toast({ title: "Create functionality coming soon" })}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Default
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="border-b">
-                <th className="text-left p-2">Operation Type</th>
-                <th className="text-left p-2">Default Allocation</th>
-                <th className="text-left p-2">Site Premium %</th>
-                <th className="text-left p-2">Description</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-24" style={{ width: '96px', minWidth: '96px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
+                <th className="text-left p-2" style={{ width: '20%' }}>Operation Type</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Default Allocation</th>
+                <th className="text-left p-2" style={{ width: '15%' }}>Site Premium %</th>
+                <th className="text-left p-2" style={{ width: '25%' }}>Description</th>
+                <th className="text-left p-2" style={{ width: '10%' }}>Status</th>
+                <th className="text-right p-2" style={{ width: '15%', minWidth: '120px', visibility: 'visible', display: 'table-cell' }}>Actions</th>
               </tr>
             </thead>
             <tbody>

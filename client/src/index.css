@@ -383,6 +383,56 @@
     min-width: 100% !important;
   }
 
+  /* Force Operations Settings tables to show Actions column */
+  #operations-settings table th:last-child,
+  #operations-settings table td:last-child {
+    display: table-cell !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+  }
+
+  /* Force all operations tables to have fixed layout */
+  #operations-settings table {
+    table-layout: fixed !important;
+    width: 100% !important;
+  }
+
+  /* Force action buttons in operations settings to be visible */
+  #operations-settings td:last-child button {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Force all operations tables to show all columns */
+  #operations-settings table th,
+  #operations-settings table td {
+    display: table-cell !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Force action cell content to be visible */
+  #operations-settings td:last-child > div {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    gap: 0.25rem !important;
+    justify-content: flex-end !important;
+  }
+
+  /* Remove any possible hidden classes */
+  #operations-settings .hidden,
+  #operations-settings [hidden],
+  #operations-settings [aria-hidden="true"] {
+    display: table-cell !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
   /* Alert enhancements */
   .form-alert {
     @apply border-l-4 border-l-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200;
