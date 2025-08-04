@@ -357,15 +357,32 @@
   /* Force table action columns to be visible */
   th.w-10,
   td:last-child {
-    min-width: 60px !important;
-    width: 60px !important;
+    min-width: 100px !important;
+    width: 100px !important;
     display: table-cell !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background-color: rgba(255, 0, 0, 0.1) !important; /* Debug: red background */
+    border: 2px solid red !important; /* Debug: red border */
   }
 
   /* Force all table cells to show */
   table td, table th {
     display: table-cell !important;
     visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Ensure action buttons are visible */
+  td:last-child > div {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Force table width */
+  .overflow-x-auto table {
+    min-width: 100% !important;
   }
 
   /* Alert enhancements */

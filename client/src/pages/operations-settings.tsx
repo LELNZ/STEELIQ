@@ -511,6 +511,8 @@ function WeldingStandardsTab() {
   const { data: standards, isLoading } = useQuery({
     queryKey: ['/api/operations/welding-standards']
   });
+  
+  console.log('Welding standards:', standards, 'isLoading:', isLoading);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiRequest(`/api/operations/welding-standards/${id}`, 'DELETE'),
@@ -744,10 +746,11 @@ function WeldingStandardsTab() {
                 <th className="text-left p-2">Size (mm)</th>
                 <th className="text-left p-2">Time/Meter</th>
                 <th className="text-left p-2">Status</th>
-                <th className="text-right p-2 w-10"></th>
+                <th className="text-right p-2 w-10" style={{ backgroundColor: 'red', color: 'white' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
+              {console.log('Rendering standards:', Array.isArray(standards), standards)}
               {Array.isArray(standards) && standards.map((standard: WeldingStandard) => (
                 <tr key={standard.id} className="border-b hover:bg-muted/50">
                   <td className="p-2">{standard.name}</td>
@@ -759,7 +762,8 @@ function WeldingStandardsTab() {
                       {standard.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="p-2 text-right">
+                  <td className="p-2 text-right" style={{ backgroundColor: 'yellow' }}>
+                    TEST CELL
                     <div className="flex gap-1 justify-end">
                       <Button 
                         variant="outline" 
