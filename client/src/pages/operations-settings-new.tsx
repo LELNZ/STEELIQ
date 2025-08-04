@@ -37,15 +37,29 @@ export default function OperationsSettings() {
         </p>
       </div>
 
-      <Tabs defaultValue="fabrication">
-        <TabsList className="grid grid-cols-6 w-full">
-          <TabsTrigger value="fabrication">Fabrication</TabsTrigger>
-          <TabsTrigger value="welding">Welding</TabsTrigger>
-          <TabsTrigger value="drilling">Drilling</TabsTrigger>
-          <TabsTrigger value="cutting">Cutting</TabsTrigger>
-          <TabsTrigger value="position-factors">Position Factors</TabsTrigger>
-          <TabsTrigger value="assembly-templates">Assembly Templates</TabsTrigger>
-          <TabsTrigger value="labor-defaults">Labor Defaults</TabsTrigger>
+      <Tabs defaultValue="fabrication" className="space-y-4">
+        <TabsList className="grid grid-cols-7 gap-2 p-1 h-auto">
+          <TabsTrigger value="fabrication" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            Fabrication
+          </TabsTrigger>
+          <TabsTrigger value="welding" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            Welding
+          </TabsTrigger>
+          <TabsTrigger value="drilling" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            Drilling
+          </TabsTrigger>
+          <TabsTrigger value="cutting" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            Cutting
+          </TabsTrigger>
+          <TabsTrigger value="position-factors" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            Position Factors
+          </TabsTrigger>
+          <TabsTrigger value="assembly-templates" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            Assembly Templates
+          </TabsTrigger>
+          <TabsTrigger value="labor-defaults" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            Labor Defaults
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="fabrication">
@@ -162,7 +176,13 @@ function FabricationTab() {
   const [form, setForm] = useState({
     defaultKerf: 2.4,
     defaultMaterialHandlingTime: 15,
-    defaultSetupTime: 30
+    defaultSetupTime: 30,
+    defaultMarkupPercentage: 20,
+    defaultOverheadPercentage: 15,
+    defaultContingencyPercentage: 10,
+    defaultProfitMargin: 25,
+    defaultHourlyRate: 120,
+    defaultShopRate: 85
   });
   
   useEffect(() => {
@@ -170,7 +190,13 @@ function FabricationTab() {
       setForm({
         defaultKerf: settings.defaultKerf || 2.4,
         defaultMaterialHandlingTime: settings.defaultMaterialHandlingTime || 15,
-        defaultSetupTime: settings.defaultSetupTime || 30
+        defaultSetupTime: settings.defaultSetupTime || 30,
+        defaultMarkupPercentage: settings.defaultMarkupPercentage || 20,
+        defaultOverheadPercentage: settings.defaultOverheadPercentage || 15,
+        defaultContingencyPercentage: settings.defaultContingencyPercentage || 10,
+        defaultProfitMargin: settings.defaultProfitMargin || 25,
+        defaultHourlyRate: settings.defaultHourlyRate || 120,
+        defaultShopRate: settings.defaultShopRate || 85
       });
     }
   }, [settings]);
@@ -198,37 +224,111 @@ function FabricationTab() {
       <CardHeader>
         <CardTitle>Fabrication Standards</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <Label htmlFor="defaultKerf">Default Kerf Width (mm)</Label>
-            <Input
-              id="defaultKerf"
-              type="number"
-              step="0.1"
-              value={form.defaultKerf}
-              onChange={(e) => setForm({ ...form, defaultKerf: parseFloat(e.target.value) })}
-            />
+      <CardContent className="space-y-6">
+        <div>
+          <h3 className="text-sm font-medium mb-3">Production Settings</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="defaultKerf">Default Kerf Width (mm)</Label>
+              <Input
+                id="defaultKerf"
+                type="number"
+                step="0.1"
+                value={form.defaultKerf}
+                onChange={(e) => setForm({ ...form, defaultKerf: parseFloat(e.target.value) })}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="defaultMaterialHandlingTime">Material Handling Time (min)</Label>
+              <Input
+                id="defaultMaterialHandlingTime"
+                type="number"
+                value={form.defaultMaterialHandlingTime}
+                onChange={(e) => setForm({ ...form, defaultMaterialHandlingTime: parseInt(e.target.value) })}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="defaultSetupTime">Default Setup Time (min)</Label>
+              <Input
+                id="defaultSetupTime"
+                type="number"
+                value={form.defaultSetupTime}
+                onChange={(e) => setForm({ ...form, defaultSetupTime: parseInt(e.target.value) })}
+              />
+            </div>
           </div>
-          
-          <div>
-            <Label htmlFor="defaultMaterialHandlingTime">Default Material Handling Time (min)</Label>
-            <Input
-              id="defaultMaterialHandlingTime"
-              type="number"
-              value={form.defaultMaterialHandlingTime}
-              onChange={(e) => setForm({ ...form, defaultMaterialHandlingTime: parseInt(e.target.value) })}
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="defaultSetupTime">Default Setup Time (min)</Label>
-            <Input
-              id="defaultSetupTime"
-              type="number"
-              value={form.defaultSetupTime}
-              onChange={(e) => setForm({ ...form, defaultSetupTime: parseInt(e.target.value) })}
-            />
+        </div>
+
+        <div>
+          <h3 className="text-sm font-medium mb-3">Financial Settings</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="defaultMarkupPercentage">Default Markup (%)</Label>
+              <Input
+                id="defaultMarkupPercentage"
+                type="number"
+                step="0.1"
+                value={form.defaultMarkupPercentage}
+                onChange={(e) => setForm({ ...form, defaultMarkupPercentage: parseFloat(e.target.value) })}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="defaultOverheadPercentage">Default Overhead (%)</Label>
+              <Input
+                id="defaultOverheadPercentage"
+                type="number"
+                step="0.1"
+                value={form.defaultOverheadPercentage}
+                onChange={(e) => setForm({ ...form, defaultOverheadPercentage: parseFloat(e.target.value) })}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="defaultContingencyPercentage">Default Contingency (%)</Label>
+              <Input
+                id="defaultContingencyPercentage"
+                type="number"
+                step="0.1"
+                value={form.defaultContingencyPercentage}
+                onChange={(e) => setForm({ ...form, defaultContingencyPercentage: parseFloat(e.target.value) })}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="defaultProfitMargin">Default Profit Margin (%)</Label>
+              <Input
+                id="defaultProfitMargin"
+                type="number"
+                step="0.1"
+                value={form.defaultProfitMargin}
+                onChange={(e) => setForm({ ...form, defaultProfitMargin: parseFloat(e.target.value) })}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="defaultHourlyRate">Default Hourly Rate ($/hr)</Label>
+              <Input
+                id="defaultHourlyRate"
+                type="number"
+                step="0.01"
+                value={form.defaultHourlyRate}
+                onChange={(e) => setForm({ ...form, defaultHourlyRate: parseFloat(e.target.value) })}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="defaultShopRate">Default Shop Rate ($/hr)</Label>
+              <Input
+                id="defaultShopRate"
+                type="number"
+                step="0.01"
+                value={form.defaultShopRate}
+                onChange={(e) => setForm({ ...form, defaultShopRate: parseFloat(e.target.value) })}
+              />
+            </div>
           </div>
         </div>
         
@@ -240,6 +340,256 @@ function FabricationTab() {
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+// Assembly Template Form
+function AssemblyTemplateForm({ template, onClose }: { template: any; onClose: () => void }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({
+    code: template?.code || '',
+    name: template?.name || '',
+    description: template?.description || '',
+    main_material: template?.main_material || '',
+    components: template?.components || [],
+    is_active: template?.is_active !== false
+  });
+  
+  const mutation = useMutation({
+    mutationFn: async (data: any) => {
+      const url = template 
+        ? `/api/operations/assembly-templates/${template.id}`
+        : '/api/operations/assembly-templates';
+      const method = template ? 'PUT' : 'POST';
+      
+      return apiRequest(url, method, data);
+    },
+    onSuccess: () => {
+      toast({ title: `Assembly template ${template ? 'updated' : 'created'} successfully` });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/assembly-templates'] });
+      onClose();
+    }
+  });
+  
+  const handleSubmit = () => {
+    mutation.mutate(form);
+  };
+  
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="code">Code</Label>
+          <Input
+            id="code"
+            value={form.code}
+            onChange={(e) => setForm({ ...form, code: e.target.value })}
+            placeholder="e.g., ASM001"
+          />
+        </div>
+        <div>
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="e.g., Standard Beam Connection"
+          />
+        </div>
+      </div>
+      
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Input
+          id="description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          placeholder="Template description"
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="main_material">Main Material</Label>
+        <Input
+          id="main_material"
+          value={form.main_material}
+          onChange={(e) => setForm({ ...form, main_material: e.target.value })}
+          placeholder="e.g., 250UC89.5"
+        />
+      </div>
+      
+      <div>
+        <Label>Components</Label>
+        <div className="space-y-2">
+          {form.components.map((component: string, index: number) => (
+            <div key={index} className="flex gap-2">
+              <Input
+                value={component}
+                onChange={(e) => {
+                  const newComponents = [...form.components];
+                  newComponents[index] = e.target.value;
+                  setForm({ ...form, components: newComponents });
+                }}
+                placeholder="Component description"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newComponents = form.components.filter((_: any, i: number) => i !== index);
+                  setForm({ ...form, components: newComponents });
+                }}
+              >
+                Remove
+              </Button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setForm({ ...form, components: [...form.components, ''] })}
+          >
+            Add Component
+          </Button>
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between">
+        <Label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={form.is_active}
+            onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+          />
+          Active
+        </Label>
+      </div>
+      
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSubmit} disabled={mutation.isPending}>
+          {mutation.isPending ? 'Saving...' : 'Save'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Labor Default Form
+function LaborDefaultForm({ defaultItem, onClose }: { defaultItem: any; onClose: () => void }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({
+    operation_type: defaultItem?.operation_type || '',
+    description: defaultItem?.description || '',
+    default_allocation: defaultItem?.default_allocation || 'workshop',
+    site_premium_percentage: defaultItem?.site_premium_percentage || 20,
+    is_active: defaultItem?.is_active !== false
+  });
+  
+  const mutation = useMutation({
+    mutationFn: async (data: any) => {
+      const url = defaultItem 
+        ? `/api/operations/labor-defaults/${defaultItem.id}`
+        : '/api/operations/labor-defaults';
+      const method = defaultItem ? 'PUT' : 'POST';
+      
+      return apiRequest(url, method, data);
+    },
+    onSuccess: () => {
+      toast({ title: `Labor default ${defaultItem ? 'updated' : 'created'} successfully` });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/labor-defaults'] });
+      onClose();
+    }
+  });
+  
+  const handleSubmit = () => {
+    mutation.mutate(form);
+  };
+  
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="operation_type">Operation Type</Label>
+        <Select 
+          value={form.operation_type} 
+          onValueChange={(value) => setForm({ ...form, operation_type: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select operation type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="welding">Welding</SelectItem>
+            <SelectItem value="cutting">Cutting</SelectItem>
+            <SelectItem value="drilling">Drilling</SelectItem>
+            <SelectItem value="assembly">Assembly</SelectItem>
+            <SelectItem value="fabrication">Fabrication</SelectItem>
+            <SelectItem value="grinding">Grinding</SelectItem>
+            <SelectItem value="painting">Painting</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Input
+          id="description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          placeholder="Operation description"
+        />
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="default_allocation">Default Allocation</Label>
+          <Select 
+            value={form.default_allocation} 
+            onValueChange={(value) => setForm({ ...form, default_allocation: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="workshop">Workshop</SelectItem>
+              <SelectItem value="onsite">On-site</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="site_premium_percentage">Site Premium (%)</Label>
+          <Input
+            id="site_premium_percentage"
+            type="number"
+            step="1"
+            value={form.site_premium_percentage}
+            onChange={(e) => setForm({ ...form, site_premium_percentage: parseFloat(e.target.value) || 0 })}
+            placeholder="Extra % for on-site work"
+          />
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between">
+        <Label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={form.is_active}
+            onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+          />
+          Active
+        </Label>
+      </div>
+      
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSubmit} disabled={mutation.isPending}>
+          {mutation.isPending ? 'Saving...' : 'Save'}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -540,7 +890,10 @@ function PositionFactorsTab() {
   const columns = [
     { key: 'position', header: 'Position' },
     { key: 'description', header: 'Description' },
-    { key: 'factor', header: 'Factor', render: (value: number) => value.toFixed(2) },
+    { key: 'factor', header: 'Factor', render: (value: any) => {
+      const numValue = typeof value === 'string' ? parseFloat(value) : value;
+      return numValue.toFixed(2);
+    }},
     { 
       key: 'is_active', 
       header: 'Status',
@@ -591,29 +944,197 @@ function PositionFactorsTab() {
   );
 }
 
-// Assembly Templates Tab - Placeholder
+// Assembly Templates Tab
 function AssemblyTemplatesTab() {
+  const { data: templates = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/operations/assembly-templates']
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/operations/assembly-templates/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({ title: "Assembly template deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/assembly-templates'] });
+    }
+  });
+
+  const handleEdit = (template: any) => {
+    setEditingTemplate(template);
+    setIsDialogOpen(true);
+  };
+
+  const handleCreate = () => {
+    setEditingTemplate(null);
+    setIsDialogOpen(true);
+  };
+
+  const columns = [
+    { key: 'code', header: 'Code' },
+    { key: 'name', header: 'Name' },
+    { key: 'description', header: 'Description' },
+    { key: 'main_material', header: 'Main Material' },
+    { 
+      key: 'components', 
+      header: 'Components', 
+      render: (value: string[]) => (
+        <span className="text-sm">{(value || []).length} components</span>
+      )
+    },
+    { 
+      key: 'is_active', 
+      header: 'Status',
+      render: (value: boolean) => (
+        <span className={`text-xs px-2 py-1 rounded ${value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+          {value ? 'Active' : 'Inactive'}
+        </span>
+      )
+    }
+  ];
+
+  if (isLoading) return <div>Loading...</div>;
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Assembly Templates</CardTitle>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingTemplate ? 'Edit Assembly Template' : 'Create Assembly Template'}
+              </DialogTitle>
+            </DialogHeader>
+            <AssemblyTemplateForm 
+              template={editingTemplate}
+              onClose={() => setIsDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </CardHeader>
       <CardContent>
-        <p className="text-muted-foreground">Assembly templates configuration coming soon...</p>
+        <StandardsTable
+          data={templates}
+          columns={columns}
+          onEdit={handleEdit}
+          onDelete={(id) => deleteMutation.mutate(id)}
+          emptyMessage="No assembly templates configured"
+        />
       </CardContent>
     </Card>
   );
 }
 
-// Labor Defaults Tab - Placeholder
+// Labor Defaults Tab
 function LaborDefaultsTab() {
+  const { data: defaults = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/operations/labor-defaults']
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [editingDefault, setEditingDefault] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/operations/labor-defaults/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({ title: "Labor default deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/labor-defaults'] });
+    }
+  });
+
+  const handleEdit = (defaultItem: any) => {
+    setEditingDefault(defaultItem);
+    setIsDialogOpen(true);
+  };
+
+  const handleCreate = () => {
+    setEditingDefault(null);
+    setIsDialogOpen(true);
+  };
+
+  const columns = [
+    { key: 'operation_type', header: 'Operation Type' },
+    { key: 'description', header: 'Description' },
+    { 
+      key: 'default_allocation', 
+      header: 'Default Allocation',
+      render: (value: string) => (
+        <span className={`text-xs px-2 py-1 rounded ${
+          value === 'workshop' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
+        }`}>
+          {value === 'workshop' ? 'Workshop' : 'On-site'}
+        </span>
+      )
+    },
+    { 
+      key: 'site_premium_percentage', 
+      header: 'Site Premium (%)', 
+      render: (value: any) => {
+        const numValue = typeof value === 'string' ? parseFloat(value) : value;
+        return `${numValue.toFixed(0)}%`;
+      }
+    },
+    { 
+      key: 'is_active', 
+      header: 'Status',
+      render: (value: boolean) => (
+        <span className={`text-xs px-2 py-1 rounded ${value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+          {value ? 'Active' : 'Inactive'}
+        </span>
+      )
+    }
+  ];
+
+  if (isLoading) return <div>Loading...</div>;
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Labor Defaults</CardTitle>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingDefault ? 'Edit Labor Default' : 'Create Labor Default'}
+              </DialogTitle>
+            </DialogHeader>
+            <LaborDefaultForm 
+              defaultItem={editingDefault}
+              onClose={() => setIsDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </CardHeader>
       <CardContent>
-        <p className="text-muted-foreground">Labor defaults configuration coming soon...</p>
+        <StandardsTable
+          data={defaults}
+          columns={columns}
+          onEdit={handleEdit}
+          onDelete={(id) => deleteMutation.mutate(id)}
+          emptyMessage="No labor defaults configured"
+        />
       </CardContent>
     </Card>
   );
