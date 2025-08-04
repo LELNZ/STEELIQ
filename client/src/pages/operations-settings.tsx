@@ -750,9 +750,7 @@ function WeldingStandardsTab() {
               </tr>
             </thead>
             <tbody>
-              {Array.isArray(standards) && standards.map((standard: WeldingStandard) => {
-                console.log('Rendering welding standard:', standard);
-                return (
+              {Array.isArray(standards) && standards.map((standard: WeldingStandard) => (
                 <tr key={standard.id} className="border-b hover:bg-muted/50">
                   <td className="p-2">{standard.name}</td>
                   <td className="p-2">{standard.weld_type.replace(/_/g, ' ')}</td>
@@ -786,7 +784,7 @@ function WeldingStandardsTab() {
                     </div>
                   </td>
                 </tr>
-              )})}
+              ))}
             </tbody>
           </table>
         </div>
@@ -881,7 +879,7 @@ function DrillingStandardsTab() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => standard.id && deleteMutation.mutate(standard.id)}
+                        onClick={() => deleteMutation.mutate(standard.id)}
                         className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
@@ -986,7 +984,7 @@ function CuttingStandardsTab() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => standard.id && deleteMutation.mutate(standard.id)}
+                        onClick={() => deleteMutation.mutate(standard.id)}
                         className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
@@ -1085,7 +1083,7 @@ function PositionFactorsTab() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => factor.id && deleteMutation.mutate(factor.id)}
+                        onClick={() => deleteMutation.mutate(factor.id)}
                         className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
@@ -1190,7 +1188,7 @@ function AssemblyTemplatesTab() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => template.id && deleteMutation.mutate(template.id)}
+                        onClick={() => deleteMutation.mutate(template.id)}
                         className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
@@ -1295,7 +1293,7 @@ function LaborDefaultsTab() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => item.id && deleteMutation.mutate(item.id)}
+                        onClick={() => deleteMutation.mutate(item.id)}
                         className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         style={{ visibility: 'visible', opacity: 1, display: 'inline-flex' }}
                       >
