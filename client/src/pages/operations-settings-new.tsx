@@ -74,6 +74,9 @@ const tabs = [
 ];
 
 export default function OperationsSettings() {
+  // Debug log to verify this component is loaded
+  console.log("OperationsSettings v2 component loaded");
+  
   return (
     <TooltipProvider>
       <div className="space-y-8">
@@ -82,6 +85,7 @@ export default function OperationsSettings() {
           <p className="text-sm text-muted-foreground">
             Configure time standards and defaults for estimation calculations.
           </p>
+          <p className="text-xs text-blue-500 mt-1">Version: 2.0 - Updated with all 8 tabs</p>
         </div>
 
         <Tabs defaultValue="fabrication" className="w-full">
