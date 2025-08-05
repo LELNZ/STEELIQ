@@ -85,12 +85,13 @@ export default function OperationsSettings() {
         </div>
 
         <Tabs defaultValue="fabrication" className="w-full">
-          <TabsList className="flex h-7 items-center bg-muted p-0 w-full">
+          {/* Force all 8 tabs on one line */}
+          <TabsList className="grid grid-cols-8 h-8 p-0.5 bg-muted w-full">
             {tabs.map((tab) => (
               <TabsTrigger 
                 key={tab.value} 
                 value={tab.value} 
-                className="flex-1 h-full px-1 py-0.5 text-[10px] font-medium whitespace-nowrap data-[state=active]:bg-blue-500 data-[state=active]:text-white"
+                className="px-1 py-0.5 text-[10px] font-medium whitespace-nowrap data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-colors"
               >
                 {tab.label}
               </TabsTrigger>
