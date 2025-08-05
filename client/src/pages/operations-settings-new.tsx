@@ -53,12 +53,12 @@ const tabs = [
   },
   {
     value: 'position-factors',
-    label: 'Position Factors',
+    label: 'Positions',
     tooltip: 'Define difficulty multipliers for operations in challenging positions (overhead, vertical, confined spaces)'
   },
   {
     value: 'assembly-templates',
-    label: 'Assembly Templates', 
+    label: 'Assembly', 
     tooltip: 'Create reusable assembly templates with predefined labor allocations for common configurations'
   },
   {
@@ -74,12 +74,6 @@ const tabs = [
 ];
 
 export default function OperationsSettings() {
-  const [selectedTab, setSelectedTab] = useState('fabrication');
-  
-  // Split tabs into visible and overflow
-  const visibleTabs = tabs.slice(0, 6);
-  const overflowTabs = tabs.slice(6);
-  
   return (
     <TooltipProvider>
       <div className="space-y-8">
@@ -90,34 +84,17 @@ export default function OperationsSettings() {
           </p>
         </div>
 
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList className="flex h-auto p-1 bg-muted w-full justify-start">
-            {visibleTabs.map((tab) => (
+        <Tabs defaultValue="fabrication" className="w-full">
+          <TabsList className="flex h-7 items-center bg-muted p-0 w-full">
+            {tabs.map((tab) => (
               <TabsTrigger 
                 key={tab.value} 
                 value={tab.value} 
-                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white px-2 py-1 text-xs"
+                className="flex-1 h-full px-1 py-0.5 text-[10px] font-medium whitespace-nowrap data-[state=active]:bg-blue-500 data-[state=active]:text-white"
               >
                 {tab.label}
               </TabsTrigger>
             ))}
-            {overflowTabs.length > 0 && (
-              <Select value={selectedTab} onValueChange={setSelectedTab}>
-                <SelectTrigger className="w-auto h-auto px-2 py-1 text-xs">
-                  <span className="flex items-center gap-1">
-                    {overflowTabs.find(t => t.value === selectedTab)?.label || 'More'}
-                    <ChevronDown className="h-3 w-3" />
-                  </span>
-                </SelectTrigger>
-                <SelectContent>
-                  {overflowTabs.map((tab) => (
-                    <SelectItem key={tab.value} value={tab.value}>
-                      {tab.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
           </TabsList>
 
           <TabsContent value="fabrication" className="mt-4">
