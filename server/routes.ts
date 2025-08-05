@@ -7577,8 +7577,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Labor Rate Profiles endpoints
   app.get("/api/labor-rate-profiles", async (req, res) => {
     try {
-      // For now, return empty array since we don't have a labor rate profiles table
-      res.json([]);
+      const profiles = await db.execute(sql`
+        SELECT 
+          lrp.*,
+          COUNT(DISTINCT rr.role_id) as role_count
+        FROM labor_rate_profiles lrp
+        LEFT JOIN role_rates rr ON rr.profile_id = lrp.id
+        WHERE lrp.is_active = true
+        GROUP BY lrp.id
+        ORDER BY lrp.is_default DESC, lrp.name
+      `);
+      
+      res.json(profiles.rows);
     } catch (error) {
       console.error("Error fetching labor rate profiles:", error);
       res.status(500).json({ error: "Failed to fetch labor rate profiles" });
@@ -7598,8 +7608,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Role Rates endpoints
   app.get("/api/role-rates", async (req, res) => {
     try {
-      // For now, return empty array since we don't have a role rates table
-      res.json([]);
+      const { profileId } = req.query;
+      
+      let query = sql`
+        SELECT 
+          rr.*,
+          r.name as role_name,
+          r.description as role_description
+        FROM role_rates rr
+        JOIN roles r ON r.id = rr.role_id
+        WHERE rr.is_active = true
+      `;
+      
+      if (profileId) {
+        query = sql`
+          SELECT 
+            rr.*,
+            r.name as role_name,
+            r.description as role_description
+          FROM role_rates rr
+          JOIN roles r ON r.id = rr.role_id
+          WHERE rr.is_active = true AND rr.profile_id = ${profileId}
+          ORDER BY r.name
+        `;
+      }
+      
+      const rates = await db.execute(query);
+      res.json(rates.rows);
     } catch (error) {
       console.error("Error fetching role rates:", error);
       res.status(500).json({ error: "Failed to fetch role rates" });
