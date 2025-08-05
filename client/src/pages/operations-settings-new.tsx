@@ -89,8 +89,8 @@ export default function OperationsSettings() {
                       <Info className="h-3 w-3" />
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p className="text-xs max-w-xs">{tab.tooltip}</p>
+                  <TooltipContent side="bottom" className="max-w-sm">
+                    <p className="text-xs whitespace-normal">{tab.tooltip}</p>
                   </TooltipContent>
                 </Tooltip>
               </TabsTrigger>
