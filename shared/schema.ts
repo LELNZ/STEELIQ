@@ -534,6 +534,82 @@ export const laborDefaults = pgTable("labor_defaults", {
   updated_at: timestamp("updated_at").defaultNow().notNull()
 });
 
+// Skill Levels
+export const skillLevels = pgTable("skill_levels", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 20 }).unique().notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  multiplier: decimal("multiplier", { precision: 4, scale: 2 }).notNull().default("1.00"),
+  requiredExperience: integer("required_experience").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Master Labor Rates
+export const laborRates = pgTable("labor_rates", {
+  id: serial("id").primaryKey(),
+  roleId: integer("role_id").references(() => roles.id),
+  skillLevelId: integer("skill_level_id").references(() => skillLevels.id),
+  baseRate: decimal("base_rate", { precision: 10, scale: 2 }).notNull(),
+  overtimeMultiplier: decimal("overtime_multiplier", { precision: 4, scale: 2 }).default("1.5"),
+  doubleTimeMultiplier: decimal("double_time_multiplier", { precision: 4, scale: 2 }).default("2.0"),
+  siteAllowanceRate: decimal("site_allowance_rate", { precision: 10, scale: 2 }).default("0"),
+  siteAllowanceType: varchar("site_allowance_type", { length: 20 }).default("fixed"), // fixed or percentage
+  effectiveDate: date("effective_date").notNull(),
+  expiryDate: date("expiry_date"),
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Labor Rate History
+export const laborRateHistory = pgTable("labor_rate_history", {
+  id: serial("id").primaryKey(),
+  rateId: integer("rate_id").references(() => laborRates.id),
+  previousRate: decimal("previous_rate", { precision: 10, scale: 2 }),
+  newRate: decimal("new_rate", { precision: 10, scale: 2 }).notNull(),
+  changeReason: text("change_reason"),
+  changedBy: integer("changed_by").references(() => users.id),
+  changedAt: timestamp("changed_at").defaultNow()
+});
+
+// Project Labor Rate Overrides
+export const projectLaborRates = pgTable("project_labor_rates", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  roleId: integer("role_id").references(() => roles.id),
+  skillLevelId: integer("skill_level_id").references(() => skillLevels.id),
+  customRate: decimal("custom_rate", { precision: 10, scale: 2 }).notNull(),
+  reason: text("reason"),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Labor Allowances
+export const laborAllowances = pgTable("labor_allowances", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  code: varchar("code", { length: 50 }).unique().notNull(),
+  type: varchar("type", { length: 20 }).notNull(), // percentage, fixed, multiplier
+  value: decimal("value", { precision: 10, scale: 2 }).notNull(),
+  conditions: jsonb("conditions"), // e.g., {"minHours": 4, "locations": ["remote"], "weather": ["rain"]}
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Role-Allowance Mappings
+export const roleAllowances = pgTable("role_allowances", {
+  id: serial("id").primaryKey(),
+  roleId: integer("role_id").references(() => roles.id),
+  allowanceId: integer("allowance_id").references(() => laborAllowances.id),
+  isMandatory: boolean("is_mandatory").default(false),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
 // Material Sub Items
 export const materialSubItems = pgTable("material_sub_items", {
   id: serial("id").primaryKey(),
@@ -1955,6 +2031,13 @@ export const estimationLabor = pgTable("estimation_labor", {
   skillLevel: text("skill_level"), // apprentice, tradesman, supervisor, specialist
   crew: integer("crew").default(1), // number of people
   notes: text("notes"),
+  // Labor rate management fields
+  roleId: integer("role_id").references(() => roles.id),
+  skillLevelId: integer("skill_level_id").references(() => skillLevels.id),
+  baseRate: decimal("base_rate", { precision: 10, scale: 2 }),
+  allowances: jsonb("allowances"), // Applied allowances and their values
+  rateSource: varchar("rate_source", { length: 50 }).default("manual"), // manual, role_based, custom
+  teamMemberId: integer("team_member_id").references(() => teamMembers.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -2187,6 +2270,11 @@ export const teamMembers = pgTable("team_members", {
   performanceRating: decimal("performance_rating", { precision: 3, scale: 1 }), // 1.0 to 5.0
   lastReviewDate: date("last_review_date"),
   nextReviewDate: date("next_review_date"),
+  
+  // Labor Rate Management
+  skillLevelId: integer("skill_level_id").references(() => skillLevels.id),
+  rateOverride: decimal("rate_override", { precision: 10, scale: 2 }),
+  rateEffectiveDate: date("rate_effective_date"),
   
   // Benefits & Leave
   annualLeaveEntitlement: decimal("annual_leave_entitlement", { precision: 5, scale: 2 }).default("20"), // days

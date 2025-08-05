@@ -65,6 +65,11 @@ const tabs = [
     value: 'labor-defaults',
     label: 'Labor Defaults',
     tooltip: 'Set default labor allocations and site premiums for different operation types used in estimations'
+  },
+  {
+    value: 'labor-rates',
+    label: 'Labor Rates',
+    tooltip: 'Manage role-based labor rates with skill levels, allowances, and overtime multipliers for accurate cost estimation'
   }
 ];
 
@@ -80,7 +85,7 @@ export default function OperationsSettings() {
         </div>
 
         <Tabs defaultValue="fabrication" className="w-full">
-          <TabsList className="grid grid-cols-7 w-full">
+          <TabsList className="grid grid-cols-8 w-full">
             {tabs.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value} className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
                 <div className="flex items-center gap-1">
@@ -117,6 +122,10 @@ export default function OperationsSettings() {
 
           <TabsContent value="labor-defaults" className="mt-4">
             <LaborDefaultsTab />
+          </TabsContent>
+          
+          <TabsContent value="labor-rates" className="mt-4">
+            <LaborRatesTab />
           </TabsContent>
         </Tabs>
       </div>
@@ -1185,6 +1194,676 @@ function LaborDefaultsTab() {
           onDelete={(id) => deleteMutation.mutate(id)}
           emptyMessage="No labor defaults configured"
         />
+      </CardContent>
+    </Card>
+  );
+}
+
+function LaborRatesTab() {
+  const [activeTab, setActiveTab] = useState('profiles');
+  
+  return (
+    <div className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-5 w-full">
+          <TabsTrigger value="profiles">Rate Profiles</TabsTrigger>
+          <TabsTrigger value="skill-levels">Skill Levels</TabsTrigger>
+          <TabsTrigger value="role-rates">Role Rates</TabsTrigger>
+          <TabsTrigger value="allowances">Allowances</TabsTrigger>
+          <TabsTrigger value="history">Rate History</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="profiles">
+          <LaborRateProfiles />
+        </TabsContent>
+        
+        <TabsContent value="skill-levels">
+          <SkillLevels />
+        </TabsContent>
+        
+        <TabsContent value="role-rates">
+          <RoleRates />
+        </TabsContent>
+        
+        <TabsContent value="allowances">
+          <LaborAllowances />
+        </TabsContent>
+        
+        <TabsContent value="history">
+          <RateHistory />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function LaborRateProfiles() {
+  const { data: profiles = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/labor-rate-profiles']
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [editingProfile, setEditingProfile] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/labor-rate-profiles/${id}`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({ title: "Rate profile deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/labor-rate-profiles'] });
+    }
+  });
+
+  const handleEdit = (profile: any) => {
+    setEditingProfile(profile);
+    setIsDialogOpen(true);
+  };
+
+  const handleCreate = () => {
+    setEditingProfile(null);
+    setIsDialogOpen(true);
+  };
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Labor Rate Profiles</CardTitle>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Profile
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingProfile ? 'Edit Rate Profile' : 'Create Rate Profile'}
+              </DialogTitle>
+            </DialogHeader>
+            <LaborRateProfileForm 
+              profile={editingProfile}
+              onClose={() => setIsDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Profile Name</TableHead>
+              <TableHead>Base Rate ($/hr)</TableHead>
+              <TableHead>Overtime Multiplier</TableHead>
+              <TableHead>Effective Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {profiles.map((profile) => (
+              <TableRow key={profile.id}>
+                <TableCell className="font-medium">{profile.name}</TableCell>
+                <TableCell>${profile.baseRate?.toFixed(2) || '0.00'}</TableCell>
+                <TableCell>{profile.overtimeMultiplier?.toFixed(2) || '1.50'}x</TableCell>
+                <TableCell>{new Date(profile.effectiveDate).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    profile.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {profile.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => handleEdit(profile)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => deleteMutation.mutate(profile.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LaborRateProfileForm({ profile, onClose }: { profile: any; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  const [form, setForm] = useState({
+    name: profile?.name || '',
+    baseRate: profile?.baseRate || 0,
+    overtimeMultiplier: profile?.overtimeMultiplier || 1.5,
+    effectiveDate: profile?.effectiveDate || new Date().toISOString().split('T')[0],
+    isActive: profile?.isActive ?? true
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: typeof form) => {
+      const url = profile 
+        ? `/api/labor-rate-profiles/${profile.id}`
+        : '/api/labor-rate-profiles';
+      return apiRequest(url, profile ? 'PUT' : 'POST', data);
+    },
+    onSuccess: () => {
+      toast({ title: `Rate profile ${profile ? 'updated' : 'created'} successfully` });
+      queryClient.invalidateQueries({ queryKey: ['/api/labor-rate-profiles'] });
+      onClose();
+    }
+  });
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="name">Profile Name</Label>
+        <Input
+          id="name"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="e.g., Standard Fabricator"
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="baseRate">Base Rate ($/hr)</Label>
+        <Input
+          id="baseRate"
+          type="number"
+          step="0.01"
+          value={form.baseRate}
+          onChange={(e) => setForm({ ...form, baseRate: parseFloat(e.target.value) })}
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="overtimeMultiplier">Overtime Multiplier</Label>
+        <Input
+          id="overtimeMultiplier"
+          type="number"
+          step="0.01"
+          value={form.overtimeMultiplier}
+          onChange={(e) => setForm({ ...form, overtimeMultiplier: parseFloat(e.target.value) })}
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="effectiveDate">Effective Date</Label>
+        <Input
+          id="effectiveDate"
+          type="date"
+          value={form.effectiveDate}
+          onChange={(e) => setForm({ ...form, effectiveDate: e.target.value })}
+        />
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="is_active"
+          checked={form.isActive}
+          onCheckedChange={(checked) => setForm({ ...form, isActive: checked })}
+        />
+        <Label htmlFor="is_active">Active</Label>
+      </div>
+      
+      <div className="flex justify-end space-x-2">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={() => saveMutation.mutate(form)}>
+          {profile ? 'Update' : 'Create'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SkillLevels() {
+  const { data: levels = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/skill-levels']
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [editingLevel, setEditingLevel] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Skill Levels</CardTitle>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" onClick={() => { setEditingLevel(null); setIsDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Skill Level
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingLevel ? 'Edit Skill Level' : 'Create Skill Level'}
+              </DialogTitle>
+            </DialogHeader>
+            <SkillLevelForm 
+              level={editingLevel}
+              onClose={() => setIsDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Level Name</TableHead>
+              <TableHead>Multiplier</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Display Order</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {levels.map((level) => (
+              <TableRow key={level.id}>
+                <TableCell className="font-medium">{level.name}</TableCell>
+                <TableCell>{level.multiplier?.toFixed(2) || '1.00'}x</TableCell>
+                <TableCell>{level.description}</TableCell>
+                <TableCell>{level.displayOrder}</TableCell>
+                <TableCell className="text-right">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => { setEditingLevel(level); setIsDialogOpen(true); }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SkillLevelForm({ level, onClose }: { level: any; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  const [form, setForm] = useState({
+    name: level?.name || '',
+    multiplier: level?.multiplier || 1.0,
+    description: level?.description || '',
+    displayOrder: level?.displayOrder || 0
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: typeof form) => {
+      const url = level 
+        ? `/api/skill-levels/${level.id}`
+        : '/api/skill-levels';
+      return apiRequest(url, level ? 'PUT' : 'POST', data);
+    },
+    onSuccess: () => {
+      toast({ title: `Skill level ${level ? 'updated' : 'created'} successfully` });
+      queryClient.invalidateQueries({ queryKey: ['/api/skill-levels'] });
+      onClose();
+    }
+  });
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="name">Level Name</Label>
+        <Input
+          id="name"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="e.g., Apprentice, Journeyman"
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="multiplier">Rate Multiplier</Label>
+        <Input
+          id="multiplier"
+          type="number"
+          step="0.01"
+          value={form.multiplier}
+          onChange={(e) => setForm({ ...form, multiplier: parseFloat(e.target.value) })}
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Input
+          id="description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          placeholder="Brief description of skill level"
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="displayOrder">Display Order</Label>
+        <Input
+          id="displayOrder"
+          type="number"
+          value={form.displayOrder}
+          onChange={(e) => setForm({ ...form, displayOrder: parseInt(e.target.value) })}
+        />
+      </div>
+      
+      <div className="flex justify-end space-x-2">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={() => saveMutation.mutate(form)}>
+          {level ? 'Update' : 'Create'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function RoleRates() {
+  const { data: profiles = [] } = useQuery<any[]>({
+    queryKey: ['/api/labor-rate-profiles']
+  });
+  
+  const { data: skillLevels = [] } = useQuery<any[]>({
+    queryKey: ['/api/skill-levels']
+  });
+  
+  const { data: roleRates = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/role-rates']
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [editingRate, setEditingRate] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Role-Based Rates</CardTitle>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" onClick={() => { setEditingRate(null); setIsDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Role Rate
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingRate ? 'Edit Role Rate' : 'Create Role Rate'}
+              </DialogTitle>
+            </DialogHeader>
+            <RoleRateForm 
+              rate={editingRate}
+              profiles={profiles}
+              skillLevels={skillLevels}
+              onClose={() => setIsDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Role</TableHead>
+              <TableHead>Department</TableHead>
+              <TableHead>Skill Level</TableHead>
+              <TableHead>Base Rate ($/hr)</TableHead>
+              <TableHead>Effective Rate</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {roleRates.map((rate) => (
+              <TableRow key={rate.id}>
+                <TableCell className="font-medium">{rate.role}</TableCell>
+                <TableCell>{rate.department}</TableCell>
+                <TableCell>{rate.skillLevel?.name || 'N/A'}</TableCell>
+                <TableCell>${rate.laborRateProfile?.baseRate?.toFixed(2) || '0.00'}</TableCell>
+                <TableCell className="font-medium">
+                  ${((rate.laborRateProfile?.baseRate || 0) * (rate.skillLevel?.multiplier || 1)).toFixed(2)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => { setEditingRate(rate); setIsDialogOpen(true); }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RoleRateForm({ rate, profiles, skillLevels, onClose }: { 
+  rate: any; 
+  profiles: any[]; 
+  skillLevels: any[]; 
+  onClose: () => void 
+}) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  const [form, setForm] = useState({
+    laborRateProfileId: rate?.laborRateProfileId || '',
+    skillLevelId: rate?.skillLevelId || '',
+    role: rate?.role || '',
+    department: rate?.department || ''
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: typeof form) => {
+      const url = rate 
+        ? `/api/role-rates/${rate.id}`
+        : '/api/role-rates';
+      return apiRequest(url, rate ? 'PUT' : 'POST', data);
+    },
+    onSuccess: () => {
+      toast({ title: `Role rate ${rate ? 'updated' : 'created'} successfully` });
+      queryClient.invalidateQueries({ queryKey: ['/api/role-rates'] });
+      onClose();
+    }
+  });
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="role">Role</Label>
+        <Input
+          id="role"
+          value={form.role}
+          onChange={(e) => setForm({ ...form, role: e.target.value })}
+          placeholder="e.g., Welder, Fabricator"
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="department">Department</Label>
+        <Input
+          id="department"
+          value={form.department}
+          onChange={(e) => setForm({ ...form, department: e.target.value })}
+          placeholder="e.g., Workshop, Assembly"
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="laborRateProfileId">Rate Profile</Label>
+        <Select 
+          value={form.laborRateProfileId?.toString()} 
+          onValueChange={(value) => setForm({ ...form, laborRateProfileId: parseInt(value) })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select rate profile" />
+          </SelectTrigger>
+          <SelectContent>
+            {profiles.map((profile) => (
+              <SelectItem key={profile.id} value={profile.id.toString()}>
+                {profile.name} - ${profile.baseRate?.toFixed(2)}/hr
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div>
+        <Label htmlFor="skillLevelId">Skill Level</Label>
+        <Select 
+          value={form.skillLevelId?.toString()} 
+          onValueChange={(value) => setForm({ ...form, skillLevelId: parseInt(value) })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select skill level" />
+          </SelectTrigger>
+          <SelectContent>
+            {skillLevels.map((level) => (
+              <SelectItem key={level.id} value={level.id.toString()}>
+                {level.name} ({level.multiplier}x)
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div className="flex justify-end space-x-2">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={() => saveMutation.mutate(form)}>
+          {rate ? 'Update' : 'Create'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function LaborAllowances() {
+  const { data: allowances = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/labor-allowances']
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Labor Allowances</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Allowance Type</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Amount/Percentage</TableHead>
+              <TableHead>Is Percentage</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {allowances.map((allowance) => (
+              <TableRow key={allowance.id}>
+                <TableCell className="font-medium">{allowance.name}</TableCell>
+                <TableCell>{allowance.description}</TableCell>
+                <TableCell>
+                  {allowance.isPercentage 
+                    ? `${allowance.value}%` 
+                    : `$${allowance.value?.toFixed(2) || '0.00'}`
+                  }
+                </TableCell>
+                <TableCell>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    allowance.isPercentage ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                  }`}>
+                    {allowance.isPercentage ? 'Percentage' : 'Fixed Amount'}
+                  </span>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RateHistory() {
+  const { data: history = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/labor-rates/history']
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Rate Change History</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Profile</TableHead>
+              <TableHead>Old Rate</TableHead>
+              <TableHead>New Rate</TableHead>
+              <TableHead>Change %</TableHead>
+              <TableHead>Changed By</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {history.map((record) => (
+              <TableRow key={record.id}>
+                <TableCell>{new Date(record.changedAt).toLocaleDateString()}</TableCell>
+                <TableCell>{record.laborRateProfile?.name}</TableCell>
+                <TableCell>${record.oldRate?.toFixed(2) || '0.00'}</TableCell>
+                <TableCell>${record.newRate?.toFixed(2) || '0.00'}</TableCell>
+                <TableCell>
+                  {record.oldRate && record.newRate ? (
+                    <span className={`text-sm font-medium ${
+                      record.newRate > record.oldRate ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {(((record.newRate - record.oldRate) / record.oldRate) * 100).toFixed(1)}%
+                    </span>
+                  ) : 'N/A'}
+                </TableCell>
+                <TableCell>{record.changedBy || 'System'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

@@ -49,7 +49,8 @@ import {
   Edit,
   UserPlus,
   Workflow,
-  Building2
+  Building2,
+  RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -926,8 +927,8 @@ export default function EstimationPage() {
         <QuoteGenerator
           estimation={{
             id: currentProject.id,
-            project: currentProject,
-            ...estimationData
+            ...estimationData,
+            project: currentProject
           }}
           open={showQuoteGenerator}
           onOpenChange={setShowQuoteGenerator}
@@ -954,10 +955,7 @@ function QuickAddClientDialog({ onClientAdded }: { onClientAdded: (client: any) 
 
   const createClientMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("/api/clients", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/clients", data);
     },
     onSuccess: (newClient) => {
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });

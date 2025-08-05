@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -7320,6 +7320,257 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching project timeline:', error);
       res.status(500).json({ message: 'Failed to fetch project timeline' });
+    }
+  });
+
+  // Labor Rate Management Routes
+  app.get("/api/labor-rates", async (req, res) => {
+    try {
+      const { roleId, skillLevelId, isActive } = req.query;
+      
+      let query = db
+        .select({
+          id: laborRates.id,
+          roleId: laborRates.roleId,
+          roleName: roles.name,
+          skillLevelId: laborRates.skillLevelId,
+          skillLevelName: skillLevels.name,
+          baseRate: laborRates.baseRate,
+          overtimeMultiplier: laborRates.overtimeMultiplier,
+          doubleTimeMultiplier: laborRates.doubleTimeMultiplier,
+          siteAllowanceRate: laborRates.siteAllowanceRate,
+          siteAllowanceType: laborRates.siteAllowanceType,
+          effectiveDate: laborRates.effectiveDate,
+          expiryDate: laborRates.expiryDate,
+          isActive: laborRates.isActive
+        })
+        .from(laborRates)
+        .leftJoin(roles, eq(laborRates.roleId, roles.id))
+        .leftJoin(skillLevels, eq(laborRates.skillLevelId, skillLevels.id));
+      
+      if (roleId) query = query.where(eq(laborRates.roleId, Number(roleId)));
+      if (skillLevelId) query = query.where(eq(laborRates.skillLevelId, Number(skillLevelId)));
+      if (isActive !== undefined) query = query.where(eq(laborRates.isActive, isActive === 'true'));
+      
+      const rates = await query;
+      res.json(rates);
+    } catch (error) {
+      console.error("Error fetching labor rates:", error);
+      res.status(500).json({ error: "Failed to fetch labor rates" });
+    }
+  });
+
+  // Create/Update labor rate
+  app.post("/api/labor-rates", async (req, res) => {
+    try {
+      const rateData = req.body;
+      
+      // Log previous rate if updating
+      if (rateData.id) {
+        const [previousRate] = await db
+          .select({ baseRate: laborRates.baseRate })
+          .from(laborRates)
+          .where(eq(laborRates.id, rateData.id));
+        
+        if (previousRate) {
+          await db.insert(laborRateHistory).values({
+            rateId: rateData.id,
+            previousRate: previousRate.baseRate,
+            newRate: rateData.baseRate,
+            changeReason: rateData.changeReason || 'Rate update',
+            changedBy: req.user?.id
+          });
+        }
+      }
+      
+      const rate = rateData.id
+        ? await db.update(laborRates)
+            .set({ ...rateData, updatedAt: new Date() })
+            .where(eq(laborRates.id, rateData.id))
+            .returning()
+        : await db.insert(laborRates)
+            .values({ ...rateData, createdBy: req.user?.id })
+            .returning();
+      
+      res.json(rate[0]);
+    } catch (error) {
+      console.error("Error saving labor rate:", error);
+      res.status(500).json({ error: "Failed to save labor rate" });
+    }
+  });
+
+  // Get labor rate history
+  app.get("/api/labor-rates/history/:roleId", async (req, res) => {
+    try {
+      const history = await db
+        .select({
+          id: laborRateHistory.id,
+          previousRate: laborRateHistory.previousRate,
+          newRate: laborRateHistory.newRate,
+          changeReason: laborRateHistory.changeReason,
+          changedAt: laborRateHistory.changedAt,
+          changedBy: users.name
+        })
+        .from(laborRateHistory)
+        .leftJoin(laborRates, eq(laborRateHistory.rateId, laborRates.id))
+        .leftJoin(users, eq(laborRateHistory.changedBy, users.id))
+        .where(eq(laborRates.roleId, Number(req.params.roleId)))
+        .orderBy(desc(laborRateHistory.changedAt));
+      
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching rate history:", error);
+      res.status(500).json({ error: "Failed to fetch rate history" });
+    }
+  });
+
+  // Calculate labor rate with allowances
+  app.post("/api/labor-rates/calculate", async (req, res) => {
+    try {
+      const { roleId, skillLevelId, hours, allowances = [] } = req.body;
+      
+      // Get base rate
+      const [rate] = await db
+        .select()
+        .from(laborRates)
+        .where(
+          and(
+            eq(laborRates.roleId, roleId),
+            eq(laborRates.skillLevelId, skillLevelId),
+            eq(laborRates.isActive, true),
+            lte(laborRates.effectiveDate, new Date())
+          )
+        )
+        .orderBy(desc(laborRates.effectiveDate))
+        .limit(1);
+      
+      if (!rate) {
+        return res.status(404).json({ error: "No active rate found" });
+      }
+      
+      let totalRate = Number(rate.baseRate);
+      let appliedAllowances = [];
+      
+      // Apply allowances
+      for (const allowanceId of allowances) {
+        const [allowance] = await db
+          .select()
+          .from(laborAllowances)
+          .where(eq(laborAllowances.id, allowanceId));
+        
+        if (allowance) {
+          switch (allowance.type) {
+            case 'percentage':
+              totalRate += (totalRate * Number(allowance.value) / 100);
+              break;
+            case 'fixed':
+              totalRate += Number(allowance.value);
+              break;
+            case 'multiplier':
+              totalRate *= Number(allowance.value);
+              break;
+          }
+          appliedAllowances.push({
+            name: allowance.name,
+            type: allowance.type,
+            value: allowance.value
+          });
+        }
+      }
+      
+      // Calculate overtime if applicable
+      let regularHours = Math.min(hours, 8);
+      let overtimeHours = Math.max(0, Math.min(hours - 8, 4));
+      let doubleTimeHours = Math.max(0, hours - 12);
+      
+      const regularCost = regularHours * totalRate;
+      const overtimeCost = overtimeHours * totalRate * Number(rate.overtimeMultiplier);
+      const doubleTimeCost = doubleTimeHours * totalRate * Number(rate.doubleTimeMultiplier);
+      
+      res.json({
+        baseRate: rate.baseRate,
+        totalRate,
+        regularHours,
+        overtimeHours,
+        doubleTimeHours,
+        regularCost,
+        overtimeCost,
+        doubleTimeCost,
+        totalCost: regularCost + overtimeCost + doubleTimeCost,
+        appliedAllowances
+      });
+    } catch (error) {
+      console.error("Error calculating labor rate:", error);
+      res.status(500).json({ error: "Failed to calculate labor rate" });
+    }
+  });
+
+  // Apply team member rates to estimation
+  app.post("/api/estimation/:id/apply-team-rates", async (req, res) => {
+    try {
+      const estimationId = Number(req.params.id);
+      const { laborItems } = req.body;
+      
+      for (const item of laborItems) {
+        if (item.teamMemberId) {
+          const [member] = await db
+            .select()
+            .from(teamMembers)
+            .where(eq(teamMembers.id, item.teamMemberId));
+          
+          if (member) {
+            const effectiveRate = member.rateOverride || member.hourlyRate;
+            await db
+              .update(estimationLabor)
+              .set({
+                hourlyRate: effectiveRate,
+                totalCost: String(Number(effectiveRate) * Number(item.hours)),
+                teamMemberId: member.id,
+                roleId: member.roleId,
+                skillLevelId: member.skillLevelId,
+                rateSource: 'team_member'
+              })
+              .where(eq(estimationLabor.id, item.id));
+          }
+        }
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error applying team rates:", error);
+      res.status(500).json({ error: "Failed to apply team rates" });
+    }
+  });
+
+  // Get skill levels
+  app.get("/api/skill-levels", async (req, res) => {
+    try {
+      const levels = await db
+        .select()
+        .from(skillLevels)
+        .where(eq(skillLevels.isActive, true))
+        .orderBy(skillLevels.multiplier);
+      
+      res.json(levels);
+    } catch (error) {
+      console.error("Error fetching skill levels:", error);
+      res.status(500).json({ error: "Failed to fetch skill levels" });
+    }
+  });
+
+  // Get labor allowances
+  app.get("/api/labor-allowances", async (req, res) => {
+    try {
+      const allowances = await db
+        .select()
+        .from(laborAllowances)
+        .where(eq(laborAllowances.isActive, true))
+        .orderBy(laborAllowances.name);
+      
+      res.json(allowances);
+    } catch (error) {
+      console.error("Error fetching allowances:", error);
+      res.status(500).json({ error: "Failed to fetch allowances" });
     }
   });
 
