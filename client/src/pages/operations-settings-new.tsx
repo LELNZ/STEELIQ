@@ -1488,9 +1488,9 @@ function SkillLevels() {
             {levels.map((level) => (
               <TableRow key={level.id}>
                 <TableCell className="font-medium">{level.name}</TableCell>
-                <TableCell>{level.multiplier?.toFixed(2) || '1.00'}x</TableCell>
+                <TableCell>{(typeof level.multiplier === 'number' ? level.multiplier.toFixed(2) : level.multiplier) || '1.00'}x</TableCell>
                 <TableCell>{level.description}</TableCell>
-                <TableCell>{level.requiredExperience || 0} years</TableCell>
+                <TableCell>{level.required_experience || level.requiredExperience || 0} years</TableCell>
                 <TableCell className="text-right">
                   <Button 
                     size="sm" 
@@ -1517,7 +1517,7 @@ function SkillLevelForm({ level, onClose }: { level: any; onClose: () => void })
     name: level?.name || '',
     multiplier: level?.multiplier || 1.0,
     description: level?.description || '',
-    requiredExperience: level?.requiredExperience || 0
+    requiredExperience: level?.required_experience || level?.requiredExperience || 0
   });
 
   const saveMutation = useMutation({
@@ -1525,7 +1525,11 @@ function SkillLevelForm({ level, onClose }: { level: any; onClose: () => void })
       const url = level 
         ? `/api/skill-levels/${level.id}`
         : '/api/skill-levels';
-      return apiRequest(url, level ? 'PUT' : 'POST', data);
+      const payload = {
+        ...data,
+        required_experience: data.requiredExperience
+      };
+      return apiRequest(url, level ? 'PUT' : 'POST', payload);
     },
     onSuccess: () => {
       toast({ title: `Skill level ${level ? 'updated' : 'created'} successfully` });

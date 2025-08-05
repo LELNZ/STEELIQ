@@ -1,5 +1,5 @@
 // Service Worker for LEL Steel Fabrication Management System
-const CACHE_NAME = 'lel-steel-v3';
+const CACHE_NAME = 'lel-steel-v4';
 const urlsToCache = [
   '/',
   '/assets/index.css',
