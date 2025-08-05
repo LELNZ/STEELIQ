@@ -85,8 +85,8 @@ export default function OperationsSettings() {
         </div>
 
         <Tabs defaultValue="fabrication" className="w-full">
-          {/* Force all 8 tabs on one line */}
-          <TabsList className="grid grid-cols-8 h-8 p-0.5 bg-muted w-full">
+          {/* Force all 8 tabs on one line - v2 */}
+          <TabsList className="grid grid-cols-8 h-8 p-0.5 bg-muted w-full gap-0">
             {tabs.map((tab) => (
               <TabsTrigger 
                 key={tab.value} 
