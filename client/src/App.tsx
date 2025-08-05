@@ -33,7 +33,7 @@ import EmployeeProfile from "@/pages/employee-profile";
 import TimeManagement from "@/pages/time-management";
 import OrganizationSettings from "@/pages/settings/organization";
 import FinancialSettings from "@/pages/settings/financial";
-import OperationsSettings from "@/pages/operations-settings-new";
+import OperationsSettingsNew from "@/pages/operations-settings-new";
 import TimePayroll from "@/pages/time-payroll";
 import ProjectLifecycleTracker from "@/pages/project-lifecycle-tracker";
 import LifecycleTemplates from "@/pages/lifecycle-templates";
@@ -97,7 +97,7 @@ function Router() {
       <Route path="/settings" component={SettingsPage} />
       <Route path="/settings/organization" component={OrganizationSettings} />
       <Route path="/settings/financial" component={FinancialSettings} />
-      <Route path="/settings/operations" component={OperationsSettings} />
+      <Route path="/settings/operations" component={OperationsSettingsNew} />
       <Route path="/settings/lifecycle-templates" component={LifecycleTemplates} />
       <Route path="/organization-settings" component={OrganizationSettingsPage} />
       <Route path="/global-settings" component={GlobalSettings} />
