@@ -125,7 +125,7 @@ export default function OperationsSettings() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div 
-          className="w-full overflow-x-auto pb-2 mb-4" 
+          className="w-full overflow-x-auto pb-2" 
           style={{ 
             WebkitOverflowScrolling: 'touch',
             msOverflowStyle: 'auto',
@@ -133,12 +133,11 @@ export default function OperationsSettings() {
           }}
         >
           <TabsList 
-            className="inline-flex flex-nowrap gap-1 bg-muted/30 p-1 min-w-full" 
+            className="flex flex-nowrap gap-1 bg-muted/30 p-1 w-max" 
             style={{ 
-              display: 'inline-flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'flex-start'
+              minWidth: '100%',
+              display: 'flex',
+              flexDirection: 'row' 
             }}
           >
             <TabsTrigger value="fabrication" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 group">
@@ -232,19 +231,6 @@ export default function OperationsSettings() {
                 </TooltipContent>
               </Tooltip>
             </TabsTrigger>
-            <TabsTrigger value="rates" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 group">
-              <Settings2 className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Labor Rates</span>
-              <span className="sm:hidden">Rates</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
-                  <p className="text-sm leading-relaxed">Configure hourly rates for different skill levels and operation types</p>
-                </TooltipContent>
-              </Tooltip>
-            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -274,10 +260,6 @@ export default function OperationsSettings() {
 
         <TabsContent value="labor" className="mt-4">
           <LaborDefaultsTab />
-        </TabsContent>
-
-        <TabsContent value="rates" className="mt-4">
-          <LaborRatesTab />
         </TabsContent>
         </Tabs>
       </div>
@@ -1371,116 +1353,6 @@ function LaborDefaultsTab() {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Labor Rates Tab Component
-function LaborRatesTab() {
-  const { data: laborRates = [], isLoading } = useQuery({
-    queryKey: ['/api/labor-rate-profiles']
-  });
-  
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return apiRequest(`/api/labor-rate-profiles/${id}`, 'DELETE');
-    },
-    onSuccess: () => {
-      toast({ title: "Labor rate profile deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ['/api/labor-rate-profiles'] });
-    },
-    onError: () => {
-      toast({ 
-        title: "Failed to delete labor rate profile", 
-        variant: "destructive" 
-      });
-    }
-  });
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center p-8">
-      <Loader2 className="h-8 w-8 animate-spin" />
-    </div>;
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle>Labor Rate Profiles</CardTitle>
-            <CardDescription>Configure hourly rates for different skill levels and operation types</CardDescription>
-          </div>
-          <Button onClick={() => toast({ title: "Create functionality coming soon" })}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Rate Profile
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
-            <thead>
-              <tr className="border-b">
-                <th className="text-left p-2" style={{ width: '20%' }}>Profile Name</th>
-                <th className="text-left p-2" style={{ width: '15%' }}>Skill Level</th>
-                <th className="text-left p-2" style={{ width: '15%' }}>Base Rate</th>
-                <th className="text-left p-2" style={{ width: '15%' }}>Overtime Rate</th>
-                <th className="text-left p-2" style={{ width: '20%' }}>Description</th>
-                <th className="text-left p-2" style={{ width: '10%' }}>Status</th>
-                <th className="text-right p-2" style={{ width: '5%', minWidth: '80px' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.isArray(laborRates) && laborRates.length > 0 ? (
-                laborRates.map((rate: any) => (
-                  <tr key={rate.id} className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-medium">{rate.profile_name}</td>
-                    <td className="p-2">{rate.skill_level}</td>
-                    <td className="p-2">${rate.base_rate}/hr</td>
-                    <td className="p-2">${rate.overtime_rate}/hr</td>
-                    <td className="p-2 text-sm text-muted-foreground">{rate.description || '-'}</td>
-                    <td className="p-2">
-                      <span className={`text-xs px-2 py-1 rounded ${rate.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {rate.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="p-2 text-right">
-                      <div className="flex gap-1 justify-end">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => toast({ title: "Edit functionality coming soon" })}
-                          className="h-8 px-2"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => deleteMutation.mutate(rate.id)}
-                          className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                    No labor rate profiles configured. Click "Add Rate Profile" to create one.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
