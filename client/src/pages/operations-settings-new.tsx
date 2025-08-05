@@ -1802,21 +1802,21 @@ function LaborAllowances() {
                 <TableCell className="font-medium">{allowance.name}</TableCell>
                 <TableCell>{allowance.code}</TableCell>
                 <TableCell>
-                  {allowance.type === 'percentage' 
-                    ? `${allowance.value}%` 
-                    : allowance.type === 'multiplier'
-                    ? `${allowance.value}x`
-                    : `$${allowance.value?.toFixed(2) || '0.00'}`
+                  {allowance.allowanceType === 'percentage' 
+                    ? `${allowance.amount}%` 
+                    : allowance.allowanceType === 'multiplier'
+                    ? `${allowance.amount}x`
+                    : `$${allowance.amount?.toFixed(2) || '0.00'}`
                   }
                 </TableCell>
                 <TableCell>
                   <span className={`text-xs px-2 py-1 rounded ${
-                    allowance.type === 'percentage' ? 'bg-blue-100 text-blue-800' : 
-                    allowance.type === 'multiplier' ? 'bg-purple-100 text-purple-800' :
+                    allowance.allowanceType === 'percentage' ? 'bg-blue-100 text-blue-800' : 
+                    allowance.allowanceType === 'multiplier' ? 'bg-purple-100 text-purple-800' :
                     'bg-green-100 text-green-800'
                   }`}>
-                    {allowance.type === 'percentage' ? 'Percentage' : 
-                     allowance.type === 'multiplier' ? 'Multiplier' : 
+                    {allowance.allowanceType === 'percentage' ? 'Percentage' : 
+                     allowance.allowanceType === 'multiplier' ? 'Multiplier' : 
                      'Fixed Amount'}
                   </span>
                 </TableCell>

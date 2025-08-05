@@ -7574,6 +7574,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Labor Rate Profiles endpoints
+  app.get("/api/labor-rate-profiles", async (req, res) => {
+    try {
+      // For now, return empty array since we don't have a labor rate profiles table
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching labor rate profiles:", error);
+      res.status(500).json({ error: "Failed to fetch labor rate profiles" });
+    }
+  });
+
+  app.post("/api/labor-rate-profiles", async (req, res) => {
+    try {
+      // Placeholder for creating labor rate profiles
+      res.json({ id: 1, ...req.body });
+    } catch (error) {
+      console.error("Error creating labor rate profile:", error);
+      res.status(500).json({ error: "Failed to create labor rate profile" });
+    }
+  });
+
+  // Role Rates endpoints
+  app.get("/api/role-rates", async (req, res) => {
+    try {
+      // For now, return empty array since we don't have a role rates table
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching role rates:", error);
+      res.status(500).json({ error: "Failed to fetch role rates" });
+    }
+  });
+
+  // Labor Rate History endpoint
+  app.get("/api/labor-rates/history", async (req, res) => {
+    try {
+      // For now, return empty array
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching rate history:", error);
+      res.status(500).json({ error: "Failed to fetch rate history" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
