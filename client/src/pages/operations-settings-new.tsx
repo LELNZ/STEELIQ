@@ -85,7 +85,7 @@ export default function OperationsSettings() {
         </div>
 
         <Tabs defaultValue="fabrication" className="w-full">
-          <TabsList className="grid grid-cols-8 w-full">
+          <TabsList className="grid grid-cols-4 md:grid-cols-8 gap-1 w-full">
             {tabs.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value} className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
                 <div className="flex items-center gap-1">
@@ -1474,7 +1474,7 @@ function SkillLevels() {
               <TableHead>Level Name</TableHead>
               <TableHead>Multiplier</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead>Display Order</TableHead>
+              <TableHead>Experience Required</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -1484,7 +1484,7 @@ function SkillLevels() {
                 <TableCell className="font-medium">{level.name}</TableCell>
                 <TableCell>{level.multiplier?.toFixed(2) || '1.00'}x</TableCell>
                 <TableCell>{level.description}</TableCell>
-                <TableCell>{level.displayOrder}</TableCell>
+                <TableCell>{level.requiredExperience || 0} years</TableCell>
                 <TableCell className="text-right">
                   <Button 
                     size="sm" 
@@ -1511,7 +1511,7 @@ function SkillLevelForm({ level, onClose }: { level: any; onClose: () => void })
     name: level?.name || '',
     multiplier: level?.multiplier || 1.0,
     description: level?.description || '',
-    displayOrder: level?.displayOrder || 0
+    requiredExperience: level?.requiredExperience || 0
   });
 
   const saveMutation = useMutation({
@@ -1562,12 +1562,14 @@ function SkillLevelForm({ level, onClose }: { level: any; onClose: () => void })
       </div>
       
       <div>
-        <Label htmlFor="displayOrder">Display Order</Label>
+        <Label htmlFor="requiredExperience">Experience Required (years)</Label>
         <Input
-          id="displayOrder"
+          id="requiredExperience"
           type="number"
-          value={form.displayOrder}
-          onChange={(e) => setForm({ ...form, displayOrder: parseInt(e.target.value) })}
+          value={form.requiredExperience}
+          onChange={(e) => setForm({ ...form, requiredExperience: parseInt(e.target.value) })}
+          min="0"
+          placeholder="Years of experience required"
         />
       </div>
       
@@ -1787,27 +1789,33 @@ function LaborAllowances() {
           <TableHeader>
             <TableRow>
               <TableHead>Allowance Type</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead>Code</TableHead>
               <TableHead>Amount/Percentage</TableHead>
-              <TableHead>Is Percentage</TableHead>
+              <TableHead>Type</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {allowances.map((allowance) => (
               <TableRow key={allowance.id}>
                 <TableCell className="font-medium">{allowance.name}</TableCell>
-                <TableCell>{allowance.description}</TableCell>
+                <TableCell>{allowance.code}</TableCell>
                 <TableCell>
-                  {allowance.isPercentage 
+                  {allowance.type === 'percentage' 
                     ? `${allowance.value}%` 
+                    : allowance.type === 'multiplier'
+                    ? `${allowance.value}x`
                     : `$${allowance.value?.toFixed(2) || '0.00'}`
                   }
                 </TableCell>
                 <TableCell>
                   <span className={`text-xs px-2 py-1 rounded ${
-                    allowance.isPercentage ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                    allowance.type === 'percentage' ? 'bg-blue-100 text-blue-800' : 
+                    allowance.type === 'multiplier' ? 'bg-purple-100 text-purple-800' :
+                    'bg-green-100 text-green-800'
                   }`}>
-                    {allowance.isPercentage ? 'Percentage' : 'Fixed Amount'}
+                    {allowance.type === 'percentage' ? 'Percentage' : 
+                     allowance.type === 'multiplier' ? 'Multiplier' : 
+                     'Fixed Amount'}
                   </span>
                 </TableCell>
               </TableRow>
