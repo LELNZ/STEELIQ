@@ -1378,6 +1378,7 @@ function LaborDefaultsTab() {
     </Card>
   );
 }
+
 // Labor Rates Tab Component
 function LaborRatesTab() {
   const { data: laborRates = [], isLoading } = useQuery({
