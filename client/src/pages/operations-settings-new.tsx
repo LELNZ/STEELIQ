@@ -40,99 +40,99 @@ export default function OperationsSettings() {
         </div>
 
         <Tabs defaultValue="fabrication" className="space-y-4">
-          <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted/50">
-            <TabsTrigger value="fabrication" className="flex-1 min-w-[100px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <span className="flex items-center gap-1 text-xs">
-                Fabrication
+          <TabsList className="inline-flex h-auto items-center justify-start rounded-md bg-muted p-1 text-muted-foreground w-full overflow-x-auto gap-1" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap' }}>
+            <TabsTrigger value="fabrication" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <span>Fabrication</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 cursor-help" />
+                    <Info className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Configure workshop operations settings including remnant thresholds, quality standards, and safety protocols</p>
                   </TooltipContent>
                 </Tooltip>
-              </span>
+              </div>
             </TabsTrigger>
-            <TabsTrigger value="welding" className="flex-1 min-w-[100px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <span className="flex items-center gap-1 text-xs">
-                Welding
+            <TabsTrigger value="welding" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <span>Welding</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 cursor-help" />
+                    <Info className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Manage welding time standards for different weld types, sizes, and materials (time per meter)</p>
                   </TooltipContent>
                 </Tooltip>
-              </span>
+              </div>
             </TabsTrigger>
-            <TabsTrigger value="drilling" className="flex-1 min-w-[100px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <span className="flex items-center gap-1 text-xs">
-                Drilling
+            <TabsTrigger value="drilling" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <span>Drilling</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 cursor-help" />
+                    <Info className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Set drilling time standards for various hole diameters, materials, and machine types</p>
                   </TooltipContent>
                 </Tooltip>
-              </span>
+              </div>
             </TabsTrigger>
-            <TabsTrigger value="cutting" className="flex-1 min-w-[100px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <span className="flex items-center gap-1 text-xs">
-                Cutting
+            <TabsTrigger value="cutting" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <span>Cutting</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 cursor-help" />
+                    <Info className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Configure cutting time standards for different materials, thicknesses, and machine types</p>
                   </TooltipContent>
                 </Tooltip>
-              </span>
+              </div>
             </TabsTrigger>
-            <TabsTrigger value="position-factors" className="flex-1 min-w-[120px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <span className="flex items-center gap-1 text-xs">
-                Position Factors
+            <TabsTrigger value="position-factors" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <span>Position Factors</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 cursor-help" />
+                    <Info className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Define difficulty multipliers for operations in challenging positions (overhead, vertical, confined spaces)</p>
                   </TooltipContent>
                 </Tooltip>
-              </span>
+              </div>
             </TabsTrigger>
-            <TabsTrigger value="assembly-templates" className="flex-1 min-w-[130px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <span className="flex items-center gap-1 text-xs">
-                Assembly Templates
+            <TabsTrigger value="assembly-templates" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <span>Assembly Templates</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 cursor-help" />
+                    <Info className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Create reusable assembly templates with predefined labor allocations for common configurations</p>
                   </TooltipContent>
                 </Tooltip>
-              </span>
+              </div>
             </TabsTrigger>
-            <TabsTrigger value="labor-defaults" className="flex-1 min-w-[110px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <span className="flex items-center gap-1 text-xs">
-                Labor Defaults
+            <TabsTrigger value="labor-defaults" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <span>Labor Defaults</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 cursor-help" />
+                    <Info className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Set default labor allocations and site premiums for different operation types used in estimations</p>
                   </TooltipContent>
                 </Tooltip>
-              </span>
+              </div>
             </TabsTrigger>
-        </TabsList>
+          </TabsList>
 
         <TabsContent value="fabrication">
           <FabricationTab />
