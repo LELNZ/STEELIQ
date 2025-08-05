@@ -148,8 +148,8 @@ export default function OperationsSettings() {
                 <TooltipTrigger asChild>
                   <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Configure default settings for cutting optimization and fabrication processes</p>
+                <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                  <p className="text-sm leading-relaxed">Configure default settings for cutting optimization and fabrication processes</p>
                 </TooltipContent>
               </Tooltip>
             </TabsTrigger>
@@ -161,8 +161,8 @@ export default function OperationsSettings() {
                 <TooltipTrigger asChild>
                   <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Configure time standards for different welding types and positions</p>
+                <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                  <p className="text-sm leading-relaxed">Configure time standards for different welding types and positions</p>
                 </TooltipContent>
               </Tooltip>
             </TabsTrigger>
@@ -174,8 +174,8 @@ export default function OperationsSettings() {
                 <TooltipTrigger asChild>
                   <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Configure time standards for different hole drilling operations</p>
+                <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                  <p className="text-sm leading-relaxed">Configure time standards for different hole drilling operations</p>
                 </TooltipContent>
               </Tooltip>
             </TabsTrigger>
@@ -187,8 +187,8 @@ export default function OperationsSettings() {
                 <TooltipTrigger asChild>
                   <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Configure time standards for different cutting methods and materials</p>
+                <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                  <p className="text-sm leading-relaxed">Configure time standards for different cutting methods and materials</p>
                 </TooltipContent>
               </Tooltip>
             </TabsTrigger>
@@ -200,8 +200,8 @@ export default function OperationsSettings() {
                 <TooltipTrigger asChild>
                   <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Configure difficulty multipliers for different working positions</p>
+                <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                  <p className="text-sm leading-relaxed">Configure difficulty multipliers for different working positions</p>
                 </TooltipContent>
               </Tooltip>
             </TabsTrigger>
@@ -213,8 +213,8 @@ export default function OperationsSettings() {
                 <TooltipTrigger asChild>
                   <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Configure standard assembly templates for common steel structures</p>
+                <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                  <p className="text-sm leading-relaxed">Configure standard assembly templates for common steel structures</p>
                 </TooltipContent>
               </Tooltip>
             </TabsTrigger>
@@ -226,8 +226,8 @@ export default function OperationsSettings() {
                 <TooltipTrigger asChild>
                   <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Configure default labor rates and times for different operations</p>
+                <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                  <p className="text-sm leading-relaxed">Configure default labor rates and times for different operations</p>
                 </TooltipContent>
               </Tooltip>
             </TabsTrigger>

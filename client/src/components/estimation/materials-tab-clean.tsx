@@ -513,9 +513,9 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                 <TooltipTrigger asChild>
                   <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Steel materials, sections, and raw materials required for the project.<br/>
-                  Includes quantities, unit costs, waste factors, and handling costs.</p>
+                <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                  <p className="text-sm leading-relaxed">Steel materials, sections, and raw materials required for the project.</p>
+                  <p className="text-sm leading-relaxed mt-1">Includes quantities, unit costs, waste factors, and handling costs.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

@@ -2300,8 +2300,8 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Raw materials, direct labor, equipment rental, consumables, and subcontractor services directly used in fabrication</p>
+                    <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                      <p className="text-sm leading-relaxed">Raw materials, direct labor, equipment rental, consumables, and subcontractor services directly used in fabrication</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -2317,10 +2317,10 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Workshop rent, utilities, insurance, administration costs, and other indirect expenses</p>
-                      <p className="text-xs text-muted-foreground">Currently calculated as {estimationData.overheads.percentage}% of direct costs</p>
-                      <p className="text-xs text-muted-foreground">Best practice: Track actual overhead costs and adjust percentage quarterly</p>
+                    <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                      <p className="text-sm leading-relaxed">Workshop rent, utilities, insurance, administration costs, and other indirect expenses</p>
+                      <p className="text-xs text-muted-foreground mt-2">Currently calculated as {estimationData.overheads.percentage}% of direct costs</p>
+                      <p className="text-xs text-muted-foreground mt-1">Best practice: Track actual overhead costs and adjust percentage quarterly</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -2336,8 +2336,8 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Profit markup to cover business growth, risk, and return on investment</p>
+                    <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                      <p className="text-sm leading-relaxed">Profit markup to cover business growth, risk, and return on investment</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -2381,10 +2381,10 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Revenue minus Cost of Goods Sold (COGS), expressed as percentage.</p>
-                      <p className="text-xs text-muted-foreground">COGS = Direct materials + Direct labor + Direct production costs</p>
-                      <p className="text-xs text-muted-foreground">Industry standard: 30-40% for steel fabrication</p>
+                    <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                      <p className="text-sm leading-relaxed">Revenue minus Cost of Goods Sold (COGS), expressed as percentage.</p>
+                      <p className="text-xs text-muted-foreground mt-2">COGS = Direct materials + Direct labor + Direct production costs</p>
+                      <p className="text-xs text-muted-foreground mt-1">Industry standard: 30-40% for steel fabrication</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -2409,10 +2409,10 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Revenue minus Cost of Goods Sold (COGS)</p>
-                      <p className="text-xs text-muted-foreground">COGS includes: materials, labor, equipment, consumables</p>
-                      <p className="text-xs text-muted-foreground">This is profit before overheads and taxes</p>
+                    <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                      <p className="text-sm leading-relaxed">Revenue minus Cost of Goods Sold (COGS)</p>
+                      <p className="text-xs text-muted-foreground mt-2">COGS includes: materials, labor, equipment, consumables</p>
+                      <p className="text-xs text-muted-foreground mt-1">This is profit before overheads and taxes</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -2428,12 +2428,12 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-sm">
+                    <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
                       <div className="space-y-2">
-                        <p className="font-semibold">Gross Profit per Hour Formula:</p>
-                        <p>Gross Profit ÷ Total Hours Worked</p>
-                        <p className="text-xs">Where Gross Profit = Revenue - COGS (direct materials, labor, production costs)</p>
-                        <p className="text-xs">Current: ${totals.grossProfit.toLocaleString()} ÷ {totals.totalLaborHours.toFixed(1)}h = ${totals.grossProfitPerHour.toFixed(0)}/hour</p>
+                        <p className="text-sm font-semibold">Gross Profit per Hour Formula:</p>
+                        <p className="text-sm">Gross Profit ÷ Total Hours Worked</p>
+                        <p className="text-xs text-muted-foreground">Where Gross Profit = Revenue - COGS (direct materials, labor, production costs)</p>
+                        <p className="text-xs text-muted-foreground">Current: ${totals.grossProfit.toLocaleString()} ÷ {totals.totalLaborHours.toFixed(1)}h = ${totals.grossProfitPerHour.toFixed(0)}/hour</p>
                         <p className="text-xs text-muted-foreground">Measures pricing effectiveness and labor productivity</p>
                       </div>
                     </TooltipContent>
@@ -2464,10 +2464,10 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Materials as % of total direct costs</p>
-                      <p className="text-xs text-muted-foreground">${totals.materials.toLocaleString()} ÷ ${totals.directCosts.toLocaleString()} = {totals.materialCostRatio.toFixed(1)}%</p>
-                      <p className="text-xs text-muted-foreground">Helps track material efficiency vs labor intensity</p>
+                    <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                      <p className="text-sm leading-relaxed">Materials as % of total direct costs</p>
+                      <p className="text-xs text-muted-foreground mt-2">${totals.materials.toLocaleString()} ÷ ${totals.directCosts.toLocaleString()} = {totals.materialCostRatio.toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground mt-1">Helps track material efficiency vs labor intensity</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -2484,10 +2484,10 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Total revenue divided by labor hours</p>
-                      <p className="text-xs text-muted-foreground">${totals.revenueBeforeGST.toLocaleString()} ÷ {totals.totalLaborHours.toFixed(1)}h = ${totals.revenuePerLaborHour.toFixed(0)}/hour</p>
-                      <p className="text-xs text-muted-foreground">Measures overall labor efficiency and pricing</p>
+                    <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                      <p className="text-sm leading-relaxed">Total revenue divided by labor hours</p>
+                      <p className="text-xs text-muted-foreground mt-2">${totals.revenueBeforeGST.toLocaleString()} ÷ {totals.totalLaborHours.toFixed(1)}h = ${totals.revenuePerLaborHour.toFixed(0)}/hour</p>
+                      <p className="text-xs text-muted-foreground mt-1">Measures overall labor efficiency and pricing</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -2504,10 +2504,10 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Overheads recovered vs actual overhead costs</p>
-                      <p className="text-xs text-muted-foreground">Currently calculated as {estimationData.overheads.percentage}% of direct costs</p>
-                      <p className="text-xs text-muted-foreground">Workshop rent, utilities, insurance, admin costs</p>
+                    <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                      <p className="text-sm leading-relaxed">Overheads recovered vs actual overhead costs</p>
+                      <p className="text-xs text-muted-foreground mt-2">Currently calculated as {estimationData.overheads.percentage}% of direct costs</p>
+                      <p className="text-xs text-muted-foreground mt-1">Workshop rent, utilities, insurance, admin costs</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -2524,10 +2524,10 @@ function SummaryTab({ estimationData }: { estimationData: EstimationData }) {
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Direct costs as % of total revenue</p>
-                      <p className="text-xs text-muted-foreground">Industry target: 60-70% for steel fabrication</p>
-                      <p className="text-xs text-muted-foreground">Current: {totals.directCostPercentage.toFixed(1)}%</p>
+                    <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                      <p className="text-sm leading-relaxed">Direct costs as % of total revenue</p>
+                      <p className="text-xs text-muted-foreground mt-2">Industry target: 60-70% for steel fabrication</p>
+                      <p className="text-xs text-muted-foreground mt-1">Current: {totals.directCostPercentage.toFixed(1)}%</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

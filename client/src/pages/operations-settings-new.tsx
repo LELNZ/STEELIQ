@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Pencil, Trash2, Plus, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { StandardTooltip } from '@/components/ui/tooltip-standard';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
@@ -82,17 +83,10 @@ export default function OperationsSettings() {
           <TabsList className="grid grid-cols-7 w-full">
             {tabs.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value} className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs">{tab.label}</span>
-                      <Info className="h-3 w-3" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" sideOffset={5} className="z-50" style={{ maxWidth: '400px' }}>
-                    <p className="text-sm leading-relaxed whitespace-normal">{tab.tooltip}</p>
-                  </TooltipContent>
-                </Tooltip>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs">{tab.label}</span>
+                  <StandardTooltip content={tab.tooltip} />
+                </div>
               </TabsTrigger>
             ))}
           </TabsList>
