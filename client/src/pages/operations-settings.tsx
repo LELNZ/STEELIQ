@@ -125,7 +125,7 @@ export default function OperationsSettings() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div 
-          className="w-full overflow-x-auto pb-2" 
+          className="w-full overflow-x-auto pb-2 mb-4" 
           style={{ 
             WebkitOverflowScrolling: 'touch',
             msOverflowStyle: 'auto',
@@ -133,11 +133,12 @@ export default function OperationsSettings() {
           }}
         >
           <TabsList 
-            className="flex flex-nowrap gap-1 bg-muted/30 p-1 w-max" 
+            className="inline-flex flex-nowrap gap-1 bg-muted/30 p-1 min-w-full" 
             style={{ 
-              minWidth: '100%',
-              display: 'flex',
-              flexDirection: 'row' 
+              display: 'inline-flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'flex-start'
             }}
           >
             <TabsTrigger value="fabrication" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 group">
@@ -231,6 +232,19 @@ export default function OperationsSettings() {
                 </TooltipContent>
               </Tooltip>
             </TabsTrigger>
+            <TabsTrigger value="rates" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 group">
+              <Settings2 className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Labor Rates</span>
+              <span className="sm:hidden">Rates</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[300px] p-3 bg-popover text-popover-foreground border shadow-md">
+                  <p className="text-sm leading-relaxed">Configure hourly rates for different skill levels and operation types</p>
+                </TooltipContent>
+              </Tooltip>
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -260,6 +274,10 @@ export default function OperationsSettings() {
 
         <TabsContent value="labor" className="mt-4">
           <LaborDefaultsTab />
+        </TabsContent>
+
+        <TabsContent value="rates" className="mt-4">
+          <LaborRatesTab />
         </TabsContent>
         </Tabs>
       </div>
