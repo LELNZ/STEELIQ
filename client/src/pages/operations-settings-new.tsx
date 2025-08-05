@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Pencil, Trash2, Plus, Info } from 'lucide-react';
+import { Pencil, Trash2, Plus, Info, ChevronDown } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { StandardTooltip } from '@/components/ui/tooltip-standard';
 import { apiRequest } from '@/lib/queryClient';
@@ -74,6 +74,12 @@ const tabs = [
 ];
 
 export default function OperationsSettings() {
+  const [selectedTab, setSelectedTab] = useState('fabrication');
+  
+  // Split tabs into visible and overflow
+  const visibleTabs = tabs.slice(0, 6);
+  const overflowTabs = tabs.slice(6);
+  
   return (
     <TooltipProvider>
       <div className="space-y-8">
@@ -84,16 +90,34 @@ export default function OperationsSettings() {
           </p>
         </div>
 
-        <Tabs defaultValue="fabrication" className="w-full">
-          <TabsList className="grid grid-cols-4 md:grid-cols-8 gap-1 w-full">
-            {tabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                <div className="flex items-center gap-1">
-                  <span className="text-xs">{tab.label}</span>
-                  <StandardTooltip content={tab.tooltip} />
-                </div>
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+          <TabsList className="flex h-auto p-1 bg-muted w-full justify-start">
+            {visibleTabs.map((tab) => (
+              <TabsTrigger 
+                key={tab.value} 
+                value={tab.value} 
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white px-2 py-1 text-xs"
+              >
+                {tab.label}
               </TabsTrigger>
             ))}
+            {overflowTabs.length > 0 && (
+              <Select value={selectedTab} onValueChange={setSelectedTab}>
+                <SelectTrigger className="w-auto h-auto px-2 py-1 text-xs">
+                  <span className="flex items-center gap-1">
+                    {overflowTabs.find(t => t.value === selectedTab)?.label || 'More'}
+                    <ChevronDown className="h-3 w-3" />
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {overflowTabs.map((tab) => (
+                    <SelectItem key={tab.value} value={tab.value}>
+                      {tab.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </TabsList>
 
           <TabsContent value="fabrication" className="mt-4">
