@@ -1314,14 +1314,14 @@ function LaborRateProfiles() {
             {profiles.map((profile) => (
               <TableRow key={profile.id}>
                 <TableCell className="font-medium">{profile.name}</TableCell>
-                <TableCell>${profile.base_rate?.toFixed(2) || '0.00'}</TableCell>
-                <TableCell>{profile.overtime_multiplier?.toFixed(2) || '1.50'}x</TableCell>
-                <TableCell>{profile.effective_date ? new Date(profile.effective_date).toLocaleDateString() : 'Invalid Date'}</TableCell>
+                <TableCell>${(profile.baseRate || profile.base_rate || 0).toFixed(2)}</TableCell>
+                <TableCell>{(profile.overtimeMultiplier || profile.overtime_multiplier || 1.50).toFixed(2)}x</TableCell>
+                <TableCell>{profile.effectiveDate || profile.effective_date ? new Date(profile.effectiveDate || profile.effective_date).toLocaleDateString() : 'N/A'}</TableCell>
                 <TableCell>
                   <span className={`text-xs px-2 py-1 rounded ${
-                    profile.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    (profile.isActive ?? profile.is_active) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {profile.is_active ? 'Active' : 'Inactive'}
+                    {(profile.isActive ?? profile.is_active) ? 'Active' : 'Inactive'}
                   </span>
                 </TableCell>
                 <TableCell className="text-right">
@@ -1353,10 +1353,10 @@ function LaborRateProfileForm({ profile, onClose }: { profile: any; onClose: () 
   
   const [form, setForm] = useState({
     name: profile?.name || '',
-    baseRate: profile?.base_rate || profile?.baseRate || 0,
-    overtimeMultiplier: profile?.overtime_multiplier || profile?.overtimeMultiplier || 1.5,
-    effectiveDate: profile?.effective_date || profile?.effectiveDate || new Date().toISOString().split('T')[0],
-    isActive: profile?.is_active ?? profile?.isActive ?? true
+    baseRate: parseFloat(profile?.baseRate || profile?.base_rate || 0),
+    overtimeMultiplier: parseFloat(profile?.overtimeMultiplier || profile?.overtime_multiplier || 1.5),
+    effectiveDate: profile?.effectiveDate || profile?.effective_date || new Date().toISOString().split('T')[0],
+    isActive: profile?.isActive ?? profile?.is_active ?? true
   });
 
   const saveMutation = useMutation({
@@ -1653,12 +1653,12 @@ function RoleRates() {
           <TableBody>
             {roleRates.map((rate) => (
               <TableRow key={rate.id}>
-                <TableCell className="font-medium">{rate.role}</TableCell>
-                <TableCell>{rate.department}</TableCell>
-                <TableCell>{rate.skillLevel?.name || 'N/A'}</TableCell>
-                <TableCell>${rate.laborRateProfile?.baseRate?.toFixed(2) || '0.00'}</TableCell>
+                <TableCell className="font-medium">{rate.roleName || rate.role || 'N/A'}</TableCell>
+                <TableCell>{rate.department || 'N/A'}</TableCell>
+                <TableCell>{rate.skillLevelName || rate.skillLevel?.name || 'N/A'}</TableCell>
+                <TableCell>${(rate.baseRate || rate.laborRateProfile?.baseRate || 0).toFixed(2)}</TableCell>
                 <TableCell className="font-medium">
-                  ${((rate.laborRateProfile?.baseRate || 0) * (rate.skillLevel?.multiplier || 1)).toFixed(2)}
+                  ${(rate.effectiveRate || ((rate.baseRate || 0) * (rate.multiplier || 1))).toFixed(2)}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button 
@@ -1688,9 +1688,9 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
   const { toast } = useToast();
   
   const [form, setForm] = useState({
-    laborRateProfileId: rate?.laborRateProfileId || '',
+    laborRateProfileId: rate?.profileId || rate?.laborRateProfileId || '',
     skillLevelId: rate?.skillLevelId || '',
-    role: rate?.role || '',
+    role: rate?.roleName || rate?.role || '',
     department: rate?.department || ''
   });
 
@@ -1790,14 +1790,21 @@ function LaborAllowances() {
     toast({ title: "Edit functionality coming soon", description: `Editing ${allowance.name}` });
   };
   
-  const handleDeleteAllowance = async (id: number) => {
-    try {
-      await apiRequest('DELETE', `/api/labor-allowances/${id}`);
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest('DELETE', `/api/labor-allowances/${id}`);
+    },
+    onSuccess: () => {
       toast({ title: "Allowance deleted successfully" });
       queryClient.invalidateQueries({ queryKey: ['/api/labor-allowances'] });
-    } catch (error) {
+    },
+    onError: () => {
       toast({ title: "Failed to delete allowance", variant: "destructive" });
     }
+  });
+  
+  const handleDeleteAllowance = (id: number) => {
+    deleteMutation.mutate(id);
   };
 
   if (isLoading) return <div>Loading...</div>;

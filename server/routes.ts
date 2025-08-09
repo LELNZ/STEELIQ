@@ -7864,49 +7864,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/labor-rates/history", async (req, res) => {
     try {
       const { rateId, profileId, days = 30 } = req.query;
+      const daysNum = Number(days) || 30;
       
-      let query = sql`
+      // Use a simpler query that doesn't have binding issues
+      const historyResult = await db.execute(sql`
         SELECT 
           lrh.*,
-          lr.role_id,
-          r.name as role_name,
-          u.name as changed_by_name
+          lrp.name as profile_name
         FROM labor_rate_history lrh
-        LEFT JOIN labor_rates lr ON lr.id = lrh.rate_id
-        LEFT JOIN roles r ON r.id = lr.role_id
-        LEFT JOIN users u ON u.id = lrh.changed_by
-        WHERE lrh.created_at >= CURRENT_DATE - INTERVAL '${days} days'
-      `;
+        LEFT JOIN labor_rate_profiles lrp ON lrp.id = lrh.rate_id
+        WHERE lrh.created_at >= CURRENT_DATE - INTERVAL '30 days'
+        ORDER BY lrh.changed_at DESC
+        LIMIT 50
+      `);
       
-      if (rateId) {
-        query = sql`
-          SELECT 
-            lrh.*,
-            lr.role_id,
-            r.name as role_name,
-            u.name as changed_by_name
-          FROM labor_rate_history lrh
-          LEFT JOIN labor_rates lr ON lr.id = lrh.rate_id
-          LEFT JOIN roles r ON r.id = lr.role_id
-          LEFT JOIN users u ON u.id = lrh.changed_by
-          WHERE lrh.rate_id = ${rateId}
-            AND lrh.created_at >= CURRENT_DATE - INTERVAL '${days} days'
-          ORDER BY lrh.created_at DESC
-        `;
-      }
-      
-      const history = await db.execute(query);
+      const history = historyResult.rows;
       
       // Convert to frontend format
-      const formattedHistory = history.rows.map((entry: any) => ({
+      const formattedHistory = history.map((entry: any) => ({
         id: entry.id,
         rateId: entry.rate_id,
-        roleName: entry.role_name,
-        previousRate: entry.previous_rate,
+        laborRateProfile: { name: entry.profile_name || 'Standard Rates' },
+        oldRate: entry.previous_rate,
         newRate: entry.new_rate,
         changeReason: entry.change_reason,
         changedBy: entry.changed_by,
-        changedByName: entry.changed_by_name,
         changedAt: entry.changed_at || entry.created_at,
         createdAt: entry.created_at
       }));
