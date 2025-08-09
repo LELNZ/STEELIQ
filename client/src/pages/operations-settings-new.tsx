@@ -85,17 +85,16 @@ export default function OperationsSettings() {
           <p className="text-sm text-muted-foreground">
             Configure time standards and defaults for estimation calculations.
           </p>
-          <p className="text-xs text-blue-500 mt-1">Version: 2.0 - Updated with all 8 tabs</p>
         </div>
 
         <Tabs defaultValue="fabrication" className="w-full">
-          {/* Force all 8 tabs on one line - v2 */}
-          <TabsList className="grid grid-cols-8 h-8 p-0.5 bg-muted w-full gap-0">
+          {/* Tabs on single line with proper spacing */}
+          <TabsList className="grid grid-cols-8 h-10 p-1 bg-muted w-full gap-0">
             {tabs.map((tab) => (
               <TabsTrigger 
                 key={tab.value} 
                 value={tab.value} 
-                className="px-1 py-0.5 text-[10px] font-medium whitespace-nowrap data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-colors"
+                className="px-2 py-1 text-xs font-medium whitespace-nowrap data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-colors"
               >
                 {tab.label}
               </TabsTrigger>
@@ -414,7 +413,7 @@ function AssemblyTemplateForm({ template, onClose }: { template: any; onClose: (
         : '/api/operations/assembly-templates';
       const method = template ? 'PUT' : 'POST';
       
-      return apiRequest(url, method, data);
+      return apiRequest(method, url, data);
     },
     onSuccess: () => {
       toast({ title: `Assembly template ${template ? 'updated' : 'created'} successfully` });
@@ -548,7 +547,7 @@ function LaborDefaultForm({ defaultItem, onClose }: { defaultItem: any; onClose:
         : '/api/operations/labor-defaults';
       const method = defaultItem ? 'PUT' : 'POST';
       
-      return apiRequest(url, method, data);
+      return apiRequest(method, url, data);
     },
     onSuccess: () => {
       toast({ title: `Labor default ${defaultItem ? 'updated' : 'created'} successfully` });
@@ -671,7 +670,7 @@ function WeldingStandardsTab() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/operations/welding-standards/${id}`, 'DELETE');
+      return apiRequest('DELETE', `/api/operations/welding-standards/${id}`);
     },
     onSuccess: () => {
       toast({ title: "Welding standard deleted successfully" });
@@ -757,7 +756,7 @@ function DrillingStandardsTab() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/operations/drilling-standards/${id}`, 'DELETE');
+      return apiRequest('DELETE', `/api/operations/drilling-standards/${id}`);
     },
     onSuccess: () => {
       toast({ title: "Drilling standard deleted successfully" });
@@ -843,7 +842,7 @@ function CuttingStandardsTab() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/operations/cutting-standards/${id}`, 'DELETE');
+      return apiRequest('DELETE', `/api/operations/cutting-standards/${id}`);
     },
     onSuccess: () => {
       toast({ title: "Cutting standard deleted successfully" });
@@ -934,7 +933,7 @@ function PositionFactorsTab() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/operations/position-factors/${id}`, 'DELETE');
+      return apiRequest('DELETE', `/api/operations/position-factors/${id}`);
     },
     onSuccess: () => {
       toast({ title: "Position factor deleted successfully" });
@@ -1022,7 +1021,7 @@ function AssemblyTemplatesTab() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/operations/assembly-templates/${id}`, 'DELETE');
+      return apiRequest('DELETE', `/api/operations/assembly-templates/${id}`);
     },
     onSuccess: () => {
       toast({ title: "Assembly template deleted successfully" });
@@ -1115,7 +1114,7 @@ function LaborDefaultsTab() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/operations/labor-defaults/${id}`, 'DELETE');
+      return apiRequest('DELETE', `/api/operations/labor-defaults/${id}`);
     },
     onSuccess: () => {
       toast({ title: "Labor default deleted successfully" });
@@ -1255,7 +1254,7 @@ function LaborRateProfiles() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/labor-rate-profiles/${id}`, 'DELETE');
+      return apiRequest('DELETE', `/api/labor-rate-profiles/${id}`);
     },
     onSuccess: () => {
       toast({ title: "Rate profile deleted successfully" });
@@ -1365,7 +1364,7 @@ function LaborRateProfileForm({ profile, onClose }: { profile: any; onClose: () 
       const url = profile 
         ? `/api/labor-rate-profiles/${profile.id}`
         : '/api/labor-rate-profiles';
-      return apiRequest(url, profile ? 'PUT' : 'POST', data);
+      return apiRequest(profile ? 'PUT' : 'POST', url, data);
     },
     onSuccess: () => {
       toast({ title: `Rate profile ${profile ? 'updated' : 'created'} successfully` });
@@ -1529,7 +1528,7 @@ function SkillLevelForm({ level, onClose }: { level: any; onClose: () => void })
         ...data,
         required_experience: data.requiredExperience
       };
-      return apiRequest(url, level ? 'PUT' : 'POST', payload);
+      return apiRequest(level ? 'PUT' : 'POST', url, payload);
     },
     onSuccess: () => {
       toast({ title: `Skill level ${level ? 'updated' : 'created'} successfully` });
@@ -1700,7 +1699,7 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
       const url = rate 
         ? `/api/role-rates/${rate.id}`
         : '/api/role-rates';
-      return apiRequest(url, rate ? 'PUT' : 'POST', data);
+      return apiRequest(rate ? 'PUT' : 'POST', url, data);
     },
     onSuccess: () => {
       toast({ title: `Role rate ${rate ? 'updated' : 'created'} successfully` });
@@ -1905,7 +1904,7 @@ function WeldingStandardForm({ standard, onClose }: { standard: any; onClose: ()
       const url = standard 
         ? `/api/operations/welding-standards/${standard.id}`
         : '/api/operations/welding-standards';
-      return apiRequest(url, standard ? 'PUT' : 'POST', data);
+      return apiRequest(standard ? 'PUT' : 'POST', url, data);
     },
     onSuccess: () => {
       toast({ title: `Welding standard ${standard ? 'updated' : 'created'} successfully` });
@@ -1997,7 +1996,7 @@ function DrillingStandardForm({ standard, onClose }: { standard: any; onClose: (
       const url = standard 
         ? `/api/operations/drilling-standards/${standard.id}`
         : '/api/operations/drilling-standards';
-      return apiRequest(url, standard ? 'PUT' : 'POST', data);
+      return apiRequest(standard ? 'PUT' : 'POST', url, data);
     },
     onSuccess: () => {
       toast({ title: `Drilling standard ${standard ? 'updated' : 'created'} successfully` });
@@ -2093,7 +2092,7 @@ function CuttingStandardForm({ standard, onClose }: { standard: any; onClose: ()
       const url = standard 
         ? `/api/operations/cutting-standards/${standard.id}`
         : '/api/operations/cutting-standards';
-      return apiRequest(url, standard ? 'PUT' : 'POST', data);
+      return apiRequest(standard ? 'PUT' : 'POST', url, data);
     },
     onSuccess: () => {
       toast({ title: `Cutting standard ${standard ? 'updated' : 'created'} successfully` });
@@ -2207,7 +2206,7 @@ function PositionFactorForm({ factor, onClose }: { factor: any; onClose: () => v
       const url = factor 
         ? `/api/operations/position-factors/${factor.id}`
         : '/api/operations/position-factors';
-      return apiRequest(url, factor ? 'PUT' : 'POST', data);
+      return apiRequest(factor ? 'PUT' : 'POST', url, data);
     },
     onSuccess: () => {
       toast({ title: `Position factor ${factor ? 'updated' : 'created'} successfully` });
