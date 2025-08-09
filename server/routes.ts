@@ -7605,10 +7605,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(skillLevels.isActive, true))
         .orderBy(skillLevels.multiplier);
       
-      res.json(levels);
+      // Convert to frontend format
+      const formattedLevels = levels.map((level: any) => ({
+        id: level.id,
+        code: level.code,
+        name: level.name,
+        description: level.description,
+        multiplier: level.multiplier,
+        requiredExperience: level.requiredExperience || level.required_experience,
+        isActive: level.isActive || level.is_active
+      }));
+      
+      res.json(formattedLevels);
     } catch (error) {
       console.error("Error fetching skill levels:", error);
       res.status(500).json({ error: "Failed to fetch skill levels" });
+    }
+  });
+  
+  app.put("/api/skill-levels/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { multiplier, description, requiredExperience } = req.body;
+      
+      // Get the current value for history tracking
+      const currentResult = await db.execute(sql`
+        SELECT * FROM skill_levels WHERE id = ${id}
+      `);
+      const current = currentResult.rows[0];
+      
+      if (!current) {
+        return res.status(404).json({ error: "Skill level not found" });
+      }
+      
+      // Update the skill level
+      await db.execute(sql`
+        UPDATE skill_levels 
+        SET multiplier = ${multiplier},
+            description = ${description || current.description},
+            required_experience = ${requiredExperience || current.required_experience},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${id}
+      `);
+      
+      // Fetch the updated record
+      const result = await db.execute(sql`
+        SELECT * FROM skill_levels WHERE id = ${id}
+      `);
+      
+      const level = result.rows[0];
+      res.json({
+        id: level.id,
+        code: level.code,
+        name: level.name,
+        description: level.description,
+        multiplier: level.multiplier,
+        requiredExperience: level.required_experience,
+        isActive: level.is_active
+      });
+    } catch (error) {
+      console.error("Error updating skill level:", error);
+      res.status(500).json({ error: "Failed to update skill level" });
     }
   });
 
@@ -7644,7 +7701,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ORDER BY lrp.is_default DESC, lrp.name
       `);
       
-      res.json(profiles.rows);
+      // Convert snake_case to camelCase for frontend
+      const formattedProfiles = profiles.rows.map((profile: any) => ({
+        id: profile.id,
+        name: profile.name,
+        description: profile.description,
+        baseRate: profile.base_rate || 0,
+        overtimeMultiplier: profile.overtime_multiplier || 1.5,
+        effectiveDate: profile.effective_date,
+        isDefault: profile.is_default,
+        isActive: profile.is_active,
+        roleCount: profile.role_count
+      }));
+      
+      res.json(formattedProfiles);
     } catch (error) {
       console.error("Error fetching labor rate profiles:", error);
       res.status(500).json({ error: "Failed to fetch labor rate profiles" });
@@ -7673,23 +7743,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const { name, baseRate, overtimeMultiplier, effectiveDate, isActive } = req.body;
       
+      // Get current values for history tracking
+      const currentResult = await db.execute(sql`
+        SELECT * FROM labor_rate_profiles WHERE id = ${id}
+      `);
+      const current = currentResult.rows[0];
+      
+      if (!current) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+      
+      // Update the profile
       const result = await db.execute(sql`
         UPDATE labor_rate_profiles 
-        SET name = ${name},
-            base_rate = ${baseRate},
-            overtime_multiplier = ${overtimeMultiplier},
-            effective_date = ${effectiveDate},
-            is_active = ${isActive},
+        SET name = ${name || current.name},
+            base_rate = ${baseRate !== undefined ? baseRate : current.base_rate},
+            overtime_multiplier = ${overtimeMultiplier || current.overtime_multiplier},
+            effective_date = ${effectiveDate || current.effective_date},
+            is_active = ${isActive !== undefined ? isActive : current.is_active},
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ${id}
         RETURNING *
       `);
       
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: "Profile not found" });
+      // Track rate change if base rate changed
+      if (baseRate !== undefined && baseRate !== current.base_rate) {
+        await db.execute(sql`
+          INSERT INTO labor_rate_history (
+            rate_id, 
+            previous_rate, 
+            new_rate, 
+            change_reason, 
+            changed_by, 
+            changed_at,
+            created_at
+          ) VALUES (
+            ${id},
+            ${current.base_rate},
+            ${baseRate},
+            'Rate updated via Operations Settings',
+            NULL,
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+          )
+        `);
       }
       
-      res.json(result.rows[0]);
+      // Convert to frontend format
+      const profile = result.rows[0];
+      res.json({
+        id: profile.id,
+        name: profile.name,
+        description: profile.description,
+        baseRate: profile.base_rate,
+        overtimeMultiplier: profile.overtime_multiplier,
+        effectiveDate: profile.effective_date,
+        isDefault: profile.is_default,
+        isActive: profile.is_active
+      });
     } catch (error) {
       console.error("Error updating labor rate profile:", error);
       res.status(500).json({ error: "Failed to update labor rate profile" });
@@ -7725,7 +7836,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const rates = await db.execute(query);
-      res.json(rates.rows);
+      
+      // Convert to frontend format
+      const formattedRates = rates.rows.map((rate: any) => ({
+        id: rate.id,
+        profileId: rate.profile_id,
+        roleId: rate.role_id,
+        roleName: rate.role_name,
+        roleDescription: rate.role_description,
+        baseRate: rate.base_rate || 0,
+        skillLevelId: rate.skill_level_id,
+        overtimeMultiplier: rate.overtime_multiplier || 1.5,
+        doubleTimeMultiplier: rate.double_time_multiplier || 2.0,
+        isActive: rate.is_active,
+        department: rate.department || 'N/A',
+        skillLevel: rate.skill_level || 'Standard'
+      }));
+      
+      res.json(formattedRates);
     } catch (error) {
       console.error("Error fetching role rates:", error);
       res.status(500).json({ error: "Failed to fetch role rates" });
@@ -7768,7 +7896,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const history = await db.execute(query);
-      res.json(history.rows);
+      
+      // Convert to frontend format
+      const formattedHistory = history.rows.map((entry: any) => ({
+        id: entry.id,
+        rateId: entry.rate_id,
+        roleName: entry.role_name,
+        previousRate: entry.previous_rate,
+        newRate: entry.new_rate,
+        changeReason: entry.change_reason,
+        changedBy: entry.changed_by,
+        changedByName: entry.changed_by_name,
+        changedAt: entry.changed_at || entry.created_at,
+        createdAt: entry.created_at
+      }));
+      
+      res.json(formattedHistory);
     } catch (error) {
       console.error("Error fetching rate history:", error);
       res.status(500).json({ error: "Failed to fetch rate history" });

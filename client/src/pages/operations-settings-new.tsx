@@ -1785,6 +1785,20 @@ function LaborAllowances() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  const handleEditAllowance = (allowance: any) => {
+    toast({ title: "Edit functionality coming soon", description: `Editing ${allowance.name}` });
+  };
+  
+  const handleDeleteAllowance = async (id: number) => {
+    try {
+      await apiRequest('DELETE', `/api/labor-allowances/${id}`);
+      toast({ title: "Allowance deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/labor-allowances'] });
+    } catch (error) {
+      toast({ title: "Failed to delete allowance", variant: "destructive" });
+    }
+  };
 
   if (isLoading) return <div>Loading...</div>;
 
@@ -1801,6 +1815,7 @@ function LaborAllowances() {
               <TableHead>Code</TableHead>
               <TableHead>Amount/Percentage</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1826,6 +1841,24 @@ function LaborAllowances() {
                      allowance.allowanceType === 'multiplier' ? 'Multiplier' : 
                      'Fixed Amount'}
                   </span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditAllowance(allowance)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteAllowance(allowance.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
