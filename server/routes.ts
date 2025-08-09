@@ -3795,48 +3795,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Estimation Labor Integration
+  // AI Estimation Labor Integration with Rate Profiles
   app.post("/api/estimation/labor-integration", async (req, res) => {
     try {
-      const { projectData, materials } = req.body;
+      const { projectData, materials, profileId } = req.body;
       
-      // Get current labor rates from database
-      const teamRates = await db.select({
-        role: roles.name,
-        hourlyRate: teamMembers.hourlyRate,
-        department: departments.name
-      })
-      .from(teamMembers)
-      .innerJoin(roles, eq(teamMembers.roleId, roles.id))
-      .innerJoin(departments, eq(teamMembers.departmentId, departments.id))
-      .where(eq(teamMembers.isActive, true));
+      // Get active labor rate profile - use default if not specified
+      let activeProfile;
+      if (profileId) {
+        const profileResult = await db.execute(sql`
+          SELECT * FROM labor_rate_profiles 
+          WHERE id = ${profileId} AND is_active = true
+        `);
+        activeProfile = profileResult.rows[0];
+      } else {
+        const defaultResult = await db.execute(sql`
+          SELECT * FROM labor_rate_profiles 
+          WHERE is_default = true AND is_active = true
+          LIMIT 1
+        `);
+        activeProfile = defaultResult.rows[0];
+      }
+      
+      if (!activeProfile) {
+        // Fallback to Standard Rates profile
+        const standardResult = await db.execute(sql`
+          SELECT * FROM labor_rate_profiles 
+          WHERE name = 'Standard Rates' AND is_active = true
+          LIMIT 1
+        `);
+        activeProfile = standardResult.rows[0];
+      }
+      
+      // Get role rates from the active profile
+      const roleRatesResult = await db.execute(sql`
+        SELECT 
+          rr.*,
+          r.name as role_name,
+          r.description as role_description,
+          sl.multiplier as skill_multiplier
+        FROM role_rates rr
+        JOIN roles r ON r.id = rr.role_id
+        LEFT JOIN skill_levels sl ON sl.id = rr.skill_level_id
+        WHERE rr.profile_id = ${activeProfile?.id || 1}
+          AND rr.is_active = true
+      `);
+      
+      const roleRates = roleRatesResult.rows;
 
       // AI suggestion logic for labor categories based on materials
       const laborSuggestions = materials.map((material: any) => {
         let suggestedRole = 'Welder/Fabricator';
         let estimatedHours = 1.0;
+        let skillLevel = 'standard';
         
         // Suggest appropriate roles based on material complexity
         if (material.category?.includes('Universal Beam') || material.category?.includes('Column')) {
-          suggestedRole = 'Senior Estimator'; // Complex structural work
+          suggestedRole = 'Senior Estimator';
           estimatedHours = 3.0;
+          skillLevel = 'senior';
         } else if (material.category?.includes('Coating') || material.category?.includes('Paint')) {
-          suggestedRole = 'Welder/Fabricator'; // Surface preparation
+          suggestedRole = 'Welder/Fabricator';
           estimatedHours = 0.5;
+          skillLevel = 'standard';
         } else if (material.category?.includes('Plate') || material.category?.includes('Sheet')) {
-          suggestedRole = 'Welder/Fabricator'; // Cutting and welding
+          suggestedRole = 'Welder/Fabricator';
           estimatedHours = 2.0;
+          skillLevel = 'standard';
         }
 
-        const roleRate = teamRates.find(r => r.role === suggestedRole);
+        // Find matching role rate from profile
+        const roleRate = roleRates.find((r: any) => r.role_name === suggestedRole) || roleRates[0];
+        const baseRate = roleRate?.base_rate || activeProfile?.base_rate || 75;
+        const skillMultiplier = roleRate?.skill_multiplier || 1.0;
+        const effectiveRate = baseRate * skillMultiplier;
         
         return {
           materialId: material.id,
           materialName: material.name,
           suggestedRole,
           estimatedHours,
-          hourlyRate: Number(roleRate?.hourlyRate) || 75,
-          totalLaborCost: estimatedHours * (Number(roleRate?.hourlyRate) || 75),
+          skillLevel,
+          baseRate,
+          skillMultiplier,
+          hourlyRate: effectiveRate,
+          totalLaborCost: estimatedHours * effectiveRate,
+          profileId: activeProfile?.id,
+          profileName: activeProfile?.name,
           complexity: material.category?.includes('Universal') ? 'high' : 
                      material.category?.includes('Plate') ? 'medium' : 'low'
         };
@@ -3846,10 +3891,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         laborSuggestions,
         totalLaborHours: laborSuggestions.reduce((sum: number, item: any) => sum + item.estimatedHours, 0),
         totalLaborCost: laborSuggestions.reduce((sum: number, item: any) => sum + item.totalLaborCost, 0),
-        teamRates: teamRates.map(rate => ({
-          role: rate.role,
-          department: rate.department,
-          hourlyRate: Number(rate.hourlyRate)
+        activeProfile: {
+          id: activeProfile?.id,
+          name: activeProfile?.name,
+          baseRate: activeProfile?.base_rate,
+          overtimeMultiplier: activeProfile?.overtime_multiplier,
+          effectiveDate: activeProfile?.effective_date
+        },
+        roleRates: roleRates.map((rate: any) => ({
+          roleId: rate.role_id,
+          roleName: rate.role_name,
+          baseRate: rate.base_rate,
+          skillMultiplier: rate.skill_multiplier || 1.0,
+          effectiveRate: rate.base_rate * (rate.skill_multiplier || 1.0)
         }))
       });
     } catch (error) {
@@ -7681,11 +7735,348 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Labor Rate History endpoint
   app.get("/api/labor-rates/history", async (req, res) => {
     try {
-      // For now, return empty array
-      res.json([]);
+      const { rateId, profileId, days = 30 } = req.query;
+      
+      let query = sql`
+        SELECT 
+          lrh.*,
+          lr.role_id,
+          r.name as role_name,
+          u.name as changed_by_name
+        FROM labor_rate_history lrh
+        LEFT JOIN labor_rates lr ON lr.id = lrh.rate_id
+        LEFT JOIN roles r ON r.id = lr.role_id
+        LEFT JOIN users u ON u.id = lrh.changed_by
+        WHERE lrh.created_at >= CURRENT_DATE - INTERVAL '${days} days'
+      `;
+      
+      if (rateId) {
+        query = sql`
+          SELECT 
+            lrh.*,
+            lr.role_id,
+            r.name as role_name,
+            u.name as changed_by_name
+          FROM labor_rate_history lrh
+          LEFT JOIN labor_rates lr ON lr.id = lrh.rate_id
+          LEFT JOIN roles r ON r.id = lr.role_id
+          LEFT JOIN users u ON u.id = lrh.changed_by
+          WHERE lrh.rate_id = ${rateId}
+            AND lrh.created_at >= CURRENT_DATE - INTERVAL '${days} days'
+          ORDER BY lrh.created_at DESC
+        `;
+      }
+      
+      const history = await db.execute(query);
+      res.json(history.rows);
     } catch (error) {
       console.error("Error fetching rate history:", error);
       res.status(500).json({ error: "Failed to fetch rate history" });
+    }
+  });
+  
+  // Estimation Labor Rate Profile Application
+  app.post("/api/estimation/:id/apply-labor-profile", async (req, res) => {
+    try {
+      const estimationId = Number(req.params.id);
+      const { profileId } = req.body;
+      
+      // Get the selected profile
+      const profileResult = await db.execute(sql`
+        SELECT * FROM labor_rate_profiles 
+        WHERE id = ${profileId} AND is_active = true
+      `);
+      const profile = profileResult.rows[0];
+      
+      if (!profile) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+      
+      // Update estimation with selected profile
+      await db.execute(sql`
+        UPDATE estimation_data 
+        SET labor = jsonb_set(
+          COALESCE(labor, '{}'),
+          '{profileId}',
+          ${profileId}::text::jsonb
+        ),
+        updated_at = CURRENT_TIMESTAMP
+        WHERE project_id = ${estimationId}
+      `);
+      
+      // Get role rates from the profile
+      const roleRatesResult = await db.execute(sql`
+        SELECT 
+          rr.*,
+          r.name as role_name,
+          sl.multiplier as skill_multiplier
+        FROM role_rates rr
+        JOIN roles r ON r.id = rr.role_id
+        LEFT JOIN skill_levels sl ON sl.id = rr.skill_level_id
+        WHERE rr.profile_id = ${profileId}
+          AND rr.is_active = true
+      `);
+      
+      res.json({
+        success: true,
+        profile: {
+          id: profile.id,
+          name: profile.name,
+          baseRate: profile.base_rate,
+          overtimeMultiplier: profile.overtime_multiplier
+        },
+        roleRates: roleRatesResult.rows
+      });
+    } catch (error) {
+      console.error("Error applying labor profile:", error);
+      res.status(500).json({ error: "Failed to apply labor profile" });
+    }
+  });
+  
+  // Back Costing - Compare Actual vs Estimated Labor
+  app.get("/api/jobs/:id/labor-variance", async (req, res) => {
+    try {
+      const jobId = Number(req.params.id);
+      
+      // Get job details with estimation data
+      const jobResult = await db.execute(sql`
+        SELECT 
+          j.*,
+          ed.labor as estimated_labor,
+          ed.overhead_percentage,
+          ed.margin_percentage
+        FROM jobs j
+        LEFT JOIN estimation_data ed ON ed.project_id = j.estimation_id
+        WHERE j.id = ${jobId}
+      `);
+      const job = jobResult.rows[0];
+      
+      if (!job) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+      
+      // Get actual time tracked for this job
+      const actualTimeResult = await db.execute(sql`
+        SELECT 
+          tc.id,
+          tc.employee_id,
+          tm.name as employee_name,
+          tc.hours_worked,
+          tc.overtime_hours,
+          tc.double_time_hours,
+          tc.clock_in_time::date as date,
+          COALESCE(tc.hourly_rate, tm.hourly_rate, 75) as hourly_rate,
+          r.name as role_name
+        FROM time_clocks tc
+        JOIN team_members tm ON tm.id = tc.employee_id
+        LEFT JOIN roles r ON r.id = tm.role_id
+        WHERE tc.job_id = ${jobId}
+          AND tc.clock_out_time IS NOT NULL
+      `);
+      
+      // Calculate actual costs
+      const actualLaborCosts = actualTimeResult.rows.reduce((acc: any, entry: any) => {
+        const regularCost = entry.hours_worked * entry.hourly_rate;
+        const overtimeCost = entry.overtime_hours * entry.hourly_rate * 1.5;
+        const doubleTimeCost = entry.double_time_hours * entry.hourly_rate * 2.0;
+        
+        return {
+          totalHours: acc.totalHours + entry.hours_worked + entry.overtime_hours + entry.double_time_hours,
+          regularHours: acc.regularHours + entry.hours_worked,
+          overtimeHours: acc.overtimeHours + entry.overtime_hours,
+          doubleTimeHours: acc.doubleTimeHours + entry.double_time_hours,
+          totalCost: acc.totalCost + regularCost + overtimeCost + doubleTimeCost
+        };
+      }, {
+        totalHours: 0,
+        regularHours: 0,
+        overtimeHours: 0,
+        doubleTimeHours: 0,
+        totalCost: 0
+      });
+      
+      // Parse estimated labor from JSON
+      const estimatedLabor = job.estimated_labor || {};
+      const estimatedHours = estimatedLabor.totalHours || 0;
+      const estimatedCost = estimatedLabor.totalCost || 0;
+      
+      // Calculate variances
+      const hoursVariance = actualLaborCosts.totalHours - estimatedHours;
+      const costVariance = actualLaborCosts.totalCost - estimatedCost;
+      const hoursVariancePercent = estimatedHours ? (hoursVariance / estimatedHours * 100) : 0;
+      const costVariancePercent = estimatedCost ? (costVariance / estimatedCost * 100) : 0;
+      
+      res.json({
+        jobId,
+        jobNumber: job.job_number,
+        estimated: {
+          hours: estimatedHours,
+          cost: estimatedCost,
+          profileId: estimatedLabor.profileId,
+          profileName: estimatedLabor.profileName
+        },
+        actual: actualLaborCosts,
+        variance: {
+          hours: hoursVariance,
+          hoursPercent: hoursVariancePercent,
+          cost: costVariance,
+          costPercent: costVariancePercent,
+          status: costVariance < 0 ? 'under_budget' : costVariance > 0 ? 'over_budget' : 'on_budget'
+        },
+        details: actualTimeResult.rows.map((entry: any) => ({
+          date: entry.date,
+          employee: entry.employee_name,
+          role: entry.role_name,
+          hours: entry.hours_worked,
+          overtime: entry.overtime_hours,
+          doubleTime: entry.double_time_hours,
+          rate: entry.hourly_rate,
+          cost: (entry.hours_worked * entry.hourly_rate) + 
+                (entry.overtime_hours * entry.hourly_rate * 1.5) +
+                (entry.double_time_hours * entry.hourly_rate * 2.0)
+        }))
+      });
+    } catch (error) {
+      console.error("Error calculating labor variance:", error);
+      res.status(500).json({ error: "Failed to calculate labor variance" });
+    }
+  });
+  
+  // Financial Analytics - Labor Cost Summary
+  app.get("/api/analytics/labor-costs", async (req, res) => {
+    try {
+      const { startDate, endDate, profileId } = req.query;
+      
+      // Get labor costs by profile
+      const profileCostsResult = await db.execute(sql`
+        SELECT 
+          lrp.id as profile_id,
+          lrp.name as profile_name,
+          COUNT(DISTINCT j.id) as job_count,
+          SUM(CAST(ed.labor->>'totalHours' AS NUMERIC)) as total_hours,
+          SUM(CAST(ed.labor->>'totalCost' AS NUMERIC)) as total_cost,
+          AVG(CAST(ed.labor->>'totalCost' AS NUMERIC)) as avg_cost_per_job
+        FROM jobs j
+        JOIN estimation_data ed ON ed.project_id = j.estimation_id
+        JOIN labor_rate_profiles lrp ON lrp.id = CAST(ed.labor->>'profileId' AS INTEGER)
+        WHERE j.created_at >= COALESCE(${startDate}, CURRENT_DATE - INTERVAL '30 days')
+          AND j.created_at <= COALESCE(${endDate}, CURRENT_DATE)
+          ${profileId ? sql`AND lrp.id = ${profileId}` : sql``}
+        GROUP BY lrp.id, lrp.name
+      `);
+      
+      // Get labor costs by role
+      const roleCostsResult = await db.execute(sql`
+        SELECT 
+          r.name as role_name,
+          COUNT(DISTINCT tc.id) as entry_count,
+          SUM(tc.hours_worked + tc.overtime_hours + tc.double_time_hours) as total_hours,
+          SUM(
+            (tc.hours_worked * tm.hourly_rate) +
+            (tc.overtime_hours * tm.hourly_rate * 1.5) +
+            (tc.double_time_hours * tm.hourly_rate * 2.0)
+          ) as total_cost
+        FROM time_clocks tc
+        JOIN team_members tm ON tm.id = tc.employee_id
+        JOIN roles r ON r.id = tm.role_id
+        WHERE tc.clock_in_time >= COALESCE(${startDate}, CURRENT_DATE - INTERVAL '30 days')
+          AND tc.clock_in_time <= COALESCE(${endDate}, CURRENT_DATE)
+          AND tc.clock_out_time IS NOT NULL
+        GROUP BY r.name
+        ORDER BY total_cost DESC
+      `);
+      
+      res.json({
+        summary: {
+          profileCosts: profileCostsResult.rows,
+          roleCosts: roleCostsResult.rows,
+          period: {
+            start: startDate || 'Last 30 days',
+            end: endDate || 'Today'
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching labor cost analytics:", error);
+      res.status(500).json({ error: "Failed to fetch labor cost analytics" });
+    }
+  });
+  
+  // Time Tracking Integration - Apply Profile Rates
+  app.post("/api/time-clocks/:id/calculate-cost", async (req, res) => {
+    try {
+      const entryId = Number(req.params.id);
+      const { profileId } = req.body;
+      
+      // Get time clock details
+      const entryResult = await db.execute(sql`
+        SELECT 
+          tc.*,
+          tm.role_id,
+          tm.skill_level_id,
+          EXTRACT(EPOCH FROM (tc.clock_out_time - tc.clock_in_time))/3600 as hours_worked
+        FROM time_clocks tc
+        JOIN team_members tm ON tm.id = tc.employee_id
+        WHERE tc.id = ${entryId}
+      `);
+      const entry = entryResult.rows[0];
+      
+      if (!entry) {
+        return res.status(404).json({ error: "Time entry not found" });
+      }
+      
+      // Get rate from profile
+      const rateResult = await db.execute(sql`
+        SELECT 
+          rr.base_rate,
+          sl.multiplier as skill_multiplier,
+          lrp.overtime_multiplier
+        FROM role_rates rr
+        JOIN labor_rate_profiles lrp ON lrp.id = rr.profile_id
+        LEFT JOIN skill_levels sl ON sl.id = ${entry.skill_level_id}
+        WHERE rr.role_id = ${entry.role_id}
+          AND rr.profile_id = ${profileId || 1}
+          AND rr.is_active = true
+        LIMIT 1
+      `);
+      const rate = rateResult.rows[0];
+      
+      if (!rate) {
+        return res.status(404).json({ error: "No rate found for this role/profile" });
+      }
+      
+      // Calculate costs
+      const baseRate = rate.base_rate * (rate.skill_multiplier || 1.0);
+      const regularCost = entry.hours_worked * baseRate;
+      const overtimeCost = entry.overtime_hours * baseRate * rate.overtime_multiplier;
+      const doubleTimeCost = entry.double_time_hours * baseRate * 2.0;
+      const totalCost = regularCost + overtimeCost + doubleTimeCost;
+      
+      // Update time clock with calculated cost
+      await db.execute(sql`
+        UPDATE time_clocks
+        SET 
+          hourly_rate = ${baseRate},
+          total_cost = ${totalCost},
+          labor_profile_id = ${profileId || 1}
+        WHERE id = ${entryId}
+      `);
+      
+      res.json({
+        entryId,
+        baseRate,
+        regularHours: entry.hours_worked,
+        overtimeHours: entry.overtime_hours,
+        doubleTimeHours: entry.double_time_hours,
+        regularCost,
+        overtimeCost,
+        doubleTimeCost,
+        totalCost,
+        profileId: profileId || 1
+      });
+    } catch (error) {
+      console.error("Error calculating time entry cost:", error);
+      res.status(500).json({ error: "Failed to calculate time entry cost" });
     }
   });
 
