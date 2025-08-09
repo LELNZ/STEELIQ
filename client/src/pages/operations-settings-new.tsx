@@ -1314,8 +1314,8 @@ function LaborRateProfiles() {
             {profiles.map((profile) => (
               <TableRow key={profile.id}>
                 <TableCell className="font-medium">{profile.name}</TableCell>
-                <TableCell>${(profile.baseRate || profile.base_rate || 0).toFixed(2)}</TableCell>
-                <TableCell>{(profile.overtimeMultiplier || profile.overtime_multiplier || 1.50).toFixed(2)}x</TableCell>
+                <TableCell>${(parseFloat(profile.baseRate || profile.base_rate || 0)).toFixed(2)}</TableCell>
+                <TableCell>{(parseFloat(profile.overtimeMultiplier || profile.overtime_multiplier || 1.50)).toFixed(2)}x</TableCell>
                 <TableCell>{profile.effectiveDate || profile.effective_date ? new Date(profile.effectiveDate || profile.effective_date).toLocaleDateString() : 'N/A'}</TableCell>
                 <TableCell>
                   <span className={`text-xs px-2 py-1 rounded ${
@@ -1656,9 +1656,9 @@ function RoleRates() {
                 <TableCell className="font-medium">{rate.roleName || rate.role || 'N/A'}</TableCell>
                 <TableCell>{rate.department || 'N/A'}</TableCell>
                 <TableCell>{rate.skillLevelName || rate.skillLevel?.name || 'N/A'}</TableCell>
-                <TableCell>${(rate.baseRate || rate.laborRateProfile?.baseRate || 0).toFixed(2)}</TableCell>
+                <TableCell>${(parseFloat(rate.baseRate || rate.laborRateProfile?.baseRate || 0)).toFixed(2)}</TableCell>
                 <TableCell className="font-medium">
-                  ${(rate.effectiveRate || ((rate.baseRate || 0) * (rate.multiplier || 1))).toFixed(2)}
+                  ${(parseFloat(rate.effectiveRate || ((parseFloat(rate.baseRate || 0)) * (parseFloat(rate.multiplier || 1))))).toFixed(2)}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button 
@@ -1905,14 +1905,14 @@ function RateHistory() {
               <TableRow key={record.id}>
                 <TableCell>{new Date(record.changedAt).toLocaleDateString()}</TableCell>
                 <TableCell>{record.laborRateProfile?.name}</TableCell>
-                <TableCell>${record.oldRate?.toFixed(2) || '0.00'}</TableCell>
-                <TableCell>${record.newRate?.toFixed(2) || '0.00'}</TableCell>
+                <TableCell>${record.oldRate ? parseFloat(record.oldRate).toFixed(2) : '0.00'}</TableCell>
+                <TableCell>${record.newRate ? parseFloat(record.newRate).toFixed(2) : '0.00'}</TableCell>
                 <TableCell>
                   {record.oldRate && record.newRate ? (
                     <span className={`text-sm font-medium ${
-                      record.newRate > record.oldRate ? 'text-green-600' : 'text-red-600'
+                      parseFloat(record.newRate) > parseFloat(record.oldRate) ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {(((record.newRate - record.oldRate) / record.oldRate) * 100).toFixed(1)}%
+                      {(((parseFloat(record.newRate) - parseFloat(record.oldRate)) / parseFloat(record.oldRate)) * 100).toFixed(1)}%
                     </span>
                   ) : 'N/A'}
                 </TableCell>
