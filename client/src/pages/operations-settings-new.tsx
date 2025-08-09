@@ -1314,14 +1314,14 @@ function LaborRateProfiles() {
             {profiles.map((profile) => (
               <TableRow key={profile.id}>
                 <TableCell className="font-medium">{profile.name}</TableCell>
-                <TableCell>${profile.baseRate?.toFixed(2) || '0.00'}</TableCell>
-                <TableCell>{profile.overtimeMultiplier?.toFixed(2) || '1.50'}x</TableCell>
-                <TableCell>{new Date(profile.effectiveDate).toLocaleDateString()}</TableCell>
+                <TableCell>${profile.base_rate?.toFixed(2) || '0.00'}</TableCell>
+                <TableCell>{profile.overtime_multiplier?.toFixed(2) || '1.50'}x</TableCell>
+                <TableCell>{profile.effective_date ? new Date(profile.effective_date).toLocaleDateString() : 'Invalid Date'}</TableCell>
                 <TableCell>
                   <span className={`text-xs px-2 py-1 rounded ${
-                    profile.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    profile.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {profile.isActive ? 'Active' : 'Inactive'}
+                    {profile.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </TableCell>
                 <TableCell className="text-right">
@@ -1353,10 +1353,10 @@ function LaborRateProfileForm({ profile, onClose }: { profile: any; onClose: () 
   
   const [form, setForm] = useState({
     name: profile?.name || '',
-    baseRate: profile?.baseRate || 0,
-    overtimeMultiplier: profile?.overtimeMultiplier || 1.5,
-    effectiveDate: profile?.effectiveDate || new Date().toISOString().split('T')[0],
-    isActive: profile?.isActive ?? true
+    baseRate: profile?.base_rate || profile?.baseRate || 0,
+    overtimeMultiplier: profile?.overtime_multiplier || profile?.overtimeMultiplier || 1.5,
+    effectiveDate: profile?.effective_date || profile?.effectiveDate || new Date().toISOString().split('T')[0],
+    isActive: profile?.is_active ?? profile?.isActive ?? true
   });
 
   const saveMutation = useMutation({

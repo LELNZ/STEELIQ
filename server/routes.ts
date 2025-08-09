@@ -7584,7 +7584,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         FROM labor_rate_profiles lrp
         LEFT JOIN role_rates rr ON rr.profile_id = lrp.id
         WHERE lrp.is_active = true
-        GROUP BY lrp.id
+        GROUP BY lrp.id, lrp.name, lrp.description, lrp.is_default, lrp.is_active, 
+                 lrp.created_at, lrp.updated_at, lrp.base_rate, lrp.overtime_multiplier, 
+                 lrp.effective_date
         ORDER BY lrp.is_default DESC, lrp.name
       `);
       
@@ -7597,11 +7599,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/labor-rate-profiles", async (req, res) => {
     try {
-      // Placeholder for creating labor rate profiles
-      res.json({ id: 1, ...req.body });
+      const { name, baseRate, overtimeMultiplier, effectiveDate, isActive } = req.body;
+      
+      const result = await db.execute(sql`
+        INSERT INTO labor_rate_profiles (name, base_rate, overtime_multiplier, effective_date, is_active)
+        VALUES (${name}, ${baseRate}, ${overtimeMultiplier}, ${effectiveDate}, ${isActive})
+        RETURNING *
+      `);
+      
+      res.json(result.rows[0]);
     } catch (error) {
       console.error("Error creating labor rate profile:", error);
       res.status(500).json({ error: "Failed to create labor rate profile" });
+    }
+  });
+  
+  app.put("/api/labor-rate-profiles/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, baseRate, overtimeMultiplier, effectiveDate, isActive } = req.body;
+      
+      const result = await db.execute(sql`
+        UPDATE labor_rate_profiles 
+        SET name = ${name},
+            base_rate = ${baseRate},
+            overtime_multiplier = ${overtimeMultiplier},
+            effective_date = ${effectiveDate},
+            is_active = ${isActive},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${id}
+        RETURNING *
+      `);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+      
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error("Error updating labor rate profile:", error);
+      res.status(500).json({ error: "Failed to update labor rate profile" });
     }
   });
 
