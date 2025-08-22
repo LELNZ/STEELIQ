@@ -8103,7 +8103,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         RETURNING *
       `);
       
-      res.json(result.rows[0]);
+      // Return properly formatted response for frontend
+      const newAllowance = result.rows[0];
+      res.json({
+        id: newAllowance.id,
+        name: newAllowance.name,
+        code: newAllowance.code,
+        description: newAllowance.description || '',
+        allowanceType: newAllowance.allowance_type || newAllowance.type || 'fixed',
+        amount: newAllowance.amount !== null ? newAllowance.amount : newAllowance.value,
+        isActive: newAllowance.is_active,
+        createdAt: newAllowance.created_at,
+        updatedAt: newAllowance.updated_at
+      });
     } catch (error) {
       console.error("Error creating labor allowance:", error);
       res.status(500).json({ error: "Failed to create labor allowance" });
@@ -8137,7 +8149,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Allowance not found" });
       }
       
-      res.json(result.rows[0]);
+      // Return properly formatted response for frontend
+      const updatedAllowance = result.rows[0];
+      res.json({
+        id: updatedAllowance.id,
+        name: updatedAllowance.name,
+        code: updatedAllowance.code,
+        description: updatedAllowance.description || '',
+        allowanceType: updatedAllowance.allowance_type || updatedAllowance.type || 'fixed',
+        amount: updatedAllowance.amount !== null ? updatedAllowance.amount : updatedAllowance.value,
+        isActive: updatedAllowance.is_active,
+        createdAt: updatedAllowance.created_at,
+        updatedAt: updatedAllowance.updated_at
+      });
     } catch (error) {
       console.error("Error updating labor allowance:", error);
       res.status(500).json({ error: "Failed to update labor allowance" });
