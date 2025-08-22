@@ -7865,6 +7865,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { laborRateProfileId, skillLevelId, role, department } = req.body;
       
+      // Handle empty skillLevelId
+      const skillLevel = skillLevelId || null;
+      
       // First check if role exists, if not create it
       let roleResult = await db.execute(sql`
         SELECT id FROM roles WHERE name = ${role}
@@ -7874,8 +7877,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (roleResult.rows.length === 0) {
         // Create new role
         const newRoleResult = await db.execute(sql`
-          INSERT INTO roles (name, description, is_active, created_at, updated_at)
-          VALUES (${role}, ${role}, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          INSERT INTO roles (name, description, created_at)
+          VALUES (${role}, ${role}, CURRENT_TIMESTAMP)
           RETURNING id
         `);
         roleId = newRoleResult.rows[0].id;
@@ -7888,9 +7891,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         SELECT base_rate FROM labor_rate_profiles WHERE id = ${laborRateProfileId}
       `);
       
-      const skillResult = await db.execute(sql`
-        SELECT multiplier FROM skill_levels WHERE id = ${skillLevelId}
-      `);
+      const skillResult = skillLevel ? await db.execute(sql`
+        SELECT multiplier FROM skill_levels WHERE id = ${skillLevel}
+      `) : { rows: [] };
       
       const baseRate = profileResult.rows[0]?.base_rate || 120;
       const multiplier = skillResult.rows[0]?.multiplier || 1;
@@ -7902,7 +7905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           department, is_active, created_at, updated_at
         )
         VALUES (
-          ${laborRateProfileId}, ${roleId}, ${skillLevelId}, 
+          ${laborRateProfileId}, ${roleId}, ${skillLevel}, 
           ${baseRate}, ${department}, true, 
           CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
         )
@@ -7930,6 +7933,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rateId = Number(req.params.id);
       const { laborRateProfileId, skillLevelId, role, department } = req.body;
       
+      // Handle empty skillLevelId
+      const skillLevel = skillLevelId || null;
+      
       // First check if role exists, if not create it
       let roleResult = await db.execute(sql`
         SELECT id FROM roles WHERE name = ${role}
@@ -7939,8 +7945,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (roleResult.rows.length === 0) {
         // Create new role
         const newRoleResult = await db.execute(sql`
-          INSERT INTO roles (name, description, is_active, created_at, updated_at)
-          VALUES (${role}, ${role}, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          INSERT INTO roles (name, description, created_at)
+          VALUES (${role}, ${role}, CURRENT_TIMESTAMP)
           RETURNING id
         `);
         roleId = newRoleResult.rows[0].id;
@@ -7961,7 +7967,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         SET 
           profile_id = ${laborRateProfileId},
           role_id = ${roleId},
-          skill_level_id = ${skillLevelId},
+          skill_level_id = ${skillLevel},
           base_rate = ${baseRate},
           department = ${department},
           updated_at = CURRENT_TIMESTAMP
