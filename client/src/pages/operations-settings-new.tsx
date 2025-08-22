@@ -1740,9 +1740,9 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
             <SelectValue placeholder="Select rate profile" />
           </SelectTrigger>
           <SelectContent>
-            {profiles.map((profile) => (
+            {profiles && profiles.map((profile) => (
               <SelectItem key={profile.id} value={profile.id.toString()}>
-                {profile.name} - ${parseFloat(profile.baseRate || 0).toFixed(2)}/hr
+                {profile.name} - ${(typeof profile.baseRate === 'string' ? parseFloat(profile.baseRate) : (profile.baseRate || 0)).toFixed(2)}/hr
               </SelectItem>
             ))}
           </SelectContent>
@@ -1759,9 +1759,9 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
             <SelectValue placeholder="Select skill level" />
           </SelectTrigger>
           <SelectContent>
-            {skillLevels.map((level) => (
+            {skillLevels && skillLevels.map((level) => (
               <SelectItem key={level.id} value={level.id.toString()}>
-                {level.name} ({parseFloat(level.multiplier || 1).toFixed(2)}x)
+                {level.name} ({(typeof level.multiplier === 'string' ? parseFloat(level.multiplier) : (level.multiplier || 1)).toFixed(2)}x)
               </SelectItem>
             ))}
           </SelectContent>
