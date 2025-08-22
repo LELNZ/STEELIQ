@@ -7860,6 +7860,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create new role rate
+  app.post("/api/role-rates", async (req, res) => {
+    try {
+      const { laborRateProfileId, skillLevelId, role, department } = req.body;
+      
+      // First check if role exists, if not create it
+      let roleResult = await db.execute(sql`
+        SELECT id FROM roles WHERE name = ${role}
+      `);
+      
+      let roleId;
+      if (roleResult.rows.length === 0) {
+        // Create new role
+        const newRoleResult = await db.execute(sql`
+          INSERT INTO roles (name, description, is_active, created_at, updated_at)
+          VALUES (${role}, ${role}, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          RETURNING id
+        `);
+        roleId = newRoleResult.rows[0].id;
+      } else {
+        roleId = roleResult.rows[0].id;
+      }
+      
+      // Get base rate from profile and multiplier from skill level
+      const profileResult = await db.execute(sql`
+        SELECT base_rate FROM labor_rate_profiles WHERE id = ${laborRateProfileId}
+      `);
+      
+      const skillResult = await db.execute(sql`
+        SELECT multiplier FROM skill_levels WHERE id = ${skillLevelId}
+      `);
+      
+      const baseRate = profileResult.rows[0]?.base_rate || 120;
+      const multiplier = skillResult.rows[0]?.multiplier || 1;
+      
+      // Create role rate
+      const result = await db.execute(sql`
+        INSERT INTO role_rates (
+          profile_id, role_id, skill_level_id, base_rate, 
+          department, is_active, created_at, updated_at
+        )
+        VALUES (
+          ${laborRateProfileId}, ${roleId}, ${skillLevelId}, 
+          ${baseRate}, ${department}, true, 
+          CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        )
+        RETURNING *
+      `);
+      
+      res.json({
+        id: result.rows[0].id,
+        profileId: result.rows[0].profile_id,
+        roleId: result.rows[0].role_id,
+        roleName: role,
+        skillLevelId: result.rows[0].skill_level_id,
+        baseRate: result.rows[0].base_rate,
+        department: result.rows[0].department
+      });
+    } catch (error) {
+      console.error("Error creating role rate:", error);
+      res.status(500).json({ error: "Failed to create role rate" });
+    }
+  });
+
+  // Update role rate
+  app.put("/api/role-rates/:id", async (req, res) => {
+    try {
+      const rateId = Number(req.params.id);
+      const { laborRateProfileId, skillLevelId, role, department } = req.body;
+      
+      // First check if role exists, if not create it
+      let roleResult = await db.execute(sql`
+        SELECT id FROM roles WHERE name = ${role}
+      `);
+      
+      let roleId;
+      if (roleResult.rows.length === 0) {
+        // Create new role
+        const newRoleResult = await db.execute(sql`
+          INSERT INTO roles (name, description, is_active, created_at, updated_at)
+          VALUES (${role}, ${role}, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          RETURNING id
+        `);
+        roleId = newRoleResult.rows[0].id;
+      } else {
+        roleId = roleResult.rows[0].id;
+      }
+      
+      // Get base rate from profile
+      const profileResult = await db.execute(sql`
+        SELECT base_rate FROM labor_rate_profiles WHERE id = ${laborRateProfileId}
+      `);
+      
+      const baseRate = profileResult.rows[0]?.base_rate || 120;
+      
+      // Update role rate
+      const result = await db.execute(sql`
+        UPDATE role_rates 
+        SET 
+          profile_id = ${laborRateProfileId},
+          role_id = ${roleId},
+          skill_level_id = ${skillLevelId},
+          base_rate = ${baseRate},
+          department = ${department},
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${rateId}
+        RETURNING *
+      `);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Role rate not found" });
+      }
+      
+      res.json({
+        id: result.rows[0].id,
+        profileId: result.rows[0].profile_id,
+        roleId: result.rows[0].role_id,
+        roleName: role,
+        skillLevelId: result.rows[0].skill_level_id,
+        baseRate: result.rows[0].base_rate,
+        department: result.rows[0].department
+      });
+    } catch (error) {
+      console.error("Error updating role rate:", error);
+      res.status(500).json({ error: "Failed to update role rate" });
+    }
+  });
+
   // Labor Rate History endpoint
   app.get("/api/labor-rates/history", async (req, res) => {
     try {
