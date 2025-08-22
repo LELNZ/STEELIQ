@@ -3105,13 +3105,13 @@ export type InsertQuoteView = typeof quoteViews.$inferInsert;
 // Organization Settings
 export const organizationSettings = pgTable("organization_settings", {
   id: serial("id").primaryKey(),
-  settingKey: varchar("setting_key", { length: 255 }).unique().notNull(),
-  settingValue: jsonb("setting_value"),
-  settingType: varchar("setting_type", { length: 100 }), // branding, email, document, financial
+  key: varchar("key", { length: 255 }).unique().notNull(),
+  value: jsonb("value"),
+  category: varchar("category", { length: 100 }), // branding, email, document, financial
   description: text("description"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
+  lastUpdatedBy: integer("last_updated_by"),
   updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Company Locations
