@@ -1834,8 +1834,7 @@ export type InsertPurchaseOrderItem = z.infer<typeof insertPurchaseOrderItemSche
 export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 
-export type Quote = typeof quotes.$inferSelect;
-export type InsertQuote = z.infer<typeof insertQuoteSchema>;
+// Quote types moved to line 3096 to avoid duplicates
 
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
@@ -2922,7 +2921,7 @@ export const costCenters = pgTable("cost_centers", {
   code: varchar("code").unique().notNull(),
   name: varchar("name").notNull(),
   description: text("description"),
-  parentId: integer("parent_id").references(() => costCenters.id),
+  parentId: integer("parent_id"),
   budgetAnnual: decimal("budget_annual", { precision: 15, scale: 2 }),
   budgetMonthly: decimal("budget_monthly", { precision: 15, scale: 2 }),
   managerId: integer("manager_id").references(() => teamMembers.id),
@@ -2936,7 +2935,7 @@ export const businessUnits = pgTable("business_units", {
   id: serial("id").primaryKey(),
   code: varchar("code").unique().notNull(),
   name: varchar("name").notNull(),
-  parentId: integer("parent_id").references(() => businessUnits.id),
+  parentId: integer("parent_id"),
   address: text("address"),
   phone: varchar("phone"),
   email: varchar("email"),
@@ -2958,8 +2957,7 @@ export type UserPreference = typeof userPreferences.$inferSelect;
 export type InsertUserPreference = typeof userPreferences.$inferInsert;
 export type LaborRateCard = typeof laborRateCards.$inferSelect;
 export type InsertLaborRateCard = typeof laborRateCards.$inferInsert;
-export type TimeClock = typeof timeClocks.$inferSelect;
-export type InsertTimeClock = typeof timeClocks.$inferInsert;
+// TimeClock types already defined at line 2686-2687
 export type CostCenter = typeof costCenters.$inferSelect;
 export type InsertCostCenter = typeof costCenters.$inferInsert;
 export type BusinessUnit = typeof businessUnits.$inferSelect;
@@ -3071,6 +3069,13 @@ export const quotes = pgTable("quotes", {
   ccEmails: text("cc_emails").array()
 });
 
+// Create insert schema for quotes
+export const insertQuoteSchema = createInsertSchema(quotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Quote history table
 export const quoteHistory = pgTable("quote_history", {
   id: serial("id").primaryKey(),
@@ -3094,7 +3099,7 @@ export const quoteViews = pgTable("quote_views", {
 
 // Type exports
 export type Quote = typeof quotes.$inferSelect;
-export type InsertQuote = typeof quotes.$inferInsert;
+export type InsertQuote = z.infer<typeof insertQuoteSchema>;
 export type QuoteHistory = typeof quoteHistory.$inferSelect;
 export type InsertQuoteHistory = typeof quoteHistory.$inferInsert;
 export type QuoteView = typeof quoteViews.$inferSelect;
