@@ -7937,7 +7937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new role rate
   app.post("/api/role-rates", async (req, res) => {
     try {
-      const { laborRateProfileId, skillLevelId, role, department } = req.body;
+      const { laborRateProfileId, skillLevelId, role, department, departmentId } = req.body;
       
       // Handle empty skillLevelId
       const skillLevel = skillLevelId || null;
@@ -7972,15 +7972,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const baseRate = profileResult.rows[0]?.base_rate || 120;
       const multiplier = skillResult.rows[0]?.multiplier || 1;
       
-      // Create role rate
+      // Create role rate with proper department_id
       const result = await db.execute(sql`
         INSERT INTO role_rates (
           profile_id, role_id, skill_level_id, base_rate, 
-          department, is_active, created_at, updated_at
+          department, department_id, is_active, created_at, updated_at
         )
         VALUES (
           ${laborRateProfileId}, ${roleId}, ${skillLevel}, 
-          ${baseRate}, ${department}, true, 
+          ${baseRate}, ${department || 'N/A'}, ${departmentId || null}, true, 
           CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
         )
         RETURNING *
@@ -8005,7 +8005,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/role-rates/:id", async (req, res) => {
     try {
       const rateId = Number(req.params.id);
-      const { laborRateProfileId, skillLevelId, role, department } = req.body;
+      const { laborRateProfileId, skillLevelId, role, department, departmentId } = req.body;
       
       // Handle empty skillLevelId
       const skillLevel = skillLevelId || null;
@@ -8035,7 +8035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const baseRate = profileResult.rows[0]?.base_rate || 120;
       
-      // Update role rate
+      // Update role rate with proper department_id
       const result = await db.execute(sql`
         UPDATE role_rates 
         SET 
@@ -8043,7 +8043,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role_id = ${roleId},
           skill_level_id = ${skillLevel},
           base_rate = ${baseRate},
-          department = ${department},
+          department = ${department || 'N/A'},
+          department_id = ${departmentId || null},
           updated_at = CURRENT_TIMESTAMP
         WHERE id = ${rateId}
         RETURNING *
