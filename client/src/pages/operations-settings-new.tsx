@@ -1740,11 +1740,16 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
             <SelectValue placeholder="Select rate profile" />
           </SelectTrigger>
           <SelectContent>
-            {profiles && profiles.map((profile) => (
-              <SelectItem key={profile.id} value={profile.id.toString()}>
-                {profile.name} - ${(typeof profile.baseRate === 'string' ? parseFloat(profile.baseRate) : (profile.baseRate || 0)).toFixed(2)}/hr
-              </SelectItem>
-            ))}
+            {profiles && profiles.map((profile) => {
+              const baseRate = profile.baseRate 
+                ? (typeof profile.baseRate === 'string' ? parseFloat(profile.baseRate) : Number(profile.baseRate))
+                : 0;
+              return (
+                <SelectItem key={profile.id} value={profile.id.toString()}>
+                  {profile.name} - ${baseRate.toFixed(2)}/hr
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>
@@ -1759,11 +1764,16 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
             <SelectValue placeholder="Select skill level" />
           </SelectTrigger>
           <SelectContent>
-            {skillLevels && skillLevels.map((level) => (
-              <SelectItem key={level.id} value={level.id.toString()}>
-                {level.name} ({(typeof level.multiplier === 'string' ? parseFloat(level.multiplier) : (level.multiplier || 1)).toFixed(2)}x)
-              </SelectItem>
-            ))}
+            {skillLevels && skillLevels.map((level) => {
+              const multiplier = level.multiplier 
+                ? (typeof level.multiplier === 'string' ? parseFloat(level.multiplier) : Number(level.multiplier))
+                : 1;
+              return (
+                <SelectItem key={level.id} value={level.id.toString()}>
+                  {level.name} ({multiplier.toFixed(2)}x)
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>
