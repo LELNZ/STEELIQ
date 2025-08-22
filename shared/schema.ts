@@ -594,11 +594,15 @@ export const laborAllowances = pgTable("labor_allowances", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   code: varchar("code", { length: 50 }).unique().notNull(),
+  description: text("description"), // Add description field
   type: varchar("type", { length: 20 }).notNull(), // percentage, fixed, multiplier
   value: decimal("value", { precision: 10, scale: 2 }).notNull(),
   conditions: jsonb("conditions"), // e.g., {"minHours": 4, "locations": ["remote"], "weather": ["rain"]}
   isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow()
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  allowanceType: varchar("allowance_type", { length: 20 }), // New field for frontend compatibility
+  amount: decimal("amount", { precision: 10, scale: 2 }) // New field for frontend compatibility
 });
 
 // Role-Allowance Mappings

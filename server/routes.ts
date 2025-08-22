@@ -7731,12 +7731,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: a.id,
         name: a.name,
         code: a.code,
-        description: a.description || '',
+        description: a.description || '', // Ensure description is included
         allowanceType: a.allowanceType || a.type || 'fixed',
         amount: a.amount !== null && a.amount !== undefined ? a.amount : (a.value || 0),
         isActive: a.isActive,
         createdAt: a.createdAt,
-        updatedAt: a.updatedAt
+        updatedAt: a.updatedAt,
+        // Include all fields for debugging
+        type: a.type,
+        value: a.value
       }));
       
       res.json(mappedAllowances);
