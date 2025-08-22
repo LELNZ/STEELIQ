@@ -1622,6 +1622,10 @@ function RoleRates() {
     queryKey: ['/api/skill-levels']
   });
   
+  const { data: departments = [] } = useQuery<any[]>({
+    queryKey: ['/api/team/departments']
+  });
+  
   const { data: roleRates = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/role-rates']
   });
@@ -1654,6 +1658,7 @@ function RoleRates() {
               rate={editingRate}
               profiles={profiles}
               skillLevels={skillLevels}
+              departments={departments}
               onClose={() => setIsDialogOpen(false)}
             />
           </DialogContent>
@@ -1675,11 +1680,14 @@ function RoleRates() {
             {roleRates.map((rate) => (
               <TableRow key={rate.id}>
                 <TableCell className="font-medium">{rate.roleName || rate.role || 'N/A'}</TableCell>
-                <TableCell>{rate.department || 'N/A'}</TableCell>
-                <TableCell>{rate.skillLevelName || rate.skillLevel?.name || 'N/A'}</TableCell>
+                <TableCell>{rate.departmentName || rate.department || 'N/A'}</TableCell>
+                <TableCell>
+                  {rate.skillLevelName || rate.skillLevel?.name || 'Standard'}
+                  {rate.skillLevelMultiplier && ` (${safeToNumber(rate.skillLevelMultiplier).toFixed(2)}x)`}
+                </TableCell>
                 <TableCell>${safeToNumber(rate.baseRate || rate.laborRateProfile?.baseRate).toFixed(2)}</TableCell>
-                <TableCell className="font-medium">
-                  ${safeToNumber(rate.effectiveRate || (safeToNumber(rate.baseRate) * safeToNumber(rate.multiplier || 1))).toFixed(2)}
+                <TableCell className="font-medium text-green-700">
+                  ${(safeToNumber(rate.baseRate) * safeToNumber(rate.skillLevelMultiplier || 1)).toFixed(2)}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button 
@@ -1699,10 +1707,11 @@ function RoleRates() {
   );
 }
 
-function RoleRateForm({ rate, profiles, skillLevels, onClose }: { 
+function RoleRateForm({ rate, profiles, skillLevels, departments, onClose }: { 
   rate: any; 
   profiles: any[]; 
-  skillLevels: any[]; 
+  skillLevels: any[];
+  departments: any[];
   onClose: () => void 
 }) {
   const queryClient = useQueryClient();
@@ -1713,7 +1722,8 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
     laborRateProfileId: rate?.profileId || rate?.laborRateProfileId || '',
     skillLevelId: rate?.skillLevelId || '',
     role: rate?.roleName || rate?.role || '',
-    department: rate?.department || ''
+    departmentId: rate?.departmentId || '',
+    department: rate?.department || '' // Keep for backward compatibility
   });
 
   const saveMutation = useMutation({
@@ -1769,13 +1779,29 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
       </div>
       
       <div>
-        <Label htmlFor="department">Department</Label>
-        <Input
-          id="department"
-          value={form.department}
-          onChange={(e) => setForm({ ...form, department: e.target.value })}
-          placeholder="e.g., Workshop, Assembly"
-        />
+        <Label htmlFor="departmentId">Department</Label>
+        <Select 
+          value={form.departmentId ? String(form.departmentId) : ''} 
+          onValueChange={(value) => setForm({ ...form, departmentId: value ? parseInt(value) : 0 })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select department" />
+          </SelectTrigger>
+          <SelectContent>
+            {departments && departments.length > 0 ? (
+              departments.map((dept) => {
+                if (!dept || !dept.id) return null;
+                return (
+                  <SelectItem key={dept.id} value={String(dept.id)}>
+                    {dept.name}
+                  </SelectItem>
+                );
+              })
+            ) : (
+              <SelectItem value="0" disabled>No departments available</SelectItem>
+            )}
+          </SelectContent>
+        </Select>
       </div>
       
       <div>
@@ -1829,6 +1855,25 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
           </SelectContent>
         </Select>
       </div>
+      
+      {/* Show calculated effective rate */}
+      {form.laborRateProfileId && form.skillLevelId && (
+        <div className="p-3 bg-blue-50 rounded-lg">
+          <Label className="text-sm text-blue-700">Calculated Effective Rate</Label>
+          <div className="text-lg font-semibold text-blue-900">
+            ${(() => {
+              const profile = profiles.find(p => p.id === form.laborRateProfileId);
+              const skillLevel = skillLevels.find(s => s.id === form.skillLevelId);
+              const baseRate = safeToNumber(profile?.baseRate || profile?.base_rate || 0);
+              const multiplier = safeToNumber(skillLevel?.multiplier || 1);
+              return (baseRate * multiplier).toFixed(2);
+            })()}/hr
+          </div>
+          <div className="text-xs text-blue-600 mt-1">
+            Base Rate × Skill Multiplier = Effective Rate
+          </div>
+        </div>
+      )}
       
       <div className="flex justify-end space-x-2">
         <Button variant="outline" onClick={onClose}>Cancel</Button>

@@ -7885,21 +7885,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const rates = await db.execute(query);
       
-      // Convert to frontend format
-      const formattedRates = rates.rows.map((rate: any) => ({
-        id: rate.id,
-        profileId: rate.profile_id,
-        roleId: rate.role_id,
-        roleName: rate.role_name,
-        roleDescription: rate.role_description,
-        baseRate: rate.base_rate || 0,
-        skillLevelId: rate.skill_level_id,
-        overtimeMultiplier: rate.overtime_multiplier || 1.5,
-        doubleTimeMultiplier: rate.double_time_multiplier || 2.0,
-        isActive: rate.is_active,
-        department: rate.department || 'N/A',
-        skillLevel: rate.skill_level || 'Standard'
-      }));
+      // Get skill levels and departments for enrichment
+      const skillLevelsData = await db.select().from(skillLevels).where(eq(skillLevels.isActive, true));
+      const departmentsData = await db.select().from(departments);
+      
+      // Convert to frontend format with enriched data
+      const formattedRates = rates.rows.map((rate: any) => {
+        const skillLevel = skillLevelsData.find(s => s.id === rate.skill_level_id);
+        const department = departmentsData.find(d => d.id === rate.department_id);
+        
+        return {
+          id: rate.id,
+          profileId: rate.profile_id,
+          roleId: rate.role_id,
+          roleName: rate.role_name,
+          roleDescription: rate.role_description,
+          baseRate: rate.base_rate || 0,
+          skillLevelId: rate.skill_level_id,
+          skillLevelName: skillLevel?.name,
+          skillLevelMultiplier: skillLevel?.multiplier || 1,
+          overtimeMultiplier: rate.overtime_multiplier || 1.5,
+          doubleTimeMultiplier: rate.double_time_multiplier || 2.0,
+          isActive: rate.is_active,
+          department: rate.department || 'N/A',
+          departmentId: rate.department_id,
+          departmentName: department?.name,
+          effectiveRate: (rate.base_rate || 0) * (skillLevel?.multiplier || 1)
+        };
+      });
       
       res.json(formattedRates);
     } catch (error) {
