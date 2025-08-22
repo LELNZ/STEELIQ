@@ -1,6 +1,6 @@
 // Service Worker for LEL Steel Fabrication Management System
-// Force cache refresh with timestamp
-const CACHE_NAME = 'lel-steel-v5-' + new Date().getTime();
+// Force cache refresh - v6
+const CACHE_NAME = 'lel-steel-v6-force-refresh';
 const urlsToCache = [
   '/',
   '/assets/index.css',
@@ -28,18 +28,20 @@ self.addEventListener('install', event => {
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up ALL caches to force refresh
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
+      // Delete ALL caches to force complete refresh
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
+          console.log('Deleting cache:', cacheName);
+          return caches.delete(cacheName);
         })
       );
+    }).then(() => {
+      // Create fresh cache
+      return caches.open(CACHE_NAME);
     }).then(() => self.clients.claim())
   );
 });
