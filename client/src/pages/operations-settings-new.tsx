@@ -1746,22 +1746,24 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
       <div>
         <Label htmlFor="laborRateProfileId">Rate Profile</Label>
         <Select 
-          value={form.laborRateProfileId?.toString()} 
-          onValueChange={(value) => setForm({ ...form, laborRateProfileId: parseInt(value) })}
+          value={form.laborRateProfileId?.toString() || ''} 
+          onValueChange={(value) => setForm({ ...form, laborRateProfileId: value ? parseInt(value) : 0 })}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select rate profile" />
           </SelectTrigger>
           <SelectContent>
-            {profiles && profiles.length > 0 && profiles.map((profile) => {
-              if (!profile) return null;
-              const baseRate = safeToNumber(profile.baseRate || profile.base_rate);
+            {profiles && profiles.length > 0 ? profiles.map((profile) => {
+              if (!profile || !profile.id) return null;
+              const baseRate = safeToNumber(profile.baseRate || profile.base_rate || 0);
               return (
                 <SelectItem key={profile.id} value={profile.id.toString()}>
-                  {profile.name} - ${baseRate.toFixed(2)}/hr
+                  {profile.name || 'Unnamed Profile'} - ${baseRate.toFixed(2)}/hr
                 </SelectItem>
               );
-            })}
+            }) : (
+              <SelectItem value="0" disabled>No profiles available</SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -1769,22 +1771,24 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
       <div>
         <Label htmlFor="skillLevelId">Skill Level</Label>
         <Select 
-          value={form.skillLevelId?.toString()} 
-          onValueChange={(value) => setForm({ ...form, skillLevelId: parseInt(value) })}
+          value={form.skillLevelId?.toString() || ''} 
+          onValueChange={(value) => setForm({ ...form, skillLevelId: value ? parseInt(value) : 0 })}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select skill level" />
           </SelectTrigger>
           <SelectContent>
-            {skillLevels && skillLevels.length > 0 && skillLevels.map((level) => {
-              if (!level) return null;
+            {skillLevels && skillLevels.length > 0 ? skillLevels.map((level) => {
+              if (!level || !level.id) return null;
               const multiplier = safeToNumber(level.multiplier || 1);
               return (
                 <SelectItem key={level.id} value={level.id.toString()}>
-                  {level.name} ({multiplier.toFixed(2)}x)
+                  {level.name || 'Unnamed Level'} ({multiplier.toFixed(2)}x)
                 </SelectItem>
               );
-            })}
+            }) : (
+              <SelectItem value="0" disabled>No skill levels available</SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>

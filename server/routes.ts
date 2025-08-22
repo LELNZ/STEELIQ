@@ -7626,7 +7626,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/skill-levels/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { multiplier, description, requiredExperience } = req.body;
+      const { name, multiplier, description, requiredExperience } = req.body;
       
       // Get the current value for history tracking
       const currentResult = await db.execute(sql`
@@ -7638,10 +7638,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Skill level not found" });
       }
       
-      // Update the skill level
+      // Update the skill level - include name in the update
       await db.execute(sql`
         UPDATE skill_levels 
-        SET multiplier = ${multiplier},
+        SET name = ${name || current.name},
+            multiplier = ${multiplier},
             description = ${description || current.description},
             required_experience = ${requiredExperience || current.required_experience},
             updated_at = CURRENT_TIMESTAMP
