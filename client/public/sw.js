@@ -1,5 +1,6 @@
 // Service Worker for LEL Steel Fabrication Management System
-const CACHE_NAME = 'lel-steel-v4';
+// Force cache refresh with timestamp
+const CACHE_NAME = 'lel-steel-v5-' + new Date().getTime();
 const urlsToCache = [
   '/',
   '/assets/index.css',
