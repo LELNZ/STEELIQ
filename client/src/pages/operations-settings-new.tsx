@@ -1953,6 +1953,7 @@ function LaborAllowances() {
             <TableRow>
               <TableHead>Allowance Type</TableHead>
               <TableHead>Code</TableHead>
+              <TableHead>Description</TableHead>
               <TableHead>Amount/Percentage</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Actions</TableHead>
@@ -1963,6 +1964,9 @@ function LaborAllowances() {
               <TableRow key={allowance.id}>
                 <TableCell className="font-medium">{allowance.name}</TableCell>
                 <TableCell>{allowance.code}</TableCell>
+                <TableCell className="text-sm text-gray-600">
+                  {allowance.description || '-'}
+                </TableCell>
                 <TableCell>
                   {allowance.allowanceType === 'percentage' 
                     ? `${allowance.amount}%` 
