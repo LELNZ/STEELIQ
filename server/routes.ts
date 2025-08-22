@@ -7670,6 +7670,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create skill level
+  app.post("/api/skill-levels", async (req, res) => {
+    try {
+      const { name, code, multiplier, description, requiredExperience } = req.body;
+      
+      // Generate code if not provided
+      const skillCode = code || name.substring(0, 4).toUpperCase();
+      
+      // Insert new skill level
+      const result = await db.execute(sql`
+        INSERT INTO skill_levels (
+          code, 
+          name, 
+          description, 
+          multiplier, 
+          required_experience, 
+          is_active,
+          created_at
+        )
+        VALUES (
+          ${skillCode},
+          ${name},
+          ${description || ''},
+          ${multiplier || 1.0},
+          ${requiredExperience || 0},
+          true,
+          CURRENT_TIMESTAMP
+        )
+        RETURNING *
+      `);
+      
+      const level = result.rows[0];
+      res.json({
+        id: level.id,
+        code: level.code,
+        name: level.name,
+        description: level.description,
+        multiplier: level.multiplier,
+        requiredExperience: level.required_experience,
+        isActive: level.is_active
+      });
+    } catch (error) {
+      console.error("Error creating skill level:", error);
+      res.status(500).json({ error: "Failed to create skill level" });
+    }
+  });
+
   // Get labor allowances
   app.get("/api/labor-allowances", async (req, res) => {
     try {
@@ -7992,6 +8039,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating role rate:", error);
       res.status(500).json({ error: "Failed to update role rate" });
+    }
+  });
+
+  // Create labor allowance
+  app.post("/api/labor-allowances", async (req, res) => {
+    try {
+      const { name, code, description, allowanceType, amount } = req.body;
+      
+      const result = await db.execute(sql`
+        INSERT INTO labor_allowances (
+          name,
+          code,
+          description,
+          allowance_type,
+          amount,
+          is_active,
+          created_at
+        )
+        VALUES (
+          ${name},
+          ${code || name.substring(0, 3).toUpperCase()},
+          ${description || ''},
+          ${allowanceType || 'fixed'},
+          ${amount || 0},
+          true,
+          CURRENT_TIMESTAMP
+        )
+        RETURNING *
+      `);
+      
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error("Error creating labor allowance:", error);
+      res.status(500).json({ error: "Failed to create labor allowance" });
+    }
+  });
+
+  // Update labor allowance
+  app.put("/api/labor-allowances/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { name, code, description, allowanceType, amount, isActive } = req.body;
+      
+      const result = await db.execute(sql`
+        UPDATE labor_allowances
+        SET 
+          name = ${name},
+          code = ${code},
+          description = ${description},
+          allowance_type = ${allowanceType},
+          amount = ${amount},
+          is_active = ${isActive},
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${id}
+        RETURNING *
+      `);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Allowance not found" });
+      }
+      
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error("Error updating labor allowance:", error);
+      res.status(500).json({ error: "Failed to update labor allowance" });
+    }
+  });
+
+  // Delete labor allowance
+  app.delete("/api/labor-allowances/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      await db.execute(sql`
+        UPDATE labor_allowances
+        SET is_active = false, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${id}
+      `);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting labor allowance:", error);
+      res.status(500).json({ error: "Failed to delete labor allowance" });
     }
   });
 

@@ -1851,8 +1851,12 @@ function LaborAllowances() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  const [editingAllowance, setEditingAllowance] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
   const handleEditAllowance = (allowance: any) => {
-    toast({ title: "Edit functionality coming soon", description: `Editing ${allowance.name}` });
+    setEditingAllowance(allowance);
+    setIsDialogOpen(true);
   };
   
   const deleteMutation = useMutation({
@@ -1876,8 +1880,27 @@ function LaborAllowances() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Labor Allowances</CardTitle>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" onClick={() => { setEditingAllowance(null); setIsDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Allowance
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingAllowance ? 'Edit Allowance' : 'Create Allowance'}
+              </DialogTitle>
+            </DialogHeader>
+            <AllowanceForm 
+              allowance={editingAllowance}
+              onClose={() => setIsDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </CardHeader>
       <CardContent>
         <Table>
@@ -1938,6 +1961,133 @@ function LaborAllowances() {
         </Table>
       </CardContent>
     </Card>
+  );
+}
+
+function AllowanceForm({ allowance, onClose }: { allowance: any; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  const [form, setForm] = useState({
+    name: allowance?.name || '',
+    code: allowance?.code || '',
+    description: allowance?.description || '',
+    allowanceType: allowance?.allowance_type || allowance?.allowanceType || 'fixed',
+    amount: safeToNumber(allowance?.amount || 0),
+    isActive: allowance?.is_active ?? allowance?.isActive ?? true
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: typeof form) => {
+      const url = allowance 
+        ? `/api/labor-allowances/${allowance.id}`
+        : '/api/labor-allowances';
+      return apiRequest(allowance ? 'PUT' : 'POST', url, data);
+    },
+    onSuccess: () => {
+      toast({ title: `Allowance ${allowance ? 'updated' : 'created'} successfully` });
+      queryClient.invalidateQueries({ queryKey: ['/api/labor-allowances'] });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: 'Failed to save allowance', 
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="name">Allowance Name</Label>
+        <Input
+          id="name"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="e.g., Hazard Pay, Height Allowance"
+          required
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="code">Code</Label>
+        <Input
+          id="code"
+          value={form.code}
+          onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+          placeholder="e.g., HAZ, HGT"
+          maxLength={10}
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Input
+          id="description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          placeholder="Brief description of when this allowance applies"
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="allowanceType">Allowance Type</Label>
+        <Select 
+          value={form.allowanceType}
+          onValueChange={(value) => setForm({ ...form, allowanceType: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="fixed">Fixed Amount ($/hr)</SelectItem>
+            <SelectItem value="percentage">Percentage (%)</SelectItem>
+            <SelectItem value="multiplier">Multiplier (x)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div>
+        <Label htmlFor="amount">
+          {form.allowanceType === 'fixed' ? 'Amount ($/hr)' :
+           form.allowanceType === 'percentage' ? 'Percentage (%)' :
+           'Multiplier (x)'}
+        </Label>
+        <Input
+          id="amount"
+          type="number"
+          step={form.allowanceType === 'fixed' ? '0.01' : '0.1'}
+          value={form.amount}
+          onChange={(e) => {
+            const value = parseFloat(e.target.value);
+            setForm({ ...form, amount: isNaN(value) ? 0 : value });
+          }}
+          placeholder={form.allowanceType === 'fixed' ? '10.00' :
+                      form.allowanceType === 'percentage' ? '15' : '1.5'}
+        />
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="isActive"
+          checked={form.isActive}
+          onCheckedChange={(checked) => setForm({ ...form, isActive: checked })}
+        />
+        <Label htmlFor="isActive">Active</Label>
+      </div>
+      
+      <div className="flex justify-end space-x-2">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button 
+          onClick={() => saveMutation.mutate(form)}
+          disabled={saveMutation.isPending || !form.name}
+        >
+          {saveMutation.isPending ? 'Saving...' : allowance ? 'Update' : 'Create'}
+        </Button>
+      </div>
+    </div>
   );
 }
 
