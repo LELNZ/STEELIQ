@@ -3,6 +3,13 @@
 ## Overview
 This project is a comprehensive Job Management System (JMS) for steel fabrication, designed for Lateral Engineering Limited. It aims to optimize steel cutting operations, manage material libraries, and streamline job estimation workflows. Key capabilities include cutting optimization, inventory tracking, supplier management, and advanced AI-assisted estimation. The system encompasses the entire business process from material selection and project creation to job execution tracking and invoicing, with a vision to enhance efficiency, accuracy, and profitability in steel fabrication.
 
+**Recent Updates (August 22, 2025):**
+- Fixed Operations Settings architecture issues - all labor allowances, role rates, and skill levels now fully functional
+- Added missing database columns (description, updated_at, allowance_type, amount) to labor_allowances table
+- Updated Drizzle schema to match database structure exactly
+- Fixed foreign key relationships between role_rates/departments and team_members/skill_levels
+- Ensured complete data persistence across all Operations Settings tabs
+
 ## User Preferences
 
 **Communication Style:** Simple, everyday language.
