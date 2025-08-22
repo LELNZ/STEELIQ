@@ -29,6 +29,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+// Helper function to safely convert values to numbers
+const safeToNumber = (value: any): number => {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+};
+
 // Tab configuration for cleaner code
 const tabs = [
   {
@@ -1314,8 +1325,8 @@ function LaborRateProfiles() {
             {profiles.map((profile) => (
               <TableRow key={profile.id}>
                 <TableCell className="font-medium">{profile.name}</TableCell>
-                <TableCell>${(parseFloat(profile.baseRate || profile.base_rate || 0)).toFixed(2)}</TableCell>
-                <TableCell>{(parseFloat(profile.overtimeMultiplier || profile.overtime_multiplier || 1.50)).toFixed(2)}x</TableCell>
+                <TableCell>${safeToNumber(profile.baseRate || profile.base_rate).toFixed(2)}</TableCell>
+                <TableCell>{safeToNumber(profile.overtimeMultiplier || profile.overtime_multiplier || 1.50).toFixed(2)}x</TableCell>
                 <TableCell>{profile.effectiveDate || profile.effective_date ? new Date(profile.effectiveDate || profile.effective_date).toLocaleDateString() : 'N/A'}</TableCell>
                 <TableCell>
                   <span className={`text-xs px-2 py-1 rounded ${
@@ -1487,7 +1498,7 @@ function SkillLevels() {
             {levels.map((level) => (
               <TableRow key={level.id}>
                 <TableCell className="font-medium">{level.name}</TableCell>
-                <TableCell>{parseFloat(level.multiplier || 1).toFixed(2)}x</TableCell>
+                <TableCell>{safeToNumber(level.multiplier || 1).toFixed(2)}x</TableCell>
                 <TableCell>{level.description}</TableCell>
                 <TableCell>{level.required_experience || level.requiredExperience || 0} years</TableCell>
                 <TableCell className="text-right">
@@ -1656,9 +1667,9 @@ function RoleRates() {
                 <TableCell className="font-medium">{rate.roleName || rate.role || 'N/A'}</TableCell>
                 <TableCell>{rate.department || 'N/A'}</TableCell>
                 <TableCell>{rate.skillLevelName || rate.skillLevel?.name || 'N/A'}</TableCell>
-                <TableCell>${(parseFloat(rate.baseRate || rate.laborRateProfile?.baseRate || 0)).toFixed(2)}</TableCell>
+                <TableCell>${safeToNumber(rate.baseRate || rate.laborRateProfile?.baseRate).toFixed(2)}</TableCell>
                 <TableCell className="font-medium">
-                  ${(parseFloat(rate.effectiveRate || ((parseFloat(rate.baseRate || 0)) * (parseFloat(rate.multiplier || 1))))).toFixed(2)}
+                  ${safeToNumber(rate.effectiveRate || (safeToNumber(rate.baseRate) * safeToNumber(rate.multiplier || 1))).toFixed(2)}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button 
@@ -1740,10 +1751,9 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
             <SelectValue placeholder="Select rate profile" />
           </SelectTrigger>
           <SelectContent>
-            {profiles && profiles.map((profile) => {
-              const baseRate = profile.baseRate 
-                ? (typeof profile.baseRate === 'string' ? parseFloat(profile.baseRate) : Number(profile.baseRate))
-                : 0;
+            {profiles && profiles.length > 0 && profiles.map((profile) => {
+              if (!profile) return null;
+              const baseRate = safeToNumber(profile.baseRate || profile.base_rate);
               return (
                 <SelectItem key={profile.id} value={profile.id.toString()}>
                   {profile.name} - ${baseRate.toFixed(2)}/hr
@@ -1764,10 +1774,9 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
             <SelectValue placeholder="Select skill level" />
           </SelectTrigger>
           <SelectContent>
-            {skillLevels && skillLevels.map((level) => {
-              const multiplier = level.multiplier 
-                ? (typeof level.multiplier === 'string' ? parseFloat(level.multiplier) : Number(level.multiplier))
-                : 1;
+            {skillLevels && skillLevels.length > 0 && skillLevels.map((level) => {
+              if (!level) return null;
+              const multiplier = safeToNumber(level.multiplier || 1);
               return (
                 <SelectItem key={level.id} value={level.id.toString()}>
                   {level.name} ({multiplier.toFixed(2)}x)
@@ -1845,7 +1854,7 @@ function LaborAllowances() {
                     ? `${allowance.amount}%` 
                     : allowance.allowanceType === 'multiplier'
                     ? `${allowance.amount}x`
-                    : `$${allowance.amount ? parseFloat(allowance.amount).toFixed(2) : '0.00'}`
+                    : `$${safeToNumber(allowance.amount).toFixed(2)}`
                   }
                 </TableCell>
                 <TableCell>
