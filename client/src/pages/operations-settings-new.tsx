@@ -1569,7 +1569,11 @@ function SkillLevelForm({ level, onClose }: { level: any; onClose: () => void })
           type="number"
           step="0.01"
           value={form.multiplier}
-          onChange={(e) => setForm({ ...form, multiplier: parseFloat(e.target.value) })}
+          onChange={(e) => {
+            const value = e.target.value;
+            const parsed = parseFloat(value);
+            setForm({ ...form, multiplier: isNaN(parsed) ? 1.0 : parsed });
+          }}
         />
       </div>
       
@@ -1589,7 +1593,11 @@ function SkillLevelForm({ level, onClose }: { level: any; onClose: () => void })
           id="requiredExperience"
           type="number"
           value={form.requiredExperience}
-          onChange={(e) => setForm({ ...form, requiredExperience: parseInt(e.target.value) })}
+          onChange={(e) => {
+            const value = e.target.value;
+            const parsed = parseInt(value);
+            setForm({ ...form, requiredExperience: isNaN(parsed) ? 0 : parsed });
+          }}
           min="0"
           placeholder="Years of experience required"
         />
@@ -1700,6 +1708,7 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
+  // Ensure all values are safe
   const [form, setForm] = useState({
     laborRateProfileId: rate?.profileId || rate?.laborRateProfileId || '',
     skillLevelId: rate?.skillLevelId || '',
@@ -1718,8 +1727,33 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
       toast({ title: `Role rate ${rate ? 'updated' : 'created'} successfully` });
       queryClient.invalidateQueries({ queryKey: ['/api/role-rates'] });
       onClose();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: 'Error saving role rate', 
+        description: error.message || 'An unexpected error occurred',
+        variant: 'destructive'
+      });
     }
   });
+
+  // Helper to safely get display text for profile
+  const getProfileDisplay = (profile: any): string => {
+    if (!profile) return 'Invalid Profile';
+    const name = profile.name || 'Unnamed Profile';
+    const baseRateValue = profile.baseRate || profile.base_rate || profile.base_rate_value || 0;
+    const safeRate = safeToNumber(baseRateValue);
+    return `${name} - $${safeRate.toFixed(2)}/hr`;
+  };
+
+  // Helper to safely get display text for skill level
+  const getSkillLevelDisplay = (level: any): string => {
+    if (!level) return 'Invalid Level';
+    const name = level.name || 'Unnamed Level';
+    const multiplierValue = level.multiplier || 1;
+    const safeMultiplier = safeToNumber(multiplierValue);
+    return `${name} (${safeMultiplier.toFixed(2)}x)`;
+  };
 
   return (
     <div className="space-y-4">
@@ -1730,6 +1764,7 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
           value={form.role}
           onChange={(e) => setForm({ ...form, role: e.target.value })}
           placeholder="e.g., Welder, Fabricator"
+          required
         />
       </div>
       
@@ -1746,22 +1781,23 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
       <div>
         <Label htmlFor="laborRateProfileId">Rate Profile</Label>
         <Select 
-          value={form.laborRateProfileId?.toString() || ''} 
+          value={form.laborRateProfileId ? String(form.laborRateProfileId) : ''} 
           onValueChange={(value) => setForm({ ...form, laborRateProfileId: value ? parseInt(value) : 0 })}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select rate profile" />
           </SelectTrigger>
           <SelectContent>
-            {profiles && profiles.length > 0 ? profiles.map((profile) => {
-              if (!profile || !profile.id) return null;
-              const baseRate = safeToNumber(profile.baseRate || profile.base_rate || 0);
-              return (
-                <SelectItem key={profile.id} value={profile.id.toString()}>
-                  {profile.name || 'Unnamed Profile'} - ${baseRate.toFixed(2)}/hr
-                </SelectItem>
-              );
-            }) : (
+            {profiles && profiles.length > 0 ? (
+              profiles.map((profile) => {
+                if (!profile || !profile.id) return null;
+                return (
+                  <SelectItem key={profile.id} value={String(profile.id)}>
+                    {getProfileDisplay(profile)}
+                  </SelectItem>
+                );
+              })
+            ) : (
               <SelectItem value="0" disabled>No profiles available</SelectItem>
             )}
           </SelectContent>
@@ -1771,22 +1807,23 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
       <div>
         <Label htmlFor="skillLevelId">Skill Level</Label>
         <Select 
-          value={form.skillLevelId?.toString() || ''} 
+          value={form.skillLevelId ? String(form.skillLevelId) : ''} 
           onValueChange={(value) => setForm({ ...form, skillLevelId: value ? parseInt(value) : 0 })}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select skill level" />
           </SelectTrigger>
           <SelectContent>
-            {skillLevels && skillLevels.length > 0 ? skillLevels.map((level) => {
-              if (!level || !level.id) return null;
-              const multiplier = safeToNumber(level.multiplier || 1);
-              return (
-                <SelectItem key={level.id} value={level.id.toString()}>
-                  {level.name || 'Unnamed Level'} ({multiplier.toFixed(2)}x)
-                </SelectItem>
-              );
-            }) : (
+            {skillLevels && skillLevels.length > 0 ? (
+              skillLevels.map((level) => {
+                if (!level || !level.id) return null;
+                return (
+                  <SelectItem key={level.id} value={String(level.id)}>
+                    {getSkillLevelDisplay(level)}
+                  </SelectItem>
+                );
+              })
+            ) : (
               <SelectItem value="0" disabled>No skill levels available</SelectItem>
             )}
           </SelectContent>
@@ -1795,8 +1832,11 @@ function RoleRateForm({ rate, profiles, skillLevels, onClose }: {
       
       <div className="flex justify-end space-x-2">
         <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={() => saveMutation.mutate(form)}>
-          {rate ? 'Update' : 'Create'}
+        <Button 
+          onClick={() => saveMutation.mutate(form)}
+          disabled={saveMutation.isPending || !form.role}
+        >
+          {saveMutation.isPending ? 'Saving...' : rate ? 'Update' : 'Create'}
         </Button>
       </div>
     </div>
