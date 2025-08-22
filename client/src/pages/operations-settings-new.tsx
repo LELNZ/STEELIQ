@@ -1487,7 +1487,7 @@ function SkillLevels() {
             {levels.map((level) => (
               <TableRow key={level.id}>
                 <TableCell className="font-medium">{level.name}</TableCell>
-                <TableCell>{(typeof level.multiplier === 'number' ? level.multiplier.toFixed(2) : level.multiplier) || '1.00'}x</TableCell>
+                <TableCell>{parseFloat(level.multiplier || 1).toFixed(2)}x</TableCell>
                 <TableCell>{level.description}</TableCell>
                 <TableCell>{level.required_experience || level.requiredExperience || 0} years</TableCell>
                 <TableCell className="text-right">
@@ -1835,7 +1835,7 @@ function LaborAllowances() {
                     ? `${allowance.amount}%` 
                     : allowance.allowanceType === 'multiplier'
                     ? `${allowance.amount}x`
-                    : `$${allowance.amount?.toFixed(2) || '0.00'}`
+                    : `$${allowance.amount ? parseFloat(allowance.amount).toFixed(2) : '0.00'}`
                   }
                 </TableCell>
                 <TableCell>
