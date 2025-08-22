@@ -1364,8 +1364,8 @@ function LaborRateProfileForm({ profile, onClose }: { profile: any; onClose: () 
   
   const [form, setForm] = useState({
     name: profile?.name || '',
-    baseRate: parseFloat(profile?.baseRate || profile?.base_rate || 0),
-    overtimeMultiplier: parseFloat(profile?.overtimeMultiplier || profile?.overtime_multiplier || 1.5),
+    baseRate: safeToNumber(profile?.baseRate || profile?.base_rate || 0),
+    overtimeMultiplier: safeToNumber(profile?.overtimeMultiplier || profile?.overtime_multiplier || 1.5),
     effectiveDate: profile?.effectiveDate || profile?.effective_date || new Date().toISOString().split('T')[0],
     isActive: profile?.isActive ?? profile?.is_active ?? true
   });
@@ -1536,8 +1536,10 @@ function SkillLevelForm({ level, onClose }: { level: any; onClose: () => void })
         ? `/api/skill-levels/${level.id}`
         : '/api/skill-levels';
       const payload = {
-        ...data,
-        required_experience: data.requiredExperience
+        name: data.name,
+        multiplier: data.multiplier,
+        description: data.description,
+        requiredExperience: data.requiredExperience
       };
       return apiRequest(level ? 'PUT' : 'POST', url, payload);
     },
@@ -1924,14 +1926,14 @@ function RateHistory() {
               <TableRow key={record.id}>
                 <TableCell>{new Date(record.changedAt).toLocaleDateString()}</TableCell>
                 <TableCell>{record.laborRateProfile?.name}</TableCell>
-                <TableCell>${record.oldRate ? parseFloat(record.oldRate).toFixed(2) : '0.00'}</TableCell>
-                <TableCell>${record.newRate ? parseFloat(record.newRate).toFixed(2) : '0.00'}</TableCell>
+                <TableCell>${safeToNumber(record.oldRate).toFixed(2)}</TableCell>
+                <TableCell>${safeToNumber(record.newRate).toFixed(2)}</TableCell>
                 <TableCell>
                   {record.oldRate && record.newRate ? (
                     <span className={`text-sm font-medium ${
-                      parseFloat(record.newRate) > parseFloat(record.oldRate) ? 'text-green-600' : 'text-red-600'
+                      safeToNumber(record.newRate) > safeToNumber(record.oldRate) ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {(((parseFloat(record.newRate) - parseFloat(record.oldRate)) / parseFloat(record.oldRate)) * 100).toFixed(1)}%
+                      {(((safeToNumber(record.newRate) - safeToNumber(record.oldRate)) / safeToNumber(record.oldRate)) * 100).toFixed(1)}%
                     </span>
                   ) : 'N/A'}
                 </TableCell>
