@@ -7726,7 +7726,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(laborAllowances.isActive, true))
         .orderBy(laborAllowances.name);
       
-      res.json(allowances);
+      // Map database columns to frontend expectations
+      const mappedAllowances = allowances.map(a => ({
+        id: a.id,
+        name: a.name,
+        code: a.code,
+        description: a.description || '',
+        allowanceType: a.allowanceType || a.type || 'fixed',
+        amount: a.amount !== null && a.amount !== undefined ? a.amount : (a.value || 0),
+        isActive: a.isActive,
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt
+      }));
+      
+      res.json(mappedAllowances);
     } catch (error) {
       console.error("Error fetching allowances:", error);
       res.status(500).json({ error: "Failed to fetch allowances" });
@@ -8060,6 +8073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { name, code, description, allowanceType, amount } = req.body;
       
+      // Use correct column names for database
       const result = await db.execute(sql`
         INSERT INTO labor_allowances (
           name,
@@ -8067,8 +8081,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description,
           allowance_type,
           amount,
+          type,
+          value,
           is_active,
-          created_at
+          created_at,
+          updated_at
         )
         VALUES (
           ${name},
@@ -8076,7 +8093,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ${description || ''},
           ${allowanceType || 'fixed'},
           ${amount || 0},
+          ${allowanceType || 'fixed'},
+          ${amount || 0},
           true,
+          CURRENT_TIMESTAMP,
           CURRENT_TIMESTAMP
         )
         RETURNING *
@@ -8095,15 +8115,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const { name, code, description, allowanceType, amount, isActive } = req.body;
       
+      // Update both old and new columns for compatibility
       const result = await db.execute(sql`
         UPDATE labor_allowances
         SET 
           name = ${name},
           code = ${code},
-          description = ${description},
-          allowance_type = ${allowanceType},
-          amount = ${amount},
-          is_active = ${isActive},
+          description = ${description || ''},
+          allowance_type = ${allowanceType || 'fixed'},
+          amount = ${amount || 0},
+          type = ${allowanceType || 'fixed'},
+          value = ${amount || 0},
+          is_active = ${isActive !== undefined ? isActive : true},
           updated_at = CURRENT_TIMESTAMP
         WHERE id = ${id}
         RETURNING *
@@ -8125,10 +8148,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       
-      await db.execute(sql`
+      // Soft delete by setting is_active to false
+      const result = await db.execute(sql`
         UPDATE labor_allowances
-        SET is_active = false, updated_at = CURRENT_TIMESTAMP
+        SET 
+          is_active = false, 
+          updated_at = CURRENT_TIMESTAMP
         WHERE id = ${id}
+        RETURNING id
       `);
       
       res.json({ success: true });
