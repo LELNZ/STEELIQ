@@ -1900,6 +1900,7 @@ function LaborAllowances() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const handleEditAllowance = (allowance: any) => {
+    console.log('Editing allowance:', allowance); // Debug log
     setEditingAllowance(allowance);
     setIsDialogOpen(true);
   };
@@ -2028,6 +2029,7 @@ function AllowanceForm({ allowance, onClose }: { allowance: any; onClose: () => 
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof form) => {
+      console.log('Saving data:', data); // Debug log
       const url = allowance 
         ? `/api/labor-allowances/${allowance.id}`
         : '/api/labor-allowances';
