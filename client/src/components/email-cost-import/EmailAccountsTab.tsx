@@ -151,8 +151,13 @@ export default function EmailAccountsTab() {
       const data = await response.json();
       
       if (data.authUrl) {
-        // Redirect to Google OAuth
-        window.location.href = data.authUrl;
+        // Open Google OAuth in a new tab (required for security)
+        window.open(data.authUrl, '_blank');
+        toast({
+          title: "Authorization window opened",
+          description: "Please complete the authorization in the new tab.",
+        });
+        setIsOAuthConnecting(false);
       } else {
         throw new Error('No auth URL received');
       }
