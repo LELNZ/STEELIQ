@@ -50,10 +50,12 @@ This guide will help you set up Gmail OAuth 2.0 authentication for the Email Cos
 4. Name: "Steel Fabrication Web Client"
 5. Add Authorized JavaScript origins:
    - For local: `http://localhost:5000`
-   - For production: `https://yourdomain.com`
+   - For Replit deployment: `https://your-app-name.replit.app`
+   - For custom domain (optional): `https://yourdomain.com`
 6. Add Authorized redirect URIs:
    - For local: `http://localhost:5000/api/auth/google/callback`
-   - For production: `https://yourdomain.com/api/auth/google/callback`
+   - For Replit deployment: `https://your-app-name.replit.app/api/auth/google/callback`
+   - For custom domain (optional): `https://yourdomain.com/api/auth/google/callback`
 7. Click "Create"
 8. **IMPORTANT**: Save the Client ID and Client Secret
 
