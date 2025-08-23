@@ -20,12 +20,15 @@ const emailAccountSchema = z.object({
   name: z.string().min(1, "Account name is required"),
   provider: z.enum(["gmail", "outlook", "custom"]),
   email: z.string().email("Invalid email address"),
+  password: z.string().optional(), // For App Password
   accessToken: z.string().optional(),
   refreshToken: z.string().optional(),
   imapConfig: z.object({
     host: z.string().optional(),
     port: z.number().optional(),
     secure: z.boolean().optional(),
+    user: z.string().optional(),
+    pass: z.string().optional(),
   }).optional(),
 });
 
@@ -88,10 +91,22 @@ export default function EmailAccountsTab() {
     defaultValues: {
       provider: "gmail",
       imapConfig: {
+        host: "imap.gmail.com",
+        port: 993,
         secure: true,
       },
     },
   });
+
+  // Update IMAP config when provider changes
+  const provider = form.watch("provider");
+  if (provider === "gmail") {
+    form.setValue("imapConfig.host", "imap.gmail.com");
+    form.setValue("imapConfig.port", 993);
+  } else if (provider === "outlook") {
+    form.setValue("imapConfig.host", "outlook.office365.com");
+    form.setValue("imapConfig.port", 993);
+  }
 
   const onSubmit = (data: EmailAccountFormData) => {
     createAccountMutation.mutate(data);
@@ -251,6 +266,34 @@ export default function EmailAccountsTab() {
                     <FormControl>
                       <Input type="email" placeholder="purchasing@company.com" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>App Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Enter 16-character app password" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {form.watch("provider") === "gmail" ? (
+                        <>
+                          <strong>For Gmail:</strong> Go to Google Account → Security → 2-Step Verification → App passwords. 
+                          Generate a new password for "Mail" and paste it here.
+                        </>
+                      ) : form.watch("provider") === "outlook" ? (
+                        <>
+                          <strong>For Outlook:</strong> Use your regular password or create an app password if 2FA is enabled.
+                        </>
+                      ) : (
+                        "Enter your email password or app-specific password"
+                      )}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

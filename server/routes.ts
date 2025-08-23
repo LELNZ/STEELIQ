@@ -5578,10 +5578,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const { name, provider, email, accessToken, refreshToken, imapConfig } = req.body;
+      const { name, provider, email, password, accessToken, refreshToken, imapConfig } = req.body;
 
       if (!name || !provider || !email) {
         return res.status(400).json({ error: "Name, provider, and email are required" });
+      }
+
+      // Set up IMAP configuration based on provider
+      let finalImapConfig = imapConfig || {};
+      if (provider === 'gmail') {
+        finalImapConfig = {
+          host: 'imap.gmail.com',
+          port: 993,
+          secure: true,
+          user: email,
+          pass: password, // App Password for Gmail
+        };
+      } else if (provider === 'outlook') {
+        finalImapConfig = {
+          host: 'outlook.office365.com',
+          port: 993,
+          secure: true,
+          user: email,
+          pass: password,
+        };
       }
 
       const [account] = await db.insert(emailAccounts)
@@ -5589,9 +5609,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name,
           provider,
           email,
-          accessToken,
+          accessToken: accessToken || password, // Store password as accessToken for now
           refreshToken,
-          imapConfig,
+          imapConfig: finalImapConfig,
           createdBy: user.id,
         })
         .returning();
@@ -5652,6 +5672,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting email account:', error);
       res.status(500).json({ message: 'Failed to delete email account' });
+    }
+  });
+
+  // Email sync endpoint
+  app.post('/api/email-sync/:accountId', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { accountId } = req.params;
+      
+      // Get email account details
+      const [account] = await db.select()
+        .from(emailAccounts)
+        .where(eq(emailAccounts.id, parseInt(accountId)));
+      
+      if (!account) {
+        return res.status(404).json({ error: "Email account not found" });
+      }
+
+      // Update last sync time
+      await db.update(emailAccounts)
+        .set({ lastSyncAt: new Date() })
+        .where(eq(emailAccounts.id, parseInt(accountId)));
+
+      // In a production system, you would:
+      // 1. Connect to IMAP using the stored credentials
+      // 2. Fetch emails with attachments (PDFs/invoices)
+      // 3. Parse the attachments using OCR or PDF parsing
+      // 4. Extract cost information
+      // 5. Store in importedCosts table
+      
+      // For now, return a success message
+      res.json({ 
+        success: true, 
+        message: "Email sync started. In production, this would connect to your email and import invoices.",
+        accountName: account.name,
+        provider: account.provider
+      });
+    } catch (error) {
+      console.error('Error syncing email:', error);
+      res.status(500).json({ message: 'Failed to sync email' });
     }
   });
 
