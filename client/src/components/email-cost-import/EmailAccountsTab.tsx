@@ -62,7 +62,7 @@ export default function EmailAccountsTab() {
   }, [toast]);
 
   // Fetch email accounts
-  const { data: accounts = [], isLoading } = useQuery({
+  const { data: accounts = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/email-accounts"],
   });
 
@@ -139,12 +139,25 @@ export default function EmailAccountsTab() {
   const handleOAuthConnect = async () => {
     try {
       setIsOAuthConnecting(true);
-      const response = await apiRequest('/api/auth/google', 'GET');
-      if (response.authUrl) {
+      const response = await fetch('/api/auth/google', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.authUrl) {
         // Redirect to Google OAuth
-        window.location.href = response.authUrl;
+        window.location.href = data.authUrl;
+      } else {
+        throw new Error('No auth URL received');
       }
     } catch (error) {
+      console.error('OAuth error:', error);
       toast({
         title: "Error",
         description: "Failed to start OAuth flow. Please try again.",
