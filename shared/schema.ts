@@ -87,7 +87,7 @@ export const drawings = pgTable("drawings", {
   connections: integer("connections").default(0),
   totalWeight: decimal("total_weight", { precision: 10, scale: 2 }).default("0"),
   revisionNumber: varchar("revision_number", { length: 10 }),
-  baseDrawingId: integer("base_drawing_id").references(() => drawings.id),
+  baseDrawingId: integer("base_drawing_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1497,8 +1497,7 @@ export const insertCutSequenceSchema = createInsertSchema(cutSequences).omit({
 });
 
 export const insertRemnantSchema = createInsertSchema(remnants).omit({
-  id: true,
-  createdAt: true,
+  id: true
 });
 
 export const insertOptimizationSimulationSchema = createInsertSchema(optimizationSimulations).omit({

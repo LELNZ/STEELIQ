@@ -5548,6 +5548,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Drawing Intelligence Routes
+  // Email Account Routes
+  app.get('/api/email-accounts', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const accounts = await db.select()
+        .from(emailAccounts)
+        .orderBy(emailAccounts.name);
+      
+      res.json(accounts);
+    } catch (error) {
+      console.error('Error fetching email accounts:', error);
+      res.status(500).json({ message: 'Failed to fetch email accounts' });
+    }
+  });
+
+  app.post('/api/email-accounts', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { name, provider, email, accessToken, refreshToken, imapConfig } = req.body;
+
+      if (!name || !provider || !email) {
+        return res.status(400).json({ error: "Name, provider, and email are required" });
+      }
+
+      const [account] = await db.insert(emailAccounts)
+        .values({
+          name,
+          provider,
+          email,
+          accessToken,
+          refreshToken,
+          imapConfig,
+          createdBy: user.id,
+        })
+        .returning();
+      
+      res.json(account);
+    } catch (error) {
+      console.error('Error creating email account:', error);
+      res.status(500).json({ message: 'Failed to create email account' });
+    }
+  });
+
+  app.put('/api/email-accounts/:id', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const updates = req.body;
+
+      const [account] = await db.update(emailAccounts)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(emailAccounts.id, parseInt(id)))
+        .returning();
+      
+      if (!account) {
+        return res.status(404).json({ error: "Email account not found" });
+      }
+
+      res.json(account);
+    } catch (error) {
+      console.error('Error updating email account:', error);
+      res.status(500).json({ message: 'Failed to update email account' });
+    }
+  });
+
+  app.delete('/api/email-accounts/:id', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+
+      await db.delete(emailAccounts)
+        .where(eq(emailAccounts.id, parseInt(id)));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting email account:', error);
+      res.status(500).json({ message: 'Failed to delete email account' });
+    }
+  });
+
   app.get('/api/drawing-intelligence/drawings', async (req, res) => {
     try {
       const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
