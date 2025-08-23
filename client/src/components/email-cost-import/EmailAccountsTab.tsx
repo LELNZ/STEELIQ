@@ -14,6 +14,7 @@ import { Plus, Mail, RefreshCw, Trash2, CheckCircle2, XCircle } from "lucide-rea
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import React from "react";
 
 // Email account schema
 const emailAccountSchema = z.object({
@@ -36,7 +37,29 @@ type EmailAccountFormData = z.infer<typeof emailAccountSchema>;
 
 export default function EmailAccountsTab() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isOAuthConnecting, setIsOAuthConnecting] = useState(false);
   const { toast } = useToast();
+
+  // Check for OAuth callback
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('connected') === 'true') {
+      toast({
+        title: "Gmail connected successfully",
+        description: "Your Gmail account has been connected via OAuth.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/email-accounts"] });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (params.get('error') === 'oauth_failed') {
+      toast({
+        title: "Connection failed",
+        description: "Failed to connect Gmail account. Please try again.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [toast]);
 
   // Fetch email accounts
   const { data: accounts = [], isLoading } = useQuery({
@@ -110,6 +133,25 @@ export default function EmailAccountsTab() {
 
   const onSubmit = (data: EmailAccountFormData) => {
     createAccountMutation.mutate(data);
+  };
+
+  // Handle OAuth connection
+  const handleOAuthConnect = async () => {
+    try {
+      setIsOAuthConnecting(true);
+      const response = await apiRequest('/api/auth/google', 'GET');
+      if (response.authUrl) {
+        // Redirect to Google OAuth
+        window.location.href = response.authUrl;
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start OAuth flow. Please try again.",
+        variant: "destructive",
+      });
+      setIsOAuthConnecting(false);
+    }
   };
 
   return (
@@ -214,6 +256,37 @@ export default function EmailAccountsTab() {
               Connect your email to automatically import invoices and quotes from suppliers
             </DialogDescription>
           </DialogHeader>
+
+          {/* OAuth Option for Gmail */}
+          <div className="border rounded-lg p-4 mb-4 bg-blue-50 dark:bg-blue-900/20">
+            <div className="flex items-start gap-3">
+              <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-medium text-sm mb-1">Recommended: Connect with Google OAuth</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Securely connect your Gmail account using Google's OAuth authentication. 
+                  No passwords are stored in our system.
+                </p>
+                <Button 
+                  onClick={handleOAuthConnect} 
+                  disabled={isOAuthConnecting}
+                  className="w-full"
+                  variant="default"
+                >
+                  {isOAuthConnecting ? "Connecting..." : "Connect Gmail with OAuth"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or connect manually</span>
+            </div>
+          </div>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
