@@ -232,10 +232,10 @@ export default function RequisitionDetailsDialog({
                       <td className="text-right p-2 text-sm">{item.quantity || 0}</td>
                       <td className="p-2 text-sm">{item.unit || "-"}</td>
                       <td className="text-right p-2 text-sm">
-                        ${((item.estimatedUnitPrice ?? item.unitPrice ?? 0)).toFixed(2)}
+                        ${(Number(item.estimatedUnitPrice) || 0).toFixed(2)}
                       </td>
                       <td className="text-right p-2 text-sm font-medium">
-                        ${((item.estimatedTotal ?? item.total ?? (item.quantity * (item.estimatedUnitPrice ?? item.unitPrice ?? 0)) ?? 0)).toFixed(2)}
+                        ${(Number(item.estimatedTotal) || 0).toFixed(2)}
                       </td>
                     </tr>
                   ))}
