@@ -1500,11 +1500,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPendingApprovals(approverId: number): Promise<PurchaseRequisition[]> {
-    // Get user role to determine what they can approve
-    const user = await this.getUser(approverId);
-    if (!user) return [];
-
-    // Get requisitions pending approval at levels this user can approve
+    // For now, return all pending requisitions 
+    // In production, this would check user's approval authority level
     return await db.select().from(purchaseRequisitions)
       .where(eq(purchaseRequisitions.status, 'pending_approval'))
       .orderBy(desc(purchaseRequisitions.priority), asc(purchaseRequisitions.createdAt));

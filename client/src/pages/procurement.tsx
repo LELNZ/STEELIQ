@@ -23,6 +23,7 @@ import {
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import CreateRequisitionDialog from "@/components/procurement/CreateRequisitionDialog";
+import RequisitionDetailsDialog from "@/components/procurement/RequisitionDetailsDialog";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,6 +47,7 @@ export default function Procurement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [createRequisitionOpen, setCreateRequisitionOpen] = useState(false);
+  const [selectedRequisitionId, setSelectedRequisitionId] = useState<number | null>(null);
   const { toast } = useToast();
 
   // Fetch real metrics from API
@@ -465,7 +467,13 @@ export default function Procurement() {
                         )}
                       </div>
                       <div className="ml-4">
-                        <Button variant="outline" size="sm">View Details</Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setSelectedRequisitionId(req.id)}
+                        >
+                          View Details
+                        </Button>
                       </div>
                     </div>
                   ))
@@ -475,15 +483,84 @@ export default function Procurement() {
           </Card>
         </TabsContent>
 
-        {/* Other tabs will be implemented in subsequent phases */}
-        <TabsContent value="approvals">
+        {/* Approvals Tab */}
+        <TabsContent value="approvals" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Pending Approvals</CardTitle>
-              <CardDescription>Review and approve purchase requisitions</CardDescription>
+              <CardDescription>Review and approve purchase requisitions requiring your action</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Approval workflow coming soon...</p>
+              <div className="space-y-3">
+                {approvalsLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading approvals...</p>
+                ) : pendingApprovals.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No pending approvals</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      All requisitions have been processed
+                    </p>
+                  </div>
+                ) : (
+                  pendingApprovals.map((req: any) => (
+                    <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium">{req.requisitionNumber}</span>
+                          <Badge variant={priorityColors[req.priority as keyof typeof priorityColors]} className="text-xs">
+                            {req.priority}
+                          </Badge>
+                          <Badge variant="warning" className="text-xs">
+                            Level {req.currentApprovalLevel + 1} Approval
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {req.department} Department • {req.category}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {req.justification?.substring(0, 100)}...
+                        </p>
+                      </div>
+                      <div className="text-right mr-4">
+                        <p className="font-semibold text-lg">${(req.estimatedTotal || 0).toLocaleString()}</p>
+                        {req.requiredByDate && (
+                          <p className="text-xs text-muted-foreground">
+                            Due {format(new Date(req.requiredByDate), "MMM dd")}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setSelectedRequisitionId(req.id)}
+                        >
+                          Review
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => {
+                            const reason = prompt("Rejection reason (required):");
+                            if (reason) {
+                              rejectMutation.mutate({ id: req.id, comments: reason });
+                            }
+                          }}
+                        >
+                          Reject
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => approveMutation.mutate({ id: req.id })}
+                        >
+                          Approve
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -530,6 +607,15 @@ export default function Procurement() {
         open={createRequisitionOpen}
         onOpenChange={setCreateRequisitionOpen}
       />
+
+      {/* Requisition Details Dialog */}
+      {selectedRequisitionId && (
+        <RequisitionDetailsDialog
+          open={!!selectedRequisitionId}
+          onOpenChange={(open) => !open && setSelectedRequisitionId(null)}
+          requisitionId={selectedRequisitionId}
+        />
+      )}
     </div>
   );
 }
