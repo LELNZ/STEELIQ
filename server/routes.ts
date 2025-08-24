@@ -8931,8 +8931,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Determine approval levels needed based on amount
-      const rules = await storage.getApprovalRules(requisitionData.estimatedTotal, requisitionData.category);
-      const maxApprovalLevel = rules.length > 0 ? Math.max(...rules.map(r => r.approvalLevel)) : 1;
+      const amount = requisitionData.estimatedTotal || 0;
+      let maxApprovalLevel = 1;
+      
+      // Determine the correct approval level based on amount thresholds
+      if (amount <= 1000) {
+        maxApprovalLevel = 1; // Supervisor
+      } else if (amount <= 5000) {
+        maxApprovalLevel = 2; // Manager
+      } else if (amount <= 20000) {
+        maxApprovalLevel = 3; // Director
+      } else {
+        maxApprovalLevel = 4; // CEO
+      }
       
       // Create requisition
       const requisition = await storage.createRequisition({

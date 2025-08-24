@@ -512,7 +512,13 @@ export default function Procurement() {
                             {req.priority}
                           </Badge>
                           <Badge variant="warning" className="text-xs">
-                            Level {(req.currentApprovalLevel || 0) + 1} Approval
+                            {(() => {
+                              const amount = req.estimatedTotal || 0;
+                              if (amount <= 1000) return "Level 1 Approval (Supervisor)";
+                              if (amount <= 5000) return "Level 2 Approval (Manager)";
+                              if (amount <= 20000) return "Level 3 Approval (Director)";
+                              return "Level 4 Approval (CEO)";
+                            })()}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
