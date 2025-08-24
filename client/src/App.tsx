@@ -48,6 +48,7 @@ import FinancialIntelligence from "@/pages/FinancialIntelligence";
 import ResourcePlanning from "@/pages/ResourcePlanning";
 import RemnantManagement from "@/pages/remnant-management";
 import PDFMarkup from "@/pages/pdf-markup";
+import Procurement from "@/pages/procurement";
 
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
@@ -83,6 +84,7 @@ function Router() {
       <Route path="/login" component={Dashboard} />
       <Route path="/" component={Dashboard} />
       <Route path="/jobs" component={Jobs} />
+      <Route path="/procurement" component={Procurement} />
       <Route path="/estimates" component={Estimates} />
       <Route path="/estimation" component={EstimationPage} />
       <Route path="/estimation/:id" component={EstimationPage} />

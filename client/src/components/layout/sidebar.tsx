@@ -23,7 +23,8 @@ import {
   Mail,
   Smartphone,
   Factory,
-  Calendar
+  Calendar,
+  ShoppingCart
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -33,6 +34,7 @@ const navigation = [
     items: [
       { name: "Dashboard", href: "/", icon: LayoutDashboard },
       { name: "Jobs & Production", href: "/jobs", icon: Briefcase, badge: "12" },
+      { name: "Procurement", href: "/procurement", icon: ShoppingCart, badge: "NEW", badgeVariant: "success" },
       { name: "AI Estimation Engine", href: "/estimation", icon: Bot },
       { name: "Estimation Pipeline", href: "/estimation-pipeline", icon: TrendingUp },
       { name: "Material Library", href: "/materials", icon: Package },

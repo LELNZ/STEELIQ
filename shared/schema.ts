@@ -3359,6 +3359,186 @@ export const currencyConfigurations = pgTable("currency_configurations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ============================================
+// PROCUREMENT CENTER TABLES
+// ============================================
+
+// Purchase Requisitions - Material/Service requests that need approval
+export const purchaseRequisitions = pgTable("purchase_requisitions", {
+  id: serial("id").primaryKey(),
+  requisitionNumber: text("requisition_number").notNull().unique(),
+  requestedBy: integer("requested_by").references(() => users.id).notNull(),
+  jobId: integer("job_id").references(() => jobs.id),
+  department: text("department"), // fabrication, office, maintenance, etc.
+  category: text("category").notNull(), // materials, services, equipment, supplies
+  priority: text("priority").default("standard"), // standard, urgent, critical
+  status: text("status").notNull().default("draft"), // draft, pending_approval, approved, rejected, converted_to_po, cancelled
+  justification: text("justification"), // Why is this needed?
+  estimatedTotal: decimal("estimated_total", { precision: 12, scale: 2 }),
+  currency: text("currency").default("NZD"),
+  requiredByDate: timestamp("required_by_date"),
+  deliveryLocation: text("delivery_location"),
+  preferredSupplierId: integer("preferred_supplier_id").references(() => suppliers.id),
+  // Approval tracking
+  currentApprovalLevel: integer("current_approval_level").default(0),
+  maxApprovalLevel: integer("max_approval_level"),
+  approvalNotes: text("approval_notes"),
+  // Conversion tracking
+  convertedToPoId: integer("converted_to_po_id").references(() => purchaseOrders.id),
+  convertedAt: timestamp("converted_at"),
+  convertedBy: integer("converted_by").references(() => users.id),
+  // Metadata
+  notes: text("notes"),
+  attachments: jsonb("attachments"), // File references
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Requisition Items - Line items for requisitions
+export const requisitionItems = pgTable("requisition_items", {
+  id: serial("id").primaryKey(),
+  requisitionId: integer("requisition_id").references(() => purchaseRequisitions.id).notNull(),
+  materialId: integer("material_id").references(() => materials.id),
+  description: text("description").notNull(),
+  specification: text("specification"), // Detailed specs if not a catalog item
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  unit: text("unit").default("each"), // m, kg, each, box, etc.
+  estimatedUnitPrice: decimal("estimated_unit_price", { precision: 10, scale: 2 }),
+  estimatedTotal: decimal("estimated_total", { precision: 12, scale: 2 }),
+  requiredByDate: timestamp("required_by_date"),
+  suggestedSupplierId: integer("suggested_supplier_id").references(() => suppliers.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Approval Rules - Define who can approve what amounts
+export const approvalRules = pgTable("approval_rules", {
+  id: serial("id").primaryKey(),
+  ruleName: text("rule_name").notNull(),
+  category: text("category"), // materials, services, equipment, supplies, or null for all
+  department: text("department"), // specific department or null for all
+  minAmount: decimal("min_amount", { precision: 12, scale: 2 }).notNull(),
+  maxAmount: decimal("max_amount", { precision: 12, scale: 2 }), // null for unlimited
+  approvalLevel: integer("approval_level").notNull(), // 1, 2, 3, etc.
+  approverRole: text("approver_role"), // supervisor, manager, director, ceo
+  specificApproverId: integer("specific_approver_id").references(() => users.id),
+  requiresMultipleApprovers: boolean("requires_multiple_approvers").default(false),
+  minimumApprovers: integer("minimum_approvers").default(1),
+  autoApprove: boolean("auto_approve").default(false), // For small amounts
+  escalationTimeHours: integer("escalation_time_hours").default(48), // Auto-escalate if not approved
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Approval History - Track all approval actions
+export const approvalHistory = pgTable("approval_history", {
+  id: serial("id").primaryKey(),
+  requisitionId: integer("requisition_id").references(() => purchaseRequisitions.id).notNull(),
+  approvalLevel: integer("approval_level").notNull(),
+  approverId: integer("approver_id").references(() => users.id).notNull(),
+  action: text("action").notNull(), // approved, rejected, returned_for_revision, escalated
+  comments: text("comments"),
+  amount: decimal("amount", { precision: 12, scale: 2 }), // Amount at time of approval
+  delegatedFrom: integer("delegated_from").references(() => users.id), // If approved on behalf of someone
+  actionAt: timestamp("action_at").defaultNow().notNull(),
+});
+
+// RFQ Requests - Request for Quotes sent to suppliers
+export const rfqRequests = pgTable("rfq_requests", {
+  id: serial("id").primaryKey(),
+  rfqNumber: text("rfq_number").notNull().unique(),
+  requisitionId: integer("requisition_id").references(() => purchaseRequisitions.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  category: text("category"), // materials, services, equipment
+  status: text("status").notNull().default("draft"), // draft, sent, closed, cancelled
+  responseDeadline: timestamp("response_deadline").notNull(),
+  deliveryRequiredBy: timestamp("delivery_required_by"),
+  deliveryTerms: text("delivery_terms"), // FOB, CIF, etc.
+  paymentTerms: text("payment_terms"),
+  evaluationCriteria: jsonb("evaluation_criteria"), // price_weight, quality_weight, delivery_weight
+  specialRequirements: text("special_requirements"),
+  attachments: jsonb("attachments"), // Drawings, specs, etc.
+  // Supplier management
+  invitedSuppliers: jsonb("invited_suppliers"), // Array of supplier IDs
+  publicRfq: boolean("public_rfq").default(false), // Open to all suppliers
+  // Tracking
+  sentAt: timestamp("sent_at"),
+  closedAt: timestamp("closed_at"),
+  winningResponseId: integer("winning_response_id"),
+  createdBy: integer("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// RFQ Responses - Supplier responses to RFQs
+export const rfqResponses = pgTable("rfq_responses", {
+  id: serial("id").primaryKey(),
+  rfqId: integer("rfq_id").references(() => rfqRequests.id).notNull(),
+  supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
+  responseNumber: text("response_number").notNull().unique(),
+  status: text("status").notNull().default("draft"), // draft, submitted, under_review, accepted, rejected
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency").default("NZD"),
+  validityDays: integer("validity_days").default(30),
+  deliveryDays: integer("delivery_days"),
+  paymentTermsOffered: text("payment_terms_offered"),
+  warrantyOffered: text("warranty_offered"),
+  // Scoring
+  priceScore: decimal("price_score", { precision: 5, scale: 2 }),
+  qualityScore: decimal("quality_score", { precision: 5, scale: 2 }),
+  deliveryScore: decimal("delivery_score", { precision: 5, scale: 2 }),
+  totalScore: decimal("total_score", { precision: 5, scale: 2 }),
+  ranking: integer("ranking"),
+  // Details
+  notes: text("notes"),
+  attachments: jsonb("attachments"), // Quote documents
+  lineItems: jsonb("line_items"), // Detailed pricing breakdown
+  // Decision tracking
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  rejectionReason: text("rejection_reason"),
+  submittedAt: timestamp("submitted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Goods Receipts - Track deliveries and receiving
+export const goodsReceipts = pgTable("goods_receipts", {
+  id: serial("id").primaryKey(),
+  grnNumber: text("grn_number").notNull().unique(), // Goods Receipt Note number
+  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id).notNull(),
+  supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
+  deliveryNoteNumber: text("delivery_note_number"),
+  receivedBy: integer("received_by").references(() => users.id).notNull(),
+  receivedAt: timestamp("received_at").defaultNow().notNull(),
+  status: text("status").notNull().default("partial"), // partial, complete, returned
+  inspectionStatus: text("inspection_status"), // pending, passed, failed, partial_pass
+  inspectionNotes: text("inspection_notes"),
+  storageLocation: text("storage_location"),
+  attachments: jsonb("attachments"), // Photos, delivery notes
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Goods Receipt Items - Line items for GRNs
+export const goodsReceiptItems = pgTable("goods_receipt_items", {
+  id: serial("id").primaryKey(),
+  grnId: integer("grn_id").references(() => goodsReceipts.id).notNull(),
+  poItemId: integer("po_item_id").references(() => purchaseOrderItems.id).notNull(),
+  quantityOrdered: decimal("quantity_ordered", { precision: 10, scale: 2 }).notNull(),
+  quantityReceived: decimal("quantity_received", { precision: 10, scale: 2 }).notNull(),
+  quantityAccepted: decimal("quantity_accepted", { precision: 10, scale: 2 }),
+  quantityRejected: decimal("quantity_rejected", { precision: 10, scale: 2 }),
+  rejectionReason: text("rejection_reason"),
+  serialNumbers: jsonb("serial_numbers"), // For tracked items
+  batchNumber: text("batch_number"),
+  expiryDate: date("expiry_date"),
+  qualityCertificate: text("quality_certificate"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas for new tables
 export const insertOrganizationSettingSchema = createInsertSchema(organizationSettings);
 export const insertCompanyLocationSchema = createInsertSchema(companyLocations);
@@ -3367,6 +3547,16 @@ export const insertEmailConfigurationSchema = createInsertSchema(emailConfigurat
 export const insertEmailTemplateSchema = createInsertSchema(emailTemplates);
 export const insertTermsConditionsSchema = createInsertSchema(termsConditionsLibrary);
 export const insertHandlingCostsConfigSchema = createInsertSchema(handlingCostsConfig);
+
+// Procurement schemas
+export const insertPurchaseRequisitionSchema = createInsertSchema(purchaseRequisitions);
+export const insertRequisitionItemSchema = createInsertSchema(requisitionItems);
+export const insertApprovalRuleSchema = createInsertSchema(approvalRules);
+export const insertApprovalHistorySchema = createInsertSchema(approvalHistory);
+export const insertRfqRequestSchema = createInsertSchema(rfqRequests);
+export const insertRfqResponseSchema = createInsertSchema(rfqResponses);
+export const insertGoodsReceiptSchema = createInsertSchema(goodsReceipts);
+export const insertGoodsReceiptItemSchema = createInsertSchema(goodsReceiptItems);
 
 // Type exports for new tables
 export type OrganizationSetting = typeof organizationSettings.$inferSelect;
@@ -3394,3 +3584,28 @@ export type ClientPortalAccess = typeof clientPortalAccess.$inferSelect;
 export type QuoteActivityLog = typeof quoteActivityLogs.$inferSelect;
 export type ESignatureConfiguration = typeof esignatureConfigurations.$inferSelect;
 export type CurrencyConfiguration = typeof currencyConfigurations.$inferSelect;
+
+// Procurement type exports
+export type PurchaseRequisition = typeof purchaseRequisitions.$inferSelect;
+export type InsertPurchaseRequisition = z.infer<typeof insertPurchaseRequisitionSchema>;
+
+export type RequisitionItem = typeof requisitionItems.$inferSelect;
+export type InsertRequisitionItem = z.infer<typeof insertRequisitionItemSchema>;
+
+export type ApprovalRule = typeof approvalRules.$inferSelect;
+export type InsertApprovalRule = z.infer<typeof insertApprovalRuleSchema>;
+
+export type ApprovalHistory = typeof approvalHistory.$inferSelect;
+export type InsertApprovalHistory = z.infer<typeof insertApprovalHistorySchema>;
+
+export type RfqRequest = typeof rfqRequests.$inferSelect;
+export type InsertRfqRequest = z.infer<typeof insertRfqRequestSchema>;
+
+export type RfqResponse = typeof rfqResponses.$inferSelect;
+export type InsertRfqResponse = z.infer<typeof insertRfqResponseSchema>;
+
+export type GoodsReceipt = typeof goodsReceipts.$inferSelect;
+export type InsertGoodsReceipt = z.infer<typeof insertGoodsReceiptSchema>;
+
+export type GoodsReceiptItem = typeof goodsReceiptItems.$inferSelect;
+export type InsertGoodsReceiptItem = z.infer<typeof insertGoodsReceiptItemSchema>;
