@@ -277,6 +277,52 @@ export default function RequisitionDetailsDialog({
             </div>
           )}
 
+          {/* Approval History Section */}
+          {approvalHistory && approvalHistory.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Approval History</Label>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="text-left p-2 text-sm">Date</th>
+                      <th className="text-left p-2 text-sm">Level</th>
+                      <th className="text-left p-2 text-sm">Approver</th>
+                      <th className="text-left p-2 text-sm">Action</th>
+                      <th className="text-left p-2 text-sm">Comments</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {approvalHistory.map((history: any, index: number) => (
+                      <tr key={history.id} className="border-t">
+                        <td className="p-2 text-sm">
+                          {format(new Date(history.actionAt || history.action_at), "MMM dd, yyyy HH:mm")}
+                        </td>
+                        <td className="p-2 text-sm">Level {history.approvalLevel || history.approval_level}</td>
+                        <td className="p-2 text-sm">
+                          {history.approverName || `User ${history.approverId || history.approver_id}`}
+                        </td>
+                        <td className="p-2">
+                          <Badge 
+                            variant={
+                              history.action === 'approved' ? 'success' : 
+                              history.action === 'rejected' ? 'destructive' : 
+                              'secondary'
+                            }
+                            className="text-xs"
+                          >
+                            {history.action}
+                          </Badge>
+                        </td>
+                        <td className="p-2 text-sm">{history.comments || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Approval Section - Only show if pending */}
           {canApprove && (
             <div className="border-t pt-4 space-y-4">
@@ -353,25 +399,46 @@ export default function RequisitionDetailsDialog({
 
           {/* Show approval/rejection status if already processed */}
           {requisition.status === 'approved' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <p className="font-medium text-green-900">Requisition Approved</p>
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <div className="flex-1">
+                  <p className="font-medium text-green-900 dark:text-green-100">Requisition Approved</p>
+                  {approvalHistory && approvalHistory.length > 0 && (
+                    <p className="text-sm text-green-800 dark:text-green-200 mt-1">
+                      All {approvalHistory.filter((h: any) => h.action === 'approved').length} approval levels completed
+                    </p>
+                  )}
+                </div>
               </div>
               {requisition.approvalNotes && (
-                <p className="text-sm text-green-800 mt-1">{requisition.approvalNotes}</p>
+                <p className="text-sm text-green-800 dark:text-green-200 mt-2 italic">
+                  "{requisition.approvalNotes}"
+                </p>
               )}
             </div>
           )}
 
           {requisition.status === 'rejected' && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
               <div className="flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-red-600" />
-                <p className="font-medium text-red-900">Requisition Rejected</p>
+                <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                <div className="flex-1">
+                  <p className="font-medium text-red-900 dark:text-red-100">Requisition Rejected</p>
+                  {approvalHistory && approvalHistory.length > 0 && (
+                    <p className="text-sm text-red-800 dark:text-red-200 mt-1">
+                      Rejected at Level {approvalHistory.find((h: any) => h.action === 'rejected')?.approvalLevel || requisition.currentApprovalLevel}
+                    </p>
+                  )}
+                </div>
               </div>
               {requisition.approvalNotes && (
-                <p className="text-sm text-red-800 mt-1">{requisition.approvalNotes}</p>
+                <div className="mt-2">
+                  <p className="text-xs text-red-700 dark:text-red-300 font-medium">Rejection Reason:</p>
+                  <p className="text-sm text-red-800 dark:text-red-200 italic">
+                    "{requisition.approvalNotes}"
+                  </p>
+                </div>
               )}
             </div>
           )}

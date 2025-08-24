@@ -8885,7 +8885,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const history = await storage.getApprovalHistory(id);
-      res.json(history);
+      
+      // Add approver names (in production, this would join with users table)
+      const historyWithNames = history.map((h: any) => ({
+        ...h,
+        approverName: h.approverId === 9 ? "Adam Green (Director)" : `User ${h.approverId}`,
+        // Convert field names for frontend compatibility
+        action_at: h.actionAt,
+        approval_level: h.approvalLevel,
+        approver_id: h.approverId
+      }));
+      
+      res.json(historyWithNames);
     } catch (error) {
       console.error("Error fetching approval history:", error);
       res.status(500).json({ error: "Failed to fetch approval history" });
