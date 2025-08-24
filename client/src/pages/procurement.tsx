@@ -492,9 +492,9 @@ export default function Procurement() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {approvalsLoading ? (
+                {requisitionsLoading ? (
                   <p className="text-sm text-muted-foreground">Loading approvals...</p>
-                ) : pendingApprovals.length === 0 ? (
+                ) : requisitions.filter((r: any) => r.status === 'pending_approval').length === 0 ? (
                   <div className="text-center py-8">
                     <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                     <p className="text-muted-foreground">No pending approvals</p>
@@ -503,7 +503,7 @@ export default function Procurement() {
                     </p>
                   </div>
                 ) : (
-                  pendingApprovals.map((req: any) => (
+                  requisitions.filter((r: any) => r.status === 'pending_approval').map((req: any) => (
                     <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -512,7 +512,7 @@ export default function Procurement() {
                             {req.priority}
                           </Badge>
                           <Badge variant="warning" className="text-xs">
-                            Level {req.currentApprovalLevel + 1} Approval
+                            Level {(req.currentApprovalLevel || 0) + 1} Approval
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
