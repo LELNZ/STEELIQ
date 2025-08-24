@@ -565,14 +565,126 @@ export default function Procurement() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="purchase-orders">
+        {/* RFQs Tab - Request for Quotes */}
+        <TabsContent value="rfq" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Request for Quotes</CardTitle>
+              <CardDescription>Send approved requisitions to suppliers for competitive quotes</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {requisitions.filter((r: any) => r.status === 'approved').length === 0 ? (
+                  <div className="text-center py-8">
+                    <Send className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No items ready for RFQ</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Approve requisitions to start the RFQ process
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-medium mb-3">Approved Requisitions - Ready for RFQ</h4>
+                      {requisitions
+                        .filter((r: any) => r.status === 'approved')
+                        .map((req: any) => (
+                          <div key={req.id} className="flex items-center justify-between py-2">
+                            <div>
+                              <span className="font-medium">{req.requisitionNumber}</span>
+                              <span className="text-sm text-muted-foreground ml-2">
+                                ${(req.estimatedTotal || 0).toLocaleString()}
+                              </span>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                toast({
+                                  title: "Send RFQ",
+                                  description: "Supplier RFQ portal will be implemented in Phase 3",
+                                });
+                              }}
+                            >
+                              <Send className="h-3 w-3 mr-2" />
+                              Send to Suppliers
+                            </Button>
+                          </div>
+                        ))}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <strong>Phase 3 Features:</strong> Supplier portal, automated RFQ sending, quote comparison, and award management
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Purchase Orders Tab - Shows approved requisitions */}
+        <TabsContent value="purchase-orders" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Purchase Orders</CardTitle>
-              <CardDescription>Manage active purchase orders</CardDescription>
+              <CardDescription>Convert approved requisitions to purchase orders</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Purchase order management coming soon...</p>
+              <div className="space-y-3">
+                {requisitionsLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading...</p>
+                ) : requisitions.filter((r: any) => r.status === 'approved').length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No approved requisitions</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Approved requisitions will appear here for PO conversion
+                    </p>
+                  </div>
+                ) : (
+                  requisitions
+                    .filter((r: any) => r.status === 'approved')
+                    .map((req: any) => (
+                      <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">{req.requisitionNumber}</span>
+                            <Badge variant="success" className="text-xs">Approved</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {req.department} • {req.category}
+                          </p>
+                        </div>
+                        <div className="text-right mr-4">
+                          <p className="font-semibold text-lg">${(req.estimatedTotal || 0).toLocaleString()}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Ready for PO
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setSelectedRequisitionId(req.id)}
+                          >
+                            View Details
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={() => {
+                              toast({
+                                title: "Convert to PO",
+                                description: "Purchase order conversion will be implemented in Phase 2",
+                              });
+                            }}
+                          >
+                            Create PO
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -589,14 +701,33 @@ export default function Procurement() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="receiving">
+        {/* Receiving Tab - Goods Receipt */}
+        <TabsContent value="receiving" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Goods Receiving</CardTitle>
-              <CardDescription>Track deliveries and manage goods receipt notes</CardDescription>
+              <CardDescription>Track deliveries and verify receipt of ordered goods</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Receiving management coming soon...</p>
+              <div className="space-y-3">
+                <div className="text-center py-8">
+                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">No pending deliveries</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Purchase orders in transit will appear here for receiving
+                  </p>
+                </div>
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-medium mb-2">Receiving Features (Coming Soon)</h4>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Mobile barcode scanning for quick receiving</li>
+                    <li>• Quality inspection workflows</li>
+                    <li>• Automatic inventory updates</li>
+                    <li>• Discrepancy reporting and resolution</li>
+                    <li>• Mill certificate attachment and verification</li>
+                  </ul>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
