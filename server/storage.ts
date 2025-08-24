@@ -1489,13 +1489,21 @@ export class DatabaseStorage implements IStorage {
 
   // Procurement - Approval History
   async getApprovalHistory(requisitionId: number): Promise<ApprovalHistory[]> {
-    return await db.select().from(approvalHistory)
-      .where(eq(approvalHistory.requisitionId, requisitionId))
-      .orderBy(desc(approvalHistory.actionAt));
+    try {
+      return await db.select().from(approvalHistory)
+        .where(eq(approvalHistory.requisitionId, requisitionId))
+        .orderBy(desc(approvalHistory.actionAt));
+    } catch (error) {
+      console.error('Error fetching approval history:', error);
+      return [];
+    }
   }
 
   async createApprovalHistory(history: InsertApprovalHistory): Promise<ApprovalHistory> {
-    const [newHistory] = await db.insert(approvalHistory).values(history).returning();
+    const [newHistory] = await db.insert(approvalHistory).values({
+      ...history,
+      actionAt: new Date(), // Ensure timestamp is set
+    }).returning();
     return newHistory;
   }
 
@@ -1514,27 +1522,38 @@ export class DatabaseStorage implements IStorage {
     const currentLevel = requisition.currentApprovalLevel || 0;
     const nextLevel = currentLevel + 1;
 
-    // Record approval
-    await this.createApprovalHistory({
-      requisitionId,
-      approvalLevel: nextLevel,
-      approverId,
-      action: 'approved',
-      comments,
-      amount: requisition.estimatedTotal,
-    });
+    console.log(`Approving requisition ${requisitionId}: Level ${currentLevel} -> ${nextLevel} (max: ${requisition.maxApprovalLevel})`);
+
+    // Record approval in history
+    try {
+      await this.createApprovalHistory({
+        requisitionId,
+        approvalLevel: nextLevel,
+        approverId,
+        action: 'approved',
+        comments,
+        amount: requisition.estimatedTotal,
+      });
+      console.log('Approval history created');
+    } catch (error) {
+      console.error('Error creating approval history:', error);
+    }
 
     // Check if this is final approval
     if (nextLevel >= (requisition.maxApprovalLevel || 1)) {
+      console.log('Final approval reached, setting status to approved');
       await this.updateRequisition(requisitionId, {
         status: 'approved',
         currentApprovalLevel: nextLevel,
         approvalNotes: comments,
       });
     } else {
+      console.log(`Partial approval, level ${nextLevel} of ${requisition.maxApprovalLevel}`);
       await this.updateRequisition(requisitionId, {
         currentApprovalLevel: nextLevel,
         approvalNotes: comments,
+        // Keep status as pending_approval for multi-level approvals
+        status: 'pending_approval',
       });
     }
   }

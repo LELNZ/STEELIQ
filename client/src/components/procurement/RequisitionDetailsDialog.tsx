@@ -68,17 +68,20 @@ export default function RequisitionDetailsDialog({
       apiRequest(`/api/procurement/requisitions/${requisitionId}/approve`, "POST", { 
         comments: approvalComments 
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Invalidate all related queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ["/api/procurement/requisitions"] });
       queryClient.invalidateQueries({ queryKey: [`/api/procurement/requisitions/${requisitionId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/procurement/requisitions/${requisitionId}/history`] });
       queryClient.invalidateQueries({ queryKey: ["/api/procurement/approvals/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/procurement/metrics"] });
       toast({
         title: "Success",
-        description: "Requisition approved successfully",
+        description: "Requisition approved successfully. Status will update momentarily.",
       });
       setApprovalComments("");
-      onOpenChange(false);
+      // Close dialog after a brief delay to show success message
+      setTimeout(() => onOpenChange(false), 1500);
     },
     onError: (error: any) => {
       toast({
