@@ -8825,6 +8825,234 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // ============================================
+  // PROCUREMENT ROUTES
+  // ============================================
+
+  // Get all requisitions with filters
+  app.get("/api/procurement/requisitions", async (req, res) => {
+    try {
+      const { status, department, requestedBy } = req.query;
+      const filters: any = {};
+      
+      if (status) filters.status = status as string;
+      if (department) filters.department = department as string;
+      if (requestedBy) filters.requestedBy = parseInt(requestedBy as string);
+      
+      const requisitions = await storage.getRequisitions(filters);
+      res.json(requisitions);
+    } catch (error) {
+      console.error("Error fetching requisitions:", error);
+      res.status(500).json({ error: "Failed to fetch requisitions" });
+    }
+  });
+
+  // Get single requisition with items
+  app.get("/api/procurement/requisitions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const requisition = await storage.getRequisition(id);
+      
+      if (!requisition) {
+        return res.status(404).json({ error: "Requisition not found" });
+      }
+      
+      const items = await storage.getRequisitionItems(id);
+      res.json({ ...requisition, items });
+    } catch (error) {
+      console.error("Error fetching requisition:", error);
+      res.status(500).json({ error: "Failed to fetch requisition" });
+    }
+  });
+
+  // Create new requisition
+  app.post("/api/procurement/requisitions", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { items, ...requisitionData } = req.body;
+      
+      // Generate requisition number
+      const requisitionNumber = await storage.generateRequisitionNumber();
+      
+      // Determine approval levels needed based on amount
+      const rules = await storage.getApprovalRules(requisitionData.estimatedTotal, requisitionData.category);
+      const maxApprovalLevel = rules.length > 0 ? Math.max(...rules.map(r => r.approvalLevel)) : 1;
+      
+      // Create requisition
+      const requisition = await storage.createRequisition({
+        ...requisitionData,
+        requisitionNumber,
+        requestedBy: user.id,
+        status: 'pending_approval',
+        maxApprovalLevel,
+        currentApprovalLevel: 0,
+      });
+      
+      // Create items
+      if (items && items.length > 0) {
+        for (const item of items) {
+          await storage.createRequisitionItem({
+            ...item,
+            requisitionId: requisition.id,
+          });
+        }
+      }
+      
+      res.status(201).json(requisition);
+    } catch (error) {
+      console.error("Error creating requisition:", error);
+      res.status(500).json({ error: "Failed to create requisition" });
+    }
+  });
+
+  // Update requisition
+  app.patch("/api/procurement/requisitions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateRequisition(id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating requisition:", error);
+      res.status(500).json({ error: "Failed to update requisition" });
+    }
+  });
+
+  // Approve requisition
+  app.post("/api/procurement/requisitions/:id/approve", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const id = parseInt(req.params.id);
+      const { comments } = req.body;
+      
+      await storage.approveRequisition(id, user.id, comments);
+      res.json({ success: true, message: "Requisition approved" });
+    } catch (error) {
+      console.error("Error approving requisition:", error);
+      res.status(500).json({ error: "Failed to approve requisition" });
+    }
+  });
+
+  // Reject requisition
+  app.post("/api/procurement/requisitions/:id/reject", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const id = parseInt(req.params.id);
+      const { comments } = req.body;
+      
+      if (!comments) {
+        return res.status(400).json({ error: "Comments required for rejection" });
+      }
+      
+      await storage.rejectRequisition(id, user.id, comments);
+      res.json({ success: true, message: "Requisition rejected" });
+    } catch (error) {
+      console.error("Error rejecting requisition:", error);
+      res.status(500).json({ error: "Failed to reject requisition" });
+    }
+  });
+
+  // Get pending approvals for user
+  app.get("/api/procurement/approvals/pending", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const pending = await storage.getPendingApprovals(user.id);
+      res.json(pending);
+    } catch (error) {
+      console.error("Error fetching pending approvals:", error);
+      res.status(500).json({ error: "Failed to fetch pending approvals" });
+    }
+  });
+
+  // Get approval rules
+  app.get("/api/procurement/approval-rules", async (req, res) => {
+    try {
+      const rules = await storage.getApprovalRules();
+      res.json(rules);
+    } catch (error) {
+      console.error("Error fetching approval rules:", error);
+      res.status(500).json({ error: "Failed to fetch approval rules" });
+    }
+  });
+
+  // Update approval rule (CEO/Director only)
+  app.patch("/api/procurement/approval-rules/:id", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user || !['ceo', 'director', 'admin', 'full'].includes(user.role)) {
+        return res.status(403).json({ error: "Only CEO/Director can modify approval rules" });
+      }
+
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateApprovalRule(id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating approval rule:", error);
+      res.status(500).json({ error: "Failed to update approval rule" });
+    }
+  });
+
+  // Get procurement metrics
+  app.get("/api/procurement/metrics", async (req, res) => {
+    try {
+      // Get various metrics for the dashboard
+      const pendingRequisitions = await storage.getRequisitions({ status: 'pending_approval' });
+      const approvedRequisitions = await storage.getRequisitions({ status: 'approved' });
+      
+      // Calculate monthly spend (simplified for now)
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      
+      const metrics = {
+        pendingApprovals: pendingRequisitions.length,
+        activePOs: 0, // Will be implemented with PO functionality
+        monthlySpend: 0, // Will be calculated from actual POs
+        savingsThisMonth: 0, // Will be calculated from RFQ savings
+        pendingRequisitions: pendingRequisitions.length,
+        awaitingDelivery: 0, // Will be implemented with GRN functionality
+      };
+      
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching procurement metrics:", error);
+      res.status(500).json({ error: "Failed to fetch procurement metrics" });
+    }
+  });
+
+  // Get requisition categories
+  app.get("/api/procurement/categories", async (req, res) => {
+    try {
+      // For now, return static categories. Later this can be dynamic
+      const categories = [
+        { value: 'materials', label: 'Materials' },
+        { value: 'services', label: 'Services' },
+        { value: 'equipment', label: 'Equipment' },
+        { value: 'supplies', label: 'Office Supplies' },
+        { value: 'vehicles', label: 'Vehicles' },
+      ];
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
   // Time Tracking Integration - Apply Profile Rates
   app.post("/api/time-clocks/:id/calculate-cost", async (req, res) => {
     try {

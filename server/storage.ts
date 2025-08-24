@@ -5,6 +5,7 @@ import {
   clients, clientContacts, locations, savedFilters,
   estimationProjects, estimationData, estimationMaterials, estimationLabor, estimationEquipment, estimationConsumables,
   teamMembers, archivedEmployees, employeeAuditLog,
+  purchaseRequisitions, requisitionItems, approvalRules, approvalHistory, rfqRequests, rfqResponses, goodsReceipts, goodsReceiptItems,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
@@ -17,6 +18,10 @@ import {
   type Location, type InsertLocation, type SavedFilter, type InsertSavedFilter,
   type EstimationProject, type InsertEstimationProject, type TeamMember, type InsertTeamMember,
   type ArchivedEmployee, type InsertArchivedEmployee, type EmployeeAuditLog, type InsertEmployeeAuditLog,
+  type PurchaseRequisition, type InsertPurchaseRequisition, type RequisitionItem, type InsertRequisitionItem,
+  type ApprovalRule, type InsertApprovalRule, type ApprovalHistory, type InsertApprovalHistory,
+  type RfqRequest, type InsertRfqRequest, type RfqResponse, type InsertRfqResponse,
+  type GoodsReceipt, type InsertGoodsReceipt, type GoodsReceiptItem, type InsertGoodsReceiptItem,
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView
 } from "@shared/schema";
@@ -198,6 +203,33 @@ export interface IStorage {
   // Quote Views
   recordQuoteView(view: InsertQuoteView): Promise<QuoteView>;
   getQuoteViews(quoteId: number): Promise<QuoteView[]>;
+
+  // Procurement - Purchase Requisitions
+  getRequisitions(filters?: { status?: string; department?: string; requestedBy?: number }): Promise<PurchaseRequisition[]>;
+  getRequisition(id: number): Promise<PurchaseRequisition | undefined>;
+  createRequisition(requisition: InsertPurchaseRequisition): Promise<PurchaseRequisition>;
+  updateRequisition(id: number, requisition: Partial<InsertPurchaseRequisition>): Promise<PurchaseRequisition>;
+  generateRequisitionNumber(): Promise<string>;
+  
+  // Procurement - Requisition Items
+  getRequisitionItems(requisitionId: number): Promise<RequisitionItem[]>;
+  createRequisitionItem(item: InsertRequisitionItem): Promise<RequisitionItem>;
+  updateRequisitionItem(id: number, item: Partial<InsertRequisitionItem>): Promise<RequisitionItem>;
+  deleteRequisitionItem(id: number): Promise<void>;
+  
+  // Procurement - Approval Rules
+  getApprovalRules(amount?: number, category?: string): Promise<ApprovalRule[]>;
+  getApprovalRule(id: number): Promise<ApprovalRule | undefined>;
+  createApprovalRule(rule: InsertApprovalRule): Promise<ApprovalRule>;
+  updateApprovalRule(id: number, rule: Partial<InsertApprovalRule>): Promise<ApprovalRule>;
+  deleteApprovalRule(id: number): Promise<void>;
+  
+  // Procurement - Approval History
+  getApprovalHistory(requisitionId: number): Promise<ApprovalHistory[]>;
+  createApprovalHistory(history: InsertApprovalHistory): Promise<ApprovalHistory>;
+  getPendingApprovals(approverId: number): Promise<PurchaseRequisition[]>;
+  approveRequisition(requisitionId: number, approverId: number, comments?: string): Promise<void>;
+  rejectRequisition(requisitionId: number, approverId: number, comments: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1332,6 +1364,203 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(quoteViews)
       .where(eq(quoteViews.quoteId, quoteId))
       .orderBy(desc(quoteViews.viewedAt));
+  }
+
+  // Procurement - Purchase Requisitions
+  async getRequisitions(filters?: { status?: string; department?: string; requestedBy?: number }): Promise<PurchaseRequisition[]> {
+    let query = db.select().from(purchaseRequisitions);
+    
+    if (filters) {
+      const conditions = [];
+      if (filters.status) conditions.push(eq(purchaseRequisitions.status, filters.status));
+      if (filters.department) conditions.push(eq(purchaseRequisitions.department, filters.department));
+      if (filters.requestedBy) conditions.push(eq(purchaseRequisitions.requestedBy, filters.requestedBy));
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+    }
+    
+    return await query.orderBy(desc(purchaseRequisitions.createdAt));
+  }
+
+  async getRequisition(id: number): Promise<PurchaseRequisition | undefined> {
+    const [requisition] = await db.select().from(purchaseRequisitions).where(eq(purchaseRequisitions.id, id));
+    return requisition || undefined;
+  }
+
+  async createRequisition(requisition: InsertPurchaseRequisition): Promise<PurchaseRequisition> {
+    const [newRequisition] = await db.insert(purchaseRequisitions).values(requisition).returning();
+    return newRequisition;
+  }
+
+  async updateRequisition(id: number, requisition: Partial<InsertPurchaseRequisition>): Promise<PurchaseRequisition> {
+    const [updated] = await db.update(purchaseRequisitions)
+      .set({ ...requisition, updatedAt: new Date() })
+      .where(eq(purchaseRequisitions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async generateRequisitionNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const result = await db.execute(sql`
+      SELECT COUNT(*) + 1 as count 
+      FROM purchase_requisitions 
+      WHERE requisition_number LIKE ${`REQ-${year}-%`}
+    `);
+    const count = result.rows[0]?.count || 1;
+    return `REQ-${year}-${String(count).padStart(4, '0')}`;
+  }
+
+  // Procurement - Requisition Items
+  async getRequisitionItems(requisitionId: number): Promise<RequisitionItem[]> {
+    return await db.select().from(requisitionItems)
+      .where(eq(requisitionItems.requisitionId, requisitionId))
+      .orderBy(asc(requisitionItems.id));
+  }
+
+  async createRequisitionItem(item: InsertRequisitionItem): Promise<RequisitionItem> {
+    const [newItem] = await db.insert(requisitionItems).values(item).returning();
+    return newItem;
+  }
+
+  async updateRequisitionItem(id: number, item: Partial<InsertRequisitionItem>): Promise<RequisitionItem> {
+    const [updated] = await db.update(requisitionItems)
+      .set(item)
+      .where(eq(requisitionItems.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteRequisitionItem(id: number): Promise<void> {
+    await db.delete(requisitionItems).where(eq(requisitionItems.id, id));
+  }
+
+  // Procurement - Approval Rules
+  async getApprovalRules(amount?: number, category?: string): Promise<ApprovalRule[]> {
+    let query = db.select().from(approvalRules).where(eq(approvalRules.isActive, true));
+    
+    if (amount !== undefined) {
+      query = query.where(
+        and(
+          sql`${approvalRules.minAmount} <= ${amount}`,
+          or(
+            sql`${approvalRules.maxAmount} IS NULL`,
+            sql`${approvalRules.maxAmount} >= ${amount}`
+          )
+        )
+      );
+    }
+    
+    if (category) {
+      query = query.where(
+        or(
+          eq(approvalRules.category, category),
+          sql`${approvalRules.category} IS NULL`
+        )
+      );
+    }
+    
+    return await query.orderBy(asc(approvalRules.approvalLevel));
+  }
+
+  async getApprovalRule(id: number): Promise<ApprovalRule | undefined> {
+    const [rule] = await db.select().from(approvalRules).where(eq(approvalRules.id, id));
+    return rule || undefined;
+  }
+
+  async createApprovalRule(rule: InsertApprovalRule): Promise<ApprovalRule> {
+    const [newRule] = await db.insert(approvalRules).values(rule).returning();
+    return newRule;
+  }
+
+  async updateApprovalRule(id: number, rule: Partial<InsertApprovalRule>): Promise<ApprovalRule> {
+    const [updated] = await db.update(approvalRules)
+      .set({ ...rule, updatedAt: new Date() })
+      .where(eq(approvalRules.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteApprovalRule(id: number): Promise<void> {
+    await db.delete(approvalRules).where(eq(approvalRules.id, id));
+  }
+
+  // Procurement - Approval History
+  async getApprovalHistory(requisitionId: number): Promise<ApprovalHistory[]> {
+    return await db.select().from(approvalHistory)
+      .where(eq(approvalHistory.requisitionId, requisitionId))
+      .orderBy(desc(approvalHistory.actionAt));
+  }
+
+  async createApprovalHistory(history: InsertApprovalHistory): Promise<ApprovalHistory> {
+    const [newHistory] = await db.insert(approvalHistory).values(history).returning();
+    return newHistory;
+  }
+
+  async getPendingApprovals(approverId: number): Promise<PurchaseRequisition[]> {
+    // Get user role to determine what they can approve
+    const user = await this.getUser(approverId);
+    if (!user) return [];
+
+    // Get requisitions pending approval at levels this user can approve
+    return await db.select().from(purchaseRequisitions)
+      .where(eq(purchaseRequisitions.status, 'pending_approval'))
+      .orderBy(desc(purchaseRequisitions.priority), asc(purchaseRequisitions.createdAt));
+  }
+
+  async approveRequisition(requisitionId: number, approverId: number, comments?: string): Promise<void> {
+    const requisition = await this.getRequisition(requisitionId);
+    if (!requisition) throw new Error('Requisition not found');
+
+    const currentLevel = requisition.currentApprovalLevel || 0;
+    const nextLevel = currentLevel + 1;
+
+    // Record approval
+    await this.createApprovalHistory({
+      requisitionId,
+      approvalLevel: nextLevel,
+      approverId,
+      action: 'approved',
+      comments,
+      amount: requisition.estimatedTotal,
+    });
+
+    // Check if this is final approval
+    if (nextLevel >= (requisition.maxApprovalLevel || 1)) {
+      await this.updateRequisition(requisitionId, {
+        status: 'approved',
+        currentApprovalLevel: nextLevel,
+        approvalNotes: comments,
+      });
+    } else {
+      await this.updateRequisition(requisitionId, {
+        currentApprovalLevel: nextLevel,
+        approvalNotes: comments,
+      });
+    }
+  }
+
+  async rejectRequisition(requisitionId: number, approverId: number, comments: string): Promise<void> {
+    const requisition = await this.getRequisition(requisitionId);
+    if (!requisition) throw new Error('Requisition not found');
+
+    // Record rejection
+    await this.createApprovalHistory({
+      requisitionId,
+      approvalLevel: requisition.currentApprovalLevel || 1,
+      approverId,
+      action: 'rejected',
+      comments,
+      amount: requisition.estimatedTotal,
+    });
+
+    // Update requisition status
+    await this.updateRequisition(requisitionId, {
+      status: 'rejected',
+      approvalNotes: comments,
+    });
   }
 }
 

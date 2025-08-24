@@ -20,40 +20,12 @@ import {
   FileSignature,
   Truck
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
+import CreateRequisitionDialog from "@/components/procurement/CreateRequisitionDialog";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
-// Temporary mock data - will be replaced with actual API calls
-const mockRequisitions = [
-  {
-    id: 1,
-    requisitionNumber: "REQ-2025-001",
-    requestedBy: "John Smith",
-    department: "Fabrication",
-    category: "Materials",
-    priority: "urgent",
-    status: "pending_approval",
-    estimatedTotal: 5500,
-    requiredByDate: new Date("2025-01-15"),
-    items: 3,
-    currentApprovalLevel: 1,
-    maxApprovalLevel: 2,
-  },
-  {
-    id: 2,
-    requisitionNumber: "REQ-2025-002",
-    requestedBy: "Sarah Johnson",
-    department: "Office",
-    category: "Supplies",
-    priority: "standard",
-    status: "approved",
-    estimatedTotal: 350,
-    requiredByDate: new Date("2025-01-20"),
-    items: 5,
-    currentApprovalLevel: 1,
-    maxApprovalLevel: 1,
-  },
-];
 
 const statusColors = {
   draft: "secondary",
@@ -73,16 +45,81 @@ const priorityColors = {
 export default function Procurement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [createRequisitionOpen, setCreateRequisitionOpen] = useState(false);
+  const { toast } = useToast();
 
-  // Mock metrics - will be replaced with actual API calls
-  const metrics = {
-    pendingApprovals: 5,
-    activePOs: 12,
-    monthlySpend: 45678,
-    savingsThisMonth: 3456,
-    pendingRequisitions: 8,
-    awaitingDelivery: 7,
-  };
+  // Fetch real metrics from API
+  const { data: metrics = {
+    pendingApprovals: 0,
+    activePOs: 0,
+    monthlySpend: 0,
+    savingsThisMonth: 0,
+    pendingRequisitions: 0,
+    awaitingDelivery: 0,
+  } } = useQuery({
+    queryKey: ["/api/procurement/metrics"],
+  });
+
+  // Fetch requisitions
+  const { data: requisitions = [], isLoading: requisitionsLoading } = useQuery({
+    queryKey: ["/api/procurement/requisitions"],
+  });
+
+  // Fetch pending approvals for current user
+  const { data: pendingApprovals = [], isLoading: approvalsLoading } = useQuery({
+    queryKey: ["/api/procurement/approvals/pending"],
+  });
+
+  // Approve requisition mutation
+  const approveMutation = useMutation({
+    mutationFn: ({ id, comments }: { id: number; comments?: string }) => 
+      apiRequest(`/api/procurement/requisitions/${id}/approve`, "POST", { comments }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/requisitions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/approvals/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/metrics"] });
+      toast({
+        title: "Success",
+        description: "Requisition approved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve requisition",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reject requisition mutation
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, comments }: { id: number; comments: string }) => 
+      apiRequest(`/api/procurement/requisitions/${id}/reject`, "POST", { comments }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/requisitions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/approvals/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/metrics"] });
+      toast({
+        title: "Success",
+        description: "Requisition rejected",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject requisition",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Filter requisitions based on search
+  const filteredRequisitions = requisitions.filter((req: any) => 
+    req.requisitionNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    req.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    req.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="container mx-auto p-4">
@@ -184,7 +221,7 @@ export default function Procurement() {
           </TabsList>
 
           <div className="flex gap-2">
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={() => setCreateRequisitionOpen(true)}>
               <Plus className="h-4 w-4" />
               New Requisition
             </Button>
@@ -202,30 +239,38 @@ export default function Procurement() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {mockRequisitions.slice(0, 3).map((req) => (
-                    <div key={req.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{req.requisitionNumber}</span>
-                          <Badge variant={priorityColors[req.priority as keyof typeof priorityColors]} className="text-xs">
-                            {req.priority}
-                          </Badge>
-                          <Badge variant={statusColors[req.status as keyof typeof statusColors]} className="text-xs">
-                            {req.status.replace(/_/g, " ")}
-                          </Badge>
+                  {requisitionsLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading...</p>
+                  ) : requisitions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No requisitions yet</p>
+                  ) : (
+                    requisitions.slice(0, 3).map((req: any) => (
+                      <div key={req.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">{req.requisitionNumber}</span>
+                            <Badge variant={priorityColors[req.priority as keyof typeof priorityColors]} className="text-xs">
+                              {req.priority}
+                            </Badge>
+                            <Badge variant={statusColors[req.status as keyof typeof statusColors]} className="text-xs">
+                              {req.status.replace(/_/g, " ")}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {req.department} • {req.category}
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {req.requestedBy} • {req.department} • {req.items} items
-                        </p>
+                        <div className="text-right">
+                          <p className="font-semibold">${(req.estimatedTotal || 0).toLocaleString()}</p>
+                          {req.requiredByDate && (
+                            <p className="text-xs text-muted-foreground">
+                              Due {format(new Date(req.requiredByDate), "MMM dd")}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold">${req.estimatedTotal.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Due {format(req.requiredByDate, "MMM dd")}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -238,36 +283,45 @@ export default function Procurement() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 border border-warning/50 bg-warning/5 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <AlertCircle className="h-5 w-5 text-warning" />
-                      <div>
-                        <p className="font-medium text-sm">REQ-2025-001</p>
-                        <p className="text-xs text-muted-foreground">
-                          Steel materials • $5,500 • Urgent
-                        </p>
+                  {approvalsLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading...</p>
+                  ) : pendingApprovals.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No pending approvals</p>
+                  ) : (
+                    pendingApprovals.slice(0, 3).map((req: any) => (
+                      <div key={req.id} className="flex items-center justify-between p-3 border border-warning/50 bg-warning/5 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <AlertCircle className="h-5 w-5 text-warning" />
+                          <div>
+                            <p className="font-medium text-sm">{req.requisitionNumber}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {req.category} • ${(req.estimatedTotal || 0).toLocaleString()} • {req.priority}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              const comments = prompt("Rejection reason (required):");
+                              if (comments) {
+                                rejectMutation.mutate({ id: req.id, comments });
+                              }
+                            }}
+                          >
+                            Reject
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={() => approveMutation.mutate({ id: req.id })}
+                          >
+                            Approve
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline">Reject</Button>
-                      <Button size="sm">Approve</Button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium text-sm">REQ-2025-003</p>
-                        <p className="text-xs text-muted-foreground">
-                          Equipment rental • $2,200 • Standard
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline">Review</Button>
-                    </div>
-                  </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -365,36 +419,57 @@ export default function Procurement() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockRequisitions.map((req) => (
-                  <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium">{req.requisitionNumber}</span>
-                        <Badge variant={priorityColors[req.priority as keyof typeof priorityColors]} className="text-xs">
-                          {req.priority}
-                        </Badge>
-                        <Badge variant={statusColors[req.status as keyof typeof statusColors]} className="text-xs">
-                          {req.status.replace(/_/g, " ")}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Requested by {req.requestedBy} • {req.department} Department
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {req.items} items • Required by {format(req.requiredByDate, "MMM dd, yyyy")}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-lg">${req.estimatedTotal.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Approval {req.currentApprovalLevel}/{req.maxApprovalLevel}
-                      </p>
-                    </div>
-                    <div className="ml-4">
-                      <Button variant="outline" size="sm">View Details</Button>
-                    </div>
+                {requisitionsLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading requisitions...</p>
+                ) : filteredRequisitions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No requisitions found</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-3"
+                      onClick={() => setCreateRequisitionOpen(true)}
+                    >
+                      Create First Requisition
+                    </Button>
                   </div>
-                ))}
+                ) : (
+                  filteredRequisitions.map((req: any) => (
+                    <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium">{req.requisitionNumber}</span>
+                          <Badge variant={priorityColors[req.priority as keyof typeof priorityColors]} className="text-xs">
+                            {req.priority}
+                          </Badge>
+                          <Badge variant={statusColors[req.status as keyof typeof statusColors]} className="text-xs">
+                            {req.status.replace(/_/g, " ")}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {req.department} Department • {req.category}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {req.justification?.substring(0, 100)}...
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-lg">${(req.estimatedTotal || 0).toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Approval {req.currentApprovalLevel || 0}/{req.maxApprovalLevel || 1}
+                        </p>
+                        {req.requiredByDate && (
+                          <p className="text-xs text-muted-foreground">
+                            Due {format(new Date(req.requiredByDate), "MMM dd")}
+                          </p>
+                        )}
+                      </div>
+                      <div className="ml-4">
+                        <Button variant="outline" size="sm">View Details</Button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -449,6 +524,12 @@ export default function Procurement() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Create Requisition Dialog */}
+      <CreateRequisitionDialog 
+        open={createRequisitionOpen}
+        onOpenChange={setCreateRequisitionOpen}
+      />
     </div>
   );
 }
