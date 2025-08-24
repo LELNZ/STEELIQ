@@ -8887,6 +8887,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate requisition number
       const requisitionNumber = await storage.generateRequisitionNumber();
       
+      // Convert date strings to Date objects if present
+      if (requisitionData.requiredByDate) {
+        requisitionData.requiredByDate = new Date(requisitionData.requiredByDate);
+      }
+      
       // Determine approval levels needed based on amount
       const rules = await storage.getApprovalRules(requisitionData.estimatedTotal, requisitionData.category);
       const maxApprovalLevel = rules.length > 0 ? Math.max(...rules.map(r => r.approvalLevel)) : 1;
@@ -8904,6 +8909,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create items
       if (items && items.length > 0) {
         for (const item of items) {
+          // Convert item date strings to Date objects if present
+          if (item.requiredByDate) {
+            item.requiredByDate = new Date(item.requiredByDate);
+          }
           await storage.createRequisitionItem({
             ...item,
             requisitionId: requisition.id,
