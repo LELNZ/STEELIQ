@@ -8858,7 +8858,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const items = await storage.getRequisitionItems(id);
-      res.json({ ...requisition, items });
+      
+      // Convert decimal strings to numbers for proper display
+      const convertedItems = items.map(item => ({
+        ...item,
+        quantity: item.quantity ? parseFloat(item.quantity as any) : 0,
+        estimatedUnitPrice: item.estimatedUnitPrice ? parseFloat(item.estimatedUnitPrice as any) : 0,
+        estimatedTotal: item.estimatedTotal ? parseFloat(item.estimatedTotal as any) : 0,
+      }));
+      
+      // Convert requisition decimals too
+      const convertedRequisition = {
+        ...requisition,
+        estimatedTotal: requisition.estimatedTotal ? parseFloat(requisition.estimatedTotal as any) : 0,
+      };
+      
+      res.json({ ...convertedRequisition, items: convertedItems });
     } catch (error) {
       console.error("Error fetching requisition:", error);
       res.status(500).json({ error: "Failed to fetch requisition" });

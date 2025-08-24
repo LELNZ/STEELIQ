@@ -225,20 +225,32 @@ export default function RequisitionDetailsDialog({
                   </tr>
                 </thead>
                 <tbody>
-                  {requisition.items?.map((item: any, index: number) => (
-                    <tr key={index} className="border-t">
-                      <td className="p-2 text-sm">{item.description || "-"}</td>
-                      <td className="p-2 text-sm">{item.specification || "-"}</td>
-                      <td className="text-right p-2 text-sm">{item.quantity || 0}</td>
-                      <td className="p-2 text-sm">{item.unit || "-"}</td>
-                      <td className="text-right p-2 text-sm">
-                        ${(Number(item.estimatedUnitPrice) || 0).toFixed(2)}
-                      </td>
-                      <td className="text-right p-2 text-sm font-medium">
-                        ${(Number(item.estimatedTotal) || 0).toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
+                  {requisition.items?.map((item: any, index: number) => {
+                    const unitPrice = typeof item.estimatedUnitPrice === 'number' 
+                      ? item.estimatedUnitPrice 
+                      : parseFloat(item.estimatedUnitPrice || "0") || 0;
+                    const total = typeof item.estimatedTotal === 'number'
+                      ? item.estimatedTotal
+                      : parseFloat(item.estimatedTotal || "0") || 0;
+                    const quantity = typeof item.quantity === 'number'
+                      ? item.quantity
+                      : parseFloat(item.quantity || "0") || 0;
+                    
+                    return (
+                      <tr key={index} className="border-t">
+                        <td className="p-2 text-sm">{item.description || "-"}</td>
+                        <td className="p-2 text-sm">{item.specification || "-"}</td>
+                        <td className="text-right p-2 text-sm">{quantity}</td>
+                        <td className="p-2 text-sm">{item.unit || "-"}</td>
+                        <td className="text-right p-2 text-sm">
+                          ${unitPrice.toFixed(2)}
+                        </td>
+                        <td className="text-right p-2 text-sm font-medium">
+                          ${total.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 <tfoot className="bg-muted">
                   <tr>
