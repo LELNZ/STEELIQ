@@ -1018,6 +1018,175 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
   lineTotal: decimal("line_total", { precision: 10, scale: 2 }),
 })
 
+// Company Divisions - for multi-division branding
+export const companyDivisions = pgTable("company_divisions", {
+  id: serial("id").primaryKey(),
+  divisionName: text("division_name").notNull(),
+  divisionCode: text("division_code").unique().notNull(),
+  companyName: text("company_name").notNull(),
+  tradingName: text("trading_name"),
+  
+  // Address Details
+  addressLine1: text("address_line1"),
+  addressLine2: text("address_line2"),
+  city: text("city"),
+  state: text("state"),
+  postalCode: text("postal_code"),
+  country: text("country").default("New Zealand"),
+  
+  // Contact Details
+  phone: text("phone"),
+  email: text("email"),
+  website: text("website"),
+  
+  // Legal Details
+  businessNumber: text("business_number"),
+  gstNumber: text("gst_number"),
+  
+  // Branding
+  logoPath: text("logo_path"),
+  letterheadPath: text("letterhead_path"),
+  brandColor: text("brand_color"),
+  
+  isPrimary: boolean("is_primary").default(false),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+// Purchase Order Templates - for customized PO formats
+export const poTemplates = pgTable("po_templates", {
+  id: serial("id").primaryKey(),
+  templateName: text("template_name").notNull(),
+  templateCode: text("template_code").unique().notNull(),
+  divisionId: integer("division_id").references(() => companyDivisions.id),
+  supplierId: integer("supplier_id").references(() => suppliers.id), // supplier-specific template
+  category: text("category"), // materials, services, equipment
+  region: text("region"), // for regional T&Cs
+  
+  // Layout Configuration
+  headerConfig: jsonb("header_config"), // logo position, company details display
+  columnsConfig: jsonb("columns_config"), // which columns to show/hide
+  footerConfig: jsonb("footer_config"), // signatures, terms position
+  
+  // Content Settings
+  showLogo: boolean("show_logo").default(true),
+  showPrices: boolean("show_prices").default(true),
+  showDeliveryDate: boolean("show_delivery_date").default(true),
+  showPaymentTerms: boolean("show_payment_terms").default(true),
+  showGst: boolean("show_gst").default(true),
+  showItemCodes: boolean("show_item_codes").default(true),
+  showContactDetails: boolean("show_contact_details").default(true),
+  
+  // Terms & Conditions
+  termsAndConditions: text("terms_and_conditions"),
+  specialInstructions: text("special_instructions"),
+  
+  // Branding
+  primaryColor: text("primary_color").default("#1e3a8a"),
+  secondaryColor: text("secondary_color").default("#0369a1"),
+  fontFamily: text("font_family").default("Arial"),
+  
+  // QR Code Settings
+  enableQrCode: boolean("enable_qr_code").default(false),
+  qrCodeContent: text("qr_code_content"), // URL or tracking info
+  
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+// PO Distribution Tracking - track PO sending and acknowledgments
+export const poDistribution = pgTable("po_distribution", {
+  id: serial("id").primaryKey(),
+  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id).notNull(),
+  templateId: integer("template_id").references(() => poTemplates.id),
+  
+  // Distribution Details
+  sentAt: timestamp("sent_at"),
+  sentBy: integer("sent_by").references(() => users.id),
+  sentTo: text("sent_to").array(), // array of email addresses
+  ccEmails: text("cc_emails").array(),
+  bccEmails: text("bcc_emails").array(),
+  
+  // Delivery Method
+  deliveryMethod: text("delivery_method").notNull(), // email, portal, edi, fax
+  emailSubject: text("email_subject"),
+  emailBody: text("email_body"),
+  
+  // File Formats
+  pdfPath: text("pdf_path"),
+  excelPath: text("excel_path"),
+  csvPath: text("csv_path"),
+  
+  // Tracking
+  emailStatus: text("email_status"), // sent, delivered, opened, bounced
+  openedAt: timestamp("opened_at"),
+  downloadedAt: timestamp("downloaded_at"),
+  
+  // Acknowledgment
+  acknowledgedAt: timestamp("acknowledged_at"),
+  acknowledgedBy: text("acknowledged_by"),
+  acknowledgmentMethod: text("acknowledgment_method"), // email, portal, manual
+  acknowledgmentNotes: text("acknowledgment_notes"),
+  
+  // E-Signature
+  requiresSignature: boolean("requires_signature").default(false),
+  signatureStatus: text("signature_status"), // pending, signed, declined
+  signedAt: timestamp("signed_at"),
+  signedBy: text("signed_by"),
+  signatureIp: text("signature_ip"),
+  signatureDocumentId: text("signature_document_id"), // DocuSign/Adobe ID
+  
+  // Reminders
+  remindersSent: integer("reminders_sent").default(0),
+  lastReminderAt: timestamp("last_reminder_at"),
+  nextReminderAt: timestamp("next_reminder_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+// PO Email Log - detailed email tracking
+export const poEmailLog = pgTable("po_email_log", {
+  id: serial("id").primaryKey(),
+  distributionId: integer("distribution_id").references(() => poDistribution.id).notNull(),
+  
+  // Email Details
+  messageId: text("message_id"), // Email service message ID
+  recipientEmail: text("recipient_email").notNull(),
+  recipientType: text("recipient_type"), // to, cc, bcc
+  
+  // Status Tracking
+  status: text("status").notNull(), // queued, sent, delivered, opened, clicked, bounced, failed
+  statusDetails: text("status_details"),
+  
+  // Timestamps
+  queuedAt: timestamp("queued_at"),
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  bouncedAt: timestamp("bounced_at"),
+  failedAt: timestamp("failed_at"),
+  
+  // Tracking Details
+  openCount: integer("open_count").default(0),
+  clickCount: integer("click_count").default(0),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  
+  // Error Handling
+  errorCode: text("error_code"),
+  errorMessage: text("error_message"),
+  retryCount: integer("retry_count").default(0),
+  lastRetryAt: timestamp("last_retry_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+})
+
 // Invoices - supplier invoices and client invoices
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),

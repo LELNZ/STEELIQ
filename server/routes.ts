@@ -9501,6 +9501,249 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PO Distribution Endpoints
+
+  // Send purchase order to supplier
+  app.post("/api/procurement/purchase-orders/:id/send", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      const {
+        to,
+        cc,
+        bcc,
+        subject,
+        body,
+        templateId,
+        deliveryMethod,
+        formats,
+        requireSignature,
+      } = req.body;
+
+      // Get user
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      const userId = user?.id;
+
+      // Generate PDF (placeholder for now)
+      const pdfPath = `/documents/po/${purchaseOrderId}/po-${Date.now()}.pdf`;
+      
+      // Create distribution record (mock for now, would use actual DB)
+      const distribution = {
+        id: Date.now(),
+        purchaseOrderId,
+        templateId,
+        sentAt: new Date(),
+        sentBy: userId,
+        sentTo: to,
+        ccEmails: cc,
+        bccEmails: bcc,
+        deliveryMethod,
+        emailSubject: subject,
+        emailBody: body,
+        pdfPath,
+        emailStatus: 'sent',
+        requiresSignature: requireSignature,
+      };
+
+      // Update PO status to sent
+      await storage.updatePurchaseOrder(purchaseOrderId, { status: 'sent' });
+
+      // Log email (mock for now)
+      const emailLog = {
+        id: Date.now(),
+        distributionId: distribution.id,
+        recipientEmail: to[0],
+        recipientType: 'to',
+        status: 'sent',
+        sentAt: new Date(),
+      };
+
+      res.json({ 
+        success: true, 
+        distribution,
+        message: "Purchase order sent successfully" 
+      });
+    } catch (error) {
+      console.error("Error sending purchase order:", error);
+      res.status(500).json({ error: "Failed to send purchase order" });
+    }
+  });
+
+  // Preview purchase order with template
+  app.get("/api/procurement/purchase-orders/:id/preview", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      const templateId = req.query.template as string;
+
+      // Get PO details
+      const purchaseOrder = await storage.getPurchaseOrderById(purchaseOrderId);
+      if (!purchaseOrder) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+
+      // For now, return a mock PDF URL
+      const previewUrl = `/api/procurement/purchase-orders/${purchaseOrderId}/pdf?template=${templateId}`;
+      res.redirect(previewUrl);
+    } catch (error) {
+      console.error("Error previewing purchase order:", error);
+      res.status(500).json({ error: "Failed to preview purchase order" });
+    }
+  });
+
+  // Generate PDF for purchase order
+  app.get("/api/procurement/purchase-orders/:id/pdf", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      const templateId = req.query.template as string;
+
+      // Get PO details
+      const purchaseOrder = await storage.getPurchaseOrderById(purchaseOrderId);
+      if (!purchaseOrder) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+
+      // Get PO items
+      const items = await storage.getPurchaseOrderItems(purchaseOrderId);
+
+      // Get supplier
+      const supplier = await storage.getSupplierById(purchaseOrder.supplierId);
+
+      // Generate HTML content (simplified for now)
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; }
+            .header { border-bottom: 2px solid #1e3a8a; padding-bottom: 20px; margin-bottom: 30px; }
+            .company { font-size: 24px; font-weight: bold; color: #1e3a8a; }
+            .po-number { font-size: 18px; color: #666; margin-top: 10px; }
+            .supplier-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 30px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            th { background: #1e3a8a; color: white; padding: 10px; text-align: left; }
+            td { padding: 10px; border-bottom: 1px solid #ddd; }
+            .totals { text-align: right; margin-top: 20px; }
+            .total-row { font-size: 18px; font-weight: bold; margin-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="company">Lateral Engineering Limited</div>
+            <div class="po-number">Purchase Order: ${purchaseOrder.poNumber}</div>
+            <div>Date: ${new Date(purchaseOrder.orderDate).toLocaleDateString()}</div>
+          </div>
+          
+          <div class="supplier-info">
+            <h3>Supplier Details</h3>
+            <div><strong>${supplier?.company || 'N/A'}</strong></div>
+            <div>${supplier?.address || ''}</div>
+            <div>${supplier?.email || ''}</div>
+            <div>${supplier?.phone || ''}</div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Description</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map((item: any, index: number) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${item.description}</td>
+                  <td>${item.quantity} ${item.unitOfMeasure || ''}</td>
+                  <td>$${item.unitPrice.toFixed(2)}</td>
+                  <td>$${item.totalPrice.toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="totals">
+            <div>Subtotal: $${(purchaseOrder.subtotal || 0).toFixed(2)}</div>
+            <div>GST (15%): $${(purchaseOrder.gstAmount || 0).toFixed(2)}</div>
+            <div class="total-row">Total: $${(purchaseOrder.totalAmount || 0).toFixed(2)} ${purchaseOrder.currency || 'NZD'}</div>
+          </div>
+          
+          ${purchaseOrder.specialInstructions ? `
+            <div style="margin-top: 40px;">
+              <h3>Special Instructions</h3>
+              <p>${purchaseOrder.specialInstructions}</p>
+            </div>
+          ` : ''}
+        </body>
+        </html>
+      `;
+
+      // Send HTML as response (browser will render as PDF preview)
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ error: "Failed to generate PDF" });
+    }
+  });
+
+  // Get PO distribution history
+  app.get("/api/procurement/purchase-orders/:id/distribution", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      
+      // Mock distribution history for now
+      const distributions = [
+        {
+          id: 1,
+          purchaseOrderId,
+          sentAt: new Date(),
+          sentTo: ["supplier@example.com"],
+          deliveryMethod: "email",
+          emailStatus: "delivered",
+          acknowledgedAt: null,
+        }
+      ];
+      
+      res.json(distributions);
+    } catch (error) {
+      console.error("Error fetching distribution history:", error);
+      res.status(500).json({ error: "Failed to fetch distribution history" });
+    }
+  });
+
+  // Mark PO as acknowledged
+  app.post("/api/procurement/purchase-orders/:id/acknowledge", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      const { acknowledgedBy, acknowledgmentNotes } = req.body;
+      
+      // Update PO status
+      await storage.updatePurchaseOrder(purchaseOrderId, { status: 'acknowledged' });
+      
+      // Mock acknowledgment record
+      const acknowledgment = {
+        id: Date.now(),
+        purchaseOrderId,
+        acknowledgedAt: new Date(),
+        acknowledgedBy,
+        acknowledgmentMethod: 'portal',
+        acknowledgmentNotes,
+      };
+      
+      res.json({ 
+        success: true, 
+        acknowledgment,
+        message: "Purchase order acknowledged" 
+      });
+    } catch (error) {
+      console.error("Error acknowledging purchase order:", error);
+      res.status(500).json({ error: "Failed to acknowledge purchase order" });
+    }
+  });
+
   // Time Tracking Integration - Apply Profile Rates
   app.post("/api/time-clocks/:id/calculate-cost", async (req, res) => {
     try {

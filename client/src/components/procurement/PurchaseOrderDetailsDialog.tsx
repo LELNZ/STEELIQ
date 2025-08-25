@@ -22,6 +22,7 @@ import {
   Send,
   CheckCircle,
 } from "lucide-react";
+import PODistributionDialog from "./PODistributionDialog";
 
 interface PurchaseOrderDetailsDialogProps {
   open: boolean;
@@ -45,6 +46,8 @@ export default function PurchaseOrderDetailsDialog({
   purchaseOrder,
   onStatusChange,
 }: PurchaseOrderDetailsDialogProps) {
+  const [showDistributionDialog, setShowDistributionDialog] = useState(false);
+
   // Fetch PO items
   const { data: items = [], isLoading: itemsLoading } = useQuery({
     queryKey: [`/api/procurement/purchase-orders/${purchaseOrder?.id}/items`],
@@ -66,9 +69,14 @@ export default function PurchaseOrderDetailsDialog({
     console.log("Download PDF for PO:", purchaseOrder.poNumber);
   };
 
+  const handleSendToSupplier = () => {
+    setShowDistributionDialog(true);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -222,7 +230,7 @@ export default function PurchaseOrderDetailsDialog({
               Download PDF
             </Button>
             {purchaseOrder?.status === "draft" && (
-              <Button size="sm">
+              <Button size="sm" onClick={handleSendToSupplier}>
                 <Send className="h-4 w-4 mr-1" />
                 Send to Supplier
               </Button>
@@ -242,5 +250,13 @@ export default function PurchaseOrderDetailsDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* PO Distribution Dialog */}
+    <PODistributionDialog
+      open={showDistributionDialog}
+      onOpenChange={setShowDistributionDialog}
+      purchaseOrder={purchaseOrder}
+    />
+    </>
   );
 }

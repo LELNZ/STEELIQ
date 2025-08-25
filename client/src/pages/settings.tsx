@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Building, Truck, Settings2, TrendingUp, Calculator, Save, RotateCcw, Info } from "lucide-react";
+import { Building, Truck, Settings2, TrendingUp, Calculator, Save, RotateCcw, Info, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import POTemplateSettings from "@/components/settings/POTemplateSettings";
 
 interface OverheadSettings {
   opexMonthly: {
@@ -160,11 +161,12 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="overheads" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overheads">Overhead Configuration</TabsTrigger>
           <TabsTrigger value="margins">Margin Targets</TabsTrigger>
           <TabsTrigger value="modifiers">Project Modifiers</TabsTrigger>
           <TabsTrigger value="summary">Summary & KPIs</TabsTrigger>
+          <TabsTrigger value="po-templates">PO Templates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overheads" className="space-y-6">
@@ -842,6 +844,10 @@ export default function Settings() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="po-templates" className="space-y-6">
+          <POTemplateSettings />
         </TabsContent>
       </Tabs>
     </div>
