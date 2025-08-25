@@ -24,6 +24,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import CreateRequisitionDialog from "@/components/procurement/CreateRequisitionDialog";
 import RequisitionDetailsDialog from "@/components/procurement/RequisitionDetailsDialog";
+import { RejectRequisitionDialog } from "@/components/procurement/RejectRequisitionDialog";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -48,6 +49,8 @@ export default function Procurement() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [createRequisitionOpen, setCreateRequisitionOpen] = useState(false);
   const [selectedRequisitionId, setSelectedRequisitionId] = useState<number | null>(null);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectingRequisition, setRejectingRequisition] = useState<any>(null);
   const { toast } = useToast();
 
   // Fetch real metrics from API
@@ -548,10 +551,8 @@ export default function Procurement() {
                           size="sm" 
                           variant="destructive"
                           onClick={() => {
-                            const reason = prompt("Rejection reason (required):");
-                            if (reason) {
-                              rejectMutation.mutate({ id: req.id, comments: reason });
-                            }
+                            setRejectingRequisition(req);
+                            setRejectDialogOpen(true);
                           }}
                         >
                           Reject
@@ -751,6 +752,24 @@ export default function Procurement() {
           open={!!selectedRequisitionId}
           onOpenChange={(open) => !open && setSelectedRequisitionId(null)}
           requisitionId={selectedRequisitionId}
+        />
+      )}
+
+      {/* Reject Requisition Dialog */}
+      {rejectingRequisition && (
+        <RejectRequisitionDialog
+          open={rejectDialogOpen}
+          onOpenChange={setRejectDialogOpen}
+          requisitionNumber={rejectingRequisition.requisitionNumber}
+          amount={rejectingRequisition.estimatedTotal || 0}
+          onReject={(reason) => {
+            rejectMutation.mutate({ 
+              id: rejectingRequisition.id, 
+              comments: reason 
+            });
+            setRejectDialogOpen(false);
+            setRejectingRequisition(null);
+          }}
         />
       )}
     </div>
