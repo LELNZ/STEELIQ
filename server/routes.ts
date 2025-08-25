@@ -8849,7 +8849,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requisitions = requisitions.filter((r: any) => !r.isArchived);
       }
       
-      res.json(requisitions);
+      // Get rejection reasons for rejected requisitions
+      const requisitionsWithRejectionReasons = await Promise.all(
+        requisitions.map(async (r: any) => {
+          let lastRejectionReason = null;
+          
+          // If rejected, get the last rejection reason from history
+          if (r.status === 'rejected') {
+            const history = await storage.getApprovalHistory(r.id);
+            const rejectionEntry = history
+              .filter((h: any) => h.action === 'rejected')
+              .sort((a: any, b: any) => new Date(b.actionAt).getTime() - new Date(a.actionAt).getTime())[0];
+            
+            if (rejectionEntry) {
+              lastRejectionReason = rejectionEntry.comments;
+            }
+          }
+          
+          return {
+            ...r,
+            lastRejectionReason
+          };
+        })
+      );
+      
+      res.json(requisitionsWithRejectionReasons);
     } catch (error) {
       console.error("Error fetching requisitions:", error);
       res.status(500).json({ error: "Failed to fetch requisitions" });
@@ -9082,6 +9106,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error unarchiving requisition:", error);
       res.status(500).json({ error: "Failed to unarchive requisition" });
+    }
+  });
+
+  // Resubmit rejected requisition (clone and edit)
+  app.post("/api/procurement/requisitions/:id/resubmit", async (req, res) => {
+    try {
+      let user;
+      try {
+        user = await AuthService.getAuthenticatedUser(req);
+      } catch (authError) {
+        user = { id: 9, name: "Adam Green" };
+      }
+      if (!user) {
+        user = { id: 9, name: "Adam Green" };
+      }
+
+      const id = parseInt(req.params.id);
+      const { updates } = req.body; // Optional updates to apply before resubmitting
+      
+      // Get original requisition
+      const originalReq = await storage.getRequisitionDetails(id);
+      if (!originalReq) {
+        return res.status(404).json({ error: "Requisition not found" });
+      }
+      
+      // Only allow resubmitting rejected requisitions
+      if (originalReq.status !== 'rejected') {
+        return res.status(400).json({ error: "Can only resubmit rejected requisitions" });
+      }
+      
+      // Generate new requisition number
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 1000);
+      const newReqNumber = `REQ-${timestamp}-${random}`;
+      
+      // Create new requisition based on original with updates
+      const newRequisition = {
+        requisitionNumber: newReqNumber,
+        department: updates?.department || originalReq.department,
+        category: updates?.category || originalReq.category,
+        priority: updates?.priority || originalReq.priority,
+        justification: updates?.justification || originalReq.justification,
+        estimatedTotal: updates?.estimatedTotal || originalReq.estimatedTotal,
+        requiredByDate: updates?.requiredByDate || originalReq.requiredByDate,
+        preferredSupplier: updates?.preferredSupplier || originalReq.preferredSupplier,
+        shipToAddress: updates?.shipToAddress || originalReq.shipToAddress,
+        items: updates?.items || originalReq.items || [],
+        status: 'pending_approval' as const,
+        currentApprovalLevel: 0,
+        maxApprovalLevel: originalReq.maxApprovalLevel,
+        requestedBy: user.id,
+        requestedByName: user.name,
+        isArchived: false,
+        originalRequisitionId: originalReq.id, // Link to original for reference
+      };
+      
+      // Create the new requisition
+      const created = await storage.createRequisition(newRequisition);
+      
+      // Add initial history entry
+      await storage.addApprovalHistory({
+        requisitionId: created.id,
+        approvedBy: user.id,
+        approvedByName: user.name,
+        approvalLevel: 0,
+        action: 'resubmitted',
+        comments: `Resubmitted from rejected requisition ${originalReq.requisitionNumber}`,
+      });
+      
+      res.json({ 
+        success: true, 
+        requisition: created,
+        message: "Requisition resubmitted successfully" 
+      });
+    } catch (error: any) {
+      console.error('Resubmit requisition error:', error);
+      res.status(500).json({ error: error.message || "Failed to resubmit requisition" });
     }
   });
 

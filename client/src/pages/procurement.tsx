@@ -25,6 +25,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import CreateRequisitionDialog from "@/components/procurement/CreateRequisitionDialog";
 import RequisitionDetailsDialog from "@/components/procurement/RequisitionDetailsDialog";
 import { RejectRequisitionDialog } from "@/components/procurement/RejectRequisitionDialog";
+import { ResubmitRequisitionDialog } from "@/components/procurement/ResubmitRequisitionDialog";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -52,6 +53,8 @@ export default function Procurement() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingRequisition, setRejectingRequisition] = useState<any>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [resubmitDialogOpen, setResubmitDialogOpen] = useState(false);
+  const [resubmittingRequisition, setResubmittingRequisition] = useState<any>(null);
   const { toast } = useToast();
 
   // Fetch real metrics from API
@@ -140,6 +143,29 @@ export default function Procurement() {
       toast({
         title: "Error",
         description: error.message || "Failed to restore requisition",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Resubmit requisition mutation
+  const resubmitMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: number; updates?: any }) => 
+      apiRequest(`/api/procurement/requisitions/${id}/resubmit`, "POST", { updates }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/requisitions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/metrics"] });
+      toast({
+        title: "Success",
+        description: "Requisition resubmitted successfully",
+      });
+      setResubmitDialogOpen(false);
+      setResubmittingRequisition(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to resubmit requisition",
         variant: "destructive",
       });
     },
@@ -534,6 +560,18 @@ export default function Procurement() {
                         >
                           View Details
                         </Button>
+                        {req.status === 'rejected' && !req.isArchived && (
+                          <Button 
+                            size="sm"
+                            variant="default"
+                            onClick={() => {
+                              setResubmittingRequisition(req);
+                              setResubmitDialogOpen(true);
+                            }}
+                          >
+                            Resubmit
+                          </Button>
+                        )}
                         {(req.status === 'approved' || req.status === 'rejected' || req.status === 'cancelled') && !req.isArchived && (
                           <Button 
                             size="sm"
@@ -898,6 +936,21 @@ export default function Procurement() {
             });
             setRejectDialogOpen(false);
             setRejectingRequisition(null);
+          }}
+        />
+      )}
+
+      {/* Resubmit Requisition Dialog */}
+      {resubmittingRequisition && (
+        <ResubmitRequisitionDialog
+          open={resubmitDialogOpen}
+          onOpenChange={setResubmitDialogOpen}
+          requisition={resubmittingRequisition}
+          onResubmit={(updates) => {
+            resubmitMutation.mutate({ 
+              id: resubmittingRequisition.id, 
+              updates 
+            });
           }}
         />
       )}
