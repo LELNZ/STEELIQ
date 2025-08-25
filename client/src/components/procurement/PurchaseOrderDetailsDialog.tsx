@@ -55,10 +55,20 @@ export default function PurchaseOrderDetailsDialog({
   });
 
   // Fetch supplier details
-  const { data: supplier } = useQuery({
-    queryKey: [`/api/suppliers/${purchaseOrder?.supplierId}`],
+  const { data: supplier, isLoading: supplierLoading } = useQuery({
+    queryKey: ['/api/suppliers', purchaseOrder?.supplierId],
+    queryFn: async () => {
+      if (!purchaseOrder?.supplierId) return null;
+      const response = await fetch(`/api/suppliers/${purchaseOrder.supplierId}`);
+      if (!response.ok) throw new Error('Failed to fetch supplier');
+      return response.json();
+    },
     enabled: open && !!purchaseOrder?.supplierId,
   });
+
+  // For now, we'll just display the delivery address as stored
+  // In future, this could be enhanced to link to actual location entities
+  const deliveryLocation = null;
 
   const handlePrint = () => {
     window.print();
@@ -126,15 +136,21 @@ export default function PurchaseOrderDetailsDialog({
             <div className="space-y-3">
               <div>
                 <p className="text-sm text-muted-foreground">Supplier</p>
-                <p className="font-medium">{supplier?.name || `Supplier #${purchaseOrder?.supplierId}`}</p>
-                {supplier?.email && (
-                  <p className="text-xs text-muted-foreground">{supplier.email}</p>
-                )}
-                {supplier?.phone && (
-                  <p className="text-xs text-muted-foreground">{supplier.phone}</p>
-                )}
-                {supplier?.accountManager && (
-                  <p className="text-xs text-muted-foreground">Contact: {supplier.accountManager}</p>
+                {supplierLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <p className="font-medium">{supplier?.name || 'Loading...'}</p>
+                    {supplier?.email && (
+                      <p className="text-xs text-muted-foreground">{supplier.email}</p>
+                    )}
+                    {supplier?.phone && (
+                      <p className="text-xs text-muted-foreground">{supplier.phone}</p>
+                    )}
+                    {supplier?.accountManager && (
+                      <p className="text-xs text-muted-foreground">Contact: {supplier.accountManager}</p>
+                    )}
+                  </>
                 )}
               </div>
               <div>
@@ -142,6 +158,27 @@ export default function PurchaseOrderDetailsDialog({
                 <p className="font-medium">
                   {purchaseOrder?.deliveryAddress || "Main Warehouse"}
                 </p>
+                {/* Display standard company address for known locations */}
+                {(purchaseOrder?.deliveryAddress === "Workshop" || purchaseOrder?.deliveryAddress === "workshop") && (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      107 Harris Road, East Tāmaki
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Auckland 2013, New Zealand
+                    </p>
+                  </>
+                )}
+                {(purchaseOrder?.deliveryAddress === "Main Warehouse" || !purchaseOrder?.deliveryAddress) && (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      107 Harris Road, East Tāmaki
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Auckland 2013, New Zealand
+                    </p>
+                  </>
+                )}
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Payment Terms</p>
