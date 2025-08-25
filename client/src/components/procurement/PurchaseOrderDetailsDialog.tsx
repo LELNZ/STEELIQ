@@ -256,6 +256,10 @@ export default function PurchaseOrderDetailsDialog({
       open={showDistributionDialog}
       onOpenChange={setShowDistributionDialog}
       purchaseOrder={purchaseOrder}
+      onSend={() => {
+        onStatusChange?.(purchaseOrder.id, "sent");
+        setShowDistributionDialog(false);
+      }}
     />
     </>
   );

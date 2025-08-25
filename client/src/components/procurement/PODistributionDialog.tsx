@@ -33,12 +33,14 @@ interface PODistributionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   purchaseOrder: any;
+  onSend?: () => void;
 }
 
 export default function PODistributionDialog({ 
   open, 
   onOpenChange, 
-  purchaseOrder 
+  purchaseOrder,
+  onSend 
 }: PODistributionDialogProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("contact");
@@ -78,7 +80,7 @@ export default function PODistributionDialog({
     if (supplier && purchaseOrder) {
       setPrimaryEmail(supplier.email || "");
       setEmailSubject(`Purchase Order ${purchaseOrder.poNumber} - Lateral Engineering`);
-      setEmailBody(`Dear ${supplier.contactName || "Supplier"},
+      setEmailBody(`Dear ${supplier.contactPerson || supplier.name || "Supplier"},
 
 Please find attached Purchase Order ${purchaseOrder.poNumber} for your review and acknowledgment.
 
@@ -102,6 +104,9 @@ Lateral Engineering Procurement Team`);
         description: "Purchase order sent successfully",
       });
       queryClient.invalidateQueries({ queryKey: [`/api/procurement/purchase-orders`] });
+      if (onSend) {
+        onSend();
+      }
       onOpenChange(false);
     },
     onError: (error: any) => {
@@ -195,14 +200,14 @@ Lateral Engineering Procurement Team`);
                     <Label>Company</Label>
                     <div className="flex items-center gap-2 mt-1">
                       <Building className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{supplier?.company || "N/A"}</span>
+                      <span className="font-medium">{supplier?.name || "N/A"}</span>
                     </div>
                   </div>
                   <div>
                     <Label>Contact Person</Label>
                     <div className="flex items-center gap-2 mt-1">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{supplier?.contactName || "N/A"}</span>
+                      <span className="font-medium">{supplier?.contactPerson || "N/A"}</span>
                     </div>
                   </div>
                   <div>

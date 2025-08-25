@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import ConvertToPODialog from "./ConvertToPODialog";
 import PurchaseOrderDetailsDialog from "./PurchaseOrderDetailsDialog";
+import PODistributionDialog from "./PODistributionDialog";
 
 const poStatusColors = {
   draft: "secondary",
@@ -53,6 +54,8 @@ export default function PurchaseOrdersView() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [selectedRequisition, setSelectedRequisition] = useState<any>(null);
+  const [distributionDialogOpen, setDistributionDialogOpen] = useState(false);
+  const [poToSend, setPOToSend] = useState<any>(null);
   const { toast } = useToast();
 
   // Fetch approved requisitions ready for conversion
@@ -65,6 +68,11 @@ export default function PurchaseOrdersView() {
   // Fetch purchase orders
   const { data: purchaseOrders = [], isLoading: posLoading } = useQuery({
     queryKey: ["/api/procurement/purchase-orders"],
+  });
+
+  // Fetch suppliers
+  const { data: suppliers = [] } = useQuery({
+    queryKey: ["/api/suppliers"],
   });
 
   // Update PO status mutation
@@ -88,10 +96,18 @@ export default function PurchaseOrdersView() {
     },
   });
 
-  const filteredPOs = purchaseOrders.filter((po: any) =>
-    po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    po.supplierId?.toString().includes(searchTerm)
-  );
+  const filteredPOs = purchaseOrders.filter((po: any) => {
+    const supplier = suppliers.find((s: any) => s.id === po.supplierId);
+    const supplierName = supplier?.name || '';
+    return po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplierName.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  // Helper function to get supplier name
+  const getSupplierName = (supplierId: number) => {
+    const supplier = suppliers.find((s: any) => s.id === supplierId);
+    return supplier?.name || `Supplier #${supplierId}`;
+  };
 
   return (
     <div className="space-y-4">
@@ -194,7 +210,7 @@ export default function PurchaseOrdersView() {
                 {filteredPOs.map((po: any) => (
                   <TableRow key={po.id}>
                     <TableCell className="font-medium">{po.poNumber}</TableCell>
-                    <TableCell>Supplier #{po.supplierId}</TableCell>
+                    <TableCell>{getSupplierName(po.supplierId)}</TableCell>
                     <TableCell>
                       {po.orderDate ? format(new Date(po.orderDate), "MMM dd, yyyy") : "-"}
                     </TableCell>
@@ -230,9 +246,10 @@ export default function PurchaseOrdersView() {
                           </DropdownMenuItem>
                           {po.status === "draft" && (
                             <DropdownMenuItem
-                              onClick={() =>
-                                updateStatusMutation.mutate({ id: po.id, status: "sent" })
-                              }
+                              onClick={() => {
+                                setPOToSend(po);
+                                setDistributionDialogOpen(true);
+                              }}
                             >
                               <Send className="mr-2 h-4 w-4" />
                               Send to Supplier
@@ -312,6 +329,20 @@ export default function PurchaseOrdersView() {
                 description: "The PO has been restored to draft status and can be edited.",
               });
             }
+          }}
+        />
+      )}
+
+      {/* PO Distribution Dialog */}
+      {poToSend && (
+        <PODistributionDialog
+          open={distributionDialogOpen}
+          onOpenChange={setDistributionDialogOpen}
+          purchaseOrder={poToSend}
+          onSend={() => {
+            updateStatusMutation.mutate({ id: poToSend.id, status: "sent" });
+            setDistributionDialogOpen(false);
+            setPOToSend(null);
           }}
         />
       )}

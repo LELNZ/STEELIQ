@@ -9576,7 +9576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const templateId = req.query.template as string;
 
       // Get PO details
-      const purchaseOrder = await storage.getPurchaseOrderById(purchaseOrderId);
+      const purchaseOrder = await storage.getPurchaseOrder(purchaseOrderId);
       if (!purchaseOrder) {
         return res.status(404).json({ error: "Purchase order not found" });
       }
@@ -9597,7 +9597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const templateId = req.query.template as string;
 
       // Get PO details
-      const purchaseOrder = await storage.getPurchaseOrderById(purchaseOrderId);
+      const purchaseOrder = await storage.getPurchaseOrder(purchaseOrderId);
       if (!purchaseOrder) {
         return res.status(404).json({ error: "Purchase order not found" });
       }
@@ -9606,7 +9606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const items = await storage.getPurchaseOrderItems(purchaseOrderId);
 
       // Get supplier
-      const supplier = await storage.getSupplierById(purchaseOrder.supplierId);
+      const supplier = await storage.getSupplier(purchaseOrder.supplierId);
 
       // Generate HTML content (simplified for now)
       const html = `
@@ -9635,7 +9635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           <div class="supplier-info">
             <h3>Supplier Details</h3>
-            <div><strong>${supplier?.company || 'N/A'}</strong></div>
+            <div><strong>${supplier?.name || 'N/A'}</strong></div>
             <div>${supplier?.address || ''}</div>
             <div>${supplier?.email || ''}</div>
             <div>${supplier?.phone || ''}</div>
