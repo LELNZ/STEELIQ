@@ -9126,7 +9126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { updates } = req.body; // Optional updates to apply before resubmitting
       
       // Get original requisition
-      const originalReq = await storage.getRequisitionDetails(id);
+      const originalReq = await storage.getRequisition(id);
       if (!originalReq) {
         return res.status(404).json({ error: "Requisition not found" });
       }
@@ -9166,13 +9166,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const created = await storage.createRequisition(newRequisition);
       
       // Add initial history entry
-      await storage.addApprovalHistory({
+      await storage.createApprovalHistory({
         requisitionId: created.id,
-        approvedBy: user.id,
-        approvedByName: user.name,
+        approverId: user.id,
         approvalLevel: 0,
         action: 'resubmitted',
         comments: `Resubmitted from rejected requisition ${originalReq.requisitionNumber}`,
+        actionAt: new Date()
       });
       
       res.json({ 
@@ -9247,15 +9247,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get various metrics for the dashboard
       const pendingRequisitions = await storage.getRequisitions({ status: 'pending_approval' });
       const approvedRequisitions = await storage.getRequisitions({ status: 'approved' });
+      const purchaseOrders = await storage.getPurchaseOrders();
       
       // Calculate monthly spend (simplified for now)
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
       
+      const activePOs = purchaseOrders.filter(po => 
+        ['sent', 'acknowledged', 'partial'].includes(po.status)
+      );
+      
       const metrics = {
         pendingApprovals: pendingRequisitions.length,
-        activePOs: 0, // Will be implemented with PO functionality
+        activePOs: activePOs.length,
         monthlySpend: 0, // Will be calculated from actual POs
         savingsThisMonth: 0, // Will be calculated from RFQ savings
         pendingRequisitions: pendingRequisitions.length,
@@ -9284,6 +9289,215 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching categories:", error);
       res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
+  // ============================================
+  // PURCHASE ORDERS ROUTES
+  // ============================================
+  
+  // Get all purchase orders
+  app.get("/api/procurement/purchase-orders", async (req, res) => {
+    try {
+      const { status, supplierId, jobId } = req.query;
+      const filters: any = {};
+      
+      if (status) filters.status = status as string;
+      if (supplierId) filters.supplierId = parseInt(supplierId as string);
+      if (jobId) filters.jobId = parseInt(jobId as string);
+      
+      const purchaseOrders = await storage.getPurchaseOrders(filters);
+      res.json(purchaseOrders);
+    } catch (error) {
+      console.error("Error fetching purchase orders:", error);
+      res.status(500).json({ error: "Failed to fetch purchase orders" });
+    }
+  });
+
+  // Get single purchase order
+  app.get("/api/procurement/purchase-orders/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const purchaseOrder = await storage.getPurchaseOrder(id);
+      
+      if (!purchaseOrder) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+      
+      res.json(purchaseOrder);
+    } catch (error) {
+      console.error("Error fetching purchase order:", error);
+      res.status(500).json({ error: "Failed to fetch purchase order" });
+    }
+  });
+
+  // Get purchase order items
+  app.get("/api/procurement/purchase-orders/:id/items", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const items = await storage.getPurchaseOrderItems(id);
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching purchase order items:", error);
+      res.status(500).json({ error: "Failed to fetch purchase order items" });
+    }
+  });
+
+  // Convert approved requisition to Purchase Order
+  app.post("/api/procurement/requisitions/:id/convert-to-po", async (req, res) => {
+    try {
+      // Get user
+      let user;
+      try {
+        user = await AuthService.getAuthenticatedUser(req);
+      } catch (authError) {
+        user = { id: 9, name: "Adam Green" };
+      }
+      if (!user) {
+        user = { id: 9, name: "Adam Green" };
+      }
+
+      const requisitionId = parseInt(req.params.id);
+      const { supplierId } = req.body;
+      
+      if (!supplierId) {
+        return res.status(400).json({ error: "Supplier ID is required" });
+      }
+      
+      // Get requisition to verify it's approved
+      const requisition = await storage.getRequisition(requisitionId);
+      if (!requisition) {
+        return res.status(404).json({ error: "Requisition not found" });
+      }
+      
+      if (requisition.status !== 'approved') {
+        return res.status(400).json({ error: "Only approved requisitions can be converted to PO" });
+      }
+      
+      // Convert to PO
+      const purchaseOrder = await storage.convertRequisitionToPO(requisitionId, supplierId, user.id);
+      
+      res.json({
+        success: true,
+        purchaseOrder,
+        message: "Requisition successfully converted to Purchase Order"
+      });
+    } catch (error: any) {
+      console.error("Error converting requisition to PO:", error);
+      res.status(500).json({ error: error.message || "Failed to convert requisition to PO" });
+    }
+  });
+
+  // Create new purchase order
+  app.post("/api/procurement/purchase-orders", async (req, res) => {
+    try {
+      // Get user
+      let user;
+      try {
+        user = await AuthService.getAuthenticatedUser(req);
+      } catch (authError) {
+        user = { id: 9, name: "Adam Green" };
+      }
+      if (!user) {
+        user = { id: 9, name: "Adam Green" };
+      }
+
+      const { items, ...orderData } = req.body;
+      
+      // Generate PO number
+      const poNumber = await storage.generatePONumber();
+      
+      // Create the purchase order
+      const purchaseOrder = await storage.createPurchaseOrder({
+        ...orderData,
+        poNumber,
+        createdBy: user.id,
+        status: 'draft',
+      });
+      
+      // Create items if provided
+      if (items && items.length > 0) {
+        for (const item of items) {
+          await storage.createPurchaseOrderItem({
+            ...item,
+            purchaseOrderId: purchaseOrder.id,
+          });
+        }
+      }
+      
+      res.json(purchaseOrder);
+    } catch (error: any) {
+      console.error("Error creating purchase order:", error);
+      res.status(500).json({ error: error.message || "Failed to create purchase order" });
+    }
+  });
+
+  // Update purchase order
+  app.patch("/api/procurement/purchase-orders/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updatePurchaseOrder(id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating purchase order:", error);
+      res.status(500).json({ error: "Failed to update purchase order" });
+    }
+  });
+
+  // Update purchase order status
+  app.patch("/api/procurement/purchase-orders/:id/status", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!status) {
+        return res.status(400).json({ error: "Status is required" });
+      }
+      
+      const updated = await storage.updatePurchaseOrder(id, { status });
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating purchase order status:", error);
+      res.status(500).json({ error: "Failed to update purchase order status" });
+    }
+  });
+
+  // Add purchase order item
+  app.post("/api/procurement/purchase-orders/:id/items", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      const item = await storage.createPurchaseOrderItem({
+        ...req.body,
+        purchaseOrderId,
+      });
+      res.json(item);
+    } catch (error) {
+      console.error("Error adding purchase order item:", error);
+      res.status(500).json({ error: "Failed to add purchase order item" });
+    }
+  });
+
+  // Update purchase order item
+  app.patch("/api/procurement/purchase-order-items/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updatePurchaseOrderItem(id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating purchase order item:", error);
+      res.status(500).json({ error: "Failed to update purchase order item" });
+    }
+  });
+
+  // Delete purchase order item
+  app.delete("/api/procurement/purchase-order-items/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deletePurchaseOrderItem(id);
+      res.json({ success: true, message: "Item deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting purchase order item:", error);
+      res.status(500).json({ error: "Failed to delete purchase order item" });
     }
   });
 

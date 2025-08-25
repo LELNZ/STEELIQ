@@ -6,6 +6,7 @@ import {
   estimationProjects, estimationData, estimationMaterials, estimationLabor, estimationEquipment, estimationConsumables,
   teamMembers, archivedEmployees, employeeAuditLog,
   purchaseRequisitions, requisitionItems, approvalRules, approvalHistory, rfqRequests, rfqResponses, goodsReceipts, goodsReceiptItems,
+  purchaseOrders, purchaseOrderItems,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
@@ -22,6 +23,7 @@ import {
   type ApprovalRule, type InsertApprovalRule, type ApprovalHistory, type InsertApprovalHistory,
   type RfqRequest, type InsertRfqRequest, type RfqResponse, type InsertRfqResponse,
   type GoodsReceipt, type InsertGoodsReceipt, type GoodsReceiptItem, type InsertGoodsReceiptItem,
+  type PurchaseOrder, type InsertPurchaseOrder, type PurchaseOrderItem, type InsertPurchaseOrderItem,
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView
 } from "@shared/schema";
@@ -230,6 +232,20 @@ export interface IStorage {
   getPendingApprovals(approverId: number): Promise<PurchaseRequisition[]>;
   approveRequisition(requisitionId: number, approverId: number, comments?: string): Promise<void>;
   rejectRequisition(requisitionId: number, approverId: number, comments: string): Promise<void>;
+  
+  // Procurement - Purchase Orders
+  getPurchaseOrders(filters?: { status?: string; supplierId?: number; jobId?: number }): Promise<PurchaseOrder[]>;
+  getPurchaseOrder(id: number): Promise<PurchaseOrder | undefined>;
+  createPurchaseOrder(order: InsertPurchaseOrder): Promise<PurchaseOrder>;
+  updatePurchaseOrder(id: number, order: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder>;
+  generatePONumber(): Promise<string>;
+  convertRequisitionToPO(requisitionId: number, supplierId: number, userId: number): Promise<PurchaseOrder>;
+  
+  // Procurement - Purchase Order Items
+  getPurchaseOrderItems(purchaseOrderId: number): Promise<PurchaseOrderItem[]>;
+  createPurchaseOrderItem(item: InsertPurchaseOrderItem): Promise<PurchaseOrderItem>;
+  updatePurchaseOrderItem(id: number, item: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem>;
+  deletePurchaseOrderItem(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1609,6 +1625,128 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(purchaseRequisitions)
       .where(eq(purchaseRequisitions.isArchived, true))
       .orderBy(desc(purchaseRequisitions.archivedAt));
+  }
+
+  // Purchase Orders Implementation
+  async getPurchaseOrders(filters?: { status?: string; supplierId?: number; jobId?: number }): Promise<PurchaseOrder[]> {
+    let query = db.select().from(purchaseOrders);
+    
+    if (filters) {
+      const conditions = [];
+      if (filters.status) conditions.push(eq(purchaseOrders.status, filters.status));
+      if (filters.supplierId) conditions.push(eq(purchaseOrders.supplierId, filters.supplierId));
+      if (filters.jobId) conditions.push(eq(purchaseOrders.jobId, filters.jobId));
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+    }
+    
+    return await query.orderBy(desc(purchaseOrders.createdAt));
+  }
+
+  async getPurchaseOrder(id: number): Promise<PurchaseOrder | undefined> {
+    const [order] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, id));
+    return order || undefined;
+  }
+
+  async createPurchaseOrder(order: InsertPurchaseOrder): Promise<PurchaseOrder> {
+    const [newOrder] = await db.insert(purchaseOrders).values(order).returning();
+    return newOrder;
+  }
+
+  async updatePurchaseOrder(id: number, order: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder> {
+    const [updated] = await db.update(purchaseOrders)
+      .set({ ...order, updatedAt: new Date() })
+      .where(eq(purchaseOrders.id, id))
+      .returning();
+    return updated;
+  }
+
+  async generatePONumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const count = await db.select({ count: sql<number>`COUNT(*)` })
+      .from(purchaseOrders)
+      .where(sql`EXTRACT(YEAR FROM created_at) = ${year}`);
+    
+    const nextNumber = (count[0].count || 0) + 1;
+    return `PO-${year}-${String(nextNumber).padStart(4, '0')}`;
+  }
+
+  async convertRequisitionToPO(requisitionId: number, supplierId: number, userId: number): Promise<PurchaseOrder> {
+    // Get the requisition and its items
+    const requisition = await this.getRequisition(requisitionId);
+    if (!requisition) throw new Error('Requisition not found');
+    
+    const requisitionItems = await this.getRequisitionItems(requisitionId);
+    
+    // Generate PO number
+    const poNumber = await this.generatePONumber();
+    
+    // Create the Purchase Order
+    const purchaseOrder = await this.createPurchaseOrder({
+      poNumber,
+      supplierId,
+      jobId: requisition.jobId,
+      status: 'draft',
+      orderDate: new Date(),
+      requestedDeliveryDate: requisition.requiredByDate,
+      subtotal: requisition.estimatedTotal,
+      gstAmount: requisition.estimatedTotal ? (parseFloat(requisition.estimatedTotal as any) * 0.15) : 0,
+      totalAmount: requisition.estimatedTotal ? (parseFloat(requisition.estimatedTotal as any) * 1.15) : 0,
+      currency: requisition.currency || 'NZD',
+      deliveryAddress: requisition.deliveryLocation,
+      createdBy: userId,
+    });
+    
+    // Create PO items from requisition items
+    for (const item of requisitionItems) {
+      await this.createPurchaseOrderItem({
+        purchaseOrderId: purchaseOrder.id,
+        materialId: item.materialId,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.estimatedUnitPrice || 0,
+        lineTotal: item.estimatedTotal || 0,
+        unit: item.unit || 'each',
+        deliveryDate: item.requiredByDate,
+        notes: item.notes,
+      });
+    }
+    
+    // Update the requisition to mark it as converted
+    await this.updateRequisition(requisitionId, {
+      status: 'converted_to_po',
+      convertedToPoId: purchaseOrder.id,
+      convertedAt: new Date(),
+      convertedBy: userId,
+    });
+    
+    return purchaseOrder;
+  }
+
+  // Purchase Order Items Implementation
+  async getPurchaseOrderItems(purchaseOrderId: number): Promise<PurchaseOrderItem[]> {
+    return await db.select().from(purchaseOrderItems)
+      .where(eq(purchaseOrderItems.purchaseOrderId, purchaseOrderId))
+      .orderBy(asc(purchaseOrderItems.id));
+  }
+
+  async createPurchaseOrderItem(item: InsertPurchaseOrderItem): Promise<PurchaseOrderItem> {
+    const [newItem] = await db.insert(purchaseOrderItems).values(item).returning();
+    return newItem;
+  }
+
+  async updatePurchaseOrderItem(id: number, item: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem> {
+    const [updated] = await db.update(purchaseOrderItems)
+      .set(item)
+      .where(eq(purchaseOrderItems.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deletePurchaseOrderItem(id: number): Promise<void> {
+    await db.delete(purchaseOrderItems).where(eq(purchaseOrderItems.id, id));
   }
 }
 
