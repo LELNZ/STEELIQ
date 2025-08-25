@@ -76,7 +76,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   const contactsQuery = useQuery({
     queryKey: [apiEndpoint, entityId],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/${apiEndpoint}?${queryParam}=${entityId}`);
+      const response = await apiRequest(`/api/${apiEndpoint}?${queryParam}=${entityId}`, "GET");
       return Array.isArray(response) ? response : [];
     },
     enabled: !!entityId
@@ -100,7 +100,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
         contactData.clientId = entityId;
       }
       
-      return apiRequest("POST", `/api/${apiEndpoint}`, contactData);
+      return apiRequest(`/api/${apiEndpoint}`, "POST", contactData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [apiEndpoint, entityId] });
@@ -120,7 +120,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
   // Update contact mutation
   const updateContactMutation = useMutation({
     mutationFn: async (contactData: any) => {
-      return apiRequest("PATCH", `/api/${apiEndpoint}/${contactData.id}`, contactData);
+      return apiRequest(`/api/${apiEndpoint}/${contactData.id}`, "PATCH", contactData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [apiEndpoint, entityId] });
@@ -302,7 +302,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
     mutationFn: async (contactId: number) => {
       const endpoint = entityType === "supplier" ? "supplier-contacts" : "client-contacts";
       console.log(`Making API call to: /api/${endpoint}/${contactId}/set-primary`);
-      return await apiRequest("PATCH", `/api/${endpoint}/${contactId}/set-primary`);
+      return await apiRequest(`/api/${endpoint}/${contactId}/set-primary`, "PATCH");
     },
     onSuccess: async (data, contactId) => {
       // Refresh contacts list

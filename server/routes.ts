@@ -674,6 +674,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/suppliers/:id", async (req, res) => {
+    try {
+      const supplierId = parseInt(req.params.id);
+      const supplier = await storage.getSupplier(supplierId);
+      if (!supplier) {
+        return res.status(404).json({ error: "Supplier not found" });
+      }
+      res.json(supplier);
+    } catch (error) {
+      console.error("Error fetching supplier:", error);
+      res.status(500).json({ error: "Failed to fetch supplier" });
+    }
+  });
+
   app.post("/api/suppliers", async (req, res) => {
     try {
       const supplierData = insertSupplierSchema.parse(req.body);
