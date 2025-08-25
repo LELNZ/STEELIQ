@@ -1008,11 +1008,14 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
   description: text("description").notNull(),
   quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  lineTotal: decimal("line_total", { precision: 10, scale: 2 }).notNull(),
-  receivedQuantity: decimal("received_quantity", { precision: 10, scale: 2 }).default("0"),
-  unit: text("unit").default("m"), // m, kg, each, etc.
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  unitOfMeasure: text("unit_of_measure").default("meter"), // m, kg, each, etc.
   deliveryDate: timestamp("delivery_date"),
+  receivedQuantity: decimal("received_quantity", { precision: 10, scale: 2 }).default("0"),
+  status: text("status").default("ordered"),
   notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  lineTotal: decimal("line_total", { precision: 10, scale: 2 }),
 })
 
 // Invoices - supplier invoices and client invoices

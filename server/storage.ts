@@ -1665,12 +1665,26 @@ export class DatabaseStorage implements IStorage {
 
   async generatePONumber(): Promise<string> {
     const year = new Date().getFullYear();
-    const count = await db.select({ count: sql<number>`COUNT(*)` })
-      .from(purchaseOrders)
-      .where(sql`EXTRACT(YEAR FROM created_at) = ${year}`);
     
-    const nextNumber = (count[0].count || 0) + 1;
-    return `PO-${year}-${String(nextNumber).padStart(4, '0')}`;
+    // Get the highest PO number for this year
+    const latestPO = await db.select({ poNumber: purchaseOrders.poNumber })
+      .from(purchaseOrders)
+      .where(sql`po_number LIKE ${`PO-${year}-%`}`)
+      .orderBy(sql`po_number DESC`)
+      .limit(1);
+    
+    let nextNumber = 1;
+    if (latestPO.length > 0 && latestPO[0].poNumber) {
+      // Extract the number from the last PO (format: PO-YYYY-NNNN)
+      const match = latestPO[0].poNumber.match(/PO-\d{4}-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+    
+    // Format with 4 digits but increase if needed
+    const paddedNumber = String(nextNumber).padStart(4, '0');
+    return `PO-${year}-${paddedNumber}`;
   }
 
   async convertRequisitionToPO(requisitionId: number, supplierId: number, userId: number): Promise<PurchaseOrder> {
@@ -1701,19 +1715,14 @@ export class DatabaseStorage implements IStorage {
     
     // Create PO items from requisition items
     for (const item of requisitionItems) {
-      const unitPrice = item.estimatedUnitPrice || 0;
-      const quantity = item.quantity || 0;
-      const lineTotal = parseFloat(unitPrice as any) * parseFloat(quantity as any);
-      
-      await db.insert(purchaseOrderItems).values({
+      await this.createPurchaseOrderItem({
         purchaseOrderId: purchaseOrder.id,
         materialId: item.materialId,
         description: item.description,
         quantity: item.quantity,
-        unitPrice: unitPrice,
-        lineTotal: lineTotal,
-        receivedQuantity: 0,
-        unit: item.unit || 'each',
+        unitPrice: item.estimatedUnitPrice || 0,
+        totalPrice: item.estimatedTotal || 0,
+        unitOfMeasure: item.unit || 'each',
         deliveryDate: item.requiredByDate,
         notes: item.notes,
       });
@@ -1739,13 +1748,21 @@ export class DatabaseStorage implements IStorage {
 
   async createPurchaseOrderItem(item: InsertPurchaseOrderItem): Promise<PurchaseOrderItem> {
     // Ensure lineTotal is calculated if not provided
-    const lineTotal = item.lineTotal || (parseFloat(item.unitPrice as any) * parseFloat(item.quantity as any));
+    const calculatedTotal = item.lineTotal || item.totalPrice || (parseFloat(item.unitPrice as any) * parseFloat(item.quantity as any));
     
     const [newItem] = await db.insert(purchaseOrderItems).values({
-      ...item,
-      lineTotal: lineTotal,
+      purchaseOrderId: item.purchaseOrderId,
+      materialId: item.materialId,
+      description: item.description,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: calculatedTotal,
+      unitOfMeasure: item.unitOfMeasure || 'each',
+      deliveryDate: item.deliveryDate,
       receivedQuantity: item.receivedQuantity || 0,
-      unit: item.unit || 'each',
+      status: item.status || 'ordered',
+      notes: item.notes,
+      lineTotal: calculatedTotal,
     }).returning();
     return newItem;
   }
