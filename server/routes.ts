@@ -8832,14 +8832,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all requisitions with filters
   app.get("/api/procurement/requisitions", async (req, res) => {
     try {
-      const { status, department, requestedBy } = req.query;
+      const { status, department, requestedBy, includeArchived, archivedOnly } = req.query;
       const filters: any = {};
       
       if (status) filters.status = status as string;
       if (department) filters.department = department as string;
       if (requestedBy) filters.requestedBy = parseInt(requestedBy as string);
       
-      const requisitions = await storage.getRequisitions(filters);
+      let requisitions = await storage.getRequisitions(filters);
+      
+      // Handle archive filtering
+      if (archivedOnly === 'true') {
+        requisitions = await storage.getArchivedRequisitions();
+      } else if (includeArchived !== 'true') {
+        // Filter out archived requisitions by default
+        requisitions = requisitions.filter((r: any) => !r.isArchived);
+      }
+      
       res.json(requisitions);
     } catch (error) {
       console.error("Error fetching requisitions:", error);
@@ -9039,6 +9048,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error rejecting requisition:", error);
       res.status(500).json({ error: "Failed to reject requisition" });
+    }
+  });
+
+  // Archive requisition
+  app.post("/api/procurement/requisitions/:id/archive", async (req, res) => {
+    try {
+      let user;
+      try {
+        user = await AuthService.getAuthenticatedUser(req);
+      } catch (authError) {
+        user = { id: 9, name: "Adam Green" };
+      }
+      if (!user) {
+        user = { id: 9, name: "Adam Green" };
+      }
+
+      const id = parseInt(req.params.id);
+      await storage.archiveRequisition(id, user.id);
+      res.json({ success: true, message: "Requisition archived" });
+    } catch (error) {
+      console.error("Error archiving requisition:", error);
+      res.status(500).json({ error: "Failed to archive requisition" });
+    }
+  });
+
+  // Unarchive requisition
+  app.post("/api/procurement/requisitions/:id/unarchive", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.unarchiveRequisition(id);
+      res.json({ success: true, message: "Requisition unarchived" });
+    } catch (error) {
+      console.error("Error unarchiving requisition:", error);
+      res.status(500).json({ error: "Failed to unarchive requisition" });
     }
   });
 

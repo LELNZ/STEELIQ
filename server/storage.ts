@@ -1519,10 +1519,13 @@ export class DatabaseStorage implements IStorage {
     const requisition = await this.getRequisition(requisitionId);
     if (!requisition) throw new Error('Requisition not found');
 
+    // Check if approver is CEO/Owner (Adam Green - ID 9) - can approve at any level
+    const isCEO = approverId === 9;
+    
     const currentLevel = requisition.currentApprovalLevel || 0;
-    const nextLevel = currentLevel + 1;
+    const nextLevel = isCEO ? (requisition.maxApprovalLevel || 1) : currentLevel + 1;
 
-    console.log(`Approving requisition ${requisitionId}: Level ${currentLevel} -> ${nextLevel} (max: ${requisition.maxApprovalLevel})`);
+    console.log(`Approving requisition ${requisitionId}: Level ${currentLevel} -> ${nextLevel} (max: ${requisition.maxApprovalLevel}) ${isCEO ? '(CEO approval - skipping to final level)' : ''}`);
 
     // Record approval in history
     try {
@@ -1577,6 +1580,35 @@ export class DatabaseStorage implements IStorage {
       status: 'rejected',
       approvalNotes: comments,
     });
+  }
+
+  // Archive management
+  async archiveRequisition(requisitionId: number, archiverId: number): Promise<void> {
+    await db.update(purchaseRequisitions)
+      .set({
+        isArchived: true,
+        archivedAt: new Date(),
+        archivedBy: archiverId,
+        updatedAt: new Date(),
+      })
+      .where(eq(purchaseRequisitions.id, requisitionId));
+  }
+
+  async unarchiveRequisition(requisitionId: number): Promise<void> {
+    await db.update(purchaseRequisitions)
+      .set({
+        isArchived: false,
+        archivedAt: null,
+        archivedBy: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(purchaseRequisitions.id, requisitionId));
+  }
+
+  async getArchivedRequisitions(): Promise<PurchaseRequisition[]> {
+    return await db.select().from(purchaseRequisitions)
+      .where(eq(purchaseRequisitions.isArchived, true))
+      .orderBy(desc(purchaseRequisitions.archivedAt));
   }
 }
 

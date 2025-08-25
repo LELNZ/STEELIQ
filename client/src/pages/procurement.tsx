@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,6 @@ import {
   Truck
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { format } from "date-fns";
 import CreateRequisitionDialog from "@/components/procurement/CreateRequisitionDialog";
 import RequisitionDetailsDialog from "@/components/procurement/RequisitionDetailsDialog";
 import { RejectRequisitionDialog } from "@/components/procurement/RejectRequisitionDialog";
@@ -51,6 +51,7 @@ export default function Procurement() {
   const [selectedRequisitionId, setSelectedRequisitionId] = useState<number | null>(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingRequisition, setRejectingRequisition] = useState<any>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const { toast } = useToast();
 
   // Fetch real metrics from API
@@ -65,9 +66,15 @@ export default function Procurement() {
     queryKey: ["/api/procurement/metrics"],
   });
 
-  // Fetch requisitions
+  // Fetch requisitions (with archive filter)
   const { data: requisitions = [], isLoading: requisitionsLoading } = useQuery({
-    queryKey: ["/api/procurement/requisitions"],
+    queryKey: ["/api/procurement/requisitions", showArchived ? "archived" : "active"],
+    queryFn: async () => {
+      const params = showArchived ? "?archivedOnly=true" : "";
+      const response = await fetch(`/api/procurement/requisitions${params}`);
+      if (!response.ok) throw new Error("Failed to fetch requisitions");
+      return response.json();
+    },
   });
 
   // Fetch pending approvals for current user
@@ -97,6 +104,47 @@ export default function Procurement() {
     },
   });
 
+  // Archive requisition mutation
+  const archiveMutation = useMutation({
+    mutationFn: (id: number) => 
+      apiRequest(`/api/procurement/requisitions/${id}/archive`, "POST"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/requisitions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/metrics"] });
+      toast({
+        title: "Success",
+        description: "Requisition archived successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to archive requisition",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Unarchive requisition mutation
+  const unarchiveMutation = useMutation({
+    mutationFn: (id: number) => 
+      apiRequest(`/api/procurement/requisitions/${id}/unarchive`, "POST"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/requisitions"] });
+      toast({
+        title: "Success",
+        description: "Requisition restored successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to restore requisition",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Reject requisition mutation
   const rejectMutation = useMutation({
     mutationFn: ({ id, comments }: { id: number; comments: string }) => 
@@ -119,12 +167,16 @@ export default function Procurement() {
     },
   });
 
-  // Filter requisitions based on search
-  const filteredRequisitions = requisitions.filter((req: any) => 
-    req.requisitionNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    req.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    req.category?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter requisitions based on search and archive status
+  const filteredRequisitions = requisitions.filter((req: any) => {
+    // Filter out archived items unless we're on the archived tab
+    if (activeTab !== "archived" && req.isArchived) return false;
+    
+    // Apply search filter
+    return req.requisitionNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.category?.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="container mx-auto p-4">
@@ -200,7 +252,11 @@ export default function Procurement() {
       </div>
 
       {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(value) => {
+        setActiveTab(value);
+        // Show archived items when switching to archived tab
+        setShowArchived(value === "archived");
+      }}>
         <div className="flex items-center justify-between mb-4">
           <TabsList>
             <TabsTrigger value="dashboard">Overview</TabsTrigger>
@@ -223,6 +279,7 @@ export default function Procurement() {
             <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
             <TabsTrigger value="rfq">RFQs</TabsTrigger>
             <TabsTrigger value="receiving">Receiving</TabsTrigger>
+            <TabsTrigger value="archived">Archived</TabsTrigger>
           </TabsList>
 
           <div className="flex gap-2">
@@ -477,6 +534,15 @@ export default function Procurement() {
                         >
                           View Details
                         </Button>
+                        {(req.status === 'approved' || req.status === 'rejected' || req.status === 'cancelled') && !req.isArchived && (
+                          <Button 
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => archiveMutation.mutate(req.id)}
+                          >
+                            Archive
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))
@@ -734,6 +800,69 @@ export default function Procurement() {
                     <li>• Mill certificate attachment and verification</li>
                   </ul>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Archived Tab */}
+        <TabsContent value="archived" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Archived Requisitions</CardTitle>
+              <CardDescription>View archived purchase requisitions and restore if needed</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {requisitionsLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading archived requisitions...</p>
+                ) : requisitions.filter((r: any) => r.isArchived).length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No archived requisitions</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Approved and rejected requisitions can be archived to keep your list organized
+                    </p>
+                  </div>
+                ) : (
+                  requisitions.filter((r: any) => r.isArchived).map((req: any) => (
+                    <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium">{req.requisitionNumber}</span>
+                          <Badge variant={statusColors[req.status as keyof typeof statusColors]} className="text-xs">
+                            {req.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {req.department} Department • {req.category}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Archived on {req.archivedAt ? format(new Date(req.archivedAt), "MMM dd, yyyy") : "N/A"}
+                        </p>
+                      </div>
+                      <div className="text-right mr-4">
+                        <p className="font-semibold">${(req.estimatedTotal || 0).toLocaleString()}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setSelectedRequisitionId(req.id)}
+                        >
+                          View
+                        </Button>
+                        <Button 
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => unarchiveMutation.mutate(req.id)}
+                        >
+                          Restore
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
