@@ -56,6 +56,7 @@ export default function Procurement() {
   const [showArchived, setShowArchived] = useState(false);
   const [resubmitDialogOpen, setResubmitDialogOpen] = useState(false);
   const [resubmittingRequisition, setResubmittingRequisition] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState("active");
   const { toast } = useToast();
 
   // Fetch real metrics from API
@@ -194,10 +195,21 @@ export default function Procurement() {
     },
   });
 
-  // Filter requisitions based on search and archive status
+  // Filter requisitions based on search, archive status, and status filter
   const filteredRequisitions = requisitions.filter((req: any) => {
     // Filter out archived items unless we're on the archived tab
     if (activeTab !== "archived" && req.isArchived) return false;
+    
+    // Apply status filter
+    if (statusFilter !== "all") {
+      if (statusFilter === "active") {
+        if (!["draft", "pending_approval", "approved"].includes(req.status)) return false;
+      } else if (statusFilter === "completed") {
+        if (!["converted_to_po", "rejected", "cancelled"].includes(req.status)) return false;
+      } else if (statusFilter !== req.status) {
+        return false;
+      }
+    }
     
     // Apply search filter
     return req.requisitionNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -505,6 +517,48 @@ export default function Procurement() {
                   </Button>
                 </div>
               </div>
+              {/* Status Filter Buttons */}
+              <div className="flex gap-2 mt-4">
+                <Button 
+                  variant={statusFilter === "all" ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setStatusFilter("all")}
+                >
+                  All ({requisitions.length})
+                </Button>
+                <Button 
+                  variant={statusFilter === "active" ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setStatusFilter("active")}
+                >
+                  Active ({requisitions.filter((r: any) => 
+                    ["draft", "pending_approval", "approved"].includes(r.status)
+                  ).length})
+                </Button>
+                <Button 
+                  variant={statusFilter === "pending_approval" ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setStatusFilter("pending_approval")}
+                >
+                  Pending ({requisitions.filter((r: any) => r.status === "pending_approval").length})
+                </Button>
+                <Button 
+                  variant={statusFilter === "approved" ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setStatusFilter("approved")}
+                >
+                  Approved ({requisitions.filter((r: any) => r.status === "approved").length})
+                </Button>
+                <Button 
+                  variant={statusFilter === "completed" ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setStatusFilter("completed")}
+                >
+                  Completed ({requisitions.filter((r: any) => 
+                    ["converted_to_po", "rejected", "cancelled"].includes(r.status)
+                  ).length})
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -524,7 +578,13 @@ export default function Procurement() {
                   </div>
                 ) : (
                   filteredRequisitions.map((req: any) => (
-                    <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                    <div key={req.id} className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${
+                      req.status === 'converted_to_po' ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' :
+                      req.status === 'rejected' ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' :
+                      req.status === 'pending_approval' ? 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800' :
+                      req.status === 'approved' ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' :
+                      'hover:bg-accent/50'
+                    }`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium">{req.requisitionNumber}</span>
@@ -534,6 +594,11 @@ export default function Procurement() {
                           <Badge variant={statusColors[req.status as keyof typeof statusColors]} className="text-xs">
                             {req.status.replace(/_/g, " ")}
                           </Badge>
+                          {req.poNumber && (
+                            <Badge variant="success" className="text-xs">
+                              PO: {req.poNumber}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {req.department} Department • {req.category}
@@ -541,6 +606,11 @@ export default function Procurement() {
                         <p className="text-xs text-muted-foreground mt-1">
                           {req.justification?.substring(0, 100)}...
                         </p>
+                        {req.status === 'converted_to_po' && req.convertedDate && (
+                          <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                            Converted to PO on {format(new Date(req.convertedDate), "MMM dd, yyyy")}
+                          </p>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-lg">${(req.estimatedTotal || 0).toLocaleString()}</p>
@@ -553,7 +623,7 @@ export default function Procurement() {
                           </p>
                         )}
                       </div>
-                      <div className="ml-4">
+                      <div className="ml-4 flex flex-col gap-2">
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -561,6 +631,16 @@ export default function Procurement() {
                         >
                           View Details
                         </Button>
+                        {req.status === 'approved' && !req.isArchived && (
+                          <Button 
+                            size="sm"
+                            variant="default"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => setSelectedRequisitionId(req.id)}
+                          >
+                            Convert to PO
+                          </Button>
+                        )}
                         {req.status === 'rejected' && !req.isArchived && (
                           <Button 
                             size="sm"
@@ -573,7 +653,7 @@ export default function Procurement() {
                             Resubmit
                           </Button>
                         )}
-                        {(req.status === 'approved' || req.status === 'rejected' || req.status === 'cancelled') && !req.isArchived && (
+                        {(req.status === 'converted_to_po' || req.status === 'rejected' || req.status === 'cancelled') && !req.isArchived && (
                           <Button 
                             size="sm"
                             variant="secondary"
@@ -593,10 +673,18 @@ export default function Procurement() {
 
         {/* Approvals Tab */}
         <TabsContent value="approvals" className="space-y-4">
+          {/* Pending Approvals Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Pending Approvals</CardTitle>
-              <CardDescription>Review and approve purchase requisitions requiring your action</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Pending Your Approval</CardTitle>
+                  <CardDescription>Review and approve requisitions requiring your action</CardDescription>
+                </div>
+                <Badge variant="warning" className="text-sm">
+                  {requisitions.filter((r: any) => r.status === 'pending_approval').length} Pending
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -604,10 +692,10 @@ export default function Procurement() {
                   <p className="text-sm text-muted-foreground">Loading approvals...</p>
                 ) : requisitions.filter((r: any) => r.status === 'pending_approval').length === 0 ? (
                   <div className="text-center py-8">
-                    <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">No pending approvals</p>
+                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
+                    <p className="text-muted-foreground font-medium">All caught up!</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      All requisitions have been processed
+                      No requisitions require your approval
                     </p>
                   </div>
                 ) : (
@@ -669,6 +757,76 @@ export default function Procurement() {
                           Approve
                         </Button>
                       </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recently Approved Section */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Recently Approved</CardTitle>
+                  <CardDescription>Items you approved in the last 7 days</CardDescription>
+                </div>
+                <Badge variant="success" className="text-sm">
+                  {requisitions.filter((r: any) => {
+                    if (r.status !== 'approved') return false;
+                    const updatedDate = r.updatedAt ? new Date(r.updatedAt) : null;
+                    if (!updatedDate) return false;
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    return updatedDate >= sevenDaysAgo;
+                  }).length} This Week
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {requisitions.filter((r: any) => {
+                  if (r.status !== 'approved') return false;
+                  const updatedDate = r.updatedAt ? new Date(r.updatedAt) : null;
+                  if (!updatedDate) return false;
+                  const sevenDaysAgo = new Date();
+                  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                  return updatedDate >= sevenDaysAgo;
+                }).length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No recently approved items
+                  </p>
+                ) : (
+                  requisitions.filter((r: any) => {
+                    if (r.status !== 'approved') return false;
+                    const updatedDate = r.updatedAt ? new Date(r.updatedAt) : null;
+                    if (!updatedDate) return false;
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    return updatedDate >= sevenDaysAgo;
+                  }).map((req: any) => (
+                    <div key={req.id} className="flex items-center justify-between p-3 border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="font-medium text-sm">{req.requisitionNumber}</span>
+                          <span className="text-xs text-muted-foreground">
+                            • Approved {req.updatedAt && format(new Date(req.updatedAt), "MMM dd")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {req.department} • ${(req.estimatedTotal || 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                        onClick={() => setSelectedRequisitionId(req.id)}
+                      >
+                        Convert to PO
+                      </Button>
                     </div>
                   ))
                 )}
