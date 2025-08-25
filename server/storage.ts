@@ -1701,13 +1701,18 @@ export class DatabaseStorage implements IStorage {
     
     // Create PO items from requisition items
     for (const item of requisitionItems) {
-      await this.createPurchaseOrderItem({
+      const unitPrice = item.estimatedUnitPrice || 0;
+      const quantity = item.quantity || 0;
+      const lineTotal = parseFloat(unitPrice as any) * parseFloat(quantity as any);
+      
+      await db.insert(purchaseOrderItems).values({
         purchaseOrderId: purchaseOrder.id,
         materialId: item.materialId,
         description: item.description,
         quantity: item.quantity,
-        unitPrice: item.estimatedUnitPrice || 0,
-        lineTotal: item.estimatedTotal || 0,
+        unitPrice: unitPrice,
+        lineTotal: lineTotal,
+        receivedQuantity: 0,
         unit: item.unit || 'each',
         deliveryDate: item.requiredByDate,
         notes: item.notes,
@@ -1733,7 +1738,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPurchaseOrderItem(item: InsertPurchaseOrderItem): Promise<PurchaseOrderItem> {
-    const [newItem] = await db.insert(purchaseOrderItems).values(item).returning();
+    // Ensure lineTotal is calculated if not provided
+    const lineTotal = item.lineTotal || (parseFloat(item.unitPrice as any) * parseFloat(item.quantity as any));
+    
+    const [newItem] = await db.insert(purchaseOrderItems).values({
+      ...item,
+      lineTotal: lineTotal,
+      receivedQuantity: item.receivedQuantity || 0,
+      unit: item.unit || 'each',
+    }).returning();
     return newItem;
   }
 
