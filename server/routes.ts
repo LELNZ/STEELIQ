@@ -9036,7 +9036,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const id = parseInt(req.params.id);
-      const { comments } = req.body;
+      const { comments, supplierId } = req.body;
+      
+      // If a supplier is provided, update the requisition with the supplier
+      if (supplierId) {
+        await storage.updateRequisition(id, { preferredSupplierId: supplierId });
+      }
       
       await storage.approveRequisition(id, user.id, comments);
       res.json({ success: true, message: "Requisition approved" });

@@ -19,7 +19,8 @@ import { Label } from "@/components/ui/label";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Package, Loader2 } from "lucide-react";
+import { Package, Loader2, Plus } from "lucide-react";
+import { SupplierForm, SupplierFormData } from "@/components/forms/supplier-form";
 
 interface ConvertToPODialogProps {
   open: boolean;
@@ -33,13 +34,45 @@ export default function ConvertToPODialog({
   requisition,
 }: ConvertToPODialogProps) {
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
+  const [showSupplierForm, setShowSupplierForm] = useState(false);
+  const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
   const { toast } = useToast();
 
   // Fetch suppliers
-  const { data: suppliers = [] } = useQuery({
+  const { data: suppliers = [], refetch: refetchSuppliers } = useQuery({
     queryKey: ["/api/suppliers"],
     enabled: open,
   });
+
+  // Create supplier mutation
+  const createSupplierMutation = useMutation({
+    mutationFn: async (supplierData: SupplierFormData) => {
+      return apiRequest("/api/suppliers", "POST", supplierData);
+    },
+    onSuccess: (newSupplier) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      setShowSupplierForm(false);
+      setSelectedSupplierId(newSupplier.id.toString());
+      toast({ title: "Supplier created successfully" });
+      refetchSuppliers();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error creating supplier", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleCreateSupplier = async (data: SupplierFormData) => {
+    setIsCreatingSupplier(true);
+    try {
+      await createSupplierMutation.mutateAsync(data);
+    } finally {
+      setIsCreatingSupplier(false);
+    }
+  };
 
   // Convert to PO mutation
   const convertMutation = useMutation({
@@ -85,6 +118,28 @@ export default function ConvertToPODialog({
 
   // Use preferred supplier as default if available
   const preferredSupplierId = requisition?.preferredSupplierId?.toString() || "";
+
+  // If showing supplier form, render that instead
+  if (showSupplierForm) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Supplier</DialogTitle>
+            <DialogDescription>
+              Add a new supplier to convert this requisition to a Purchase Order
+            </DialogDescription>
+          </DialogHeader>
+          <SupplierForm
+            mode="create"
+            onSubmit={handleCreateSupplier}
+            onCancel={() => setShowSupplierForm(false)}
+            isLoading={isCreatingSupplier}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -133,7 +188,17 @@ export default function ConvertToPODialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="supplier">Select Supplier *</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="supplier">Select Supplier *</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSupplierForm(true)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                New Supplier
+              </Button>
+            </div>
             <Select
               value={selectedSupplierId}
               onValueChange={setSelectedSupplierId}

@@ -127,8 +127,14 @@ export default function PurchaseOrderDetailsDialog({
               <div>
                 <p className="text-sm text-muted-foreground">Supplier</p>
                 <p className="font-medium">{supplier?.name || `Supplier #${purchaseOrder?.supplierId}`}</p>
-                {supplier?.contact && (
-                  <p className="text-xs text-muted-foreground">{supplier.contact}</p>
+                {supplier?.email && (
+                  <p className="text-xs text-muted-foreground">{supplier.email}</p>
+                )}
+                {supplier?.phone && (
+                  <p className="text-xs text-muted-foreground">{supplier.phone}</p>
+                )}
+                {supplier?.accountManager && (
+                  <p className="text-xs text-muted-foreground">Contact: {supplier.accountManager}</p>
                 )}
               </div>
               <div>
@@ -139,7 +145,7 @@ export default function PurchaseOrderDetailsDialog({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Payment Terms</p>
-                <p className="font-medium">{purchaseOrder?.paymentTerms || "Net 30"}</p>
+                <p className="font-medium">{supplier?.paymentTerms || purchaseOrder?.paymentTerms || "Net 30"}</p>
               </div>
             </div>
           </div>

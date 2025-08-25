@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { 
   Calendar, 
@@ -14,11 +15,13 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  FileText
+  FileText,
+  Plus
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { SupplierForm, SupplierFormData } from "@/components/forms/supplier-form";
 
 interface RequisitionDetailsDialogProps {
   open: boolean;
@@ -49,6 +52,9 @@ export default function RequisitionDetailsDialog({
   const { toast } = useToast();
   const [approvalComments, setApprovalComments] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
+  const [showSupplierForm, setShowSupplierForm] = useState(false);
+  const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
 
   // Fetch requisition details with items
   const { data: requisition, isLoading } = useQuery({
@@ -62,11 +68,48 @@ export default function RequisitionDetailsDialog({
     enabled: open && !!requisitionId,
   });
 
+  // Fetch suppliers
+  const { data: suppliers = [], refetch: refetchSuppliers } = useQuery({
+    queryKey: ["/api/suppliers"],
+    enabled: open,
+  });
+
+  // Create supplier mutation
+  const createSupplierMutation = useMutation({
+    mutationFn: async (supplierData: SupplierFormData) => {
+      return apiRequest("/api/suppliers", "POST", supplierData);
+    },
+    onSuccess: (newSupplier) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      setShowSupplierForm(false);
+      setSelectedSupplierId(newSupplier.id.toString());
+      toast({ title: "Supplier created successfully" });
+      refetchSuppliers();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error creating supplier", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleCreateSupplier = async (data: SupplierFormData) => {
+    setIsCreatingSupplier(true);
+    try {
+      await createSupplierMutation.mutateAsync(data);
+    } finally {
+      setIsCreatingSupplier(false);
+    }
+  };
+
   // Approve mutation
   const approveMutation = useMutation({
     mutationFn: () => 
       apiRequest(`/api/procurement/requisitions/${requisitionId}/approve`, "POST", { 
-        comments: approvalComments 
+        comments: approvalComments,
+        supplierId: selectedSupplierId ? parseInt(selectedSupplierId) : undefined
       }),
     onSuccess: (data) => {
       // Invalidate all related queries to refresh the data
@@ -134,6 +177,28 @@ export default function RequisitionDetailsDialog({
   if (!requisition) return null;
 
   const canApprove = requisition.status === 'pending_approval';
+
+  // If showing supplier form, render that instead
+  if (showSupplierForm) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Supplier</DialogTitle>
+            <DialogDescription>
+              Add a new supplier for this requisition
+            </DialogDescription>
+          </DialogHeader>
+          <SupplierForm
+            mode="create"
+            onSubmit={handleCreateSupplier}
+            onCancel={() => setShowSupplierForm(false)}
+            isLoading={isCreatingSupplier}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -340,22 +405,66 @@ export default function RequisitionDetailsDialog({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="comments">Comments (Optional for Approval)</Label>
-                <Textarea
-                  id="comments"
-                  value={approvalComments}
-                  onChange={(e) => setApprovalComments(e.target.value)}
-                  placeholder="Add any comments about this approval..."
-                  rows={3}
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="supplier">Select Supplier *</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSupplierForm(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      New Supplier
+                    </Button>
+                  </div>
+                  <Select
+                    value={selectedSupplierId}
+                    onValueChange={setSelectedSupplierId}
+                  >
+                    <SelectTrigger id="supplier">
+                      <SelectValue placeholder="Choose a supplier (required)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {suppliers.map((supplier: any) => (
+                        <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                          {supplier.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    A supplier must be selected before approving the requisition
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="comments">Comments (Optional for Approval)</Label>
+                  <Textarea
+                    id="comments"
+                    value={approvalComments}
+                    onChange={(e) => setApprovalComments(e.target.value)}
+                    placeholder="Add any comments about this approval..."
+                    rows={3}
+                  />
+                </div>
               </div>
 
               <div className="flex gap-2">
                 <Button 
                   className="flex-1"
-                  onClick={() => approveMutation.mutate()}
-                  disabled={approveMutation.isPending}
+                  onClick={() => {
+                    if (!selectedSupplierId) {
+                      toast({
+                        title: "Error",
+                        description: "Please select a supplier before approving",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    approveMutation.mutate();
+                  }}
+                  disabled={approveMutation.isPending || !selectedSupplierId}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   {approveMutation.isPending ? "Approving..." : "Approve Requisition"}
