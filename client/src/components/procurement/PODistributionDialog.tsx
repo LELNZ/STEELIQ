@@ -44,6 +44,7 @@ export default function PODistributionDialog({
 }: PODistributionDialogProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("contact");
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
   const [primaryEmail, setPrimaryEmail] = useState("");
   const [ccEmails, setCcEmails] = useState<string[]>([]);
   const [bccEmails, setBccEmails] = useState<string[]>([]);
@@ -56,10 +57,16 @@ export default function PODistributionDialog({
   const [newCcEmail, setNewCcEmail] = useState("");
   const [newBccEmail, setNewBccEmail] = useState("");
 
-  // Fetch supplier details
+  // Fetch all suppliers for dropdown
+  const { data: suppliers = [] } = useQuery({
+    queryKey: ["/api/suppliers"],
+    enabled: open,
+  });
+
+  // Fetch selected supplier details
   const { data: supplier } = useQuery({
-    queryKey: [`/api/suppliers/${purchaseOrder?.supplierId}`],
-    enabled: !!purchaseOrder?.supplierId,
+    queryKey: [`/api/suppliers/${selectedSupplierId || purchaseOrder?.supplierId}`],
+    enabled: !!(selectedSupplierId || purchaseOrder?.supplierId),
   });
 
   // Fetch available templates
@@ -75,12 +82,19 @@ export default function PODistributionDialog({
     }
   });
 
-  // Initialize form with supplier data
+  // Initialize selected supplier from PO
+  useEffect(() => {
+    if (purchaseOrder?.supplierId && !selectedSupplierId) {
+      setSelectedSupplierId(purchaseOrder.supplierId.toString());
+    }
+  }, [purchaseOrder]);
+
+  // Update form when supplier changes
   useEffect(() => {
     if (supplier && purchaseOrder) {
       setPrimaryEmail(supplier.email || "");
       setEmailSubject(`Purchase Order ${purchaseOrder.poNumber} - Lateral Engineering`);
-      setEmailBody(`Dear ${supplier.contactPerson || supplier.name || "Supplier"},
+      setEmailBody(`Dear ${supplier.accountManager || supplier.name || "Supplier"},
 
 Please find attached Purchase Order ${purchaseOrder.poNumber} for your review and acknowledgment.
 
@@ -133,6 +147,15 @@ Lateral Engineering Procurement Team`);
   };
 
   const handleSend = () => {
+    if (!selectedSupplierId) {
+      toast({
+        title: "Error",
+        description: "Please select a supplier",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!primaryEmail) {
       toast({
         title: "Error",
@@ -143,6 +166,7 @@ Lateral Engineering Procurement Team`);
     }
 
     sendMutation.mutate({
+      supplierId: selectedSupplierId ? parseInt(selectedSupplierId) : undefined,
       to: [primaryEmail],
       cc: ccEmails,
       bcc: bccEmails,
@@ -195,27 +219,57 @@ Lateral Engineering Procurement Team`);
                 <CardDescription>Verify and update contact details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div>
-                    <Label>Company</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{supplier?.name || "N/A"}</span>
-                    </div>
+                    <Label htmlFor="supplier">Select Supplier *</Label>
+                    <Select
+                      value={selectedSupplierId}
+                      onValueChange={setSelectedSupplierId}
+                    >
+                      <SelectTrigger id="supplier" className="mt-1">
+                        <SelectValue placeholder="Choose a supplier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {suppliers.map((sup: any) => (
+                          <SelectItem key={sup.id} value={sup.id.toString()}>
+                            {sup.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div>
-                    <Label>Contact Person</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{supplier?.contactPerson || "N/A"}</span>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Company</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{supplier?.name || "N/A"}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <Label>Phone</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{supplier?.phone || "N/A"}</span>
+                    <div>
+                      <Label>Contact Person</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{supplier?.accountManager || supplier?.contactPerson || "N/A"}</span>
+                      </div>
                     </div>
+                    <div>
+                      <Label>Phone</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{supplier?.phone || "N/A"}</span>
+                      </div>
+                    </div>
+                    {supplier?.company && supplier.company !== supplier.name && (
+                      <div>
+                        <Label>Company Name</Label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Building className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{supplier.company}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

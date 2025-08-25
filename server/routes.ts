@@ -9513,6 +9513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const purchaseOrderId = parseInt(req.params.id);
       const {
+        supplierId,
         to,
         cc,
         bcc,
@@ -9528,6 +9529,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
       const user = await AuthService.validateSession(token);
       const userId = user?.id;
+
+      // Update supplier if provided
+      if (supplierId) {
+        await storage.updatePurchaseOrder(purchaseOrderId, { supplierId });
+      }
 
       // Generate PDF (placeholder for now)
       const pdfPath = `/documents/po/${purchaseOrderId}/po-${Date.now()}.pdf`;
