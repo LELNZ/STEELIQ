@@ -20,12 +20,14 @@ import {
   Download,
   Printer,
   Send,
+  CheckCircle,
 } from "lucide-react";
 
 interface PurchaseOrderDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   purchaseOrder: any;
+  onStatusChange?: (id: number, status: string) => void;
 }
 
 const poStatusColors = {
@@ -41,6 +43,7 @@ export default function PurchaseOrderDetailsDialog({
   open,
   onOpenChange,
   purchaseOrder,
+  onStatusChange,
 }: PurchaseOrderDetailsDialogProps) {
   // Fetch PO items
   const { data: items = [], isLoading: itemsLoading } = useQuery({
@@ -222,6 +225,17 @@ export default function PurchaseOrderDetailsDialog({
               <Button size="sm">
                 <Send className="h-4 w-4 mr-1" />
                 Send to Supplier
+              </Button>
+            )}
+            {purchaseOrder?.status === "cancelled" && (
+              <Button 
+                size="sm" 
+                variant="default"
+                className="bg-green-600 hover:bg-green-700"
+                onClick={() => onStatusChange?.(purchaseOrder.id, "draft")}
+              >
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Reactivate PO
               </Button>
             )}
           </div>

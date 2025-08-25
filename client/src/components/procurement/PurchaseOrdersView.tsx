@@ -259,6 +259,17 @@ export default function PurchaseOrdersView() {
                               Cancel PO
                             </DropdownMenuItem>
                           )}
+                          {po.status === "cancelled" && (
+                            <DropdownMenuItem
+                              onClick={() =>
+                                updateStatusMutation.mutate({ id: po.id, status: "draft" })
+                              }
+                              className="text-green-600"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Reactivate PO
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem>
                             <Download className="mr-2 h-4 w-4" />
                             Download PDF
@@ -293,6 +304,15 @@ export default function PurchaseOrdersView() {
           open={detailsOpen}
           onOpenChange={setDetailsOpen}
           purchaseOrder={selectedPO}
+          onStatusChange={(id, status) => {
+            updateStatusMutation.mutate({ id, status });
+            if (status === "draft") {
+              toast({
+                title: "Purchase Order Reactivated",
+                description: "The PO has been restored to draft status and can be edited.",
+              });
+            }
+          }}
         />
       )}
     </div>
