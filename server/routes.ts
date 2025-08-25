@@ -9035,6 +9035,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cancel approval (send back to pending_approval)
+  app.post("/api/procurement/requisitions/:id/cancel-approval", async (req, res) => {
+    try {
+      const requisitionId = parseInt(req.params.id);
+      const requisition = await storage.getRequisition(requisitionId);
+      
+      if (!requisition) {
+        return res.status(404).json({ error: "Requisition not found" });
+      }
+      
+      if (requisition.status !== 'approved') {
+        return res.status(400).json({ error: "Can only cancel approved requisitions" });
+      }
+      
+      // Reset to pending_approval and reset approval level
+      const updated = await storage.updateRequisition(requisitionId, {
+        status: 'pending_approval',
+        currentApprovalLevel: 0,
+        approvalNotes: 'Sent back to approvals from Purchase Orders section',
+        updatedAt: new Date()
+      });
+      
+      res.json({ success: true, message: "Requisition sent back to approvals", requisition: updated });
+    } catch (error) {
+      console.error("Error cancelling approval:", error);
+      res.status(500).json({ error: "Failed to cancel approval" });
+    }
+  });
+
   // Approve requisition
   app.post("/api/procurement/requisitions/:id/approve", async (req, res) => {
     try {

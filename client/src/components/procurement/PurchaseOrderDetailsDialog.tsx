@@ -56,13 +56,7 @@ export default function PurchaseOrderDetailsDialog({
 
   // Fetch supplier details
   const { data: supplier, isLoading: supplierLoading } = useQuery({
-    queryKey: ['/api/suppliers', purchaseOrder?.supplierId],
-    queryFn: async () => {
-      if (!purchaseOrder?.supplierId) return null;
-      const response = await fetch(`/api/suppliers/${purchaseOrder.supplierId}`);
-      if (!response.ok) throw new Error('Failed to fetch supplier');
-      return response.json();
-    },
+    queryKey: [`/api/suppliers/${purchaseOrder?.supplierId}`],
     enabled: open && !!purchaseOrder?.supplierId,
   });
 

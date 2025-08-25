@@ -96,6 +96,27 @@ export default function PurchaseOrdersView() {
     },
   });
 
+  // Cancel approved requisition (send back to pending_approval)
+  const cancelApprovedRequisitionMutation = useMutation({
+    mutationFn: (requisitionId: number) =>
+      apiRequest(`/api/procurement/requisitions/${requisitionId}/cancel-approval`, "POST"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/requisitions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/metrics"] });
+      toast({
+        title: "Success",
+        description: "Requisition sent back to approvals",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cancel approval",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredPOs = purchaseOrders.filter((po: any) => {
     const supplier = suppliers.find((s: any) => s.id === po.supplierId);
     const supplierName = supplier?.name || '';
@@ -139,16 +160,39 @@ export default function PurchaseOrdersView() {
                       ${(req.estimatedTotal || 0).toLocaleString()}
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setSelectedRequisition(req);
-                      setConvertDialogOpen(true);
-                    }}
-                  >
-                    <Package className="h-4 w-4 mr-1" />
-                    Convert to PO
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (confirm(`Are you sure you want to send ${req.requisitionNumber} back to approvals?`)) {
+                          cancelApprovedRequisitionMutation.mutate(req.id);
+                        }
+                      }}
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />
+                      Cancel PO
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        // Check if supplier is selected
+                        if (!req.preferredSupplierId) {
+                          toast({
+                            title: "Supplier Required",
+                            description: "Please select a supplier in the approvals process before converting to PO",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setSelectedRequisition(req);
+                        setConvertDialogOpen(true);
+                      }}
+                    >
+                      <Package className="h-4 w-4 mr-1" />
+                      Convert to PO
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
