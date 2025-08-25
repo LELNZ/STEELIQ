@@ -259,6 +259,15 @@ export default function RequisitionDetailsDialog({
                 <span className="text-muted-foreground">Delivery Location:</span>
                 <span className="font-medium">{requisition.deliveryLocation || "Workshop"}</span>
               </div>
+              {requisition.preferredSupplierId && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Supplier:</span>
+                  <span className="font-medium">
+                    {suppliers?.find((s: any) => s.id === requisition.preferredSupplierId)?.name || "Loading..."}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Created:</span>

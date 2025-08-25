@@ -4,6 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -56,6 +66,8 @@ export default function PurchaseOrdersView() {
   const [selectedRequisition, setSelectedRequisition] = useState<any>(null);
   const [distributionDialogOpen, setDistributionDialogOpen] = useState(false);
   const [poToSend, setPOToSend] = useState<any>(null);
+  const [cancelRequisitionOpen, setCancelRequisitionOpen] = useState(false);
+  const [requisitionToCancel, setRequisitionToCancel] = useState<any>(null);
   const { toast } = useToast();
 
   // Fetch approved requisitions ready for conversion
@@ -103,10 +115,13 @@ export default function PurchaseOrdersView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/procurement/requisitions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/procurement/metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/approvals/pending"] });
       toast({
         title: "Success",
         description: "Requisition sent back to approvals",
       });
+      setCancelRequisitionOpen(false);
+      setRequisitionToCancel(null);
     },
     onError: (error: any) => {
       toast({
@@ -165,9 +180,8 @@ export default function PurchaseOrdersView() {
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        if (confirm(`Are you sure you want to send ${req.requisitionNumber} back to approvals?`)) {
-                          cancelApprovedRequisitionMutation.mutate(req.id);
-                        }
+                        setRequisitionToCancel(req);
+                        setCancelRequisitionOpen(true);
                       }}
                     >
                       <XCircle className="h-4 w-4 mr-1" />
@@ -390,6 +404,32 @@ export default function PurchaseOrdersView() {
           }}
         />
       )}
+
+      {/* Cancel PO Confirmation Dialog */}
+      <AlertDialog open={cancelRequisitionOpen} onOpenChange={setCancelRequisitionOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Purchase Order Process?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to send <span className="font-semibold">{requisitionToCancel?.requisitionNumber}</span> back to approvals?
+              This will change its status from "Approved" to "Pending Approval" and require re-approval before it can be converted to a Purchase Order.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Approved</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (requisitionToCancel) {
+                  cancelApprovedRequisitionMutation.mutate(requisitionToCancel.id);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Send Back to Approvals
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
