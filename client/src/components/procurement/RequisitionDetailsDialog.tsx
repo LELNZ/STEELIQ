@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +61,25 @@ export default function RequisitionDetailsDialog({
     queryKey: [`/api/procurement/requisitions/${requisitionId}`],
     enabled: open && !!requisitionId,
   });
+
+  // Initialize selectedSupplierId when requisition loads
+  React.useEffect(() => {
+    if (requisition?.preferredSupplierId) {
+      setSelectedSupplierId(requisition.preferredSupplierId.toString());
+    } else {
+      setSelectedSupplierId("");
+    }
+  }, [requisition]);
+
+  // Reset state when dialog closes
+  React.useEffect(() => {
+    if (!open) {
+      setApprovalComments("");
+      setRejectionReason("");
+      setSelectedSupplierId("");
+      setShowSupplierForm(false);
+    }
+  }, [open]);
 
   // Fetch approval history
   const { data: approvalHistory = [] } = useQuery({
