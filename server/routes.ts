@@ -9644,7 +9644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tempAccessToken = poTrackingService.generateAccessToken();
       const tempPortalUrl = poTrackingService.generatePortalUrl(tempDistId, tempAccessToken);
 
-      // Send the actual email with PDF attachment
+      // Send the actual email with attachments
       const emailResult = await emailService.sendPurchaseOrder({
         to: Array.isArray(to) ? to : [to],
         cc: cc ? (Array.isArray(cc) ? cc : [cc]) : undefined,
@@ -9655,7 +9655,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         supplierData: supplier,
         templateType,
         portalUrl: req.body.includePortalLink ? tempPortalUrl : undefined,
-        requestAcknowledgment: req.body.requestAcknowledgment || false
+        requestAcknowledgment: req.body.requestAcknowledgment || requireSignature || false,
+        formats: formats || { pdf: true }
       });
 
       if (!emailResult.success) {

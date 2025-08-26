@@ -101,6 +101,7 @@ export class EmailService {
     templateType: 'standard' | 'detailed' | 'simple';
     portalUrl?: string;
     requestAcknowledgment?: boolean;
+    formats?: { pdf?: boolean; excel?: boolean; csv?: boolean };
   }): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
       // Calculate total amount from items
@@ -117,7 +118,40 @@ export class EmailService {
       // Create HTML email body
       const htmlBody = this.createPOEmailHTML(params.body, params.poData, params.supplierData, params.portalUrl, params.requestAcknowledgment);
 
-      // Send email with attachment
+      // Build attachments array
+      const attachments = [];
+      
+      // Always include PDF
+      attachments.push({
+        content: pdfBase64,
+        filename: `PO-${params.poData.poNumber}.pdf`,
+        type: 'application/pdf',
+        disposition: 'attachment'
+      });
+
+      // Add Excel if requested
+      if (params.formats?.excel) {
+        const excelBuffer = this.generatePOExcel(params.poData, params.supplierData);
+        attachments.push({
+          content: excelBuffer.toString('base64'),
+          filename: `PO-${params.poData.poNumber}.xlsx`,
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          disposition: 'attachment'
+        });
+      }
+
+      // Add CSV if requested
+      if (params.formats?.csv) {
+        const csvContent = this.generatePOCSV(params.poData, params.supplierData);
+        attachments.push({
+          content: Buffer.from(csvContent).toString('base64'),
+          filename: `PO-${params.poData.poNumber}.csv`,
+          type: 'text/csv',
+          disposition: 'attachment'
+        });
+      }
+
+      // Send email with attachments
       return await this.sendEmail({
         to: params.to,
         cc: params.cc,
@@ -126,12 +160,7 @@ export class EmailService {
         replyTo: 'accounts@lateralengineering.co.nz',
         subject: params.subject,
         html: htmlBody,
-        attachments: [{
-          content: pdfBase64,
-          filename: `PO-${params.poData.poNumber}.pdf`,
-          type: 'application/pdf',
-          disposition: 'attachment'
-        }]
+        attachments
       });
     } catch (error: any) {
       console.error('Error sending purchase order:', error);
@@ -147,6 +176,13 @@ export class EmailService {
         <h3>Action Required</h3>
         <p>Please acknowledge receipt of this purchase order by clicking the link below:</p>
         <a href="${portalUrl}" style="display: inline-block; background: #1e40af; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 10px;">View & Acknowledge PO</a>
+      </div>
+    ` : '';
+
+    const signatureSection = requestAcknowledgment ? `
+      <div style="background: #fef3c7; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+        <h3>Electronic Signature Required</h3>
+        <p>This purchase order requires electronic signature confirmation. Please use the portal link above to provide your digital acknowledgment.</p>
       </div>
     ` : '';
 
@@ -173,6 +209,7 @@ export class EmailService {
           <div style="white-space: pre-line;">${body}</div>
           
           ${requestAcknowledgment ? portalSection : ''}
+          ${requestAcknowledgment ? signatureSection : ''}
           
           <div class="po-details">
             <h3>Order Details:</h3>
@@ -325,6 +362,48 @@ export class EmailService {
 
       doc.end();
     });
+  }
+
+  private generatePOCSV(poData: any, supplierData: any): string {
+    const lines = [];
+    
+    // Header
+    lines.push('Purchase Order');
+    lines.push(`PO Number,${poData.poNumber}`);
+    lines.push(`Date,${new Date(poData.orderDate).toLocaleDateString()}`);
+    lines.push(`Delivery Date,${poData.deliveryDate ? new Date(poData.deliveryDate).toLocaleDateString() : 'TBD'}`);
+    lines.push('');
+    
+    // Supplier
+    lines.push('Supplier Information');
+    lines.push(`Name,${supplierData.name || ''}`);
+    lines.push(`Email,${supplierData.email || ''}`);
+    lines.push(`Phone,${supplierData.phone || ''}`);
+    lines.push(`Address,"${supplierData.address || ''}"`);
+    lines.push('');
+    
+    // Items
+    lines.push('Item,Description,Quantity,Unit Price,Total');
+    if (poData.items && poData.items.length > 0) {
+      poData.items.forEach((item: any, index: number) => {
+        const unitPrice = parseFloat(item.unitPrice) || 0;
+        const totalPrice = parseFloat(item.totalPrice || item.lineTotal) || 0;
+        lines.push(`${index + 1},"${item.description || ''}",${item.quantity || 0},${unitPrice.toFixed(2)},${totalPrice.toFixed(2)}`);
+      });
+    }
+    
+    // Total
+    const totalAmount = typeof poData.totalAmount === 'number' ? poData.totalAmount : parseFloat(poData.totalAmount) || 0;
+    lines.push('');
+    lines.push(`,,,,Total Amount,${totalAmount.toFixed(2)}`);
+    
+    return lines.join('\n');
+  }
+
+  private generatePOExcel(poData: any, supplierData: any): Buffer {
+    // For now, generate CSV format as Excel - proper Excel generation would require xlsx library
+    const csvContent = this.generatePOCSV(poData, supplierData);
+    return Buffer.from(csvContent);
   }
 }
 

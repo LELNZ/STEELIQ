@@ -160,6 +160,13 @@ Lateral Engineering Procurement Team`);
       return;
     }
 
+    console.log('Sending PO with:', {
+      templateId: selectedTemplate,
+      formats,
+      requireSignature,
+      deliveryMethod
+    });
+
     sendMutation.mutate({
       supplierId: selectedSupplierId ? parseInt(selectedSupplierId) : undefined,
       to: [primaryEmail],
@@ -171,6 +178,8 @@ Lateral Engineering Procurement Team`);
       deliveryMethod,
       formats,
       requireSignature,
+      requestAcknowledgment: requireSignature,
+      includePortalLink: true
     });
   };
 
