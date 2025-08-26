@@ -235,11 +235,14 @@ export class EmailService {
       
       if (poData.items && poData.items.length > 0) {
         poData.items.forEach((item: any, index: number) => {
+          const unitPrice = parseFloat(item.unitPrice) || 0;
+          const totalPrice = parseFloat(item.totalPrice || item.lineTotal) || 0;
+          
           doc.text(String(index + 1), 55, yPosition)
             .text(item.description || 'Item', 150, yPosition)
             .text(String(item.quantity || 0), 350, yPosition)
-            .text(`$${(item.unitPrice || 0).toFixed(2)}`, 400, yPosition)
-            .text(`$${(item.totalPrice || 0).toFixed(2)}`, 470, yPosition);
+            .text(`$${unitPrice.toFixed(2)}`, 400, yPosition)
+            .text(`$${totalPrice.toFixed(2)}`, 470, yPosition);
           yPosition += 20;
         });
       } else {
