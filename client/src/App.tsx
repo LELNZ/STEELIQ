@@ -33,6 +33,7 @@ import OrganizationSettingsPage from "@/pages/organization-settings";
 import EmailCostImport from "@/pages/EmailCostImport";
 import DrawingIntelligence from "@/pages/DrawingIntelligence";
 import SupplierIntegrationHub from "@/pages/SupplierIntegrationHub";
+import SupplierPortal from "@/pages/SupplierPortal";
 import MobileOperations from "@/pages/mobile-operations";
 import ProductionFloor from "@/pages/ProductionFloor";
 import FinancialIntelligence from "@/pages/FinancialIntelligence";
@@ -76,6 +77,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/jobs" component={Jobs} />
       <Route path="/procurement" component={Procurement} />
+      <Route path="/supplier/po/:distributionId" component={SupplierPortal} />
       <Route path="/estimation" component={EstimationPage} />
       <Route path="/estimation/:id" component={EstimationPage} />
 

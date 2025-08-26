@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -9962,29 +9962,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/procurement/purchase-orders/:id/acknowledge", async (req, res) => {
     try {
       const purchaseOrderId = parseInt(req.params.id);
-      const { acknowledgedBy, acknowledgmentNotes } = req.body;
+      const { distributionId, acknowledgedBy, acknowledgmentNotes } = req.body;
       
-      // Update PO status
-      await storage.updatePurchaseOrder(purchaseOrderId, { status: 'acknowledged' });
-      
-      // Mock acknowledgment record
-      const acknowledgment = {
-        id: Date.now(),
-        purchaseOrderId,
-        acknowledgedAt: new Date(),
-        acknowledgedBy,
-        acknowledgmentMethod: 'portal',
-        acknowledgmentNotes,
-      };
-      
-      res.json({ 
-        success: true, 
-        acknowledgment,
-        message: "Purchase order acknowledged" 
-      });
+      if (distributionId) {
+        // Use tracking service for proper acknowledgment
+        const acknowledgment = await poTrackingService.acknowledgePO(
+          distributionId,
+          acknowledgedBy,
+          acknowledgmentNotes
+        );
+        res.json({ 
+          success: true, 
+          acknowledgment,
+          message: "Purchase order acknowledged successfully" 
+        });
+      } else {
+        // Fallback for backward compatibility
+        await storage.updatePurchaseOrder(purchaseOrderId, { status: 'acknowledged' });
+        res.json({ 
+          success: true,
+          message: "Purchase order acknowledged" 
+        });
+      }
     } catch (error) {
       console.error("Error acknowledging purchase order:", error);
       res.status(500).json({ error: "Failed to acknowledge purchase order" });
+    }
+  });
+
+  // Supplier Portal - View PO
+  app.get("/api/supplier/po/:distributionId", async (req, res) => {
+    try {
+      const distributionId = parseInt(req.params.distributionId);
+      const token = req.query.token as string;
+
+      // Validate token access
+      const isValid = await poTrackingService.validatePortalAccess(distributionId, token);
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid or expired access token" });
+      }
+
+      // Get distribution details
+      const [distribution] = await db.select()
+        .from(poDistribution)
+        .where(eq(poDistribution.id, distributionId))
+        .limit(1);
+
+      if (!distribution) {
+        return res.status(404).json({ error: "Distribution not found" });
+      }
+
+      // Get PO details
+      const purchaseOrder = await storage.getPurchaseOrder(distribution.purchaseOrderId);
+      const items = await storage.getPurchaseOrderItems(distribution.purchaseOrderId);
+      const supplier = await storage.getSupplier(purchaseOrder.supplierId);
+
+      res.json({
+        distribution,
+        purchaseOrder,
+        items,
+        supplier
+      });
+    } catch (error) {
+      console.error("Error fetching supplier portal PO:", error);
+      res.status(500).json({ error: "Failed to fetch purchase order" });
+    }
+  });
+
+  // Supplier Portal - Acknowledge PO
+  app.post("/api/supplier/po/:distributionId/acknowledge", async (req, res) => {
+    try {
+      const distributionId = parseInt(req.params.distributionId);
+      const token = req.query.token as string;
+      const { acknowledgedBy, notes } = req.body;
+
+      // Validate token access
+      const isValid = await poTrackingService.validatePortalAccess(distributionId, token);
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid or expired access token" });
+      }
+
+      const acknowledgment = await poTrackingService.acknowledgePO(
+        distributionId,
+        acknowledgedBy,
+        notes
+      );
+
+      res.json({
+        success: true,
+        acknowledgment,
+        message: "Thank you for acknowledging the purchase order"
+      });
+    } catch (error) {
+      console.error("Error acknowledging via portal:", error);
+      res.status(500).json({ error: "Failed to acknowledge purchase order" });
+    }
+  });
+
+  // Email Tracking Webhook - SendGrid events
+  app.post("/api/webhooks/email-events", async (req, res) => {
+    try {
+      const events = Array.isArray(req.body) ? req.body : [req.body];
+
+      for (const event of events) {
+        if (event.sg_message_id) {
+          await poTrackingService.trackEmailEvent(
+            event.sg_message_id,
+            event.event,
+            {
+              ip: event.ip,
+              userAgent: event.useragent,
+              code: event.response,
+              message: event.reason
+            }
+          );
+        }
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error processing email webhook:", error);
+      res.status(500).json({ error: "Failed to process webhook" });
+    }
+  });
+
+  // Send follow-up reminders (can be called via cron job)
+  app.post("/api/procurement/send-po-reminders", async (req, res) => {
+    try {
+      await poTrackingService.sendFollowUpReminders();
+      res.json({ success: true, message: "Reminders sent" });
+    } catch (error) {
+      console.error("Error sending reminders:", error);
+      res.status(500).json({ error: "Failed to send reminders" });
     }
   });
 
