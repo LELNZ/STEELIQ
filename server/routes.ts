@@ -9743,17 +9743,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   <td>${index + 1}</td>
                   <td>${item.description}</td>
                   <td>${item.quantity} ${item.unitOfMeasure || ''}</td>
-                  <td>$${item.unitPrice.toFixed(2)}</td>
-                  <td>$${item.totalPrice.toFixed(2)}</td>
+                  <td>$${(Number(item.unitPrice) || 0).toFixed(2)}</td>
+                  <td>$${(Number(item.totalPrice) || 0).toFixed(2)}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
           
           <div class="totals">
-            <div>Subtotal: $${(purchaseOrder.subtotal || 0).toFixed(2)}</div>
-            <div>GST (15%): $${(purchaseOrder.gstAmount || 0).toFixed(2)}</div>
-            <div class="total-row">Total: $${(purchaseOrder.totalAmount || 0).toFixed(2)} ${purchaseOrder.currency || 'NZD'}</div>
+            <div>Subtotal: $${(Number(purchaseOrder.subtotal) || 0).toFixed(2)}</div>
+            <div>GST (15%): $${(Number(purchaseOrder.gstAmount) || 0).toFixed(2)}</div>
+            <div class="total-row">Total: $${(Number(purchaseOrder.totalAmount) || 0).toFixed(2)} ${purchaseOrder.currency || 'NZD'}</div>
           </div>
           
           ${purchaseOrder.specialInstructions ? `
