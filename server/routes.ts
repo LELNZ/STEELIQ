@@ -17,6 +17,7 @@ import csv from 'csv-parser';
 import { Readable } from 'stream';
 import { analyzeConstructionDrawing, validateSteelSpecifications } from "./pdf-analysis";
 import { googleAuth } from "./googleAuth";
+import { emailService } from "./emailService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint for deployment monitoring
@@ -9610,10 +9611,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updatePurchaseOrder(purchaseOrderId, { supplierId });
       }
 
-      // Generate PDF (placeholder for now)
-      const pdfPath = `/documents/po/${purchaseOrderId}/po-${Date.now()}.pdf`;
+      // Get PO details
+      const purchaseOrder = await storage.getPurchaseOrder(purchaseOrderId);
+      if (!purchaseOrder) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+
+      // Get supplier details
+      const supplier = await storage.getSupplier(purchaseOrder.supplierId);
+      if (!supplier) {
+        return res.status(400).json({ error: "Supplier not found" });
+      }
+
+      // Get PO items
+      const items = await storage.getPurchaseOrderItems(purchaseOrderId);
       
-      // Create distribution record (mock for now, would use actual DB)
+      // Prepare PO data with items
+      const poData = {
+        ...purchaseOrder,
+        items: items || []
+      };
+
+      // Determine template type
+      const templateType = templateId === 'DTL' ? 'detailed' : 
+                          templateId === 'SMP' ? 'simple' : 'standard';
+
+      // Send the actual email with PDF attachment
+      const emailResult = await emailService.sendPurchaseOrder({
+        to: Array.isArray(to) ? to : [to],
+        cc: cc ? (Array.isArray(cc) ? cc : [cc]) : undefined,
+        bcc: bcc ? (Array.isArray(bcc) ? bcc : [bcc]) : undefined,
+        subject: subject || `Purchase Order ${purchaseOrder.poNumber}`,
+        body: body || `Please find attached Purchase Order ${purchaseOrder.poNumber} for your review and processing.`,
+        poData,
+        supplierData: supplier,
+        templateType
+      });
+
+      if (!emailResult.success) {
+        console.error('Email send failed:', emailResult.error);
+        return res.status(500).json({ 
+          error: "Failed to send email", 
+          details: emailResult.error 
+        });
+      }
+
+      // Create distribution record for tracking
       const distribution = {
         id: Date.now(),
         purchaseOrderId,
@@ -9623,31 +9666,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sentTo: to,
         ccEmails: cc,
         bccEmails: bcc,
-        deliveryMethod,
+        deliveryMethod: 'email',
         emailSubject: subject,
         emailBody: body,
-        pdfPath,
         emailStatus: 'sent',
+        messageId: emailResult.messageId,
         requiresSignature: requireSignature,
       };
 
       // Update PO status to sent
       await storage.updatePurchaseOrder(purchaseOrderId, { status: 'sent' });
 
-      // Log email (mock for now)
-      const emailLog = {
-        id: Date.now(),
-        distributionId: distribution.id,
-        recipientEmail: to[0],
-        recipientType: 'to',
-        status: 'sent',
-        sentAt: new Date(),
-      };
-
       res.json({ 
         success: true, 
         distribution,
-        message: "Purchase order sent successfully" 
+        message: "Purchase order sent successfully via email" 
       });
     } catch (error) {
       console.error("Error sending purchase order:", error);
