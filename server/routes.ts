@@ -9633,9 +9633,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         items: items || []
       };
 
-      // Determine template type
-      const templateType = templateId === 'DTL' ? 'detailed' : 
-                          templateId === 'SMP' ? 'simple' : 'standard';
+      // Determine template type - handle both new and old template IDs
+      const templateType = (templateId === 'DTL' || templateId === 'detailed') ? 'detailed' : 
+                          (templateId === 'SMP' || templateId === 'simple') ? 'simple' : 'standard';
 
       // Generate portal URL for email
       const tempDistId = Date.now(); // Temporary ID for portal URL generation
