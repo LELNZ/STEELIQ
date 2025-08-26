@@ -14,23 +14,15 @@ import Jobs from "@/pages/jobs";
 import Materials from "@/pages/materials";
 import Inventory from "@/pages/inventory";
 import CuttingOptimizationFixed from "@/pages/cutting-optimization-fixed";
-import CuttingPlanTest from "@/pages/cutting-plan-test";
-import Estimates from "@/pages/estimates";
 import EstimationPage from "@/pages/estimation-clean";
 
 import ClientPortal from "@/pages/client-portal";
 import MobileInspection from "@/pages/mobile-inspection";
 import Contacts from "@/pages/contacts";
-import Suppliers from "@/pages/suppliers";
-import SupplierContacts from "@/pages/supplier-contacts";
 
-import GlobalSettings from "@/pages/global-settings";
 import UserPreferences from "@/pages/user-preferences";
-import LaborRates from "@/pages/labor-rates";
 import TeamManagement from "@/pages/team-management";
 import EmployeeProfile from "@/pages/employee-profile";
-import TimeManagement from "@/pages/time-management";
-import OrganizationSettings from "@/pages/settings/organization";
 import FinancialSettings from "@/pages/settings/financial";
 import OperationsSettingsNew from "@/pages/operations-settings-new";
 import TimePayroll from "@/pages/time-payroll";
@@ -84,7 +76,6 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/jobs" component={Jobs} />
       <Route path="/procurement" component={Procurement} />
-      <Route path="/estimates" component={Estimates} />
       <Route path="/estimation" component={EstimationPage} />
       <Route path="/estimation/:id" component={EstimationPage} />
 
@@ -93,19 +84,13 @@ function Router() {
       <Route path="/materials" component={Materials} />
       <Route path="/inventory" component={Inventory} />
       <Route path="/contacts" component={Contacts} />
-      <Route path="/suppliers" component={Suppliers} />
-      <Route path="/supplier-contacts" component={SupplierContacts} />
       <Route path="/settings" component={FinancialSettings} />
-      <Route path="/settings/organization" component={OrganizationSettings} />
       <Route path="/settings/financial" component={FinancialSettings} />
       <Route path="/settings/operations" component={OperationsSettingsNew} />
       <Route path="/settings/lifecycle-templates" component={LifecycleTemplates} />
       <Route path="/organization-settings" component={OrganizationSettingsPage} />
-      <Route path="/global-settings" component={GlobalSettings} />
-      <Route path="/labor-rates" component={LaborRates} />
       <Route path="/team-management" component={TeamManagement} />
       <Route path="/team-management/employee/:id" component={EmployeeProfile} />
-      <Route path="/time-management" component={TimeManagement} />
       <Route path="/time-payroll" component={TimePayroll} />
       <Route path="/projects/:projectId/lifecycle" component={ProjectLifecycleTracker} />
       <Route path="/estimation-pipeline" component={EstimationPipeline} />
@@ -120,7 +105,6 @@ function Router() {
       <Route path="/remnant-management" component={RemnantManagement} />
       <Route path="/pdf-markup" component={PDFMarkup} />
       <Route path="/optimization" component={CuttingOptimizationFixed} />
-      <Route path="/cutting-plan-test" component={CuttingPlanTest} />
       <Route component={NotFound} />
     </Switch>
   );
