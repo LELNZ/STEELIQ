@@ -211,12 +211,14 @@ export class EmailService {
       doc.on('error', reject);
 
       // Template color schemes
+      console.log('PDF Generation - templateType:', templateType);
       const colors = {
         standard: '#1e40af', // Blue
         detailed: '#059669', // Green
         simple: '#6b7280'    // Gray
       };
       const primaryColor = colors[templateType as keyof typeof colors] || colors.standard;
+      console.log('PDF Generation - Using color:', primaryColor);
 
       // Header
       doc.fillColor(primaryColor)
