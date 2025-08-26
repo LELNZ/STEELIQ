@@ -9637,6 +9637,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const templateType = templateId === 'DTL' ? 'detailed' : 
                           templateId === 'SMP' ? 'simple' : 'standard';
 
+      // Generate portal URL for email
+      const tempDistId = Date.now(); // Temporary ID for portal URL generation
+      const tempAccessToken = poTrackingService.generateAccessToken();
+      const tempPortalUrl = poTrackingService.generatePortalUrl(tempDistId, tempAccessToken);
+
       // Send the actual email with PDF attachment
       const emailResult = await emailService.sendPurchaseOrder({
         to: Array.isArray(to) ? to : [to],
@@ -9646,7 +9651,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         body: body || `Please find attached Purchase Order ${purchaseOrder.poNumber} for your review and processing.`,
         poData,
         supplierData: supplier,
-        templateType
+        templateType,
+        portalUrl: req.body.includePortalLink ? tempPortalUrl : undefined,
+        requestAcknowledgment: req.body.requestAcknowledgment || false
       });
 
       if (!emailResult.success) {
@@ -9660,7 +9667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create distribution record with tracking
       const distributionId = await poTrackingService.createDistribution({
         purchaseOrderId,
-        templateId: templateId ? parseInt(templateId) : undefined,
+        templateId: templateId && !isNaN(parseInt(templateId)) ? parseInt(templateId) : null,
         sentBy: userId || 0,
         sentTo: Array.isArray(to) ? to : [to],
         ccEmails: cc ? (Array.isArray(cc) ? cc : [cc]) : undefined,
@@ -9669,7 +9676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         emailSubject: subject || `Purchase Order ${purchaseOrder.poNumber}`,
         emailBody: body,
         messageId: emailResult.messageId,
-        requiresSignature
+        requiresSignature: requireSignature || false
       });
 
       // Generate supplier portal access token and URL
