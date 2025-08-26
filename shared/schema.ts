@@ -1098,6 +1098,30 @@ export const poTemplates = pgTable("po_templates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 })
 
+// PO Status Change Log - audit trail for all status changes
+export const poStatusLog = pgTable("po_status_log", {
+  id: serial("id").primaryKey(),
+  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id).notNull(),
+  
+  // Status Change Details
+  previousStatus: text("previous_status"),
+  newStatus: text("new_status").notNull(),
+  changeReason: text("change_reason"),
+  changeNotes: text("change_notes"),
+  
+  // User Info
+  changedBy: integer("changed_by").references(() => users.id).notNull(),
+  changedByName: text("changed_by_name"),
+  changedByRole: text("changed_by_role"),
+  
+  // Additional Context
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  source: text("source"), // 'manual', 'system', 'api', 'email'
+  
+  createdAt: timestamp("created_at").defaultNow(),
+})
+
 // PO Distribution Tracking - track PO sending and acknowledgments
 export const poDistribution = pgTable("po_distribution", {
   id: serial("id").primaryKey(),

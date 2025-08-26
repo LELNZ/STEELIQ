@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -9526,21 +9526,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update purchase order status
+  // Update purchase order status with audit logging
   app.patch("/api/procurement/purchase-orders/:id/status", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { status } = req.body;
+      const { status, reason, notes } = req.body;
       
       if (!status) {
         return res.status(400).json({ error: "Status is required" });
       }
       
+      // Get user from session
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Check user permissions (only admin and manager roles can change status)
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user || !['admin', 'manager', 'owner'].includes(user.role || '')) {
+        return res.status(403).json({ error: 'Insufficient permissions to change PO status' });
+      }
+      
+      // Get current PO status
+      const [currentPO] = await db.select()
+        .from(purchaseOrders)
+        .where(eq(purchaseOrders.id, id))
+        .limit(1);
+      
+      if (!currentPO) {
+        return res.status(404).json({ error: 'Purchase order not found' });
+      }
+      
+      // Update PO status
       const updated = await storage.updatePurchaseOrder(id, { status });
+      
+      // Log the status change
+      await db.insert(poStatusLog).values({
+        purchaseOrderId: id,
+        previousStatus: currentPO.status,
+        newStatus: status,
+        changeReason: reason,
+        changeNotes: notes,
+        changedBy: userId,
+        changedByName: user.name,
+        changedByRole: user.role,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        source: 'manual',
+        createdAt: new Date()
+      });
+      
+      // Clear acknowledgment data if changing from acknowledged to sent/draft
+      if (currentPO.status === 'acknowledged' && ['sent', 'draft'].includes(status)) {
+        await db.update(poDistribution)
+          .set({
+            acknowledgedAt: null,
+            acknowledgedBy: null,
+            acknowledgmentMethod: null,
+            acknowledgmentNotes: null,
+            updatedAt: new Date()
+          })
+          .where(eq(poDistribution.purchaseOrderId, id));
+      }
+      
       res.json(updated);
     } catch (error) {
       console.error("Error updating purchase order status:", error);
       res.status(500).json({ error: "Failed to update purchase order status" });
+    }
+  });
+  
+  // Get PO status change history
+  app.get("/api/procurement/purchase-orders/:id/status-history", async (req, res) => {
+    try {
+      const poId = parseInt(req.params.id);
+      
+      const history = await db.select()
+        .from(poStatusLog)
+        .where(eq(poStatusLog.purchaseOrderId, poId))
+        .orderBy(desc(poStatusLog.createdAt));
+      
+      res.json(history);
+    } catch (error: any) {
+      console.error('Error fetching status history:', error);
+      res.status(500).json({ error: 'Failed to fetch status history' });
     }
   });
 

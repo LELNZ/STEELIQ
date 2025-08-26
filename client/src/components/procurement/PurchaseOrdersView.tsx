@@ -44,10 +44,12 @@ import {
   Search,
   Filter,
   Loader2,
+  History,
 } from "lucide-react";
 import ConvertToPODialog from "./ConvertToPODialog";
 import PurchaseOrderDetailsDialog from "./PurchaseOrderDetailsDialog";
 import PODistributionDialog from "./PODistributionDialog";
+import { POStatusDialog } from "./POStatusDialog";
 
 const poStatusColors = {
   draft: "secondary",
@@ -68,6 +70,8 @@ export default function PurchaseOrdersView() {
   const [poToSend, setPOToSend] = useState<any>(null);
   const [cancelRequisitionOpen, setCancelRequisitionOpen] = useState(false);
   const [requisitionToCancel, setRequisitionToCancel] = useState<any>(null);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [statusDialogPO, setStatusDialogPO] = useState<any>(null);
   const { toast } = useToast();
 
   // Fetch approved requisitions ready for conversion
@@ -302,6 +306,15 @@ export default function PurchaseOrdersView() {
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setStatusDialogPO(po);
+                              setStatusDialogOpen(true);
+                            }}
+                          >
+                            <History className="mr-2 h-4 w-4" />
+                            Change Status
+                          </DropdownMenuItem>
                           {po.status === "draft" && (
                             <DropdownMenuItem
                               onClick={() => {
@@ -370,6 +383,15 @@ export default function PurchaseOrdersView() {
           open={convertDialogOpen}
           onOpenChange={setConvertDialogOpen}
           requisition={selectedRequisition}
+        />
+      )}
+
+      {/* PO Status Change Dialog */}
+      {statusDialogPO && (
+        <POStatusDialog
+          open={statusDialogOpen}
+          onOpenChange={setStatusDialogOpen}
+          purchaseOrder={statusDialogPO}
         />
       )}
 
