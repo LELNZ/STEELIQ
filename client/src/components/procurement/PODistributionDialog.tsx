@@ -558,7 +558,7 @@ Lateral Engineering Procurement Team`);
                   </div>
                   <div className="flex items-center justify-between py-2 border-b">
                     <span className="text-sm text-muted-foreground">Supplier</span>
-                    <span className="font-medium">{supplier?.company}</span>
+                    <span className="font-medium">{supplier?.name || "Not selected"}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b">
                     <span className="text-sm text-muted-foreground">Total Amount</span>
