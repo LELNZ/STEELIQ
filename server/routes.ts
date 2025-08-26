@@ -681,7 +681,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!supplier) {
         return res.status(404).json({ error: "Supplier not found" });
       }
-      res.json(supplier);
+      
+      // Fetch supplier contacts
+      const contacts = await storage.getSupplierContacts(supplierId);
+      
+      // Find primary contact
+      const primaryContact = contacts.find(c => c.isPrimaryContact) || contacts[0];
+      
+      // Add contacts and primary contact info to supplier response
+      const supplierWithContacts = {
+        ...supplier,
+        contacts,
+        primaryContact: primaryContact ? {
+          name: `${primaryContact.firstName} ${primaryContact.lastName}`.trim(),
+          email: primaryContact.email,
+          phone: primaryContact.phonePrimary || primaryContact.phoneMobile || primaryContact.phoneDirect,
+          position: primaryContact.position
+        } : null
+      };
+      
+      res.json(supplierWithContacts);
     } catch (error) {
       console.error("Error fetching supplier:", error);
       res.status(500).json({ error: "Failed to fetch supplier" });

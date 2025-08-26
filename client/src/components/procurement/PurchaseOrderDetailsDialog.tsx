@@ -135,14 +135,14 @@ export default function PurchaseOrderDetailsDialog({
                 ) : (
                   <>
                     <p className="font-medium">{supplier?.name || 'Loading...'}</p>
-                    {supplier?.email && (
-                      <p className="text-xs text-muted-foreground">{supplier.email}</p>
+                    {(supplier?.primaryContact?.email || supplier?.email) && (
+                      <p className="text-xs text-muted-foreground">{supplier?.primaryContact?.email || supplier?.email}</p>
                     )}
-                    {supplier?.phone && (
-                      <p className="text-xs text-muted-foreground">{supplier.phone}</p>
+                    {(supplier?.primaryContact?.name || supplier?.accountManager) && (
+                      <p className="text-xs text-muted-foreground">Contact: {supplier?.primaryContact?.name || supplier?.accountManager}</p>
                     )}
-                    {supplier?.accountManager && (
-                      <p className="text-xs text-muted-foreground">Contact: {supplier.accountManager}</p>
+                    {(supplier?.primaryContact?.phone || supplier?.phone) && (
+                      <p className="text-xs text-muted-foreground">Phone: {supplier?.primaryContact?.phone || supplier?.phone}</p>
                     )}
                   </>
                 )}

@@ -92,9 +92,10 @@ export default function PODistributionDialog({
   // Update form when supplier changes
   useEffect(() => {
     if (supplier && purchaseOrder) {
-      setPrimaryEmail(supplier.email || "");
+      // Use primary contact email if available, otherwise fall back to supplier email
+      setPrimaryEmail(supplier.primaryContact?.email || supplier.email || "");
       setEmailSubject(`Purchase Order ${purchaseOrder.poNumber} - Lateral Engineering`);
-      setEmailBody(`Dear ${supplier.accountManager || supplier.name || "Supplier"},
+      setEmailBody(`Dear ${supplier.primaryContact?.name || supplier.accountManager || supplier.name || "Supplier"},
 
 Please find attached Purchase Order ${purchaseOrder.poNumber} for your review and acknowledgment.
 
@@ -251,14 +252,14 @@ Lateral Engineering Procurement Team`);
                       <Label>Contact Person</Label>
                       <div className="flex items-center gap-2 mt-1">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{supplier?.accountManager || supplier?.contactPerson || "N/A"}</span>
+                        <span className="font-medium">{supplier?.primaryContact?.name || supplier?.accountManager || "N/A"}</span>
                       </div>
                     </div>
                     <div>
                       <Label>Phone</Label>
                       <div className="flex items-center gap-2 mt-1">
                         <Phone className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{supplier?.phone || "N/A"}</span>
+                        <span className="font-medium">{supplier?.primaryContact?.phone || supplier?.phone || "N/A"}</span>
                       </div>
                     </div>
                     {supplier?.company && supplier.company !== supplier.name && (
