@@ -1600,7 +1600,21 @@ export class DatabaseStorage implements IStorage {
 
   // PO Templates Management
   async getPOTemplates(): Promise<any[]> {
-    return await db.select().from(poTemplates).orderBy(asc(poTemplates.templateName));
+    return await db.select({
+      id: poTemplates.id,
+      templateName: poTemplates.templateName,
+      templateCode: poTemplates.templateCode,
+      category: poTemplates.category,
+      showPrices: poTemplates.showPrices,
+      showGst: poTemplates.showGst,
+      showDeliveryDate: poTemplates.showDeliveryDate,
+      showItemCodes: poTemplates.showItemCodes,
+      primaryColor: poTemplates.primaryColor,
+      secondaryColor: poTemplates.secondaryColor,
+      termsAndConditions: poTemplates.termsAndConditions,
+      isDefault: poTemplates.isDefault,
+      isActive: poTemplates.isActive,
+    }).from(poTemplates).orderBy(asc(poTemplates.templateName));
   }
 
   async getPOTemplate(templateIdOrCode: string): Promise<any> {
@@ -1608,11 +1622,39 @@ export class DatabaseStorage implements IStorage {
     const isId = !isNaN(Number(templateIdOrCode));
     
     if (isId) {
-      const [template] = await db.select().from(poTemplates)
+      const [template] = await db.select({
+        id: poTemplates.id,
+        templateName: poTemplates.templateName,
+        templateCode: poTemplates.templateCode,
+        category: poTemplates.category,
+        showPrices: poTemplates.showPrices,
+        showGst: poTemplates.showGst,
+        showDeliveryDate: poTemplates.showDeliveryDate,
+        showItemCodes: poTemplates.showItemCodes,
+        primaryColor: poTemplates.primaryColor,
+        secondaryColor: poTemplates.secondaryColor,
+        termsAndConditions: poTemplates.termsAndConditions,
+        isDefault: poTemplates.isDefault,
+        isActive: poTemplates.isActive,
+      }).from(poTemplates)
         .where(eq(poTemplates.id, Number(templateIdOrCode)));
       return template;
     } else {
-      const [template] = await db.select().from(poTemplates)
+      const [template] = await db.select({
+        id: poTemplates.id,
+        templateName: poTemplates.templateName,
+        templateCode: poTemplates.templateCode,
+        category: poTemplates.category,
+        showPrices: poTemplates.showPrices,
+        showGst: poTemplates.showGst,
+        showDeliveryDate: poTemplates.showDeliveryDate,
+        showItemCodes: poTemplates.showItemCodes,
+        primaryColor: poTemplates.primaryColor,
+        secondaryColor: poTemplates.secondaryColor,
+        termsAndConditions: poTemplates.termsAndConditions,
+        isDefault: poTemplates.isDefault,
+        isActive: poTemplates.isActive,
+      }).from(poTemplates)
         .where(eq(poTemplates.templateCode, templateIdOrCode));
       return template;
     }

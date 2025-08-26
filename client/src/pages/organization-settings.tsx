@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import CompanyBranding from "@/components/organization-settings/company-branding";
 import OfficeLocations from "@/components/organization-settings/office-locations";
-import QuoteTemplates from "@/components/organization-settings/quote-templates";
+import Templates from "@/components/organization-settings/templates";
 import EmailConfiguration from "@/components/organization-settings/email-configuration";
 import TermsConditions from "@/components/organization-settings/terms-conditions";
 import HandlingCosts from "@/components/organization-settings/handling-costs";
@@ -79,7 +79,7 @@ export default function OrganizationSettings() {
           </TabsContent>
 
           <TabsContent value="templates" className="mt-0">
-            <QuoteTemplates />
+            <Templates />
           </TabsContent>
 
           <TabsContent value="email" className="mt-0">
