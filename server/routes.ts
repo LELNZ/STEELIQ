@@ -9614,6 +9614,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Return PO to Requisition with existing approvals intact
+  app.post("/api/procurement/purchase-orders/:id/return-to-requisition", async (req, res) => {
+    try {
+      const poId = parseInt(req.params.id);
+      const { reason, notes } = req.body;
+      
+      // Get user from session
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Check user permissions (only admin, manager, and owner can return to requisition)
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user || !['admin', 'manager', 'owner'].includes(user.role || '')) {
+        return res.status(403).json({ error: 'Insufficient permissions to return PO to requisition' });
+      }
+      
+      // Get the PO details
+      const [po] = await db.select()
+        .from(purchaseOrders)
+        .where(eq(purchaseOrders.id, poId))
+        .limit(1);
+      
+      if (!po) {
+        return res.status(404).json({ error: 'Purchase order not found' });
+      }
+      
+      // Get PO items
+      const poItems = await db.select()
+        .from(purchaseOrderItems)
+        .where(eq(purchaseOrderItems.purchaseOrderId, poId));
+      
+      // Create a new requisition with approved status (since it was already approved before)
+      const newRequisition = await storage.createRequisition({
+        requisitionNumber: `REQ-${Date.now()}`,
+        requesterName: po.createdByName || user.name,
+        department: 'Operations',
+        status: 'approved', // Keep approved status since it was already approved
+        priority: 'normal',
+        requestDate: new Date(),
+        justification: `Returned from PO ${po.poNumber}. Original justification maintained.`,
+        notes: `Converted back from PO ${po.poNumber}. Reason: ${reason || 'Not specified'}. ${notes || ''}`,
+        totalAmount: po.totalAmount,
+        createdBy: userId,
+        approvedBy: po.approvedBy || userId,
+        approvedDate: po.approvedDate || new Date(),
+      });
+      
+      // Create requisition items from PO items
+      for (const poItem of poItems) {
+        await storage.createRequisitionItem({
+          requisitionId: newRequisition.id,
+          itemDescription: poItem.description,
+          quantity: poItem.quantity,
+          unitPrice: poItem.unitPrice,
+          totalPrice: poItem.totalPrice || poItem.lineTotal || (poItem.quantity * poItem.unitPrice),
+          specifications: poItem.specifications,
+          supplierId: po.supplierId,
+          materialCode: poItem.materialCode,
+        });
+      }
+      
+      // Log the status change
+      await db.insert(poStatusLog).values({
+        purchaseOrderId: poId,
+        previousStatus: po.status,
+        newStatus: 'returned_to_requisition',
+        changeReason: reason || 'Returned to requisition',
+        changeNotes: `Converted to requisition ${newRequisition.requisitionNumber}. ${notes || ''}`,
+        changedBy: userId,
+        changedByName: user.name,
+        changedByRole: user.role,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        source: 'manual',
+        createdAt: new Date()
+      });
+      
+      // Delete or mark the PO as cancelled
+      await storage.updatePurchaseOrder(poId, { 
+        status: 'cancelled',
+        notes: `${po.notes || ''}\n\nReturned to requisition ${newRequisition.requisitionNumber} on ${new Date().toLocaleDateString()}`
+      });
+      
+      res.json({ 
+        success: true, 
+        requisition: newRequisition,
+        message: `PO ${po.poNumber} has been returned to requisition ${newRequisition.requisitionNumber}`
+      });
+    } catch (error: any) {
+      console.error('Error returning PO to requisition:', error);
+      res.status(500).json({ error: 'Failed to return PO to requisition' });
+    }
+  });
+
   // Add purchase order item
   app.post("/api/procurement/purchase-orders/:id/items", async (req, res) => {
     try {

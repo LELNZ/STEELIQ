@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { History, AlertCircle } from 'lucide-react';
+import { History, AlertCircle, RotateCcw } from 'lucide-react';
 
 interface POStatusDialogProps {
   open: boolean;
@@ -49,13 +49,10 @@ export function POStatusDialog({
         throw new Error('Please select a status');
       }
       
-      await apiRequest(`/api/procurement/purchase-orders/${purchaseOrder.id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: selectedStatus,
-          reason: reason || undefined,
-          notes: notes || undefined,
-        }),
+      await apiRequest(`/api/procurement/purchase-orders/${purchaseOrder.id}/status`, 'PATCH', {
+        status: selectedStatus,
+        reason: reason || undefined,
+        notes: notes || undefined,
       });
     },
     onSuccess: () => {
@@ -78,12 +75,47 @@ export function POStatusDialog({
     },
   });
 
+  // Return to requisition mutation
+  const returnToRequisitionMutation = useMutation({
+    mutationFn: async () => {
+      if (!reason) {
+        throw new Error('Please provide a reason for returning to requisition');
+      }
+      
+      const response = await apiRequest(`/api/procurement/purchase-orders/${purchaseOrder.id}/return-to-requisition`, 'POST', {
+        reason: reason,
+        notes: notes || undefined,
+      });
+      return response;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/procurement/purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/procurement/requisitions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/procurement/metrics'] });
+      toast({
+        title: 'Returned to Requisition',
+        description: data.message || `PO ${purchaseOrder.poNumber} has been converted back to requisition`,
+      });
+      onOpenChange(false);
+      setReason('');
+      setNotes('');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Return Failed',
+        description: error.message || 'Failed to return PO to requisition',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const statusOptions = [
     { value: 'draft', label: 'Draft', description: 'PO is being prepared' },
     { value: 'sent', label: 'Sent', description: 'PO has been sent to supplier' },
     { value: 'acknowledged', label: 'Acknowledged', description: 'Supplier has acknowledged receipt' },
     { value: 'completed', label: 'Completed', description: 'Order has been delivered' },
     { value: 'cancelled', label: 'Cancelled', description: 'Order has been cancelled' },
+    { value: 'return_to_requisition', label: 'Return to Requisition', description: 'Convert back to requisition with approvals intact', icon: RotateCcw },
   ];
 
   const getStatusColor = (status: string) => {
@@ -93,6 +125,7 @@ export function POStatusDialog({
       case 'acknowledged': return 'text-green-600';
       case 'completed': return 'text-purple-600';
       case 'cancelled': return 'text-red-600';
+      case 'return_to_requisition': return 'text-orange-600';
       default: return 'text-gray-600';
     }
   };
@@ -105,10 +138,21 @@ export function POStatusDialog({
       'sent-draft': ['Need to modify items', 'Incorrect supplier selected', 'Price adjustment needed'],
       'completed-sent': ['Delivery incomplete', 'Quality issues', 'Wrong items received'],
       'cancelled-*': ['Budget constraints', 'Project cancelled', 'Supplier unable to fulfill', 'Found better alternative'],
+      'return_to_requisition-*': ['Supplier changed', 'Price renegotiation needed', 'Specifications changed', 'Project requirements updated'],
     };
     
-    const key = `${purchaseOrder.status}-${selectedStatus}`;
+    const key = selectedStatus === 'return_to_requisition' 
+      ? 'return_to_requisition-*'
+      : `${purchaseOrder.status}-${selectedStatus}`;
     return suggestions[key] || suggestions['cancelled-*'] || [];
+  };
+
+  const handleSubmit = () => {
+    if (selectedStatus === 'return_to_requisition') {
+      returnToRequisitionMutation.mutate();
+    } else {
+      updateStatusMutation.mutate();
+    }
   };
 
   return (
@@ -138,8 +182,11 @@ export function POStatusDialog({
                 <div key={option.value} className="flex items-start space-x-2 p-2 hover:bg-gray-50 rounded">
                   <RadioGroupItem value={option.value} id={option.value} className="mt-1" />
                   <label htmlFor={option.value} className="flex-1 cursor-pointer">
-                    <div className={`font-medium capitalize ${getStatusColor(option.value)}`}>
-                      {option.label}
+                    <div className="flex items-center gap-2">
+                      {option.icon && <option.icon className="h-4 w-4" />}
+                      <span className={`font-medium capitalize ${getStatusColor(option.value)}`}>
+                        {option.label}
+                      </span>
                     </div>
                     <div className="text-sm text-gray-500">{option.description}</div>
                   </label>
@@ -150,7 +197,7 @@ export function POStatusDialog({
 
           {/* Reason for Change */}
           <div className="space-y-2">
-            <Label>Reason for Change</Label>
+            <Label>Reason for Change {selectedStatus === 'return_to_requisition' && '*'}</Label>
             {getReasonSuggestions().length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
                 {getReasonSuggestions().map((suggestion) => (
@@ -166,10 +213,13 @@ export function POStatusDialog({
               </div>
             )}
             <Textarea
-              placeholder="Enter reason for status change..."
+              placeholder={selectedStatus === 'return_to_requisition' 
+                ? "Required: Enter reason for returning to requisition..." 
+                : "Enter reason for status change..."}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="min-h-[60px]"
+              required={selectedStatus === 'return_to_requisition'}
             />
           </div>
 
@@ -183,6 +233,24 @@ export function POStatusDialog({
               className="min-h-[60px]"
             />
           </div>
+
+          {/* Warning for return to requisition */}
+          {selectedStatus === 'return_to_requisition' && (
+            <div className="bg-orange-50 border border-orange-200 p-3 rounded flex gap-2">
+              <RotateCcw className="h-4 w-4 text-orange-600 mt-0.5" />
+              <div className="text-sm text-orange-800">
+                <p className="font-medium">Return to Requisition</p>
+                <p>This will:</p>
+                <ul className="list-disc ml-4 mt-1">
+                  <li>Create a new requisition with approved status</li>
+                  <li>Preserve all item details and existing approvals</li>
+                  <li>Cancel the current purchase order</li>
+                  <li>Allow modifications before re-converting to PO</li>
+                </ul>
+                <p className="mt-2 font-medium">This action cannot be undone.</p>
+              </div>
+            </div>
+          )}
 
           {/* Warning for certain changes */}
           {purchaseOrder?.status === 'acknowledged' && ['sent', 'draft'].includes(selectedStatus) && (
@@ -200,9 +268,9 @@ export function POStatusDialog({
             variant="outline"
             size="sm"
             onClick={() => setShowHistory(!showHistory)}
-            className="w-full"
+            className="gap-2"
           >
-            <History className="h-4 w-4 mr-2" />
+            <History className="h-4 w-4" />
             {showHistory ? 'Hide' : 'Show'} Status History
           </Button>
 
@@ -210,27 +278,29 @@ export function POStatusDialog({
           {showHistory && statusHistory && statusHistory.length > 0 && (
             <ScrollArea className="h-48 border rounded p-3">
               <div className="space-y-3">
-                {statusHistory.map((entry: any, index: number) => (
-                  <div key={entry.id} className={`pb-3 ${index < statusHistory.length - 1 ? 'border-b' : ''}`}>
-                    <div className="flex justify-between items-start mb-1">
+                {statusHistory.map((entry: any) => (
+                  <div key={entry.id} className="border-l-2 border-gray-200 pl-3 pb-2">
+                    <div className="flex justify-between">
                       <div>
-                        <span className={`font-medium capitalize ${getStatusColor(entry.previousStatus)}`}>
-                          {entry.previousStatus || 'New'}
+                        <span className={`font-medium ${getStatusColor(entry.previousStatus)}`}>
+                          {entry.previousStatus}
                         </span>
-                        <span className="mx-2">→</span>
-                        <span className={`font-medium capitalize ${getStatusColor(entry.newStatus)}`}>
+                        {' → '}
+                        <span className={`font-medium ${getStatusColor(entry.newStatus)}`}>
                           {entry.newStatus}
                         </span>
                       </div>
                       <span className="text-xs text-gray-500">
-                        {format(new Date(entry.createdAt), 'MMM d, yyyy h:mm a')}
+                        {format(new Date(entry.createdAt), 'MMM dd, yyyy HH:mm')}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-600">
-                      <p>By: {entry.changedByName} ({entry.changedByRole})</p>
-                      {entry.changeReason && <p>Reason: {entry.changeReason}</p>}
-                      {entry.changeNotes && <p className="mt-1 italic">Notes: {entry.changeNotes}</p>}
-                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {entry.changeReason}
+                      {entry.changeNotes && ` - ${entry.changeNotes}`}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      By {entry.changedByName} ({entry.changedByRole})
+                    </p>
                   </div>
                 ))}
               </div>
@@ -242,11 +312,16 @@ export function POStatusDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button 
-            onClick={() => updateStatusMutation.mutate()}
-            disabled={!selectedStatus || selectedStatus === purchaseOrder?.status || updateStatusMutation.isPending}
+          <Button
+            onClick={handleSubmit}
+            disabled={updateStatusMutation.isPending || returnToRequisitionMutation.isPending || !selectedStatus}
+            className={selectedStatus === 'return_to_requisition' ? 'bg-orange-600 hover:bg-orange-700' : ''}
           >
-            {updateStatusMutation.isPending ? 'Updating...' : 'Update Status'}
+            {updateStatusMutation.isPending || returnToRequisitionMutation.isPending
+              ? 'Processing...'
+              : selectedStatus === 'return_to_requisition'
+              ? 'Return to Requisition'
+              : 'Update Status'}
           </Button>
         </DialogFooter>
       </DialogContent>

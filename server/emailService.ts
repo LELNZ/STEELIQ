@@ -1,6 +1,7 @@
 import sgMail from '@sendgrid/mail';
 import PDFDocument from 'pdfkit';
 import { Readable } from 'stream';
+import * as XLSX from 'xlsx';
 
 // Initialize SendGrid with API key
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
@@ -342,20 +343,25 @@ export class EmailService {
         const gstAmount = subtotal * 0.15; // 15% GST
         const totalWithGST = subtotal + gstAmount;
         
+        // Subtotal
         doc.font('Helvetica')
           .fontSize(10)
-          .text('Subtotal:', 400, yPosition)
-          .text(`$${subtotal.toFixed(2)}`, 470, yPosition);
+          .text('Subtotal:', 350, yPosition)
+          .text(`$${subtotal.toFixed(2)}`, 470, yPosition, { align: 'right', width: 70 });
         
         yPosition += 20;
-        doc.text('GST (15%):', 400, yPosition)
-          .text(`$${gstAmount.toFixed(2)}`, 470, yPosition);
+        // GST
+        doc.font('Helvetica')
+          .fontSize(10)
+          .text('GST (15%):', 350, yPosition)
+          .text(`$${gstAmount.toFixed(2)}`, 470, yPosition, { align: 'right', width: 70 });
         
         yPosition += 20;
+        // Total with GST
         doc.font('Helvetica-Bold')
           .fontSize(11)
-          .text('Total (incl. GST):', 400, yPosition)
-          .text(`$${totalWithGST.toFixed(2)}`, 470, yPosition);
+          .text('Total (incl. GST):', 350, yPosition)
+          .text(`$${totalWithGST.toFixed(2)}`, 470, yPosition, { align: 'right', width: 70 });
       } else {
         // Standard and Simple templates - just show total
         doc.font('Helvetica-Bold')
@@ -391,43 +397,167 @@ export class EmailService {
   private generatePOCSV(poData: any, supplierData: any): string {
     const lines = [];
     
-    // Header
-    lines.push('Purchase Order');
+    // Header Information
+    lines.push('PURCHASE ORDER');
     lines.push(`PO Number,${poData.poNumber}`);
     lines.push(`Date,${new Date(poData.orderDate).toLocaleDateString()}`);
-    lines.push(`Delivery Date,${poData.deliveryDate ? new Date(poData.deliveryDate).toLocaleDateString() : 'TBD'}`);
+    lines.push(`Requested Delivery Date,${poData.requestedDeliveryDate ? new Date(poData.requestedDeliveryDate).toLocaleDateString() : 'Invalid Date'}`);
+    lines.push(`Delivery Address,"${poData.deliveryAddress || 'Workshop'}"`);
+    lines.push(`Status,${poData.status || 'draft'}`);
     lines.push('');
     
-    // Supplier
-    lines.push('Supplier Information');
-    lines.push(`Name,${supplierData.name || ''}`);
+    // Company Information
+    lines.push('COMPANY INFORMATION');
+    lines.push('Company,Lateral Engineering Limited');
+    lines.push('Address,"Auckland, New Zealand"');
+    lines.push('Email,accounts@lateralengineering.co.nz');
+    lines.push('');
+    
+    // Supplier Information
+    lines.push('SUPPLIER INFORMATION');
+    lines.push(`Company,"${supplierData.company || supplierData.name || ''}"`);
+    lines.push(`Contact Name,"${supplierData.name || ''}"`);
     lines.push(`Email,${supplierData.email || ''}`);
     lines.push(`Phone,${supplierData.phone || ''}`);
     lines.push(`Address,"${supplierData.address || ''}"`);
     lines.push('');
     
+    // Items header
+    lines.push('ITEMS');
+    lines.push('Item,Code,Description,Quantity,Unit,Unit Price,Total');
+    
     // Items
-    lines.push('Item,Description,Quantity,Unit Price,Total');
     if (poData.items && poData.items.length > 0) {
       poData.items.forEach((item: any, index: number) => {
         const unitPrice = parseFloat(item.unitPrice) || 0;
         const totalPrice = parseFloat(item.totalPrice || item.lineTotal) || 0;
-        lines.push(`${index + 1},"${item.description || ''}",${item.quantity || 0},${unitPrice.toFixed(2)},${totalPrice.toFixed(2)}`);
+        lines.push(`${index + 1},"${item.materialCode || ''}","${item.description || ''}",${item.quantity || 0},${item.unit || 'EA'},${unitPrice.toFixed(2)},${totalPrice.toFixed(2)}`);
       });
     }
     
-    // Total
-    const totalAmount = typeof poData.totalAmount === 'number' ? poData.totalAmount : parseFloat(poData.totalAmount) || 0;
+    // Financial Summary
     lines.push('');
-    lines.push(`,,,,Total Amount,${totalAmount.toFixed(2)}`);
+    lines.push('FINANCIAL SUMMARY');
+    const totalAmount = typeof poData.totalAmount === 'number' ? poData.totalAmount : parseFloat(poData.totalAmount) || 0;
+    lines.push(`Subtotal,,,,,,${totalAmount.toFixed(2)}`);
+    lines.push(`GST (15%),,,,,,${(totalAmount * 0.15).toFixed(2)}`);
+    lines.push(`Total (incl. GST),,,,,,${(totalAmount * 1.15).toFixed(2)}`);
+    
+    // Terms and Conditions
+    lines.push('');
+    lines.push('TERMS AND CONDITIONS');
+    lines.push('Payment Terms,Net 30 days');
+    lines.push('Delivery,To specified location during business hours');
+    lines.push('Quality Standards,All items must meet specified quality standards');
+    lines.push('Terms,Subject to standard terms and conditions');
+    
+    // Notes
+    if (poData.notes) {
+      lines.push('');
+      lines.push('NOTES');
+      lines.push(`"${poData.notes}"`);
+    }
     
     return lines.join('\n');
   }
 
   private generatePOExcel(poData: any, supplierData: any): Buffer {
-    // For now, generate CSV format as Excel - proper Excel generation would require xlsx library
-    const csvContent = this.generatePOCSV(poData, supplierData);
-    return Buffer.from(csvContent);
+    // Create workbook with proper Excel structure
+    const workbook = XLSX.utils.book_new();
+    
+    // Main PO Sheet
+    const poData_sheet: any[][] = [];
+    
+    // Header Section
+    poData_sheet.push(['PURCHASE ORDER']);
+    poData_sheet.push([]);
+    poData_sheet.push(['PO Number:', poData.poNumber]);
+    poData_sheet.push(['Date:', new Date(poData.orderDate).toLocaleDateString()]);
+    poData_sheet.push(['Requested Delivery Date:', poData.requestedDeliveryDate ? new Date(poData.requestedDeliveryDate).toLocaleDateString() : 'Invalid Date']);
+    poData_sheet.push(['Delivery Address:', poData.deliveryAddress || 'Workshop']);
+    poData_sheet.push(['Status:', poData.status || 'draft']);
+    poData_sheet.push([]);
+    
+    // Company Section
+    poData_sheet.push(['COMPANY INFORMATION']);
+    poData_sheet.push(['Company:', 'Lateral Engineering Limited']);
+    poData_sheet.push(['Address:', 'Auckland, New Zealand']);
+    poData_sheet.push(['Email:', 'accounts@lateralengineering.co.nz']);
+    poData_sheet.push([]);
+    
+    // Supplier Section
+    poData_sheet.push(['SUPPLIER INFORMATION']);
+    poData_sheet.push(['Company:', supplierData.company || supplierData.name || '']);
+    poData_sheet.push(['Contact Name:', supplierData.name || '']);
+    poData_sheet.push(['Email:', supplierData.email || '']);
+    poData_sheet.push(['Phone:', supplierData.phone || '']);
+    poData_sheet.push(['Address:', supplierData.address || '']);
+    poData_sheet.push([]);
+    
+    // Items Section
+    poData_sheet.push(['ITEMS']);
+    poData_sheet.push(['Item', 'Code', 'Description', 'Quantity', 'Unit', 'Unit Price', 'Total']);
+    
+    if (poData.items && poData.items.length > 0) {
+      poData.items.forEach((item: any, index: number) => {
+        const unitPrice = parseFloat(item.unitPrice) || 0;
+        const totalPrice = parseFloat(item.totalPrice || item.lineTotal) || 0;
+        poData_sheet.push([
+          index + 1,
+          item.materialCode || '',
+          item.description || '',
+          item.quantity || 0,
+          item.unit || 'EA',
+          unitPrice.toFixed(2),
+          totalPrice.toFixed(2)
+        ]);
+      });
+    }
+    
+    poData_sheet.push([]);
+    
+    // Financial Summary
+    const totalAmount = typeof poData.totalAmount === 'number' ? poData.totalAmount : parseFloat(poData.totalAmount) || 0;
+    poData_sheet.push(['FINANCIAL SUMMARY']);
+    poData_sheet.push(['', '', '', '', '', 'Subtotal:', totalAmount.toFixed(2)]);
+    poData_sheet.push(['', '', '', '', '', 'GST (15%):', (totalAmount * 0.15).toFixed(2)]);
+    poData_sheet.push(['', '', '', '', '', 'Total (incl. GST):', (totalAmount * 1.15).toFixed(2)]);
+    poData_sheet.push([]);
+    
+    // Terms and Conditions
+    poData_sheet.push(['TERMS AND CONDITIONS']);
+    poData_sheet.push(['Payment Terms:', 'Net 30 days']);
+    poData_sheet.push(['Delivery:', 'To specified location during business hours']);
+    poData_sheet.push(['Quality Standards:', 'All items must meet specified quality standards']);
+    poData_sheet.push(['Terms:', 'Subject to standard terms and conditions']);
+    
+    // Notes
+    if (poData.notes) {
+      poData_sheet.push([]);
+      poData_sheet.push(['NOTES']);
+      poData_sheet.push([poData.notes]);
+    }
+    
+    // Convert array to worksheet
+    const worksheet = XLSX.utils.aoa_to_sheet(poData_sheet);
+    
+    // Set column widths
+    worksheet['!cols'] = [
+      { wch: 20 }, // Column A
+      { wch: 15 }, // Column B
+      { wch: 40 }, // Column C
+      { wch: 12 }, // Column D
+      { wch: 10 }, // Column E
+      { wch: 15 }, // Column F
+      { wch: 15 }, // Column G
+    ];
+    
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Purchase Order');
+    
+    // Generate buffer
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    return buffer;
   }
 }
 
