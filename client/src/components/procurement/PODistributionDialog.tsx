@@ -69,18 +69,12 @@ export default function PODistributionDialog({
     enabled: !!(selectedSupplierId || purchaseOrder?.supplierId),
   });
 
-  // Fetch available templates
-  const { data: templates = [] } = useQuery({
-    queryKey: ["/api/procurement/po-templates"],
-    queryFn: async () => {
-      // Mock templates for now
-      return [
-        { id: "default", name: "Standard Template", description: "Company default PO template" },
-        { id: "detailed", name: "Detailed Template", description: "Includes extended item descriptions" },
-        { id: "simple", name: "Simple Template", description: "Minimal information, prices only" }
-      ];
-    }
-  });
+  // Fetch available templates - use mock data since API returns different structure
+  const templates = [
+    { id: "default", name: "Standard Template", description: "Company default PO template with blue theme" },
+    { id: "detailed", name: "Detailed Template", description: "Includes extended item descriptions with green theme" },
+    { id: "simple", name: "Simple Template", description: "Minimal information, prices only with gray theme" }
+  ];
 
   // Initialize selected supplier from PO
   useEffect(() => {
