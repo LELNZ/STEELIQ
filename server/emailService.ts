@@ -256,9 +256,10 @@ export class EmailService {
         .stroke(primaryColor);
       
       yPosition += 10;
+      const totalAmount = parseFloat(poData.totalAmount) || 0;
       doc.font('Helvetica-Bold')
         .text('Total Amount:', 400, yPosition)
-        .text(`$${(poData.totalAmount || 0).toFixed(2)}`, 470, yPosition);
+        .text(`$${totalAmount.toFixed(2)}`, 470, yPosition);
 
       // Terms and conditions
       if (templateType === 'detailed') {

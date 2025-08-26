@@ -18,6 +18,7 @@ import { Readable } from 'stream';
 import { analyzeConstructionDrawing, validateSteelSpecifications } from "./pdf-analysis";
 import { googleAuth } from "./googleAuth";
 import { emailService } from "./emailService";
+import { poTrackingService } from "./poTracking";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint for deployment monitoring
@@ -9656,30 +9657,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Create distribution record for tracking
-      const distribution = {
-        id: Date.now(),
+      // Create distribution record with tracking
+      const distributionId = await poTrackingService.createDistribution({
         purchaseOrderId,
-        templateId,
-        sentAt: new Date(),
-        sentBy: userId,
-        sentTo: to,
-        ccEmails: cc,
-        bccEmails: bcc,
+        templateId: templateId ? parseInt(templateId) : undefined,
+        sentBy: userId || 0,
+        sentTo: Array.isArray(to) ? to : [to],
+        ccEmails: cc ? (Array.isArray(cc) ? cc : [cc]) : undefined,
+        bccEmails: bcc ? (Array.isArray(bcc) ? bcc : [bcc]) : undefined,
         deliveryMethod: 'email',
-        emailSubject: subject,
+        emailSubject: subject || `Purchase Order ${purchaseOrder.poNumber}`,
         emailBody: body,
-        emailStatus: 'sent',
         messageId: emailResult.messageId,
-        requiresSignature: requireSignature,
-      };
+        requiresSignature
+      });
+
+      // Generate supplier portal access token and URL
+      const accessToken = poTrackingService.generateAccessToken();
+      const portalUrl = poTrackingService.generatePortalUrl(distributionId, accessToken);
 
       // Update PO status to sent
       await storage.updatePurchaseOrder(purchaseOrderId, { status: 'sent' });
 
       res.json({ 
         success: true, 
-        distribution,
+        distributionId,
+        portalUrl,
         message: "Purchase order sent successfully via email" 
       });
     } catch (error) {
@@ -9943,25 +9946,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get PO distribution history
+  // Get PO distribution history and tracking status
   app.get("/api/procurement/purchase-orders/:id/distribution", async (req, res) => {
     try {
       const purchaseOrderId = parseInt(req.params.id);
-      
-      // Mock distribution history for now
-      const distributions = [
-        {
-          id: 1,
-          purchaseOrderId,
-          sentAt: new Date(),
-          sentTo: ["supplier@example.com"],
-          deliveryMethod: "email",
-          emailStatus: "delivered",
-          acknowledgedAt: null,
-        }
-      ];
-      
-      res.json(distributions);
+      const trackingStatus = await poTrackingService.getPOTrackingStatus(purchaseOrderId);
+      res.json(trackingStatus);
     } catch (error) {
       console.error("Error fetching distribution history:", error);
       res.status(500).json({ error: "Failed to fetch distribution history" });
