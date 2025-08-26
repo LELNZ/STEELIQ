@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +37,15 @@ export default function ConvertToPODialog({
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
   const { toast } = useToast();
+
+  // Initialize selectedSupplierId when requisition changes or dialog opens
+  useEffect(() => {
+    if (open && requisition?.preferredSupplierId) {
+      setSelectedSupplierId(requisition.preferredSupplierId.toString());
+    } else if (open && !requisition?.preferredSupplierId) {
+      setSelectedSupplierId("");
+    }
+  }, [open, requisition]);
 
   // Fetch suppliers
   const { data: suppliers = [], refetch: refetchSuppliers } = useQuery({
@@ -115,9 +124,6 @@ export default function ConvertToPODialog({
       supplierId: parseInt(selectedSupplierId),
     });
   };
-
-  // Use preferred supplier as default if available
-  const preferredSupplierId = requisition?.preferredSupplierId?.toString() || "";
 
   // If showing supplier form, render that instead
   if (showSupplierForm) {
@@ -202,7 +208,6 @@ export default function ConvertToPODialog({
             <Select
               value={selectedSupplierId}
               onValueChange={setSelectedSupplierId}
-              defaultValue={preferredSupplierId}
             >
               <SelectTrigger id="supplier">
                 <SelectValue placeholder="Choose a supplier" />
