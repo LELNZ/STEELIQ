@@ -24,7 +24,6 @@ import Contacts from "@/pages/contacts";
 import Suppliers from "@/pages/suppliers";
 import SupplierContacts from "@/pages/supplier-contacts";
 
-import SettingsPage from "@/pages/settings";
 import GlobalSettings from "@/pages/global-settings";
 import UserPreferences from "@/pages/user-preferences";
 import LaborRates from "@/pages/labor-rates";
@@ -96,7 +95,7 @@ function Router() {
       <Route path="/contacts" component={Contacts} />
       <Route path="/suppliers" component={Suppliers} />
       <Route path="/supplier-contacts" component={SupplierContacts} />
-      <Route path="/settings" component={SettingsPage} />
+      <Route path="/settings" component={FinancialSettings} />
       <Route path="/settings/organization" component={OrganizationSettings} />
       <Route path="/settings/financial" component={FinancialSettings} />
       <Route path="/settings/operations" component={OperationsSettingsNew} />

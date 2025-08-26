@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { DollarSign, TrendingUp, Calculator, Building, Percent, AlertCircle, Save } from "lucide-react";
+import { DollarSign, TrendingUp, Calculator, Building, Percent, AlertCircle, Save, Settings2, Info } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -51,45 +51,61 @@ export default function FinancialSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [hasChanges, setHasChanges] = useState(false);
+  const [activeTab, setActiveTab] = useState('overheads');
 
-  // Fetch financial settings
+  // Load from localStorage first, then API when available
+  const loadInitialSettings = () => {
+    const savedOverhead = localStorage.getItem('lateralEngineering_overheadSettings');
+    const savedMargins = localStorage.getItem('lateralEngineering_marginTargets');
+    
+    return {
+      overheadSettings: savedOverhead ? JSON.parse(savedOverhead) : {
+        opexMonthly: {
+          workshopRent: 8000,
+          utilities: 2500,
+          insurance: 1250,
+          administration: 3000,
+          nonBillableStaff: 10000,
+          maintenance: 1500
+        },
+        capexAnnual: {
+          equipmentDepreciation: 50000,
+          vehicleDepreciation: 30000,
+          toolsDepreciation: 14286,
+          softwareLicenses: 12000
+        },
+        projectModifiers: {
+          smallProject: 5,
+          largeProject: -3,
+          siteWork: 8,
+          workshopOnly: -2
+        },
+        annualRevenueTarget: 1500000
+      },
+      marginTargets: savedMargins ? JSON.parse(savedMargins) : {
+        small: { min: 20, max: 30, threshold: 50000 },
+        medium: { min: 15, max: 25, threshold: 500000 },
+        large: { min: 10, max: 20, threshold: 999999999 }
+      }
+    };
+  };
+
+  const initialSettings = loadInitialSettings();
+  const [overheadSettings, setOverheadSettings] = useState<OverheadSettings>(initialSettings.overheadSettings);
+  const [marginTargets, setMarginTargets] = useState<MarginTargets>(initialSettings.marginTargets);
+
+  // Fetch financial settings from API
   const { data: settings = {} } = useQuery({
     queryKey: ["/api/settings/financial"],
-  });
-
-  const [overheadSettings, setOverheadSettings] = useState<OverheadSettings>({
-    opexMonthly: {
-      workshopRent: 8000,
-      utilities: 2500,
-      insurance: 1250,
-      administration: 3000,
-      nonBillableStaff: 10000,
-      maintenance: 1500
-    },
-    capexAnnual: {
-      equipmentDepreciation: 50000,
-      vehicleDepreciation: 30000,
-      toolsDepreciation: 14286,
-      softwareLicenses: 12000
-    },
-    projectModifiers: {
-      smallProject: 5,
-      largeProject: -3,
-      siteWork: 8,
-      workshopOnly: -2
-    },
-    annualRevenueTarget: 1500000
-  });
-
-  const [marginTargets, setMarginTargets] = useState<MarginTargets>({
-    small: { min: 20, max: 30, threshold: 50000 },
-    medium: { min: 15, max: 25, threshold: 500000 },
-    large: { min: 10, max: 20, threshold: 999999999 }
   });
 
   // Save settings mutation
   const saveSettingsMutation = useMutation({
     mutationFn: async (updatedSettings: any) => {
+      // Save to localStorage for backward compatibility with estimation system
+      localStorage.setItem('lateralEngineering_overheadSettings', JSON.stringify(updatedSettings.overheadSettings));
+      localStorage.setItem('lateralEngineering_marginTargets', JSON.stringify(updatedSettings.marginTargets));
+      
       return apiRequest("/api/settings/financial", {
         method: "PUT",
         body: JSON.stringify(updatedSettings),
@@ -102,6 +118,13 @@ export default function FinancialSettings() {
         description: "Financial settings have been updated successfully.",
       });
       setHasChanges(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -156,11 +179,12 @@ export default function FinancialSettings() {
         </div>
       </div>
 
-      <Tabs defaultValue="overheads" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overheads">Overhead Costs</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="overheads">Overhead Configuration</TabsTrigger>
           <TabsTrigger value="margins">Margin Targets</TabsTrigger>
-          <TabsTrigger value="labor">Labor Rates</TabsTrigger>
+          <TabsTrigger value="modifiers">Project Modifiers</TabsTrigger>
+          <TabsTrigger value="summary">Summary & KPIs</TabsTrigger>
           <TabsTrigger value="rules">Financial Rules</TabsTrigger>
         </TabsList>
 
@@ -377,6 +401,259 @@ export default function FinancialSettings() {
                   </div>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="modifiers" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Settings2 className="w-5 h-5 mr-2" />
+                Project Type Overhead Modifiers
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Label>Small Projects (&lt;$50k) Modifier (%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Additional overhead percentage for small projects</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Small projects typically require:<br/>
+                              • Higher administrative burden per dollar<br/>
+                              • More frequent client communication<br/>
+                              • Setup costs that don't scale<br/>
+                              • More estimating time relative to value<br/>
+                              Typical range: +3% to +8%
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={overheadSettings.projectModifiers.smallProject}
+                      onChange={(e) => {
+                        setOverheadSettings({
+                          ...overheadSettings,
+                          projectModifiers: { ...overheadSettings.projectModifiers, smallProject: parseFloat(e.target.value) || 0 }
+                        });
+                        setHasChanges(true);
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">Higher admin burden and setup costs</p>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Label>Large Projects (&gt;$200k) Modifier (%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Overhead reduction percentage for large projects</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Large projects benefit from:<br/>
+                              • Economies of scale in purchasing<br/>
+                              • Lower admin cost per dollar<br/>
+                              • Bulk material discounts<br/>
+                              • More efficient resource utilization<br/>
+                              Typical range: -2% to -5%
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={overheadSettings.projectModifiers.largeProject}
+                      onChange={(e) => {
+                        setOverheadSettings({
+                          ...overheadSettings,
+                          projectModifiers: { ...overheadSettings.projectModifiers, largeProject: parseFloat(e.target.value) || 0 }
+                        });
+                        setHasChanges(true);
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">Economies of scale and bulk efficiencies</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Label>Site Work Modifier (%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Additional overhead percentage for projects involving site work</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Site work incurs additional costs:<br/>
+                              • Travel time and vehicle costs<br/>
+                              • Accommodation and meal allowances<br/>
+                              • Site setup and security<br/>
+                              • Weather delays and variations<br/>
+                              • Additional H&S requirements<br/>
+                              Typical range: +5% to +12%
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={overheadSettings.projectModifiers.siteWork}
+                      onChange={(e) => {
+                        setOverheadSettings({
+                          ...overheadSettings,
+                          projectModifiers: { ...overheadSettings.projectModifiers, siteWork: parseFloat(e.target.value) || 0 }
+                        });
+                        setHasChanges(true);
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">Travel, accommodation, and site-specific costs</p>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Label>Workshop Only Modifier (%)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Overhead reduction for projects completed entirely in workshop</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Workshop-only projects save costs:<br/>
+                              • No travel time or vehicle costs<br/>
+                              • No accommodation expenses<br/>
+                              • Better equipment access and efficiency<br/>
+                              • Controlled environment conditions<br/>
+                              • Lower H&S overhead requirements<br/>
+                              Typical range: -1% to -3%
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={overheadSettings.projectModifiers.workshopOnly}
+                      onChange={(e) => {
+                        setOverheadSettings({
+                          ...overheadSettings,
+                          projectModifiers: { ...overheadSettings.projectModifiers, workshopOnly: parseFloat(e.target.value) || 0 }
+                        });
+                        setHasChanges(true);
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">Controlled environment, no travel costs</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="summary" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Cost Structure</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Annual OPEX:</span>
+                  <span className="font-semibold">${(totalMonthlyOpex * 12).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Annual CAPEX:</span>
+                  <span className="font-semibold">${totalAnnualCapex.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between border-t pt-2">
+                  <span className="font-semibold">Total Overheads:</span>
+                  <span className="font-bold">${totalAnnualOverheads.toLocaleString()}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Overhead Rate</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-primary">{overheadPercentage}%</p>
+                  <p className="text-sm text-muted-foreground">Base overhead rate</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Revenue Target</p>
+                  <p className="font-semibold">${overheadSettings.annualRevenueTarget.toLocaleString()}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Margin Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Small (&lt;$50k)</span>
+                    <Badge variant="outline">{marginTargets.small.min}-{marginTargets.small.max}%</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Medium</span>
+                    <Badge variant="outline">{marginTargets.medium.min}-{marginTargets.medium.max}%</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Large (&gt;$500k)</span>
+                    <Badge variant="outline">{marginTargets.large.min}-{marginTargets.large.max}%</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Financial Health Indicators</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Break-even Point</p>
+                  <p className="text-xl font-semibold">${(totalAnnualOverheads / 0.85).toLocaleString()}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Monthly Burn Rate</p>
+                  <p className="text-xl font-semibold">${totalMonthlyOpex.toLocaleString()}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Revenue per Day</p>
+                  <p className="text-xl font-semibold">${Math.round(overheadSettings.annualRevenueTarget / 365).toLocaleString()}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Overhead Recovery</p>
+                  <p className="text-xl font-semibold">{overheadPercentage}%</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
