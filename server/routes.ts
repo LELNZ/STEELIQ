@@ -9680,7 +9680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/procurement/purchase-orders/:id/pdf", async (req, res) => {
     try {
       const purchaseOrderId = parseInt(req.params.id);
-      const templateId = req.query.template as string;
+      const templateId = req.query.template as string || 'default';
 
       // Get PO details
       const purchaseOrder = await storage.getPurchaseOrder(purchaseOrderId);
@@ -9693,26 +9693,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get supplier
       const supplier = await storage.getSupplier(purchaseOrder.supplierId);
+      
+      // Get template configuration
+      const template = await storage.getPOTemplate(templateId);
 
-      // Generate HTML content (simplified for now)
-      const html = `
+      // Generate HTML content based on template
+      let html = '';
+      
+      // Different layouts based on template
+      if (templateId === 'detailed' || template?.templateCode === 'DTL') {
+        // Detailed template with more information
+        html = `
         <!DOCTYPE html>
         <html>
         <head>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; }
-            .header { border-bottom: 2px solid #1e3a8a; padding-bottom: 20px; margin-bottom: 30px; }
-            .company { font-size: 24px; font-weight: bold; color: #1e3a8a; }
+            .header { border-bottom: 2px solid ${template?.primaryColor || '#059669'}; padding-bottom: 20px; margin-bottom: 30px; }
+            .company { font-size: 24px; font-weight: bold; color: ${template?.primaryColor || '#059669'}; }
+            .po-number { font-size: 18px; color: #666; margin-top: 10px; }
+            .supplier-info { background: #f0fdf4; padding: 15px; border-radius: 5px; margin-bottom: 30px; border: 1px solid #86efac; }
+            .delivery-info { background: #f0f9ff; padding: 15px; border-radius: 5px; margin-bottom: 30px; border: 1px solid #bae6fd; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            th { background: ${template?.primaryColor || '#059669'}; color: white; padding: 12px; text-align: left; }
+            td { padding: 12px; border-bottom: 1px solid #ddd; }
+            .item-code { color: #666; font-size: 12px; }
+            .totals { text-align: right; margin-top: 20px; }
+            .total-row { font-size: 18px; font-weight: bold; margin-top: 10px; color: ${template?.primaryColor || '#059669'}; }
+            .terms { background: #f9fafb; padding: 20px; border-radius: 5px; margin-top: 40px; }
+          </style>
+        </head>
+        <body>`;
+      } else if (templateId === 'simple' || template?.templateCode === 'SMP') {
+        // Simple template - minimal information
+        html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { margin-bottom: 20px; }
+            .company { font-size: 20px; font-weight: bold; }
+            .po-number { font-size: 16px; color: #666; margin-top: 5px; }
+            .supplier-info { margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th { background: #f3f4f6; padding: 8px; text-align: left; border-bottom: 2px solid #e5e7eb; }
+            td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
+            .totals { text-align: right; margin-top: 10px; }
+            .total-row { font-weight: bold; }
+          </style>
+        </head>
+        <body>`;
+      } else {
+        // Standard template (default)
+        html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; }
+            .header { border-bottom: 2px solid ${template?.primaryColor || '#1e3a8a'}; padding-bottom: 20px; margin-bottom: 30px; }
+            .company { font-size: 24px; font-weight: bold; color: ${template?.primaryColor || '#1e3a8a'}; }
             .po-number { font-size: 18px; color: #666; margin-top: 10px; }
             .supplier-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 30px; }
             table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            th { background: #1e3a8a; color: white; padding: 10px; text-align: left; }
+            th { background: ${template?.primaryColor || '#1e3a8a'}; color: white; padding: 10px; text-align: left; }
             td { padding: 10px; border-bottom: 1px solid #ddd; }
             .totals { text-align: right; margin-top: 20px; }
             .total-row { font-size: 18px; font-weight: bold; margin-top: 10px; }
           </style>
         </head>
-        <body>
+        <body>`;
+      }
+      
+      // Continue with common HTML structure
+      html += `
           <div class="header">
             <div class="company">Lateral Engineering Limited</div>
             <div class="po-number">Purchase Order: ${purchaseOrder.poNumber}</div>
@@ -9731,36 +9786,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
             <thead>
               <tr>
                 <th>Item</th>
+                ${(templateId === 'detailed' || template?.showItemCodes) ? '<th>Code</th>' : ''}
                 <th>Description</th>
                 <th>Quantity</th>
-                <th>Unit Price</th>
-                <th>Total</th>
+                ${(templateId !== 'simple' && template?.showPrices !== false) ? '<th>Unit Price</th>' : ''}
+                ${(templateId !== 'simple' && template?.showPrices !== false) ? '<th>Total</th>' : ''}
               </tr>
             </thead>
             <tbody>
-              ${items.map((item: any, index: number) => `
+              ${items.map((item: any, index: number) => {
+                if (templateId === 'detailed' || template?.showItemCodes) {
+                  return `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${item.itemCode || '-'}</td>
+                  <td>${item.description}${item.specifications ? '<br><small>' + item.specifications + '</small>' : ''}</td>
+                  <td>${item.quantity} ${item.unitOfMeasure || ''}</td>
+                  <td>$${(Number(item.unitPrice) || 0).toFixed(2)}</td>
+                  <td>$${(Number(item.totalPrice) || 0).toFixed(2)}</td>
+                </tr>`;
+                } else if (templateId === 'simple') {
+                  return `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${item.description}</td>
+                  <td>${item.quantity} ${item.unitOfMeasure || ''}</td>
+                </tr>`;
+                } else {
+                  return `
                 <tr>
                   <td>${index + 1}</td>
                   <td>${item.description}</td>
                   <td>${item.quantity} ${item.unitOfMeasure || ''}</td>
                   <td>$${(Number(item.unitPrice) || 0).toFixed(2)}</td>
                   <td>$${(Number(item.totalPrice) || 0).toFixed(2)}</td>
-                </tr>
-              `).join('')}
+                </tr>`;
+                }
+              }).join('')}
             </tbody>
           </table>
           
+          ${templateId !== 'simple' ? `
           <div class="totals">
             <div>Subtotal: $${(Number(purchaseOrder.subtotal) || 0).toFixed(2)}</div>
-            <div>GST (15%): $${(Number(purchaseOrder.gstAmount) || 0).toFixed(2)}</div>
+            ${template?.showGst !== false ? `<div>GST (15%): $${(Number(purchaseOrder.gstAmount) || 0).toFixed(2)}</div>` : ''}
             <div class="total-row">Total: $${(Number(purchaseOrder.totalAmount) || 0).toFixed(2)} ${purchaseOrder.currency || 'NZD'}</div>
-          </div>
+          </div>` : ''}
           
           ${purchaseOrder.specialInstructions ? `
             <div style="margin-top: 40px;">
               <h3>Special Instructions</h3>
               <p>${purchaseOrder.specialInstructions}</p>
             </div>
+          ` : ''}
+          
+          ${templateId === 'detailed' ? `
+            <div class="terms">
+              <h3>Terms & Conditions</h3>
+              <p>${template?.termsAndConditions || 'Standard terms and conditions apply. Payment terms: Net 30 days. Delivery subject to availability.'}</p>
+            </div>
+            
+            ${template?.showDeliveryDate !== false && purchaseOrder.requestedDeliveryDate ? `
+              <div class="delivery-info">
+                <h3>Delivery Information</h3>
+                <p><strong>Requested Delivery:</strong> ${new Date(purchaseOrder.requestedDeliveryDate).toLocaleDateString()}</p>
+                <p><strong>Delivery Address:</strong> ${purchaseOrder.deliveryAddress || 'Main Warehouse'}</p>
+              </div>
+            ` : ''}
           ` : ''}
         </body>
         </html>
@@ -9772,6 +9864,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating PDF:", error);
       res.status(500).json({ error: "Failed to generate PDF" });
+    }
+  });
+
+  // PO Templates Management
+  app.get("/api/procurement/po-templates", async (req, res) => {
+    try {
+      const templates = await storage.getPOTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching PO templates:", error);
+      res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  });
+
+  app.post("/api/procurement/po-templates", async (req, res) => {
+    try {
+      const template = await storage.createPOTemplate(req.body);
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating PO template:", error);
+      res.status(500).json({ error: "Failed to create template" });
+    }
+  });
+
+  app.put("/api/procurement/po-templates/:id", async (req, res) => {
+    try {
+      const templateId = parseInt(req.params.id);
+      const template = await storage.updatePOTemplate(templateId, req.body);
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating PO template:", error);
+      res.status(500).json({ error: "Failed to update template" });
+    }
+  });
+
+  app.delete("/api/procurement/po-templates/:id", async (req, res) => {
+    try {
+      const templateId = parseInt(req.params.id);
+      await storage.deletePOTemplate(templateId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting PO template:", error);
+      res.status(500).json({ error: "Failed to delete template" });
     }
   });
 

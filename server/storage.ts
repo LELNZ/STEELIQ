@@ -6,7 +6,7 @@ import {
   estimationProjects, estimationData, estimationMaterials, estimationLabor, estimationEquipment, estimationConsumables,
   teamMembers, archivedEmployees, employeeAuditLog,
   purchaseRequisitions, requisitionItems, approvalRules, approvalHistory, rfqRequests, rfqResponses, goodsReceipts, goodsReceiptItems,
-  purchaseOrders, purchaseOrderItems,
+  purchaseOrders, purchaseOrderItems, poTemplates,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
@@ -1596,6 +1596,43 @@ export class DatabaseStorage implements IStorage {
       status: 'rejected',
       approvalNotes: comments,
     });
+  }
+
+  // PO Templates Management
+  async getPOTemplates(): Promise<any[]> {
+    return await db.select().from(poTemplates).orderBy(asc(poTemplates.templateName));
+  }
+
+  async getPOTemplate(templateIdOrCode: string): Promise<any> {
+    // Check if it's a number (ID) or string (code)
+    const isId = !isNaN(Number(templateIdOrCode));
+    
+    if (isId) {
+      const [template] = await db.select().from(poTemplates)
+        .where(eq(poTemplates.id, Number(templateIdOrCode)));
+      return template;
+    } else {
+      const [template] = await db.select().from(poTemplates)
+        .where(eq(poTemplates.templateCode, templateIdOrCode));
+      return template;
+    }
+  }
+
+  async createPOTemplate(template: any): Promise<any> {
+    const [newTemplate] = await db.insert(poTemplates).values(template).returning();
+    return newTemplate;
+  }
+
+  async updatePOTemplate(id: number, template: any): Promise<any> {
+    const [updated] = await db.update(poTemplates)
+      .set({ ...template, updatedAt: new Date() })
+      .where(eq(poTemplates.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deletePOTemplate(id: number): Promise<void> {
+    await db.delete(poTemplates).where(eq(poTemplates.id, id));
   }
 
   // Archive management
