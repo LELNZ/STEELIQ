@@ -16,7 +16,8 @@ import {
   XCircle,
   Clock,
   FileText,
-  Plus
+  Plus,
+  Package
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
