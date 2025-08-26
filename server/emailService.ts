@@ -328,16 +328,40 @@ export class EmailService {
         yPosition += 20;
       }
 
-      // Total
+      // Total section
       doc.moveTo(50, yPosition)
         .lineTo(550, yPosition)
         .stroke(primaryColor);
       
       yPosition += 10;
       const totalAmount = typeof poData.totalAmount === 'number' ? poData.totalAmount : parseFloat(poData.totalAmount) || 0;
-      doc.font('Helvetica-Bold')
-        .text('Total Amount:', 400, yPosition)
-        .text(`$${totalAmount.toFixed(2)}`, 470, yPosition);
+      
+      // For detailed template, show GST breakdown
+      if (templateType === 'detailed') {
+        const subtotal = totalAmount;
+        const gstAmount = subtotal * 0.15; // 15% GST
+        const totalWithGST = subtotal + gstAmount;
+        
+        doc.font('Helvetica')
+          .fontSize(10)
+          .text('Subtotal:', 400, yPosition)
+          .text(`$${subtotal.toFixed(2)}`, 470, yPosition);
+        
+        yPosition += 20;
+        doc.text('GST (15%):', 400, yPosition)
+          .text(`$${gstAmount.toFixed(2)}`, 470, yPosition);
+        
+        yPosition += 20;
+        doc.font('Helvetica-Bold')
+          .fontSize(11)
+          .text('Total (incl. GST):', 400, yPosition)
+          .text(`$${totalWithGST.toFixed(2)}`, 470, yPosition);
+      } else {
+        // Standard and Simple templates - just show total
+        doc.font('Helvetica-Bold')
+          .text('Total Amount:', 400, yPosition)
+          .text(`$${totalAmount.toFixed(2)}`, 470, yPosition);
+      }
 
       // Terms and conditions
       if (templateType === 'detailed') {

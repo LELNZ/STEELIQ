@@ -267,7 +267,18 @@ export class POTrackingService {
 
   // Generate supplier portal URL
   generatePortalUrl(distributionId: number, token: string): string {
-    const baseUrl = process.env.APP_URL || 'https://app.lateralengineering.co.nz';
+    // Use Replit domain if available, otherwise fall back to environment variable
+    const replitDomains = process.env.REPLIT_DOMAINS;
+    let baseUrl: string;
+    
+    if (replitDomains) {
+      // Use the first Replit domain (they're comma-separated)
+      const firstDomain = replitDomains.split(',')[0];
+      baseUrl = `https://${firstDomain}`;
+    } else {
+      baseUrl = process.env.APP_URL || 'http://localhost:5000';
+    }
+    
     return `${baseUrl}/supplier/po/${distributionId}?token=${token}`;
   }
 
