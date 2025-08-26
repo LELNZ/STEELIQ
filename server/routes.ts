@@ -9536,14 +9536,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Status is required" });
       }
       
-      // Get user from session
-      const userId = req.session?.user?.id;
-      if (!userId) {
+      // Get user from auth token
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      
+      if (!token) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const authUser = await AuthService.validateSession(token);
+      
+      if (!authUser) {
         return res.status(401).json({ error: "Unauthorized" });
       }
       
       // Check user permissions (only admin and manager roles can change status)
-      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const [user] = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
       if (!user || !['admin', 'manager', 'owner'].includes(user.role || '')) {
         return res.status(403).json({ error: 'Insufficient permissions to change PO status' });
       }
@@ -9568,7 +9575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newStatus: status,
         changeReason: reason,
         changeNotes: notes,
-        changedBy: userId,
+        changedBy: authUser.id,
         changedByName: user.name,
         changedByRole: user.role,
         ipAddress: req.ip,
@@ -9620,14 +9627,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const poId = parseInt(req.params.id);
       const { reason, notes } = req.body;
       
-      // Get user from session
-      const userId = req.session?.user?.id;
-      if (!userId) {
+      // Get user from auth token
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      
+      if (!token) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const authUser = await AuthService.validateSession(token);
+      
+      if (!authUser) {
         return res.status(401).json({ error: "Unauthorized" });
       }
       
       // Check user permissions (only admin, manager, and owner can return to requisition)
-      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const [user] = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
       if (!user || !['admin', 'manager', 'owner'].includes(user.role || '')) {
         return res.status(403).json({ error: 'Insufficient permissions to return PO to requisition' });
       }
@@ -9658,8 +9672,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         justification: `Returned from PO ${po.poNumber}. Original justification maintained.`,
         notes: `Converted back from PO ${po.poNumber}. Reason: ${reason || 'Not specified'}. ${notes || ''}`,
         totalAmount: po.totalAmount,
-        createdBy: userId,
-        approvedBy: po.approvedBy || userId,
+        createdBy: authUser.id,
+        approvedBy: po.approvedBy || authUser.id,
         approvedDate: po.approvedDate || new Date(),
       });
       
@@ -9684,7 +9698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newStatus: 'returned_to_requisition',
         changeReason: reason || 'Returned to requisition',
         changeNotes: `Converted to requisition ${newRequisition.requisitionNumber}. ${notes || ''}`,
-        changedBy: userId,
+        changedBy: authUser.id,
         changedByName: user.name,
         changedByRole: user.role,
         ipAddress: req.ip,
