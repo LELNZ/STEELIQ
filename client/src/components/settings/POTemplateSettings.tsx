@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,9 +33,21 @@ export default function POTemplateSettings() {
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<any>({});
+  const [templates, setTemplates] = useState<any[]>([]);
 
-  // Mock templates for now
-  const templates = [
+  // Fetch templates from API
+  const { data: templatesData, refetch } = useQuery({
+    queryKey: ['/api/procurement/po-templates'],
+  });
+
+  useEffect(() => {
+    if (templatesData) {
+      setTemplates(templatesData);
+    }
+  }, [templatesData]);
+
+  // Default templates if API returns empty (for initial setup)
+  const defaultTemplates = [
     {
       id: 1,
       templateName: "Standard Template",
@@ -84,26 +96,81 @@ export default function POTemplateSettings() {
     }
   ];
 
+  useEffect(() => {
+    if (!templatesData || templatesData.length === 0) {
+      // If no templates from API, use defaults for display
+      setTemplates(defaultTemplates);
+    }
+  }, []);
+
   const handleSelectTemplate = (template: any) => {
     setSelectedTemplate(template);
     setFormData(template);
     setIsEditing(false);
   };
 
-  const handleSaveTemplate = () => {
-    toast({
-      title: "Success",
-      description: "Template saved successfully",
-    });
-    setIsEditing(false);
+  const handleSaveTemplate = async () => {
+    try {
+      if (selectedTemplate?.id && selectedTemplate.id <= 3) {
+        // Create new template if it's a default one
+        await apiRequest('/api/procurement/po-templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        toast({
+          title: "Success",
+          description: "Template created successfully",
+        });
+      } else if (selectedTemplate?.id) {
+        // Update existing template
+        await apiRequest(`/api/procurement/po-templates/${selectedTemplate.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        toast({
+          title: "Success",
+          description: "Template saved successfully",
+        });
+      }
+      refetch();
+      setIsEditing(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save template. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteTemplate = (id: number) => {
-    toast({
-      title: "Success",
-      description: "Template deleted successfully",
-    });
-    setSelectedTemplate(null);
+  const handleDeleteTemplate = async (id: number) => {
+    try {
+      if (id > 3) { // Only delete non-default templates
+        await apiRequest(`/api/procurement/po-templates/${id}`, {
+          method: 'DELETE',
+        });
+        toast({
+          title: "Success",
+          description: "Template deleted successfully",
+        });
+        refetch();
+        setSelectedTemplate(null);
+      } else {
+        toast({
+          title: "Warning",
+          description: "Cannot delete default templates",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete template. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDuplicateTemplate = (template: any) => {
