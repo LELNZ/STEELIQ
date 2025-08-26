@@ -16,7 +16,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { History, AlertCircle, RotateCcw } from 'lucide-react';
+import { History, AlertCircle, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface POStatusDialogProps {
   open: boolean;
@@ -110,41 +113,31 @@ export function POStatusDialog({
   });
 
   const statusOptions = [
-    { value: 'draft', label: 'Draft', description: 'PO is being prepared' },
-    { value: 'sent', label: 'Sent', description: 'PO has been sent to supplier' },
-    { value: 'acknowledged', label: 'Acknowledged', description: 'Supplier has acknowledged receipt' },
-    { value: 'completed', label: 'Completed', description: 'Order has been delivered' },
-    { value: 'cancelled', label: 'Cancelled', description: 'Order has been cancelled' },
-    { value: 'return_to_requisition', label: 'Return to Requisition', description: 'Convert back to requisition with approvals intact', icon: RotateCcw },
+    { value: 'draft', label: 'Draft', description: 'PO is being prepared', color: 'bg-gray-100 text-gray-700' },
+    { value: 'sent', label: 'Sent', description: 'Sent to supplier', color: 'bg-blue-100 text-blue-700' },
+    { value: 'acknowledged', label: 'Acknowledged', description: 'Supplier acknowledged', color: 'bg-green-100 text-green-700' },
+    { value: 'completed', label: 'Completed', description: 'Order delivered', color: 'bg-purple-100 text-purple-700' },
+    { value: 'cancelled', label: 'Cancelled', description: 'Order cancelled', color: 'bg-red-100 text-red-700' },
+    { value: 'return_to_requisition', label: 'Return to Requisition', description: 'Convert back to requisition', color: 'bg-orange-100 text-orange-700', icon: RotateCcw },
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return 'text-gray-600';
-      case 'sent': return 'text-blue-600';
-      case 'acknowledged': return 'text-green-600';
-      case 'completed': return 'text-purple-600';
-      case 'cancelled': return 'text-red-600';
-      case 'return_to_requisition': return 'text-orange-600';
-      default: return 'text-gray-600';
-    }
+  const getStatusBadge = (status: string) => {
+    const option = statusOptions.find(o => o.value === status);
+    return option ? option.color : 'bg-gray-100 text-gray-700';
   };
 
   const getReasonSuggestions = () => {
-    if (!purchaseOrder?.status || !selectedStatus) return [];
+    if (!selectedStatus) return [];
     
     const suggestions: { [key: string]: string[] } = {
-      'acknowledged-sent': ['Supplier requested changes', 'Acknowledgment was incorrect', 'System error'],
-      'sent-draft': ['Need to modify items', 'Incorrect supplier selected', 'Price adjustment needed'],
-      'completed-sent': ['Delivery incomplete', 'Quality issues', 'Wrong items received'],
-      'cancelled-*': ['Budget constraints', 'Project cancelled', 'Supplier unable to fulfill', 'Found better alternative'],
-      'return_to_requisition-*': ['Supplier changed', 'Price renegotiation needed', 'Specifications changed', 'Project requirements updated'],
+      'cancelled': ['Budget constraints', 'Project cancelled', 'Supplier unable to fulfill'],
+      'return_to_requisition': ['Supplier changed', 'Price renegotiation needed', 'Specifications changed'],
+      'default': ['Need to modify items', 'Incorrect supplier selected', 'Price adjustment needed'],
     };
     
-    const key = selectedStatus === 'return_to_requisition' 
-      ? 'return_to_requisition-*'
-      : `${purchaseOrder.status}-${selectedStatus}`;
-    return suggestions[key] || suggestions['cancelled-*'] || [];
+    if (selectedStatus === 'return_to_requisition') return suggestions['return_to_requisition'];
+    if (selectedStatus === 'cancelled') return suggestions['cancelled'];
+    return suggestions['default'];
   };
 
   const handleSubmit = () => {
@@ -157,158 +150,185 @@ export function POStatusDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Change PO Status - {purchaseOrder?.poNumber}</DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0">
+        <DialogHeader className="px-6 pt-6 pb-4">
+          <DialogTitle>Change Status - {purchaseOrder?.poNumber}</DialogTitle>
           <DialogDescription>
-            Update the status of this purchase order. All changes are logged for audit purposes.
+            Update the purchase order status. All changes are logged for audit.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Current Status */}
-          <div className="bg-gray-50 p-3 rounded">
-            <Label className="text-sm text-gray-600">Current Status</Label>
-            <p className={`font-semibold capitalize ${getStatusColor(purchaseOrder?.status)}`}>
-              {purchaseOrder?.status}
-            </p>
-          </div>
+        <ScrollArea className="px-6 pb-2 max-h-[calc(90vh-180px)]">
+          <div className="space-y-4">
+            {/* Current Status */}
+            <Card className="p-3">
+              <div className="flex justify-between items-center">
+                <Label className="text-sm text-muted-foreground">Current Status</Label>
+                <Badge className={getStatusBadge(purchaseOrder?.status)}>
+                  {purchaseOrder?.status}
+                </Badge>
+              </div>
+            </Card>
 
-          {/* Status Selection */}
-          <div className="space-y-2">
-            <Label>New Status</Label>
-            <RadioGroup value={selectedStatus} onValueChange={setSelectedStatus}>
-              {statusOptions.map((option) => (
-                <div key={option.value} className="flex items-start space-x-2 p-2 hover:bg-gray-50 rounded">
-                  <RadioGroupItem value={option.value} id={option.value} className="mt-1" />
-                  <label htmlFor={option.value} className="flex-1 cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      {option.icon && <option.icon className="h-4 w-4" />}
-                      <span className={`font-medium capitalize ${getStatusColor(option.value)}`}>
-                        {option.label}
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-500">{option.description}</div>
-                  </label>
+            {/* Status Selection */}
+            <div className="space-y-2">
+              <Label>Select New Status</Label>
+              <RadioGroup value={selectedStatus} onValueChange={setSelectedStatus}>
+                <div className="grid grid-cols-2 gap-2">
+                  {statusOptions.map((option) => (
+                    <label
+                      key={option.value}
+                      htmlFor={option.value}
+                      className={`flex items-start p-3 rounded-lg border cursor-pointer hover:bg-accent transition-colors ${
+                        selectedStatus === option.value ? 'border-primary bg-accent' : 'border-border'
+                      }`}
+                    >
+                      <RadioGroupItem value={option.value} id={option.value} className="mt-0.5" />
+                      <div className="ml-3 flex-1">
+                        <div className="flex items-center gap-1">
+                          {option.icon && <option.icon className="h-3 w-3" />}
+                          <span className="font-medium text-sm">{option.label}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
+                      </div>
+                    </label>
+                  ))}
                 </div>
-              ))}
-            </RadioGroup>
-          </div>
+              </RadioGroup>
+            </div>
 
-          {/* Reason for Change */}
-          <div className="space-y-2">
-            <Label>Reason for Change {selectedStatus === 'return_to_requisition' && '*'}</Label>
-            {getReasonSuggestions().length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {getReasonSuggestions().map((suggestion) => (
-                  <Button
-                    key={suggestion}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setReason(suggestion)}
-                  >
-                    {suggestion}
-                  </Button>
-                ))}
+            {/* Reason for Change */}
+            {selectedStatus && (
+              <div className="space-y-2">
+                <Label>
+                  Reason for Change
+                  {selectedStatus === 'return_to_requisition' && <span className="text-red-500 ml-1">*</span>}
+                </Label>
+                {getReasonSuggestions().length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {getReasonSuggestions().map((suggestion) => (
+                      <Button
+                        key={suggestion}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setReason(suggestion)}
+                      >
+                        {suggestion}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+                <Textarea
+                  placeholder={selectedStatus === 'return_to_requisition' 
+                    ? "Required: Enter reason for returning to requisition..." 
+                    : "Enter reason for status change..."}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="min-h-[60px] text-sm"
+                  required={selectedStatus === 'return_to_requisition'}
+                />
               </div>
             )}
-            <Textarea
-              placeholder={selectedStatus === 'return_to_requisition' 
-                ? "Required: Enter reason for returning to requisition..." 
-                : "Enter reason for status change..."}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="min-h-[60px]"
-              required={selectedStatus === 'return_to_requisition'}
-            />
-          </div>
 
-          {/* Additional Notes */}
-          <div className="space-y-2">
-            <Label>Additional Notes (Optional)</Label>
-            <Textarea
-              placeholder="Any additional notes or comments..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="min-h-[60px]"
-            />
-          </div>
-
-          {/* Warning for return to requisition */}
-          {selectedStatus === 'return_to_requisition' && (
-            <div className="bg-orange-50 border border-orange-200 p-3 rounded flex gap-2">
-              <RotateCcw className="h-4 w-4 text-orange-600 mt-0.5" />
-              <div className="text-sm text-orange-800">
-                <p className="font-medium">Return to Requisition</p>
-                <p>This will:</p>
-                <ul className="list-disc ml-4 mt-1">
-                  <li>Create a new requisition with approved status</li>
-                  <li>Preserve all item details and existing approvals</li>
-                  <li>Cancel the current purchase order</li>
-                  <li>Allow modifications before re-converting to PO</li>
-                </ul>
-                <p className="mt-2 font-medium">This action cannot be undone.</p>
+            {/* Additional Notes */}
+            {selectedStatus && (
+              <div className="space-y-2">
+                <Label>Additional Notes (Optional)</Label>
+                <Textarea
+                  placeholder="Any additional notes or comments..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="min-h-[60px] text-sm"
+                />
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Warning for certain changes */}
-          {purchaseOrder?.status === 'acknowledged' && ['sent', 'draft'].includes(selectedStatus) && (
-            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded flex gap-2">
-              <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
-              <div className="text-sm text-yellow-800">
-                <p className="font-medium">Warning: Reversing Acknowledgment</p>
-                <p>This will clear the supplier's acknowledgment data. Make sure this is intended.</p>
-              </div>
-            </div>
-          )}
-
-          {/* Status History Toggle */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowHistory(!showHistory)}
-            className="gap-2"
-          >
-            <History className="h-4 w-4" />
-            {showHistory ? 'Hide' : 'Show'} Status History
-          </Button>
-
-          {/* Status History */}
-          {showHistory && statusHistory && statusHistory.length > 0 && (
-            <ScrollArea className="h-48 border rounded p-3">
-              <div className="space-y-3">
-                {statusHistory.map((entry: any) => (
-                  <div key={entry.id} className="border-l-2 border-gray-200 pl-3 pb-2">
-                    <div className="flex justify-between">
-                      <div>
-                        <span className={`font-medium ${getStatusColor(entry.previousStatus)}`}>
-                          {entry.previousStatus}
-                        </span>
-                        {' → '}
-                        <span className={`font-medium ${getStatusColor(entry.newStatus)}`}>
-                          {entry.newStatus}
-                        </span>
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {format(new Date(entry.createdAt), 'MMM dd, yyyy HH:mm')}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {entry.changeReason}
-                      {entry.changeNotes && ` - ${entry.changeNotes}`}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      By {entry.changedByName} ({entry.changedByRole})
-                    </p>
+            {/* Warning for return to requisition */}
+            {selectedStatus === 'return_to_requisition' && (
+              <Card className="p-3 border-orange-200 bg-orange-50">
+                <div className="flex gap-2">
+                  <RotateCcw className="h-4 w-4 text-orange-600 mt-0.5 shrink-0" />
+                  <div className="text-sm space-y-1">
+                    <p className="font-medium text-orange-900">Return to Requisition</p>
+                    <ul className="list-disc ml-4 space-y-0.5 text-xs text-orange-800">
+                      <li>Creates new requisition with approved status</li>
+                      <li>Preserves all item details and approvals</li>
+                      <li>Cancels the current purchase order</li>
+                      <li>This action cannot be undone</li>
+                    </ul>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-          )}
-        </div>
+                </div>
+              </Card>
+            )}
 
-        <DialogFooter>
+            {/* Warning for reversing acknowledgment */}
+            {purchaseOrder?.status === 'acknowledged' && ['sent', 'draft'].includes(selectedStatus) && (
+              <Card className="p-3 border-yellow-200 bg-yellow-50">
+                <div className="flex gap-2">
+                  <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium text-yellow-900">Warning: Reversing Acknowledgment</p>
+                    <p className="text-xs text-yellow-800 mt-0.5">This will clear the supplier's acknowledgment data.</p>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Status History */}
+            <Collapsible open={showHistory} onOpenChange={setShowHistory}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full justify-between">
+                  <span className="flex items-center gap-2">
+                    <History className="h-3 w-3" />
+                    Status History
+                  </span>
+                  {showHistory ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                {statusHistory && statusHistory.length > 0 ? (
+                  <Card className="mt-2 p-3">
+                    <ScrollArea className="h-32">
+                      <div className="space-y-2">
+                        {statusHistory.map((entry: any) => (
+                          <div key={entry.id} className="border-l-2 border-gray-200 pl-3 pb-2">
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center gap-2">
+                                <Badge className={`${getStatusBadge(entry.previousStatus)} h-5 text-xs`}>
+                                  {entry.previousStatus}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">→</span>
+                                <Badge className={`${getStatusBadge(entry.newStatus)} h-5 text-xs`}>
+                                  {entry.newStatus}
+                                </Badge>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(entry.createdAt), 'MMM dd, HH:mm')}
+                              </span>
+                            </div>
+                            {entry.changeReason && (
+                              <p className="text-xs text-muted-foreground mt-1">{entry.changeReason}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              By {entry.changedByName}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </Card>
+                ) : (
+                  <Card className="mt-2 p-3">
+                    <p className="text-xs text-muted-foreground text-center">No status history available</p>
+                  </Card>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        </ScrollArea>
+
+        <DialogFooter className="px-6 py-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
