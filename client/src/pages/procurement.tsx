@@ -205,7 +205,7 @@ export default function Procurement() {
       if (statusFilter === "active") {
         if (!["draft", "pending_approval", "approved"].includes(req.status)) return false;
       } else if (statusFilter === "completed") {
-        if (!["converted_to_po", "rejected", "cancelled"].includes(req.status)) return false;
+        if (!["converted_to_po", "cancelled"].includes(req.status)) return false;
       } else if (statusFilter !== req.status) {
         return false;
       }
@@ -218,72 +218,72 @@ export default function Procurement() {
   });
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-3">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Procurement Center</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+      <div className="mb-3">
+        <h1 className="text-xl font-bold">Procurement Center</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
           Manage requisitions, approvals, purchase orders, and supplier relationships
         </p>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending Approvals</p>
-                <p className="text-2xl font-bold text-warning mt-1">{metrics.pendingApprovals}</p>
-                <p className="text-xs text-muted-foreground mt-2">Requires your action</p>
+                <p className="text-xs font-medium text-muted-foreground">Pending Approvals</p>
+                <p className="text-xl font-bold text-warning">{metrics.pendingApprovals}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Requires your action</p>
               </div>
-              <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center">
-                <Clock className="w-5 h-5 text-warning" />
+              <div className="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center">
+                <Clock className="w-4 h-4 text-warning" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active POs</p>
-                <p className="text-2xl font-bold">{metrics.activePOs}</p>
-                <p className="text-xs text-muted-foreground mt-2">In progress</p>
+                <p className="text-xs font-medium text-muted-foreground">Active POs</p>
+                <p className="text-xl font-bold">{metrics.activePOs}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">In progress</p>
               </div>
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <FileText className="w-5 h-5 text-primary" />
+              <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                <FileText className="w-4 h-4 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Monthly Spend</p>
-                <p className="text-2xl font-bold">${metrics.monthlySpend.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground mt-2">Current month</p>
+                <p className="text-xs font-medium text-muted-foreground">Monthly Spend</p>
+                <p className="text-xl font-bold">${metrics.monthlySpend.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Current month</p>
               </div>
-              <div className="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-secondary" />
+              <div className="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-secondary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Savings</p>
-                <p className="text-2xl font-bold text-green-600">${metrics.savingsThisMonth.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground mt-2">This month</p>
+                <p className="text-xs font-medium text-muted-foreground">Savings</p>
+                <p className="text-xl font-bold text-green-600">${metrics.savingsThisMonth.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">This month</p>
               </div>
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-green-600" />
+              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -296,7 +296,7 @@ export default function Procurement() {
         // Show archived items when switching to archived tab
         setShowArchived(value === "archived");
       }}>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-2">
           <TabsList>
             <TabsTrigger value="dashboard">Overview</TabsTrigger>
             <TabsTrigger value="requisitions">
@@ -330,16 +330,16 @@ export default function Procurement() {
         </div>
 
         {/* Dashboard Tab */}
-        <TabsContent value="dashboard" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TabsContent value="dashboard" className="space-y-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             {/* Recent Requisitions */}
             <Card>
-              <CardHeader>
-                <CardTitle>Recent Requisitions</CardTitle>
-                <CardDescription>Latest purchase requests requiring attention</CardDescription>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Recent Requisitions</CardTitle>
+                <CardDescription className="text-xs">Latest purchase requests requiring attention</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+              <CardContent className="pt-2">
+                <div className="space-y-2">
                   {requisitionsLoading ? (
                     <p className="text-sm text-muted-foreground">Loading...</p>
                   ) : requisitions.length === 0 ? (
@@ -378,19 +378,19 @@ export default function Procurement() {
 
             {/* Approval Queue */}
             <Card>
-              <CardHeader>
-                <CardTitle>Approval Queue</CardTitle>
-                <CardDescription>Items waiting for your approval</CardDescription>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Approval Queue</CardTitle>
+                <CardDescription className="text-xs">Items waiting for your approval</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+              <CardContent className="pt-2">
+                <div className="space-y-2">
                   {approvalsLoading ? (
                     <p className="text-sm text-muted-foreground">Loading...</p>
                   ) : pendingApprovals.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No pending approvals</p>
                   ) : (
                     pendingApprovals.slice(0, 3).map((req: any) => (
-                      <div key={req.id} className="flex items-center justify-between p-3 border border-warning/50 bg-warning/5 rounded-lg">
+                      <div key={req.id} className="flex items-center justify-between p-2 border border-warning/50 bg-warning/5 rounded-lg">
                         <div className="flex items-center gap-3">
                           <AlertCircle className="h-5 w-5 text-warning" />
                           <div>
@@ -430,62 +430,62 @@ export default function Procurement() {
 
           {/* Process Overview */}
           <Card>
-            <CardHeader>
-              <CardTitle>Procurement Process Flow</CardTitle>
-              <CardDescription>Current status of procurement pipeline</CardDescription>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Procurement Process Flow</CardTitle>
+              <CardDescription className="text-xs">Current status of procurement pipeline</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-2">
               <div className="flex items-center justify-between">
                 <div className="flex-1 text-center">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <FileSignature className="h-6 w-6 text-primary" />
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-1">
+                    <FileSignature className="h-5 w-5 text-primary" />
                   </div>
-                  <p className="text-sm font-medium">Requisitions</p>
-                  <p className="text-2xl font-bold mt-1">{metrics.pendingRequisitions}</p>
+                  <p className="text-xs font-medium">Requisitions</p>
+                  <p className="text-lg font-bold">{metrics.pendingRequisitions}</p>
                   <p className="text-xs text-muted-foreground">Pending</p>
                 </div>
 
                 <div className="text-muted-foreground">→</div>
 
                 <div className="flex-1 text-center">
-                  <div className="w-12 h-12 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Clock className="h-6 w-6 text-warning" />
+                  <div className="w-10 h-10 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-1">
+                    <Clock className="h-5 w-5 text-warning" />
                   </div>
-                  <p className="text-sm font-medium">Approvals</p>
-                  <p className="text-2xl font-bold mt-1">{metrics.pendingApprovals}</p>
+                  <p className="text-xs font-medium">Approvals</p>
+                  <p className="text-lg font-bold">{metrics.pendingApprovals}</p>
                   <p className="text-xs text-muted-foreground">Waiting</p>
                 </div>
 
                 <div className="text-muted-foreground">→</div>
 
                 <div className="flex-1 text-center">
-                  <div className="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Send className="h-6 w-6 text-secondary" />
+                  <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-1">
+                    <Send className="h-5 w-5 text-secondary" />
                   </div>
-                  <p className="text-sm font-medium">RFQs</p>
-                  <p className="text-2xl font-bold mt-1">3</p>
+                  <p className="text-xs font-medium">RFQs</p>
+                  <p className="text-lg font-bold">3</p>
                   <p className="text-xs text-muted-foreground">Active</p>
                 </div>
 
                 <div className="text-muted-foreground">→</div>
 
                 <div className="flex-1 text-center">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <FileText className="h-6 w-6 text-primary" />
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-1">
+                    <FileText className="h-5 w-5 text-primary" />
                   </div>
-                  <p className="text-sm font-medium">Purchase Orders</p>
-                  <p className="text-2xl font-bold mt-1">{metrics.activePOs}</p>
+                  <p className="text-xs font-medium">Purchase Orders</p>
+                  <p className="text-lg font-bold">{metrics.activePOs}</p>
                   <p className="text-xs text-muted-foreground">Active</p>
                 </div>
 
                 <div className="text-muted-foreground">→</div>
 
                 <div className="flex-1 text-center">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Truck className="h-6 w-6 text-green-600" />
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-1">
+                    <Truck className="h-5 w-5 text-green-600" />
                   </div>
-                  <p className="text-sm font-medium">Receiving</p>
-                  <p className="text-2xl font-bold mt-1">{metrics.awaitingDelivery}</p>
+                  <p className="text-xs font-medium">Receiving</p>
+                  <p className="text-lg font-bold">{metrics.awaitingDelivery}</p>
                   <p className="text-xs text-muted-foreground">Awaiting</p>
                 </div>
               </div>
@@ -494,13 +494,13 @@ export default function Procurement() {
         </TabsContent>
 
         {/* Requisitions Tab */}
-        <TabsContent value="requisitions" className="space-y-4">
+        <TabsContent value="requisitions" className="space-y-2">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Purchase Requisitions</CardTitle>
-                  <CardDescription>Manage and track all purchase requests</CardDescription>
+                  <CardTitle className="text-base">Purchase Requisitions</CardTitle>
+                  <CardDescription className="text-xs">Manage and track all purchase requests</CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <div className="relative">
@@ -518,7 +518,7 @@ export default function Procurement() {
                 </div>
               </div>
               {/* Status Filter Buttons */}
-              <div className="flex gap-2 mt-4">
+              <div className="flex gap-1.5 mt-2 flex-wrap">
                 <Button 
                   variant={statusFilter === "all" ? "default" : "outline"} 
                   size="sm"
@@ -550,24 +550,32 @@ export default function Procurement() {
                   Approved ({requisitions.filter((r: any) => r.status === "approved").length})
                 </Button>
                 <Button 
+                  variant={statusFilter === "rejected" ? "destructive" : "outline"} 
+                  size="sm"
+                  onClick={() => setStatusFilter("rejected")}
+                  className={statusFilter === "rejected" ? "" : "text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/20"}
+                >
+                  Rejected ({requisitions.filter((r: any) => r.status === "rejected").length})
+                </Button>
+                <Button 
                   variant={statusFilter === "completed" ? "default" : "outline"} 
                   size="sm"
                   onClick={() => setStatusFilter("completed")}
                 >
                   Completed ({requisitions.filter((r: any) => 
-                    ["converted_to_po", "rejected", "cancelled"].includes(r.status)
+                    ["converted_to_po", "cancelled"].includes(r.status)
                   ).length})
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="pt-2">
+              <div className="space-y-2">
                 {requisitionsLoading ? (
                   <p className="text-sm text-muted-foreground">Loading requisitions...</p>
                 ) : filteredRequisitions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">No requisitions found</p>
+                  <div className="text-center py-6">
+                    <ShoppingCart className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground">No requisitions found</p>
                     <Button 
                       variant="outline" 
                       className="mt-3"
@@ -578,7 +586,7 @@ export default function Procurement() {
                   </div>
                 ) : (
                   filteredRequisitions.map((req: any) => (
-                    <div key={req.id} className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${
+                    <div key={req.id} className={`flex items-center justify-between p-2.5 border rounded-lg transition-colors ${
                       req.status === 'converted_to_po' ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' :
                       req.status === 'rejected' ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' :
                       req.status === 'pending_approval' ? 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800' :
@@ -586,8 +594,8 @@ export default function Procurement() {
                       'hover:bg-accent/50'
                     }`}>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">{req.requisitionNumber}</span>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="font-medium text-sm">{req.requisitionNumber}</span>
                           <Badge variant={priorityColors[req.priority as keyof typeof priorityColors]} className="text-xs">
                             {req.priority}
                           </Badge>
@@ -600,10 +608,10 @@ export default function Procurement() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {req.department} Department • {req.category}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {req.justification?.substring(0, 100)}...
                         </p>
                         {req.status === 'converted_to_po' && req.convertedDate && (
@@ -613,7 +621,7 @@ export default function Procurement() {
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-lg">${(req.estimatedTotal || 0).toLocaleString()}</p>
+                        <p className="font-semibold text-base">${(req.estimatedTotal || 0).toLocaleString()}</p>
                         <p className="text-xs text-muted-foreground">
                           Approval {req.currentApprovalLevel || 0}/{req.maxApprovalLevel || 1}
                         </p>
@@ -623,7 +631,7 @@ export default function Procurement() {
                           </p>
                         )}
                       </div>
-                      <div className="ml-4 flex flex-col gap-2">
+                      <div className="ml-3 flex flex-col gap-1.5">
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -672,22 +680,22 @@ export default function Procurement() {
         </TabsContent>
 
         {/* Approvals Tab */}
-        <TabsContent value="approvals" className="space-y-4">
+        <TabsContent value="approvals" className="space-y-2">
           {/* Pending Approvals Section */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Pending Your Approval</CardTitle>
-                  <CardDescription>Review and approve requisitions requiring your action</CardDescription>
+                  <CardTitle className="text-base">Pending Your Approval</CardTitle>
+                  <CardDescription className="text-xs">Review and approve requisitions requiring your action</CardDescription>
                 </div>
                 <Badge variant="warning" className="text-sm">
                   {requisitions.filter((r: any) => r.status === 'pending_approval').length} Pending
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="pt-2">
+              <div className="space-y-2">
                 {requisitionsLoading ? (
                   <p className="text-sm text-muted-foreground">Loading approvals...</p>
                 ) : requisitions.filter((r: any) => r.status === 'pending_approval').length === 0 ? (
@@ -702,8 +710,8 @@ export default function Procurement() {
                   requisitions.filter((r: any) => r.status === 'pending_approval').map((req: any) => (
                     <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">{req.requisitionNumber}</span>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="font-medium text-sm">{req.requisitionNumber}</span>
                           <Badge variant={priorityColors[req.priority as keyof typeof priorityColors]} className="text-xs">
                             {req.priority}
                           </Badge>
@@ -717,15 +725,15 @@ export default function Procurement() {
                             })()}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {req.department} Department • {req.category}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {req.justification?.substring(0, 100)}...
                         </p>
                       </div>
                       <div className="text-right mr-4">
-                        <p className="font-semibold text-lg">${(req.estimatedTotal || 0).toLocaleString()}</p>
+                        <p className="font-semibold text-base">${(req.estimatedTotal || 0).toLocaleString()}</p>
                         {req.requiredByDate && (
                           <p className="text-xs text-muted-foreground">
                             Due {format(new Date(req.requiredByDate), "MMM dd")}
@@ -766,11 +774,11 @@ export default function Procurement() {
 
           {/* Recently Approved Section */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Recently Approved</CardTitle>
-                  <CardDescription>Items you approved in the last 7 days</CardDescription>
+                  <CardTitle className="text-base">Recently Approved</CardTitle>
+                  <CardDescription className="text-xs">Items you approved in the last 7 days</CardDescription>
                 </div>
                 <Badge variant="success" className="text-sm">
                   {requisitions.filter((r: any) => {
@@ -784,8 +792,8 @@ export default function Procurement() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="pt-2">
+              <div className="space-y-2">
                 {requisitions.filter((r: any) => {
                   if (r.status !== 'approved') return false;
                   const updatedDate = r.updatedAt ? new Date(r.updatedAt) : null;
@@ -836,14 +844,14 @@ export default function Procurement() {
         </TabsContent>
 
         {/* RFQs Tab - Request for Quotes */}
-        <TabsContent value="rfq" className="space-y-4">
+        <TabsContent value="rfq" className="space-y-2">
           <Card>
-            <CardHeader>
-              <CardTitle>Request for Quotes</CardTitle>
-              <CardDescription>Send approved requisitions to suppliers for competitive quotes</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Request for Quotes</CardTitle>
+              <CardDescription className="text-xs">Send approved requisitions to suppliers for competitive quotes</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="pt-2">
+              <div className="space-y-2">
                 {requisitions.filter((r: any) => r.status === 'approved').length === 0 ? (
                   <div className="text-center py-8">
                     <Send className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
@@ -893,7 +901,7 @@ export default function Procurement() {
         </TabsContent>
 
         {/* Purchase Orders Tab */}
-        <TabsContent value="purchase-orders" className="space-y-4">
+        <TabsContent value="purchase-orders" className="space-y-2">
           <PurchaseOrdersView />
         </TabsContent>
 
@@ -910,14 +918,14 @@ export default function Procurement() {
         </TabsContent>
 
         {/* Receiving Tab - Goods Receipt */}
-        <TabsContent value="receiving" className="space-y-4">
+        <TabsContent value="receiving" className="space-y-2">
           <Card>
-            <CardHeader>
-              <CardTitle>Goods Receiving</CardTitle>
-              <CardDescription>Track deliveries and verify receipt of ordered goods</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Goods Receiving</CardTitle>
+              <CardDescription className="text-xs">Track deliveries and verify receipt of ordered goods</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="pt-2">
+              <div className="space-y-2">
                 <div className="text-center py-8">
                   <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                   <p className="text-muted-foreground">No pending deliveries</p>
@@ -941,14 +949,14 @@ export default function Procurement() {
         </TabsContent>
 
         {/* Archived Tab */}
-        <TabsContent value="archived" className="space-y-4">
+        <TabsContent value="archived" className="space-y-2">
           <Card>
-            <CardHeader>
-              <CardTitle>Archived Requisitions</CardTitle>
-              <CardDescription>View archived purchase requisitions and restore if needed</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Archived Requisitions</CardTitle>
+              <CardDescription className="text-xs">View archived purchase requisitions and restore if needed</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="pt-2">
+              <div className="space-y-2">
                 {requisitionsLoading ? (
                   <p className="text-sm text-muted-foreground">Loading archived requisitions...</p>
                 ) : requisitions.filter((r: any) => r.isArchived).length === 0 ? (
@@ -963,16 +971,16 @@ export default function Procurement() {
                   requisitions.filter((r: any) => r.isArchived).map((req: any) => (
                     <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">{req.requisitionNumber}</span>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="font-medium text-sm">{req.requisitionNumber}</span>
                           <Badge variant={statusColors[req.status as keyof typeof statusColors]} className="text-xs">
                             {req.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {req.department} Department • {req.category}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           Archived on {req.archivedAt ? format(new Date(req.archivedAt), "MMM dd, yyyy") : "N/A"}
                         </p>
                       </div>
