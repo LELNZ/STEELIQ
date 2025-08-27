@@ -9621,6 +9621,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Archive Purchase Order (for cancelled POs)
+  app.post("/api/procurement/purchase-orders/:id/archive", async (req, res) => {
+    try {
+      const poId = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      // Get user from auth token
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      
+      if (!token) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const authUser = await AuthService.validateSession(token);
+      
+      if (!authUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Check user permissions
+      const [user] = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
+      if (!user || !['admin', 'manager', 'owner'].includes(user.role || '')) {
+        return res.status(403).json({ error: 'Insufficient permissions to archive PO' });
+      }
+      
+      // Update PO to archived
+      const [updatedPO] = await db.update(purchaseOrders)
+        .set({ 
+          isArchived: true,
+          archivedAt: new Date(),
+          archivedBy: authUser.id,
+          archivedReason: reason || 'Archived after cancellation',
+          updatedAt: new Date(),
+        })
+        .where(eq(purchaseOrders.id, poId))
+        .returning();
+      
+      if (!updatedPO) {
+        return res.status(404).json({ error: 'Purchase order not found' });
+      }
+      
+      // Log the action
+      await db.insert(poStatusLog).values({
+        purchaseOrderId: poId,
+        previousStatus: updatedPO.status,
+        newStatus: 'archived',
+        changeReason: 'Archived',
+        changeNotes: reason || 'Archived after cancellation',
+        changedBy: authUser.id,
+        changedByName: user.name,
+        changedByRole: user.role,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+      
+      res.json({ 
+        message: `PO ${updatedPO.poNumber} archived successfully`,
+        purchaseOrder: updatedPO 
+      });
+    } catch (error) {
+      console.error('Error archiving PO:', error);
+      res.status(500).json({ error: 'Failed to archive purchase order' });
+    }
+  });
+
   // Return PO to Requisition with existing approvals intact
   app.post("/api/procurement/purchase-orders/:id/return-to-requisition", async (req, res) => {
     try {
@@ -9681,13 +9746,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const poItem of poItems) {
         await storage.createRequisitionItem({
           requisitionId: newRequisition.id,
-          itemDescription: poItem.description,
+          description: poItem.description || `Item from PO ${po.poNumber}`,  // Correct field name with fallback
+          materialId: poItem.materialId,
           quantity: poItem.quantity,
-          unitPrice: poItem.unitPrice,
-          totalPrice: poItem.totalPrice || poItem.lineTotal || (poItem.quantity * poItem.unitPrice),
-          specifications: poItem.specifications,
-          supplierId: po.supplierId,
-          materialCode: poItem.materialCode,
+          unit: poItem.unitOfMeasure || 'each',
+          estimatedUnitPrice: poItem.unitPrice?.toString(),
+          estimatedTotal: (poItem.totalPrice || poItem.lineTotal || (Number(poItem.quantity) * Number(poItem.unitPrice))).toString(),
+          specification: poItem.notes,  // Map notes to specification
+          requiredByDate: poItem.deliveryDate,
+          suggestedSupplierId: po.supplierId,
+          notes: poItem.notes,
         });
       }
       

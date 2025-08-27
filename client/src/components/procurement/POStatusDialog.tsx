@@ -65,6 +65,26 @@ export function POStatusDialog({
         title: 'Status Updated',
         description: `PO ${purchaseOrder.poNumber} status changed to ${selectedStatus}`,
       });
+      
+      // If cancelled, show option to archive
+      if (selectedStatus === 'cancelled') {
+        toast({
+          title: 'Archive Recommended',
+          description: 'Consider archiving this cancelled PO to keep your active list clean',
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                archivePOMutation.mutate();
+              }}
+            >
+              Archive Now
+            </Button>
+          ),
+        });
+      }
+      
       onOpenChange(false);
       setReason('');
       setNotes('');
@@ -73,6 +93,31 @@ export function POStatusDialog({
       toast({
         title: 'Update Failed',
         description: error.message || 'Failed to update PO status',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Archive PO mutation
+  const archivePOMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest(`/api/procurement/purchase-orders/${purchaseOrder.id}/archive`, 'POST', {
+        reason: notes || 'Archived after cancellation',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/procurement/purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/procurement/metrics'] });
+      toast({
+        title: 'PO Archived',
+        description: `PO ${purchaseOrder.poNumber} has been archived`,
+      });
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Archive Failed',
+        description: error.message || 'Failed to archive PO',
         variant: 'destructive',
       });
     },
