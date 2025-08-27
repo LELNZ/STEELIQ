@@ -27,6 +27,8 @@ import RequisitionDetailsDialog from "@/components/procurement/RequisitionDetail
 import { RejectRequisitionDialog } from "@/components/procurement/RejectRequisitionDialog";
 import { ResubmitRequisitionDialog } from "@/components/procurement/ResubmitRequisitionDialog";
 import PurchaseOrdersView from "@/components/procurement/PurchaseOrdersView";
+import RFQManagementView from "@/components/procurement/RFQManagementView";
+import QuotesComparisonView from "@/components/procurement/QuotesComparisonView";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -315,8 +317,9 @@ export default function Procurement() {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="rfqs">RFQs</TabsTrigger>
+            <TabsTrigger value="quotes">Quotes</TabsTrigger>
             <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
-            <TabsTrigger value="rfq">RFQs</TabsTrigger>
             <TabsTrigger value="receiving">Receiving</TabsTrigger>
             <TabsTrigger value="archived">Archived</TabsTrigger>
           </TabsList>
@@ -844,77 +847,18 @@ export default function Procurement() {
         </TabsContent>
 
         {/* RFQs Tab - Request for Quotes */}
-        <TabsContent value="rfq" className="space-y-2">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Request for Quotes</CardTitle>
-              <CardDescription className="text-xs">Send approved requisitions to suppliers for competitive quotes</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-2">
-              <div className="space-y-2">
-                {requisitions.filter((r: any) => r.status === 'approved').length === 0 ? (
-                  <div className="text-center py-8">
-                    <Send className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">No items ready for RFQ</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Approve requisitions to start the RFQ process
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-medium mb-3">Approved Requisitions - Ready for RFQ</h4>
-                      {requisitions
-                        .filter((r: any) => r.status === 'approved')
-                        .map((req: any) => (
-                          <div key={req.id} className="flex items-center justify-between py-2">
-                            <div>
-                              <span className="font-medium">{req.requisitionNumber}</span>
-                              <span className="text-sm text-muted-foreground ml-2">
-                                ${(req.estimatedTotal || 0).toLocaleString()}
-                              </span>
-                            </div>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => {
-                                toast({
-                                  title: "Send RFQ",
-                                  description: "Supplier RFQ portal will be implemented in Phase 3",
-                                });
-                              }}
-                            >
-                              <Send className="h-3 w-3 mr-2" />
-                              Send to Suppliers
-                            </Button>
-                          </div>
-                        ))}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      <strong>Phase 3 Features:</strong> Supplier portal, automated RFQ sending, quote comparison, and award management
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="rfqs" className="space-y-2">
+          <RFQManagementView />
+        </TabsContent>
+
+        {/* Quotes Tab - Supplier Responses */}
+        <TabsContent value="quotes" className="space-y-2">
+          <QuotesComparisonView />
         </TabsContent>
 
         {/* Purchase Orders Tab */}
         <TabsContent value="purchase-orders" className="space-y-2">
           <PurchaseOrdersView />
-        </TabsContent>
-
-        <TabsContent value="rfq">
-          <Card>
-            <CardHeader>
-              <CardTitle>Request for Quotes</CardTitle>
-              <CardDescription>Manage RFQ processes and supplier responses</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">RFQ system coming soon...</p>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* Receiving Tab - Goods Receipt */}

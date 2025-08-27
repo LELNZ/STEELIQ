@@ -233,6 +233,21 @@ export interface IStorage {
   approveRequisition(requisitionId: number, approverId: number, comments?: string): Promise<void>;
   rejectRequisition(requisitionId: number, approverId: number, comments: string): Promise<void>;
   
+  // Procurement - RFQs
+  getRfqRequests(filters?: { status?: string; jobId?: number }): Promise<RfqRequest[]>;
+  getRfqRequest(id: number): Promise<RfqRequest | undefined>;
+  createRfqRequest(rfq: InsertRfqRequest): Promise<RfqRequest>;
+  updateRfqRequest(id: number, rfq: Partial<InsertRfqRequest>): Promise<RfqRequest>;
+  generateRfqNumber(): Promise<string>;
+  
+  // Procurement - RFQ Responses
+  getRfqResponses(rfqId: number): Promise<RfqResponse[]>;
+  getRfqResponse(id: number): Promise<RfqResponse | undefined>;
+  createRfqResponse(response: InsertRfqResponse): Promise<RfqResponse>;
+  updateRfqResponse(id: number, response: Partial<InsertRfqResponse>): Promise<RfqResponse>;
+  selectWinningResponse(rfqId: number, responseId: number): Promise<void>;
+  compareRfqResponses(rfqId: number): Promise<RfqResponse[]>;
+  
   // Procurement - Purchase Orders
   getPurchaseOrders(filters?: { status?: string; supplierId?: number; jobId?: number; includeArchived?: boolean; showArchived?: boolean }): Promise<PurchaseOrder[]>;
   getPurchaseOrder(id: number): Promise<PurchaseOrder | undefined>;
@@ -240,6 +255,7 @@ export interface IStorage {
   updatePurchaseOrder(id: number, order: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder>;
   generatePONumber(): Promise<string>;
   convertRequisitionToPO(requisitionId: number, supplierId: number, userId: number): Promise<PurchaseOrder>;
+  createPOFromRfqResponse(rfqResponseId: number, userId: number): Promise<PurchaseOrder>;
   
   // Procurement - Purchase Order Items
   getPurchaseOrderItems(purchaseOrderId: number): Promise<PurchaseOrderItem[]>;
@@ -1812,6 +1828,7 @@ export class DatabaseStorage implements IStorage {
       poNumber,
       supplierId,
       jobId: requisition.jobId,
+      requisitionId: requisitionId, // Link to original requisition
       status: 'draft',
       orderDate: new Date(),
       requestedDeliveryDate: requisition.requiredByDate,
@@ -1918,6 +1935,155 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(purchaseOrders)
       .where(eq(purchaseOrders.isArchived, true))
       .orderBy(desc(purchaseOrders.archivedAt));
+  }
+
+  // RFQ Management Implementation
+  async getRfqRequests(filters?: { status?: string; jobId?: number }): Promise<RfqRequest[]> {
+    let query = db.select().from(rfqRequests);
+    
+    if (filters) {
+      const conditions = [];
+      if (filters.status) conditions.push(eq(rfqRequests.status, filters.status));
+      if (filters.jobId) conditions.push(eq(rfqRequests.jobId, filters.jobId));
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions)) as any;
+      }
+    }
+    
+    return await query.orderBy(desc(rfqRequests.createdAt));
+  }
+
+  async getRfqRequest(id: number): Promise<RfqRequest | undefined> {
+    const [rfq] = await db.select().from(rfqRequests).where(eq(rfqRequests.id, id));
+    return rfq;
+  }
+
+  async createRfqRequest(rfq: InsertRfqRequest): Promise<RfqRequest> {
+    const [created] = await db.insert(rfqRequests).values(rfq).returning();
+    return created;
+  }
+
+  async updateRfqRequest(id: number, rfq: Partial<InsertRfqRequest>): Promise<RfqRequest> {
+    const [updated] = await db.update(rfqRequests)
+      .set({ ...rfq, updatedAt: new Date() })
+      .where(eq(rfqRequests.id, id))
+      .returning();
+    return updated;
+  }
+
+  async generateRfqNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+    
+    const latestRfq = await db.select({ rfqNumber: rfqRequests.rfqNumber })
+      .from(rfqRequests)
+      .where(sql`rfq_number LIKE ${`RFQ-${year}${month}-%`}`)
+      .orderBy(sql`rfq_number DESC`)
+      .limit(1);
+    
+    let nextNumber = 1;
+    if (latestRfq.length > 0 && latestRfq[0].rfqNumber) {
+      const match = latestRfq[0].rfqNumber.match(/RFQ-\d{6}-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+    
+    const paddedNumber = String(nextNumber).padStart(3, '0');
+    return `RFQ-${year}${month}-${paddedNumber}`;
+  }
+
+  // RFQ Responses Implementation
+  async getRfqResponses(rfqId: number): Promise<RfqResponse[]> {
+    return await db.select().from(rfqResponses)
+      .where(eq(rfqResponses.rfqId, rfqId))
+      .orderBy(asc(rfqResponses.totalScore));
+  }
+
+  async getRfqResponse(id: number): Promise<RfqResponse | undefined> {
+    const [response] = await db.select().from(rfqResponses).where(eq(rfqResponses.id, id));
+    return response;
+  }
+
+  async createRfqResponse(response: InsertRfqResponse): Promise<RfqResponse> {
+    const [created] = await db.insert(rfqResponses).values(response).returning();
+    return created;
+  }
+
+  async updateRfqResponse(id: number, response: Partial<InsertRfqResponse>): Promise<RfqResponse> {
+    const [updated] = await db.update(rfqResponses)
+      .set({ ...response, updatedAt: new Date() })
+      .where(eq(rfqResponses.id, id))
+      .returning();
+    return updated;
+  }
+
+  async selectWinningResponse(rfqId: number, responseId: number): Promise<void> {
+    // Update the winning response
+    await db.update(rfqResponses)
+      .set({ status: 'selected', updatedAt: new Date() })
+      .where(eq(rfqResponses.id, responseId));
+    
+    // Update other responses to rejected
+    await db.update(rfqResponses)
+      .set({ status: 'rejected', updatedAt: new Date() })
+      .where(and(
+        eq(rfqResponses.rfqId, rfqId),
+        ne(rfqResponses.id, responseId)
+      ));
+    
+    // Update the RFQ with the winning response
+    await db.update(rfqRequests)
+      .set({ 
+        winningResponseId: responseId,
+        status: 'closed',
+        closedAt: new Date(),
+        updatedAt: new Date() 
+      })
+      .where(eq(rfqRequests.id, rfqId));
+  }
+
+  async compareRfqResponses(rfqId: number): Promise<RfqResponse[]> {
+    const responses = await this.getRfqResponses(rfqId);
+    
+    // Calculate scores for comparison
+    responses.forEach((response, index) => {
+      response.ranking = index + 1;
+    });
+    
+    return responses;
+  }
+
+  async createPOFromRfqResponse(rfqResponseId: number, userId: number): Promise<PurchaseOrder> {
+    const response = await this.getRfqResponse(rfqResponseId);
+    if (!response) throw new Error('RFQ Response not found');
+    
+    const rfq = await this.getRfqRequest(response.rfqId);
+    if (!rfq) throw new Error('RFQ not found');
+    
+    const poNumber = await this.generatePONumber();
+    
+    // Create PO from winning RFQ response
+    const purchaseOrder = await this.createPurchaseOrder({
+      poNumber,
+      supplierId: response.supplierId,
+      jobId: rfq.jobId,
+      requisitionId: rfq.requisitionId,
+      rfqId: rfq.id,
+      rfqResponseId: response.id,
+      status: 'draft',
+      orderDate: new Date(),
+      requestedDeliveryDate: rfq.deliveryRequiredBy,
+      subtotal: response.totalAmount,
+      gstAmount: response.totalAmount ? (parseFloat(response.totalAmount as any) * 0.15) : 0,
+      totalAmount: response.totalAmount ? (parseFloat(response.totalAmount as any) * 1.15) : 0,
+      currency: response.currency || 'NZD',
+      paymentTerms: response.paymentTermsOffered,
+      createdBy: userId,
+    });
+    
+    return purchaseOrder;
   }
 }
 

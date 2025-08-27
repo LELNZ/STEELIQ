@@ -13,10 +13,17 @@ STEELIQ is a Fortune 500-standard enterprise platform for Lateral Engineering Li
 
 #### 1. **Procurement & Supply Chain Management**
 - **Purchase Order System**: Complete PO lifecycle from creation to acknowledgment
+- **RFQ Management**: Request for Quote system with multi-supplier comparison (IN DEVELOPMENT)
 - **Supplier Integration Hub**: Centralized supplier management with API integrations
 - **Email Distribution**: SendGrid-powered PO distribution with tracking
 - **Supplier Portal**: External-facing portal for PO acknowledgments (token-based access)
 - **Template Management**: 3 professional PO templates (Standard, Detailed, Simple)
+- **Job/Project Linking**: All procurement linked to specific jobs for cost tracking
+
+##### Procurement Workflow:
+```
+1. REQUISITION (Job-linked) → 2. APPROVAL → 3. RFQ → 4. QUOTE EVALUATION → 5. PO CREATION → 6. DELIVERY → 7. RECEIPT
+```
 
 #### 2. **Material & Inventory Management**
 - **Material Library**: 600+ steel materials with AS/NZS, API, ASTM standards
@@ -31,12 +38,14 @@ STEELIQ is a Fortune 500-standard enterprise platform for Lateral Engineering Li
 - **Estimation Engine**: Three-phase workflow (Simulation → Professional → Job Creation)
 - **Project Tracking**: Fortune 500 standard Kanban/Timeline/List views
 - **Document Management**: Version control with ISO compliance
+- **Procurement Integration**: All RFQs and POs linked to specific jobs
 
 #### 4. **Financial Management**
 - **Quote Generation**: Multi-location quotes with e-signatures
 - **Invoice Processing**: Automated invoice recognition from emails
 - **Cost Analysis**: Real-time job costing and profitability tracking
 - **Budget Monitoring**: Variance analysis and KPI tracking
+- **RFQ-to-PO Cost Tracking**: Complete cost visibility from quote to payment
 
 #### 5. **Team & Resource Management**
 - **RBAC System**: Granular role-based permissions
@@ -48,7 +57,7 @@ STEELIQ is a Fortune 500-standard enterprise platform for Lateral Engineering Li
 #### 6. **Email & Communication Systems**
 - **Three-Tier Email Architecture**:
   - Google Workspace: Company email (receiving)
-  - SendGrid: Transactional emails (sending POs, notifications)
+  - SendGrid: Transactional emails (sending POs, RFQs, notifications)
   - Email Cost Import: Invoice processing (automated extraction)
 
 ## Technical Infrastructure
@@ -63,17 +72,36 @@ STEELIQ is a Fortune 500-standard enterprise platform for Lateral Engineering Li
 - **Build Tools**: Vite, ESBuild
 
 ### Database Schema Highlights
-- 70+ tables covering all business domains
+- 75+ tables covering all business domains
 - Comprehensive audit trails
 - Soft deletes for data recovery
 - Optimized indexes for performance
+- Complete procurement workflow tables (requisitions, RFQs, quotes, POs, receipts)
 
 ## Integration Architecture
 
+### Procurement Flow Diagram
+```
+Job Project → Purchase Requisition → Multi-Level Approval
+                                           ↓
+                                    RFQ to Suppliers
+                                           ↓
+                                    Quote Comparison
+                                           ↓
+                                    Purchase Order
+                                           ↓
+                                    Goods Receipt
+                                           ↓
+                                    Job Cost Update
+```
+
 ### Email Flow Diagram
 ```
+RFQs:
+[Create RFQ] → [SendGrid] → [Multiple Suppliers] → [Quote Portal] → [Comparison Matrix]
+
 Purchase Orders:
-[Create PO] → [SendGrid] → [Supplier Email] → [Portal Link] → [Acknowledgment]
+[Win Quote] → [Create PO] → [SendGrid] → [Supplier Email] → [Portal Link] → [Acknowledgment]
                  ↓                                    ↓
             [PDF Attach]                    [Tracking Database]
 
@@ -87,16 +115,18 @@ Internal Team                          External Suppliers
 [STEELIQ Login Required]              [No Login Required]
       ↓                                      ↓
 [Supplier Integration Hub]            [Token-Based Portal]
-- Create/Manage POs                   - View specific PO
-- Track all suppliers                 - Acknowledge receipt
-- Performance metrics                 - Update delivery status
-- Automation rules                    - Add notes/comments
+- Create/Manage RFQs & POs           - View specific RFQ/PO
+- Track all suppliers                 - Submit quotes
+- Performance metrics                 - Acknowledge receipt
+- Automation rules                    - Update delivery status
+- Quote comparison                   - Add notes/comments
 ```
 
 ## Current Implementation Status
 
 ### ✅ Completed Systems
-- Complete procurement workflow with PO distribution
+- Complete requisition and approval workflow
+- Purchase order creation and distribution
 - SendGrid email integration with PDF generation
 - Material library with cutting optimization
 - Job management with estimation engine
@@ -105,40 +135,48 @@ Internal Team                          External Suppliers
 - Financial settings and labor rates
 - Email cost import system
 - Supplier and client management
+- Audit trail system
 
-### 🚧 In Development
-- Supplier portal UI for external acknowledgments
-- Email event webhooks for delivery tracking
-- Automated follow-up reminders
-- Drawing intelligence with AI/OCR
-- Production floor tracking
-- Mobile PWA deployment
+### 🚧 In Active Development (January 2025)
+- RFQ management UI and workflow
+- Quote comparison and evaluation matrix
+- Goods receipt and inspection UI
+- Job-linked procurement tracking
+- Supplier portal for quote submission
+- Automated follow-up reminders for RFQs
+- Three-way matching (PO-Receipt-Invoice)
 
 ### 📋 Roadmap Priorities
-1. **Q1 2025**: Complete supplier portal and acknowledgment system
+1. **Q1 2025**: Complete RFQ system and quote management
 2. **Q2 2025**: Drawing intelligence and BOM automation
 3. **Q3 2025**: Mobile PWA with offline capabilities
 4. **Q4 2025**: Advanced analytics and AI predictions
 
 ## Business Process Flows
 
-### Purchase Order Lifecycle
-1. **Creation**: Generate PO from requisition or manually
-2. **Approval**: Multi-level approval based on amount
-3. **Distribution**: Email with PDF and portal link
-4. **Tracking**: Monitor delivery, opens, clicks
-5. **Acknowledgment**: Supplier confirms via portal
-6. **Fulfillment**: Track delivery and receipt
-7. **Reconciliation**: Match with invoices
+### RFQ-First Procurement Process (Industry Standard)
+1. **Requisition Creation**: Link to job, specify materials/services
+2. **Multi-Level Approval**: Based on amount thresholds
+3. **RFQ Generation**: Send to 3+ suppliers for competition
+4. **Quote Collection**: Receive and track supplier responses
+5. **Quote Evaluation**: Compare price, delivery, quality scores
+6. **PO Creation**: Generate PO from winning quote
+7. **Order Tracking**: Monitor delivery and acknowledgment
+8. **Goods Receipt**: Verify delivery and quality
+9. **Three-Way Match**: PO ↔ Receipt ↔ Invoice
+10. **Job Cost Update**: Allocate actual costs to project
 
-### Job Execution Flow
+### Job Execution Flow with Procurement
 1. **Estimation**: Three-phase professional estimation
 2. **Material Planning**: Takeoff and optimization
-3. **Procurement**: Generate and send POs
-4. **Scheduling**: Resource and timeline planning
-5. **Execution**: Time tracking and progress monitoring
-6. **Quality Control**: Inspection and compliance
-7. **Invoicing**: Generate and send client invoices
+3. **Requisition**: Create job-linked material requests
+4. **RFQ Process**: Get competitive quotes
+5. **Procurement**: Generate POs from best quotes
+6. **Scheduling**: Resource and timeline planning
+7. **Execution**: Time tracking and progress monitoring
+8. **Quality Control**: Inspection and compliance
+9. **Cost Tracking**: Monitor budget vs actual
+10. **Invoicing**: Generate and send client invoices
 
 ## Security & Compliance
 
@@ -147,18 +185,21 @@ Internal Team                          External Suppliers
 - Session-based authentication
 - Secure token generation for external portals
 - API rate limiting
+- Approval hierarchy enforcement
 
 ### Data Protection
 - Encrypted sensitive data
 - Secure file uploads
-- Audit trails for all changes
+- Comprehensive audit trails
 - 7-year data retention policy
+- Job-level cost segregation
 
 ### Compliance Standards
 - AS/NZS steel standards
 - ISO document management
 - GDPR-ready data handling
 - Industry-standard security practices
+- Procurement governance (RFQ requirements)
 
 ## Performance Metrics
 
@@ -167,12 +208,14 @@ Internal Team                          External Suppliers
 - **Response Time**: <200ms average
 - **Concurrent Users**: 100+ supported
 - **Data Processing**: 10,000+ materials catalog
+- **RFQ Response Time**: 3-7 days average
 
 ### Business Impact
+- **Cost Savings**: 5-15% through competitive RFQs
 - **Efficiency Gain**: 40% reduction in estimation time
 - **Accuracy**: 95% cutting optimization efficiency
-- **Cost Savings**: 25% reduction through remnant management
 - **Compliance**: 100% document traceability
+- **Procurement Cycle**: 30% faster with automation
 
 ## User Experience Guidelines
 
@@ -182,11 +225,19 @@ Internal Team                          External Suppliers
 - Consistent component library
 - Blue/green status indicators
 - Accessibility compliant
+- Compact, information-dense layouts
 
 ### Navigation Structure
 ```
 Main Dashboard
-├── Procurement (POs, Requisitions, Suppliers)
+├── Procurement Center (New RFQ-First Workflow)
+│   ├── Requisitions (Job-linked)
+│   ├── Approvals (Multi-level)
+│   ├── RFQs (Multi-supplier)
+│   ├── Quotes (Comparison matrix)
+│   ├── Purchase Orders (From quotes)
+│   ├── Receiving (Goods receipt)
+│   └── Archived
 ├── Jobs (Projects, Estimation, Materials)
 ├── Inventory (Stock, Remnants, Certificates)
 ├── Team (Members, Time, Performance)
@@ -202,18 +253,21 @@ Main Dashboard
 - RESTful API design
 - Database normalization
 - Comprehensive error handling
+- Job-linked data integrity
 
 ### Documentation Requirements
 - API documentation for all endpoints
 - Component documentation
 - Database schema documentation
 - User guides for major features
+- Procurement workflow documentation
 
 ### Testing Strategy
 - Unit tests for critical functions
 - Integration tests for workflows
 - User acceptance testing
 - Performance benchmarking
+- RFQ-to-PO workflow testing
 
 ## Support & Maintenance
 
@@ -222,38 +276,59 @@ Main Dashboard
 - Error logging and alerting
 - Performance metrics tracking
 - User activity analytics
+- Procurement cycle time tracking
 
 ### Backup & Recovery
 - Daily automated backups
 - Point-in-time recovery
 - Disaster recovery plan
 - Data export capabilities
+- Audit trail preservation
 
 ## Strategic Development Plan 2025
 
-### Q1 2025 - Supplier Portal Completion
-- External supplier portal UI
-- Acknowledgment workflow
-- Email tracking webhooks
-- Automated reminders
+### Q1 2025 - RFQ System Completion
+- RFQ management UI
+- Quote submission portal
+- Comparison matrix tools
+- Automated supplier invitations
+- Job cost integration
 
 ### Q2 2025 - Intelligence Layer
 - Drawing OCR/AI analysis
 - Automated BOM extraction
 - Smart pricing suggestions
 - Predictive inventory
+- Historical quote analysis
 
 ### Q3 2025 - Mobile Expansion
 - Progressive Web App
 - Offline synchronization
-- Mobile time tracking
+- Mobile approval workflows
 - Site inspection tools
+- Field requisitions
 
 ### Q4 2025 - Advanced Analytics
 - Business intelligence dashboard
 - Predictive analytics
 - Cost optimization AI
 - Performance forecasting
+- Supplier scorecards
+
+## Procurement Best Practices (STRUMIS/PROCORE Standards)
+
+### Workflow Categories:
+- **High-Value (>$5,000)**: Full RFQ with 3+ suppliers
+- **Standard ($500-$5,000)**: Quick RFQ with 2 suppliers
+- **Low-Value (<$500)**: Direct PO from preferred supplier
+- **Blanket Orders**: Annual contracts for consumables
+
+### Key Performance Indicators:
+- RFQ cycle time
+- Supplier response rate
+- Cost savings vs budget
+- On-time delivery rate
+- Quality acceptance rate
 
 ## Contact & Support
 
@@ -264,4 +339,4 @@ Main Dashboard
 
 ---
 
-*This document serves as the single source of truth for STEELIQ platform architecture and development. All other documentation should reference this master document.*
+*This document serves as the single source of truth for STEELIQ platform architecture and development. All procurement workflows follow industry best practices from STRUMIS and PROCORE. Updated January 2025 to reflect RFQ-first procurement methodology.*

@@ -980,7 +980,10 @@ export const purchaseOrders = pgTable("purchase_orders", {
   id: serial("id").primaryKey(),
   poNumber: text("po_number").notNull().unique(),
   supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
-  jobId: integer("job_id").references(() => jobs.id),
+  jobId: integer("job_id").references(() => jobs.id), // Keep optional for now to avoid breaking existing data
+  requisitionId: integer("requisition_id").references(() => purchaseRequisitions.id), // Link to original requisition
+  rfqId: integer("rfq_id").references(() => rfqRequests.id), // Link to RFQ
+  rfqResponseId: integer("rfq_response_id").references(() => rfqResponses.id), // Link to winning quote
   status: text("status").notNull().default("draft"), // draft, sent, acknowledged, partial, completed, cancelled
   orderDate: timestamp("order_date").defaultNow().notNull(),
   requestedDeliveryDate: timestamp("requested_delivery_date"),
@@ -3636,7 +3639,8 @@ export const purchaseRequisitions = pgTable("purchase_requisitions", {
   id: serial("id").primaryKey(),
   requisitionNumber: text("requisition_number").notNull().unique(),
   requestedBy: integer("requested_by").references(() => users.id).notNull(),
-  jobId: integer("job_id").references(() => jobs.id),
+  jobId: integer("job_id").references(() => jobs.id), // Keep optional for now to avoid breaking existing data
+  jobNumber: text("job_number"), // Store job number for display
   department: text("department"), // fabrication, office, maintenance, etc.
   category: text("category").notNull(), // materials, services, equipment, supplies
   priority: text("priority").default("standard"), // standard, urgent, critical
@@ -3720,7 +3724,9 @@ export const approvalHistory = pgTable("approval_history", {
 export const rfqRequests = pgTable("rfq_requests", {
   id: serial("id").primaryKey(),
   rfqNumber: text("rfq_number").notNull().unique(),
-  requisitionId: integer("requisition_id").references(() => purchaseRequisitions.id),
+  requisitionId: integer("requisition_id").references(() => purchaseRequisitions.id), // Link to requisition
+  jobId: integer("job_id").references(() => jobs.id), // Direct job link for tracking
+  jobNumber: text("job_number"), // Store job number for display
   title: text("title").notNull(),
   description: text("description"),
   category: text("category"), // materials, services, equipment
@@ -3750,7 +3756,7 @@ export const rfqResponses = pgTable("rfq_responses", {
   rfqId: integer("rfq_id").references(() => rfqRequests.id).notNull(),
   supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
   responseNumber: text("response_number").notNull().unique(),
-  status: text("status").notNull().default("draft"), // draft, submitted, under_review, accepted, rejected
+  status: text("status").notNull().default("draft"), // draft, submitted, under_review, accepted, rejected, selected
   totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
   currency: text("currency").default("NZD"),
   validityDays: integer("validity_days").default(30),
@@ -3782,6 +3788,7 @@ export const goodsReceipts = pgTable("goods_receipts", {
   grnNumber: text("grn_number").notNull().unique(), // Goods Receipt Note number
   purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id).notNull(),
   supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
+  jobId: integer("job_id").references(() => jobs.id), // Direct job link for cost allocation
   deliveryNoteNumber: text("delivery_note_number"),
   receivedBy: integer("received_by").references(() => users.id).notNull(),
   receivedAt: timestamp("received_at").defaultNow().notNull(),

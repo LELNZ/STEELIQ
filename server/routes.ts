@@ -10600,6 +10600,226 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // RFQ MANAGEMENT ROUTES
+  // ============================================
+
+  // Get all RFQs with filters
+  app.get("/api/procurement/rfqs", async (req, res) => {
+    try {
+      const { status, jobId } = req.query;
+      const filters: any = {};
+      
+      if (status) filters.status = status as string;
+      if (jobId) filters.jobId = parseInt(jobId as string);
+      
+      const rfqs = await storage.getRfqRequests(filters);
+      res.json(rfqs);
+    } catch (error) {
+      console.error("Error fetching RFQs:", error);
+      res.status(500).json({ error: "Failed to fetch RFQs" });
+    }
+  });
+
+  // Get single RFQ with details
+  app.get("/api/procurement/rfqs/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const rfq = await storage.getRfqRequest(id);
+      
+      if (!rfq) {
+        return res.status(404).json({ error: "RFQ not found" });
+      }
+      
+      // Get responses for this RFQ
+      const responses = await storage.getRfqResponses(id);
+      
+      res.json({
+        ...rfq,
+        responses
+      });
+    } catch (error) {
+      console.error("Error fetching RFQ:", error);
+      res.status(500).json({ error: "Failed to fetch RFQ" });
+    }
+  });
+
+  // Create RFQ from approved requisition
+  app.post("/api/procurement/rfqs", async (req, res) => {
+    try {
+      const { requisitionId } = req.body;
+      
+      // Get authenticated user
+      let user;
+      try {
+        user = await AuthService.getAuthenticatedUser(req);
+      } catch (authError) {
+        // For testing, use default user
+        user = await storage.getUser(1);
+      }
+      
+      if (!user) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      
+      // Get requisition details
+      const requisition = await storage.getRequisition(requisitionId);
+      if (!requisition) {
+        return res.status(404).json({ error: "Requisition not found" });
+      }
+      
+      // Generate RFQ number
+      const rfqNumber = await storage.generateRfqNumber();
+      
+      // Create RFQ
+      const rfq = await storage.createRfqRequest({
+        rfqNumber,
+        requisitionId: requisition.id,
+        jobId: requisition.jobId,
+        jobNumber: requisition.jobNumber,
+        title: req.body.title || `RFQ for ${requisition.requisitionNumber}`,
+        description: req.body.description || requisition.justification,
+        category: requisition.category,
+        status: 'draft',
+        responseDeadline: req.body.responseDeadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        deliveryRequiredBy: requisition.requiredByDate,
+        deliveryTerms: req.body.deliveryTerms || 'FOB',
+        paymentTerms: req.body.paymentTerms || 'Net 30',
+        evaluationCriteria: req.body.evaluationCriteria || {
+          price_weight: 40,
+          quality_weight: 30,
+          delivery_weight: 30
+        },
+        specialRequirements: req.body.specialRequirements,
+        invitedSuppliers: req.body.invitedSuppliers || [],
+        publicRfq: req.body.publicRfq || false,
+        createdBy: user.id
+      });
+      
+      res.json(rfq);
+    } catch (error) {
+      console.error("Error creating RFQ:", error);
+      res.status(500).json({ error: "Failed to create RFQ" });
+    }
+  });
+
+  // Send RFQ to suppliers
+  app.post("/api/procurement/rfqs/:id/send", async (req, res) => {
+    try {
+      const rfqId = parseInt(req.params.id);
+      const { supplierIds } = req.body;
+      
+      // Update RFQ status to sent
+      await storage.updateRfqRequest(rfqId, {
+        status: 'sent',
+        sentAt: new Date(),
+        invitedSuppliers: supplierIds
+      });
+      
+      // TODO: Send emails to suppliers via SendGrid
+      
+      res.json({ success: true, message: "RFQ sent to suppliers" });
+    } catch (error) {
+      console.error("Error sending RFQ:", error);
+      res.status(500).json({ error: "Failed to send RFQ" });
+    }
+  });
+
+  // Get RFQ responses/quotes
+  app.get("/api/procurement/rfqs/:id/responses", async (req, res) => {
+    try {
+      const rfqId = parseInt(req.params.id);
+      const responses = await storage.getRfqResponses(rfqId);
+      res.json(responses);
+    } catch (error) {
+      console.error("Error fetching RFQ responses:", error);
+      res.status(500).json({ error: "Failed to fetch responses" });
+    }
+  });
+
+  // Submit RFQ response (quote from supplier)
+  app.post("/api/procurement/rfqs/:id/responses", async (req, res) => {
+    try {
+      const rfqId = parseInt(req.params.id);
+      const { supplierId, totalAmount, deliveryDays, paymentTermsOffered, lineItems } = req.body;
+      
+      // Generate response number
+      const responseNumber = `QUO-${Date.now()}`;
+      
+      const response = await storage.createRfqResponse({
+        rfqId,
+        supplierId,
+        responseNumber,
+        status: 'submitted',
+        totalAmount,
+        currency: req.body.currency || 'NZD',
+        validityDays: req.body.validityDays || 30,
+        deliveryDays,
+        paymentTermsOffered,
+        warrantyOffered: req.body.warrantyOffered,
+        notes: req.body.notes,
+        lineItems,
+        submittedAt: new Date()
+      });
+      
+      res.json(response);
+    } catch (error) {
+      console.error("Error creating RFQ response:", error);
+      res.status(500).json({ error: "Failed to submit response" });
+    }
+  });
+
+  // Compare RFQ responses
+  app.get("/api/procurement/rfqs/:id/compare", async (req, res) => {
+    try {
+      const rfqId = parseInt(req.params.id);
+      const responses = await storage.compareRfqResponses(rfqId);
+      res.json(responses);
+    } catch (error) {
+      console.error("Error comparing responses:", error);
+      res.status(500).json({ error: "Failed to compare responses" });
+    }
+  });
+
+  // Select winning RFQ response
+  app.post("/api/procurement/rfqs/:id/select-winner", async (req, res) => {
+    try {
+      const rfqId = parseInt(req.params.id);
+      const { responseId } = req.body;
+      
+      await storage.selectWinningResponse(rfqId, responseId);
+      res.json({ success: true, message: "Winner selected" });
+    } catch (error) {
+      console.error("Error selecting winner:", error);
+      res.status(500).json({ error: "Failed to select winner" });
+    }
+  });
+
+  // Create PO from winning RFQ response
+  app.post("/api/procurement/rfqs/create-po", async (req, res) => {
+    try {
+      const { rfqResponseId } = req.body;
+      
+      // Get authenticated user
+      let user;
+      try {
+        user = await AuthService.getAuthenticatedUser(req);
+      } catch (authError) {
+        user = await storage.getUser(1);
+      }
+      
+      if (!user) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      
+      const po = await storage.createPOFromRfqResponse(rfqResponseId, user.id);
+      res.json(po);
+    } catch (error) {
+      console.error("Error creating PO from RFQ:", error);
+      res.status(500).json({ error: "Failed to create PO" });
+    }
+  });
+
   // Time Tracking Integration - Apply Profile Rates
   app.post("/api/time-clocks/:id/calculate-cost", async (req, res) => {
     try {
