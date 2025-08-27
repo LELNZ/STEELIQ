@@ -234,7 +234,7 @@ export interface IStorage {
   rejectRequisition(requisitionId: number, approverId: number, comments: string): Promise<void>;
   
   // Procurement - Purchase Orders
-  getPurchaseOrders(filters?: { status?: string; supplierId?: number; jobId?: number }): Promise<PurchaseOrder[]>;
+  getPurchaseOrders(filters?: { status?: string; supplierId?: number; jobId?: number; includeArchived?: boolean }): Promise<PurchaseOrder[]>;
   getPurchaseOrder(id: number): Promise<PurchaseOrder | undefined>;
   createPurchaseOrder(order: InsertPurchaseOrder): Promise<PurchaseOrder>;
   updatePurchaseOrder(id: number, order: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder>;
@@ -1707,18 +1707,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Purchase Orders Implementation
-  async getPurchaseOrders(filters?: { status?: string; supplierId?: number; jobId?: number }): Promise<PurchaseOrder[]> {
+  async getPurchaseOrders(filters?: { status?: string; supplierId?: number; jobId?: number; includeArchived?: boolean }): Promise<PurchaseOrder[]> {
     let query = db.select().from(purchaseOrders);
     
+    const conditions = [];
+    
+    // By default, exclude archived POs unless explicitly requested
+    if (!filters?.includeArchived) {
+      conditions.push(eq(purchaseOrders.isArchived, false));
+    }
+    
     if (filters) {
-      const conditions = [];
       if (filters.status) conditions.push(eq(purchaseOrders.status, filters.status));
       if (filters.supplierId) conditions.push(eq(purchaseOrders.supplierId, filters.supplierId));
       if (filters.jobId) conditions.push(eq(purchaseOrders.jobId, filters.jobId));
-      
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
     }
     
     return await query.orderBy(desc(purchaseOrders.createdAt));

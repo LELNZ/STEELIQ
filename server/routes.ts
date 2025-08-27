@@ -9381,8 +9381,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all purchase orders
   app.get("/api/procurement/purchase-orders", async (req, res) => {
     try {
-      const { status, supplierId, jobId } = req.query;
-      const filters: any = {};
+      const { status, supplierId, jobId, includeArchived } = req.query;
+      const filters: any = {
+        includeArchived: includeArchived === 'true',  // Only show archived if explicitly requested
+      };
       
       if (status) filters.status = status as string;
       if (supplierId) filters.supplierId = parseInt(supplierId as string);
@@ -9726,9 +9728,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(purchaseOrderItems)
         .where(eq(purchaseOrderItems.purchaseOrderId, poId));
       
+      // Generate proper requisition number
+      const requisitionNumber = await storage.generateRequisitionNumber();
+      
       // Create a new requisition with approved status (since it was already approved before)
       const newRequisition = await storage.createRequisition({
-        requisitionNumber: `REQ-${Date.now()}`,
+        requisitionNumber: requisitionNumber,
         requestedBy: authUser.id,  // Required field in the schema
         category: 'materials',  // Required field in the schema
         department: 'Operations',
@@ -9775,11 +9780,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date()
       });
       
-      // Delete or mark the PO as cancelled
-      await storage.updatePurchaseOrder(poId, { 
-        status: 'cancelled',
-        notes: `${po.notes || ''}\n\nReturned to requisition ${newRequisition.requisitionNumber} on ${new Date().toLocaleDateString()}`
-      });
+      // Mark the PO as returned and archive it to hide from active view
+      await db.update(purchaseOrders)
+        .set({ 
+          status: 'returned_to_requisition',
+          isArchived: true,  // Archive to hide from active list
+          archivedAt: new Date(),
+          archivedBy: authUser.id,
+          archivedReason: `Returned to requisition ${newRequisition.requisitionNumber}`,
+          notes: `${po.notes || ''}\n\nReturned to requisition ${newRequisition.requisitionNumber} on ${new Date().toLocaleDateString()}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(purchaseOrders.id, poId));
       
       res.json({ 
         success: true, 
