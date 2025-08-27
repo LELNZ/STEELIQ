@@ -84,15 +84,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { requires2FA: true };
       }
 
-      // Set user and authentication state (data is the user object directly)
-      setUser(data);
+      // Set user from the response (response contains user, token, expiresAt)
+      if (data.user) {
+        setUser(data.user);
+      }
       
-      // Refetch user data
+      // Refetch user data to ensure consistency
       await refetch();
 
       toast({
         title: "Login successful",
-        description: `Welcome back, ${data.name || data.username || 'User'}!`,
+        description: `Welcome back, ${data.user?.name || data.user?.username || 'User'}!`,
       });
 
       return data;
