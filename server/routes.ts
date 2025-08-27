@@ -9664,17 +9664,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create a new requisition with approved status (since it was already approved before)
       const newRequisition = await storage.createRequisition({
         requisitionNumber: `REQ-${Date.now()}`,
-        requesterName: po.createdByName || user.name,
+        requestedBy: authUser.id,  // Required field in the schema
+        category: 'materials',  // Required field in the schema
         department: 'Operations',
         status: 'approved', // Keep approved status since it was already approved
-        priority: 'normal',
-        requestDate: new Date(),
+        priority: 'standard',
         justification: `Returned from PO ${po.poNumber}. Original justification maintained.`,
         notes: `Converted back from PO ${po.poNumber}. Reason: ${reason || 'Not specified'}. ${notes || ''}`,
-        totalAmount: po.totalAmount,
-        createdBy: authUser.id,
-        approvedBy: po.approvedBy || authUser.id,
-        approvedDate: po.approvedDate || new Date(),
+        estimatedTotal: po.totalAmount?.toString(),
+        currency: po.currency || 'NZD',
+        requiredByDate: po.deliveryDate,
+        preferredSupplierId: po.supplierId,
       });
       
       // Create requisition items from PO items
