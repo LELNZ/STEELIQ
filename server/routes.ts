@@ -9658,6 +9658,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Only approved requisitions can be converted to PO" });
       }
       
+      // Enforce RFQ requirement for purchases over $500 NZD
+      const amount = requisition.estimatedTotal || 0;
+      if (amount > 500) {
+        // Check if an RFQ exists for this requisition
+        const rfqs = await storage.getRfqRequests({ requisitionId });
+        if (!rfqs || rfqs.length === 0) {
+          return res.status(400).json({ 
+            error: "RFQ Required",
+            message: `Purchase orders over $500 require competitive bidding through RFQ process. Please create an RFQ first.`,
+            requiresRfq: true,
+            amount: amount
+          });
+        }
+        
+        // Check if any RFQ has received quotes
+        const rfqWithQuotes = rfqs.find(rfq => rfq.status === 'sent' || rfq.status === 'closed');
+        if (!rfqWithQuotes) {
+          return res.status(400).json({ 
+            error: "RFQ Must Be Sent",
+            message: `An RFQ exists but hasn't been sent to suppliers yet. Please send the RFQ and collect quotes first.`,
+            requiresRfq: true,
+            amount: amount
+          });
+        }
+      }
+      
       // Convert to PO
       const purchaseOrder = await storage.convertRequisitionToPO(requisitionId, supplierId, user.id);
       
@@ -10683,7 +10709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'draft',
         responseDeadline: req.body.responseDeadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
         deliveryRequiredBy: requisition.requiredByDate,
-        deliveryTerms: req.body.deliveryTerms || 'FOB',
+        deliveryTerms: req.body.deliveryTerms || 'delivery_workshop',
         paymentTerms: req.body.paymentTerms || 'Net 30',
         evaluationCriteria: req.body.evaluationCriteria || {
           price_weight: 40,

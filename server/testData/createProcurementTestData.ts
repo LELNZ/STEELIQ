@@ -150,7 +150,7 @@ export async function createProcurementTestData() {
       status: 'sent',
       responseDeadline: new Date('2025-01-25'),
       deliveryRequiredBy: new Date('2025-02-01'),
-      deliveryTerms: 'FOB Auckland',
+      deliveryTerms: 'delivery_workshop',
       paymentTerms: 'Net 30',
       evaluationCriteria: {
         price_weight: 40,
@@ -236,7 +236,7 @@ export async function createProcurementTestData() {
       status: 'draft',
       responseDeadline: new Date('2025-01-30'),
       deliveryRequiredBy: new Date('2025-02-15'),
-      deliveryTerms: 'DDP Site',
+      deliveryTerms: 'delivery_site',
       paymentTerms: 'Net 30',
       evaluationCriteria: {
         price_weight: 50,

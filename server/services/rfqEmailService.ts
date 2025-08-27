@@ -3,6 +3,7 @@ import { db } from '../db';
 import { rfqRequests, rfqResponses, suppliers, purchaseRequisitions, requisitionItems } from '@shared/schema';
 import { eq, inArray } from 'drizzle-orm';
 import { format } from 'date-fns';
+import { getDeliveryTermLabel } from '@shared/constants/deliveryTerms';
 
 // Initialize SendGrid
 if (process.env.SENDGRID_API_KEY) {
@@ -170,7 +171,7 @@ export class RFQEmailService {
 
             <h3>Terms & Conditions</h3>
             <ul>
-              <li><strong>Delivery Terms:</strong> ${rfq.deliveryTerms || 'FOB'}</li>
+              <li><strong>Delivery Terms:</strong> ${getDeliveryTermLabel(rfq.deliveryTerms || 'delivery_workshop')}</li>
               <li><strong>Payment Terms:</strong> ${rfq.paymentTerms || 'Net 30'}</li>
               ${rfq.specialRequirements ? `<li><strong>Special Requirements:</strong> ${rfq.specialRequirements}</li>` : ''}
             </ul>

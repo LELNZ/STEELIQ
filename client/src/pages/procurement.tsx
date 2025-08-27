@@ -29,6 +29,7 @@ import { ResubmitRequisitionDialog } from "@/components/procurement/ResubmitRequ
 import PurchaseOrdersView from "@/components/procurement/PurchaseOrdersView";
 import RFQManagementView from "@/components/procurement/RFQManagementView";
 import QuotesComparisonView from "@/components/procurement/QuotesComparisonView";
+import ConvertToPODialog from "@/components/procurement/ConvertToPODialog";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -59,6 +60,8 @@ export default function Procurement() {
   const [resubmitDialogOpen, setResubmitDialogOpen] = useState(false);
   const [resubmittingRequisition, setResubmittingRequisition] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState("active");
+  const [convertToPOOpen, setConvertToPOOpen] = useState(false);
+  const [convertingRequisition, setConvertingRequisition] = useState<any>(null);
   const { toast } = useToast();
 
   // Fetch real metrics from API
@@ -643,14 +646,35 @@ export default function Procurement() {
                           View Details
                         </Button>
                         {req.status === 'approved' && !req.isArchived && (
-                          <Button 
-                            size="sm"
-                            variant="default"
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => setSelectedRequisitionId(req.id)}
-                          >
-                            Convert to PO
-                          </Button>
+                          <>
+                            {/* Check if requisition requires RFQ based on amount */}
+                            {(req.estimatedTotal || 0) > 500 ? (
+                              <Button 
+                                size="sm"
+                                variant="default"
+                                className="bg-purple-600 hover:bg-purple-700"
+                                onClick={() => {
+                                  setActiveTab('rfqs');
+                                  // This will trigger the RFQ creation flow
+                                }}
+                              >
+                                Create RFQ
+                              </Button>
+                            ) : (
+                              <Button 
+                                size="sm"
+                                variant="default"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => {
+                                  setConvertingRequisition(req);
+                                  setConvertToPOOpen(true);
+                                }}
+                                title="Low-value purchase - direct PO allowed"
+                              >
+                                Convert to PO
+                              </Button>
+                            )}
+                          </>
                         )}
                         {req.status === 'rejected' && !req.isArchived && (
                           <Button 
@@ -830,14 +854,32 @@ export default function Procurement() {
                           {req.department} • ${(req.estimatedTotal || 0).toLocaleString()}
                         </p>
                       </div>
-                      <Button 
-                        size="sm"
-                        variant="outline"
-                        className="text-xs"
-                        onClick={() => setSelectedRequisitionId(req.id)}
-                      >
-                        Convert to PO
-                      </Button>
+                      {/* Check if requisition requires RFQ based on amount */}
+                      {(req.estimatedTotal || 0) > 500 ? (
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          className="text-xs bg-purple-600 hover:bg-purple-700 text-white"
+                          onClick={() => {
+                            setActiveTab('rfqs');
+                          }}
+                        >
+                          Create RFQ
+                        </Button>
+                      ) : (
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          className="text-xs"
+                          onClick={() => {
+                            setConvertingRequisition(req);
+                            setConvertToPOOpen(true);
+                          }}
+                          title="Low-value purchase - direct PO allowed"
+                        >
+                          Convert to PO
+                        </Button>
+                      )}
                     </div>
                   ))
                 )}
@@ -1003,6 +1045,18 @@ export default function Procurement() {
           }}
         />
       )}
+
+      {/* Convert to PO Dialog */}
+      <ConvertToPODialog
+        open={convertToPOOpen}
+        onOpenChange={(open) => {
+          setConvertToPOOpen(open);
+          if (!open) {
+            setConvertingRequisition(null);
+          }
+        }}
+        requisition={convertingRequisition}
+      />
     </div>
   );
 }

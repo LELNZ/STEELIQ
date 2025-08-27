@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
+import { DELIVERY_TERMS } from "@shared/constants/deliveryTerms";
 import {
   Send,
   FileText,
@@ -316,15 +317,16 @@ export default function RFQManagementView() {
               </div>
               <div>
                 <Label htmlFor="deliveryTerms">Delivery Terms</Label>
-                <Select defaultValue="FOB">
+                <Select defaultValue="delivery_workshop">
                   <SelectTrigger id="deliveryTerms">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="FOB">FOB</SelectItem>
-                    <SelectItem value="CIF">CIF</SelectItem>
-                    <SelectItem value="EXW">EXW</SelectItem>
-                    <SelectItem value="DDP">DDP</SelectItem>
+                    {DELIVERY_TERMS.map((term) => (
+                      <SelectItem key={term.value} value={term.value}>
+                        {term.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
