@@ -27,7 +27,7 @@ import {
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView
 } from "@shared/schema";
-import { desc, eq, lt, asc, like, and, or, sql, inArray, not } from "drizzle-orm";
+import { desc, eq, lt, asc, like, and, or, sql, inArray, not, ne } from "drizzle-orm";
 import { db } from "./db";
 
 export interface IStorage {
@@ -1713,35 +1713,46 @@ export class DatabaseStorage implements IStorage {
 
   // Purchase Orders Implementation
   async getPurchaseOrders(filters?: { status?: string; supplierId?: number; jobId?: number; includeArchived?: boolean; showArchived?: boolean }): Promise<PurchaseOrder[]> {
-    let query = db.select().from(purchaseOrders);
-    
-    const conditions = [];
+    // Start with base query
+    let baseQuery = db.select().from(purchaseOrders);
     
     // Filter by status, supplier, or job if provided
     if (filters) {
-      if (filters.status) conditions.push(eq(purchaseOrders.status, filters.status));
-      if (filters.supplierId) conditions.push(eq(purchaseOrders.supplierId, filters.supplierId));
-      if (filters.jobId) conditions.push(eq(purchaseOrders.jobId, filters.jobId));
+      const conditions = [];
+      
+      if (filters.status) {
+        conditions.push(eq(purchaseOrders.status, filters.status));
+      }
+      
+      if (filters.supplierId) {
+        conditions.push(eq(purchaseOrders.supplierId, filters.supplierId));
+      }
+      
+      if (filters.jobId) {
+        conditions.push(eq(purchaseOrders.jobId, filters.jobId));
+      }
       
       // Only show archived if explicitly requested
       if (filters.showArchived) {
         conditions.push(eq(purchaseOrders.isArchived, true));
       } else if (!filters.includeArchived) {
-        // Default: hide archived and returned_to_requisition status
+        // Default: hide archived 
         conditions.push(eq(purchaseOrders.isArchived, false));
-        conditions.push(not(eq(purchaseOrders.status, 'returned_to_requisition')));
+      }
+      
+      if (conditions.length > 0) {
+        baseQuery = baseQuery.where(and(...conditions));
       }
     } else {
-      // Default: hide archived and returned_to_requisition
-      conditions.push(eq(purchaseOrders.isArchived, false));
-      conditions.push(not(eq(purchaseOrders.status, 'returned_to_requisition')));
+      // Default: hide archived only
+      baseQuery = baseQuery.where(eq(purchaseOrders.isArchived, false));
     }
     
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
+    // Get all orders and then filter out 'returned_to_requisition' in memory
+    const orders = await baseQuery.orderBy(desc(purchaseOrders.createdAt));
     
-    return await query.orderBy(desc(purchaseOrders.createdAt));
+    // Filter out returned_to_requisition status in memory
+    return orders.filter(order => order.status !== 'returned_to_requisition');
   }
 
   async getPurchaseOrder(id: number): Promise<PurchaseOrder | undefined> {
