@@ -1043,12 +1043,14 @@ export default function TeamManagement() {
                 </TableHeader>
                 <TableBody>
                   {roles.map((role: Role) => {
-                    const permissions = typeof role.permissions === 'object' && !Array.isArray(role.permissions) 
+                    const permissions = (typeof role.permissions === 'object' && role.permissions !== null && !Array.isArray(role.permissions)) 
                       ? role.permissions as Record<string, string[]>
                       : {};
                     
-                    const permissionCount = Object.values(permissions).flat().length;
-                    const categoryCount = Object.keys(permissions).length;
+                    const permissionCount = permissions && Object.values(permissions).length > 0 
+                      ? Object.values(permissions).flat().length 
+                      : 0;
+                    const categoryCount = permissions ? Object.keys(permissions).length : 0;
                     
                     const securityLevel = role.hourlyRate 
                       ? (parseFloat(role.hourlyRate) >= 140 ? 'Critical' 
