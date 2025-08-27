@@ -10726,6 +10726,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create test data for procurement workflow
+  app.post("/api/procurement/test-data", async (req, res) => {
+    try {
+      const { createProcurementTestData } = await import('./testData/createProcurementTestData');
+      const result = await createProcurementTestData();
+      res.json(result);
+    } catch (error) {
+      console.error("Error creating test data:", error);
+      res.status(500).json({ error: "Failed to create test data" });
+    }
+  });
+
   // Get RFQ responses/quotes
   app.get("/api/procurement/rfqs/:id/responses", async (req, res) => {
     try {
