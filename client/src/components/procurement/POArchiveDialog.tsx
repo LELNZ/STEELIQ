@@ -41,9 +41,7 @@ export function POArchiveDialog({ open, onOpenChange }: POArchiveDialogProps) {
   // Unarchive mutation
   const unarchiveMutation = useMutation({
     mutationFn: async (poId: number) => {
-      await apiRequest(`/api/procurement/purchase-orders/${poId}/unarchive`, {
-        method: 'POST',
-      });
+      await apiRequest(`/api/procurement/purchase-orders/${poId}/unarchive`, 'POST');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/procurement/purchase-orders'] });

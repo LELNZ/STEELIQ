@@ -283,9 +283,8 @@ export default function PurchaseOrderDetailsDialog({
                   variant="outline"
                   className="text-orange-600 border-orange-600 hover:bg-orange-50"
                   onClick={async () => {
-                    await apiRequest('/api/procurement/purchase-orders/archive', {
-                      method: 'POST',
-                      body: JSON.stringify({ id: purchaseOrder.id }),
+                    await apiRequest('/api/procurement/purchase-orders/archive', 'POST', { 
+                      id: purchaseOrder.id 
                     });
                     queryClient.invalidateQueries({ queryKey: ['/api/procurement/purchase-orders'] });
                     toast({

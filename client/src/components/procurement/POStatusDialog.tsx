@@ -52,13 +52,10 @@ export function POStatusDialog({
         throw new Error('Please select a status');
       }
       
-      await apiRequest(`/api/procurement/purchase-orders/${purchaseOrder.id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: selectedStatus,
-          reason: reason || undefined,
-          notes: notes || undefined,
-        }),
+      await apiRequest(`/api/procurement/purchase-orders/${purchaseOrder.id}/status`, 'PATCH', {
+        status: selectedStatus,
+        reason: reason || undefined,
+        notes: notes || undefined,
       });
     },
     onSuccess: () => {
@@ -104,12 +101,9 @@ export function POStatusDialog({
   // Archive PO mutation
   const archivePOMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest('/api/procurement/purchase-orders/archive', {
-        method: 'POST',
-        body: JSON.stringify({ 
-          id: purchaseOrder.id,
-          reason: notes || 'Archived after cancellation',
-        }),
+      await apiRequest('/api/procurement/purchase-orders/archive', 'POST', { 
+        id: purchaseOrder.id,
+        reason: notes || 'Archived after cancellation',
       });
     },
     onSuccess: () => {
@@ -137,12 +131,9 @@ export function POStatusDialog({
         throw new Error('Please provide a reason for returning to requisition');
       }
       
-      const response = await apiRequest(`/api/procurement/purchase-orders/${purchaseOrder.id}/return-to-requisition`, {
-        method: 'POST',
-        body: JSON.stringify({
-          reason: reason,
-          notes: notes || undefined,
-        }),
+      const response = await apiRequest(`/api/procurement/purchase-orders/${purchaseOrder.id}/return-to-requisition`, 'POST', {
+        reason: reason,
+        notes: notes || undefined,
       });
       return response;
     },

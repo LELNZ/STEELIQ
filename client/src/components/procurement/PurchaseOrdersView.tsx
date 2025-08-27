@@ -371,9 +371,8 @@ export default function PurchaseOrdersView() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={async () => {
-                                  await apiRequest('/api/procurement/purchase-orders/archive', {
-                                    method: 'POST',
-                                    body: JSON.stringify({ id: po.id }),
+                                  await apiRequest('/api/procurement/purchase-orders/archive', 'POST', { 
+                                    id: po.id 
                                   });
                                   queryClient.invalidateQueries({ queryKey: ['/api/procurement/purchase-orders'] });
                                   toast({
