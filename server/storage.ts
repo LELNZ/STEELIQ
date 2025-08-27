@@ -27,7 +27,7 @@ import {
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView
 } from "@shared/schema";
-import { desc, eq, lt, asc, like, and, or, sql, inArray } from "drizzle-orm";
+import { desc, eq, lt, asc, like, and, or, sql, inArray, not } from "drizzle-orm";
 import { db } from "./db";
 
 export interface IStorage {
@@ -1712,15 +1712,19 @@ export class DatabaseStorage implements IStorage {
     
     const conditions = [];
     
-    // By default, exclude archived POs unless explicitly requested
-    if (!filters?.includeArchived) {
-      conditions.push(eq(purchaseOrders.isArchived, false));
-    }
-    
+    // Filter by status, supplier, or job if provided
     if (filters) {
       if (filters.status) conditions.push(eq(purchaseOrders.status, filters.status));
       if (filters.supplierId) conditions.push(eq(purchaseOrders.supplierId, filters.supplierId));
       if (filters.jobId) conditions.push(eq(purchaseOrders.jobId, filters.jobId));
+      
+      // For now, we'll filter out cancelled and returned_to_requisition statuses unless explicitly requested
+      if (!filters.includeArchived) {
+        conditions.push(not(inArray(purchaseOrders.status, ['cancelled', 'returned_to_requisition'])));
+      }
+    } else {
+      // Default: hide cancelled and returned statuses
+      conditions.push(not(inArray(purchaseOrders.status, ['cancelled', 'returned_to_requisition'])));
     }
     
     if (conditions.length > 0) {

@@ -9780,18 +9780,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date()
       });
       
-      // Mark the PO as returned and archive it to hide from active view
-      await db.update(purchaseOrders)
-        .set({ 
-          status: 'returned_to_requisition',
-          isArchived: true,  // Archive to hide from active list
-          archivedAt: new Date(),
-          archivedBy: authUser.id,
-          archivedReason: `Returned to requisition ${newRequisition.requisitionNumber}`,
-          notes: `${po.notes || ''}\n\nReturned to requisition ${newRequisition.requisitionNumber} on ${new Date().toLocaleDateString()}`,
-          updatedAt: new Date(),
-        })
-        .where(eq(purchaseOrders.id, poId));
+      // Mark the PO as returned_to_requisition status (it will be automatically hidden from the list)
+      await storage.updatePurchaseOrder(poId, { 
+        status: 'returned_to_requisition',
+        notes: `${po.notes || ''}\n\nReturned to requisition ${newRequisition.requisitionNumber} on ${new Date().toLocaleDateString()}`
+      });
       
       res.json({ 
         success: true, 
