@@ -10709,16 +10709,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rfqId = parseInt(req.params.id);
       const { supplierIds } = req.body;
       
-      // Update RFQ status to sent
-      await storage.updateRfqRequest(rfqId, {
-        status: 'sent',
-        sentAt: new Date(),
-        invitedSuppliers: supplierIds
+      // Import the RFQ email service
+      const { rfqEmailService } = await import('./services/rfqEmailService');
+      
+      // Send emails to suppliers
+      const result = await rfqEmailService.sendRFQToSuppliers(rfqId, supplierIds);
+      
+      res.json({ 
+        success: true, 
+        message: `RFQ sent to ${result.sent} suppliers`,
+        details: result 
       });
-      
-      // TODO: Send emails to suppliers via SendGrid
-      
-      res.json({ success: true, message: "RFQ sent to suppliers" });
     } catch (error) {
       console.error("Error sending RFQ:", error);
       res.status(500).json({ error: "Failed to send RFQ" });
