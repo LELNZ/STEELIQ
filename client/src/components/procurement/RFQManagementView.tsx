@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,13 +55,27 @@ const rfqStatusColors = {
   cancelled: "destructive",
 } as const;
 
-export default function RFQManagementView() {
+interface RFQManagementViewProps {
+  requisitionToConvert?: any;
+  onRequisitionProcessed?: () => void;
+}
+
+export default function RFQManagementView({ requisitionToConvert, onRequisitionProcessed }: RFQManagementViewProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [createRfqDialog, setCreateRfqDialog] = useState(false);
   const [selectedRequisition, setSelectedRequisition] = useState<any>(null);
   const [sendRfqDialog, setSendRfqDialog] = useState(false);
   const [selectedRfq, setSelectedRfq] = useState<any>(null);
   const { toast } = useToast();
+  
+  // Handle requisition passed from parent
+  useEffect(() => {
+    if (requisitionToConvert) {
+      setSelectedRequisition(requisitionToConvert);
+      setCreateRfqDialog(true);
+      onRequisitionProcessed?.();
+    }
+  }, [requisitionToConvert, onRequisitionProcessed]);
 
   // Fetch RFQs
   const { data: rfqs = [], isLoading: rfqsLoading } = useQuery({

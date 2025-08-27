@@ -54,6 +54,7 @@ export default function Procurement() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [createRequisitionOpen, setCreateRequisitionOpen] = useState(false);
   const [selectedRequisitionId, setSelectedRequisitionId] = useState<number | null>(null);
+  const [createRfqFromRequisition, setCreateRfqFromRequisition] = useState<any>(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingRequisition, setRejectingRequisition] = useState<any>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -663,8 +664,8 @@ export default function Procurement() {
                               variant="default"
                               className="bg-purple-600 hover:bg-purple-700"
                               onClick={() => {
+                                setCreateRfqFromRequisition(req);
                                 setActiveTab('rfqs');
-                                // This will trigger the RFQ creation flow
                               }}
                             >
                               Create RFQ
@@ -867,6 +868,7 @@ export default function Procurement() {
                         variant="outline"
                         className="text-xs bg-purple-600 hover:bg-purple-700 text-white"
                         onClick={() => {
+                          setCreateRfqFromRequisition(req);
                           setActiveTab('rfqs');
                         }}
                       >
@@ -882,7 +884,10 @@ export default function Procurement() {
 
         {/* RFQs Tab - Request for Quotes */}
         <TabsContent value="rfqs" className="space-y-2">
-          <RFQManagementView />
+          <RFQManagementView 
+            requisitionToConvert={createRfqFromRequisition}
+            onRequisitionProcessed={() => setCreateRfqFromRequisition(null)}
+          />
         </TabsContent>
 
         {/* Quotes Tab - Supplier Responses */}
