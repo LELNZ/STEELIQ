@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import {
   Package,
@@ -21,6 +23,7 @@ import {
   Printer,
   Send,
   CheckCircle,
+  Archive,
 } from "lucide-react";
 import PODistributionDialog from "./PODistributionDialog";
 
@@ -47,6 +50,7 @@ export default function PurchaseOrderDetailsDialog({
   onStatusChange,
 }: PurchaseOrderDetailsDialogProps) {
   const [showDistributionDialog, setShowDistributionDialog] = useState(false);
+  const { toast } = useToast();
 
   // Fetch PO items
   const { data: items = [], isLoading: itemsLoading } = useQuery({
@@ -273,15 +277,37 @@ export default function PurchaseOrderDetailsDialog({
               </Button>
             )}
             {purchaseOrder?.status === "cancelled" && (
-              <Button 
-                size="sm" 
-                variant="default"
-                className="bg-green-600 hover:bg-green-700"
-                onClick={() => onStatusChange?.(purchaseOrder.id, "draft")}
-              >
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Reactivate PO
-              </Button>
+              <>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                  onClick={async () => {
+                    await apiRequest('/api/procurement/purchase-orders/archive', {
+                      method: 'POST',
+                      body: JSON.stringify({ id: purchaseOrder.id }),
+                    });
+                    queryClient.invalidateQueries({ queryKey: ['/api/procurement/purchase-orders'] });
+                    toast({
+                      title: "Purchase Order Archived",
+                      description: `PO ${purchaseOrder.poNumber} has been archived.`,
+                    });
+                    onOpenChange(false);
+                  }}
+                >
+                  <Archive className="h-4 w-4 mr-1" />
+                  Archive PO
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="default"
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => onStatusChange?.(purchaseOrder.id, "draft")}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Reactivate PO
+                </Button>
+              </>
             )}
           </div>
         </div>

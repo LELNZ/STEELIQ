@@ -359,15 +359,34 @@ export default function PurchaseOrdersView() {
                             </DropdownMenuItem>
                           )}
                           {po.status === "cancelled" && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                updateStatusMutation.mutate({ id: po.id, status: "draft" })
-                              }
-                              className="text-green-600"
-                            >
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Reactivate PO
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  updateStatusMutation.mutate({ id: po.id, status: "draft" })
+                                }
+                                className="text-green-600"
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Reactivate PO
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={async () => {
+                                  await apiRequest('/api/procurement/purchase-orders/archive', {
+                                    method: 'POST',
+                                    body: JSON.stringify({ id: po.id }),
+                                  });
+                                  queryClient.invalidateQueries({ queryKey: ['/api/procurement/purchase-orders'] });
+                                  toast({
+                                    title: "Purchase Order Archived",
+                                    description: `PO ${po.poNumber} has been archived.`,
+                                  });
+                                }}
+                                className="text-orange-600"
+                              >
+                                <Archive className="mr-2 h-4 w-4" />
+                                Archive PO
+                              </DropdownMenuItem>
+                            </>
                           )}
                           <DropdownMenuItem>
                             <Download className="mr-2 h-4 w-4" />

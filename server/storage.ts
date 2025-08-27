@@ -248,7 +248,7 @@ export interface IStorage {
   deletePurchaseOrderItem(id: number): Promise<void>;
   
   // Purchase Order Archive Management
-  archivePurchaseOrder(poId: number, archiverId: number, reason?: string): Promise<void>;
+  archivePurchaseOrder(poId: number, archiverId: number, reason?: string): Promise<PurchaseOrder>;
   unarchivePurchaseOrder(poId: number): Promise<void>;
   getArchivedPurchaseOrders(): Promise<PurchaseOrder[]>;
 }
@@ -1890,16 +1890,17 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Purchase Order Archive Management
-  async archivePurchaseOrder(poId: number, archiverId: number, reason?: string): Promise<void> {
-    await db.update(purchaseOrders)
+  async archivePurchaseOrder(poId: number, archiverId: number, reason?: string): Promise<PurchaseOrder> {
+    const [archived] = await db.update(purchaseOrders)
       .set({
         isArchived: true,
         archivedAt: new Date(),
         archivedBy: archiverId,
-        archivedReason: reason,
         updatedAt: new Date(),
       })
-      .where(eq(purchaseOrders.id, poId));
+      .where(eq(purchaseOrders.id, poId))
+      .returning();
+    return archived;
   }
 
   async unarchivePurchaseOrder(poId: number): Promise<void> {
@@ -1908,7 +1909,6 @@ export class DatabaseStorage implements IStorage {
         isArchived: false,
         archivedAt: null,
         archivedBy: null,
-        archivedReason: null,
         updatedAt: new Date(),
       })
       .where(eq(purchaseOrders.id, poId));

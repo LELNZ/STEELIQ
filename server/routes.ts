@@ -9410,6 +9410,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Archive a purchase order
+  app.post("/api/procurement/purchase-orders/archive", async (req, res) => {
+    try {
+      const { id } = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ error: "Purchase order ID is required" });
+      }
+      
+      // Get user from auth token
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      
+      if (!token) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const authUser = await AuthService.validateSession(token);
+      
+      if (!authUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Archive the PO
+      const archivedPO = await storage.archivePurchaseOrder(id, authUser.id);
+      
+      res.json(archivedPO);
+    } catch (error) {
+      console.error("Error archiving purchase order:", error);
+      res.status(500).json({ error: "Failed to archive purchase order" });
+    }
+  });
+
   // Get single purchase order
   app.get("/api/procurement/purchase-orders/:id", async (req, res) => {
     try {
