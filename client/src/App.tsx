@@ -41,6 +41,7 @@ import ResourcePlanning from "@/pages/ResourcePlanning";
 import RemnantManagement from "@/pages/remnant-management";
 import PDFMarkup from "@/pages/pdf-markup";
 import Procurement from "@/pages/procurement";
+import AuditCenter from "@/pages/AuditCenter";
 
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
@@ -90,6 +91,7 @@ function Router() {
       <Route path="/settings/financial" component={FinancialSettings} />
       <Route path="/settings/operations" component={OperationsSettingsNew} />
       <Route path="/settings/lifecycle-templates" component={LifecycleTemplates} />
+      <Route path="/settings/audit-center" component={AuditCenter} />
       <Route path="/organization-settings" component={OrganizationSettingsPage} />
       <Route path="/team-management" component={TeamManagement} />
       <Route path="/team-management/employee/:id" component={EmployeeProfile} />

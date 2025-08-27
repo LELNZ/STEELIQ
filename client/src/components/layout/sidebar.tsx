@@ -24,7 +24,8 @@ import {
   Smartphone,
   Factory,
   Calendar,
-  ShoppingCart
+  ShoppingCart,
+  Shield
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -74,6 +75,7 @@ const navigation = [
       { name: "Operations Settings", href: "/settings/operations", icon: Settings2 },
       { name: "Team Management", href: "/team-management", icon: Users },
       { name: "Time & Payroll", href: "/time-payroll", icon: Timer },
+      { name: "Audit Center", href: "/settings/audit-center", icon: Shield, badge: "Admin", badgeVariant: "warning" },
       { name: "My Preferences", href: "/preferences", icon: Settings },
     ],
   },

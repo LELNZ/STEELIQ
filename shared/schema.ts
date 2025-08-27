@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, numeric, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, numeric, date, index } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -3034,6 +3034,74 @@ export const settingsAudit = pgTable("settings_audit", {
   userAgent: text("user_agent"),
   createdAt: timestamp("created_at").defaultNow()
 });
+
+// Comprehensive System Audit Log - Fortune 500 compliance standard
+export const systemAuditLog = pgTable("system_audit_log", {
+  id: serial("id").primaryKey(),
+  
+  // Event Classification
+  eventCategory: text("event_category").notNull(), // procurement, financial, user, system, security
+  eventType: text("event_type").notNull(), // create, update, delete, view, export, login, permission_change
+  eventSubtype: text("event_subtype"), // po_created, requisition_approved, user_locked, etc.
+  severity: text("severity").default("info"), // info, warning, error, critical
+  
+  // Entity References
+  entityType: text("entity_type"), // purchase_order, requisition, user, supplier, etc.
+  entityId: text("entity_id"), // Flexible ID that can reference any entity
+  entityDescription: text("entity_description"), // Human-readable description
+  
+  // User & Session Info
+  userId: integer("user_id").references(() => users.id),
+  userName: text("user_name"),
+  userRole: text("user_role"),
+  sessionId: text("session_id"),
+  impersonatedBy: integer("impersonated_by").references(() => users.id), // For admin actions on behalf of users
+  
+  // Action Details
+  action: text("action").notNull(), // Detailed description of what happened
+  previousState: jsonb("previous_state"), // State before change
+  newState: jsonb("new_state"), // State after change
+  changeSummary: jsonb("change_summary"), // Key changes only
+  
+  // Financial Impact
+  financialImpact: decimal("financial_impact", { precision: 12, scale: 2 }), // Dollar amount affected
+  budgetImpact: text("budget_impact"), // over_budget, within_budget, etc.
+  
+  // Context & Metadata
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  source: text("source").default("web"), // web, api, email, system, mobile
+  requestMethod: text("request_method"), // GET, POST, PATCH, DELETE
+  requestPath: text("request_path"), // API endpoint or page URL
+  responseStatus: integer("response_status"), // HTTP status code
+  errorMessage: text("error_message"), // If action failed
+  
+  // Compliance & Security
+  dataClassification: text("data_classification").default("internal"), // public, internal, confidential, restricted
+  complianceFlags: text("compliance_flags").array(), // GDPR, SOX, ISO27001, etc.
+  requiresReview: boolean("requires_review").default(false), // Flag for manual review
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
+  
+  // Performance Metrics
+  executionTimeMs: integer("execution_time_ms"), // How long the operation took
+  databaseQueries: integer("database_queries"), // Number of DB queries executed
+  
+  // Audit Trail Integrity
+  checksum: text("checksum"), // Hash of critical fields to detect tampering
+  previousLogId: integer("previous_log_id"), // Chain logs for integrity
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  
+  // Indexes for efficient querying
+}, (table) => [
+  index("idx_audit_user_date").on(table.userId, table.createdAt),
+  index("idx_audit_entity").on(table.entityType, table.entityId),
+  index("idx_audit_category_date").on(table.eventCategory, table.createdAt),
+  index("idx_audit_severity").on(table.severity),
+  index("idx_audit_review").on(table.requiresReview),
+]);
 
 export const settingsApprovals = pgTable("settings_approvals", {
   id: serial("id").primaryKey(),

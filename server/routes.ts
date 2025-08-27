@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -9407,6 +9407,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching archived purchase orders:", error);
       res.status(500).json({ error: "Failed to fetch archived purchase orders" });
+    }
+  });
+
+  // Get PO audit trail - Fortune 500 compliance standard
+  app.get("/api/procurement/purchase-orders/:id/audit-trail", async (req, res) => {
+    try {
+      const poId = parseInt(req.params.id);
+      
+      // Get user from auth token
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      
+      if (!token) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const authUser = await AuthService.validateSession(token);
+      
+      if (!authUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Get PO status logs
+      const statusLogs = await db.select({
+        id: poStatusLog.id,
+        previousStatus: poStatusLog.previousStatus,
+        newStatus: poStatusLog.newStatus,
+        changeReason: poStatusLog.changeReason,
+        changeNotes: poStatusLog.changeNotes,
+        changedBy: poStatusLog.changedBy,
+        changedByName: poStatusLog.changedByName,
+        changedByRole: poStatusLog.changedByRole,
+        ipAddress: poStatusLog.ipAddress,
+        source: poStatusLog.source,
+        createdAt: poStatusLog.createdAt,
+      })
+      .from(poStatusLog)
+      .where(eq(poStatusLog.purchaseOrderId, poId))
+      .orderBy(desc(poStatusLog.createdAt));
+      
+      // Get system audit logs for this PO
+      const systemLogs = await db.select()
+        .from(systemAuditLog)
+        .where(and(
+          eq(systemAuditLog.entityType, 'purchase_order'),
+          eq(systemAuditLog.entityId, poId.toString())
+        ))
+        .orderBy(desc(systemAuditLog.createdAt));
+      
+      res.json({
+        statusHistory: statusLogs,
+        systemLogs: systemLogs,
+      });
+    } catch (error) {
+      console.error("Error fetching PO audit trail:", error);
+      res.status(500).json({ error: "Failed to fetch audit trail" });
+    }
+  });
+  
+  // Get comprehensive system audit logs - Admin/Manager only
+  app.get("/api/audit/system-logs", async (req, res) => {
+    try {
+      // Get user from auth token
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      
+      if (!token) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const authUser = await AuthService.validateSession(token);
+      
+      if (!authUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Check user permissions - only admin, manager, owner can access
+      const [user] = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
+      if (!user || !['admin', 'manager', 'owner'].includes(user.role || '')) {
+        return res.status(403).json({ error: 'Insufficient permissions to view system audit logs' });
+      }
+      
+      // Parse query filters
+      const {
+        category,
+        entityType,
+        userId,
+        dateFrom,
+        dateTo,
+        severity,
+        requiresReview,
+        limit = '100',
+        offset = '0'
+      } = req.query;
+      
+      // Build query conditions
+      const conditions = [];
+      
+      if (category) {
+        conditions.push(eq(systemAuditLog.eventCategory, category as string));
+      }
+      
+      if (entityType) {
+        conditions.push(eq(systemAuditLog.entityType, entityType as string));
+      }
+      
+      if (userId) {
+        conditions.push(eq(systemAuditLog.userId, parseInt(userId as string)));
+      }
+      
+      if (severity) {
+        conditions.push(eq(systemAuditLog.severity, severity as string));
+      }
+      
+      if (requiresReview === 'true') {
+        conditions.push(eq(systemAuditLog.requiresReview, true));
+      }
+      
+      if (dateFrom) {
+        conditions.push(sql`${systemAuditLog.createdAt} >= ${new Date(dateFrom as string)}`);
+      }
+      
+      if (dateTo) {
+        conditions.push(sql`${systemAuditLog.createdAt} <= ${new Date(dateTo as string)}`);
+      }
+      
+      // Get logs with conditions
+      const query = db.select()
+        .from(systemAuditLog)
+        .orderBy(desc(systemAuditLog.createdAt))
+        .limit(parseInt(limit as string))
+        .offset(parseInt(offset as string));
+      
+      if (conditions.length > 0) {
+        query.where(and(...conditions));
+      }
+      
+      const logs = await query;
+      
+      // Get total count for pagination
+      const countQuery = db.select({ count: sql`COUNT(*)` })
+        .from(systemAuditLog);
+        
+      if (conditions.length > 0) {
+        countQuery.where(and(...conditions));
+      }
+      
+      const [{ count }] = await countQuery;
+      
+      res.json({
+        logs,
+        total: parseInt(count as string),
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      });
+    } catch (error) {
+      console.error("Error fetching system audit logs:", error);
+      res.status(500).json({ error: "Failed to fetch audit logs" });
     }
   });
 

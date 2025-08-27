@@ -24,8 +24,10 @@ import {
   Send,
   CheckCircle,
   Archive,
+  Shield,
 } from "lucide-react";
 import PODistributionDialog from "./PODistributionDialog";
+import { POAuditTrail } from "./POAuditTrail";
 
 interface PurchaseOrderDetailsDialogProps {
   open: boolean;
@@ -50,6 +52,7 @@ export default function PurchaseOrderDetailsDialog({
   onStatusChange,
 }: PurchaseOrderDetailsDialogProps) {
   const [showDistributionDialog, setShowDistributionDialog] = useState(false);
+  const [showAuditTrail, setShowAuditTrail] = useState(false);
   const { toast } = useToast();
 
   // Fetch PO items
@@ -262,6 +265,15 @@ export default function PurchaseOrderDetailsDialog({
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowAuditTrail(true)}
+              className="mr-auto"
+            >
+              <Shield className="h-4 w-4 mr-1" />
+              View Audit Trail
+            </Button>
             <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="h-4 w-4 mr-1" />
               Print
@@ -323,6 +335,16 @@ export default function PurchaseOrderDetailsDialog({
         setShowDistributionDialog(false);
       }}
     />
+    
+    {/* PO Audit Trail Dialog */}
+    {purchaseOrder && (
+      <POAuditTrail
+        isOpen={showAuditTrail}
+        onClose={() => setShowAuditTrail(false)}
+        purchaseOrderId={purchaseOrder.id}
+        poNumber={purchaseOrder.poNumber}
+      />
+    )}
     </>
   );
 }
