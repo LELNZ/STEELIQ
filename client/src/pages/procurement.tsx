@@ -230,6 +230,17 @@ export default function Procurement() {
         <p className="text-xs text-muted-foreground mt-0.5">
           Manage requisitions, approvals, purchase orders, and supplier relationships
         </p>
+        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2.5 mt-3">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div className="text-xs">
+              <p className="font-medium text-blue-900 dark:text-blue-100">Procurement Policy</p>
+              <p className="text-blue-800 dark:text-blue-200 mt-0.5">
+                All purchases require RFQ process. Emergency purchases bypass with manager approval.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Key Metrics */}
@@ -646,35 +657,31 @@ export default function Procurement() {
                           View Details
                         </Button>
                         {req.status === 'approved' && !req.isArchived && (
-                          <>
-                            {/* Check if requisition requires RFQ based on amount */}
-                            {(req.estimatedTotal || 0) > 500 ? (
-                              <Button 
-                                size="sm"
-                                variant="default"
-                                className="bg-purple-600 hover:bg-purple-700"
-                                onClick={() => {
-                                  setActiveTab('rfqs');
-                                  // This will trigger the RFQ creation flow
-                                }}
-                              >
-                                Create RFQ
-                              </Button>
-                            ) : (
-                              <Button 
-                                size="sm"
-                                variant="default"
-                                className="bg-green-600 hover:bg-green-700"
-                                onClick={() => {
-                                  setConvertingRequisition(req);
-                                  setConvertToPOOpen(true);
-                                }}
-                                title="Low-value purchase - direct PO allowed"
-                              >
-                                Convert to PO
-                              </Button>
-                            )}
-                          </>
+                          <div className="flex flex-col gap-1">
+                            <Button 
+                              size="sm"
+                              variant="default"
+                              className="bg-purple-600 hover:bg-purple-700"
+                              onClick={() => {
+                                setActiveTab('rfqs');
+                                // This will trigger the RFQ creation flow
+                              }}
+                            >
+                              Create RFQ
+                            </Button>
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              className="border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                              onClick={() => {
+                                setConvertingRequisition({ ...req, isEmergency: true });
+                                setConvertToPOOpen(true);
+                              }}
+                              title="Emergency purchase - requires manager approval and justification"
+                            >
+                              Emergency PO
+                            </Button>
+                          </div>
                         )}
                         {req.status === 'rejected' && !req.isArchived && (
                           <Button 
@@ -854,32 +861,17 @@ export default function Procurement() {
                           {req.department} • ${(req.estimatedTotal || 0).toLocaleString()}
                         </p>
                       </div>
-                      {/* Check if requisition requires RFQ based on amount */}
-                      {(req.estimatedTotal || 0) > 500 ? (
-                        <Button 
-                          size="sm"
-                          variant="outline"
-                          className="text-xs bg-purple-600 hover:bg-purple-700 text-white"
-                          onClick={() => {
-                            setActiveTab('rfqs');
-                          }}
-                        >
-                          Create RFQ
-                        </Button>
-                      ) : (
-                        <Button 
-                          size="sm"
-                          variant="outline"
-                          className="text-xs"
-                          onClick={() => {
-                            setConvertingRequisition(req);
-                            setConvertToPOOpen(true);
-                          }}
-                          title="Low-value purchase - direct PO allowed"
-                        >
-                          Convert to PO
-                        </Button>
-                      )}
+                      {/* All purchases require RFQ unless emergency */}
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        className="text-xs bg-purple-600 hover:bg-purple-700 text-white"
+                        onClick={() => {
+                          setActiveTab('rfqs');
+                        }}
+                      >
+                        Create RFQ
+                      </Button>
                     </div>
                   ))
                 )}

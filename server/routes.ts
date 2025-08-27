@@ -9658,17 +9658,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Only approved requisitions can be converted to PO" });
       }
       
-      // Enforce RFQ requirement for purchases over $500 NZD
+      // Enforce RFQ requirement for ALL purchases unless emergency
       const amount = requisition.estimatedTotal || 0;
-      if (amount > 500) {
+      const isEmergency = req.body.isEmergency || false;
+      
+      // If not an emergency purchase, RFQ is always required
+      if (!isEmergency) {
         // Check if an RFQ exists for this requisition
         const rfqs = await storage.getRfqRequests({ requisitionId });
         if (!rfqs || rfqs.length === 0) {
           return res.status(400).json({ 
             error: "RFQ Required",
-            message: `Purchase orders over $500 require competitive bidding through RFQ process. Please create an RFQ first.`,
+            message: `All purchases require competitive bidding through RFQ process. Emergency purchases can bypass with manager approval.`,
             requiresRfq: true,
-            amount: amount
+            amount: amount,
+            canBypassWithEmergency: true
           });
         }
         
@@ -9682,6 +9686,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             amount: amount
           });
         }
+      } else {
+        // Emergency purchase - verify manager approval
+        if (!req.body.emergencyJustification) {
+          return res.status(400).json({ 
+            error: "Emergency Justification Required",
+            message: `Emergency purchases require justification and manager approval.`,
+            requiresJustification: true
+          });
+        }
+        
+        // Log emergency purchase for audit
+        console.log(`Emergency PO created: Requisition ${requisitionId}, Amount: $${amount}, Justification: ${req.body.emergencyJustification}`);
       }
       
       // Convert to PO

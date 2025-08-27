@@ -19,7 +19,8 @@ import { Label } from "@/components/ui/label";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Package, Loader2, Plus } from "lucide-react";
+import { Package, Loader2, Plus, AlertTriangle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { SupplierForm, SupplierFormData } from "@/components/forms/supplier-form";
 
 interface ConvertToPODialogProps {
@@ -36,6 +37,7 @@ export default function ConvertToPODialog({
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
+  const [emergencyJustification, setEmergencyJustification] = useState("");
   const { toast } = useToast();
 
   // Initialize selectedSupplierId when requisition changes or dialog opens
@@ -85,9 +87,16 @@ export default function ConvertToPODialog({
 
   // Convert to PO mutation
   const convertMutation = useMutation({
-    mutationFn: ({ requisitionId, supplierId }: { requisitionId: number; supplierId: number }) =>
+    mutationFn: ({ requisitionId, supplierId, isEmergency, emergencyJustification }: { 
+      requisitionId: number; 
+      supplierId: number;
+      isEmergency?: boolean;
+      emergencyJustification?: string;
+    }) =>
       apiRequest(`/api/procurement/requisitions/${requisitionId}/convert-to-po`, "POST", {
         supplierId,
+        isEmergency,
+        emergencyJustification,
       }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/procurement/requisitions"] });
@@ -119,9 +128,21 @@ export default function ConvertToPODialog({
       return;
     }
 
+    // For emergency purchases, require justification
+    if (requisition?.isEmergency && !emergencyJustification) {
+      toast({
+        title: "Error",
+        description: "Emergency justification is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
     convertMutation.mutate({
       requisitionId: requisition.id,
       supplierId: parseInt(selectedSupplierId),
+      isEmergency: requisition?.isEmergency || false,
+      emergencyJustification: emergencyJustification || undefined,
     });
   };
 
@@ -152,11 +173,22 @@ export default function ConvertToPODialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Convert to Purchase Order
+            {requisition?.isEmergency ? (
+              <>
+                <AlertTriangle className="h-5 w-5 text-orange-600" />
+                Emergency Purchase Order
+              </>
+            ) : (
+              <>
+                <Package className="h-5 w-5" />
+                Convert to Purchase Order
+              </>
+            )}
           </DialogTitle>
           <DialogDescription>
-            Convert requisition {requisition?.requisitionNumber} to a Purchase Order
+            {requisition?.isEmergency 
+              ? `Create emergency PO for requisition ${requisition?.requisitionNumber} (bypasses RFQ requirement)`
+              : `Convert requisition ${requisition?.requisitionNumber} to a Purchase Order`}
           </DialogDescription>
         </DialogHeader>
 
@@ -230,9 +262,28 @@ export default function ConvertToPODialog({
             )}
           </div>
 
-          <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              This will create a draft Purchase Order that can be reviewed and sent to the supplier.
+          {requisition?.isEmergency && (
+            <div className="space-y-2">
+              <Label htmlFor="justification">Emergency Justification *</Label>
+              <Textarea
+                id="justification"
+                value={emergencyJustification}
+                onChange={(e) => setEmergencyJustification(e.target.value)}
+                placeholder="Explain why this purchase cannot go through the normal RFQ process..."
+                rows={3}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Manager approval required. This justification will be logged for audit purposes.
+              </p>
+            </div>
+          )}
+
+          <div className={`p-3 rounded-lg ${requisition?.isEmergency ? 'bg-orange-50 dark:bg-orange-950/20' : 'bg-blue-50 dark:bg-blue-950'}`}>
+            <p className={`text-sm ${requisition?.isEmergency ? 'text-orange-800 dark:text-orange-200' : 'text-blue-800 dark:text-blue-200'}`}>
+              {requisition?.isEmergency 
+                ? "Emergency PO bypasses RFQ requirement. Manager approval and justification are required."
+                : "This will create a draft Purchase Order that can be reviewed and sent to the supplier."}
               All items from the requisition will be included.
             </p>
           </div>
@@ -248,12 +299,13 @@ export default function ConvertToPODialog({
           </Button>
           <Button
             onClick={handleConvert}
-            disabled={!selectedSupplierId || convertMutation.isPending}
+            disabled={!selectedSupplierId || convertMutation.isPending || (requisition?.isEmergency && !emergencyJustification)}
+            className={requisition?.isEmergency ? 'bg-orange-600 hover:bg-orange-700' : ''}
           >
             {convertMutation.isPending && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
-            Convert to PO
+            {requisition?.isEmergency ? 'Create Emergency PO' : 'Convert to PO'}
           </Button>
         </DialogFooter>
       </DialogContent>
