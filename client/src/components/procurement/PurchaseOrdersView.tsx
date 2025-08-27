@@ -45,11 +45,13 @@ import {
   Filter,
   Loader2,
   History,
+  Archive,
 } from "lucide-react";
 import ConvertToPODialog from "./ConvertToPODialog";
 import PurchaseOrderDetailsDialog from "./PurchaseOrderDetailsDialog";
 import PODistributionDialog from "./PODistributionDialog";
 import { POStatusDialog } from "./POStatusDialog";
+import { POArchiveDialog } from "./POArchiveDialog";
 
 const poStatusColors = {
   draft: "secondary",
@@ -72,6 +74,7 @@ export default function PurchaseOrdersView() {
   const [requisitionToCancel, setRequisitionToCancel] = useState<any>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusDialogPO, setStatusDialogPO] = useState<any>(null);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // Fetch approved requisitions ready for conversion
@@ -236,6 +239,14 @@ export default function PurchaseOrdersView() {
                   className="pl-8 w-[200px]"
                 />
               </div>
+              <Button 
+                variant="outline" 
+                onClick={() => setArchiveDialogOpen(true)}
+                className="gap-2"
+              >
+                <Archive className="h-4 w-4" />
+                Archive
+              </Button>
               <Button variant="outline" size="icon">
                 <Filter className="h-4 w-4" />
               </Button>
@@ -452,6 +463,12 @@ export default function PurchaseOrdersView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Archive Dialog */}
+      <POArchiveDialog 
+        open={archiveDialogOpen} 
+        onOpenChange={setArchiveDialogOpen} 
+      />
     </div>
   );
 }

@@ -9381,9 +9381,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all purchase orders
   app.get("/api/procurement/purchase-orders", async (req, res) => {
     try {
-      const { status, supplierId, jobId, includeArchived } = req.query;
+      const { status, supplierId, jobId, includeArchived, showArchived } = req.query;
       const filters: any = {
         includeArchived: includeArchived === 'true',  // Only show archived if explicitly requested
+        showArchived: showArchived === 'true',  // For dedicated archive view
       };
       
       if (status) filters.status = status as string;
@@ -9395,6 +9396,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching purchase orders:", error);
       res.status(500).json({ error: "Failed to fetch purchase orders" });
+    }
+  });
+  
+  // Get archived purchase orders - Fortune 500 best practice
+  app.get("/api/procurement/purchase-orders/archived/list", async (req, res) => {
+    try {
+      const archivedPOs = await storage.getArchivedPurchaseOrders();
+      res.json(archivedPOs);
+    } catch (error) {
+      console.error("Error fetching archived purchase orders:", error);
+      res.status(500).json({ error: "Failed to fetch archived purchase orders" });
     }
   });
 
@@ -9679,12 +9691,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       res.json({ 
-        message: `PO ${updatedPO.poNumber} archived successfully`,
+        message: `PO ${updatedPO.poNumber} archived successfully. Access it from the Archive view.`,
         purchaseOrder: updatedPO 
       });
     } catch (error) {
       console.error('Error archiving PO:', error);
       res.status(500).json({ error: 'Failed to archive purchase order' });
+    }
+  });
+  
+  // Unarchive Purchase Order - Fortune 500 best practice
+  app.post("/api/procurement/purchase-orders/:id/unarchive", async (req, res) => {
+    try {
+      const poId = parseInt(req.params.id);
+      
+      // Get user from auth token
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      
+      if (!token) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const authUser = await AuthService.validateSession(token);
+      
+      if (!authUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Check user permissions
+      const [user] = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
+      if (!user || !['admin', 'manager', 'owner'].includes(user.role || '')) {
+        return res.status(403).json({ error: 'Insufficient permissions to unarchive PO' });
+      }
+      
+      // Unarchive using storage method
+      await storage.unarchivePurchaseOrder(poId);
+      
+      // Get updated PO for response
+      const updatedPO = await storage.getPurchaseOrder(poId);
+      
+      res.json({ 
+        success: true, 
+        message: `PO ${updatedPO?.poNumber} has been restored from archive` 
+      });
+    } catch (error) {
+      console.error('Error unarchiving PO:', error);
+      res.status(500).json({ error: 'Failed to unarchive purchase order' });
     }
   });
 

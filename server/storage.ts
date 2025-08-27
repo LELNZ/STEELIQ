@@ -234,7 +234,7 @@ export interface IStorage {
   rejectRequisition(requisitionId: number, approverId: number, comments: string): Promise<void>;
   
   // Procurement - Purchase Orders
-  getPurchaseOrders(filters?: { status?: string; supplierId?: number; jobId?: number; includeArchived?: boolean }): Promise<PurchaseOrder[]>;
+  getPurchaseOrders(filters?: { status?: string; supplierId?: number; jobId?: number; includeArchived?: boolean; showArchived?: boolean }): Promise<PurchaseOrder[]>;
   getPurchaseOrder(id: number): Promise<PurchaseOrder | undefined>;
   createPurchaseOrder(order: InsertPurchaseOrder): Promise<PurchaseOrder>;
   updatePurchaseOrder(id: number, order: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder>;
@@ -246,6 +246,11 @@ export interface IStorage {
   createPurchaseOrderItem(item: InsertPurchaseOrderItem): Promise<PurchaseOrderItem>;
   updatePurchaseOrderItem(id: number, item: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem>;
   deletePurchaseOrderItem(id: number): Promise<void>;
+  
+  // Purchase Order Archive Management
+  archivePurchaseOrder(poId: number, archiverId: number, reason?: string): Promise<void>;
+  unarchivePurchaseOrder(poId: number): Promise<void>;
+  getArchivedPurchaseOrders(): Promise<PurchaseOrder[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1707,7 +1712,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Purchase Orders Implementation
-  async getPurchaseOrders(filters?: { status?: string; supplierId?: number; jobId?: number; includeArchived?: boolean }): Promise<PurchaseOrder[]> {
+  async getPurchaseOrders(filters?: { status?: string; supplierId?: number; jobId?: number; includeArchived?: boolean; showArchived?: boolean }): Promise<PurchaseOrder[]> {
     let query = db.select().from(purchaseOrders);
     
     const conditions = [];
@@ -1718,13 +1723,18 @@ export class DatabaseStorage implements IStorage {
       if (filters.supplierId) conditions.push(eq(purchaseOrders.supplierId, filters.supplierId));
       if (filters.jobId) conditions.push(eq(purchaseOrders.jobId, filters.jobId));
       
-      // For now, we'll filter out cancelled and returned_to_requisition statuses unless explicitly requested
-      if (!filters.includeArchived) {
-        conditions.push(not(inArray(purchaseOrders.status, ['cancelled', 'returned_to_requisition'])));
+      // Only show archived if explicitly requested
+      if (filters.showArchived) {
+        conditions.push(eq(purchaseOrders.isArchived, true));
+      } else if (!filters.includeArchived) {
+        // Default: hide archived and returned_to_requisition status
+        conditions.push(eq(purchaseOrders.isArchived, false));
+        conditions.push(not(eq(purchaseOrders.status, 'returned_to_requisition')));
       }
     } else {
-      // Default: hide cancelled and returned statuses
-      conditions.push(not(inArray(purchaseOrders.status, ['cancelled', 'returned_to_requisition'])));
+      // Default: hide archived and returned_to_requisition
+      conditions.push(eq(purchaseOrders.isArchived, false));
+      conditions.push(not(eq(purchaseOrders.status, 'returned_to_requisition')));
     }
     
     if (conditions.length > 0) {
@@ -1866,6 +1876,37 @@ export class DatabaseStorage implements IStorage {
 
   async deletePurchaseOrderItem(id: number): Promise<void> {
     await db.delete(purchaseOrderItems).where(eq(purchaseOrderItems.id, id));
+  }
+  
+  // Purchase Order Archive Management
+  async archivePurchaseOrder(poId: number, archiverId: number, reason?: string): Promise<void> {
+    await db.update(purchaseOrders)
+      .set({
+        isArchived: true,
+        archivedAt: new Date(),
+        archivedBy: archiverId,
+        archivedReason: reason,
+        updatedAt: new Date(),
+      })
+      .where(eq(purchaseOrders.id, poId));
+  }
+
+  async unarchivePurchaseOrder(poId: number): Promise<void> {
+    await db.update(purchaseOrders)
+      .set({
+        isArchived: false,
+        archivedAt: null,
+        archivedBy: null,
+        archivedReason: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(purchaseOrders.id, poId));
+  }
+
+  async getArchivedPurchaseOrders(): Promise<PurchaseOrder[]> {
+    return await db.select().from(purchaseOrders)
+      .where(eq(purchaseOrders.isArchived, true))
+      .orderBy(desc(purchaseOrders.archivedAt));
   }
 }
 
