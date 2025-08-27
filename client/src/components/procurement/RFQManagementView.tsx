@@ -17,6 +17,12 @@ import {
   Users,
   Calendar,
   DollarSign,
+  Building,
+  Mail,
+  Phone,
+  User,
+  Check,
+  History,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -39,6 +45,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -66,6 +73,10 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
   const [selectedRequisition, setSelectedRequisition] = useState<any>(null);
   const [sendRfqDialog, setSendRfqDialog] = useState(false);
   const [selectedRfq, setSelectedRfq] = useState<any>(null);
+  const [selectedSuppliers, setSelectedSuppliers] = useState<number[]>([]);
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
+  const [showNewSupplierForm, setShowNewSupplierForm] = useState(false);
+  const [newSupplier, setNewSupplier] = useState({ name: "", email: "", phone: "", company: "" });
   const { toast } = useToast();
   
   // Handle requisition passed from parent
@@ -126,6 +137,7 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
       queryClient.invalidateQueries({ queryKey: ["/api/procurement/rfqs"] });
       setSendRfqDialog(false);
       setSelectedRfq(null);
+      setSelectedSuppliers([]);
       toast({
         title: "Success",
         description: "RFQ sent to suppliers",
@@ -135,6 +147,28 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
       toast({
         title: "Error",
         description: error.message || "Failed to send RFQ",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create supplier mutation
+  const createSupplierMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("/api/suppliers", "POST", data),
+    onSuccess: (newSupplierData) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      setSelectedSuppliers(prev => [...prev, newSupplierData.id]);
+      setShowNewSupplierForm(false);
+      setNewSupplier({ name: "", email: "", phone: "", company: "" });
+      toast({
+        title: "Success",
+        description: `${newSupplierData.company} has been added and selected`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create supplier",
         variant: "destructive",
       });
     },
@@ -365,44 +399,279 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
         </DialogContent>
       </Dialog>
 
-      {/* Send RFQ Dialog */}
-      <Dialog open={sendRfqDialog} onOpenChange={setSendRfqDialog}>
-        <DialogContent>
+      {/* Enhanced Send RFQ Dialog */}
+      <Dialog open={sendRfqDialog} onOpenChange={(open) => {
+        setSendRfqDialog(open);
+        if (!open) {
+          setSelectedSuppliers([]);
+          setSupplierSearchTerm("");
+          setShowNewSupplierForm(false);
+          setNewSupplier({ name: "", email: "", phone: "", company: "" });
+        }
+      }}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Send RFQ to Suppliers</DialogTitle>
             <DialogDescription>
               Select suppliers to send RFQ: {selectedRfq?.rfqNumber}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 max-h-[300px] overflow-y-auto">
-            {suppliers.length === 0 ? (
-              <p className="text-muted-foreground">No suppliers available</p>
-            ) : (
-              suppliers.slice(0, 5).map((supplier: any) => (
-                <div key={supplier.id} className="flex items-center space-x-2 p-2 border rounded">
-                  <input type="checkbox" id={`supplier-${supplier.id}`} className="h-4 w-4" />
-                  <Label htmlFor={`supplier-${supplier.id}`} className="flex-1 cursor-pointer">
-                    <div>{supplier.name}</div>
-                    <div className="text-xs text-muted-foreground">{supplier.email}</div>
-                  </Label>
-                </div>
-              ))
+          
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search suppliers by name, email, or company..."
+                value={supplierSearchTerm}
+                onChange={(e) => setSupplierSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Selected Suppliers Count */}
+            {selectedSuppliers.length > 0 && (
+              <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                <span className="text-sm font-medium">
+                  {selectedSuppliers.length} supplier{selectedSuppliers.length !== 1 ? 's' : ''} selected
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedSuppliers([])}
+                  className="text-xs"
+                >
+                  Clear all
+                </Button>
+              </div>
             )}
+
+            {/* Recent Suppliers Section */}
+            {!supplierSearchTerm && !showNewSupplierForm && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <History className="h-3.5 w-3.5" />
+                  Recent Suppliers
+                </div>
+                <div className="space-y-1">
+                  {suppliers.slice(0, 3).map((supplier: any) => (
+                    <div
+                      key={supplier.id}
+                      className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                        selectedSuppliers.includes(supplier.id)
+                          ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-300 dark:border-blue-700'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-900'
+                      }`}
+                      onClick={() => {
+                        setSelectedSuppliers(prev =>
+                          prev.includes(supplier.id)
+                            ? prev.filter(id => id !== supplier.id)
+                            : [...prev, supplier.id]
+                        );
+                      }}
+                    >
+                      <div className="flex-shrink-0">
+                        {selectedSuppliers.includes(supplier.id) ? (
+                          <div className="h-5 w-5 rounded bg-blue-600 flex items-center justify-center">
+                            <Check className="h-3 w-3 text-white" />
+                          </div>
+                        ) : (
+                          <div className="h-5 w-5 rounded border-2 border-gray-300 dark:border-gray-600" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm">{supplier.name}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {supplier.company} • {supplier.email}
+                        </div>
+                      </div>
+                      {supplier.categories && (
+                        <Badge variant="secondary" className="text-xs">
+                          {supplier.categories}
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Main Supplier List */}
+            <div className="space-y-2">
+              {supplierSearchTerm && (
+                <div className="text-sm font-medium text-muted-foreground">
+                  Search Results
+                </div>
+              )}
+              
+              {/* Add New Supplier Option */}
+              {!showNewSupplierForm && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  onClick={() => setShowNewSupplierForm(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add New Supplier
+                </Button>
+              )}
+
+              {/* New Supplier Form */}
+              {showNewSupplierForm && (
+                <div className="p-3 border rounded-lg space-y-3 bg-gray-50 dark:bg-gray-900">
+                  <div className="font-medium text-sm flex items-center justify-between">
+                    Add New Supplier
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setShowNewSupplierForm(false);
+                        setNewSupplier({ name: "", email: "", phone: "", company: "" });
+                      }}
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      placeholder="Contact Name *"
+                      value={newSupplier.name}
+                      onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
+                    />
+                    <Input
+                      placeholder="Company *"
+                      value={newSupplier.company}
+                      onChange={(e) => setNewSupplier({ ...newSupplier, company: e.target.value })}
+                    />
+                    <Input
+                      placeholder="Email *"
+                      type="email"
+                      value={newSupplier.email}
+                      onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
+                    />
+                    <Input
+                      placeholder="Phone"
+                      value={newSupplier.phone}
+                      onChange={(e) => setNewSupplier({ ...newSupplier, phone: e.target.value })}
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    disabled={!newSupplier.name || !newSupplier.company || !newSupplier.email || createSupplierMutation.isPending}
+                    onClick={() => {
+                      createSupplierMutation.mutate({
+                        name: newSupplier.name,
+                        company: newSupplier.company,
+                        email: newSupplier.email,
+                        phone: newSupplier.phone,
+                        contactName: newSupplier.name,
+                        categories: "materials", // Default category
+                        isActive: true,
+                      });
+                    }}
+                  >
+                    {createSupplierMutation.isPending ? "Adding..." : "Add Supplier"}
+                  </Button>
+                </div>
+              )}
+
+              {/* Filtered Supplier List */}
+              <div className="max-h-[300px] overflow-y-auto space-y-1">
+                {suppliers
+                  .filter((supplier: any) => {
+                    if (!supplierSearchTerm) return !showNewSupplierForm;
+                    const search = supplierSearchTerm.toLowerCase();
+                    return (
+                      supplier.name?.toLowerCase().includes(search) ||
+                      supplier.contactName?.toLowerCase().includes(search) ||
+                      supplier.email?.toLowerCase().includes(search) ||
+                      supplier.company?.toLowerCase().includes(search)
+                    );
+                  })
+                  .map((supplier: any) => (
+                    <div
+                      key={supplier.id}
+                      className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                        selectedSuppliers.includes(supplier.id)
+                          ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-300 dark:border-blue-700'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-900'
+                      }`}
+                      onClick={() => {
+                        setSelectedSuppliers(prev =>
+                          prev.includes(supplier.id)
+                            ? prev.filter(id => id !== supplier.id)
+                            : [...prev, supplier.id]
+                        );
+                      }}
+                    >
+                      <div className="flex-shrink-0">
+                        {selectedSuppliers.includes(supplier.id) ? (
+                          <div className="h-5 w-5 rounded bg-blue-600 flex items-center justify-center">
+                            <Check className="h-3 w-3 text-white" />
+                          </div>
+                        ) : (
+                          <div className="h-5 w-5 rounded border-2 border-gray-300 dark:border-gray-600" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Building className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-medium text-sm">{supplier.company}</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <div className="flex items-center gap-1">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">{supplier.name || supplier.contactName}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground truncate">{supplier.email}</span>
+                          </div>
+                          {supplier.phone && (
+                            <div className="flex items-center gap-1">
+                              <Phone className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">{supplier.phone}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {supplier.categories && (
+                        <Badge variant="outline" className="text-xs">
+                          {supplier.categories}
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSendRfqDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                sendRfqMutation.mutate({
-                  rfqId: selectedRfq?.id,
-                  supplierIds: [1, 2, 3], // Demo: send to first 3 suppliers
-                });
-              }}
-            >
-              Send to Selected Suppliers
-            </Button>
+
+          <DialogFooter className="flex items-center justify-between">
+            <div className="flex-1">
+              {selectedSuppliers.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  RFQ will be sent to {selectedSuppliers.length} supplier{selectedSuppliers.length !== 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setSendRfqDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                disabled={selectedSuppliers.length === 0}
+                onClick={() => {
+                  sendRfqMutation.mutate({
+                    rfqId: selectedRfq?.id,
+                    supplierIds: selectedSuppliers,
+                  });
+                }}
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Send to {selectedSuppliers.length || 'Selected'} Suppliers
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
