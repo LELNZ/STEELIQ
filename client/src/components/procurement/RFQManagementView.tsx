@@ -59,6 +59,7 @@ const rfqStatusColors = {
   sent: "warning",
   evaluating: "warning",
   closed: "default",
+  completed: "success",
   cancelled: "destructive",
 } as const;
 
@@ -93,14 +94,9 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
     queryKey: ["/api/procurement/rfqs"],
   });
 
-  // Fetch approved requisitions
+  // Fetch all requisitions to see full workflow
   const { data: requisitions = [] } = useQuery({
-    queryKey: ["/api/procurement/requisitions", "approved"],
-    queryFn: async () => {
-      const response = await fetch("/api/procurement/requisitions?status=approved");
-      if (!response.ok) throw new Error("Failed to fetch requisitions");
-      return response.json();
-    },
+    queryKey: ["/api/procurement/requisitions"],
   });
 
   // Fetch suppliers
@@ -280,7 +276,7 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                       <TableCell>{rfq.category}</TableCell>
                       <TableCell>
                         <Badge variant={rfqStatusColors[rfq.status as keyof typeof rfqStatusColors]}>
-                          {rfq.status}
+                          {rfq.status === 'completed' ? 'PO Created' : rfq.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -317,6 +313,18 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                             >
                               Compare
                             </Button>
+                          )}
+                          {rfq.status === 'closed' && (
+                            <Badge variant="success" className="text-xs">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Winner Selected
+                            </Badge>
+                          )}
+                          {rfq.status === 'completed' && (
+                            <Badge variant="default" className="text-xs">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              PO Created
+                            </Badge>
                           )}
                         </div>
                       </TableCell>

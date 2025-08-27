@@ -2083,6 +2083,24 @@ export class DatabaseStorage implements IStorage {
       createdBy: userId,
     });
     
+    // Update the requisition status to 'converted' so it shows in the right view
+    if (rfq.requisitionId) {
+      await db.update(purchaseRequisitions)
+        .set({ 
+          status: 'converted',
+          updatedAt: new Date() 
+        })
+        .where(eq(purchaseRequisitions.id, rfq.requisitionId));
+    }
+    
+    // Update the RFQ status to 'completed' so it remains visible but marked as done
+    await db.update(rfqRequests)
+      .set({ 
+        status: 'completed',
+        updatedAt: new Date() 
+      })
+      .where(eq(rfqRequests.id, rfq.id));
+    
     return purchaseOrder;
   }
 }
