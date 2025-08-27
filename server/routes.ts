@@ -10692,12 +10692,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { requisitionId } = req.body;
       
       // Get authenticated user
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
       let user;
-      try {
-        user = await AuthService.getAuthenticatedUser(req);
-      } catch (authError) {
-        // For testing, use default user
-        user = await storage.getUser(1);
+      
+      if (token) {
+        user = await AuthService.validateSession(token);
+      }
+      
+      if (!user) {
+        // For testing/development, use default user
+        user = await storage.getUser(9); // Adam Green's ID
       }
       
       if (!user) {
@@ -10856,11 +10860,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { rfqResponseId } = req.body;
       
       // Get authenticated user
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
       let user;
-      try {
-        user = await AuthService.getAuthenticatedUser(req);
-      } catch (authError) {
-        user = await storage.getUser(1);
+      
+      if (token) {
+        user = await AuthService.validateSession(token);
+      }
+      
+      if (!user) {
+        // For testing/development, use default user
+        user = await storage.getUser(9); // Adam Green's ID
       }
       
       if (!user) {
