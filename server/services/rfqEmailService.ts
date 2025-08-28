@@ -14,20 +14,13 @@ if (process.env.SENDGRID_API_KEY) {
 }
 
 export class RFQEmailService {
-  // IMPORTANT: Email Configuration
-  // Option 1 (Recommended): Use a verified SendGrid sender
-  // - Go to SendGrid > Settings > Sender Authentication > Single Sender Verification
-  // - Verify an email address you control (e.g., your Gmail)
-  // - Use that email here temporarily
+  // Email Configuration for RFQs
+  // RFQs are sales-related, so they come from and reply to sales@
+  // Domain authentication should be set up for both sales@ and accounts@
   
-  // Option 2 (Production): Authenticate your domain
-  // - Go to SendGrid > Settings > Sender Authentication > Domain Authentication
-  // - Add the DNS records to your domain (via Google Domains/Cloudflare)
-  // - Then you can use accounts@lateralengineering.co.nz
-  
-  private fromEmail = process.env.SENDGRID_FROM_EMAIL || 'accounts@lateralengineering.co.nz';
-  private fromName = 'Lateral Engineering Procurement';
-  private replyToEmail = 'accounts@lateralengineering.co.nz';
+  private fromEmail = process.env.SENDGRID_RFQ_FROM_EMAIL || 'sales@lateralengineering.co.nz';
+  private fromName = 'Lateral Engineering Sales';
+  private replyToEmail = process.env.SENDGRID_RFQ_REPLY_TO || 'sales@lateralengineering.co.nz';
   private companyName = 'Lateral Engineering Limited';
 
   async sendRFQToSuppliers(
@@ -239,7 +232,7 @@ export class RFQEmailService {
           <div class="footer">
             <p>This is an automated message from ${this.companyName}</p>
             <p>Please do not reply to this email. Use the portal link to submit your quote.</p>
-            <p>For any queries, please contact: ${this.replyToEmail}</p>
+            <p>For any queries regarding this RFQ, please contact: ${this.replyToEmail}</p>
           </div>
         </div>
       </body>
@@ -396,7 +389,7 @@ export class RFQEmailService {
                 <p>Thank you for your competitive quote and prompt response.</p>
                 <p>Best regards,<br>${this.companyName}</p>
                 <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-                  For any queries, please contact: ${this.replyToEmail}
+                  For any queries regarding this quote selection, please contact: ${this.replyToEmail}
                 </p>
               </div>
             </div>

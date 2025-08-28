@@ -153,12 +153,13 @@ export class EmailService {
       }
 
       // Send email with attachments
+      // POs are accounting-related, so they come from and reply to accounts@
       return await this.sendEmail({
         to: params.to,
         cc: params.cc,
         bcc: params.bcc,
-        from: 'accounts@lateralengineering.co.nz',
-        replyTo: 'accounts@lateralengineering.co.nz',
+        from: process.env.SENDGRID_PO_FROM_EMAIL || 'accounts@lateralengineering.co.nz',
+        replyTo: process.env.SENDGRID_PO_REPLY_TO || 'accounts@lateralengineering.co.nz',
         subject: params.subject,
         html: htmlBody,
         attachments
