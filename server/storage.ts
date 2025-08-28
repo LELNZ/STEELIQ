@@ -4,7 +4,7 @@ import {
   suppliers, materialSuppliers, supplierPriceHistory, supplierContacts,
   clients, clientContacts, locations, savedFilters,
   estimationProjects, estimationData, estimationMaterials, estimationLabor, estimationEquipment, estimationConsumables,
-  teamMembers, archivedEmployees, employeeAuditLog, auditLog,
+  teamMembers, archivedEmployees, employeeAuditLog, auditLog, systemAuditLog,
   purchaseRequisitions, requisitionItems, approvalRules, approvalHistory, rfqRequests, rfqResponses, goodsReceipts, goodsReceiptItems,
   purchaseOrders, purchaseOrderItems, poTemplates,
   type User, type InsertUser, type Material, type InsertMaterial,
@@ -2137,7 +2137,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Create procurement audit log entry
+  // Create procurement audit log entry - writes to both audit_log and system_audit_log
   async createProcurementAuditLog(params: {
     userId: number;
     action: string;
@@ -2147,13 +2147,70 @@ export class DatabaseStorage implements IStorage {
     oldValues?: any;
     newValues?: any;
   }): Promise<void> {
-    // Use raw SQL to map to actual database column names
+    // Write to the legacy audit_log table for backward compatibility
     await db.execute(
       sql`INSERT INTO audit_log (user_id, action, resource_type, resource_id, changes, ip_address, user_agent, created_at)
           VALUES (${params.userId}, ${params.action}, ${params.entityType}, ${params.entityId}, 
                   ${JSON.stringify({ old: params.oldValues, new: params.newValues || params.details })}, 
                   NULL, NULL, NOW())`
     );
+    
+    // Also write to the comprehensive system_audit_log table for Audit Center
+    const [user] = await db.select().from(users).where(eq(users.id, params.userId)).limit(1);
+    
+    // Map procurement actions to event subtypes
+    const eventSubtypeMapping: Record<string, string> = {
+      'RFQ_CREATED': 'rfq_created',
+      'RFQ_SENT': 'rfq_sent',
+      'QUOTE_SUBMITTED': 'quote_submitted',
+      'QUOTE_EVALUATED': 'quote_evaluated',
+      'QUOTE_WINNER_SELECTED': 'winner_selected',
+      'QUOTE_WINNER_SELECTED_WITH_OVERRIDE': 'winner_selected_override',
+      'REJECTION_NOTIFICATION_SENT': 'rejection_sent',
+      'ACCEPTANCE_NOTIFICATION_SENT': 'acceptance_sent',
+      'PO_CREATED': 'po_created',
+      'PO_APPROVED': 'po_approved',
+      'PO_SENT': 'po_sent',
+      'REQUISITION_CREATED': 'requisition_created',
+      'REQUISITION_APPROVED': 'requisition_approved',
+      'REQUISITION_REJECTED': 'requisition_rejected',
+      'GOODS_RECEIVED': 'goods_received',
+      'INVOICE_PROCESSED': 'invoice_processed'
+    };
+    
+    // Determine event type based on action
+    let eventType = 'create';
+    if (params.action.includes('UPDATE') || params.action.includes('EDIT')) eventType = 'update';
+    if (params.action.includes('DELETE') || params.action.includes('REJECT')) eventType = 'delete';
+    if (params.action.includes('VIEW') || params.action.includes('EXPORT')) eventType = 'view';
+    if (params.action.includes('SENT') || params.action.includes('NOTIFICATION')) eventType = 'notification';
+    if (params.action.includes('SELECTED') || params.action.includes('EVALUATED')) eventType = 'decision';
+    
+    // Determine severity
+    let severity = 'info';
+    if (params.action.includes('REJECT') || params.action.includes('OVERRIDE')) severity = 'warning';
+    if (params.action.includes('DELETE') || params.action.includes('ERROR')) severity = 'error';
+    
+    await db.insert(systemAuditLog).values({
+      eventCategory: 'procurement',
+      eventType,
+      eventSubtype: eventSubtypeMapping[params.action] || params.action.toLowerCase(),
+      severity,
+      entityType: params.entityType.toLowerCase(),
+      entityId: params.entityId,
+      entityDescription: `${params.entityType} #${params.entityId}`,
+      userId: params.userId,
+      userName: user?.name || 'Unknown User',
+      userRole: user?.role || 'user',
+      action: params.action,
+      previousState: params.oldValues || null,
+      newState: params.newValues || params.details || null,
+      changeSummary: params.details || null,
+      financialImpact: params.details?.quoteAmount || params.details?.totalAmount || null,
+      source: 'procurement_module',
+      requiresReview: severity !== 'info',
+      createdAt: new Date()
+    });
   }
 
   async createRfqResponse(response: InsertRfqResponse): Promise<RfqResponse> {
