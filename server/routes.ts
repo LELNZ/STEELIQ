@@ -10807,7 +10807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get all invited suppliers
       const invitedSupplierIds = rfq.invitedSuppliers || [];
-      const suppliers = await storage.getAllSuppliers();
+      const suppliers = await storage.getSuppliers();
       
       // Get responses to know who hasn't responded
       const responses = await storage.getRfqResponses(rfqId);

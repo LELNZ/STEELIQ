@@ -1986,8 +1986,8 @@ export class DatabaseStorage implements IStorage {
     
     const latestRfq = await db.select({ rfqNumber: rfqRequests.rfqNumber })
       .from(rfqRequests)
-      .where(sql`rfq_number LIKE ${`RFQ-${year}${month}-%`}`)
-      .orderBy(sql`rfq_number DESC`)
+      .where(sql`"rfqNumber" LIKE ${`RFQ-${year}${month}-%`}`)
+      .orderBy(desc(rfqRequests.rfqNumber))
       .limit(1);
     
     let nextNumber = 1;

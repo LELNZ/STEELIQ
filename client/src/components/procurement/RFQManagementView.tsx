@@ -80,6 +80,7 @@ const rfqStatusColors = {
   closed: "default",
   completed: "success",
   cancelled: "destructive",
+  archived: "outline",
 } as const;
 
 interface RFQManagementViewProps {
@@ -103,6 +104,7 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
   const [selectedRfqId, setSelectedRfqId] = useState<number | null>(null);
   const [comparisonDialog, setComparisonDialog] = useState(false);
   const [comparisonRfqId, setComparisonRfqId] = useState<number | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const { toast } = useToast();
   
   // Handle requisition passed from parent
@@ -277,10 +279,16 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
     },
   });
 
-  const filteredRfqs = rfqs.filter((rfq: any) =>
-    rfq.rfqNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rfq.title?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredRfqs = rfqs.filter((rfq: any) => {
+    const matchesSearch = 
+      rfq.rfqNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rfq.title?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Hide archived unless explicitly shown
+    const matchesArchiveFilter = showArchived ? true : rfq.status !== 'archived';
+    
+    return matchesSearch && matchesArchiveFilter;
+  });
 
   const approvedRequisitions = requisitions.filter((r: any) => 
     r.status === 'approved' && !rfqs.some((rfq: any) => rfq.requisitionId === r.id)
@@ -298,6 +306,15 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowArchived(!showArchived)}
+                className="h-9"
+              >
+                <Archive className="h-4 w-4 mr-2" />
+                {showArchived ? 'Hide' : 'Show'} Archived
+              </Button>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -534,20 +551,51 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                               </DropdownMenuItem>
                               
                               {/* Cancel RFQ - Only if not completed */}
-                              {rfq.status !== 'completed' && rfq.status !== 'cancelled' && (
+                              {rfq.status !== 'completed' && rfq.status !== 'cancelled' && rfq.status !== 'archived' && (
                                 <>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     onClick={() => {
-                                      updateStatusMutation.mutate({ 
-                                        rfqId: rfq.id, 
-                                        status: 'cancelled' 
-                                      });
+                                      if (window.confirm(`Are you sure you want to cancel RFQ ${rfq.rfqNumber}? You can revert this action later.`)) {
+                                        updateStatusMutation.mutate({ 
+                                          rfqId: rfq.id, 
+                                          status: 'cancelled' 
+                                        });
+                                      }
                                     }}
                                     className="text-red-600 dark:text-red-400"
                                   >
                                     <X className="h-3 w-3 mr-2" />
                                     Cancel RFQ
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              
+                              {/* Revert Cancelled RFQ */}
+                              {rfq.status === 'cancelled' && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      updateStatusMutation.mutate({ 
+                                        rfqId: rfq.id, 
+                                        status: 'draft' 
+                                      });
+                                    }}
+                                    className="text-green-600 dark:text-green-400"
+                                  >
+                                    <RefreshCw className="h-3 w-3 mr-2" />
+                                    Revert to Draft
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      updateStatusMutation.mutate({ 
+                                        rfqId: rfq.id, 
+                                        status: 'archived' 
+                                      });
+                                    }}
+                                  >
+                                    <Archive className="h-3 w-3 mr-2" />
+                                    Archive RFQ
                                   </DropdownMenuItem>
                                 </>
                               )}
