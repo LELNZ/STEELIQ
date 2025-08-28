@@ -14,7 +14,20 @@ if (process.env.SENDGRID_API_KEY) {
 }
 
 export class RFQEmailService {
-  private fromEmail = 'accounts@lateralengineering.co.nz';
+  // IMPORTANT: Email Configuration
+  // Option 1 (Recommended): Use a verified SendGrid sender
+  // - Go to SendGrid > Settings > Sender Authentication > Single Sender Verification
+  // - Verify an email address you control (e.g., your Gmail)
+  // - Use that email here temporarily
+  
+  // Option 2 (Production): Authenticate your domain
+  // - Go to SendGrid > Settings > Sender Authentication > Domain Authentication
+  // - Add the DNS records to your domain (via Google Domains/Cloudflare)
+  // - Then you can use accounts@lateralengineering.co.nz
+  
+  private fromEmail = process.env.SENDGRID_FROM_EMAIL || 'accounts@lateralengineering.co.nz';
+  private fromName = 'Lateral Engineering Procurement';
+  private replyToEmail = 'accounts@lateralengineering.co.nz';
   private companyName = 'Lateral Engineering Limited';
 
   async sendRFQToSuppliers(
@@ -59,13 +72,29 @@ export class RFQEmailService {
 
           const msg = {
             to: supplier.email,
-            from: this.fromEmail,
+            from: {
+              email: this.fromEmail,
+              name: this.fromName
+            },
+            replyTo: this.replyToEmail,
             subject: `RFQ ${rfq.rfqNumber} - ${rfq.title}`,
             html: emailContent,
+            // Add tracking settings to improve deliverability
+            trackingSettings: {
+              clickTracking: { enable: false },
+              openTracking: { enable: false },
+              subscriptionTracking: { enable: false }
+            },
+            // Add mail settings for better deliverability
+            mailSettings: {
+              bypassListManagement: { enable: true },
+              sandboxMode: { enable: false }
+            }
           };
 
           if (process.env.SENDGRID_API_KEY) {
             console.log(`Sending RFQ ${rfq.rfqNumber} to ${supplier.name} at ${supplier.email}`);
+            console.log(`FROM: ${this.fromEmail}, REPLY-TO: ${this.replyToEmail}`);
             const response = await sgMail.send(msg);
             console.log(`Email sent successfully to ${supplier.email}`, response[0].statusCode);
             results.sent++;
@@ -124,6 +153,7 @@ export class RFQEmailService {
           .items-table th, .items-table td { padding: 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
           .items-table th { background: #f3f4f6; font-weight: bold; }
           .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }
+          .important-note { background: #dbeafe; border: 1px solid #3b82f6; padding: 15px; border-radius: 5px; margin: 20px 0; }
         </style>
       </head>
       <body>
@@ -181,6 +211,11 @@ export class RFQEmailService {
               ${rfq.specialRequirements ? `<li><strong>Special Requirements:</strong> ${rfq.specialRequirements}</li>` : ''}
             </ul>
 
+            <div class="important-note">
+              <strong>📧 Email Deliverability Notice:</strong><br>
+              If you're having trouble with our emails going to spam, please add <strong>${this.fromEmail}</strong> to your safe senders list.
+            </div>
+
             <div style="text-align: center; margin: 30px 0;">
               <a href="${portalUrl}" class="button">Submit Your Quote</a>
               <p style="color: #6b7280; font-size: 14px;">
@@ -204,6 +239,7 @@ export class RFQEmailService {
           <div class="footer">
             <p>This is an automated message from ${this.companyName}</p>
             <p>Please do not reply to this email. Use the portal link to submit your quote.</p>
+            <p>For any queries, please contact: ${this.replyToEmail}</p>
           </div>
         </div>
       </body>
@@ -235,15 +271,24 @@ export class RFQEmailService {
       if (pendingSuppliers.length === 0) return;
 
       // Send reminders
-      const suppliers = await db.select().from(suppliers)
+      const suppliersList = await db.select().from(suppliers)
         .where(inArray(suppliers.id, pendingSuppliers));
 
-      for (const supplier of suppliers) {
+      for (const supplier of suppliersList) {
         const msg = {
           to: supplier.email,
-          from: this.fromEmail,
+          from: {
+            email: this.fromEmail,
+            name: this.fromName
+          },
+          replyTo: this.replyToEmail,
           subject: `Reminder: RFQ ${rfq.rfqNumber} - Response Due Soon`,
           html: this.generateReminderEmail(rfq, supplier, daysUntilDeadline),
+          trackingSettings: {
+            clickTracking: { enable: false },
+            openTracking: { enable: false },
+            subscriptionTracking: { enable: false }
+          }
         };
 
         if (process.env.SENDGRID_API_KEY) {
@@ -322,14 +367,47 @@ export class RFQEmailService {
 
       const msg = {
         to: winner.email,
-        from: this.fromEmail,
+        from: {
+          email: this.fromEmail,
+          name: this.fromName
+        },
+        replyTo: this.replyToEmail,
         subject: `Congratulations! Your Quote for RFQ ${rfq.rfqNumber} Has Been Selected`,
         html: `
-          <h2>Congratulations!</h2>
-          <p>Your quote for RFQ ${rfq.rfqNumber} - ${rfq.title} has been selected.</p>
-          <p>We will be issuing a Purchase Order shortly with further details.</p>
-          <p>Thank you for your competitive quote and prompt response.</p>
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #10b981; color: white; padding: 30px; border-radius: 10px 10px 0 0; }
+              .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>🎉 Congratulations!</h1>
+              </div>
+              <div class="content">
+                <p>Dear ${winner.name},</p>
+                <p>Your quote for RFQ ${rfq.rfqNumber} - ${rfq.title} has been selected.</p>
+                <p>We will be issuing a Purchase Order shortly with further details.</p>
+                <p>Thank you for your competitive quote and prompt response.</p>
+                <p>Best regards,<br>${this.companyName}</p>
+                <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
+                  For any queries, please contact: ${this.replyToEmail}
+                </p>
+              </div>
+            </div>
+          </body>
+          </html>
         `,
+        trackingSettings: {
+          clickTracking: { enable: false },
+          openTracking: { enable: false },
+          subscriptionTracking: { enable: false }
+        }
       };
 
       if (process.env.SENDGRID_API_KEY) {
