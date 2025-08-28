@@ -70,6 +70,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import { RFQDetailsDialog } from "./RFQDetailsDialog";
 
 const rfqStatusColors = {
   draft: "secondary",
@@ -97,6 +98,8 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
   const [newSupplier, setNewSupplier] = useState({ name: "", email: "", phone: "", company: "" });
   const [additionalSuppliersDialog, setAdditionalSuppliersDialog] = useState(false);
   const [rfqForAdditionalSuppliers, setRfqForAdditionalSuppliers] = useState<any>(null);
+  const [detailsDialog, setDetailsDialog] = useState(false);
+  const [selectedRfqId, setSelectedRfqId] = useState<number | null>(null);
   const { toast } = useToast();
   
   // Handle requisition passed from parent
@@ -403,10 +406,8 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                               {/* View Details */}
                               <DropdownMenuItem
                                 onClick={() => {
-                                  toast({
-                                    title: "View RFQ Details",
-                                    description: `Opening details for ${rfq.rfqNumber}`,
-                                  });
+                                  setSelectedRfqId(rfq.id);
+                                  setDetailsDialog(true);
                                 }}
                               >
                                 <Eye className="h-3 w-3 mr-2" />
@@ -1091,6 +1092,15 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* RFQ Details Dialog */}
+      {selectedRfqId && (
+        <RFQDetailsDialog
+          open={detailsDialog}
+          onOpenChange={setDetailsDialog}
+          rfqId={selectedRfqId}
+        />
+      )}
     </>
   );
 }
