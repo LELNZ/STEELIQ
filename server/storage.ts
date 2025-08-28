@@ -2147,15 +2147,13 @@ export class DatabaseStorage implements IStorage {
     oldValues?: any;
     newValues?: any;
   }): Promise<void> {
-    await db.insert(auditLog).values({
-      userId: params.userId,
-      action: params.action,
-      entityType: params.entityType,
-      entityId: params.entityId,
-      oldValues: params.oldValues || null,
-      newValues: params.newValues || params.details || null,
-      timestamp: new Date()
-    });
+    // Use raw SQL to map to actual database column names
+    await db.execute(
+      sql`INSERT INTO audit_log (user_id, action, resource_type, resource_id, changes, ip_address, user_agent, created_at)
+          VALUES (${params.userId}, ${params.action}, ${params.entityType}, ${params.entityId}, 
+                  ${JSON.stringify({ old: params.oldValues, new: params.newValues || params.details })}, 
+                  NULL, NULL, NOW())`
+    );
   }
 
   async createRfqResponse(response: InsertRfqResponse): Promise<RfqResponse> {

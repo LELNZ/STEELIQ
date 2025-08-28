@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Package } from "lucide-react";
+import { FileText, Package, Mail } from "lucide-react";
 import QuoteTemplates from "./quote-templates";
 import POTemplateSettings from "@/components/settings/POTemplateSettings";
+import EmailTemplates from "./email-templates";
 
 export default function Templates() {
   const [activeTab, setActiveTab] = useState("quotes");
@@ -17,7 +18,7 @@ export default function Templates() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="quotes" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Quote Templates
@@ -25,6 +26,10 @@ export default function Templates() {
           <TabsTrigger value="purchase-orders" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             PO Templates
+          </TabsTrigger>
+          <TabsTrigger value="email" className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Email Templates
           </TabsTrigger>
         </TabsList>
 
@@ -34,6 +39,10 @@ export default function Templates() {
 
         <TabsContent value="purchase-orders" className="mt-4">
           <POTemplateSettings />
+        </TabsContent>
+
+        <TabsContent value="email" className="mt-4">
+          <EmailTemplates />
         </TabsContent>
       </Tabs>
     </div>

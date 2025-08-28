@@ -11397,6 +11397,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get procurement audit logs
+  app.get("/api/procurement/audit-logs", async (req, res) => {
+    try {
+      const { filterType, filterUser, dateFrom, dateTo } = req.query;
+      
+      let query = sql`
+        SELECT 
+          al.*,
+          u.name as user_name
+        FROM audit_log al
+        LEFT JOIN users u ON u.id = al.user_id
+        WHERE 1=1
+      `;
+      
+      // Apply filters
+      if (filterType && filterType !== 'all') {
+        const typeMapping: any = {
+          'rfq': 'RFQ',
+          'quotes': 'RFQ_RESPONSE',
+          'notifications': 'NOTIFICATION',
+          'po': 'PURCHASE_ORDER'
+        };
+        const resourceType = typeMapping[filterType as string];
+        if (resourceType) {
+          query = sql`${query} AND al.resource_type LIKE ${`%${resourceType}%`}`;
+        }
+      }
+      
+      if (filterUser) {
+        query = sql`${query} AND u.name ILIKE ${`%${filterUser}%`}`;
+      }
+      
+      if (dateFrom) {
+        query = sql`${query} AND al.created_at >= ${dateFrom}::date`;
+      }
+      
+      if (dateTo) {
+        query = sql`${query} AND al.created_at <= ${dateTo}::date + interval '1 day'`;
+      }
+      
+      query = sql`${query} ORDER BY al.created_at DESC LIMIT 100`;
+      
+      const result = await db.execute(query);
+      
+      const logs = result.rows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        userName: row.user_name,
+        action: row.action,
+        resourceType: row.resource_type,
+        resourceId: row.resource_id,
+        changes: row.changes,
+        ipAddress: row.ip_address,
+        userAgent: row.user_agent,
+        createdAt: row.created_at
+      }));
+      
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.json([]); // Return empty array on error to prevent breaking the UI
+    }
+  });
+  
   // Create PO from winning RFQ response
   app.post("/api/procurement/rfqs/create-po", async (req, res) => {
     try {

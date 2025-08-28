@@ -30,6 +30,7 @@ import PurchaseOrdersView from "@/components/procurement/PurchaseOrdersView";
 import RFQManagementView from "@/components/procurement/RFQManagementView";
 import QuotesComparisonView from "@/components/procurement/QuotesComparisonView";
 import ConvertToPODialog from "@/components/procurement/ConvertToPODialog";
+import AuditLogViewer from "@/components/procurement/AuditLogViewer";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -336,6 +337,7 @@ export default function Procurement() {
             <TabsTrigger value="quotes">Quotes</TabsTrigger>
             <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
             <TabsTrigger value="receiving">Receiving</TabsTrigger>
+            <TabsTrigger value="audit">Audit Trail</TabsTrigger>
             <TabsTrigger value="archived">Archived</TabsTrigger>
           </TabsList>
 
@@ -1012,6 +1014,11 @@ export default function Procurement() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Audit Trail Tab */}
+        <TabsContent value="audit" className="space-y-2">
+          <AuditLogViewer />
         </TabsContent>
       </Tabs>
 
