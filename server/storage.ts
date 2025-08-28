@@ -4,7 +4,7 @@ import {
   suppliers, materialSuppliers, supplierPriceHistory, supplierContacts,
   clients, clientContacts, locations, savedFilters,
   estimationProjects, estimationData, estimationMaterials, estimationLabor, estimationEquipment, estimationConsumables,
-  teamMembers, archivedEmployees, employeeAuditLog,
+  teamMembers, archivedEmployees, employeeAuditLog, auditLog,
   purchaseRequisitions, requisitionItems, approvalRules, approvalHistory, rfqRequests, rfqResponses, goodsReceipts, goodsReceiptItems,
   purchaseOrders, purchaseOrderItems, poTemplates,
   type User, type InsertUser, type Material, type InsertMaterial,
@@ -1991,6 +1991,24 @@ export class DatabaseStorage implements IStorage {
 
   async createRfqRequest(rfq: InsertRfqRequest): Promise<RfqRequest> {
     const [created] = await db.insert(rfqRequests).values(rfq).returning();
+    
+    // Log audit trail for RFQ creation
+    if (rfq.createdBy) {
+      await this.createProcurementAuditLog({
+        userId: rfq.createdBy,
+        action: 'RFQ_CREATED',
+        entityType: 'RFQ',
+        entityId: String(created.id),
+        details: {
+          rfqNumber: created.rfqNumber,
+          title: created.title,
+          jobId: created.jobId,
+          supplierCount: rfq.supplierIds?.length || 0,
+          deadline: created.responseDeadline
+        }
+      });
+    }
+    
     return created;
   }
 
@@ -2086,18 +2104,83 @@ export class DatabaseStorage implements IStorage {
     return this.getRfqRequest(id);
   }
 
-  // Update RFQ response notification status
-  async updateRfqResponseNotificationStatus(responseId: number, notificationSent: boolean): Promise<void> {
+  // Update RFQ response notification status and log audit trail
+  async updateRfqResponseNotificationStatus(responseId: number, notificationSent: boolean, userId?: number): Promise<void> {
+    // Get the response and RFQ details for logging
+    const response = await this.getRfqResponse(responseId);
+    if (!response) return;
+    
+    const rfq = await this.getRfqRequest(response.rfqId);
+    const supplier = await this.getSupplier(response.supplierId);
+    
     await db.update(rfqResponses)
       .set({ 
         notificationSentAt: notificationSent ? new Date() : null,
         updatedAt: new Date() 
       })
       .where(eq(rfqResponses.id, responseId));
+    
+    // Log audit trail for rejection notification
+    if (userId && notificationSent) {
+      await this.createProcurementAuditLog({
+        userId,
+        action: 'REJECTION_NOTIFICATION_SENT',
+        entityType: 'RFQ_RESPONSE',
+        entityId: String(responseId),
+        details: {
+          rfqNumber: rfq?.rfqNumber,
+          supplierName: supplier?.name,
+          quoteAmount: response.totalAmount,
+          notificationSentAt: new Date()
+        }
+      });
+    }
+  }
+
+  // Create procurement audit log entry
+  async createProcurementAuditLog(params: {
+    userId: number;
+    action: string;
+    entityType: string;
+    entityId: string;
+    details?: any;
+    oldValues?: any;
+    newValues?: any;
+  }): Promise<void> {
+    await db.insert(auditLog).values({
+      userId: params.userId,
+      action: params.action,
+      entityType: params.entityType,
+      entityId: params.entityId,
+      oldValues: params.oldValues || null,
+      newValues: params.newValues || params.details || null,
+      timestamp: new Date()
+    });
   }
 
   async createRfqResponse(response: InsertRfqResponse): Promise<RfqResponse> {
     const [created] = await db.insert(rfqResponses).values(response).returning();
+    
+    // Log audit trail for quote submission
+    const rfq = await this.getRfqRequest(created.rfqId);
+    const supplier = await this.getSupplier(created.supplierId);
+    
+    if (response.reviewedBy) {
+      await this.createProcurementAuditLog({
+        userId: response.reviewedBy,
+        action: 'QUOTE_SUBMITTED',
+        entityType: 'RFQ_RESPONSE',
+        entityId: String(created.id),
+        details: {
+          rfqNumber: rfq?.rfqNumber,
+          supplierName: supplier?.name,
+          quoteAmount: created.totalAmount,
+          deliveryDays: created.deliveryDays,
+          submittedAt: created.submittedAt
+        }
+      });
+    }
+    
     return created;
   }
 
@@ -2165,6 +2248,35 @@ export class DatabaseStorage implements IStorage {
       comments: `RFQ #${rfqId} - Winner selected: ${supplier?.name || 'Unknown Supplier'} - $${response.totalAmount}${justification ? ` (Override: ${justification})` : ''}`,
       createdAt: new Date()
     });
+    
+    // Log to procurement audit trail
+    if (userId) {
+      const rfq = await this.getRfqRequest(rfqId);
+      const allResponses = await db.select({
+        id: rfqResponses.id,
+        supplier: suppliers.name,
+        amount: rfqResponses.totalAmount,
+        status: rfqResponses.status
+      })
+      .from(rfqResponses)
+      .leftJoin(suppliers, eq(rfqResponses.supplierId, suppliers.id))
+      .where(eq(rfqResponses.rfqId, rfqId));
+      
+      await this.createProcurementAuditLog({
+        userId,
+        action: justification ? 'QUOTE_WINNER_SELECTED_WITH_OVERRIDE' : 'QUOTE_WINNER_SELECTED',
+        entityType: 'RFQ',
+        entityId: String(rfqId),
+        details: {
+          rfqNumber: rfq?.rfqNumber,
+          winningSupplier: supplier?.name,
+          winningAmount: response.totalAmount,
+          justification: justification || 'Best overall value',
+          totalQuotesReceived: allResponses.length,
+          competingQuotes: allResponses
+        }
+      });
+    }
   }
 
   async compareRfqResponses(rfqId: number): Promise<RfqResponse[]> {

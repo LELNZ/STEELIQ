@@ -511,3 +511,149 @@ export async function sendRejectionNotification(params: {
     throw error;
   }
 }
+
+// Standalone function for sending acceptance notifications
+export async function sendAcceptanceNotification(params: {
+  supplierName: string;
+  supplierEmail: string;
+  rfqNumber: string;
+  rfqTitle: string;
+  acceptanceMessage: string;
+  quoteAmount: number;
+  deliveryDays: number;
+  companyName: string;
+  senderName: string;
+  senderRole: string;
+}): Promise<void> {
+  try {
+    // Replace variables in the acceptance message
+    const formattedMessage = params.acceptanceMessage
+      .replace(/{SUPPLIER_NAME}/g, params.supplierName)
+      .replace(/{RFQ_NUMBER}/g, params.rfqNumber)
+      .replace(/{RFQ_TITLE}/g, params.rfqTitle)
+      .replace(/{QUOTE_AMOUNT}/g, params.quoteAmount.toLocaleString('en-NZ', { style: 'currency', currency: 'NZD' }))
+      .replace(/{DELIVERY_DAYS}/g, params.deliveryDays.toString())
+      .replace(/{DELIVERY_DATE}/g, new Date(Date.now() + params.deliveryDays * 24 * 60 * 60 * 1000).toLocaleDateString('en-NZ'));
+
+    const msg = {
+      to: params.supplierEmail,
+      from: {
+        email: process.env.SENDGRID_FROM_EMAIL || 'accounts@lateralengineering.co.nz',
+        name: params.companyName
+      },
+      replyTo: process.env.SENDGRID_REPLY_TO || 'accounts@lateralengineering.co.nz',
+      subject: `🎉 Congratulations! RFQ ${params.rfqNumber} - Your Quote Has Been Selected`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .congrats-icon { font-size: 48px; margin-bottom: 10px; }
+            .content { background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 10px 10px; }
+            .success-badge { display: inline-block; background: #10b981; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin-bottom: 20px; }
+            .highlight { background: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; }
+            .details-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0; }
+            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+            .detail-row:last-child { border-bottom: none; }
+            .detail-label { font-weight: 600; color: #6b7280; }
+            .detail-value { font-weight: bold; color: #111827; }
+            .action-required { background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 15px; margin: 20px 0; }
+            .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; margin-top: 30px; }
+            .signature { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+            h1 { margin: 10px 0; font-size: 28px; }
+            h2 { margin: 5px 0; font-size: 18px; font-weight: normal; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="congrats-icon">🎉</div>
+              <h1>Congratulations!</h1>
+              <h2>Your Quote Has Been Selected</h2>
+            </div>
+            
+            <div class="content">
+              <div class="success-badge">✓ WINNING QUOTE</div>
+              
+              <p>Dear ${params.supplierName},</p>
+              
+              <div class="highlight">
+                <strong>Great news!</strong> We are pleased to inform you that your quote for <strong>${params.rfqNumber}</strong> has been selected as the winning proposal.
+              </div>
+              
+              <div class="details-box">
+                <h3 style="margin-top: 0; color: #111827;">Quote Details</h3>
+                <div class="detail-row">
+                  <span class="detail-label">RFQ Number:</span>
+                  <span class="detail-value">${params.rfqNumber}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Project:</span>
+                  <span class="detail-value">${params.rfqTitle}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Your Quote Amount:</span>
+                  <span class="detail-value" style="color: #10b981;">${params.quoteAmount.toLocaleString('en-NZ', { style: 'currency', currency: 'NZD' })}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Delivery Timeline:</span>
+                  <span class="detail-value">${params.deliveryDays} days</span>
+                </div>
+              </div>
+              
+              <div style="white-space: pre-line; margin: 20px 0; line-height: 1.8;">${formattedMessage}</div>
+              
+              <div class="action-required">
+                <strong>⚡ Next Steps:</strong>
+                <ol style="margin: 10px 0 0 0; padding-left: 20px;">
+                  <li>A formal Purchase Order will be issued within 24-48 hours</li>
+                  <li>Please confirm your acceptance of this award</li>
+                  <li>Verify stock availability and production schedule</li>
+                  <li>Prepare for delivery as per agreed timeline</li>
+                </ol>
+              </div>
+              
+              <div class="signature">
+                <p>
+                  <strong>Thank you for your partnership!</strong><br>
+                  We look forward to a successful project completion.
+                </p>
+                <p>
+                  Best regards,<br>
+                  <strong>${params.senderName}</strong><br>
+                  ${params.senderRole}<br>
+                  ${params.companyName}
+                </p>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p>This is an automated notification from the ${params.companyName} Procurement System.</p>
+              <p>For any queries, please contact: ${process.env.SENDGRID_REPLY_TO || 'accounts@lateralengineering.co.nz'}</p>
+              <p>© ${new Date().getFullYear()} ${params.companyName}. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      trackingSettings: {
+        clickTracking: { enable: false },
+        openTracking: { enable: false },
+        subscriptionTracking: { enable: false }
+      }
+    };
+
+    if (process.env.SENDGRID_API_KEY) {
+      await sgMail.send(msg);
+      console.log(`Acceptance notification sent to ${params.supplierEmail} for RFQ ${params.rfqNumber}`);
+    } else {
+      console.log('SendGrid not configured - acceptance email would be sent to:', params.supplierEmail);
+    }
+  } catch (error) {
+    console.error('Error sending acceptance notification:', error);
+    throw error;
+  }
+}

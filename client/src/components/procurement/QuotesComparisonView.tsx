@@ -64,6 +64,9 @@ export default function QuotesComparisonView() {
   const [notifyingResponse, setNotifyingResponse] = useState<any>(null);
   const [rejectionMessage, setRejectionMessage] = useState("");
   const [rejectionTemplate, setRejectionTemplate] = useState("standard");
+  const [acceptanceDialog, setAcceptanceDialog] = useState(false);
+  const [acceptanceMessage, setAcceptanceMessage] = useState("");
+  const [acceptanceTemplate, setAcceptanceTemplate] = useState("standard");
   const [overrideJustification, setOverrideJustification] = useState("");
   const [manualQuoteForm, setManualQuoteForm] = useState({
     supplierId: '',
@@ -74,6 +77,50 @@ export default function QuotesComparisonView() {
     notes: '',
   });
   const { toast } = useToast();
+
+  // Acceptance message templates
+  const acceptanceTemplates = {
+    standard: {
+      title: "Standard Acceptance",
+      message: `We are pleased to inform you that your quote for {RFQ_NUMBER} - {RFQ_TITLE} has been selected.
+
+Quote Details:
+- Amount: {QUOTE_AMOUNT}
+- Delivery: {DELIVERY_DAYS} days
+
+A Purchase Order will be issued shortly with complete details and terms. Please confirm receipt of this notification and your readiness to proceed.
+
+Thank you for your competitive pricing and commitment to meeting our requirements.`,
+    },
+    urgent: {
+      title: "Urgent Acceptance",
+      message: `Your quote for {RFQ_NUMBER} has been selected for this urgent requirement.
+
+We need you to:
+1. Confirm availability to meet the delivery deadline of {DELIVERY_DATE}
+2. Verify stock availability
+3. Provide an updated production schedule
+
+Please respond within 24 hours to confirm. The Purchase Order will follow upon your confirmation.`,
+    },
+    partnership: {
+      title: "Partnership Focus",
+      message: `Congratulations! We are delighted to select your quote for {RFQ_NUMBER}.
+
+This selection reinforces our strong partnership. Your competitive pricing and proven track record made you the clear choice.
+
+Next steps:
+- Purchase Order will be issued within 48 hours
+- Please confirm your project manager for this order
+- Delivery schedule to be confirmed as per your quoted timeline
+
+We look forward to another successful project together.`,
+    },
+    custom: {
+      title: "Custom Message",
+      message: "",
+    },
+  };
 
   // Rejection message templates
   const rejectionTemplates = {
@@ -148,6 +195,30 @@ export default function QuotesComparisonView() {
       toast({
         title: "Error",
         description: error.message || "Failed to select winner",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Send acceptance notification mutation
+  const sendAcceptanceNotificationMutation = useMutation({
+    mutationFn: async ({ responseId, message }: { responseId: number; message: string }) =>
+      apiRequest(`/api/procurement/rfqs/responses/${responseId}/notify-acceptance`, "POST", { message, templateKey: acceptanceTemplate }),
+    onSuccess: () => {
+      setAcceptanceDialog(false);
+      setNotifyingResponse(null);
+      setAcceptanceMessage("");
+      setAcceptanceTemplate("standard");
+      toast({
+        title: "Success",
+        description: "Acceptance notification sent to supplier",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/procurement/rfqs/${selectedRfqId}/responses`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send acceptance notification",
         variant: "destructive",
       });
     },
@@ -584,6 +655,28 @@ export default function QuotesComparisonView() {
                                   >
                                     Create PO
                                   </Button>
+                                  <Button
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                    onClick={() => {
+                                      setNotifyingResponse(response);
+                                      setAcceptanceTemplate("standard");
+                                      const template = acceptanceTemplates.standard;
+                                      const rfq = rfqs.find((r: any) => r.id === selectedRfqId);
+                                      setAcceptanceMessage(
+                                        template.message
+                                          .replace("{RFQ_NUMBER}", rfq?.rfqNumber || "")
+                                          .replace("{RFQ_TITLE}", rfq?.title || "")
+                                          .replace("{QUOTE_AMOUNT}", response.totalAmount?.toLocaleString('en-NZ', { style: 'currency', currency: response.currency || 'NZD' }) || "")
+                                          .replace("{DELIVERY_DAYS}", response.deliveryDays?.toString() || "")
+                                          .replace("{DELIVERY_DATE}", new Date(Date.now() + (response.deliveryDays || 0) * 24 * 60 * 60 * 1000).toLocaleDateString('en-NZ'))
+                                      );
+                                      setAcceptanceDialog(true);
+                                    }}
+                                  >
+                                    <Send className="h-3 w-3 mr-1" />
+                                    Notify Winner
+                                  </Button>
                                   <Badge className="bg-green-600">
                                     <Check className="h-3 w-3 mr-1" />
                                     Winner
@@ -985,6 +1078,108 @@ export default function QuotesComparisonView() {
                 <>Sending...</>
               ) : (
                 <><Send className="h-4 w-4 mr-2" />Send Notification</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Acceptance Notification Dialog */}
+      <Dialog open={acceptanceDialog} onOpenChange={setAcceptanceDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Trophy className="h-5 w-5 text-green-600 mr-2" />
+              Send Acceptance Notification
+            </DialogTitle>
+            <DialogDescription>
+              Notify the winning supplier about their successful quote
+            </DialogDescription>
+          </DialogHeader>
+          
+          {notifyingResponse && (
+            <div className="space-y-4">
+              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200">
+                <p className="font-medium text-green-900 dark:text-green-100">Winning Supplier</p>
+                <p className="text-green-700 dark:text-green-300">{notifyingResponse.supplierName}</p>
+                <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                  Quote Amount: {notifyingResponse.totalAmount?.toLocaleString('en-NZ', { 
+                    style: 'currency', 
+                    currency: notifyingResponse.currency || 'NZD' 
+                  })}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Acceptance Template</Label>
+                <Select value={acceptanceTemplate} onValueChange={setAcceptanceTemplate}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Standard Acceptance</SelectItem>
+                    <SelectItem value="urgent">Urgent Acceptance</SelectItem>
+                    <SelectItem value="partnership">Partnership Focus</SelectItem>
+                    <SelectItem value="custom">Custom Message</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Acceptance Message</Label>
+                <Textarea
+                  placeholder="Enter acceptance message..."
+                  value={acceptanceMessage}
+                  onChange={(e) => setAcceptanceMessage(e.target.value)}
+                  className="min-h-[200px] font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Available variables: {'{RFQ_NUMBER}'}, {'{RFQ_TITLE}'}, {'{QUOTE_AMOUNT}'}, {'{DELIVERY_DAYS}'}, {'{DELIVERY_DATE}'}
+                </p>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <strong>Industry Best Practice:</strong> Send acceptance notifications immediately after winner selection 
+                  to secure supplier commitment and maintain professional communication standards.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setAcceptanceDialog(false);
+                setNotifyingResponse(null);
+                setAcceptanceMessage("");
+                setAcceptanceTemplate("standard");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              onClick={() => {
+                if (!acceptanceMessage.trim()) {
+                  toast({
+                    title: "Error",
+                    description: "Please enter an acceptance message",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                sendAcceptanceNotificationMutation.mutate({
+                  responseId: notifyingResponse.id,
+                  message: acceptanceMessage,
+                });
+              }}
+              disabled={sendAcceptanceNotificationMutation.isPending || !acceptanceMessage.trim()}
+            >
+              {sendAcceptanceNotificationMutation.isPending ? (
+                <>Sending...</>
+              ) : (
+                <><Send className="h-4 w-4 mr-2" />Send Acceptance</>
               )}
             </Button>
           </DialogFooter>

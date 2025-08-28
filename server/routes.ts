@@ -4890,6 +4890,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Organization Email Templates Routes
+  app.get("/api/organization/email-templates", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Get all email templates from organization settings
+      const templates = await db.select()
+        .from(organizationSettings)
+        .where(like(organizationSettings.settingKey, 'email_template_%'));
+      
+      // Return templates with default ones if none exist
+      if (!templates.length) {
+        const defaultTemplates = [
+          {
+            settingKey: 'email_template_rejection_standard',
+            settingValue: JSON.stringify({
+              name: 'Standard Rejection',
+              subject: 'RFQ {RFQ_NUMBER} - Quote Status Update',
+              message: 'Thank you for submitting your quote for {RFQ_NUMBER}. After careful evaluation of all proposals, we have decided to proceed with another supplier whose quote better aligns with our current requirements.\n\nWe appreciate the time and effort you put into preparing your proposal and hope to have the opportunity to work with you on future projects.'
+            }),
+            settingType: 'json',
+            description: 'Standard rejection email template'
+          },
+          {
+            settingKey: 'email_template_rejection_price',
+            settingValue: JSON.stringify({
+              name: 'Price-Based Rejection',
+              subject: 'RFQ {RFQ_NUMBER} - Quote Status Update',
+              message: 'Thank you for your proposal for {RFQ_NUMBER}. While we value your capabilities and the quality of your offering, we have selected a supplier whose pricing better fits our budget constraints for this project.\n\nWe encourage you to remain competitive in future RFQs as we value our relationship with your company.'
+            }),
+            settingType: 'json',
+            description: 'Price-based rejection email template'
+          },
+          {
+            settingKey: 'email_template_acceptance_standard',
+            settingValue: JSON.stringify({
+              name: 'Standard Acceptance',
+              subject: 'Congratulations! RFQ {RFQ_NUMBER} - Your Quote Has Been Selected',
+              message: 'We are pleased to inform you that your quote for {RFQ_NUMBER} - {RFQ_TITLE} has been selected.\n\nQuote Details:\n- Amount: ${QUOTE_AMOUNT}\n- Delivery: {DELIVERY_DAYS} days\n\nA Purchase Order will be issued shortly with complete details and terms. Please confirm receipt of this notification and your readiness to proceed.\n\nThank you for your competitive pricing and commitment to meeting our requirements.'
+            }),
+            settingType: 'json',
+            description: 'Standard acceptance email template'
+          },
+          {
+            settingKey: 'email_template_acceptance_urgent',
+            settingValue: JSON.stringify({
+              name: 'Urgent Acceptance',
+              subject: 'URGENT: RFQ {RFQ_NUMBER} - Quote Selected - Immediate Action Required',
+              message: 'Your quote for {RFQ_NUMBER} has been selected for this urgent requirement.\n\nWe need you to:\n1. Confirm availability to meet the delivery deadline of {DELIVERY_DATE}\n2. Verify stock availability\n3. Provide an updated production schedule\n\nPlease respond within 24 hours to confirm. The Purchase Order will follow upon your confirmation.'
+            }),
+            settingType: 'json',
+            description: 'Urgent acceptance email template'
+          }
+        ];
+        res.json(defaultTemplates);
+      } else {
+        res.json(templates);
+      }
+    } catch (error) {
+      console.error("Error fetching email templates:", error);
+      res.status(500).json({ message: "Failed to fetch email templates" });
+    }
+  });
+
+  app.post("/api/organization/email-templates", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { templateKey, template } = req.body;
+      const settingKey = `email_template_${templateKey}`;
+      
+      // Check if template exists
+      const [existing] = await db.select()
+        .from(organizationSettings)
+        .where(eq(organizationSettings.settingKey, settingKey));
+      
+      if (existing) {
+        // Update existing template
+        await db.update(organizationSettings)
+          .set({
+            settingValue: JSON.stringify(template),
+            updatedAt: new Date()
+          })
+          .where(eq(organizationSettings.settingKey, settingKey));
+      } else {
+        // Insert new template
+        await db.insert(organizationSettings)
+          .values({
+            settingKey,
+            settingValue: JSON.stringify(template),
+            settingType: 'json',
+            description: `Email template: ${template.name}`
+          });
+      }
+      
+      res.json({ success: true, message: "Template saved successfully" });
+    } catch (error) {
+      console.error("Error saving email template:", error);
+      res.status(500).json({ message: "Failed to save email template" });
+    }
+  });
+  
+  app.delete("/api/organization/email-templates/:templateKey", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const settingKey = `email_template_${req.params.templateKey}`;
+      
+      await db.delete(organizationSettings)
+        .where(eq(organizationSettings.settingKey, settingKey));
+      
+      res.json({ success: true, message: "Template deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting email template:", error);
+      res.status(500).json({ message: "Failed to delete email template" });
+    }
+  });
+
   // Organization Settings Routes
   app.get("/api/organization/settings/:key", async (req, res) => {
     try {
@@ -11125,6 +11258,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send acceptance notification to supplier (Industry Best Practice)
+  app.post("/api/procurement/rfqs/responses/:responseId/notify-acceptance", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const responseId = parseInt(req.params.responseId);
+      const { message, templateKey } = req.body;
+      
+      if (!message) {
+        return res.status(400).json({ error: "Acceptance message is required" });
+      }
+
+      // Get the RFQ response details
+      const response = await storage.getRfqResponse(responseId);
+      if (!response) {
+        return res.status(404).json({ error: "RFQ response not found" });
+      }
+
+      // Get the supplier details
+      const supplier = await storage.getSupplier(response.supplierId);
+      if (!supplier || !supplier.email) {
+        return res.status(400).json({ error: "Supplier email not found" });
+      }
+
+      // Get the RFQ details
+      const rfq = await storage.getRfqRequest(response.rfqId);
+      if (!rfq) {
+        return res.status(404).json({ error: "RFQ not found" });
+      }
+
+      // Import the RFQ email service
+      const { sendAcceptanceNotification } = await import('./services/rfqEmailService');
+      
+      // Send acceptance notification email
+      await sendAcceptanceNotification({
+        supplierName: supplier.name,
+        supplierEmail: supplier.email,
+        rfqNumber: rfq.rfqNumber,
+        rfqTitle: rfq.title,
+        acceptanceMessage: message,
+        quoteAmount: response.totalAmount,
+        deliveryDays: response.deliveryDays,
+        companyName: "Lateral Engineering Limited",
+        senderName: user.name,
+        senderRole: user.role || "Procurement Manager",
+      });
+
+      // Log to audit trail
+      await storage.createProcurementAuditLog({
+        userId: user.id,
+        action: 'ACCEPTANCE_NOTIFICATION_SENT',
+        entityType: 'RFQ_RESPONSE',
+        entityId: String(responseId),
+        details: {
+          rfqNumber: rfq.rfqNumber,
+          supplierName: supplier.name,
+          quoteAmount: response.totalAmount,
+          templateUsed: templateKey || 'custom',
+          notificationSentAt: new Date()
+        }
+      });
+
+      res.json({ 
+        success: true, 
+        message: "Acceptance notification sent successfully" 
+      });
+    } catch (error) {
+      console.error("Error sending acceptance notification:", error);
+      res.status(500).json({ error: "Failed to send acceptance notification" });
+    }
+  });
+
   // Send rejection notification to supplier
   app.post("/api/procurement/rfqs/responses/:responseId/notify-rejection", async (req, res) => {
     try {
@@ -11143,7 +11353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get the RFQ response details
-      const response = await storage.getRfqResponseById(responseId);
+      const response = await storage.getRfqResponse(responseId);
       if (!response) {
         return res.status(404).json({ error: "RFQ response not found" });
       }
@@ -11155,7 +11365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get the RFQ details
-      const rfq = await storage.getRfqById(response.rfqId);
+      const rfq = await storage.getRfqRequest(response.rfqId);
       if (!rfq) {
         return res.status(404).json({ error: "RFQ not found" });
       }
@@ -11175,7 +11385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Update response status to indicate notification was sent
-      await storage.updateRfqResponseNotificationStatus(responseId, true);
+      await storage.updateRfqResponseNotificationStatus(responseId, true, user.id);
 
       res.json({ 
         success: true, 
