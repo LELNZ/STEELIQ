@@ -1951,28 +1951,7 @@ export class DatabaseStorage implements IStorage {
 
   // RFQ Management Implementation
   async getRfqRequests(filters?: { status?: string; statusList?: string[]; jobId?: number }): Promise<any[]> {
-    let baseQuery = db.select({
-      id: rfqRequests.id,
-      rfqNumber: rfqRequests.rfqNumber,
-      requisitionId: rfqRequests.requisitionId,
-      jobId: rfqRequests.jobId,
-      jobNumber: rfqRequests.jobNumber,
-      title: rfqRequests.title,
-      description: rfqRequests.description,
-      category: rfqRequests.category,
-      deliveryRequiredBy: rfqRequests.deliveryRequiredBy,
-      deliveryLocation: rfqRequests.deliveryLocation,
-      paymentTerms: rfqRequests.paymentTerms,
-      status: rfqRequests.status,
-      responseDeadline: rfqRequests.responseDeadline,
-      evaluationCriteria: rfqRequests.evaluationCriteria,
-      winningResponseId: rfqRequests.winningResponseId,
-      closedAt: rfqRequests.closedAt,
-      createdBy: rfqRequests.createdBy,
-      createdAt: rfqRequests.createdAt,
-      updatedAt: rfqRequests.updatedAt,
-      responseCount: sql<number>`(SELECT COUNT(*) FROM rfq_responses WHERE rfq_id = rfq_requests.id)`.as('responseCount'),
-    }).from(rfqRequests);
+    let query = db.select().from(rfqRequests);
     
     if (filters) {
       const conditions = [];
@@ -1984,14 +1963,25 @@ export class DatabaseStorage implements IStorage {
       if (filters.jobId) conditions.push(eq(rfqRequests.jobId, filters.jobId));
       
       if (conditions.length > 0) {
-        baseQuery = baseQuery.where(and(...conditions)) as any;
+        query = query.where(and(...conditions)) as any;
       }
     }
     
-    const rfqs = await baseQuery.orderBy(desc(rfqRequests.createdAt));
+    const rfqs = await query.orderBy(desc(rfqRequests.createdAt));
     
-    // Response counts are already included in the query
-    return rfqs;
+    // Add response counts to each RFQ
+    const rfqsWithCounts = await Promise.all(rfqs.map(async (rfq) => {
+      const responseCount = await db.select({ count: sql<number>`count(*)` })
+        .from(rfqResponses)
+        .where(eq(rfqResponses.rfqId, rfq.id));
+      
+      return {
+        ...rfq,
+        responseCount: Number(responseCount[0]?.count || 0)
+      };
+    }));
+    
+    return rfqsWithCounts;
   }
 
   async getRfqRequest(id: number): Promise<RfqRequest | undefined> {

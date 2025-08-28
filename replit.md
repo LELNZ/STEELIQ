@@ -138,11 +138,12 @@ Internal Team                          External Suppliers
 - Audit trail system
 
 ### 🚧 In Active Development (January 2025)
-- RFQ management UI and workflow
-- Quote comparison and evaluation matrix
+- ✅ RFQ management UI and workflow (COMPLETE)
+- ✅ Quote comparison and evaluation matrix (COMPLETE WITH WINNER SELECTION)
 - Goods receipt and inspection UI
 - Job-linked procurement tracking
 - Supplier portal for quote submission
+- Supplier notification system for rejection messages (IN PROGRESS)
 - Automated follow-up reminders for RFQs
 - Three-way matching (PO-Receipt-Invoice)
 
