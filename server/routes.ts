@@ -10683,7 +10683,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { status, jobId } = req.query;
       const filters: any = {};
       
-      if (status) filters.status = status as string;
+      // Handle multiple status values (comma-separated)
+      if (status) {
+        const statusList = (status as string).split(',');
+        filters.statusList = statusList;
+      }
       if (jobId) filters.jobId = parseInt(jobId as string);
       
       const rfqs = await storage.getRfqRequests(filters);

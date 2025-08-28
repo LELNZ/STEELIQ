@@ -234,7 +234,7 @@ export interface IStorage {
   rejectRequisition(requisitionId: number, approverId: number, comments: string): Promise<void>;
   
   // Procurement - RFQs
-  getRfqRequests(filters?: { status?: string; jobId?: number }): Promise<RfqRequest[]>;
+  getRfqRequests(filters?: { status?: string; statusList?: string[]; jobId?: number }): Promise<RfqRequest[]>;
   getRfqRequest(id: number): Promise<RfqRequest | undefined>;
   createRfqRequest(rfq: InsertRfqRequest): Promise<RfqRequest>;
   updateRfqRequest(id: number, rfq: Partial<InsertRfqRequest>): Promise<RfqRequest>;
@@ -1950,12 +1950,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   // RFQ Management Implementation
-  async getRfqRequests(filters?: { status?: string; jobId?: number }): Promise<any[]> {
+  async getRfqRequests(filters?: { status?: string; statusList?: string[]; jobId?: number }): Promise<any[]> {
     let query = db.select().from(rfqRequests);
     
     if (filters) {
       const conditions = [];
-      if (filters.status) conditions.push(eq(rfqRequests.status, filters.status));
+      if (filters.statusList && filters.statusList.length > 0) {
+        conditions.push(inArray(rfqRequests.status, filters.statusList));
+      } else if (filters.status) {
+        conditions.push(eq(rfqRequests.status, filters.status));
+      }
       if (filters.jobId) conditions.push(eq(rfqRequests.jobId, filters.jobId));
       
       if (conditions.length > 0) {

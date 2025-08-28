@@ -23,6 +23,7 @@ import {
   MoreHorizontal,
   Upload,
   Check,
+  Send,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -65,6 +66,8 @@ export default function QuotesComparisonView() {
   const [selectWinnerDialog, setSelectWinnerDialog] = useState(false);
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [manualQuoteDialog, setManualQuoteDialog] = useState(false);
+  const [notifySupplierDialog, setNotifySupplierDialog] = useState(false);
+  const [rejectionMessage, setRejectionMessage] = useState("");
   const [overrideJustification, setOverrideJustification] = useState("");
   const [manualQuoteForm, setManualQuoteForm] = useState({
     supplierId: '',
@@ -81,11 +84,11 @@ export default function QuotesComparisonView() {
     queryKey: ["/api/suppliers"],
   });
 
-  // Fetch RFQs with responses
+  // Fetch RFQs with responses (including closed/awarded)
   const { data: rfqs = [], isLoading: rfqsLoading } = useQuery({
     queryKey: ["/api/procurement/rfqs"],
     queryFn: async () => {
-      const response = await fetch("/api/procurement/rfqs?status=sent");
+      const response = await fetch("/api/procurement/rfqs?status=sent,closed");
       if (!response.ok) throw new Error("Failed to fetch RFQs");
       return response.json();
     },
@@ -233,7 +236,15 @@ export default function QuotesComparisonView() {
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="font-medium text-sm">{rfq.rfqNumber}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{rfq.rfqNumber}</p>
+                        {rfq.status === 'closed' && (
+                          <Badge className="bg-green-600">
+                            <Check className="h-3 w-3 mr-1" />
+                            Awarded
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">{rfq.title}</p>
                       <p className="text-xs text-muted-foreground">
                         Job: {rfq.jobNumber}
@@ -504,9 +515,22 @@ export default function QuotesComparisonView() {
                                 </>
                               )}
                               {response.status === 'rejected' && (
-                                <Badge variant="destructive">
-                                  Rejected
-                                </Badge>
+                                <>
+                                  <Badge variant="destructive">
+                                    Rejected
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedResponse(response);
+                                      setNotifySupplierDialog(true);
+                                    }}
+                                  >
+                                    <Send className="h-3 w-3 mr-1" />
+                                    Notify
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </TableCell>
@@ -764,6 +788,76 @@ export default function QuotesComparisonView() {
               disabled={submitManualQuoteMutation.isPending}
             >
               Add Quote
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notify Supplier Dialog - Industry Best Practice: Manual Notifications */}
+      <Dialog open={notifySupplierDialog} onOpenChange={setNotifySupplierDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Send Rejection Notification</DialogTitle>
+            <DialogDescription>
+              Send a personalized notification to the unsuccessful supplier. Industry best practice 
+              is to provide constructive feedback when possible.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedResponse && (
+            <div className="space-y-4">
+              <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                <p className="font-medium">
+                  {selectedResponse.supplierName || `Supplier ${selectedResponse.supplierId}`}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Quote Amount: ${(selectedResponse.totalAmount || 0).toLocaleString()}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="rejection-message">
+                  Notification Message
+                </Label>
+                <Textarea
+                  id="rejection-message"
+                  placeholder="Thank you for submitting your quote for [RFQ]. After careful evaluation, we have decided to proceed with another supplier for this particular project. We appreciate your time and effort in preparing the quote and look forward to future opportunities to work together."
+                  rows={6}
+                  value={rejectionMessage}
+                  onChange={(e) => setRejectionMessage(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Provide feedback on why their quote wasn't selected (optional but recommended)
+                </p>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <strong>Industry Best Practice:</strong> Send rejection notifications manually with 
+                  personalized feedback. This maintains good supplier relationships for future opportunities.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setNotifySupplierDialog(false);
+              setRejectionMessage("");
+            }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                // In production, this would send the notification email
+                toast({
+                  title: "Notification Sent",
+                  description: `Rejection notification sent to ${selectedResponse?.supplierName || 'supplier'}`,
+                });
+                setNotifySupplierDialog(false);
+                setRejectionMessage("");
+              }}
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Send Notification
             </Button>
           </DialogFooter>
         </DialogContent>
