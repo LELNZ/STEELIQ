@@ -17,7 +17,11 @@ import {
   Clock,
   FileText,
   Plus,
-  Package
+  Package,
+  DollarSign,
+  Truck,
+  FileCheck,
+  ExternalLink
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -56,6 +60,24 @@ export default function RequisitionDetailsDialog({
   const { data: requisition, isLoading } = useQuery({
     queryKey: [`/api/procurement/requisitions/${requisitionId}`],
     enabled: open && !!requisitionId,
+  });
+  
+  // Fetch associated RFQ if converted
+  const { data: associatedRfq } = useQuery({
+    queryKey: [`/api/procurement/requisitions/${requisitionId}/rfq`],
+    enabled: open && !!requisitionId && requisition?.status === 'converted',
+  });
+  
+  // Fetch RFQ responses/quotes if RFQ exists
+  const { data: rfqQuotes = [] } = useQuery({
+    queryKey: [`/api/procurement/rfqs/${associatedRfq?.id}/responses`],
+    enabled: !!associatedRfq?.id,
+  });
+  
+  // Fetch PO details if converted to PO
+  const { data: purchaseOrder } = useQuery({
+    queryKey: [`/api/procurement/requisitions/${requisitionId}/po`],
+    enabled: open && !!requisitionId && requisition?.poNumber,
   });
 
   // Initialize selectedSupplierId when requisition loads
@@ -329,6 +351,89 @@ export default function RequisitionDetailsDialog({
             <div>
               <Label className="text-xs font-medium text-muted-foreground mb-1 block">Additional Notes</Label>
               <div className="p-2 bg-muted rounded text-sm">{requisition.notes}</div>
+            </div>
+          )}
+          
+          {/* RFQ and Quotes Information - Fortune 500 Best Practice */}
+          {requisition.status === 'converted' && associatedRfq && (
+            <div className="border-t pt-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileCheck className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium">RFQ & Quote Information</span>
+                  <Badge variant="outline" className="text-xs">
+                    {associatedRfq.rfqNumber}
+                  </Badge>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.href = `/procurement?tab=rfqs&rfq=${associatedRfq.id}`}
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  View RFQ
+                </Button>
+              </div>
+              
+              {/* Quotes Summary */}
+              {rfqQuotes.length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3 space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground mb-2">
+                    Received Quotes ({rfqQuotes.length})
+                  </div>
+                  {rfqQuotes.map((quote: any) => (
+                    <div key={quote.id} className="flex items-center justify-between bg-white dark:bg-gray-900 rounded p-2 border">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{quote.supplierName}</span>
+                          {quote.status === 'selected' && (
+                            <Badge variant="success" className="text-xs">Winner</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
+                            ${quote.totalAmount?.toLocaleString()}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Truck className="h-3 w-3" />
+                            {quote.deliveryDays} days
+                          </span>
+                          <span>
+                            Score: {quote.totalScore || 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                      {quote.status === 'selected' && quote.poCreated && (
+                        <Badge variant="default" className="text-xs">
+                          PO Created
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Purchase Order Link */}
+              {requisition.poNumber && (
+                <div className="flex items-center justify-between bg-green-50 dark:bg-green-950/20 rounded p-2 border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium">Purchase Order Created</span>
+                    <Badge variant="success" className="text-xs">
+                      {requisition.poNumber}
+                    </Badge>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.location.href = `/procurement?tab=purchase-orders&po=${requisition.poNumber}`}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    View PO
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 

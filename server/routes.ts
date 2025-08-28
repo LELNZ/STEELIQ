@@ -9057,6 +9057,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get RFQ associated with requisition
+  app.get("/api/procurement/requisitions/:id/rfq", async (req, res) => {
+    try {
+      const requisitionId = parseInt(req.params.id);
+      const [rfq] = await db.select().from(rfqRequests)
+        .where(eq(rfqRequests.requisitionId, requisitionId))
+        .limit(1);
+      
+      if (!rfq) {
+        return res.status(404).json({ error: "No RFQ found for this requisition" });
+      }
+      
+      res.json(rfq);
+    } catch (error) {
+      console.error("Error fetching associated RFQ:", error);
+      res.status(500).json({ error: "Failed to fetch RFQ" });
+    }
+  });
+  
+  // Get PO associated with requisition
+  app.get("/api/procurement/requisitions/:id/po", async (req, res) => {
+    try {
+      const requisitionId = parseInt(req.params.id);
+      const [po] = await db.select().from(purchaseOrders)
+        .where(eq(purchaseOrders.requisitionId, requisitionId))
+        .limit(1);
+      
+      if (!po) {
+        return res.status(404).json({ error: "No PO found for this requisition" });
+      }
+      
+      res.json(po);
+    } catch (error) {
+      console.error("Error fetching associated PO:", error);
+      res.status(500).json({ error: "Failed to fetch PO" });
+    }
+  });
+  
   // Get single requisition with items
   app.get("/api/procurement/requisitions/:id", async (req, res) => {
     try {

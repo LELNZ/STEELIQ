@@ -22,7 +22,9 @@ import {
   Eye,
   Edit,
   Clock,
-  Shield
+  Shield,
+  Trophy,
+  Plus
 } from "lucide-react";
 
 interface AuditLogEntry {
@@ -38,15 +40,26 @@ interface AuditLogEntry {
   createdAt: string;
 }
 
-export default function AuditLogViewer() {
+interface AuditLogViewerProps {
+  compact?: boolean;
+  entityType?: string;
+  entityId?: string;
+}
+
+export default function AuditLogViewer({ compact = false, entityType, entityId }: AuditLogViewerProps) {
   const [filterType, setFilterType] = useState("all");
   const [filterUser, setFilterUser] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  // Build query key based on entity filter if provided
+  const queryKey = entityType && entityId 
+    ? [`/api/procurement/audit-logs/${entityType}/${entityId}`]
+    : ['/api/procurement/audit-logs', filterType, filterUser, dateFrom, dateTo];
+    
   // Fetch audit logs
   const { data: auditLogs = [], isLoading, refetch } = useQuery({
-    queryKey: ['/api/procurement/audit-logs', filterType, filterUser, dateFrom, dateTo],
+    queryKey,
   });
   
   // Navigate to full audit center
@@ -168,6 +181,59 @@ export default function AuditLogViewer() {
 
   const displayLogs = auditLogs.length > 0 ? auditLogs : mockAuditLogs;
 
+  // Render compact view for modal or full view for page
+  if (compact) {
+    return (
+      <div className="space-y-3">
+        {/* Compact header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            <span className="text-sm font-medium">Recent Activities</span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={navigateToAuditCenter}
+            className="text-xs"
+          >
+            View All →
+          </Button>
+        </div>
+        
+        {/* Compact timeline */}
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {isLoading ? (
+            <div className="text-center py-4 text-xs text-muted-foreground">
+              Loading...
+            </div>
+          ) : displayLogs.length === 0 ? (
+            <div className="text-center py-4 text-xs text-muted-foreground">
+              No activities found
+            </div>
+          ) : (
+            displayLogs.slice(0, 10).map((log) => (
+              <div key={log.id} className="flex gap-2 p-2 hover:bg-accent/50 rounded-lg transition-colors">
+                <div className="flex-shrink-0 mt-0.5">
+                  {getActionIcon(log.action)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">
+                    {formatActionDescription(log)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {log.userName || `User ${log.userId}`} • {format(new Date(log.createdAt), 'MMM d, HH:mm')}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+  
+  // Full view for dedicated page
   return (
     <div className="space-y-6">
       <Card>
@@ -336,5 +402,3 @@ export default function AuditLogViewer() {
   );
 }
 
-// Missing imports
-import { Plus, Trophy } from "lucide-react";

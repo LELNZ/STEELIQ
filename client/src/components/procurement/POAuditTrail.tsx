@@ -128,10 +128,10 @@ export function POAuditTrail({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
+      <DialogContent className="max-w-3xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-blue-500" />
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Shield className="h-4 w-4 text-blue-500" />
             Audit Trail - {poNumber}
           </DialogTitle>
         </DialogHeader>
@@ -167,8 +167,8 @@ export function POAuditTrail({
             </TabsList>
 
             <TabsContent value="status">
-              <ScrollArea className="h-[500px] pr-4">
-                {data.statusHistory.length === 0 ? (
+              <ScrollArea className="h-[400px] pr-4">
+                {(!data.statusHistory || data.statusHistory.length === 0) ? (
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
@@ -176,10 +176,10 @@ export function POAuditTrail({
                     </AlertDescription>
                   </Alert>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {data.statusHistory.map((log: StatusLog, index: number) => (
-                      <Card key={log.id}>
-                        <CardContent className="pt-6">
+                      <Card key={log.id} className="p-3">
+                        <CardContent className="p-0">
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
                               {log.previousStatus && (
@@ -256,8 +256,8 @@ export function POAuditTrail({
             </TabsContent>
 
             <TabsContent value="system">
-              <ScrollArea className="h-[500px] pr-4">
-                {data.systemLogs.length === 0 ? (
+              <ScrollArea className="h-[400px] pr-4">
+                {(!data.systemLogs || data.systemLogs.length === 0) ? (
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
