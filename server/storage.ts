@@ -1972,6 +1972,14 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async updateRfqStatus(id: number, status: string): Promise<RfqRequest> {
+    const [updated] = await db.update(rfqRequests)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(rfqRequests.id, id))
+      .returning();
+    return updated;
+  }
+
   async generateRfqNumber(): Promise<string> {
     const year = new Date().getFullYear();
     const month = String(new Date().getMonth() + 1).padStart(2, '0');

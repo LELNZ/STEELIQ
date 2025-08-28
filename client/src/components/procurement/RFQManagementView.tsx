@@ -23,6 +23,15 @@ import {
   User,
   Check,
   History,
+  MoreHorizontal,
+  UserPlus,
+  RefreshCw,
+  Edit,
+  Eye,
+  Copy,
+  X,
+  Archive,
+  Bell,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -53,6 +62,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 const rfqStatusColors = {
   draft: "secondary",
@@ -78,6 +95,8 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   const [showNewSupplierForm, setShowNewSupplierForm] = useState(false);
   const [newSupplier, setNewSupplier] = useState({ name: "", email: "", phone: "", company: "" });
+  const [additionalSuppliersDialog, setAdditionalSuppliersDialog] = useState(false);
+  const [rfqForAdditionalSuppliers, setRfqForAdditionalSuppliers] = useState<any>(null);
   const { toast } = useToast();
   
   // Handle requisition passed from parent
@@ -143,6 +162,49 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
       toast({
         title: "Error",
         description: error.message || "Failed to send RFQ",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update RFQ status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ rfqId, status }: { rfqId: number; status: string }) =>
+      apiRequest(`/api/procurement/rfqs/${rfqId}`, "PATCH", { status }),
+    onSuccess: (_, { status }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/rfqs"] });
+      toast({
+        title: "Status Updated",
+        description: `RFQ status changed to ${status}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update RFQ status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Send to additional suppliers mutation
+  const sendToAdditionalMutation = useMutation({
+    mutationFn: ({ rfqId, supplierIds }: { rfqId: number; supplierIds: number[] }) =>
+      apiRequest(`/api/procurement/rfqs/${rfqId}/send-additional`, "POST", { supplierIds }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/rfqs"] });
+      setAdditionalSuppliersDialog(false);
+      setRfqForAdditionalSuppliers(null);
+      setSelectedSuppliers([]);
+      toast({
+        title: "Success",
+        description: "RFQ sent to additional suppliers",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send RFQ to additional suppliers",
         variant: "destructive",
       });
     },
@@ -286,7 +348,7 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                         <Badge variant="outline">{rfq.responses?.length || 0}</Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 items-center">
                           {rfq.status === 'draft' && (
                             <Button
                               size="sm"
@@ -326,6 +388,140 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                               PO Created
                             </Badge>
                           )}
+                          
+                          {/* 3-dots Options Menu */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuLabel className="text-xs">RFQ Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              
+                              {/* View Details */}
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  toast({
+                                    title: "View RFQ Details",
+                                    description: `Opening details for ${rfq.rfqNumber}`,
+                                  });
+                                }}
+                              >
+                                <Eye className="h-3 w-3 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              
+                              {/* Send to Additional Suppliers - Only for 'sent' status */}
+                              {rfq.status === 'sent' && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setRfqForAdditionalSuppliers(rfq);
+                                    setAdditionalSuppliersDialog(true);
+                                  }}
+                                  className="text-blue-600 dark:text-blue-400"
+                                >
+                                  <UserPlus className="h-3 w-3 mr-2" />
+                                  Send to More Suppliers
+                                </DropdownMenuItem>
+                              )}
+                              
+                              {/* Resend Reminder - Only for 'sent' status */}
+                              {rfq.status === 'sent' && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    toast({
+                                      title: "Reminder Sent",
+                                      description: `Reminder email sent to all suppliers for ${rfq.rfqNumber}`,
+                                    });
+                                  }}
+                                >
+                                  <Bell className="h-3 w-3 mr-2" />
+                                  Send Reminder
+                                </DropdownMenuItem>
+                              )}
+                              
+                              {/* Edit - Only for 'draft' status */}
+                              {rfq.status === 'draft' && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    toast({
+                                      title: "Edit RFQ",
+                                      description: "Opening RFQ editor",
+                                    });
+                                  }}
+                                >
+                                  <Edit className="h-3 w-3 mr-2" />
+                                  Edit Draft
+                                </DropdownMenuItem>
+                              )}
+                              
+                              {/* Mark as Evaluating - Only for 'sent' status with responses */}
+                              {rfq.status === 'sent' && rfq.responses?.length > 0 && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    updateStatusMutation.mutate({ 
+                                      rfqId: rfq.id, 
+                                      status: 'evaluating' 
+                                    });
+                                  }}
+                                >
+                                  <RefreshCw className="h-3 w-3 mr-2" />
+                                  Start Evaluation
+                                </DropdownMenuItem>
+                              )}
+                              
+                              {/* Close RFQ - For 'sent' or 'evaluating' status */}
+                              {(rfq.status === 'sent' || rfq.status === 'evaluating') && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    updateStatusMutation.mutate({ 
+                                      rfqId: rfq.id, 
+                                      status: 'closed' 
+                                    });
+                                  }}
+                                >
+                                  <Archive className="h-3 w-3 mr-2" />
+                                  Close RFQ
+                                </DropdownMenuItem>
+                              )}
+                              
+                              <DropdownMenuSeparator />
+                              
+                              {/* Duplicate RFQ */}
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  toast({
+                                    title: "Duplicate RFQ",
+                                    description: "Creating a copy of this RFQ",
+                                  });
+                                }}
+                              >
+                                <Copy className="h-3 w-3 mr-2" />
+                                Duplicate
+                              </DropdownMenuItem>
+                              
+                              {/* Cancel RFQ - Only if not completed */}
+                              {rfq.status !== 'completed' && rfq.status !== 'cancelled' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      updateStatusMutation.mutate({ 
+                                        rfqId: rfq.id, 
+                                        status: 'cancelled' 
+                                      });
+                                    }}
+                                    className="text-red-600 dark:text-red-400"
+                                  >
+                                    <X className="h-3 w-3 mr-2" />
+                                    Cancel RFQ
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -678,6 +874,218 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
               >
                 <Send className="h-4 w-4 mr-2" />
                 Send to {selectedSuppliers.length || 'Selected'} Suppliers
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send to Additional Suppliers Dialog */}
+      <Dialog open={additionalSuppliersDialog} onOpenChange={(open) => {
+        setAdditionalSuppliersDialog(open);
+        if (!open) {
+          setSelectedSuppliers([]);
+          setSupplierSearchTerm("");
+          setShowNewSupplierForm(false);
+          setNewSupplier({ name: "", email: "", phone: "", company: "" });
+        }
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Send RFQ to Additional Suppliers</DialogTitle>
+            <DialogDescription>
+              Add more suppliers to RFQ: {rfqForAdditionalSuppliers?.rfqNumber}
+              <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                <div className="text-xs text-amber-700 dark:text-amber-400">
+                  <p className="font-medium">Best Practice:</p>
+                  <p>Sending to additional suppliers after initial distribution ensures fair competition and may result in better pricing.</p>
+                </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search suppliers by name, email, or company..."
+                value={supplierSearchTerm}
+                onChange={(e) => setSupplierSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Selected Suppliers Count */}
+            {selectedSuppliers.length > 0 && (
+              <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                <span className="text-sm font-medium">
+                  {selectedSuppliers.length} additional supplier{selectedSuppliers.length !== 1 ? 's' : ''} selected
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedSuppliers([])}
+                  className="text-xs"
+                >
+                  Clear all
+                </Button>
+              </div>
+            )}
+
+            {/* Add New Supplier Option */}
+            {!showNewSupplierForm && (
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-2"
+                onClick={() => setShowNewSupplierForm(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Add New Supplier
+              </Button>
+            )}
+
+            {/* New Supplier Form */}
+            {showNewSupplierForm && (
+              <div className="p-3 border rounded-lg space-y-3 bg-gray-50 dark:bg-gray-900">
+                <div className="font-medium text-sm flex items-center justify-between">
+                  Add New Supplier
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setShowNewSupplierForm(false);
+                      setNewSupplier({ name: "", email: "", phone: "", company: "" });
+                    }}
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    placeholder="Contact Name *"
+                    value={newSupplier.name}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Company *"
+                    value={newSupplier.company}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, company: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Email *"
+                    type="email"
+                    value={newSupplier.email}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Phone"
+                    value={newSupplier.phone}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, phone: e.target.value })}
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full"
+                  disabled={!newSupplier.name || !newSupplier.company || !newSupplier.email || createSupplierMutation.isPending}
+                  onClick={() => {
+                    createSupplierMutation.mutate({
+                      name: newSupplier.name,
+                      company: newSupplier.company,
+                      email: newSupplier.email,
+                      phone: newSupplier.phone || '',
+                      categories: 'materials',
+                    });
+                  }}
+                >
+                  {createSupplierMutation.isPending ? "Adding..." : "Add Supplier"}
+                </Button>
+              </div>
+            )}
+
+            {/* Supplier List */}
+            <div className="max-h-[300px] overflow-y-auto space-y-1">
+              {suppliers
+                .filter((supplier: any) => {
+                  if (!supplierSearchTerm) return !showNewSupplierForm;
+                  const search = supplierSearchTerm.toLowerCase();
+                  return (
+                    supplier.name?.toLowerCase().includes(search) ||
+                    supplier.contactName?.toLowerCase().includes(search) ||
+                    supplier.email?.toLowerCase().includes(search) ||
+                    supplier.company?.toLowerCase().includes(search)
+                  );
+                })
+                .map((supplier: any) => (
+                  <div
+                    key={supplier.id}
+                    className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                      selectedSuppliers.includes(supplier.id)
+                        ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-300 dark:border-blue-700'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-900'
+                    }`}
+                    onClick={() => {
+                      setSelectedSuppliers(prev =>
+                        prev.includes(supplier.id)
+                          ? prev.filter(id => id !== supplier.id)
+                          : [...prev, supplier.id]
+                      );
+                    }}
+                  >
+                    <div className="flex-shrink-0">
+                      {selectedSuppliers.includes(supplier.id) ? (
+                        <div className="h-5 w-5 rounded bg-blue-600 flex items-center justify-center">
+                          <Check className="h-3 w-3 text-white" />
+                        </div>
+                      ) : (
+                        <div className="h-5 w-5 rounded border-2 border-gray-300 dark:border-gray-600" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Building className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-medium text-sm">{supplier.company}</span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">{supplier.name || supplier.contactName}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground truncate">{supplier.email}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          <DialogFooter className="flex items-center justify-between">
+            <div className="flex-1">
+              {selectedSuppliers.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Adding {selectedSuppliers.length} more supplier{selectedSuppliers.length !== 1 ? 's' : ''} to this RFQ
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setAdditionalSuppliersDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                disabled={selectedSuppliers.length === 0}
+                onClick={() => {
+                  sendToAdditionalMutation.mutate({
+                    rfqId: rfqForAdditionalSuppliers?.id,
+                    supplierIds: selectedSuppliers,
+                  });
+                }}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Send to {selectedSuppliers.length || 'Selected'} More Suppliers
               </Button>
             </div>
           </DialogFooter>

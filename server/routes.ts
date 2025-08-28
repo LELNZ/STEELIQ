@@ -10772,6 +10772,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send RFQ to additional suppliers
+  app.post("/api/procurement/rfqs/:id/send-additional", async (req, res) => {
+    try {
+      const rfqId = parseInt(req.params.id);
+      const { supplierIds } = req.body;
+      
+      // Import the RFQ email service
+      const { rfqEmailService } = await import('./services/rfqEmailService');
+      
+      // Send emails to additional suppliers
+      const result = await rfqEmailService.sendRFQToSuppliers(rfqId, supplierIds);
+      
+      res.json({ 
+        success: true, 
+        message: `RFQ sent to ${result.sent} additional suppliers`,
+        details: result 
+      });
+    } catch (error) {
+      console.error("Error sending RFQ to additional suppliers:", error);
+      res.status(500).json({ error: "Failed to send RFQ to additional suppliers" });
+    }
+  });
+
+  // Update RFQ status
+  app.patch("/api/procurement/rfqs/:id", async (req, res) => {
+    try {
+      const rfqId = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      const updatedRfq = await storage.updateRfqStatus(rfqId, status);
+      res.json(updatedRfq);
+    } catch (error) {
+      console.error("Error updating RFQ status:", error);
+      res.status(500).json({ error: "Failed to update RFQ status" });
+    }
+  });
+
   // Create test data for procurement workflow
   app.post("/api/procurement/test-data", async (req, res) => {
     try {
