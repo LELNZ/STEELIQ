@@ -21,7 +21,8 @@ import {
   Send,
   Eye,
   Edit,
-  Clock
+  Clock,
+  Shield
 } from "lucide-react";
 
 interface AuditLogEntry {
@@ -47,6 +48,11 @@ export default function AuditLogViewer() {
   const { data: auditLogs = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/procurement/audit-logs', filterType, filterUser, dateFrom, dateTo],
   });
+  
+  // Navigate to full audit center
+  const navigateToAuditCenter = () => {
+    window.location.href = '/settings/audit-center';
+  };
 
   const getActionIcon = (action: string) => {
     if (action.includes('CREATE')) return <Plus className="h-4 w-4 text-green-600" />;
@@ -166,13 +172,26 @@ export default function AuditLogViewer() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Procurement Audit Trail
-          </CardTitle>
-          <CardDescription>
-            Complete audit log of all procurement activities, RFQ decisions, and notifications
-          </CardDescription>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Procurement Audit Trail
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Complete audit log of all procurement activities, RFQ decisions, and notifications
+              </CardDescription>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={navigateToAuditCenter}
+              className="flex items-center gap-2"
+            >
+              <Shield className="h-4 w-4" />
+              Full Audit Center
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {/* Filters */}

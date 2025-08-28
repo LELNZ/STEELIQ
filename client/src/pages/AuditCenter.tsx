@@ -91,6 +91,25 @@ const categoryColors = {
   security: 'bg-red-500',
 };
 
+// Procurement-specific audit actions for better filtering
+const procurementActions = [
+  'RFQ_CREATED',
+  'RFQ_SENT',
+  'QUOTE_SUBMITTED',
+  'QUOTE_EVALUATED',
+  'WINNER_SELECTED',
+  'REJECTION_NOTIFICATION_SENT',
+  'ACCEPTANCE_NOTIFICATION_SENT',
+  'PO_CREATED',
+  'PO_APPROVED',
+  'PO_SENT',
+  'REQUISITION_CREATED',
+  'REQUISITION_APPROVED',
+  'REQUISITION_REJECTED',
+  'GOODS_RECEIVED',
+  'INVOICE_PROCESSED'
+];
+
 export default function AuditCenter() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -100,6 +119,7 @@ export default function AuditCenter() {
   const [showUnreviewed, setShowUnreviewed] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+  const [quickFilter, setQuickFilter] = useState<string>('all'); // Quick filter for common audit scenarios
   
   const pageSize = 50;
 
