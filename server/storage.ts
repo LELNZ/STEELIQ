@@ -1950,7 +1950,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // RFQ Management Implementation
-  async getRfqRequests(filters?: { status?: string; jobId?: number }): Promise<RfqRequest[]> {
+  async getRfqRequests(filters?: { status?: string; jobId?: number }): Promise<any[]> {
     let query = db.select().from(rfqRequests);
     
     if (filters) {
@@ -1963,7 +1963,21 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
-    return await query.orderBy(desc(rfqRequests.createdAt));
+    const rfqs = await query.orderBy(desc(rfqRequests.createdAt));
+    
+    // Add response counts to each RFQ
+    const rfqsWithCounts = await Promise.all(rfqs.map(async (rfq) => {
+      const responseCount = await db.select({ count: sql<number>`count(*)` })
+        .from(rfqResponses)
+        .where(eq(rfqResponses.rfqId, rfq.id));
+      
+      return {
+        ...rfq,
+        responseCount: Number(responseCount[0]?.count || 0)
+      };
+    }));
+    
+    return rfqsWithCounts;
   }
 
   async getRfqRequest(id: number): Promise<RfqRequest | undefined> {

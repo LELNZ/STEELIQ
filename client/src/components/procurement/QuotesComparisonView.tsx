@@ -17,6 +17,11 @@ import {
   Calendar,
   FileText,
   Plus,
+  Paperclip,
+  Download,
+  Eye,
+  MoreHorizontal,
+  Upload,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -222,7 +227,7 @@ export default function QuotesComparisonView() {
                         Job: {rfq.jobNumber}
                       </p>
                     </div>
-                    <Badge variant="outline">{rfq.responses?.length || 0} quotes</Badge>
+                    <Badge variant="outline">{rfq.responseCount || 0} quotes</Badge>
                   </div>
                 </div>
               ))
@@ -338,6 +343,7 @@ export default function QuotesComparisonView() {
                     <TableHead>Warranty</TableHead>
                     <TableHead>Score</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Documents</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -413,26 +419,64 @@ export default function QuotesComparisonView() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {response.status === 'submitted' && index === 0 && (
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedResponse(response);
-                                  setSelectWinnerDialog(true);
-                                }}
-                              >
-                                Select Winner
-                              </Button>
-                            )}
-                            {response.status === 'selected' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => createPOMutation.mutate(response.id)}
-                              >
-                                Create PO
-                              </Button>
-                            )}
+                            <div className="flex items-center gap-1">
+                              {response.attachments && response.attachments.length > 0 ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => {
+                                    // View attachments
+                                    toast({
+                                      title: "Documents",
+                                      description: `${response.attachments.length} document(s) attached`,
+                                    });
+                                  }}
+                                >
+                                  <Paperclip className="h-4 w-4" />
+                                  <span className="ml-1 text-xs">{response.attachments.length}</span>
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => {
+                                    // Add attachment
+                                    toast({
+                                      title: "Add Documents",
+                                      description: "Document upload feature coming soon",
+                                    });
+                                  }}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              {response.status === 'submitted' && index === 0 && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedResponse(response);
+                                    setSelectWinnerDialog(true);
+                                  }}
+                                >
+                                  Select Winner
+                                </Button>
+                              )}
+                              {response.status === 'selected' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => createPOMutation.mutate(response.id)}
+                                >
+                                  Create PO
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
@@ -582,6 +626,21 @@ export default function QuotesComparisonView() {
                 placeholder="Additional information about the quote..."
                 rows={3}
               />
+            </div>
+            <div>
+              <Label htmlFor="documents">Attach Documents</Label>
+              <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors cursor-pointer">
+                <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-sm text-muted-foreground">
+                  Click to upload or drag and drop
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  PDF, Word, Excel files (up to 10MB)
+                </p>
+                <p className="text-xs text-orange-600 mt-2 font-medium">
+                  Document upload feature coming soon - save quote details now and add documents later
+                </p>
+              </div>
             </div>
           </div>
           <DialogFooter>
