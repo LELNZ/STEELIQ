@@ -9350,9 +9350,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ['sent', 'acknowledged', 'partial'].includes(po.status)
       );
       
+      // Include all non-cancelled RFQs as active (draft, sent, evaluating)
       const activeRfqs = rfqRequests.filter(rfq => 
-        ['sent', 'evaluating'].includes(rfq.status)
+        ['draft', 'sent', 'evaluating'].includes(rfq.status)
       );
+      
+      // Count POs awaiting delivery
+      const awaitingDelivery = purchaseOrders.filter(po => 
+        ['acknowledged', 'partial'].includes(po.status)
+      ).length;
       
       const metrics = {
         pendingApprovals: pendingRequisitions.length,
@@ -9361,7 +9367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         monthlySpend: 0, // Will be calculated from actual POs
         savingsThisMonth: 0, // Will be calculated from RFQ savings
         pendingRequisitions: pendingRequisitions.length,
-        awaitingDelivery: 0, // Will be implemented with GRN functionality
+        awaitingDelivery: awaitingDelivery,
       };
       
       res.json(metrics);

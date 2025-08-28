@@ -82,7 +82,10 @@ export default function PurchaseOrdersView() {
     queryKey: ["/api/procurement/requisitions"],
   });
 
-  const approvedRequisitions = requisitions.filter((r: any) => r.status === "approved");
+  // Only show approved requisitions that DON'T have an RFQ (emergency purchases only)
+  const approvedRequisitions = requisitions.filter((r: any) => 
+    r.status === "approved" && !r.hasRfq
+  );
 
   // Fetch purchase orders
   const { data: purchaseOrders = [], isLoading: posLoading } = useQuery({
@@ -160,7 +163,7 @@ export default function PurchaseOrdersView() {
           <CardHeader>
             <CardTitle>Ready for Purchase Order</CardTitle>
             <CardDescription>
-              Approved requisitions that can be converted to Purchase Orders
+              Emergency purchases that bypassed RFQ process (requires manager approval)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -175,6 +178,9 @@ export default function PurchaseOrdersView() {
                       <span className="font-medium text-sm">{req.requisitionNumber}</span>
                       <Badge variant="success" className="text-xs">
                         Approved
+                      </Badge>
+                      <Badge variant="destructive" className="text-xs">
+                        Emergency - No RFQ
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
