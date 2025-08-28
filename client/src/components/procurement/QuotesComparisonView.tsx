@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Calendar,
   FileText,
+  Plus,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -37,6 +38,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 const responseStatusColors = {
   submitted: "secondary",
@@ -49,7 +58,21 @@ export default function QuotesComparisonView() {
   const [selectedRfqId, setSelectedRfqId] = useState<number | null>(null);
   const [selectWinnerDialog, setSelectWinnerDialog] = useState(false);
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
+  const [manualQuoteDialog, setManualQuoteDialog] = useState(false);
+  const [manualQuoteForm, setManualQuoteForm] = useState({
+    supplierId: '',
+    totalAmount: '',
+    deliveryDays: '',
+    paymentTermsOffered: 'Net 30',
+    warrantyOffered: '',
+    notes: '',
+  });
   const { toast } = useToast();
+
+  // Fetch suppliers
+  const { data: suppliers = [] } = useQuery({
+    queryKey: ["/api/suppliers"],
+  });
 
   // Fetch RFQs with responses
   const { data: rfqs = [], isLoading: rfqsLoading } = useQuery({
@@ -85,6 +108,35 @@ export default function QuotesComparisonView() {
       toast({
         title: "Error",
         description: error.message || "Failed to select winner",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Submit manual quote mutation
+  const submitManualQuoteMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiRequest(`/api/procurement/rfqs/${selectedRfqId}/responses`, "POST", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/procurement/rfqs/${selectedRfqId}/responses`] });
+      setManualQuoteDialog(false);
+      setManualQuoteForm({
+        supplierId: '',
+        totalAmount: '',
+        deliveryDays: '',
+        paymentTermsOffered: 'Net 30',
+        warrantyOffered: '',
+        notes: '',
+      });
+      toast({
+        title: "Success",
+        description: "Quote added successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add quote",
         variant: "destructive",
       });
     },
@@ -257,6 +309,15 @@ export default function QuotesComparisonView() {
                 {selectedRfq && ` - ${selectedRfq.rfqNumber}`}
               </CardDescription>
             </div>
+            {selectedRfqId && (
+              <Button
+                size="sm"
+                onClick={() => setManualQuoteDialog(true)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Manual Quote
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -431,6 +492,127 @@ export default function QuotesComparisonView() {
               }}
             >
               Confirm Selection
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Quote Entry Dialog */}
+      <Dialog open={manualQuoteDialog} onOpenChange={setManualQuoteDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Manual Quote</DialogTitle>
+            <DialogDescription>
+              Manually enter a quote received from a supplier (e.g., via email or phone)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="supplier">Supplier *</Label>
+              <Select
+                value={manualQuoteForm.supplierId}
+                onValueChange={(value) => setManualQuoteForm({...manualQuoteForm, supplierId: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {suppliers.map((supplier: any) => (
+                    <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                      {supplier.name} {supplier.company ? `(${supplier.company})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="amount">Total Amount (NZD) *</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={manualQuoteForm.totalAmount}
+                onChange={(e) => setManualQuoteForm({...manualQuoteForm, totalAmount: e.target.value})}
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <Label htmlFor="delivery">Delivery Days *</Label>
+              <Input
+                id="delivery"
+                type="number"
+                value={manualQuoteForm.deliveryDays}
+                onChange={(e) => setManualQuoteForm({...manualQuoteForm, deliveryDays: e.target.value})}
+                placeholder="Number of days for delivery"
+              />
+            </div>
+            <div>
+              <Label htmlFor="payment">Payment Terms</Label>
+              <Select
+                value={manualQuoteForm.paymentTermsOffered}
+                onValueChange={(value) => setManualQuoteForm({...manualQuoteForm, paymentTermsOffered: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Net 30">Net 30</SelectItem>
+                  <SelectItem value="Net 45">Net 45</SelectItem>
+                  <SelectItem value="Net 60">Net 60</SelectItem>
+                  <SelectItem value="2/10 Net 30">2/10 Net 30</SelectItem>
+                  <SelectItem value="COD">COD</SelectItem>
+                  <SelectItem value="Prepaid">Prepaid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="warranty">Warranty Offered</Label>
+              <Input
+                id="warranty"
+                value={manualQuoteForm.warrantyOffered}
+                onChange={(e) => setManualQuoteForm({...manualQuoteForm, warrantyOffered: e.target.value})}
+                placeholder="e.g., 12 months, 24 months"
+              />
+            </div>
+            <div>
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={manualQuoteForm.notes}
+                onChange={(e) => setManualQuoteForm({...manualQuoteForm, notes: e.target.value})}
+                placeholder="Additional information about the quote..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManualQuoteDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!manualQuoteForm.supplierId || !manualQuoteForm.totalAmount || !manualQuoteForm.deliveryDays) {
+                  toast({
+                    title: "Error",
+                    description: "Please fill in all required fields",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                submitManualQuoteMutation.mutate({
+                  supplierId: parseInt(manualQuoteForm.supplierId),
+                  totalAmount: parseFloat(manualQuoteForm.totalAmount),
+                  deliveryDays: parseInt(manualQuoteForm.deliveryDays),
+                  paymentTermsOffered: manualQuoteForm.paymentTermsOffered,
+                  warrantyOffered: manualQuoteForm.warrantyOffered || null,
+                  notes: manualQuoteForm.notes || null,
+                  validityDays: 30,
+                  currency: 'NZD',
+                  lineItems: [],
+                });
+              }}
+              disabled={submitManualQuoteMutation.isPending}
+            >
+              Add Quote
             </Button>
           </DialogFooter>
         </DialogContent>

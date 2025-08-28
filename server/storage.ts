@@ -2015,10 +2015,42 @@ export class DatabaseStorage implements IStorage {
   }
 
   // RFQ Responses Implementation
-  async getRfqResponses(rfqId: number): Promise<RfqResponse[]> {
-    return await db.select().from(rfqResponses)
-      .where(eq(rfqResponses.rfqId, rfqId))
-      .orderBy(asc(rfqResponses.totalScore));
+  async getRfqResponses(rfqId: number): Promise<any[]> {
+    const responses = await db.select({
+      id: rfqResponses.id,
+      rfqId: rfqResponses.rfqId,
+      supplierId: rfqResponses.supplierId,
+      supplierName: suppliers.name,
+      supplierCompany: suppliers.company,
+      responseNumber: rfqResponses.responseNumber,
+      status: rfqResponses.status,
+      totalAmount: rfqResponses.totalAmount,
+      currency: rfqResponses.currency,
+      validityDays: rfqResponses.validityDays,
+      deliveryDays: rfqResponses.deliveryDays,
+      paymentTermsOffered: rfqResponses.paymentTermsOffered,
+      warrantyOffered: rfqResponses.warrantyOffered,
+      priceScore: rfqResponses.priceScore,
+      qualityScore: rfqResponses.qualityScore,
+      deliveryScore: rfqResponses.deliveryScore,
+      totalScore: rfqResponses.totalScore,
+      ranking: rfqResponses.ranking,
+      notes: rfqResponses.notes,
+      attachments: rfqResponses.attachments,
+      lineItems: rfqResponses.lineItems,
+      reviewedBy: rfqResponses.reviewedBy,
+      reviewedAt: rfqResponses.reviewedAt,
+      rejectionReason: rfqResponses.rejectionReason,
+      submittedAt: rfqResponses.submittedAt,
+      createdAt: rfqResponses.createdAt,
+      updatedAt: rfqResponses.updatedAt,
+    })
+    .from(rfqResponses)
+    .leftJoin(suppliers, eq(rfqResponses.supplierId, suppliers.id))
+    .where(eq(rfqResponses.rfqId, rfqId))
+    .orderBy(asc(rfqResponses.totalScore));
+    
+    return responses;
   }
 
   async getRfqResponse(id: number): Promise<RfqResponse | undefined> {
