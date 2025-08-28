@@ -182,7 +182,10 @@ export default function QuotesComparisonView() {
     },
   });
 
-  const activeRfqs = rfqs.filter((rfq: any) => rfq.status === 'sent');
+  // Show RFQs that have responses (sent, evaluation, or closed with winner)
+  const activeRfqs = rfqs.filter((rfq: any) => 
+    ['sent', 'evaluation', 'closed'].includes(rfq.status) && rfq.responseCount > 0
+  );
   const selectedRfq = rfqs.find((rfq: any) => rfq.id === selectedRfqId);
 
   // Calculate comparison metrics
@@ -215,7 +218,11 @@ export default function QuotesComparisonView() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            {activeRfqs.length === 0 ? (
+            {rfqsLoading ? (
+              <div className="col-span-3 text-center py-8">
+                <p className="text-muted-foreground">Loading RFQs...</p>
+              </div>
+            ) : activeRfqs.length === 0 ? (
               <div className="col-span-3 text-center py-8">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">No RFQs with responses</p>
@@ -227,10 +234,12 @@ export default function QuotesComparisonView() {
               activeRfqs.map((rfq: any) => (
                 <div
                   key={rfq.id}
-                  className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                  className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
                     selectedRfqId === rfq.id
-                      ? "border-primary bg-primary/5"
-                      : "hover:border-gray-400"
+                      ? "border-primary bg-primary/5 shadow-md"
+                      : rfq.winningResponseId
+                      ? "border-green-300 bg-green-50 hover:border-green-400"
+                      : "border-gray-200 hover:border-gray-400"
                   }`}
                   onClick={() => setSelectedRfqId(rfq.id)}
                 >
@@ -238,19 +247,26 @@ export default function QuotesComparisonView() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-sm">{rfq.rfqNumber}</p>
-                        {rfq.status === 'closed' && (
-                          <Badge className="bg-green-600">
-                            <Check className="h-3 w-3 mr-1" />
-                            Awarded
+                        {rfq.winningResponseId && (
+                          <Badge className="bg-green-600 text-white">
+                            <Trophy className="h-3 w-3 mr-1" />
+                            AWARDED
                           </Badge>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">{rfq.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        Job: {rfq.jobNumber}
+                        Job: {rfq.jobNumber || 'No job linked'}
                       </p>
                     </div>
-                    <Badge variant="outline">{rfq.responseCount || 0} quotes</Badge>
+                    <div className="text-right">
+                      <Badge variant="outline" className="mb-1">
+                        {rfq.responseCount || 0} quotes
+                      </Badge>
+                      {rfq.winningResponseId && (
+                        <p className="text-xs text-green-600 font-medium">Winner Selected</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
@@ -383,13 +399,19 @@ export default function QuotesComparisonView() {
                       .map((response: any, index: number) => (
                         <TableRow 
                           key={response.id} 
-                          className={`text-xs ${response.status === 'selected' ? 'bg-green-50 border-l-4 border-green-500' : ''}`}
+                          className={`text-xs ${
+                            response.status === 'selected' 
+                              ? 'bg-green-100 border-l-4 border-l-green-500 font-medium shadow-sm' 
+                              : response.status === 'rejected'
+                              ? 'opacity-60 bg-gray-50'
+                              : ''
+                          }`}
                         >
                           <TableCell>
                             {response.status === 'selected' ? (
-                              <div className="flex items-center gap-1 text-green-600">
-                                <CheckCircle2 className="h-4 w-4" />
-                                <span className="font-semibold">Winner</span>
+                              <div className="flex items-center gap-1 text-green-700 font-bold">
+                                <Trophy className="h-4 w-4 text-yellow-500" />
+                                <span>WINNER</span>
                               </div>
                             ) : (
                               response.totalScore ? (
@@ -438,11 +460,17 @@ export default function QuotesComparisonView() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={responseStatusColors[response.status as keyof typeof responseStatusColors]}>
-                              {response.status === 'selected' ? 'AWARDED' : response.status}
-                            </Badge>
+                            {response.status === 'selected' ? (
+                              <Badge className="bg-green-600 text-white hover:bg-green-700">
+                                AWARDED
+                              </Badge>
+                            ) : (
+                              <Badge variant={responseStatusColors[response.status as keyof typeof responseStatusColors]}>
+                                {response.status}
+                              </Badge>
+                            )}
                             {response.notes && response.notes.includes('OVERRIDE') && (
-                              <Badge variant="warning" className="ml-1">Override</Badge>
+                              <Badge variant="warning" className="ml-1">Manual Override</Badge>
                             )}
                           </TableCell>
                           <TableCell>
