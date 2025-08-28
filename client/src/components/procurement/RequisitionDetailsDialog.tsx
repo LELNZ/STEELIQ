@@ -35,14 +35,9 @@ const statusColors = {
   pending_approval: "warning",
   approved: "success",
   rejected: "destructive",
+  converted: "default",
   converted_to_po: "default",
   cancelled: "secondary",
-} as const;
-
-const priorityColors = {
-  standard: "secondary",
-  urgent: "warning",
-  critical: "destructive",
 } as const;
 
 export default function RequisitionDetailsDialog({ 
@@ -132,7 +127,6 @@ export default function RequisitionDetailsDialog({
         supplierId: selectedSupplierId ? parseInt(selectedSupplierId) : undefined
       }),
     onSuccess: (data) => {
-      // Invalidate all related queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ["/api/procurement/requisitions"] });
       queryClient.invalidateQueries({ queryKey: [`/api/procurement/requisitions/${requisitionId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/procurement/requisitions/${requisitionId}/history`] });
@@ -140,11 +134,10 @@ export default function RequisitionDetailsDialog({
       queryClient.invalidateQueries({ queryKey: ["/api/procurement/metrics"] });
       toast({
         title: "Success",
-        description: "Requisition approved successfully. Status will update momentarily.",
+        description: "Requisition approved successfully",
       });
       setApprovalComments("");
-      // Close dialog after a brief delay to show success message
-      setTimeout(() => onOpenChange(false), 1500);
+      setTimeout(() => onOpenChange(false), 1000);
     },
     onError: (error: any) => {
       toast({
@@ -185,7 +178,7 @@ export default function RequisitionDetailsDialog({
   if (isLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Loading...</DialogTitle>
           </DialogHeader>
@@ -202,7 +195,7 @@ export default function RequisitionDetailsDialog({
   if (showSupplierForm) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Supplier</DialogTitle>
             <DialogDescription>
@@ -222,103 +215,79 @@ export default function RequisitionDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-xl">{requisition.requisitionNumber}</DialogTitle>
-              <DialogDescription className="mt-2">
-                Requisition Details and Approval
-              </DialogDescription>
-            </div>
-            <div className="flex gap-2">
-              <Badge variant={priorityColors[requisition.priority as keyof typeof priorityColors]}>
-                {requisition.priority}
-              </Badge>
-              <Badge variant={statusColors[requisition.status as keyof typeof statusColors]}>
-                {requisition.status.replace(/_/g, " ")}
-              </Badge>
-            </div>
+            <DialogTitle className="text-lg">{requisition.requisitionNumber}</DialogTitle>
+            <Badge variant={statusColors[requisition.status as keyof typeof statusColors]}>
+              {requisition.status === 'pending_approval' ? 'pending approval' : requisition.status}
+            </Badge>
           </div>
+          <DialogDescription className="mt-1">
+            Requisition Details and Approval
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Basic Information */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Department:</span>
-                <span className="font-medium">{requisition.department}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Category:</span>
-                <span className="font-medium">{requisition.category}</span>
-              </div>
-              {requisition.jobId && (
-                <div className="flex items-center gap-2 text-sm">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Job:</span>
-                  <span className="font-medium">Job #{requisition.jobId}</span>
-                </div>
-              )}
+        <div className="space-y-4 py-2">
+          {/* Compact Basic Info */}
+          <div className="grid grid-cols-3 gap-x-4 gap-y-2 text-sm">
+            <div className="flex items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">Department:</span>
+              <span className="font-medium">{requisition.department}</span>
             </div>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Required By:</span>
-                <span className="font-medium">
-                  {requisition.requiredByDate 
-                    ? format(new Date(requisition.requiredByDate), "MMM dd, yyyy")
-                    : "Not specified"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Delivery Location:</span>
-                <span className="font-medium">{requisition.deliveryLocation || "Workshop"}</span>
-              </div>
-              {requisition.preferredSupplierId && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Supplier:</span>
-                  <span className="font-medium">
-                    {suppliers?.find((s: any) => s.id === requisition.preferredSupplierId)?.name || "Loading..."}
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Created:</span>
-                <span className="font-medium">
-                  {format(new Date(requisition.createdAt), "MMM dd, yyyy")}
-                </span>
-              </div>
+            <div className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">Required:</span>
+              <span className="font-medium">
+                {requisition.requiredByDate ? format(new Date(requisition.requiredByDate), "dd MMM") : "N/A"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">Supplier:</span>
+              <span className="font-medium">
+                {requisition.preferredSupplierId 
+                  ? suppliers?.find((s: any) => s.id === requisition.preferredSupplierId)?.name || "Loading..."
+                  : "None"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">Category:</span>
+              <span className="font-medium">{requisition.category}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">Delivery:</span>
+              <span className="font-medium">{requisition.deliveryLocation || "Workshop"}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">Created:</span>
+              <span className="font-medium">{format(new Date(requisition.createdAt), "dd MMM")}</span>
             </div>
           </div>
 
           {/* Justification */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Justification</Label>
-            <div className="p-3 bg-muted rounded-lg">
-              <p className="text-sm">{requisition.justification}</p>
-            </div>
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground mb-1 block">Justification</Label>
+            <div className="p-2 bg-muted rounded text-sm">{requisition.justification}</div>
           </div>
 
-          {/* Line Items */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Items</Label>
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-muted">
+          {/* Compact Items Table */}
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground mb-1 block">Items</Label>
+            <div className="border rounded">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/50">
                   <tr>
-                    <th className="text-left p-2 text-sm">Description</th>
-                    <th className="text-left p-2 text-sm">Specification</th>
-                    <th className="text-right p-2 text-sm">Quantity</th>
-                    <th className="text-left p-2 text-sm">Unit</th>
-                    <th className="text-right p-2 text-sm">Unit Price</th>
-                    <th className="text-right p-2 text-sm">Total</th>
+                    <th className="text-left p-1.5">Description</th>
+                    <th className="text-left p-1.5">Specification</th>
+                    <th className="text-right p-1.5">Qty</th>
+                    <th className="text-left p-1.5">Unit</th>
+                    <th className="text-right p-1.5">Unit Price</th>
+                    <th className="text-right p-1.5">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -335,26 +304,20 @@ export default function RequisitionDetailsDialog({
                     
                     return (
                       <tr key={index} className="border-t">
-                        <td className="p-2 text-sm">{item.description || "-"}</td>
-                        <td className="p-2 text-sm">{item.specification || "-"}</td>
-                        <td className="text-right p-2 text-sm">{quantity}</td>
-                        <td className="p-2 text-sm">{item.unit || "-"}</td>
-                        <td className="text-right p-2 text-sm">
-                          ${unitPrice.toFixed(2)}
-                        </td>
-                        <td className="text-right p-2 text-sm font-medium">
-                          ${total.toFixed(2)}
-                        </td>
+                        <td className="p-1.5">{item.description || "-"}</td>
+                        <td className="p-1.5">{item.specification || "-"}</td>
+                        <td className="text-right p-1.5">{quantity}</td>
+                        <td className="p-1.5">{item.unit || "each"}</td>
+                        <td className="text-right p-1.5">${unitPrice.toFixed(2)}</td>
+                        <td className="text-right p-1.5 font-medium">${total.toFixed(2)}</td>
                       </tr>
                     );
                   })}
                 </tbody>
-                <tfoot className="bg-muted">
+                <tfoot className="bg-muted/50 border-t">
                   <tr>
-                    <td colSpan={5} className="text-right p-2 font-medium">Total:</td>
-                    <td className="text-right p-2 text-lg font-bold">
-                      ${(requisition.estimatedTotal || 0).toFixed(2)}
-                    </td>
+                    <td colSpan={5} className="text-right p-1.5 font-medium">Total:</td>
+                    <td className="text-right p-1.5 font-bold">${(requisition.estimatedTotal || 0).toFixed(2)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -363,96 +326,41 @@ export default function RequisitionDetailsDialog({
 
           {/* Additional Notes */}
           {requisition.notes && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Additional Notes</Label>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm">{requisition.notes}</p>
-              </div>
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground mb-1 block">Additional Notes</Label>
+              <div className="p-2 bg-muted rounded text-sm">{requisition.notes}</div>
             </div>
           )}
 
-          {/* Approval History Section */}
-          {approvalHistory && approvalHistory.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Approval History</Label>
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left p-2 text-sm">Date</th>
-                      <th className="text-left p-2 text-sm">Level</th>
-                      <th className="text-left p-2 text-sm">Approver</th>
-                      <th className="text-left p-2 text-sm">Action</th>
-                      <th className="text-left p-2 text-sm">Comments</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {approvalHistory.map((history: any, index: number) => (
-                      <tr key={history.id} className="border-t">
-                        <td className="p-2 text-sm">
-                          {format(new Date(history.actionAt || history.action_at), "MMM dd, yyyy HH:mm")}
-                        </td>
-                        <td className="p-2 text-sm">Level {history.approvalLevel || history.approval_level}</td>
-                        <td className="p-2 text-sm">
-                          {history.approverName || `User ${history.approverId || history.approver_id}`}
-                        </td>
-                        <td className="p-2">
-                          <Badge 
-                            variant={
-                              history.action === 'approved' ? 'success' : 
-                              history.action === 'rejected' ? 'destructive' : 
-                              'secondary'
-                            }
-                            className="text-xs"
-                          >
-                            {history.action}
-                          </Badge>
-                        </td>
-                        <td className="p-2 text-sm">{history.comments || "-"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Approval Section - Only show if pending */}
+          {/* Approval Decision Section - More Compact */}
           {canApprove && (
-            <div className="border-t pt-4 space-y-4">
-              <Label className="text-sm font-medium">Approval Decision</Label>
-              
-              <div className="bg-warning/10 border border-warning/50 rounded-lg p-3">
+            <div className="border-t pt-3 space-y-3">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-warning" />
-                  <div>
-                    <p className="font-medium text-sm">Approval Required</p>
-                    <p className="text-xs text-muted-foreground">
-                      Level {requisition.currentApprovalLevel + 1} of {requisition.maxApprovalLevel} required
-                    </p>
-                  </div>
+                  <AlertCircle className="h-4 w-4 text-warning" />
+                  <span className="text-sm font-medium">Approval Required</span>
+                  <Badge variant="outline" className="text-xs">
+                    Level {requisition.currentApprovalLevel + 1} of {requisition.maxApprovalLevel}
+                  </Badge>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSupplierForm(true)}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  New Supplier
+                </Button>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="supplier">Select Supplier *</Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowSupplierForm(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      New Supplier
-                    </Button>
-                  </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
                   <Select
                     value={selectedSupplierId}
                     onValueChange={setSelectedSupplierId}
                   >
-                    <SelectTrigger id="supplier">
-                      <SelectValue placeholder="Choose a supplier (required)" />
+                    <SelectTrigger className="flex-1 h-8">
+                      <SelectValue placeholder="Select Supplier *" />
                     </SelectTrigger>
                     <SelectContent>
                       {suppliers.map((supplier: any) => (
@@ -462,26 +370,20 @@ export default function RequisitionDetailsDialog({
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    A supplier must be selected before approving the requisition
-                  </p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="comments">Comments (Optional for Approval)</Label>
-                  <Textarea
-                    id="comments"
-                    value={approvalComments}
-                    onChange={(e) => setApprovalComments(e.target.value)}
-                    placeholder="Add any comments about this approval..."
-                    rows={3}
-                  />
-                </div>
+                
+                <Textarea
+                  value={approvalComments}
+                  onChange={(e) => setApprovalComments(e.target.value)}
+                  placeholder="Comments (Optional for Approval)"
+                  rows={2}
+                  className="text-sm"
+                />
               </div>
 
               <div className="flex gap-2">
                 <Button 
-                  className="flex-1"
+                  className="flex-1 h-8"
                   onClick={() => {
                     if (!selectedSupplierId) {
                       toast({
@@ -495,13 +397,13 @@ export default function RequisitionDetailsDialog({
                   }}
                   disabled={approveMutation.isPending || !selectedSupplierId}
                 >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {approveMutation.isPending ? "Approving..." : "Approve Requisition"}
+                  <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                  {approveMutation.isPending ? "Approving..." : "Approve"}
                 </Button>
                 
                 <Button 
                   variant="destructive"
-                  className="flex-1"
+                  className="flex-1 h-8"
                   onClick={() => {
                     if (!rejectionReason) {
                       toast({
@@ -515,69 +417,56 @@ export default function RequisitionDetailsDialog({
                   }}
                   disabled={rejectMutation.isPending}
                 >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  {rejectMutation.isPending ? "Rejecting..." : "Reject Requisition"}
+                  <XCircle className="h-3.5 w-3.5 mr-1" />
+                  {rejectMutation.isPending ? "Rejecting..." : "Reject"}
                 </Button>
               </div>
 
-              {/* Rejection Reason - Show only when rejection is selected */}
-              <div className="space-y-2">
-                <Label htmlFor="rejection">Rejection Reason (Required for Rejection)</Label>
-                <Textarea
-                  id="rejection"
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Please provide a reason for rejection..."
-                  rows={3}
-                  className="border-destructive/50"
-                />
+              {/* Rejection Reason - Compact */}
+              <Textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Rejection Reason (Required for Rejection)"
+                rows={2}
+                className="text-sm border-destructive/30"
+              />
+            </div>
+          )}
+
+          {/* Status Messages - Compact */}
+          {requisition.status === 'approved' && (
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded p-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <span className="text-sm font-medium text-green-900 dark:text-green-100">
+                  Approved - Ready for RFQ/PO creation
+                </span>
               </div>
             </div>
           )}
 
-          {/* Show approval/rejection status if already processed */}
-          {requisition.status === 'approved' && (
-            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+          {requisition.status === 'rejected' && (
+            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded p-2">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                <div className="flex-1">
-                  <p className="font-medium text-green-900 dark:text-green-100">Requisition Approved</p>
-                  {approvalHistory && approvalHistory.length > 0 && (
-                    <p className="text-sm text-green-800 dark:text-green-200 mt-1">
-                      All {approvalHistory.filter((h: any) => h.action === 'approved').length} approval levels completed
-                    </p>
-                  )}
-                </div>
+                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <span className="text-sm font-medium text-red-900 dark:text-red-100">Rejected</span>
               </div>
-              {requisition.approvalNotes && (
-                <p className="text-sm text-green-800 dark:text-green-200 mt-2 italic">
-                  "{requisition.approvalNotes}"
+              {approvalHistory && approvalHistory.length > 0 && (
+                <p className="text-xs text-red-800 dark:text-red-200 mt-1 ml-6">
+                  {approvalHistory[approvalHistory.length - 1]?.comments || "No reason provided"}
                 </p>
               )}
             </div>
           )}
 
-          {requisition.status === 'rejected' && (
-            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
+          {requisition.status === 'converted' && (
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-2">
               <div className="flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-                <div className="flex-1">
-                  <p className="font-medium text-red-900 dark:text-red-100">Requisition Rejected</p>
-                  {approvalHistory && approvalHistory.length > 0 && (
-                    <p className="text-sm text-red-800 dark:text-red-200 mt-1">
-                      Rejected at Level {approvalHistory.find((h: any) => h.action === 'rejected')?.approvalLevel || requisition.currentApprovalLevel}
-                    </p>
-                  )}
-                </div>
+                <Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Converted to Purchase Order
+                </span>
               </div>
-              {requisition.approvalNotes && (
-                <div className="mt-2">
-                  <p className="text-xs text-red-700 dark:text-red-300 font-medium">Rejection Reason:</p>
-                  <p className="text-sm text-red-800 dark:text-red-200 italic">
-                    "{requisition.approvalNotes}"
-                  </p>
-                </div>
-              )}
             </div>
           )}
         </div>
