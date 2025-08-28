@@ -82,9 +82,9 @@ export default function PurchaseOrdersView() {
     queryKey: ["/api/procurement/requisitions"],
   });
 
-  // Only show approved requisitions that DON'T have an RFQ (emergency purchases only)
+  // Only show approved requisitions that are explicitly marked as emergency
   const approvedRequisitions = requisitions.filter((r: any) => 
-    r.status === "approved" && !r.hasRfq
+    r.status === "approved" && r.isEmergency === true
   );
 
   // Fetch purchase orders

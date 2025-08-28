@@ -9721,6 +9721,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Emergency PO created: Requisition ${requisitionId}, Amount: $${amount}, Justification: ${req.body.emergencyJustification}`);
       }
       
+      // Update requisition with emergency information if applicable
+      if (isEmergency) {
+        await storage.updateRequisition(requisitionId, {
+          isEmergency: true,
+          emergencyJustification: req.body.emergencyJustification,
+          emergencyApprovedBy: user.id,
+          emergencyApprovedAt: new Date()
+        });
+      }
+      
       // Convert to PO
       const purchaseOrder = await storage.convertRequisitionToPO(requisitionId, supplierId, user.id);
       

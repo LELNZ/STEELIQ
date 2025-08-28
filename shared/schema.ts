@@ -3659,6 +3659,11 @@ export const purchaseRequisitions = pgTable("purchase_requisitions", {
   convertedToPoId: integer("converted_to_po_id").references(() => purchaseOrders.id),
   convertedAt: timestamp("converted_at"),
   convertedBy: integer("converted_by").references(() => users.id),
+  // Emergency bypass tracking
+  isEmergency: boolean("is_emergency").default(false),
+  emergencyJustification: text("emergency_justification"),
+  emergencyApprovedBy: integer("emergency_approved_by").references(() => users.id),
+  emergencyApprovedAt: timestamp("emergency_approved_at"),
   // Archive tracking
   isArchived: boolean("is_archived").default(false),
   archivedAt: timestamp("archived_at"),
