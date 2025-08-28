@@ -10795,6 +10795,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send Reminder for RFQ
+  app.post("/api/procurement/rfqs/:id/reminder", async (req, res) => {
+    try {
+      const rfqId = parseInt(req.params.id);
+      const rfq = await storage.getRfqRequest(rfqId);
+      
+      if (!rfq) {
+        return res.status(404).json({ error: "RFQ not found" });
+      }
+
+      // Get all invited suppliers
+      const invitedSupplierIds = rfq.invitedSuppliers || [];
+      const suppliers = await storage.getAllSuppliers();
+      
+      // Get responses to know who hasn't responded
+      const responses = await storage.getRfqResponses(rfqId);
+      const respondedSupplierIds = responses.map((r: any) => r.supplierId);
+      
+      // Filter non-responsive suppliers
+      const nonResponsiveSuppliers = suppliers.filter((s: any) => 
+        invitedSupplierIds.includes(s.id) && !respondedSupplierIds.includes(s.id)
+      );
+
+      if (nonResponsiveSuppliers.length === 0) {
+        return res.json({ 
+          success: true, 
+          message: "All suppliers have already responded" 
+        });
+      }
+
+      // Import the RFQ email service
+      const { rfqEmailService } = await import('./services/rfqEmailService');
+      
+      // Send reminder emails (reuse the sendRFQToSuppliers function)
+      const result = await rfqEmailService.sendRFQToSuppliers(
+        rfqId, 
+        nonResponsiveSuppliers.map((s: any) => s.id),
+        true // isReminder flag
+      );
+      
+      res.json({ 
+        success: true, 
+        message: `Reminder sent to ${nonResponsiveSuppliers.length} suppliers`,
+        details: result
+      });
+    } catch (error) {
+      console.error("Error sending RFQ reminder:", error);
+      res.status(500).json({ error: "Failed to send reminder" });
+    }
+  });
+
+  // Duplicate RFQ
+  app.post("/api/procurement/rfqs/:id/duplicate", async (req, res) => {
+    try {
+      const rfqId = parseInt(req.params.id);
+      const originalRfq = await storage.getRfqRequest(rfqId);
+      
+      if (!originalRfq) {
+        return res.status(404).json({ error: "RFQ not found" });
+      }
+
+      // Generate new RFQ number
+      const rfqNumber = await storage.generateRfqNumber();
+      
+      // Create duplicate with new number and draft status
+      const duplicateRfq = {
+        rfqNumber,
+        requisitionId: originalRfq.requisitionId,
+        jobId: originalRfq.jobId,
+        jobNumber: originalRfq.jobNumber,
+        title: `${originalRfq.title} (Copy)`,
+        description: originalRfq.description,
+        category: originalRfq.category,
+        status: 'draft',
+        responseDeadline: originalRfq.responseDeadline,
+        deliveryRequiredBy: originalRfq.deliveryRequiredBy,
+        deliveryTerms: originalRfq.deliveryTerms,
+        paymentTerms: originalRfq.paymentTerms,
+        evaluationCriteria: originalRfq.evaluationCriteria,
+        specialRequirements: originalRfq.specialRequirements,
+        attachments: originalRfq.attachments,
+        invitedSuppliers: originalRfq.invitedSuppliers,
+        publicRfq: originalRfq.publicRfq,
+        sentAt: null,
+        closedAt: null,
+        winningResponseId: null,
+        createdBy: originalRfq.createdBy,
+      };
+      
+      const newRfq = await storage.createRfqRequest(duplicateRfq);
+      
+      res.json(newRfq);
+    } catch (error) {
+      console.error("Error duplicating RFQ:", error);
+      res.status(500).json({ error: "Failed to duplicate RFQ" });
+    }
+  });
+
   // Update RFQ status
   app.patch("/api/procurement/rfqs/:id", async (req, res) => {
     try {

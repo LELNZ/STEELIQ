@@ -41,9 +41,10 @@ interface RFQDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   rfqId: number;
+  onViewComparison?: () => void;
 }
 
-export function RFQDetailsDialog({ open, onOpenChange, rfqId }: RFQDetailsDialogProps) {
+export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison }: RFQDetailsDialogProps) {
   // Fetch RFQ details
   const { data: rfq, isLoading } = useQuery({
     queryKey: [`/api/procurement/rfqs/${rfqId}`],
@@ -421,8 +422,13 @@ export function RFQDetailsDialog({ open, onOpenChange, rfqId }: RFQDetailsDialog
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          {rfq.status === 'sent' && (
-            <Button>
+          {rfq.status === 'sent' && responses.length > 0 && (
+            <Button 
+              onClick={() => {
+                onOpenChange(false);
+                onViewComparison?.();
+              }}
+            >
               <TrendingUp className="h-4 w-4 mr-2" />
               View Comparison
             </Button>

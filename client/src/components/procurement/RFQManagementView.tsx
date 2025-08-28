@@ -71,6 +71,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { RFQDetailsDialog } from "./RFQDetailsDialog";
+import { RFQComparisonView } from "./RFQComparisonView";
 
 const rfqStatusColors = {
   draft: "secondary",
@@ -100,6 +101,8 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
   const [rfqForAdditionalSuppliers, setRfqForAdditionalSuppliers] = useState<any>(null);
   const [detailsDialog, setDetailsDialog] = useState(false);
   const [selectedRfqId, setSelectedRfqId] = useState<number | null>(null);
+  const [comparisonDialog, setComparisonDialog] = useState(false);
+  const [comparisonRfqId, setComparisonRfqId] = useState<number | null>(null);
   const { toast } = useToast();
   
   // Handle requisition passed from parent
@@ -185,6 +188,45 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
       toast({
         title: "Error",
         description: error.message || "Failed to update RFQ status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Send Reminder mutation
+  const sendReminderMutation = useMutation({
+    mutationFn: (rfqId: number) => 
+      apiRequest(`/api/procurement/rfqs/${rfqId}/reminder`, "POST", {}),
+    onSuccess: () => {
+      toast({
+        title: "Reminder Sent",
+        description: "Reminder emails have been sent to all non-responsive suppliers",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send reminder emails",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Duplicate RFQ mutation
+  const duplicateRfqMutation = useMutation({
+    mutationFn: (rfqId: number) => 
+      apiRequest(`/api/procurement/rfqs/${rfqId}/duplicate`, "POST", {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/rfqs"] });
+      toast({
+        title: "RFQ Duplicated",
+        description: "A copy of the RFQ has been created as a draft",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to duplicate RFQ",
         variant: "destructive",
       });
     },
@@ -370,10 +412,8 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                               size="sm"
                               variant="outline"
                               onClick={() => {
-                                toast({
-                                  title: "View Quotes",
-                                  description: "Navigate to Quotes tab to compare responses",
-                                });
+                                setComparisonRfqId(rfq.id);
+                                setComparisonDialog(true);
                               }}
                             >
                               Compare
@@ -431,12 +471,7 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                               {/* Resend Reminder - Only for 'sent' status */}
                               {rfq.status === 'sent' && (
                                 <DropdownMenuItem
-                                  onClick={() => {
-                                    toast({
-                                      title: "Reminder Sent",
-                                      description: `Reminder email sent to all suppliers for ${rfq.rfqNumber}`,
-                                    });
-                                  }}
+                                  onClick={() => sendReminderMutation.mutate(rfq.id)}
                                 >
                                   <Bell className="h-3 w-3 mr-2" />
                                   Send Reminder
@@ -492,12 +527,7 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                               
                               {/* Duplicate RFQ */}
                               <DropdownMenuItem
-                                onClick={() => {
-                                  toast({
-                                    title: "Duplicate RFQ",
-                                    description: "Creating a copy of this RFQ",
-                                  });
-                                }}
+                                onClick={() => duplicateRfqMutation.mutate(rfq.id)}
                               >
                                 <Copy className="h-3 w-3 mr-2" />
                                 Duplicate
@@ -1099,7 +1129,30 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
           open={detailsDialog}
           onOpenChange={setDetailsDialog}
           rfqId={selectedRfqId}
+          onViewComparison={() => {
+            setComparisonRfqId(selectedRfqId);
+            setComparisonDialog(true);
+          }}
         />
+      )}
+
+      {/* RFQ Comparison Dialog */}
+      {comparisonRfqId && (
+        <Dialog open={comparisonDialog} onOpenChange={setComparisonDialog}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">
+                Quote Comparison Matrix
+              </DialogTitle>
+              <DialogDescription>
+                Analyzing supplier responses to help you make the best decision
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-6">
+              <RFQComparisonView rfqId={comparisonRfqId} />
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </>
   );
