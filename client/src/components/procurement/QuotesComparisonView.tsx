@@ -84,11 +84,11 @@ export default function QuotesComparisonView() {
     queryKey: ["/api/suppliers"],
   });
 
-  // Fetch RFQs with responses (including closed/awarded)
+  // Fetch RFQs with responses (including evaluation and closed/awarded)
   const { data: rfqs = [], isLoading: rfqsLoading } = useQuery({
     queryKey: ["/api/procurement/rfqs"],
     queryFn: async () => {
-      const response = await fetch("/api/procurement/rfqs?status=sent,closed");
+      const response = await fetch("/api/procurement/rfqs?status=sent,evaluation,closed");
       if (!response.ok) throw new Error("Failed to fetch RFQs");
       return response.json();
     },
@@ -381,27 +381,28 @@ export default function QuotesComparisonView() {
                     responses
                       .sort((a: any, b: any) => (a.totalScore || 100) - (b.totalScore || 100))
                       .map((response: any, index: number) => (
-                        <TableRow key={response.id} className="text-xs">
+                        <TableRow 
+                          key={response.id} 
+                          className={`text-xs ${response.status === 'selected' ? 'bg-green-50 border-l-4 border-green-500' : ''}`}
+                        >
                           <TableCell>
-                            {index === 0 && (
-                              <div className="flex items-center gap-1">
-                                <Trophy className="h-4 w-4 text-yellow-500" />
-                                <span>1</span>
+                            {response.status === 'selected' ? (
+                              <div className="flex items-center gap-1 text-green-600">
+                                <CheckCircle2 className="h-4 w-4" />
+                                <span className="font-semibold">Winner</span>
                               </div>
+                            ) : (
+                              response.totalScore ? (
+                                <div className="flex items-center gap-1">
+                                  {response.totalScore === 1 && <Trophy className="h-4 w-4 text-yellow-500" />}
+                                  {response.totalScore === 2 && <Trophy className="h-4 w-4 text-gray-400" />}
+                                  {response.totalScore === 3 && <Trophy className="h-4 w-4 text-orange-600" />}
+                                  <span>{response.totalScore || index + 1}</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">{index + 1}</span>
+                              )
                             )}
-                            {index === 1 && (
-                              <div className="flex items-center gap-1">
-                                <Trophy className="h-4 w-4 text-gray-400" />
-                                <span>2</span>
-                              </div>
-                            )}
-                            {index === 2 && (
-                              <div className="flex items-center gap-1">
-                                <Trophy className="h-4 w-4 text-orange-600" />
-                                <span>3</span>
-                              </div>
-                            )}
-                            {index > 2 && <span>{index + 1}</span>}
                           </TableCell>
                           <TableCell className="font-medium">
                             {response.supplierName || `Supplier ${response.supplierId}`}
@@ -438,8 +439,11 @@ export default function QuotesComparisonView() {
                           </TableCell>
                           <TableCell>
                             <Badge variant={responseStatusColors[response.status as keyof typeof responseStatusColors]}>
-                              {response.status}
+                              {response.status === 'selected' ? 'AWARDED' : response.status}
                             </Badge>
+                            {response.notes && response.notes.includes('OVERRIDE') && (
+                              <Badge variant="warning" className="ml-1">Override</Badge>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">

@@ -1951,7 +1951,28 @@ export class DatabaseStorage implements IStorage {
 
   // RFQ Management Implementation
   async getRfqRequests(filters?: { status?: string; statusList?: string[]; jobId?: number }): Promise<any[]> {
-    let query = db.select().from(rfqRequests);
+    let baseQuery = db.select({
+      id: rfqRequests.id,
+      rfqNumber: rfqRequests.rfqNumber,
+      requisitionId: rfqRequests.requisitionId,
+      jobId: rfqRequests.jobId,
+      jobNumber: rfqRequests.jobNumber,
+      title: rfqRequests.title,
+      description: rfqRequests.description,
+      category: rfqRequests.category,
+      deliveryRequiredBy: rfqRequests.deliveryRequiredBy,
+      deliveryLocation: rfqRequests.deliveryLocation,
+      paymentTerms: rfqRequests.paymentTerms,
+      status: rfqRequests.status,
+      responseDeadline: rfqRequests.responseDeadline,
+      evaluationCriteria: rfqRequests.evaluationCriteria,
+      winningResponseId: rfqRequests.winningResponseId,
+      closedAt: rfqRequests.closedAt,
+      createdBy: rfqRequests.createdBy,
+      createdAt: rfqRequests.createdAt,
+      updatedAt: rfqRequests.updatedAt,
+      responseCount: sql<number>`(SELECT COUNT(*) FROM rfq_responses WHERE rfq_id = rfq_requests.id)`.as('responseCount'),
+    }).from(rfqRequests);
     
     if (filters) {
       const conditions = [];
@@ -1963,25 +1984,14 @@ export class DatabaseStorage implements IStorage {
       if (filters.jobId) conditions.push(eq(rfqRequests.jobId, filters.jobId));
       
       if (conditions.length > 0) {
-        query = query.where(and(...conditions)) as any;
+        baseQuery = baseQuery.where(and(...conditions)) as any;
       }
     }
     
-    const rfqs = await query.orderBy(desc(rfqRequests.createdAt));
+    const rfqs = await baseQuery.orderBy(desc(rfqRequests.createdAt));
     
-    // Add response counts to each RFQ
-    const rfqsWithCounts = await Promise.all(rfqs.map(async (rfq) => {
-      const responseCount = await db.select({ count: sql<number>`count(*)` })
-        .from(rfqResponses)
-        .where(eq(rfqResponses.rfqId, rfq.id));
-      
-      return {
-        ...rfq,
-        responseCount: Number(responseCount[0]?.count || 0)
-      };
-    }));
-    
-    return rfqsWithCounts;
+    // Response counts are already included in the query
+    return rfqs;
   }
 
   async getRfqRequest(id: number): Promise<RfqRequest | undefined> {
@@ -2090,12 +2100,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async selectWinningResponse(rfqId: number, responseId: number, justification?: string | null, userId?: number): Promise<void> {
+    // Get response details for timeline
+    const [response] = await db.select().from(rfqResponses).where(eq(rfqResponses.id, responseId));
+    const [supplier] = await db.select().from(suppliers).where(eq(suppliers.id, response.supplierId));
+    
     // Update the winning response with justification if override
     const updateData: any = { 
       status: 'selected', 
       updatedAt: new Date(),
       reviewedBy: userId || null,
-      reviewedAt: new Date()
+      reviewedAt: new Date(),
+      totalScore: 100 // Mark as evaluated
     };
     
     // If justification provided, it's an override - store it
@@ -2114,7 +2129,8 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date(),
         reviewedBy: userId || null,
         reviewedAt: new Date(),
-        rejectionReason: 'Another quote was selected'
+        rejectionReason: 'Another quote was selected',
+        totalScore: 0 // Mark as evaluated
       })
       .where(and(
         eq(rfqResponses.rfqId, rfqId),
@@ -2130,6 +2146,15 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date() 
       })
       .where(eq(rfqRequests.id, rfqId));
+    
+    // Create audit log for winner selection
+    await db.insert(approvalHistory).values({
+      requisitionId: null,
+      action: 'winner_selected',
+      performedBy: userId || null,
+      comments: `RFQ #${rfqId} - Winner selected: ${supplier?.name || 'Unknown Supplier'} - $${response.totalAmount}${justification ? ` (Override: ${justification})` : ''}`,
+      createdAt: new Date()
+    });
   }
 
   async compareRfqResponses(rfqId: number): Promise<RfqResponse[]> {
