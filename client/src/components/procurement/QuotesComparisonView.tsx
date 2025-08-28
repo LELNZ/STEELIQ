@@ -525,12 +525,12 @@ export default function QuotesComparisonView() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {selectedResponse && sortedResponses[0]?.id !== selectedResponse.id 
+              {selectedResponse && sortedResponses[0] && sortedResponses[0].id !== selectedResponse.id 
                 ? "Manual Winner Override" 
                 : "Confirm Winner Selection"}
             </DialogTitle>
             <DialogDescription>
-              {selectedResponse && sortedResponses[0]?.id !== selectedResponse.id 
+              {selectedResponse && sortedResponses[0] && sortedResponses[0].id !== selectedResponse.id 
                 ? "You are overriding the system recommendation. This requires justification and approval."
                 : "Are you sure you want to select this supplier as the winner?"}
             </DialogDescription>
@@ -542,7 +542,7 @@ export default function QuotesComparisonView() {
                   <p className="font-medium">
                     {selectedResponse.supplierName || `Supplier ${selectedResponse.supplierId}`}
                   </p>
-                  {sortedResponses.findIndex(r => r.id === selectedResponse.id) > 0 && (
+                  {selectedResponse && sortedResponses.findIndex(r => r.id === selectedResponse.id) > 0 && (
                     <Badge variant="outline">
                       Rank #{sortedResponses.findIndex(r => r.id === selectedResponse.id) + 1}
                     </Badge>
@@ -562,7 +562,7 @@ export default function QuotesComparisonView() {
                 </div>
               </div>
               
-              {sortedResponses[0]?.id !== selectedResponse.id && (
+              {selectedResponse && sortedResponses[0] && sortedResponses[0].id !== selectedResponse.id && (
                 <>
                   <div className="p-3 border border-orange-200 bg-orange-50 dark:bg-orange-900/20 rounded">
                     <p className="text-sm font-medium text-orange-800 dark:text-orange-200 mb-2">
@@ -625,7 +625,7 @@ export default function QuotesComparisonView() {
                 }
               }}
             >
-              {sortedResponses[0]?.id !== selectedResponse.id 
+              {selectedResponse && sortedResponses[0]?.id !== selectedResponse.id 
                 ? "Request Approval" 
                 : "Confirm Selection"}
             </Button>
