@@ -97,10 +97,20 @@ export default function QuotesComparisonView() {
     enabled: !!selectedRfqId,
   });
 
+  // Sort responses by total score (ascending - lower is better for combined rank)
+  const sortedResponses = [...responses].sort((a: any, b: any) => {
+    // First by total score (lower is better)
+    if (a.totalScore !== b.totalScore) {
+      return (a.totalScore || 999) - (b.totalScore || 999);
+    }
+    // Then by total amount (lower is better)
+    return (parseFloat(a.totalAmount) || 0) - (parseFloat(b.totalAmount) || 0);
+  });
+
   // Select winner mutation
   const selectWinnerMutation = useMutation({
-    mutationFn: ({ rfqId, responseId }: { rfqId: number; responseId: number }) =>
-      apiRequest(`/api/procurement/rfqs/${rfqId}/select-winner`, "POST", { responseId }),
+    mutationFn: ({ rfqId, responseId, justification }: { rfqId: number; responseId: number; justification?: string }) =>
+      apiRequest(`/api/procurement/rfqs/${rfqId}/select-winner`, "POST", { responseId, justification }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/procurement/rfqs"] });
       queryClient.invalidateQueries({ queryKey: [`/api/procurement/rfqs/${selectedRfqId}/responses`] });
