@@ -9330,6 +9330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pendingRequisitions = await storage.getRequisitions({ status: 'pending_approval' });
       const approvedRequisitions = await storage.getRequisitions({ status: 'approved' });
       const purchaseOrders = await storage.getPurchaseOrders();
+      const rfqRequests = await storage.getRfqRequests();
       
       // Calculate monthly spend (simplified for now)
       const startOfMonth = new Date();
@@ -9340,9 +9341,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ['sent', 'acknowledged', 'partial'].includes(po.status)
       );
       
+      const activeRfqs = rfqRequests.filter(rfq => 
+        ['sent', 'evaluating'].includes(rfq.status)
+      );
+      
       const metrics = {
         pendingApprovals: pendingRequisitions.length,
         activePOs: activePOs.length,
+        activeRfqs: activeRfqs.length,
         monthlySpend: 0, // Will be calculated from actual POs
         savingsThisMonth: 0, // Will be calculated from RFQ savings
         pendingRequisitions: pendingRequisitions.length,

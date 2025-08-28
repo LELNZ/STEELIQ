@@ -481,7 +481,7 @@ export default function Procurement() {
                     <Send className="h-5 w-5 text-secondary" />
                   </div>
                   <p className="text-xs font-medium">RFQs</p>
-                  <p className="text-lg font-bold">3</p>
+                  <p className="text-lg font-bold">{metrics.activeRfqs || 0}</p>
                   <p className="text-xs text-muted-foreground">Active</p>
                 </div>
 
