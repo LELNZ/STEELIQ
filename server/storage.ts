@@ -1446,7 +1446,7 @@ export class DatabaseStorage implements IStorage {
     // Use proper query to get the latest requisition number
     const latestReq = await db.select({ requisitionNumber: purchaseRequisitions.requisitionNumber })
       .from(purchaseRequisitions)
-      .where(sql`"requisitionNumber" LIKE ${`REQ-${year}${month}-%`}`)
+      .where(sql`"requisition_number" LIKE ${`REQ-${year}${month}-%`}`)
       .orderBy(desc(purchaseRequisitions.requisitionNumber))
       .limit(1);
     
@@ -1998,7 +1998,7 @@ export class DatabaseStorage implements IStorage {
     
     const latestRfq = await db.select({ rfqNumber: rfqRequests.rfqNumber })
       .from(rfqRequests)
-      .where(sql`"rfqNumber" LIKE ${`RFQ-${year}${month}-%`}`)
+      .where(sql`"rfq_number" LIKE ${`RFQ-${year}${month}-%`}`)
       .orderBy(desc(rfqRequests.rfqNumber))
       .limit(1);
     
