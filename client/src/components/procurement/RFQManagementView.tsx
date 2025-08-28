@@ -436,10 +436,16 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                               Compare
                             </Button>
                           )}
-                          {rfq.status === 'closed' && (
+                          {rfq.status === 'closed' && rfq.winningResponseId && (
                             <Badge variant="success" className="text-xs">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Winner Selected
+                            </Badge>
+                          )}
+                          {rfq.status === 'closed' && !rfq.winningResponseId && (
+                            <Badge variant="secondary" className="text-xs">
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Closed - No Winner
                             </Badge>
                           )}
                           {rfq.status === 'completed' && (

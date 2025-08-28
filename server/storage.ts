@@ -1441,13 +1441,25 @@ export class DatabaseStorage implements IStorage {
 
   async generateRequisitionNumber(): Promise<string> {
     const year = new Date().getFullYear();
-    const result = await db.execute(sql`
-      SELECT COUNT(*) + 1 as count 
-      FROM purchase_requisitions 
-      WHERE requisition_number LIKE ${`REQ-${year}-%`}
-    `);
-    const count = result.rows[0]?.count || 1;
-    return `REQ-${year}-${String(count).padStart(4, '0')}`;
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+    
+    // Use proper query to get the latest requisition number
+    const latestReq = await db.select({ requisitionNumber: purchaseRequisitions.requisitionNumber })
+      .from(purchaseRequisitions)
+      .where(sql`"requisitionNumber" LIKE ${`REQ-${year}${month}-%`}`)
+      .orderBy(desc(purchaseRequisitions.requisitionNumber))
+      .limit(1);
+    
+    let nextNumber = 1;
+    if (latestReq.length > 0 && latestReq[0].requisitionNumber) {
+      const match = latestReq[0].requisitionNumber.match(/REQ-\d{6}-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+    
+    const paddedNumber = String(nextNumber).padStart(3, '0');
+    return `REQ-${year}${month}-${paddedNumber}`;
   }
 
   // Procurement - Requisition Items
