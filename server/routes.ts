@@ -8884,8 +8884,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requisitions = requisitions.filter((r: any) => !r.isArchived);
       }
       
-      // Get rejection reasons for rejected requisitions
-      const requisitionsWithRejectionReasons = await Promise.all(
+      // Get associated RFQs for all requisitions
+      const rfqRequests = await storage.getRfqRequests();
+      
+      // Get rejection reasons for rejected requisitions and RFQ status
+      const requisitionsWithDetails = await Promise.all(
         requisitions.map(async (r: any) => {
           let lastRejectionReason = null;
           
@@ -8901,14 +8904,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
+          // Check if there's an associated RFQ
+          const associatedRfq = rfqRequests.find((rfq: any) => rfq.requisitionId === r.id);
+          
           return {
             ...r,
-            lastRejectionReason
+            lastRejectionReason,
+            hasRfq: !!associatedRfq,
+            rfqNumber: associatedRfq?.rfqNumber,
+            rfqStatus: associatedRfq?.status
           };
         })
       );
       
-      res.json(requisitionsWithRejectionReasons);
+      res.json(requisitionsWithDetails);
     } catch (error) {
       console.error("Error fetching requisitions:", error);
       res.status(500).json({ error: "Failed to fetch requisitions" });

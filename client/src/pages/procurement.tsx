@@ -659,17 +659,29 @@ export default function Procurement() {
                         </Button>
                         {req.status === 'approved' && !req.isArchived && (
                           <div className="flex flex-col gap-1">
-                            <Button 
-                              size="sm"
-                              variant="default"
-                              className="bg-purple-600 hover:bg-purple-700"
-                              onClick={() => {
-                                setCreateRfqFromRequisition(req);
-                                setActiveTab('rfqs');
-                              }}
-                            >
-                              Create RFQ
-                            </Button>
+                            {req.hasRfq ? (
+                              <div className="text-xs text-muted-foreground bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded px-2 py-1.5">
+                                <div className="font-medium">RFQ Created</div>
+                                <div>{req.rfqNumber}</div>
+                                {req.rfqStatus && (
+                                  <Badge variant="outline" className="mt-1 text-xs">
+                                    {req.rfqStatus}
+                                  </Badge>
+                                )}
+                              </div>
+                            ) : (
+                              <Button 
+                                size="sm"
+                                variant="default"
+                                className="bg-purple-600 hover:bg-purple-700"
+                                onClick={() => {
+                                  setCreateRfqFromRequisition(req);
+                                  setActiveTab('rfqs');
+                                }}
+                              >
+                                Create RFQ
+                              </Button>
+                            )}
                             <Button 
                               size="sm"
                               variant="outline"
@@ -679,6 +691,7 @@ export default function Procurement() {
                                 setConvertToPOOpen(true);
                               }}
                               title="Emergency purchase - requires manager approval and justification"
+                              disabled={req.hasRfq}
                             >
                               Emergency PO
                             </Button>
@@ -863,17 +876,24 @@ export default function Procurement() {
                         </p>
                       </div>
                       {/* All purchases require RFQ unless emergency */}
-                      <Button 
-                        size="sm"
-                        variant="outline"
-                        className="text-xs bg-purple-600 hover:bg-purple-700 text-white"
-                        onClick={() => {
-                          setCreateRfqFromRequisition(req);
-                          setActiveTab('rfqs');
-                        }}
-                      >
-                        Create RFQ
-                      </Button>
+                      {req.hasRfq ? (
+                        <div className="text-xs text-right">
+                          <div className="font-medium text-purple-600">RFQ Created</div>
+                          <div className="text-muted-foreground">{req.rfqNumber}</div>
+                        </div>
+                      ) : (
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          className="text-xs bg-purple-600 hover:bg-purple-700 text-white"
+                          onClick={() => {
+                            setCreateRfqFromRequisition(req);
+                            setActiveTab('rfqs');
+                          }}
+                        >
+                          Create RFQ
+                        </Button>
+                      )}
                     </div>
                   ))
                 )}
