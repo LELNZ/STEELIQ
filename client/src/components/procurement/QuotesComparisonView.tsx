@@ -22,6 +22,7 @@ import {
   Eye,
   MoreHorizontal,
   Upload,
+  Check,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -64,6 +65,7 @@ export default function QuotesComparisonView() {
   const [selectWinnerDialog, setSelectWinnerDialog] = useState(false);
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [manualQuoteDialog, setManualQuoteDialog] = useState(false);
+  const [overrideJustification, setOverrideJustification] = useState("");
   const [manualQuoteForm, setManualQuoteForm] = useState({
     supplierId: '',
     totalAmount: '',
@@ -456,25 +458,45 @@ export default function QuotesComparisonView() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
-                              {response.status === 'submitted' && index === 0 && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedResponse(response);
-                                    setSelectWinnerDialog(true);
-                                  }}
-                                >
-                                  Select Winner
-                                </Button>
+                              {response.status === 'submitted' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant={index === 0 ? "default" : "outline"}
+                                    onClick={() => {
+                                      setSelectedResponse(response);
+                                      setSelectWinnerDialog(true);
+                                    }}
+                                  >
+                                    {index === 0 && <Trophy className="h-3 w-3 mr-1" />}
+                                    Select Winner
+                                  </Button>
+                                  {index !== 0 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      Rank #{index + 1}
+                                    </Badge>
+                                  )}
+                                </>
                               )}
                               {response.status === 'selected' && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => createPOMutation.mutate(response.id)}
-                                >
-                                  Create PO
-                                </Button>
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => createPOMutation.mutate(response.id)}
+                                  >
+                                    Create PO
+                                  </Button>
+                                  <Badge className="bg-green-600">
+                                    <Check className="h-3 w-3 mr-1" />
+                                    Winner
+                                  </Badge>
+                                </>
+                              )}
+                              {response.status === 'rejected' && (
+                                <Badge variant="destructive">
+                                  Rejected
+                                </Badge>
                               )}
                             </div>
                           </TableCell>
@@ -490,20 +512,33 @@ export default function QuotesComparisonView() {
 
       {/* Select Winner Dialog */}
       <Dialog open={selectWinnerDialog} onOpenChange={setSelectWinnerDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Confirm Winner Selection</DialogTitle>
+            <DialogTitle>
+              {selectedResponse && sortedResponses[0]?.id !== selectedResponse.id 
+                ? "Manual Winner Override" 
+                : "Confirm Winner Selection"}
+            </DialogTitle>
             <DialogDescription>
-              Are you sure you want to select this supplier as the winner?
+              {selectedResponse && sortedResponses[0]?.id !== selectedResponse.id 
+                ? "You are overriding the system recommendation. This requires justification and approval."
+                : "Are you sure you want to select this supplier as the winner?"}
             </DialogDescription>
           </DialogHeader>
           {selectedResponse && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                <p className="font-medium">
-                  {selectedResponse.supplierName || `Supplier ${selectedResponse.supplierId}`}
-                </p>
-                <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-medium">
+                    {selectedResponse.supplierName || `Supplier ${selectedResponse.supplierId}`}
+                  </p>
+                  {sortedResponses.findIndex(r => r.id === selectedResponse.id) > 0 && (
+                    <Badge variant="outline">
+                      Rank #{sortedResponses.findIndex(r => r.id === selectedResponse.id) + 1}
+                    </Badge>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-muted-foreground">Quote Amount:</span>
                     <span className="ml-2 font-medium">
@@ -516,26 +551,73 @@ export default function QuotesComparisonView() {
                   </div>
                 </div>
               </div>
+              
+              {sortedResponses[0]?.id !== selectedResponse.id && (
+                <>
+                  <div className="p-3 border border-orange-200 bg-orange-50 dark:bg-orange-900/20 rounded">
+                    <p className="text-sm font-medium text-orange-800 dark:text-orange-200 mb-2">
+                      System Recommendation:
+                    </p>
+                    <p className="text-sm">
+                      {sortedResponses[0]?.supplierName || `Supplier ${sortedResponses[0]?.supplierId}`}
+                      {' - '}${(sortedResponses[0]?.totalAmount || 0).toLocaleString()}
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="justification" className="required">
+                      Justification for Override <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      id="justification"
+                      placeholder="Explain why this supplier should be selected over the recommended option..."
+                      rows={3}
+                      required
+                      minLength={50}
+                      onChange={(e) => setOverrideJustification(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Minimum 50 characters. This will be sent to management for approval.
+                    </p>
+                  </div>
+                </>
+              )}
+              
               <p className="text-sm text-muted-foreground">
                 This action will mark this quote as selected and reject all other quotes for this RFQ.
               </p>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectWinnerDialog(false)}>
+            <Button variant="outline" onClick={() => {
+              setSelectWinnerDialog(false);
+              setOverrideJustification("");
+            }}>
               Cancel
             </Button>
             <Button
               onClick={() => {
                 if (selectedResponse && selectedRfqId) {
+                  const isOverride = sortedResponses[0]?.id !== selectedResponse.id;
+                  if (isOverride && (!overrideJustification || overrideJustification.length < 50)) {
+                    toast({
+                      title: "Justification Required",
+                      description: "Please provide at least 50 characters of justification for the override.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
                   selectWinnerMutation.mutate({
                     rfqId: selectedRfqId,
                     responseId: selectedResponse.id,
+                    justification: isOverride ? overrideJustification : undefined,
                   });
                 }
               }}
             >
-              Confirm Selection
+              {sortedResponses[0]?.id !== selectedResponse.id 
+                ? "Request Approval" 
+                : "Confirm Selection"}
             </Button>
           </DialogFooter>
         </DialogContent>

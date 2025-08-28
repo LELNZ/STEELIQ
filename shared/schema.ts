@@ -3787,6 +3787,76 @@ export const rfqResponses = pgTable("rfq_responses", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// RFQ Evaluation Templates - Scoring templates for different RFQ types
+export const rfqEvaluationTemplates = pgTable("rfq_evaluation_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  category: text("category").notNull(), // materials, services, high_value
+  isDefault: boolean("is_default").default(false),
+  criteria: jsonb("criteria").notNull(), // Array of {name, weight, description}
+  totalWeight: decimal("total_weight", { precision: 5, scale: 2 }).default("100"),
+  description: text("description"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// RFQ Response Evaluations - Detailed scoring for each quote
+export const rfqResponseEvaluations = pgTable("rfq_response_evaluations", {
+  id: serial("id").primaryKey(),
+  rfqResponseId: integer("rfq_response_id").references(() => rfqResponses.id).notNull(),
+  templateId: integer("template_id").references(() => rfqEvaluationTemplates.id),
+  evaluatorId: integer("evaluator_id").references(() => users.id).notNull(),
+  // Scoring details
+  criteriaScores: jsonb("criteria_scores"), // {criteriaName: score, ...}
+  weightedTotal: decimal("weighted_total", { precision: 5, scale: 2 }),
+  manualOverride: boolean("manual_override").default(false),
+  overrideScore: decimal("override_score", { precision: 5, scale: 2 }),
+  finalScore: decimal("final_score", { precision: 5, scale: 2 }).notNull(),
+  // Evaluation notes
+  strengths: text("strengths"),
+  weaknesses: text("weaknesses"),
+  recommendations: text("recommendations"),
+  evaluationNotes: text("evaluation_notes"),
+  evaluatedAt: timestamp("evaluated_at").defaultNow().notNull(),
+});
+
+// RFQ Response Documents - Cloud-stored attachments for quotes
+export const rfqResponseDocuments = pgTable("rfq_response_documents", {
+  id: serial("id").primaryKey(),
+  rfqResponseId: integer("rfq_response_id").references(() => rfqResponses.id).notNull(),
+  documentType: text("document_type").notNull(), // quote_pdf, technical_spec, compliance_cert, terms
+  fileName: text("file_name").notNull(),
+  cloudPath: text("cloud_path").notNull(), // Cloud storage path
+  fileSize: integer("file_size"), // in bytes
+  mimeType: text("mime_type"),
+  version: integer("version").default(1),
+  isLatest: boolean("is_latest").default(true),
+  uploadedBy: integer("uploaded_by").references(() => users.id),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+});
+
+// RFQ Approval Overrides - Track manual winner selection overrides
+export const rfqApprovalOverrides = pgTable("rfq_approval_overrides", {
+  id: serial("id").primaryKey(),
+  rfqId: integer("rfq_id").references(() => rfqRequests.id).notNull(),
+  selectedResponseId: integer("selected_response_id").references(() => rfqResponses.id).notNull(),
+  systemRecommendedId: integer("system_recommended_id").references(() => rfqResponses.id),
+  // Override details
+  overrideReason: text("override_reason").notNull(),
+  justification: text("justification").notNull(),
+  riskAssessment: text("risk_assessment"),
+  // Approval chain
+  requestedBy: integer("requested_by").references(() => users.id).notNull(),
+  requestedAt: timestamp("requested_at").defaultNow().notNull(),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvalStatus: text("approval_status").default("pending"), // pending, approved, rejected
+  approvalNotes: text("approval_notes"),
+  approvedAt: timestamp("approved_at"),
+  // Notifications
+  notificationsSent: jsonb("notifications_sent"), // Track who was notified
+});
+
 // Goods Receipts - Track deliveries and receiving
 export const goodsReceipts = pgTable("goods_receipts", {
   id: serial("id").primaryKey(),
@@ -3841,6 +3911,10 @@ export const insertRfqRequestSchema = createInsertSchema(rfqRequests);
 export const insertRfqResponseSchema = createInsertSchema(rfqResponses);
 export const insertGoodsReceiptSchema = createInsertSchema(goodsReceipts);
 export const insertGoodsReceiptItemSchema = createInsertSchema(goodsReceiptItems);
+export const insertRfqEvaluationTemplateSchema = createInsertSchema(rfqEvaluationTemplates);
+export const insertRfqResponseEvaluationSchema = createInsertSchema(rfqResponseEvaluations);
+export const insertRfqResponseDocumentSchema = createInsertSchema(rfqResponseDocuments);
+export const insertRfqApprovalOverrideSchema = createInsertSchema(rfqApprovalOverrides);
 
 // Type exports for new tables
 export type OrganizationSetting = typeof organizationSettings.$inferSelect;
@@ -3862,6 +3936,18 @@ export type TermsConditions = typeof termsConditionsLibrary.$inferSelect;
 export type InsertTermsConditions = z.infer<typeof insertTermsConditionsSchema>;
 
 export type HandlingCostsConfiguration = typeof handlingCostsConfig.$inferSelect;
+
+export type RfqEvaluationTemplate = typeof rfqEvaluationTemplates.$inferSelect;
+export type InsertRfqEvaluationTemplate = z.infer<typeof insertRfqEvaluationTemplateSchema>;
+
+export type RfqResponseEvaluation = typeof rfqResponseEvaluations.$inferSelect;
+export type InsertRfqResponseEvaluation = z.infer<typeof insertRfqResponseEvaluationSchema>;
+
+export type RfqResponseDocument = typeof rfqResponseDocuments.$inferSelect;
+export type InsertRfqResponseDocument = z.infer<typeof insertRfqResponseDocumentSchema>;
+
+export type RfqApprovalOverride = typeof rfqApprovalOverrides.$inferSelect;
+export type InsertRfqApprovalOverride = z.infer<typeof insertRfqApprovalOverrideSchema>;
 export type InsertHandlingCostsConfiguration = z.infer<typeof insertHandlingCostsConfigSchema>;
 
 export type ClientPortalAccess = typeof clientPortalAccess.$inferSelect;

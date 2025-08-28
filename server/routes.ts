@@ -11010,16 +11010,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/procurement/rfqs/:id/select-winner", async (req, res) => {
     try {
       const rfqId = parseInt(req.params.id);
-      const { responseId } = req.body;
+      const { responseId, justification } = req.body;
       
-      await storage.selectWinningResponse(rfqId, responseId);
-      res.json({ success: true, message: "Winner selected" });
+      // Get authenticated user
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      let user;
+      
+      if (token) {
+        user = await AuthService.validateSession(token);
+      }
+      
+      if (!user) {
+        // For testing/development, use default user
+        user = await storage.getUser(9); // Adam Green's ID
+      }
+      
+      // Get all responses to check if this is an override
+      const responses = await storage.getRfqResponses(rfqId);
+      const sortedResponses = responses.sort((a: any, b: any) => 
+        (a.totalAmount || 0) - (b.totalAmount || 0)
+      );
+      
+      const selectedResponse = responses.find((r: any) => r.id === responseId);
+      const isOverride = sortedResponses[0]?.id !== responseId;
+      
+      // If it's an override and justification is required
+      if (isOverride && !justification) {
+        return res.status(400).json({ 
+          error: "Justification required for manual override selection" 
+        });
+      }
+      
+      // If it's an override, create an approval request
+      if (isOverride && justification) {
+        // Log the override request
+        console.log(`Override requested for RFQ ${rfqId}: Selecting ${selectedResponse.supplierName} over recommended ${sortedResponses[0].supplierName}`);
+        console.log(`Justification: ${justification}`);
+        
+        // For now, auto-approve but log the justification
+        // In production, this would trigger approval workflow
+        await storage.selectWinningResponse(rfqId, responseId, justification, user.id);
+        
+        // Send notification email (placeholder for now)
+        console.log(`ALERT: Manual winner override for RFQ ${rfqId} by ${user.name}`);
+        
+        res.json({ 
+          success: true, 
+          message: "Winner selected with override justification",
+          requiresApproval: true,
+          justification 
+        });
+      } else {
+        // Normal selection of top-ranked quote
+        await storage.selectWinningResponse(rfqId, responseId, null, user.id);
+        res.json({ success: true, message: "Winner selected" });
+      }
     } catch (error) {
       console.error("Error selecting winner:", error);
       res.status(500).json({ error: "Failed to select winner" });
     }
   });
 
+  // Upload document for RFQ response
+  app.post("/api/procurement/rfqs/responses/:responseId/upload-document", async (req, res) => {
+    try {
+      const responseId = parseInt(req.params.responseId);
+      const { fileName } = req.body;
+      
+      if (!fileName) {
+        return res.status(400).json({ error: "File name is required" });
+      }
+      
+      // Import object storage service
+      const { ObjectStorageService } = await import('./objectStorage');
+      const storageService = new ObjectStorageService();
+      
+      // Get upload URL for the document
+      const uploadUrl = await storageService.getQuoteDocumentUploadURL(responseId, fileName);
+      
+      res.json({ 
+        uploadUrl,
+        message: "Use this URL to upload the document directly from the browser"
+      });
+    } catch (error) {
+      console.error("Error generating upload URL:", error);
+      res.status(500).json({ error: "Failed to generate upload URL" });
+    }
+  });
+  
+  // Download document for RFQ response
+  app.get("/api/procurement/rfqs/responses/:responseId/documents/:documentId", async (req, res) => {
+    try {
+      const responseId = parseInt(req.params.responseId);
+      const documentId = req.params.documentId;
+      
+      // Import object storage service
+      const { ObjectStorageService } = await import('./objectStorage');
+      const storageService = new ObjectStorageService();
+      
+      // Build the cloud path
+      const privateDir = process.env.PRIVATE_OBJECT_DIR || "";
+      const cloudPath = `${privateDir}/rfq-quotes/${responseId}/${documentId}`;
+      
+      // Get and stream the file
+      const file = await storageService.getFile(cloudPath);
+      await storageService.downloadObject(file, res);
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      res.status(404).json({ error: "Document not found" });
+    }
+  });
+  
   // Create PO from winning RFQ response
   app.post("/api/procurement/rfqs/create-po", async (req, res) => {
     try {

@@ -245,7 +245,7 @@ export interface IStorage {
   getRfqResponse(id: number): Promise<RfqResponse | undefined>;
   createRfqResponse(response: InsertRfqResponse): Promise<RfqResponse>;
   updateRfqResponse(id: number, response: Partial<InsertRfqResponse>): Promise<RfqResponse>;
-  selectWinningResponse(rfqId: number, responseId: number): Promise<void>;
+  selectWinningResponse(rfqId: number, responseId: number, justification?: string | null, userId?: number): Promise<void>;
   compareRfqResponses(rfqId: number): Promise<RfqResponse[]>;
   
   // Procurement - Purchase Orders
@@ -2085,15 +2085,33 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async selectWinningResponse(rfqId: number, responseId: number): Promise<void> {
-    // Update the winning response
+  async selectWinningResponse(rfqId: number, responseId: number, justification?: string | null, userId?: number): Promise<void> {
+    // Update the winning response with justification if override
+    const updateData: any = { 
+      status: 'selected', 
+      updatedAt: new Date(),
+      reviewedBy: userId || null,
+      reviewedAt: new Date()
+    };
+    
+    // If justification provided, it's an override - store it
+    if (justification) {
+      updateData.notes = `OVERRIDE JUSTIFICATION: ${justification}`;
+    }
+    
     await db.update(rfqResponses)
-      .set({ status: 'selected', updatedAt: new Date() })
+      .set(updateData)
       .where(eq(rfqResponses.id, responseId));
     
     // Update other responses to rejected
     await db.update(rfqResponses)
-      .set({ status: 'rejected', updatedAt: new Date() })
+      .set({ 
+        status: 'rejected', 
+        updatedAt: new Date(),
+        reviewedBy: userId || null,
+        reviewedAt: new Date(),
+        rejectionReason: 'Another quote was selected'
+      })
       .where(and(
         eq(rfqResponses.rfqId, rfqId),
         ne(rfqResponses.id, responseId)
