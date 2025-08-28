@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -46,16 +47,28 @@ interface RFQDetailsDialogProps {
 
 export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison }: RFQDetailsDialogProps) {
   // Fetch RFQ details
-  const { data: rfq, isLoading } = useQuery({
+  const { data: rfq, isLoading, refetch: refetchRfq } = useQuery({
     queryKey: [`/api/procurement/rfqs/${rfqId}`],
     enabled: open && !!rfqId,
+    refetchOnWindowFocus: false,
+    staleTime: 0, // Always refetch when dialog opens
   });
 
   // Fetch RFQ responses
-  const { data: responses = [] } = useQuery({
+  const { data: responses = [], refetch: refetchResponses } = useQuery({
     queryKey: [`/api/procurement/rfqs/${rfqId}/responses`],
     enabled: open && !!rfqId,
+    refetchOnWindowFocus: false,
+    staleTime: 0, // Always refetch when dialog opens
   });
+
+  // Refetch data when dialog opens
+  useEffect(() => {
+    if (open && rfqId) {
+      refetchRfq();
+      refetchResponses();
+    }
+  }, [open, rfqId, refetchRfq, refetchResponses]);
 
   // Fetch suppliers data
   const { data: suppliers = [] } = useQuery({
@@ -87,6 +100,8 @@ export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison }
         return <Badge variant="success">Closed</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Cancelled</Badge>;
+      case 'archived':
+        return <Badge variant="outline" className="text-gray-500">Archived</Badge>;
       case 'completed':
         return <Badge>Completed</Badge>;
       default:
@@ -370,8 +385,50 @@ export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison }
                 </div>
               </div>
 
-              {/* Sent */}
-              {rfq.sentAt && (
+              {/* Status Updates - Dynamic based on current and historical status */}
+              {rfq.status === 'draft' && rfq.sentAt && (
+                <>
+                  {/* Previously sent */}
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                      <Send className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">Sent to Suppliers</p>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(rfq.sentAt), "PPp")}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Cancelled */}
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                      <XCircle className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">RFQ Cancelled</p>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(rfq.updatedAt), "PPp")}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Reverted to Draft */}
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">Reverted to Draft</p>
+                      <p className="text-sm text-muted-foreground">
+                        Status changed back to draft for editing
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Normal flow - Sent */}
+              {rfq.sentAt && rfq.status !== 'draft' && rfq.status !== 'cancelled' && (
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                     <Send className="h-5 w-5 text-green-600" />
@@ -386,20 +443,52 @@ export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison }
               )}
 
               {/* Response Deadline */}
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                  <Timer className="h-5 w-5 text-amber-600" />
+              {rfq.responseDeadline && (
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <Timer className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Response Deadline</p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(rfq.responseDeadline), "PPp")}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium">Response Deadline</p>
-                  <p className="text-sm text-muted-foreground">
-                    {rfq.responseDeadline ? format(new Date(rfq.responseDeadline), "PPp") : 'Not set'}
-                  </p>
+              )}
+
+              {/* Status: Cancelled */}
+              {rfq.status === 'cancelled' && (
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <XCircle className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">RFQ Cancelled</p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(rfq.updatedAt), "PPp")}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Status: Archived */}
+              {rfq.status === 'archived' && (
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-900/30 flex items-center justify-center">
+                    <Archive className="h-5 w-5 text-gray-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">RFQ Archived</p>
+                    <p className="text-sm text-muted-foreground">
+                      Moved to archive
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Closed */}
-              {rfq.closedAt && (
+              {rfq.closedAt && rfq.status !== 'cancelled' && rfq.status !== 'archived' && (
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
                     <Archive className="h-5 w-5 text-purple-600" />

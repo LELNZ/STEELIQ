@@ -1825,7 +1825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export suppliers to CSV
   app.get("/api/import-export/export/suppliers", async (req, res) => {
     try {
-      const suppliers = await storage.getAllSuppliers();
+      const suppliers = await storage.getSuppliers();
       
       const headers = [
         'id', 'name', 'company', 'address', 'city', 'postcode', 'country',
@@ -1888,7 +1888,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!entityType || entityType === 'supplier') {
         const supplierContacts = await storage.getAllSupplierContacts();
-        suppliers = await storage.getAllSuppliers();
+        suppliers = await storage.getSuppliers();
         contacts = contacts.concat(supplierContacts.map((contact: any) => ({
           ...contact,
           entityType: 'supplier',
