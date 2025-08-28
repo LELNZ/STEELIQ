@@ -11124,6 +11124,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(404).json({ error: "Document not found" });
     }
   });
+
+  // Send rejection notification to supplier
+  app.post("/api/procurement/rfqs/responses/:responseId/notify-rejection", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const responseId = parseInt(req.params.responseId);
+      const { message } = req.body;
+      
+      if (!message) {
+        return res.status(400).json({ error: "Rejection message is required" });
+      }
+
+      // Get the RFQ response details
+      const response = await storage.getRfqResponseById(responseId);
+      if (!response) {
+        return res.status(404).json({ error: "RFQ response not found" });
+      }
+
+      // Get the supplier details
+      const supplier = await storage.getSupplier(response.supplierId);
+      if (!supplier || !supplier.email) {
+        return res.status(400).json({ error: "Supplier email not found" });
+      }
+
+      // Get the RFQ details
+      const rfq = await storage.getRfqById(response.rfqId);
+      if (!rfq) {
+        return res.status(404).json({ error: "RFQ not found" });
+      }
+
+      // Import the RFQ email service
+      const { sendRejectionNotification } = await import('./services/rfqEmailService');
+      
+      // Send rejection notification email
+      await sendRejectionNotification({
+        supplierName: supplier.name,
+        supplierEmail: supplier.email,
+        rfqNumber: rfq.rfqNumber,
+        rejectionMessage: message,
+        companyName: "Lateral Engineering Limited",
+        senderName: user.name,
+        senderRole: user.role || "Procurement Manager",
+      });
+
+      // Update response status to indicate notification was sent
+      await storage.updateRfqResponseNotificationStatus(responseId, true);
+
+      res.json({ 
+        success: true, 
+        message: "Rejection notification sent successfully" 
+      });
+    } catch (error) {
+      console.error("Error sending rejection notification:", error);
+      res.status(500).json({ error: "Failed to send rejection notification" });
+    }
+  });
   
   // Create PO from winning RFQ response
   app.post("/api/procurement/rfqs/create-po", async (req, res) => {

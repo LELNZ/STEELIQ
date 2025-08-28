@@ -422,3 +422,92 @@ export class RFQEmailService {
 }
 
 export const rfqEmailService = new RFQEmailService();
+
+// Standalone function for sending rejection notifications
+export async function sendRejectionNotification(params: {
+  supplierName: string;
+  supplierEmail: string;
+  rfqNumber: string;
+  rejectionMessage: string;
+  companyName: string;
+  senderName: string;
+  senderRole: string;
+}): Promise<void> {
+  try {
+    const msg = {
+      to: params.supplierEmail,
+      from: {
+        email: process.env.SENDGRID_FROM_EMAIL || 'accounts@lateralengineering.co.nz',
+        name: params.companyName
+      },
+      replyTo: process.env.SENDGRID_REPLY_TO || 'accounts@lateralengineering.co.nz',
+      subject: `RFQ ${params.rfqNumber} - Quote Status Update`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #64748b; color: white; padding: 30px; border-radius: 10px 10px 0 0; }
+            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+            .message-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb; }
+            .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px; }
+            h1 { margin: 0; font-size: 24px; }
+            .company-info { margin-top: 10px; font-size: 14px; opacity: 0.9; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>RFQ Quote Status Update</h1>
+              <div class="company-info">${params.companyName}</div>
+            </div>
+            
+            <div class="content">
+              <p>Dear ${params.supplierName},</p>
+              
+              <p>Thank you for submitting your quote for <strong>RFQ ${params.rfqNumber}</strong>.</p>
+              
+              <div class="message-box">
+                <p>${params.rejectionMessage}</p>
+              </div>
+              
+              <p>We appreciate the time and effort you invested in preparing your proposal. While we are unable to proceed with your quote for this particular project, we value our relationship with your company and look forward to future opportunities to work together.</p>
+              
+              <p>We encourage you to continue participating in our RFQ processes, as each project has unique requirements that may better align with your offerings.</p>
+              
+              <div class="footer">
+                <p>Best regards,</p>
+                <p><strong>${params.senderName}</strong><br>
+                ${params.senderRole}<br>
+                ${params.companyName}</p>
+                
+                <p style="margin-top: 20px; font-size: 12px; color: #9ca3af;">
+                  This is an automated notification. For any queries regarding this decision, please contact us at:<br>
+                  ${process.env.SENDGRID_REPLY_TO || 'accounts@lateralengineering.co.nz'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      trackingSettings: {
+        clickTracking: { enable: false },
+        openTracking: { enable: false },
+        subscriptionTracking: { enable: false }
+      }
+    };
+
+    if (process.env.SENDGRID_API_KEY) {
+      await sgMail.send(msg);
+      console.log(`Rejection notification sent to ${params.supplierEmail} for RFQ ${params.rfqNumber}`);
+    } else {
+      console.log('SendGrid not configured - rejection email would be sent to:', params.supplierEmail);
+    }
+  } catch (error) {
+    console.error('Error sending rejection notification:', error);
+    throw error;
+  }
+}

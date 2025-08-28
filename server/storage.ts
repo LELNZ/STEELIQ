@@ -2076,6 +2076,26 @@ export class DatabaseStorage implements IStorage {
     return response;
   }
 
+  // Alias for getRfqResponse for clarity
+  async getRfqResponseById(id: number): Promise<RfqResponse | undefined> {
+    return this.getRfqResponse(id);
+  }
+
+  // Alias for getRfqRequest for clarity
+  async getRfqById(id: number): Promise<RfqRequest | undefined> {
+    return this.getRfqRequest(id);
+  }
+
+  // Update RFQ response notification status
+  async updateRfqResponseNotificationStatus(responseId: number, notificationSent: boolean): Promise<void> {
+    await db.update(rfqResponses)
+      .set({ 
+        notificationSentAt: notificationSent ? new Date() : null,
+        updatedAt: new Date() 
+      })
+      .where(eq(rfqResponses.id, responseId));
+  }
+
   async createRfqResponse(response: InsertRfqResponse): Promise<RfqResponse> {
     const [created] = await db.insert(rfqResponses).values(response).returning();
     return created;

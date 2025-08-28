@@ -45,13 +45,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 const responseStatusColors = {
@@ -67,7 +61,9 @@ export default function QuotesComparisonView() {
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [manualQuoteDialog, setManualQuoteDialog] = useState(false);
   const [notifySupplierDialog, setNotifySupplierDialog] = useState(false);
+  const [notifyingResponse, setNotifyingResponse] = useState<any>(null);
   const [rejectionMessage, setRejectionMessage] = useState("");
+  const [rejectionTemplate, setRejectionTemplate] = useState("standard");
   const [overrideJustification, setOverrideJustification] = useState("");
   const [manualQuoteForm, setManualQuoteForm] = useState({
     supplierId: '',
@@ -78,6 +74,30 @@ export default function QuotesComparisonView() {
     notes: '',
   });
   const { toast } = useToast();
+
+  // Rejection message templates
+  const rejectionTemplates = {
+    standard: {
+      title: "Standard Rejection",
+      message: `Thank you for submitting your quote for {RFQ_NUMBER}. After careful evaluation of all proposals, we have decided to proceed with another supplier whose quote better aligns with our current requirements.\n\nWe appreciate the time and effort you put into preparing your proposal and hope to have the opportunity to work with you on future projects.`,
+    },
+    price: {
+      title: "Price-Based Rejection",
+      message: `Thank you for your proposal for {RFQ_NUMBER}. While we value your capabilities and the quality of your offering, we have selected a supplier whose pricing better fits our budget constraints for this project.\n\nWe encourage you to remain competitive in future RFQs as we value our relationship with your company.`,
+    },
+    delivery: {
+      title: "Delivery Timeline Rejection",
+      message: `Thank you for your quote submission for {RFQ_NUMBER}. After reviewing all proposals, we have chosen a supplier who can meet our urgent delivery requirements.\n\nWe recognize your company's quality standards and hope to work together when our timeline requirements better align with your production schedule.`,
+    },
+    technical: {
+      title: "Technical Requirements Rejection",
+      message: `Thank you for participating in {RFQ_NUMBER}. After technical evaluation, we have selected a supplier whose solution more closely matches our specific technical requirements for this project.\n\nWe value your expertise and encourage you to participate in future opportunities that may be better suited to your technical capabilities.`,
+    },
+    custom: {
+      title: "Custom Message",
+      message: "",
+    },
+  };
 
   // Fetch suppliers
   const { data: suppliers = [] } = useQuery({
@@ -128,6 +148,30 @@ export default function QuotesComparisonView() {
       toast({
         title: "Error",
         description: error.message || "Failed to select winner",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Send rejection notification mutation
+  const sendRejectionNotificationMutation = useMutation({
+    mutationFn: async ({ responseId, message }: { responseId: number; message: string }) =>
+      apiRequest(`/api/procurement/rfqs/responses/${responseId}/notify-rejection`, "POST", { message }),
+    onSuccess: () => {
+      setNotifySupplierDialog(false);
+      setNotifyingResponse(null);
+      setRejectionMessage("");
+      setRejectionTemplate("standard");
+      toast({
+        title: "Success",
+        description: "Rejection notification sent to supplier",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/procurement/rfqs/${selectedRfqId}/responses`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send notification",
         variant: "destructive",
       });
     },
@@ -555,7 +599,13 @@ export default function QuotesComparisonView() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => {
-                                      setSelectedResponse(response);
+                                      setNotifyingResponse(response);
+                                      setRejectionTemplate("standard");
+                                      const template = rejectionTemplates.standard;
+                                      const rfq = rfqs.find((r: any) => r.id === selectedRfqId);
+                                      setRejectionMessage(
+                                        template.message.replace("{RFQ_NUMBER}", rfq?.rfqNumber || "")
+                                      );
                                       setNotifySupplierDialog(true);
                                     }}
                                   >
@@ -827,38 +877,70 @@ export default function QuotesComparisonView() {
 
       {/* Notify Supplier Dialog - Industry Best Practice: Manual Notifications */}
       <Dialog open={notifySupplierDialog} onOpenChange={setNotifySupplierDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Send Rejection Notification</DialogTitle>
             <DialogDescription>
-              Send a personalized notification to the unsuccessful supplier. Industry best practice 
-              is to provide constructive feedback when possible.
+              Send a professional notification to the unsuccessful supplier. Select a template or create a custom message.
             </DialogDescription>
           </DialogHeader>
-          {selectedResponse && (
+          {notifyingResponse && (
             <div className="space-y-4">
-              <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                <p className="font-medium">
-                  {selectedResponse.supplierName || `Supplier ${selectedResponse.supplierId}`}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Quote Amount: ${(selectedResponse.totalAmount || 0).toLocaleString()}
-                </p>
+              <div className="p-3 border rounded bg-muted/50">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium">{notifyingResponse.supplierName}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Quote Amount: ${notifyingResponse.totalAmount?.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Delivery: {notifyingResponse.deliveryDays} days
+                    </p>
+                  </div>
+                  <Badge variant="destructive">Rejected</Badge>
+                </div>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="rejection-message">
-                  Notification Message
-                </Label>
+                <Label>Message Template</Label>
+                <Select 
+                  value={rejectionTemplate} 
+                  onValueChange={(value) => {
+                    setRejectionTemplate(value);
+                    if (value !== 'custom') {
+                      const template = rejectionTemplates[value as keyof typeof rejectionTemplates];
+                      const rfq = rfqs.find((r: any) => r.id === selectedRfqId);
+                      setRejectionMessage(
+                        template.message.replace("{RFQ_NUMBER}", rfq?.rfqNumber || "")
+                      );
+                    } else {
+                      setRejectionMessage("");
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Standard Rejection</SelectItem>
+                    <SelectItem value="price">Price-Based Rejection</SelectItem>
+                    <SelectItem value="delivery">Delivery Timeline Rejection</SelectItem>
+                    <SelectItem value="technical">Technical Requirements Rejection</SelectItem>
+                    <SelectItem value="custom">Custom Message</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Rejection Message</Label>
                 <Textarea
-                  id="rejection-message"
-                  placeholder="Thank you for submitting your quote for [RFQ]. After careful evaluation, we have decided to proceed with another supplier for this particular project. We appreciate your time and effort in preparing the quote and look forward to future opportunities to work together."
-                  rows={6}
+                  placeholder="Enter rejection message..."
                   value={rejectionMessage}
                   onChange={(e) => setRejectionMessage(e.target.value)}
+                  className="min-h-[150px] font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Provide feedback on why their quote wasn't selected (optional but recommended)
+                  {rejectionMessage.length} characters
                 </p>
               </div>
 
@@ -871,25 +953,39 @@ export default function QuotesComparisonView() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setNotifySupplierDialog(false);
-              setRejectionMessage("");
-            }}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setNotifySupplierDialog(false);
+                setNotifyingResponse(null);
+                setRejectionMessage("");
+                setRejectionTemplate("standard");
+              }}
+            >
               Cancel
             </Button>
             <Button
               onClick={() => {
-                // In production, this would send the notification email
-                toast({
-                  title: "Notification Sent",
-                  description: `Rejection notification sent to ${selectedResponse?.supplierName || 'supplier'}`,
+                if (!rejectionMessage.trim()) {
+                  toast({
+                    title: "Error",
+                    description: "Please enter a rejection message",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                sendRejectionNotificationMutation.mutate({
+                  responseId: notifyingResponse.id,
+                  message: rejectionMessage,
                 });
-                setNotifySupplierDialog(false);
-                setRejectionMessage("");
               }}
+              disabled={sendRejectionNotificationMutation.isPending || !rejectionMessage.trim()}
             >
-              <Send className="h-4 w-4 mr-2" />
-              Send Notification
+              {sendRejectionNotificationMutation.isPending ? (
+                <>Sending...</>
+              ) : (
+                <><Send className="h-4 w-4 mr-2" />Send Notification</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
