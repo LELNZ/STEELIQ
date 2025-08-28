@@ -8,6 +8,9 @@ import { getDeliveryTermLabel } from '@shared/constants/deliveryTerms';
 // Initialize SendGrid
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('SendGrid initialized successfully');
+} else {
+  console.error('WARNING: SendGrid API key not found - emails will not be sent');
 }
 
 export class RFQEmailService {
@@ -44,7 +47,7 @@ export class RFQEmailService {
       // Send to each supplier
       for (const supplier of suppliersList) {
         try {
-          const portalUrl = `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'steeliq.replit.app'}/supplier/rfq/${rfqId}?token=${this.generateAccessToken()}`;
+          const portalUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'steeliq.replit.app'}/supplier/rfq/${rfqId}?token=${this.generateAccessToken()}`;
           
           const emailContent = this.generateRFQEmailContent({
             rfq,
@@ -62,11 +65,13 @@ export class RFQEmailService {
           };
 
           if (process.env.SENDGRID_API_KEY) {
-            await sgMail.send(msg);
+            console.log(`Sending RFQ ${rfq.rfqNumber} to ${supplier.name} at ${supplier.email}`);
+            const response = await sgMail.send(msg);
+            console.log(`Email sent successfully to ${supplier.email}`, response[0].statusCode);
             results.sent++;
           } else {
-            console.log('SendGrid not configured - would send to:', supplier.email);
-            results.sent++;
+            console.error('SendGrid API key not configured');
+            throw new Error('SendGrid API key not configured');
           }
         } catch (error: any) {
           console.error(`Failed to send RFQ to ${supplier.email}:`, error);
@@ -255,7 +260,7 @@ export class RFQEmailService {
   }
 
   private generateReminderEmail(rfq: any, supplier: any, daysRemaining: number): string {
-    const portalUrl = `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'steeliq.replit.app'}/supplier/rfq/${rfq.id}?token=${this.generateAccessToken()}`;
+    const portalUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'steeliq.replit.app'}/supplier/rfq/${rfq.id}?token=${this.generateAccessToken()}`;
     
     return `
       <!DOCTYPE html>
