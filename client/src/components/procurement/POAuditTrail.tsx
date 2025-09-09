@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -37,6 +37,7 @@ import {
   UserCheck,
   AlertTriangle,
   Info,
+  Send,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -49,7 +50,7 @@ interface POAuditTrailProps {
   poNumber: string;
 }
 
-interface StatusLog {
+interface StatusChange {
   id: number;
   previousStatus: string | null;
   newStatus: string;
@@ -418,7 +419,7 @@ export function POAuditTrail({
                   
                   <div className="space-y-4">
                     {/* Combine all logs into timeline */}
-                    {data.statusHistory?.map((log: StatusLog, index: number) => (
+                    {data.statusHistory?.map((log: StatusChange, index: number) => (
                       <div key={`status-${log.id}`} className="relative flex items-start gap-4">
                         <div className="absolute left-2.5 h-3 w-3 rounded-full bg-primary border-2 border-background" />
                         <div className="ml-8 flex-1">
@@ -476,38 +477,50 @@ export function POAuditTrail({
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center justify-between">
                       <span>Access & Activity Log</span>
-                      <Badge variant="outline" className="text-xs">
-                        <Eye className="h-3 w-3 mr-1" />
-                        23 views
-                      </Badge>
+                      {data.systemLogs && data.systemLogs.length > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          <Eye className="h-3 w-3 mr-1" />
+                          {data.systemLogs.length} events
+                        </Badge>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {/* Sample activity entries */}
-                      <div className="flex items-start gap-3 text-sm">
-                        <Eye className="h-4 w-4 text-blue-500 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-medium">PO Viewed</p>
-                          <p className="text-xs text-muted-foreground">John Smith • Manager • 2 hours ago</p>
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="flex items-start gap-3 text-sm">
-                        <Download className="h-4 w-4 text-green-500 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-medium">PO Exported to PDF</p>
-                          <p className="text-xs text-muted-foreground">Sarah Johnson • Accountant • 1 day ago</p>
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="flex items-start gap-3 text-sm">
-                        <FileCheck className="h-4 w-4 text-purple-500 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-medium">PO Acknowledged by Supplier</p>
-                          <p className="text-xs text-muted-foreground">Via Email Portal • 3 days ago</p>
-                        </div>
-                      </div>
+                      {(!data.systemLogs || data.systemLogs.length === 0) ? (
+                        <p className="text-sm text-muted-foreground">No activity recorded yet.</p>
+                      ) : (
+                        data.systemLogs
+                          .filter((log: SystemLog) => 
+                            log.eventType === 'communication' || 
+                            log.eventType === 'acknowledgment' ||
+                            log.eventType === 'export'
+                          )
+                          .slice(0, 5)
+                          .map((log: SystemLog, index: number) => (
+                            <div key={log.id}>
+                              <div className="flex items-start gap-3 text-sm">
+                                {log.eventType === 'communication' && <Send className="h-4 w-4 text-blue-500 mt-0.5" />}
+                                {log.eventType === 'acknowledgment' && <FileCheck className="h-4 w-4 text-purple-500 mt-0.5" />}
+                                {log.eventType === 'export' && <Download className="h-4 w-4 text-green-500 mt-0.5" />}
+                                {!['communication', 'acknowledgment', 'export'].includes(log.eventType) && 
+                                  <Activity className="h-4 w-4 text-gray-500 mt-0.5" />}
+                                <div className="flex-1">
+                                  <p className="font-medium">{log.action}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {log.userName || 'System'} • {log.userRole || 'System'} • 
+                                    {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                                  </p>
+                                </div>
+                              </div>
+                              {index < Math.min(data.systemLogs.filter((l: SystemLog) => 
+                                l.eventType === 'communication' || 
+                                l.eventType === 'acknowledgment' ||
+                                l.eventType === 'export'
+                              ).length - 1, 4) && <Separator />}
+                            </div>
+                          ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -570,27 +583,27 @@ export function POAuditTrail({
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">Level 1: Department Manager</p>
-                            <p className="text-xs text-muted-foreground">Approved by Mike Wilson • Aug 29, 2025</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">Level 2: Finance Director</p>
-                            <p className="text-xs text-muted-foreground">Approved by Lisa Chen • Aug 29, 2025</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">Level 3: CEO</p>
-                            <p className="text-xs text-muted-foreground">Approved by David Brown • Aug 30, 2025</p>
-                          </div>
-                        </div>
+                        {(!data.statusHistory || data.statusHistory.length === 0) ? (
+                          <p className="text-sm text-muted-foreground">No approval records available.</p>
+                        ) : (
+                          data.statusHistory
+                            .filter((status: StatusChange) => 
+                              status.newStatus === 'approved' || 
+                              status.changeReason?.toLowerCase().includes('approv')
+                            )
+                            .map((status: StatusChange, index: number) => (
+                              <div key={status.id} className="flex items-center gap-3">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium">{status.changeReason || 'Status Change'}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {status.changedByName} • {status.changedByRole} • 
+                                    {format(new Date(status.createdAt), 'MMM d, yyyy')}
+                                  </p>
+                                </div>
+                              </div>
+                            ))
+                        )}
                       </div>
                     </CardContent>
                   </Card>
