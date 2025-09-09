@@ -555,32 +555,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Coating systems methods
-  async getCoatingSystems(): Promise<any[]> {
+  async getCoatingSystems(): Promise<CoatingSystem[]> {
     try {
-      const result = await db.query(`SELECT * FROM coating_systems WHERE is_active = true ORDER BY name`);
-      return result.rows;
+      const result = await db.select()
+        .from(coatingSystems)
+        .where(eq(coatingSystems.isActive, true))
+        .orderBy(coatingSystems.name);
+      return result;
     } catch (error) {
       console.error('Error fetching coating systems:', error);
       return [];
     }
   }
 
-  async createCoatingSystem(coatingData: any): Promise<any> {
+  async createCoatingSystem(coatingData: InsertCoatingSystem): Promise<CoatingSystem> {
     try {
-      const result = await db.query(`
-        INSERT INTO coating_systems (name, coating_type, pricing_method, price_per_unit, coverage_rate, preparation_required, is_active)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING *
-      `, [
-        coatingData.name,
-        coatingData.coating_type,
-        coatingData.pricing_method,
-        coatingData.price_per_unit,
-        coatingData.coverage_rate,
-        coatingData.preparation_required,
-        coatingData.is_active
-      ]);
-      return result.rows[0];
+      const [result] = await db.insert(coatingSystems)
+        .values(coatingData)
+        .returning();
+      return result;
     } catch (error) {
       console.error('Error creating coating system:', error);
       throw error;
