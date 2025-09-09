@@ -26,7 +26,10 @@ import {
   Printer,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Trophy,
+  TrendingUp,
+  DollarSign
 } from "lucide-react";
 
 interface PODistributionDialogProps {
@@ -56,6 +59,12 @@ export default function PODistributionDialog({
   const [requireSignature, setRequireSignature] = useState(false);
   const [newCcEmail, setNewCcEmail] = useState("");
   const [newBccEmail, setNewBccEmail] = useState("");
+
+  // Fetch quote history for this PO
+  const { data: quoteHistory } = useQuery({
+    queryKey: [`/api/procurement/purchase-orders/${purchaseOrder?.id}/quote-history`],
+    enabled: open && !!purchaseOrder?.id,
+  });
 
   // Fetch all suppliers for dropdown
   const { data: suppliers = [] } = useQuery({
@@ -194,6 +203,56 @@ Lateral Engineering Procurement Team`);
         <DialogHeader>
           <DialogTitle>Send Purchase Order - {purchaseOrder?.poNumber}</DialogTitle>
         </DialogHeader>
+
+        {/* Quote Summary Card - shown when quotes exist */}
+        {quoteHistory?.quotes?.length > 0 && (
+          <Card className="mb-4 border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Trophy className="h-4 w-4 text-blue-600" />
+                Quote Selection Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">Selected Quote</p>
+                  <p className="font-medium">
+                    {quoteHistory.quotes.find((q: any) => q.id === quoteHistory.winningQuoteId)?.supplierName || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Winning Price</p>
+                  <p className="font-medium">
+                    ${parseFloat(
+                      quoteHistory.quotes.find((q: any) => q.id === quoteHistory.winningQuoteId)?.totalAmount || "0"
+                    ).toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Total Quotes</p>
+                  <p className="font-medium">{quoteHistory.quotes.length} suppliers</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Savings</p>
+                  <p className="font-medium text-green-600">
+                    ${(
+                      Math.max(...quoteHistory.quotes.map((q: any) => parseFloat(q.totalAmount))) -
+                      parseFloat(
+                        quoteHistory.quotes.find((q: any) => q.id === quoteHistory.winningQuoteId)?.totalAmount || "0"
+                      )
+                    ).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              {quoteHistory.rfqNumber && (
+                <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
+                  <span>RFQ Reference: {quoteHistory.rfqNumber}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
