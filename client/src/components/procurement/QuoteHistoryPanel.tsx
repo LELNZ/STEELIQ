@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import QuoteDetailsDialog from "./QuoteDetailsDialog";
 import { 
   Trophy, 
   DollarSign, 
@@ -93,6 +94,8 @@ export default function QuoteHistoryPanel({
 }: QuoteHistoryPanelProps) {
   const [expandedQuotes, setExpandedQuotes] = useState<Set<number>>(new Set());
   const [comparisonView, setComparisonView] = useState<"list" | "table">("list");
+  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
   const toggleQuoteExpansion = (quoteId: number) => {
     const newExpanded = new Set(expandedQuotes);
@@ -382,7 +385,11 @@ export default function QuoteHistoryPanel({
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => onViewQuote?.(quote)}
+                                  onClick={() => {
+                                    setSelectedQuote(quote);
+                                    setDetailsDialogOpen(true);
+                                    onViewQuote?.(quote);
+                                  }}
                                 >
                                   <Eye className="h-4 w-4 mr-1" />
                                   View Details
@@ -403,18 +410,17 @@ export default function QuoteHistoryPanel({
                 })}
             </div>
           ) : (
-            <ScrollArea className="w-full">
-              <Table>
+            <div className="overflow-x-auto">
+              <Table className="text-xs">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Rank</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-center">Delivery</TableHead>
-                    <TableHead className="text-center">Payment</TableHead>
-                    <TableHead className="text-center">Warranty</TableHead>
-                    <TableHead className="text-center">Score</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
+                  <TableRow className="text-xs">
+                    <TableHead className="p-2 w-12">#</TableHead>
+                    <TableHead className="p-2">Supplier</TableHead>
+                    <TableHead className="p-2 text-right">Price</TableHead>
+                    <TableHead className="p-2 text-center">Delivery</TableHead>
+                    <TableHead className="p-2 text-center">Terms</TableHead>
+                    <TableHead className="p-2 text-center">Score</TableHead>
+                    <TableHead className="p-2 text-center">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -427,40 +433,44 @@ export default function QuoteHistoryPanel({
                         <TableRow 
                           key={quote.id}
                           className={cn(
-                            isWinner && "bg-green-50 dark:bg-green-950/20"
+                            "cursor-pointer hover:bg-muted/50",
+                            isWinner && "bg-green-50 dark:bg-green-950/20 hover:bg-green-100/50"
                           )}
+                          onClick={() => {
+                            setSelectedQuote(quote);
+                            setDetailsDialogOpen(true);
+                          }}
                         >
-                          <TableCell>
+                          <TableCell className="p-2">
                             <div className={cn(
-                              "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
+                              "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold",
                               isWinner ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
                             )}>
                               {quote.ranking || index + 1}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="p-2">
                             <div>
-                              <p className="font-medium">{quote.supplierName}</p>
-                              <p className="text-xs text-muted-foreground">#{quote.responseNumber}</p>
+                              <p className="font-medium truncate max-w-[150px]">{quote.supplierName}</p>
+                              <p className="text-[10px] text-muted-foreground">#{quote.responseNumber}</p>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right font-bold">
+                          <TableCell className="p-2 text-right font-bold">
                             {formatCurrency(quote.totalAmount, quote.currency)}
                           </TableCell>
-                          <TableCell className="text-center">
-                            {quote.deliveryDays} days
+                          <TableCell className="p-2 text-center">
+                            <Badge variant="outline" className="text-[10px] px-1 py-0">
+                              {quote.deliveryDays}d
+                            </Badge>
                           </TableCell>
-                          <TableCell className="text-center">
-                            {quote.paymentTermsOffered || "Standard"}
+                          <TableCell className="p-2 text-center text-[10px]">
+                            {quote.paymentTermsOffered || "Net 30"}
                           </TableCell>
-                          <TableCell className="text-center">
-                            {quote.warrantyOffered || "None"}
-                          </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="p-2 text-center">
                             {quote.totalScore ? (
-                              <div className="flex items-center justify-center gap-1">
-                                <Star className="h-3 w-3 text-yellow-500" />
-                                <span className="font-medium">
+                              <div className="flex items-center justify-center gap-0.5">
+                                <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                                <span className="font-medium text-xs">
                                   {parseFloat(quote.totalScore.toString()).toFixed(1)}
                                 </span>
                               </div>
@@ -468,18 +478,37 @@ export default function QuoteHistoryPanel({
                               "-"
                             )}
                           </TableCell>
-                          <TableCell className="text-center">
-                            {getStatusBadge(quote.status, isWinner)}
+                          <TableCell className="p-2">
+                            <div className="flex justify-center">
+                              {isWinner ? (
+                                <Badge className="bg-green-500 text-white text-[10px] px-1.5 py-0">
+                                  <Trophy className="h-2.5 w-2.5 mr-0.5" />
+                                  Won
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  Lost
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
                     })}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Quote Details Dialog */}
+      <QuoteDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        quote={selectedQuote}
+        isWinner={selectedQuote?.id === winningQuoteId}
+      />
     </div>
   );
 }
