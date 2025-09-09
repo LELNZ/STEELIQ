@@ -319,69 +319,6 @@ export default function Procurement() {
         </Card>
       </div>
 
-      {/* Additional Metrics - RFQs and POs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Draft RFQs</p>
-                <p className="text-xl font-bold">{metrics.draftRfqs}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">${metrics.draftRfqTotal.toLocaleString()}</p>
-              </div>
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <FileSignature className="w-4 h-4 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Active RFQs</p>
-                <p className="text-xl font-bold">{metrics.activeRfqs}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">${metrics.activeRfqTotal.toLocaleString()}</p>
-              </div>
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Send className="w-4 h-4 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Draft POs</p>
-                <p className="text-xl font-bold">{metrics.draftPOs}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">${metrics.draftPOTotal.toLocaleString()}</p>
-              </div>
-              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                <FileText className="w-4 h-4 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Pending POs</p>
-                <p className="text-xl font-bold">{metrics.pendingPOs}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">${metrics.pendingPOTotal.toLocaleString()}</p>
-              </div>
-              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-4 h-4 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={(value) => {
         setActiveTab(value);
@@ -558,7 +495,12 @@ export default function Procurement() {
                   </div>
                   <p className="text-xs font-medium">RFQs</p>
                   <p className="text-lg font-bold">{metrics.activeRfqs || 0}</p>
-                  <p className="text-xs text-muted-foreground">Active</p>
+                  <p className="text-xs text-muted-foreground">${(metrics.activeRfqTotal || 0).toLocaleString()}</p>
+                  <div className="mt-1 text-xs">
+                    <span className="text-muted-foreground">Draft: </span>
+                    <span className="font-medium">{metrics.draftRfqs || 0}</span>
+                    <span className="text-muted-foreground"> (${(metrics.draftRfqTotal || 0).toLocaleString()})</span>
+                  </div>
                 </div>
 
                 <div className="text-muted-foreground">→</div>
@@ -569,7 +511,13 @@ export default function Procurement() {
                   </div>
                   <p className="text-xs font-medium">Purchase Orders</p>
                   <p className="text-lg font-bold">{metrics.activePOs}</p>
-                  <p className="text-xs text-muted-foreground">Active</p>
+                  <p className="text-xs text-muted-foreground">${(metrics.activePOTotal || 0).toLocaleString()}</p>
+                  <div className="mt-1 text-xs">
+                    <span className="text-muted-foreground">Draft: </span>
+                    <span className="font-medium">{metrics.draftPOs || 0}</span>
+                    <span className="text-muted-foreground"> • Pending: </span>
+                    <span className="font-medium">{metrics.pendingPOs || 0}</span>
+                  </div>
                 </div>
 
                 <div className="text-muted-foreground">→</div>
