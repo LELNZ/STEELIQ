@@ -495,11 +495,10 @@ export default function Procurement() {
                   </div>
                   <p className="text-xs font-medium">RFQs</p>
                   <p className="text-lg font-bold">{metrics.activeRfqs || 0}</p>
-                  <p className="text-xs text-muted-foreground">${(metrics.activeRfqTotal || 0).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Active</p>
                   <div className="mt-1 text-xs">
                     <span className="text-muted-foreground">Draft: </span>
                     <span className="font-medium">{metrics.draftRfqs || 0}</span>
-                    <span className="text-muted-foreground"> (${(metrics.draftRfqTotal || 0).toLocaleString()})</span>
                   </div>
                 </div>
 
@@ -511,12 +510,10 @@ export default function Procurement() {
                   </div>
                   <p className="text-xs font-medium">Purchase Orders</p>
                   <p className="text-lg font-bold">{metrics.activePOs}</p>
-                  <p className="text-xs text-muted-foreground">${(metrics.activePOTotal || 0).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Active</p>
                   <div className="mt-1 text-xs">
                     <span className="text-muted-foreground">Draft: </span>
                     <span className="font-medium">{metrics.draftPOs || 0}</span>
-                    <span className="text-muted-foreground"> • Pending: </span>
-                    <span className="font-medium">{metrics.pendingPOs || 0}</span>
                   </div>
                 </div>
 
