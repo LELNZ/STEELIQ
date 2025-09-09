@@ -9661,17 +9661,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const poId = parseInt(req.params.id);
       
-      // Get user from auth token
-      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
-      
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      const authUser = await AuthService.validateSession(token);
-      
+      // Get authenticated user
+      const authUser = await AuthService.getAuthenticatedUser(req);
       if (!authUser) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({ error: "Authentication required" });
       }
       
       // Get PO status logs
