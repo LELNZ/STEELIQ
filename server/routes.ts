@@ -10180,8 +10180,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Status is required" });
       }
       
-      // Get authenticated user using the proper method
-      const authUser = await AuthService.getAuthenticatedUser(req);
+      // Get authenticated user from session
+      const authUser = req.user;
       
       if (!authUser) {
         return res.status(401).json({ error: "Authentication required" });
@@ -10216,8 +10216,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         changedBy: authUser.id,
         changedByName: user.name,
         changedByRole: user.role,
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
         source: 'manual',
         createdAt: new Date()
       });
@@ -10310,8 +10308,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         changedBy: authUser.id,
         changedByName: user.name,
         changedByRole: user.role,
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
       });
       
       res.json({ 
@@ -10450,8 +10446,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         changedBy: authUser.id,
         changedByName: user.name,
         changedByRole: user.role,
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
         source: 'manual',
         createdAt: new Date()
       });
