@@ -9521,8 +9521,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const draftRfqs = rfqRequests.filter(rfq => rfq.status === 'draft');
       const sentRfqs = rfqRequests.filter(rfq => rfq.status === 'sent');
       const evaluatingRfqs = rfqRequests.filter(rfq => rfq.status === 'evaluating');
+      const closedRfqs = rfqRequests.filter(rfq => rfq.status === 'closed');
       const activeRfqs = rfqRequests.filter(rfq => 
-        ['draft', 'sent', 'evaluating'].includes(rfq.status)
+        ['sent', 'evaluating'].includes(rfq.status)
       );
       
       // Calculate RFQ totals
@@ -9536,6 +9537,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pendingPOs = purchaseOrders.filter(po => po.status === 'pending_approval');
       const sentPOs = purchaseOrders.filter(po => po.status === 'sent');
       const acknowledgedPOs = purchaseOrders.filter(po => po.status === 'acknowledged');
+      const executedPOs = purchaseOrders.filter(po => po.status === 'acknowledged');
+      const completedPOs = purchaseOrders.filter(po => po.status === 'completed');
       const activePOs = purchaseOrders.filter(po => 
         ['sent', 'acknowledged', 'partial'].includes(po.status)
       );
@@ -9574,6 +9577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeRfqTotal: activeRfqTotal,
         sentRfqs: sentRfqs.length,
         evaluatingRfqs: evaluatingRfqs.length,
+        closedRfqs: closedRfqs.length,
         
         // PO metrics
         draftPOs: draftPOs.length,
@@ -9582,6 +9586,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pendingPOTotal: pendingPOTotal,
         activePOs: activePOs.length,
         activePOTotal: activePOTotal,
+        executedPOs: executedPOs.length,
+        completedPOs: completedPOs.length,
         
         // Other metrics
         monthlySpend: monthlySpend,
