@@ -382,7 +382,8 @@ export default function PurchaseOrderDetailsDialog({
       onOpenChange={setShowDistributionDialog}
       purchaseOrder={purchaseOrder}
       onSend={() => {
-        onStatusChange?.(purchaseOrder.id, "sent");
+        // Status is already updated to "sent" by the server during the send operation
+        // No need to make a separate status update call
         setShowDistributionDialog(false);
       }}
     />
