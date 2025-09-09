@@ -25,9 +25,12 @@ import {
   CheckCircle,
   Archive,
   Shield,
+  Trophy,
 } from "lucide-react";
 import PODistributionDialog from "./PODistributionDialog";
 import { POAuditTrail } from "./POAuditTrail";
+import QuoteHistoryPanel from "./QuoteHistoryPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface PurchaseOrderDetailsDialogProps {
   open: boolean;
@@ -65,6 +68,12 @@ export default function PurchaseOrderDetailsDialog({
   const { data: supplier, isLoading: supplierLoading } = useQuery({
     queryKey: [`/api/suppliers/${purchaseOrder?.supplierId}`],
     enabled: open && !!purchaseOrder?.supplierId,
+  });
+
+  // Fetch quote history for this PO
+  const { data: quoteHistory, isLoading: quoteHistoryLoading } = useQuery({
+    queryKey: [`/api/procurement/purchase-orders/${purchaseOrder?.id}/quote-history`],
+    enabled: open && !!purchaseOrder?.id,
   });
 
   // For now, we'll just display the delivery address as stored
@@ -108,7 +117,21 @@ export default function PurchaseOrderDetailsDialog({
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
+        <Tabs defaultValue="details" className="mt-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">Order Details</TabsTrigger>
+            <TabsTrigger value="quotes" className="flex items-center gap-1">
+              <Trophy className="h-4 w-4" />
+              Quote History
+              {quoteHistory?.quotes?.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1 text-xs">
+                  {quoteHistory.quotes.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="space-y-6 mt-4">
           {/* Header Information */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
@@ -321,7 +344,33 @@ export default function PurchaseOrderDetailsDialog({
               </>
             )}
           </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="quotes" className="mt-4">
+            {quoteHistoryLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : quoteHistory?.quotes?.length > 0 ? (
+              <QuoteHistoryPanel
+                rfqId={quoteHistory.rfqId}
+                rfqNumber={quoteHistory.rfqNumber}
+                poId={purchaseOrder?.id}
+                quotes={quoteHistory.quotes}
+                winningQuoteId={quoteHistory.winningQuoteId}
+                showComparison={true}
+                showActions={true}
+              />
+            ) : (
+              <div className="text-center p-8">
+                <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">
+                  {quoteHistory?.message || "No quote history available for this purchase order."}
+                </p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
 
