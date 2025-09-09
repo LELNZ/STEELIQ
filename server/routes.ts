@@ -9819,6 +9819,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get quote history for a purchase order
+  app.get("/api/procurement/purchase-orders/:id/quote-history", async (req, res) => {
+    try {
+      const poId = parseInt(req.params.id);
+      
+      // Get the purchase order to find the RFQ and RFQ response IDs
+      const purchaseOrder = await storage.getPurchaseOrder(poId);
+      
+      if (!purchaseOrder) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+      
+      // If no RFQ was used (emergency purchase), return empty
+      if (!purchaseOrder.rfqId) {
+        return res.json({
+          quotes: [],
+          rfqId: null,
+          rfqNumber: null,
+          winningQuoteId: null,
+          message: "This PO was created without an RFQ (emergency purchase)"
+        });
+      }
+      
+      // Get the RFQ details
+      const rfq = await storage.getRfqRequest(purchaseOrder.rfqId);
+      
+      // Get all quotes/responses for this RFQ
+      const quotes = await storage.getRfqResponses(purchaseOrder.rfqId);
+      
+      // Enrich quotes with supplier names
+      const enrichedQuotes = await Promise.all(quotes.map(async (quote) => {
+        const supplier = await storage.getSupplier(quote.supplierId);
+        return {
+          ...quote,
+          supplierName: supplier?.name || 'Unknown Supplier'
+        };
+      }));
+      
+      res.json({
+        quotes: enrichedQuotes,
+        rfqId: purchaseOrder.rfqId,
+        rfqNumber: rfq?.rfqNumber || null,
+        winningQuoteId: purchaseOrder.rfqResponseId,
+        requisitionId: purchaseOrder.requisitionId
+      });
+    } catch (error) {
+      console.error("Error fetching quote history for purchase order:", error);
+      res.status(500).json({ error: "Failed to fetch quote history" });
+    }
+  });
+
   // Convert approved requisition to Purchase Order
   app.post("/api/procurement/requisitions/:id/convert-to-po", async (req, res) => {
     try {
