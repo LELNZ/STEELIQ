@@ -9667,39 +9667,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get actual status history from database
-      const statusHistory = await db.select({
-        id: poStatusLog.id,
-        previousStatus: poStatusLog.previousStatus,
-        newStatus: poStatusLog.newStatus,
-        changeReason: poStatusLog.changeReason,
-        changeNotes: poStatusLog.changeNotes,
-        changedBy: poStatusLog.changedBy,
-        changedByName: poStatusLog.changedByName,
-        changedByRole: poStatusLog.changedByRole,
-        source: poStatusLog.source,
-        createdAt: poStatusLog.createdAt,
-      })
+      const statusHistory = await db.select()
       .from(poStatusLog)
       .where(eq(poStatusLog.purchaseOrderId, poId))
       .orderBy(desc(poStatusLog.createdAt));
       
       // Get distribution logs (email sends)
-      const distributionLogs = await db.select({
-        id: poDistribution.id,
-        sentBy: poDistribution.sentBy,
-        sentTo: poDistribution.sentTo,
-        ccEmails: poDistribution.ccEmails,
-        bccEmails: poDistribution.bccEmails,
-        emailSubject: poDistribution.emailSubject,
-        emailBody: poDistribution.emailBody,
-        deliveryMethod: poDistribution.deliveryMethod,
-        accessToken: poDistribution.accessToken,
-        portalViewed: poDistribution.portalViewed,
-        acknowledgedAt: poDistribution.acknowledgedAt,
-        acknowledgedBy: poDistribution.acknowledgedBy,
-        acknowledgmentNotes: poDistribution.acknowledgmentNotes,
-        createdAt: poDistribution.createdAt,
-      })
+      const distributionLogs = await db.select()
       .from(poDistribution)
       .where(eq(poDistribution.purchaseOrderId, poId))
       .orderBy(desc(poDistribution.createdAt));
