@@ -305,10 +305,12 @@ export default function PurchaseOrderDetailsDialog({
               <Download className="h-4 w-4 mr-1" />
               Download PDF
             </Button>
-            {purchaseOrder?.status === "draft" && (
+            {(purchaseOrder?.status === "draft" || 
+              purchaseOrder?.status === "approved" || 
+              purchaseOrder?.status === "sent") && (
               <Button size="sm" onClick={handleSendToSupplier}>
                 <Send className="h-4 w-4 mr-1" />
-                Send to Supplier
+                {purchaseOrder?.status === "sent" ? "Resend to Supplier" : "Send to Supplier"}
               </Button>
             )}
             {purchaseOrder?.status === "cancelled" && (

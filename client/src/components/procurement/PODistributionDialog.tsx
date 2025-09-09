@@ -119,7 +119,9 @@ Lateral Engineering Procurement Team`);
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Purchase order sent successfully",
+        description: purchaseOrder?.status === "sent" 
+          ? "Purchase order resent successfully" 
+          : "Purchase order sent successfully",
       });
       queryClient.invalidateQueries({ queryKey: [`/api/procurement/purchase-orders`] });
       if (onSend) {
@@ -201,8 +203,26 @@ Lateral Engineering Procurement Team`);
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Send Purchase Order - {purchaseOrder?.poNumber}</DialogTitle>
+          <DialogTitle>
+            {purchaseOrder?.status === "sent" ? "Resend" : "Send"} Purchase Order - {purchaseOrder?.poNumber}
+          </DialogTitle>
         </DialogHeader>
+
+        {/* Resend Notice - shown when PO has been sent before */}
+        {purchaseOrder?.status === "sent" && (
+          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 rounded-lg p-3 mb-4 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-blue-900 dark:text-blue-100">
+                This Purchase Order has been sent before
+              </p>
+              <p className="text-blue-700 dark:text-blue-300 mt-1">
+                You can resend it with updated contact details, different template, or additional recipients.
+                All send activities are tracked in the audit trail.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Quote Summary Card - shown when quotes exist */}
         {quoteHistory?.quotes?.length > 0 && (
