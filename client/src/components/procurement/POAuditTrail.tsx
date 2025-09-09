@@ -111,12 +111,7 @@ export function POAuditTrail({
   const [filterType, setFilterType] = useState('all');
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['/api/procurement/purchase-orders', purchaseOrderId, 'audit-trail'],
-    queryFn: async () => {
-      const response = await fetch(`/api/procurement/purchase-orders/${purchaseOrderId}/audit-trail`);
-      if (!response.ok) throw new Error('Failed to fetch audit trail');
-      return response.json();
-    },
+    queryKey: [`/api/procurement/purchase-orders/${purchaseOrderId}/audit-trail`],
     enabled: isOpen && purchaseOrderId > 0,
   });
 

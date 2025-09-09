@@ -9667,6 +9667,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
       
+      // Get IP address safely
+      const clientIp = req.ip || (req as any).connection?.remoteAddress || "127.0.0.1";
+      
       // For now, return sample data structure to test the UI
       // We'll replace this with actual database queries once tables are verified
       const mockStatusHistory = [
@@ -9679,7 +9682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           changedBy: authUser.id,
           changedByName: authUser.name || "System User",
           changedByRole: authUser.role || "Manager",
-          ipAddress: req.ip,
+          ipAddress: clientIp,
           source: "manual",
           createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
         },
@@ -9692,7 +9695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           changedBy: authUser.id,
           changedByName: authUser.name || "System User",
           changedByRole: authUser.role || "Manager",
-          ipAddress: req.ip,
+          ipAddress: clientIp,
           source: "manual",
           createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
         },
@@ -9705,7 +9708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           changedBy: authUser.id,
           changedByName: authUser.name || "System User",
           changedByRole: authUser.role || "Manager",
-          ipAddress: req.ip,
+          ipAddress: clientIp,
           source: "email",
           createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
         },
@@ -9734,7 +9737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: "Purchase Order PO-2025-0001 created from RFQ-2025-0023",
           userName: authUser.name || "System User",
           userRole: authUser.role || "Manager",
-          ipAddress: req.ip,
+          ipAddress: clientIp,
           financialImpact: "9430.00",
           previousState: null,
           newState: { status: "draft", total: 9430.00 },
@@ -9750,7 +9753,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: "Purchase Order approved by Finance Director",
           userName: "Lisa Chen",
           userRole: "Finance Director",
-          ipAddress: req.ip,
+          ipAddress: clientIp,
           financialImpact: "9430.00",
           previousState: { status: "draft" },
           newState: { status: "approved" },
@@ -9766,7 +9769,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: "Purchase Order sent to supplier via email",
           userName: authUser.name || "System User",
           userRole: authUser.role || "Manager",
-          ipAddress: req.ip,
+          ipAddress: clientIp,
           financialImpact: null,
           previousState: { status: "approved" },
           newState: { status: "sent" },
@@ -9779,8 +9782,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         statusHistory: mockStatusHistory,
         systemLogs: mockSystemLogs,
       });
-    } catch (error) {
-      console.error("Error fetching PO audit trail:", error);
+    } catch (error: any) {
+      console.error("Error fetching PO audit trail - Full details:", {
+        error: error.message,
+        stack: error.stack,
+        poId: req.params.id,
+        path: req.path,
+      });
       res.status(500).json({ error: "Failed to fetch audit trail" });
     }
   });
