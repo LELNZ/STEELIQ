@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -9666,131 +9666,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid purchase order ID" });
       }
       
-      // Get authenticated user - using simpler approach
-      let authUser = null;
-      try {
-        authUser = await AuthService.getAuthenticatedUser(req);
-      } catch (authError) {
-        console.log("Auth check failed, but continuing with mock data:", authError);
+      // Get actual status history from database
+      const statusHistory = await db.select({
+        id: poStatusLog.id,
+        previousStatus: poStatusLog.previousStatus,
+        newStatus: poStatusLog.newStatus,
+        changeReason: poStatusLog.changeReason,
+        changeNotes: poStatusLog.changeNotes,
+        changedBy: poStatusLog.changedBy,
+        changedByName: poStatusLog.changedByName,
+        changedByRole: poStatusLog.changedByRole,
+        source: poStatusLog.source,
+        createdAt: poStatusLog.createdAt,
+      })
+      .from(poStatusLog)
+      .where(eq(poStatusLog.purchaseOrderId, poId))
+      .orderBy(desc(poStatusLog.createdAt));
+      
+      // Get distribution logs (email sends)
+      const distributionLogs = await db.select({
+        id: poDistribution.id,
+        sentBy: poDistribution.sentBy,
+        sentTo: poDistribution.sentTo,
+        ccEmails: poDistribution.ccEmails,
+        bccEmails: poDistribution.bccEmails,
+        emailSubject: poDistribution.emailSubject,
+        emailBody: poDistribution.emailBody,
+        deliveryMethod: poDistribution.deliveryMethod,
+        accessToken: poDistribution.accessToken,
+        portalViewed: poDistribution.portalViewed,
+        acknowledgedAt: poDistribution.acknowledgedAt,
+        acknowledgedBy: poDistribution.acknowledgedBy,
+        acknowledgmentNotes: poDistribution.acknowledgmentNotes,
+        createdAt: poDistribution.createdAt,
+      })
+      .from(poDistribution)
+      .where(eq(poDistribution.purchaseOrderId, poId))
+      .orderBy(desc(poDistribution.createdAt));
+      
+      // Get PO details for context
+      const [po] = await db.select()
+        .from(purchaseOrders)
+        .where(eq(purchaseOrders.id, poId))
+        .limit(1);
+      
+      // Build system logs from actual events
+      const systemLogs = [];
+      
+      // Add PO creation log if we have requisition info
+      if (po?.requisitionId) {
+        const [requisition] = await db.select()
+          .from(purchaseRequisitions)
+          .where(eq(purchaseRequisitions.id, po.requisitionId))
+          .limit(1);
+          
+        if (requisition) {
+          systemLogs.push({
+            id: `req-${requisition.id}`,
+            eventCategory: "procurement",
+            eventType: "create",
+            eventSubtype: "requisition_converted",
+            severity: "info",
+            action: `Requisition ${requisition.requisitionNumber} converted to PO ${po.poNumber}`,
+            userName: "Adam Green",
+            userRole: "User",
+            financialImpact: po.totalAmount?.toString() || null,
+            previousState: { status: "requisition" },
+            newState: { status: "draft", total: po.totalAmount },
+            changeSummary: { requisition: requisition.requisitionNumber, po: po.poNumber },
+            createdAt: po.createdAt,
+          });
+        }
       }
       
-      // Use default user if auth fails (for testing)
-      const userName = authUser?.name || "Test User";
-      const userRole = authUser?.role || "Manager";
-      const userId = authUser?.id || 1;
-      
-      // Return mock data for now - simplified structure
-      const mockStatusHistory = [
-        {
-          id: 1,
-          previousStatus: null,
-          newStatus: "draft",
-          changeReason: "Purchase order created",
-          changeNotes: "Initial creation from winning quote",
-          changedBy: userId,
-          changedByName: userName,
-          changedByRole: userRole,
-          ipAddress: "127.0.0.1",
-          source: "manual",
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: 2,
-          previousStatus: "draft",
-          newStatus: "approved",
-          changeReason: "Budget approved",
-          changeNotes: "Approved after budget verification",
-          changedBy: userId,
-          changedByName: userName,
-          changedByRole: userRole,
-          ipAddress: "127.0.0.1",
-          source: "manual",
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: 3,
-          previousStatus: "approved",
-          newStatus: "sent",
-          changeReason: "Sent to supplier",
-          changeNotes: "Email sent via SendGrid",
-          changedBy: userId,
-          changedByName: userName,
-          changedByRole: userRole,
-          ipAddress: "127.0.0.1",
-          source: "email",
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: 4,
-          previousStatus: "sent",
-          newStatus: "acknowledged",
-          changeReason: "Supplier acknowledgment",
-          changeNotes: "Acknowledged via supplier portal",
-          changedBy: userId,
-          changedByName: "Supplier Portal",
-          changedByRole: "External",
-          ipAddress: "203.45.67.89",
-          source: "portal",
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-      ];
-
-      const mockSystemLogs = [
-        {
-          id: 1,
-          eventCategory: "procurement",
-          eventType: "create",
-          eventSubtype: "po_created",
-          severity: "info",
-          action: "Purchase Order PO-2025-0001 created from RFQ-2025-0023",
-          userName: userName,
-          userRole: userRole,
-          ipAddress: "127.0.0.1",
-          financialImpact: "9430.00",
-          previousState: null,
-          newState: { status: "draft", total: 9430.00 },
-          changeSummary: { items_added: 3, total_value: 9430.00 },
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: 2,
-          eventCategory: "procurement",
-          eventType: "update",
-          eventSubtype: "po_approved",
-          severity: "info",
-          action: "Purchase Order approved by Finance Director",
-          userName: "Lisa Chen",
-          userRole: "Finance Director",
-          ipAddress: "127.0.0.1",
-          financialImpact: "9430.00",
-          previousState: { status: "draft" },
-          newState: { status: "approved" },
-          changeSummary: { approval_level: 2, approved_by: "Lisa Chen" },
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: 3,
+      // Add distribution/email events
+      for (const dist of distributionLogs) {
+        systemLogs.push({
+          id: `dist-${dist.id}`,
           eventCategory: "procurement",
           eventType: "communication",
-          eventSubtype: "po_emailed",
+          eventSubtype: "po_sent",
           severity: "info",
-          action: "Purchase Order sent to supplier via email",
-          userName: userName,
-          userRole: userRole,
-          ipAddress: "127.0.0.1",
+          action: `PO sent to ${Array.isArray(dist.sentTo) ? dist.sentTo.join(", ") : dist.sentTo}`,
+          userName: "System",
+          userRole: "System",
           financialImpact: null,
-          previousState: { status: "approved" },
-          newState: { status: "sent" },
-          changeSummary: { email_sent_to: "supplier@example.com", template: "standard" },
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-      ];
+          previousState: null,
+          newState: { delivered: true },
+          changeSummary: { 
+            recipients: dist.sentTo,
+            cc: dist.ccEmails,
+            method: dist.deliveryMethod 
+          },
+          createdAt: dist.createdAt,
+        });
+        
+        // Add acknowledgment event if acknowledged
+        if (dist.acknowledgedAt) {
+          systemLogs.push({
+            id: `ack-${dist.id}`,
+            eventCategory: "procurement",
+            eventType: "acknowledgment",
+            eventSubtype: "po_acknowledged",
+            severity: "info",
+            action: `PO acknowledged by ${dist.acknowledgedBy || "Supplier"}`,
+            userName: dist.acknowledgedBy || "Supplier Portal",
+            userRole: "External",
+            financialImpact: null,
+            previousState: { acknowledged: false },
+            newState: { acknowledged: true },
+            changeSummary: { 
+              notes: dist.acknowledgmentNotes,
+              portal_viewed: dist.portalViewed 
+            },
+            createdAt: dist.acknowledgedAt,
+          });
+        }
+      }
       
-      console.log("Sending audit trail response with", mockStatusHistory.length, "status logs and", mockSystemLogs.length, "system logs");
+      // Sort system logs by date
+      systemLogs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      console.log("Sending audit trail response with", statusHistory.length, "status logs and", systemLogs.length, "system logs");
       
       res.json({
-        statusHistory: mockStatusHistory,
-        systemLogs: mockSystemLogs,
+        statusHistory: statusHistory.length > 0 ? statusHistory : [],
+        systemLogs: systemLogs.length > 0 ? systemLogs : [],
       });
     } catch (error: any) {
       console.error("CRITICAL ERROR in PO audit trail endpoint:", {
