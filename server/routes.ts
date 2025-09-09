@@ -9684,6 +9684,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(purchaseOrders.id, poId))
         .limit(1);
       
+      // Get requisition approval data for compliance tab
+      let approvalData = [];
+      if (po?.requisitionId) {
+        const approvals = await db.select({
+          id: requisitionApprovals.id,
+          status: requisitionApprovals.status,
+          comments: requisitionApprovals.comments,
+          approvedAt: requisitionApprovals.approvedAt,
+          approverName: users.name,
+          approverRole: users.role,
+          approvalLevel: requisitionApprovals.approvalLevel,
+        })
+        .from(requisitionApprovals)
+        .leftJoin(users, eq(requisitionApprovals.approverId, users.id))
+        .where(eq(requisitionApprovals.requisitionId, po.requisitionId))
+        .orderBy(requisitionApprovals.approvalLevel);
+        
+        approvalData = approvals.filter(a => a.status === 'approved');
+      }
+      
       // Build system logs from actual events
       const systemLogs = [];
       
@@ -9766,6 +9786,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         statusHistory: statusHistory.length > 0 ? statusHistory : [],
         systemLogs: systemLogs.length > 0 ? systemLogs : [],
+        approvalData: approvalData,
       });
     } catch (error: any) {
       console.error("CRITICAL ERROR in PO audit trail endpoint:", {

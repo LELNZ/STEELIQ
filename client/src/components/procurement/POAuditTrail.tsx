@@ -81,6 +81,22 @@ interface SystemLog {
   createdAt: string;
 }
 
+interface ApprovalData {
+  id: number;
+  status: string;
+  comments: string | null;
+  approvedAt: string;
+  approverName: string;
+  approverRole: string;
+  approvalLevel: number;
+}
+
+interface AuditTrailData {
+  statusHistory: StatusChange[];
+  systemLogs: SystemLog[];
+  approvalData: ApprovalData[];
+}
+
 const statusColors: Record<string, string> = {
   draft: 'bg-gray-500',
   pending: 'bg-yellow-500',
@@ -254,79 +270,50 @@ export function POAuditTrail({
                     </AlertDescription>
                   </Alert>
                 ) : (
-                  <div className="space-y-3">
-                    {data.statusHistory.map((log: StatusLog, index: number) => (
-                      <Card key={log.id} className="p-3">
-                        <CardContent className="p-0">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                              {log.previousStatus && (
-                                <>
-                                  <Badge 
-                                    variant="outline"
-                                    className={`${statusColors[log.previousStatus]} text-white border-0`}
-                                  >
-                                    {log.previousStatus}
-                                  </Badge>
-                                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                                </>
-                              )}
-                              <Badge 
-                                variant="outline"
-                                className={`${statusColors[log.newStatus]} text-white border-0`}
-                              >
-                                {log.newStatus}
-                              </Badge>
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(log.createdAt), 'PPp')}
-                            </span>
+                  <div className="space-y-2">
+                    {data.statusHistory.map((log: StatusChange, index: number) => (
+                      <div key={log.id} className="border rounded-md p-3 bg-card">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            {log.previousStatus && (
+                              <>
+                                <Badge 
+                                  variant="outline"
+                                  className={`${statusColors[log.previousStatus]} text-white border-0 h-5 px-2 text-xs`}
+                                >
+                                  {log.previousStatus}
+                                </Badge>
+                                <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                              </>
+                            )}
+                            <Badge 
+                              variant="outline"
+                              className={`${statusColors[log.newStatus]} text-white border-0 h-5 px-2 text-xs`}
+                            >
+                              {log.newStatus}
+                            </Badge>
                           </div>
-
-                          <div className="space-y-2 text-sm">
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium">{log.changedByName}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {log.changedByRole}
-                              </Badge>
-                            </div>
-
-                            {log.changeReason && (
-                              <div className="flex items-start gap-2">
-                                <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                <div>
-                                  <span className="font-medium">Reason: </span>
-                                  <span className="text-muted-foreground">{log.changeReason}</span>
-                                </div>
-                              </div>
-                            )}
-
-                            {log.changeNotes && (
-                              <div className="flex items-start gap-2">
-                                <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                <div>
-                                  <span className="font-medium">Notes: </span>
-                                  <span className="text-muted-foreground">{log.changeNotes}</span>
-                                </div>
-                              </div>
-                            )}
-
-                            {log.ipAddress && (
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">
-                                  IP: {log.ipAddress} • Source: {log.source || 'Web'}
-                                </span>
-                              </div>
-                            )}
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(log.createdAt), 'MMM d, h:mm a')}
+                          </span>
+                        </div>
+                        <div className="space-y-0.5 text-xs">
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <User className="h-3 w-3" />
+                            <span>{log.changedByName} • {log.changedByRole}</span>
                           </div>
-
-                          {index < data.statusHistory.length - 1 && (
-                            <div className="mt-4 pt-4 border-t border-dashed" />
+                          {log.changeReason && (
+                            <div className="text-muted-foreground pl-4">
+                              {log.changeReason}
+                            </div>
                           )}
-                        </CardContent>
-                      </Card>
+                          {log.changeNotes && (
+                            <div className="text-muted-foreground pl-4">
+                              Notes: {log.changeNotes}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -417,51 +404,41 @@ export function POAuditTrail({
                   {/* Vertical Timeline Line */}
                   <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
                   
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* Combine all logs into timeline */}
                     {data.statusHistory?.map((log: StatusChange, index: number) => (
-                      <div key={`status-${log.id}`} className="relative flex items-start gap-4">
-                        <div className="absolute left-2.5 h-3 w-3 rounded-full bg-primary border-2 border-background" />
-                        <div className="ml-8 flex-1">
-                          <Card>
-                            <CardContent className="p-3">
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    Status Change
-                                  </Badge>
-                                  <span className="text-xs text-muted-foreground">
-                                    {format(new Date(log.createdAt), 'PPp')}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 mb-2">
+                      <div key={`status-${log.id}`} className="relative flex items-start gap-3">
+                        <div className="absolute left-2.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />
+                        <div className="ml-7 flex-1">
+                          <div className="border rounded-md p-2 bg-card">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
                                 {log.previousStatus && (
                                   <>
-                                    <Badge variant="secondary" className="text-xs">
+                                    <Badge variant="secondary" className="h-5 px-2 text-xs">
                                       {log.previousStatus}
                                     </Badge>
                                     <ArrowRight className="h-3 w-3" />
                                   </>
                                 )}
-                                <Badge className="text-xs">
+                                <Badge className="h-5 px-2 text-xs">
                                   {log.newStatus}
                                 </Badge>
                               </div>
-                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <User className="h-3 w-3" />
-                                  {log.changedByName}
-                                </span>
-                                {log.changeReason && (
-                                  <span className="flex items-center gap-1">
-                                    <Info className="h-3 w-3" />
-                                    {log.changeReason}
-                                  </span>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(log.createdAt), 'MMM d, h:mm a')}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {log.changedByName}
+                              </span>
+                              {log.changeReason && (
+                                <span>{log.changeReason}</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -496,7 +473,6 @@ export function POAuditTrail({
                             log.eventType === 'acknowledgment' ||
                             log.eventType === 'export'
                           )
-                          .slice(0, 5)
                           .map((log: SystemLog, index: number) => (
                             <div key={log.id}>
                               <div className="flex items-start gap-3 text-sm">
@@ -513,11 +489,11 @@ export function POAuditTrail({
                                   </p>
                                 </div>
                               </div>
-                              {index < Math.min(data.systemLogs.filter((l: SystemLog) => 
+                              {index < data.systemLogs.filter((l: SystemLog) => 
                                 l.eventType === 'communication' || 
                                 l.eventType === 'acknowledgment' ||
                                 l.eventType === 'export'
-                              ).length - 1, 4) && <Separator />}
+                              ).length - 1 && <Separator />}
                             </div>
                           ))
                       )}
@@ -583,26 +559,26 @@ export function POAuditTrail({
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {(!data.statusHistory || data.statusHistory.length === 0) ? (
+                        {(!data.approvalData || data.approvalData.length === 0) ? (
                           <p className="text-sm text-muted-foreground">No approval records available.</p>
                         ) : (
-                          data.statusHistory
-                            .filter((status: StatusChange) => 
-                              status.newStatus === 'approved' || 
-                              status.changeReason?.toLowerCase().includes('approv')
-                            )
-                            .map((status: StatusChange, index: number) => (
-                              <div key={status.id} className="flex items-center gap-3">
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium">{status.changeReason || 'Status Change'}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {status.changedByName} • {status.changedByRole} • 
-                                    {format(new Date(status.createdAt), 'MMM d, yyyy')}
+                          data.approvalData.map((approval: ApprovalData, index: number) => (
+                            <div key={approval.id} className="flex items-center gap-3">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">Level {approval.approvalLevel} Approval</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {approval.approverName} • {approval.approverRole} • 
+                                  {format(new Date(approval.approvedAt), 'MMM d, yyyy')}
+                                </p>
+                                {approval.comments && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Comments: {approval.comments}
                                   </p>
-                                </div>
+                                )}
                               </div>
-                            ))
+                            </div>
+                          ))
                         )}
                       </div>
                     </CardContent>
