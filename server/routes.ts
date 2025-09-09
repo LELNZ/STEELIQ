@@ -10180,17 +10180,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Status is required" });
       }
       
-      // Get user from auth token
-      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
-      
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      const authUser = await AuthService.validateSession(token);
+      // Get authenticated user using the proper method
+      const authUser = await AuthService.getAuthenticatedUser(req);
       
       if (!authUser) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({ error: "Authentication required" });
       }
       
       // Check user permissions (only admin and manager roles can change status)
