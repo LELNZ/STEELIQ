@@ -74,6 +74,17 @@ export default function Procurement() {
     savingsThisMonth: 0,
     pendingRequisitions: 0,
     awaitingDelivery: 0,
+    // RFQ metrics
+    draftRfqs: 0,
+    draftRfqTotal: 0,
+    activeRfqs: 0,
+    activeRfqTotal: 0,
+    // PO metrics
+    draftPOs: 0,
+    draftPOTotal: 0,
+    pendingPOs: 0,
+    pendingPOTotal: 0,
+    activePOTotal: 0,
   } } = useQuery({
     queryKey: ["/api/procurement/metrics"],
   });
@@ -268,7 +279,7 @@ export default function Procurement() {
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Active POs</p>
                 <p className="text-xl font-bold">{metrics.activePOs}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">In progress</p>
+                <p className="text-xs text-muted-foreground mt-0.5">${metrics.activePOTotal.toLocaleString()}</p>
               </div>
               <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
                 <FileText className="w-4 h-4 text-primary" />
@@ -302,6 +313,69 @@ export default function Procurement() {
               </div>
               <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-4 h-4 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Metrics - RFQs and POs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Draft RFQs</p>
+                <p className="text-xl font-bold">{metrics.draftRfqs}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">${metrics.draftRfqTotal.toLocaleString()}</p>
+              </div>
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <FileSignature className="w-4 h-4 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Active RFQs</p>
+                <p className="text-xl font-bold">{metrics.activeRfqs}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">${metrics.activeRfqTotal.toLocaleString()}</p>
+              </div>
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Send className="w-4 h-4 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Draft POs</p>
+                <p className="text-xl font-bold">{metrics.draftPOs}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">${metrics.draftPOTotal.toLocaleString()}</p>
+              </div>
+              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                <FileText className="w-4 h-4 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Pending POs</p>
+                <p className="text-xl font-bold">{metrics.pendingPOs}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">${metrics.pendingPOTotal.toLocaleString()}</p>
+              </div>
+              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Clock className="w-4 h-4 text-orange-600" />
               </div>
             </div>
           </CardContent>

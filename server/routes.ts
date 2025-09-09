@@ -9517,14 +9517,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
       
+      // RFQ Metrics
+      const draftRfqs = rfqRequests.filter(rfq => rfq.status === 'draft');
+      const sentRfqs = rfqRequests.filter(rfq => rfq.status === 'sent');
+      const evaluatingRfqs = rfqRequests.filter(rfq => rfq.status === 'evaluating');
+      const activeRfqs = rfqRequests.filter(rfq => 
+        ['draft', 'sent', 'evaluating'].includes(rfq.status)
+      );
+      
+      // Calculate RFQ totals
+      const draftRfqTotal = draftRfqs.reduce((sum, rfq) => 
+        sum + parseFloat(rfq.estimatedValue || '0'), 0);
+      const activeRfqTotal = activeRfqs.reduce((sum, rfq) => 
+        sum + parseFloat(rfq.estimatedValue || '0'), 0);
+      
+      // PO Metrics
+      const draftPOs = purchaseOrders.filter(po => po.status === 'draft');
+      const pendingPOs = purchaseOrders.filter(po => po.status === 'pending_approval');
+      const sentPOs = purchaseOrders.filter(po => po.status === 'sent');
+      const acknowledgedPOs = purchaseOrders.filter(po => po.status === 'acknowledged');
       const activePOs = purchaseOrders.filter(po => 
         ['sent', 'acknowledged', 'partial'].includes(po.status)
       );
       
-      // Include all non-cancelled RFQs as active (draft, sent, evaluating)
-      const activeRfqs = rfqRequests.filter(rfq => 
-        ['draft', 'sent', 'evaluating'].includes(rfq.status)
-      );
+      // Calculate PO totals
+      const draftPOTotal = draftPOs.reduce((sum, po) => 
+        sum + parseFloat(po.totalAmount || '0'), 0);
+      const pendingPOTotal = pendingPOs.reduce((sum, po) => 
+        sum + parseFloat(po.totalAmount || '0'), 0);
+      const activePOTotal = activePOs.reduce((sum, po) => 
+        sum + parseFloat(po.totalAmount || '0'), 0);
+      
+      // Calculate monthly spend from completed POs this month
+      const monthlyPOs = purchaseOrders.filter(po => {
+        if (!po.createdAt) return false;
+        const poDate = new Date(po.createdAt);
+        return poDate >= startOfMonth && ['sent', 'acknowledged', 'partial', 'received', 'completed'].includes(po.status);
+      });
+      const monthlySpend = monthlyPOs.reduce((sum, po) => 
+        sum + parseFloat(po.totalAmount || '0'), 0);
       
       // Count POs awaiting delivery
       const awaitingDelivery = purchaseOrders.filter(po => 
@@ -9532,12 +9563,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ).length;
       
       const metrics = {
+        // Approval metrics
         pendingApprovals: pendingRequisitions.length,
-        activePOs: activePOs.length,
-        activeRfqs: activeRfqs.length,
-        monthlySpend: 0, // Will be calculated from actual POs
-        savingsThisMonth: 0, // Will be calculated from RFQ savings
         pendingRequisitions: pendingRequisitions.length,
+        
+        // RFQ metrics
+        draftRfqs: draftRfqs.length,
+        draftRfqTotal: draftRfqTotal,
+        activeRfqs: activeRfqs.length,
+        activeRfqTotal: activeRfqTotal,
+        sentRfqs: sentRfqs.length,
+        evaluatingRfqs: evaluatingRfqs.length,
+        
+        // PO metrics
+        draftPOs: draftPOs.length,
+        draftPOTotal: draftPOTotal,
+        pendingPOs: pendingPOs.length,
+        pendingPOTotal: pendingPOTotal,
+        activePOs: activePOs.length,
+        activePOTotal: activePOTotal,
+        
+        // Other metrics
+        monthlySpend: monthlySpend,
+        savingsThisMonth: 0, // Will be calculated from RFQ savings
         awaitingDelivery: awaitingDelivery,
       };
       
