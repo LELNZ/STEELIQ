@@ -93,7 +93,7 @@ export default function QuoteHistoryPanel({
   onViewQuote,
 }: QuoteHistoryPanelProps) {
   const [expandedQuotes, setExpandedQuotes] = useState<Set<number>>(new Set());
-  const [comparisonView, setComparisonView] = useState<"list" | "table">("list");
+  const [comparisonView, setComparisonView] = useState<"list" | "table">("table");
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
