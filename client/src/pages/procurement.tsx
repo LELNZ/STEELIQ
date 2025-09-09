@@ -19,8 +19,10 @@ import {
   Filter,
   Send,
   FileSignature,
-  Truck
+  Truck,
+  Info
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import CreateRequisitionDialog from "@/components/procurement/CreateRequisitionDialog";
 import RequisitionDetailsDialog from "@/components/procurement/RequisitionDetailsDialog";
@@ -466,68 +468,141 @@ export default function Procurement() {
               <CardDescription className="text-xs">Current status of procurement pipeline</CardDescription>
             </CardHeader>
             <CardContent className="pt-2">
-              <div className="flex items-center justify-between">
-                <div className="flex-1 text-center">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-1">
-                    <FileSignature className="h-5 w-5 text-primary" />
+              <TooltipProvider>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 text-center">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-1">
+                      <FileSignature className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex items-center justify-center gap-1">
+                      <p className="text-xs font-medium">Requisitions</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs font-semibold mb-1">Requisition Statuses:</p>
+                          <p className="text-xs">• <span className="font-medium">Draft:</span> Being created, not submitted</p>
+                          <p className="text-xs">• <span className="font-medium">Pending:</span> Awaiting approval</p>
+                          <p className="text-xs">• <span className="font-medium">Approved:</span> Ready for RFQ/PO creation</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="text-lg font-bold">{metrics.pendingRequisitions}</p>
+                    <p className="text-xs text-muted-foreground">Pending</p>
                   </div>
-                  <p className="text-xs font-medium">Requisitions</p>
-                  <p className="text-lg font-bold">{metrics.pendingRequisitions}</p>
-                  <p className="text-xs text-muted-foreground">Pending</p>
+
+                  <div className="text-muted-foreground">→</div>
+
+                  <div className="flex-1 text-center">
+                    <div className="w-10 h-10 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-1">
+                      <Clock className="h-5 w-5 text-warning" />
+                    </div>
+                    <div className="flex items-center justify-center gap-1">
+                      <p className="text-xs font-medium">Approvals</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs font-semibold mb-1">Approval Process:</p>
+                          <p className="text-xs">• Multi-level approval based on value</p>
+                          <p className="text-xs">• Reviews requisition details</p>
+                          <p className="text-xs">• Can approve, reject, or request changes</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="text-lg font-bold">{metrics.pendingApprovals}</p>
+                    <p className="text-xs text-muted-foreground">Waiting</p>
+                  </div>
+
+                  <div className="text-muted-foreground">→</div>
+
+                  <div className="flex-1 text-center">
+                    <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-1">
+                      <Send className="h-5 w-5 text-secondary" />
+                    </div>
+                    <div className="flex items-center justify-center gap-1">
+                      <p className="text-xs font-medium">RFQs</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs font-semibold mb-1">RFQ Statuses:</p>
+                          <p className="text-xs">• <span className="font-medium">Draft:</span> Being prepared, not sent</p>
+                          <p className="text-xs">• <span className="font-medium">Active:</span> Sent to suppliers, awaiting quotes</p>
+                          <p className="text-xs">• <span className="font-medium">Closed:</span> Quote evaluation complete</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="text-lg font-bold">{metrics.activeRfqs || 0}</p>
+                    <p className="text-xs text-muted-foreground">Active</p>
+                    <div className="mt-1 text-xs">
+                      <span className="text-muted-foreground">Draft: </span>
+                      <span className="font-medium">{metrics.draftRfqs || 0}</span>
+                      <span className="text-muted-foreground"> • Closed: </span>
+                      <span className="font-medium">{metrics.closedRfqs || 0}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-muted-foreground">→</div>
+
+                  <div className="flex-1 text-center">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-1">
+                      <FileText className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex items-center justify-center gap-1">
+                      <p className="text-xs font-medium">Purchase Orders</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs font-semibold mb-1">PO Statuses:</p>
+                          <p className="text-xs">• <span className="font-medium">Draft:</span> Created but not sent</p>
+                          <p className="text-xs">• <span className="font-medium">Active:</span> Sent to supplier</p>
+                          <p className="text-xs">• <span className="font-medium">Executed:</span> Supplier acknowledged</p>
+                          <p className="text-xs">• <span className="font-medium">Complete:</span> Goods/services delivered</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="text-lg font-bold">{metrics.activePOs}</p>
+                    <p className="text-xs text-muted-foreground">Active</p>
+                    <div className="mt-1 text-xs">
+                      <span className="text-muted-foreground">Draft: </span>
+                      <span className="font-medium">{metrics.draftPOs || 0}</span>
+                      <span className="text-muted-foreground"> • Executed: </span>
+                      <span className="font-medium">{metrics.executedPOs || 0}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-muted-foreground">→</div>
+
+                  <div className="flex-1 text-center">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-1">
+                      <Truck className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div className="flex items-center justify-center gap-1">
+                      <p className="text-xs font-medium">Receiving</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs font-semibold mb-1">Receiving Statuses:</p>
+                          <p className="text-xs">• <span className="font-medium">Awaiting:</span> PO sent, awaiting delivery</p>
+                          <p className="text-xs">• <span className="font-medium">In Transit:</span> Shipment on the way</p>
+                          <p className="text-xs">• <span className="font-medium">Received:</span> Goods arrived, pending inspection</p>
+                          <p className="text-xs">• <span className="font-medium">Inspected:</span> Quality check complete</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="text-lg font-bold">{metrics.awaitingDelivery}</p>
+                    <p className="text-xs text-muted-foreground">Awaiting</p>
+                  </div>
                 </div>
-
-                <div className="text-muted-foreground">→</div>
-
-                <div className="flex-1 text-center">
-                  <div className="w-10 h-10 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-1">
-                    <Clock className="h-5 w-5 text-warning" />
-                  </div>
-                  <p className="text-xs font-medium">Approvals</p>
-                  <p className="text-lg font-bold">{metrics.pendingApprovals}</p>
-                  <p className="text-xs text-muted-foreground">Waiting</p>
-                </div>
-
-                <div className="text-muted-foreground">→</div>
-
-                <div className="flex-1 text-center">
-                  <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-1">
-                    <Send className="h-5 w-5 text-secondary" />
-                  </div>
-                  <p className="text-xs font-medium">RFQs</p>
-                  <p className="text-lg font-bold">{metrics.activeRfqs || 0}</p>
-                  <p className="text-xs text-muted-foreground">Active</p>
-                  <div className="mt-1 text-xs">
-                    <span className="text-muted-foreground">Draft: </span>
-                    <span className="font-medium">{metrics.draftRfqs || 0}</span>
-                  </div>
-                </div>
-
-                <div className="text-muted-foreground">→</div>
-
-                <div className="flex-1 text-center">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-1">
-                    <FileText className="h-5 w-5 text-primary" />
-                  </div>
-                  <p className="text-xs font-medium">Purchase Orders</p>
-                  <p className="text-lg font-bold">{metrics.activePOs}</p>
-                  <p className="text-xs text-muted-foreground">Active</p>
-                  <div className="mt-1 text-xs">
-                    <span className="text-muted-foreground">Draft: </span>
-                    <span className="font-medium">{metrics.draftPOs || 0}</span>
-                  </div>
-                </div>
-
-                <div className="text-muted-foreground">→</div>
-
-                <div className="flex-1 text-center">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-1">
-                    <Truck className="h-5 w-5 text-green-600" />
-                  </div>
-                  <p className="text-xs font-medium">Receiving</p>
-                  <p className="text-lg font-bold">{metrics.awaitingDelivery}</p>
-                  <p className="text-xs text-muted-foreground">Awaiting</p>
-                </div>
-              </div>
+              </TooltipProvider>
             </CardContent>
           </Card>
         </TabsContent>
