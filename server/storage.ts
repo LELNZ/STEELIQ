@@ -1796,27 +1796,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async generatePONumber(): Promise<string> {
-    const year = new Date().getFullYear();
-    
-    // Get the highest PO number for this year
+    // Get the highest PO number overall
     const latestPO = await db.select({ poNumber: purchaseOrders.poNumber })
       .from(purchaseOrders)
-      .where(sql`po_number LIKE ${`PO-${year}-%`}`)
+      .where(sql`po_number LIKE 'PO-%'`)
       .orderBy(sql`po_number DESC`)
       .limit(1);
     
     let nextNumber = 1;
     if (latestPO.length > 0 && latestPO[0].poNumber) {
-      // Extract the number from the last PO (format: PO-YYYY-NNNN)
-      const match = latestPO[0].poNumber.match(/PO-\d{4}-(\d+)/);
+      // Extract the number from the last PO (format: PO-NNNN)
+      const match = latestPO[0].poNumber.match(/PO-(\d+)/);
       if (match) {
         nextNumber = parseInt(match[1], 10) + 1;
       }
     }
     
-    // Format with 4 digits but increase if needed
+    // Format with 4 digits
     const paddedNumber = String(nextNumber).padStart(4, '0');
-    return `PO-${year}-${paddedNumber}`;
+    return `PO-${paddedNumber}`;
   }
 
   async convertRequisitionToPO(requisitionId: number, supplierId: number, userId: number): Promise<PurchaseOrder> {
