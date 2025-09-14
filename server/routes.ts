@@ -11369,6 +11369,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create manual quote (Fortune 500 Standard - Hybrid Approach)
+  app.post("/api/procurement/rfqs/:id/quotes/manual", async (req, res) => {
+    try {
+      const rfqId = parseInt(req.params.id);
+      const { 
+        supplierId, 
+        totalAmount, 
+        deliveryDays, 
+        paymentTerms,
+        notes,
+        quoteSource,
+        sourceNotes 
+      } = req.body;
+      
+      // Get authenticated user for audit trail
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      let user;
+      
+      if (token) {
+        user = await AuthService.validateSession(token);
+      }
+      
+      if (!user) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      
+      // Generate response number with manual indicator
+      const responseNumber = `QUO-M-${Date.now()}`;
+      
+      // Create manual quote with audit information
+      const response = await storage.createRfqResponse({
+        rfqId,
+        supplierId: parseInt(supplierId),
+        responseNumber,
+        status: 'submitted',
+        totalAmount: parseFloat(totalAmount),
+        currency: 'NZD',
+        validityDays: 30,
+        deliveryDays: parseInt(deliveryDays),
+        paymentTermsOffered: paymentTerms,
+        notes: `${notes}\n\n---\nMANUAL ENTRY\nSource: ${quoteSource}\nDetails: ${sourceNotes}\nEntered by: ${user.name} (${user.email})\nTimestamp: ${new Date().toISOString()}`,
+        isManualEntry: true,
+        manualEntryUserId: user.id,
+        manualEntrySource: quoteSource,
+        manualEntryNotes: sourceNotes,
+        submittedAt: new Date()
+      });
+      
+      // Log to audit trail
+      await storage.createProcurementAuditLog({
+        userId: user.id,
+        action: 'MANUAL_QUOTE_CREATED',
+        entityType: 'RFQ_RESPONSE',
+        entityId: String(response.id),
+        details: {
+          rfqId,
+          supplierId,
+          totalAmount,
+          quoteSource,
+          sourceNotes,
+          responseId: response.id
+        }
+      });
+      
+      res.json({ 
+        success: true, 
+        response,
+        message: "Manual quote added successfully with audit trail" 
+      });
+    } catch (error) {
+      console.error("Error creating manual quote:", error);
+      res.status(500).json({ error: "Failed to create manual quote" });
+    }
+  });
+
   // Compare RFQ responses
   app.get("/api/procurement/rfqs/:id/compare", async (req, res) => {
     try {

@@ -105,6 +105,20 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
   const [comparisonDialog, setComparisonDialog] = useState(false);
   const [comparisonRfqId, setComparisonRfqId] = useState<number | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [editRfqDialog, setEditRfqDialog] = useState(false);
+  const [editingRfq, setEditingRfq] = useState<any>(null);
+  const [manualQuoteDialog, setManualQuoteDialog] = useState(false);
+  const [manualQuoteRfq, setManualQuoteRfq] = useState<any>(null);
+  const [manualQuoteData, setManualQuoteData] = useState({
+    supplierId: "",
+    totalAmount: "",
+    deliveryDays: "",
+    paymentTerms: "net_30",
+    notes: "",
+    quoteSource: "email", // email, phone, in_person
+    sourceNotes: "",
+    attachmentFile: null as File | null,
+  });
   const { toast } = useToast();
   
   // Handle requisition passed from parent
@@ -274,6 +288,73 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
       toast({
         title: "Error",
         description: error.message || "Failed to create supplier",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update RFQ mutation
+  const updateRfqMutation = useMutation({
+    mutationFn: ({ rfqId, data }: { rfqId: number; data: any }) =>
+      apiRequest(`/api/procurement/rfqs/${rfqId}`, "PATCH", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/rfqs"] });
+      setEditRfqDialog(false);
+      setEditingRfq(null);
+      toast({
+        title: "Success",
+        description: "RFQ updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update RFQ",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create manual quote mutation
+  const createManualQuoteMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const formData = new FormData();
+      Object.keys(data).forEach(key => {
+        if (key !== 'attachmentFile' && data[key] !== null) {
+          formData.append(key, data[key]);
+        }
+      });
+      if (data.attachmentFile) {
+        formData.append('attachment', data.attachmentFile);
+      }
+      
+      const response = await fetch(`/api/procurement/rfqs/${data.rfqId}/quotes/manual`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create manual quote');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/rfqs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/rfqs", manualQuoteRfq?.id, "responses"] });
+      setManualQuoteDialog(false);
+      setManualQuoteRfq(null);
+      toast({
+        title: "Success",
+        description: "Manual quote added successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add manual quote",
         variant: "destructive",
       });
     },
@@ -505,14 +586,36 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                               {rfq.status === 'draft' && (
                                 <DropdownMenuItem
                                   onClick={() => {
-                                    toast({
-                                      title: "Edit RFQ",
-                                      description: "Opening RFQ editor",
-                                    });
+                                    setEditingRfq(rfq);
+                                    setEditRfqDialog(true);
                                   }}
                                 >
                                   <Edit className="h-3 w-3 mr-2" />
                                   Edit Draft
+                                </DropdownMenuItem>
+                              )}
+                              
+                              {/* Add Manual Quote - For 'sent' or 'evaluating' status */}
+                              {(rfq.status === 'sent' || rfq.status === 'evaluating') && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setManualQuoteRfq(rfq);
+                                    setManualQuoteData({
+                                      supplierId: "",
+                                      totalAmount: "",
+                                      deliveryDays: "",
+                                      paymentTerms: "net_30",
+                                      notes: "",
+                                      quoteSource: "email",
+                                      sourceNotes: "",
+                                      attachmentFile: null,
+                                    });
+                                    setManualQuoteDialog(true);
+                                  }}
+                                  className="text-blue-600 dark:text-blue-400"
+                                >
+                                  <Plus className="h-3 w-3 mr-2" />
+                                  Add Manual Quote
                                 </DropdownMenuItem>
                               )}
                               
@@ -1227,6 +1330,300 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Edit RFQ Dialog */}
+      <Dialog open={editRfqDialog} onOpenChange={(open) => {
+        setEditRfqDialog(open);
+        if (!open) setEditingRfq(null);
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit RFQ: {editingRfq?.rfqNumber}</DialogTitle>
+            <DialogDescription>
+              Update RFQ details before sending to suppliers
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-title">RFQ Title</Label>
+              <Input
+                id="edit-title"
+                defaultValue={editingRfq?.title}
+                placeholder="Enter RFQ title"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                defaultValue={editingRfq?.description}
+                placeholder="Describe your requirements"
+                rows={4}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-deadline">Response Deadline</Label>
+                <Input
+                  id="edit-deadline"
+                  type="date"
+                  defaultValue={editingRfq?.responseDeadline ? format(new Date(editingRfq.responseDeadline), 'yyyy-MM-dd') : ''}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-delivery">Delivery Required By</Label>
+                <Input
+                  id="edit-delivery"
+                  type="date"
+                  defaultValue={editingRfq?.deliveryRequiredBy ? format(new Date(editingRfq.deliveryRequiredBy), 'yyyy-MM-dd') : ''}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-delivery-terms">Delivery Terms</Label>
+              <Select defaultValue={editingRfq?.deliveryTerms || 'delivery_workshop'}>
+                <SelectTrigger id="edit-delivery-terms">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(DELIVERY_TERMS).map(([key, value]) => (
+                    <SelectItem key={key} value={key}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-payment-terms">Payment Terms</Label>
+              <Select defaultValue={editingRfq?.paymentTermsRequired || 'net_30'}>
+                <SelectTrigger id="edit-payment-terms">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="immediate">Immediate</SelectItem>
+                  <SelectItem value="net_7">Net 7</SelectItem>
+                  <SelectItem value="net_15">Net 15</SelectItem>
+                  <SelectItem value="net_30">Net 30</SelectItem>
+                  <SelectItem value="net_45">Net 45</SelectItem>
+                  <SelectItem value="net_60">Net 60</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditRfqDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                const titleInput = document.getElementById('edit-title') as HTMLInputElement;
+                const descInput = document.getElementById('edit-description') as HTMLTextAreaElement;
+                const deadlineInput = document.getElementById('edit-deadline') as HTMLInputElement;
+                const deliveryInput = document.getElementById('edit-delivery') as HTMLInputElement;
+                const deliveryTermsSelect = document.querySelector('#edit-delivery-terms + button') as HTMLButtonElement;
+                const paymentTermsSelect = document.querySelector('#edit-payment-terms + button') as HTMLButtonElement;
+                
+                updateRfqMutation.mutate({
+                  rfqId: editingRfq?.id,
+                  data: {
+                    title: titleInput?.value,
+                    description: descInput?.value,
+                    responseDeadline: deadlineInput?.value ? new Date(deadlineInput.value) : editingRfq?.responseDeadline,
+                    deliveryRequiredBy: deliveryInput?.value ? new Date(deliveryInput.value) : editingRfq?.deliveryRequiredBy,
+                    deliveryTerms: deliveryTermsSelect?.getAttribute('data-value') || editingRfq?.deliveryTerms,
+                    paymentTermsRequired: paymentTermsSelect?.getAttribute('data-value') || editingRfq?.paymentTermsRequired,
+                  },
+                });
+              }}
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Quote Entry Dialog */}
+      <Dialog open={manualQuoteDialog} onOpenChange={(open) => {
+        setManualQuoteDialog(open);
+        if (!open) {
+          setManualQuoteRfq(null);
+          setManualQuoteData({
+            supplierId: "",
+            totalAmount: "",
+            deliveryDays: "",
+            paymentTerms: "net_30",
+            notes: "",
+            quoteSource: "email",
+            sourceNotes: "",
+            attachmentFile: null,
+          });
+        }
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add Manual Quote for {manualQuoteRfq?.rfqNumber}</DialogTitle>
+            <DialogDescription>
+              Enter quote details received through email, phone, or in-person
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Quote Source */}
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+              <Label className="text-amber-700 dark:text-amber-400">Quote Source *</Label>
+              <Select 
+                value={manualQuoteData.quoteSource}
+                onValueChange={(value) => setManualQuoteData({ ...manualQuoteData, quoteSource: value })}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="phone">Phone Call</SelectItem>
+                  <SelectItem value="in_person">In-Person Meeting</SelectItem>
+                  <SelectItem value="fax">Fax</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <Textarea
+                className="mt-2"
+                placeholder={`Provide details about how this quote was received (e.g., "Email from John Smith on ${format(new Date(), 'MMM dd, yyyy')}")`}
+                value={manualQuoteData.sourceNotes}
+                onChange={(e) => setManualQuoteData({ ...manualQuoteData, sourceNotes: e.target.value })}
+                rows={2}
+              />
+            </div>
+            
+            {/* Supplier Selection */}
+            <div>
+              <Label htmlFor="manual-supplier">Supplier *</Label>
+              <Select
+                value={manualQuoteData.supplierId}
+                onValueChange={(value) => setManualQuoteData({ ...manualQuoteData, supplierId: value })}
+              >
+                <SelectTrigger id="manual-supplier">
+                  <SelectValue placeholder="Select supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {suppliers.map((supplier: any) => (
+                    <SelectItem key={supplier.id} value={String(supplier.id)}>
+                      {supplier.company} - {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="manual-amount">Total Amount (excl. GST) *</Label>
+                <Input
+                  id="manual-amount"
+                  type="number"
+                  placeholder="0.00"
+                  value={manualQuoteData.totalAmount}
+                  onChange={(e) => setManualQuoteData({ ...manualQuoteData, totalAmount: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="manual-delivery">Delivery Days *</Label>
+                <Input
+                  id="manual-delivery"
+                  type="number"
+                  placeholder="Days to deliver"
+                  value={manualQuoteData.deliveryDays}
+                  onChange={(e) => setManualQuoteData({ ...manualQuoteData, deliveryDays: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="manual-payment">Payment Terms</Label>
+              <Select
+                value={manualQuoteData.paymentTerms}
+                onValueChange={(value) => setManualQuoteData({ ...manualQuoteData, paymentTerms: value })}
+              >
+                <SelectTrigger id="manual-payment">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="immediate">Immediate</SelectItem>
+                  <SelectItem value="net_7">Net 7</SelectItem>
+                  <SelectItem value="net_15">Net 15</SelectItem>
+                  <SelectItem value="net_30">Net 30</SelectItem>
+                  <SelectItem value="net_45">Net 45</SelectItem>
+                  <SelectItem value="net_60">Net 60</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="manual-notes">Quote Notes</Label>
+              <Textarea
+                id="manual-notes"
+                placeholder="Any additional notes or conditions from the supplier"
+                value={manualQuoteData.notes}
+                onChange={(e) => setManualQuoteData({ ...manualQuoteData, notes: e.target.value })}
+                rows={3}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="manual-attachment">Supporting Document</Label>
+              <Input
+                id="manual-attachment"
+                type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setManualQuoteData({ ...manualQuoteData, attachmentFile: file });
+                }}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Upload the original quote document (PDF, Word, Excel, or Image)
+              </p>
+            </div>
+            
+            {/* Audit Notice */}
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                <div className="text-xs text-blue-700 dark:text-blue-400">
+                  <p className="font-medium">Fortune 500 Compliance Notice:</p>
+                  <p>This manual entry will be logged with your username, timestamp, and source details for audit purposes. Supporting documentation is required for all manual quotes.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManualQuoteDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!manualQuoteData.supplierId || !manualQuoteData.totalAmount || !manualQuoteData.deliveryDays || createManualQuoteMutation.isPending}
+              onClick={() => {
+                createManualQuoteMutation.mutate({
+                  rfqId: manualQuoteRfq?.id,
+                  ...manualQuoteData,
+                });
+              }}
+            >
+              {createManualQuoteMutation.isPending ? "Adding..." : "Add Manual Quote"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
