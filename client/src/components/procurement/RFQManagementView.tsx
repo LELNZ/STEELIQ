@@ -632,7 +632,7 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
               <Label htmlFor="title">RFQ Title</Label>
               <Input
                 id="title"
-                defaultValue={`RFQ for ${selectedRequisition?.requisitionNumber}`}
+                defaultValue={selectedRequisition?.requisitionNumber}
               />
             </div>
             <div>
@@ -677,7 +677,7 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
               onClick={() => {
                 createRfqMutation.mutate({
                   requisitionId: selectedRequisition?.id,
-                  title: `RFQ for ${selectedRequisition?.requisitionNumber}`,
+                  title: selectedRequisition?.requisitionNumber,
                   description: selectedRequisition?.justification,
                 });
               }}
