@@ -11117,6 +11117,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate RFQ number
       const rfqNumber = await storage.generateRfqNumber();
       
+      // Automatically include preferred supplier if present in requisition
+      let invitedSuppliers = req.body.invitedSuppliers || [];
+      if (requisition.preferredSupplierId && !invitedSuppliers.includes(requisition.preferredSupplierId)) {
+        invitedSuppliers = [requisition.preferredSupplierId, ...invitedSuppliers];
+      }
+      
       // Create RFQ
       const rfq = await storage.createRfqRequest({
         rfqNumber,
@@ -11137,7 +11143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           delivery_weight: 30
         },
         specialRequirements: req.body.specialRequirements,
-        invitedSuppliers: req.body.invitedSuppliers || [],
+        invitedSuppliers,
         publicRfq: req.body.publicRfq || false,
         createdBy: user.id
       });
