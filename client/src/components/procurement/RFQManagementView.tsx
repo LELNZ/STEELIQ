@@ -738,18 +738,18 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
             {/* Recent Suppliers Section */}
             {!supplierSearchTerm && !showNewSupplierForm && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <History className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <History className="h-4 w-4" />
                   Recent Suppliers
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 p-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                   {suppliers.slice(0, 3).map((supplier: any) => (
                     <div
                       key={supplier.id}
-                      className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                      className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
                         selectedSuppliers.includes(supplier.id)
-                          ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-300 dark:border-blue-700'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-900'
+                          ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-400 dark:border-blue-600 shadow-sm'
+                          : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700'
                       }`}
                       onClick={() => {
                         setSelectedSuppliers(prev =>
@@ -769,9 +769,9 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm">{supplier.name}</div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {supplier.company} • {supplier.email}
+                        <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">{supplier.company || supplier.name}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                          {supplier.name && supplier.company ? supplier.name + ' • ' : ''}{supplier.email}
                         </div>
                       </div>
                       {supplier.categories && (
@@ -785,10 +785,22 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
               </div>
             )}
 
+            {/* Divider */}
+            {!supplierSearchTerm && !showNewSupplierForm && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white dark:bg-gray-800 px-2 text-gray-500 dark:text-gray-400">or select from</span>
+                </div>
+              </div>
+            )}
+
             {/* Main Supplier List */}
             <div className="space-y-2">
               {supplierSearchTerm && (
-                <div className="text-sm font-medium text-muted-foreground">
+                <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                   Search Results
                 </div>
               )}
@@ -866,7 +878,12 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
               )}
 
               {/* Filtered Supplier List */}
-              <div className="max-h-[300px] overflow-y-auto space-y-1">
+              <div className="max-h-[300px] overflow-y-auto space-y-1 p-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                {!supplierSearchTerm && !showNewSupplierForm && (
+                  <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2 px-1">
+                    All Available Suppliers
+                  </div>
+                )}
                 {suppliers
                   .filter((supplier: any) => {
                     if (!supplierSearchTerm) return !showNewSupplierForm;
@@ -881,10 +898,10 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                   .map((supplier: any) => (
                     <div
                       key={supplier.id}
-                      className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                      className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
                         selectedSuppliers.includes(supplier.id)
-                          ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-300 dark:border-blue-700'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-900'
+                          ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-400 dark:border-blue-600 shadow-sm'
+                          : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700'
                       }`}
                       onClick={() => {
                         setSelectedSuppliers(prev =>
@@ -905,22 +922,24 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <Building className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="font-medium text-sm">{supplier.company}</span>
+                          <Building className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">{supplier.company || supplier.name}</span>
                         </div>
-                        <div className="flex items-center gap-3 mt-0.5">
+                        <div className="flex items-center gap-3 mt-1">
+                          {(supplier.name && supplier.company) && (
+                            <div className="flex items-center gap-1">
+                              <User className="h-3 w-3 text-gray-500" />
+                              <span className="text-xs text-gray-600 dark:text-gray-400">{supplier.name || supplier.contactName}</span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-1">
-                            <User className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">{supplier.name || supplier.contactName}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Mail className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground truncate">{supplier.email}</span>
+                            <Mail className="h-3 w-3 text-gray-500" />
+                            <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{supplier.email}</span>
                           </div>
                           {supplier.phone && (
                             <div className="flex items-center gap-1">
-                              <Phone className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-xs text-muted-foreground">{supplier.phone}</span>
+                              <Phone className="h-3 w-3 text-gray-500" />
+                              <span className="text-xs text-gray-600 dark:text-gray-400">{supplier.phone}</span>
                             </div>
                           )}
                         </div>
