@@ -2021,25 +2021,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async generateRfqNumber(): Promise<string> {
-    const year = new Date().getFullYear();
-    const month = String(new Date().getMonth() + 1).padStart(2, '0');
-    
+    // Use simple RFQ-0000 format for consistency with PO and REQ numbering
     const latestRfq = await db.select({ rfqNumber: rfqRequests.rfqNumber })
       .from(rfqRequests)
-      .where(sql`"rfq_number" LIKE ${`RFQ-${year}${month}-%`}`)
-      .orderBy(desc(rfqRequests.rfqNumber))
+      .where(sql`"rfq_number" LIKE 'RFQ-%'`)
+      .orderBy(sql`rfq_number DESC`)
       .limit(1);
     
     let nextNumber = 1;
     if (latestRfq.length > 0 && latestRfq[0].rfqNumber) {
-      const match = latestRfq[0].rfqNumber.match(/RFQ-\d{6}-(\d+)/);
+      // Extract the number from the last RFQ (handles both old and new formats)
+      const match = latestRfq[0].rfqNumber.match(/RFQ-(?:\d{6}-)?(\d+)/);
       if (match) {
         nextNumber = parseInt(match[1], 10) + 1;
       }
     }
     
-    const paddedNumber = String(nextNumber).padStart(3, '0');
-    return `RFQ-${year}${month}-${paddedNumber}`;
+    const paddedNumber = String(nextNumber).padStart(4, '0');
+    return `RFQ-${paddedNumber}`;
   }
 
   // RFQ Responses Implementation
