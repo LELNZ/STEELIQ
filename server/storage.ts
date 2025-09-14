@@ -1433,26 +1433,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async generateRequisitionNumber(): Promise<string> {
-    const year = new Date().getFullYear();
-    const month = String(new Date().getMonth() + 1).padStart(2, '0');
-    
-    // Use proper query to get the latest requisition number
+    // Use simple REQ-0000 format for clarity and consistency
+    // This prevents confusion when months change and maintains sequential numbering
     const latestReq = await db.select({ requisitionNumber: purchaseRequisitions.requisitionNumber })
       .from(purchaseRequisitions)
-      .where(sql`"requisition_number" LIKE ${`REQ-${year}${month}-%`}`)
-      .orderBy(desc(purchaseRequisitions.requisitionNumber))
+      .where(sql`"requisition_number" LIKE 'REQ-%'`)
+      .orderBy(desc(purchaseRequisitions.id)) // Order by ID to get truly latest
       .limit(1);
     
     let nextNumber = 1;
     if (latestReq.length > 0 && latestReq[0].requisitionNumber) {
-      const match = latestReq[0].requisitionNumber.match(/REQ-\d{6}-(\d+)/);
+      // Extract number from REQ-XXXX format (also handles old REQ-YYYYMM-XXX format)
+      const reqNum = latestReq[0].requisitionNumber;
+      const match = reqNum.match(/REQ-(?:\d{6}-)?(\d+)$/);
       if (match) {
         nextNumber = parseInt(match[1], 10) + 1;
       }
     }
     
-    const paddedNumber = String(nextNumber).padStart(3, '0');
-    return `REQ-${year}${month}-${paddedNumber}`;
+    // Pad to 4 digits for better sorting and clarity
+    const paddedNumber = String(nextNumber).padStart(4, '0');
+    return `REQ-${paddedNumber}`;
   }
 
   // Procurement - Requisition Items
