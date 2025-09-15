@@ -286,14 +286,24 @@ export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison, 
                     <Truck className="h-4 w-4" />
                     Delivery Terms
                   </p>
-                  <p className="font-medium">{rfq.deliveryTerms || 'Standard'}</p>
+                  <p className="font-medium">
+                    {typeof rfq.deliveryTerms === 'object' 
+                      ? (rfq.deliveryTerms as any)?.label || (rfq.deliveryTerms as any)?.value || 'Standard'
+                      : rfq.deliveryTerms || 'Standard'
+                    }
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <CreditCard className="h-4 w-4" />
                     Payment Terms
                   </p>
-                  <p className="font-medium">{rfq.paymentTerms || 'Net 30'}</p>
+                  <p className="font-medium">
+                    {typeof rfq.paymentTerms === 'object'
+                      ? (rfq.paymentTerms as any)?.label || (rfq.paymentTerms as any)?.value || 'Net 30'
+                      : rfq.paymentTerms || 'Net 30'
+                    }
+                  </p>
                 </div>
               </div>
             </div>

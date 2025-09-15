@@ -1390,14 +1390,23 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
             
             <div>
               <Label htmlFor="edit-delivery-terms">Delivery Terms</Label>
-              <Select defaultValue={editingRfq?.deliveryTerms || 'delivery_workshop'}>
+              <Select 
+                defaultValue={
+                  typeof editingRfq?.deliveryTerms === 'object' 
+                    ? (editingRfq.deliveryTerms as any)?.value 
+                    : editingRfq?.deliveryTerms || 'delivery_workshop'
+                }
+                onValueChange={(value) => {
+                  setEditingRfq({...editingRfq, deliveryTerms: value});
+                }}
+              >
                 <SelectTrigger id="edit-delivery-terms">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(DELIVERY_TERMS).map(([key, value]) => (
-                    <SelectItem key={key} value={key}>
-                      {value}
+                  {DELIVERY_TERMS.map((term) => (
+                    <SelectItem key={term.value} value={term.value}>
+                      {term.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1406,7 +1415,16 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
             
             <div>
               <Label htmlFor="edit-payment-terms">Payment Terms</Label>
-              <Select defaultValue={editingRfq?.paymentTermsRequired || 'net_30'}>
+              <Select 
+                defaultValue={
+                  typeof editingRfq?.paymentTerms === 'object'
+                    ? (editingRfq.paymentTerms as any)?.value
+                    : editingRfq?.paymentTerms || 'net_30'
+                }
+                onValueChange={(value) => {
+                  setEditingRfq({...editingRfq, paymentTerms: value});
+                }}
+              >
                 <SelectTrigger id="edit-payment-terms">
                   <SelectValue />
                 </SelectTrigger>
@@ -1442,8 +1460,12 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                     description: descInput?.value,
                     responseDeadline: deadlineInput?.value ? new Date(deadlineInput.value) : editingRfq?.responseDeadline,
                     deliveryRequiredBy: deliveryInput?.value ? new Date(deliveryInput.value) : editingRfq?.deliveryRequiredBy,
-                    deliveryTerms: deliveryTermsSelect?.getAttribute('data-value') || editingRfq?.deliveryTerms,
-                    paymentTermsRequired: paymentTermsSelect?.getAttribute('data-value') || editingRfq?.paymentTermsRequired,
+                    deliveryTerms: typeof editingRfq?.deliveryTerms === 'object' 
+                      ? (editingRfq.deliveryTerms as any)?.value 
+                      : editingRfq?.deliveryTerms,
+                    paymentTerms: typeof editingRfq?.paymentTerms === 'object'
+                      ? (editingRfq.paymentTerms as any)?.value
+                      : editingRfq?.paymentTerms,
                   },
                 });
               }}
