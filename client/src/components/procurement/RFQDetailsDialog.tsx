@@ -36,6 +36,9 @@ import {
   CreditCard,
   Timer,
   Target,
+  Edit,
+  Calculator,
+  Receipt,
 } from "lucide-react";
 
 interface RFQDetailsDialogProps {
@@ -43,11 +46,12 @@ interface RFQDetailsDialogProps {
   onOpenChange: (open: boolean) => void;
   rfqId: number;
   onViewComparison?: () => void;
+  onEditRfq?: (rfq: any) => void;
 }
 
-export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison }: RFQDetailsDialogProps) {
+export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison, onEditRfq }: RFQDetailsDialogProps) {
   // Fetch RFQ details
-  const { data: rfq, isLoading, refetch: refetchRfq } = useQuery({
+  const { data: rfq, isLoading, refetch: refetchRfq } = useQuery<any>({
     queryKey: [`/api/procurement/rfqs/${rfqId}`],
     enabled: open && !!rfqId,
     refetchOnWindowFocus: false,
@@ -55,11 +59,18 @@ export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison }
   });
 
   // Fetch RFQ responses
-  const { data: responses = [], refetch: refetchResponses } = useQuery({
+  const { data: responses = [], refetch: refetchResponses } = useQuery<any[]>({
     queryKey: [`/api/procurement/rfqs/${rfqId}/responses`],
     enabled: open && !!rfqId,
     refetchOnWindowFocus: false,
     staleTime: 0, // Always refetch when dialog opens
+  });
+
+  // Fetch requisition details if RFQ has requisitionId
+  const { data: requisition } = useQuery<any>({
+    queryKey: [`/api/procurement/requisitions/${rfq?.requisitionId}`],
+    enabled: open && !!rfq?.requisitionId,
+    refetchOnWindowFocus: false,
   });
 
   // Refetch data when dialog opens
@@ -71,7 +82,7 @@ export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison }
   }, [open, rfqId, refetchRfq, refetchResponses]);
 
   // Fetch suppliers data
-  const { data: suppliers = [] } = useQuery({
+  const { data: suppliers = [] } = useQuery<any[]>({
     queryKey: ['/api/suppliers'],
     enabled: open && !!rfqId,
   });
@@ -97,7 +108,7 @@ export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison }
       case 'evaluating':
         return <Badge variant="secondary" className="bg-amber-500">Evaluating</Badge>;
       case 'closed':
-        return <Badge variant="success">Closed</Badge>;
+        return <Badge variant="default" className="bg-green-500">Closed</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Cancelled</Badge>;
       case 'archived':
@@ -182,6 +193,74 @@ export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison }
                   </p>
                 </div>
               </div>
+            </div>
+
+            <Separator />
+
+            {/* Financial Details */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Financial Details
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Calculator className="h-4 w-4" />
+                    Estimated Value
+                  </p>
+                  <p className="text-xl font-bold mt-1">
+                    ${rfq.estimatedValue || requisition?.estimatedTotal || '0.00'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Excluding GST</p>
+                </div>
+                <div className="bg-green-50 dark:bg-green-950/30 p-4 rounded-lg">
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Receipt className="h-4 w-4" />
+                    With GST (15%)
+                  </p>
+                  <p className="text-xl font-bold mt-1">
+                    ${((rfq.estimatedValue || requisition?.estimatedTotal || 0) * 1.15).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Total Including GST</p>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Currency</p>
+                  <p className="text-xl font-bold mt-1">{rfq.currency || 'NZD'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">New Zealand Dollar</p>
+                </div>
+              </div>
+              
+              {/* Line Items if available */}
+              {(requisition?.items && requisition.items.length > 0) && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium mb-2">Line Items</p>
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-left p-2">Description</th>
+                          <th className="text-right p-2">Quantity</th>
+                          <th className="text-right p-2">Unit Price</th>
+                          <th className="text-right p-2">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {requisition.items.map((item: any, idx: number) => (
+                          <tr key={idx} className="border-t">
+                            <td className="p-2">{item.description}</td>
+                            <td className="text-right p-2">{item.quantity} {item.unit}</td>
+                            <td className="text-right p-2">${item.estimatedUnitPrice || '0.00'}</td>
+                            <td className="text-right p-2 font-medium">
+                              ${item.estimatedTotal || '0.00'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
 
             <Separator />
@@ -275,7 +354,7 @@ export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison }
                           <p className="text-sm text-muted-foreground">{supplier.company}</p>
                         </div>
                         {hasResponded ? (
-                          <Badge variant="success" className="text-xs">
+                          <Badge variant="default" className="text-xs bg-green-500">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Responded
                           </Badge>
@@ -507,21 +586,37 @@ export function RFQDetailsDialog({ open, onOpenChange, rfqId, onViewComparison }
 
         <Separator className="mt-6" />
 
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-          {rfq.status === 'sent' && responses.length > 0 && (
-            <Button 
-              onClick={() => {
-                onOpenChange(false);
-                onViewComparison?.();
-              }}
-            >
-              <TrendingUp className="h-4 w-4 mr-2" />
-              View Comparison
+        <div className="flex justify-between items-center mt-4">
+          <div className="flex gap-2">
+            {rfq.status === 'draft' && onEditRfq && (
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  onEditRfq(rfq);
+                  onOpenChange(false);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit RFQ
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
             </Button>
-          )}
+            {rfq.status === 'sent' && responses.length > 0 && (
+              <Button 
+                onClick={() => {
+                  onOpenChange(false);
+                  onViewComparison?.();
+                }}
+              >
+                <TrendingUp className="h-4 w-4 mr-2" />
+                View Comparison
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

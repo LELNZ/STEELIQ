@@ -1309,6 +1309,10 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
             setComparisonRfqId(selectedRfqId);
             setComparisonDialog(true);
           }}
+          onEditRfq={(rfq) => {
+            setEditingRfq(rfq);
+            setEditRfqDialog(true);
+          }}
         />
       )}
 
