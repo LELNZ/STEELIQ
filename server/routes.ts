@@ -11299,17 +11299,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update RFQ status
+  // Update RFQ (status and other fields)
   app.patch("/api/procurement/rfqs/:id", async (req, res) => {
     try {
       const rfqId = parseInt(req.params.id);
-      const { status } = req.body;
+      const updateData = req.body;
       
-      const updatedRfq = await storage.updateRfqStatus(rfqId, status);
-      res.json(updatedRfq);
+      // If only status is provided, use the specific status update method
+      if (Object.keys(updateData).length === 1 && updateData.status) {
+        const updatedRfq = await storage.updateRfqStatus(rfqId, updateData.status);
+        res.json(updatedRfq);
+      } else {
+        // Otherwise update all provided fields
+        const updatedRfq = await storage.updateRfqRequest(rfqId, updateData);
+        res.json(updatedRfq);
+      }
     } catch (error) {
-      console.error("Error updating RFQ status:", error);
-      res.status(500).json({ error: "Failed to update RFQ status" });
+      console.error("Error updating RFQ:", error);
+      res.status(500).json({ error: "Failed to update RFQ" });
     }
   });
 
