@@ -2,6 +2,7 @@ import sgMail from '@sendgrid/mail';
 import PDFDocument from 'pdfkit';
 import { Readable } from 'stream';
 import * as XLSX from 'xlsx';
+import { templateService } from './templateService';
 
 // Initialize SendGrid with API key
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
@@ -100,6 +101,19 @@ export class EmailService {
     poData: any;
     supplierData: any;
     templateType: 'standard' | 'detailed' | 'simple';
+    templateId?: string;
+    templateOptions?: {
+      showLineItems?: boolean;
+      showSingleLineItem?: boolean;
+      showDescriptions?: boolean;
+      showSubtotals?: boolean;
+      showTotals?: boolean;
+      showTerms?: boolean;
+      showSignature?: boolean;
+      showNotes?: boolean;
+      showDeliveryDetails?: boolean;
+      showPaymentTerms?: boolean;
+    };
     portalUrl?: string;
     requestAcknowledgment?: boolean;
     formats?: { pdf?: boolean; excel?: boolean; csv?: boolean };
@@ -116,8 +130,76 @@ export class EmailService {
       const pdfBuffer = await this.generatePOPDF(params.poData, params.supplierData, params.templateType);
       const pdfBase64 = pdfBuffer.toString('base64');
 
-      // Create HTML email body
-      const htmlBody = this.createPOEmailHTML(params.body, params.poData, params.supplierData, params.portalUrl, params.requestAcknowledgment);
+      // Try to use database template first
+      let htmlBody: string;
+      const templateData = {
+        po: {
+          ...params.poData,
+          number: params.poData.poNumber,
+          date: params.poData.orderDate,
+          deliveryDate: params.poData.deliveryDate,
+          totalAmount: totalAmount,
+          currency: params.poData.currency || 'NZD',
+          items: params.poData.items || []
+        },
+        supplier: {
+          name: params.supplierData.name || params.supplierData.company || 'Valued Partner',
+          company: params.supplierData.company,
+          email: params.supplierData.email,
+          phone: params.supplierData.phone,
+          address: params.supplierData.address
+        },
+        company: {
+          name: 'Lateral Engineering Limited',
+          address: 'Auckland, New Zealand',
+          email: 'accounts@lateralengineering.co.nz',
+          phone: '',
+          website: 'www.lateralengineering.co.nz'
+        },
+        body: params.body,
+        greeting: params.body.toLowerCase().trim().startsWith('dear ') ? '' : `Dear ${params.supplierData.name || params.supplierData.company || 'Valued Partner'},`,
+        year: new Date().getFullYear(),
+        portalUrl: params.portalUrl,
+        requestAcknowledgment: params.requestAcknowledgment
+      };
+
+      // Map template type to template code
+      const templateCodeMap: { [key: string]: string } = {
+        'standard': 'PO_STANDARD',
+        'detailed': 'PO_DETAILED', 
+        'simple': 'PO_SIMPLE'
+      };
+      
+      const templateCode = params.templateId || templateCodeMap[params.templateType] || 'PO_STANDARD';
+      
+      try {
+        // Try to fetch template from database
+        const templateResult = await templateService.getTemplate('PO', templateCode);
+        
+        if (templateResult) {
+          // Render template with data and options
+          htmlBody = templateService.renderTemplate(
+            templateResult.version.htmlTemplate,
+            templateData,
+            params.templateOptions || {}
+          );
+          
+          // Update subject if template has subject template
+          if (templateResult.version.subjectTemplate) {
+            params.subject = templateService.renderTemplate(
+              templateResult.version.subjectTemplate,
+              templateData,
+              params.templateOptions || {}
+            );
+          }
+        } else {
+          // Fallback to enhanced hardcoded template
+          htmlBody = this.createPOEmailHTML(params.body, params.poData, params.supplierData, params.portalUrl, params.requestAcknowledgment);
+        }
+      } catch (error) {
+        console.error('Error rendering template, falling back to default:', error);
+        htmlBody = this.createPOEmailHTML(params.body, params.poData, params.supplierData, params.portalUrl, params.requestAcknowledgment);
+      }
 
       // Build attachments array
       const attachments = [];

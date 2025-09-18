@@ -3501,6 +3501,87 @@ export const emailTemplates = pgTable("email_templates", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Comprehensive Communication Templates
+export const communicationTemplates = pgTable("communication_templates", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 50 }).unique().notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: varchar("type", { length: 20 }).notNull(), // 'PO', 'RFQ', 'QUOTE', 'INVOICE'
+  category: varchar("category", { length: 50 }), // 'standard', 'detailed', 'simple'
+  description: text("description"),
+  locale: varchar("locale", { length: 10 }).default("en-NZ"),
+  scope: varchar("scope", { length: 20 }).default("org"), // 'org', 'division', 'supplier'
+  scopeId: integer("scope_id"), // references division or supplier if scope-specific
+  status: varchar("status", { length: 20 }).default("draft"), // 'draft', 'published', 'archived'
+  currentVersionId: integer("current_version_id"),
+  defaultForScope: boolean("default_for_scope").default(false),
+  theme: jsonb("theme"), // colors, fonts, logo settings
+  sections: jsonb("sections"), // which sections to show/hide by default
+  variables: jsonb("variables"), // available template variables for this type
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Template Versions for history and rollback
+export const templateVersions = pgTable("template_versions", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").references(() => communicationTemplates.id).notNull(),
+  version: varchar("version", { length: 20 }).notNull(),
+  versionNumber: integer("version_number").notNull(),
+  subjectTemplate: text("subject_template").notNull(),
+  htmlTemplate: text("html_template").notNull(),
+  textTemplate: text("text_template"),
+  pdfLayoutTemplate: text("pdf_layout_template"),
+  changelog: text("changelog"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  publishedBy: integer("published_by").references(() => users.id),
+  publishedAt: timestamp("published_at"),
+});
+
+// Template Content Sections for granular control
+export const templateSections = pgTable("template_sections", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").references(() => communicationTemplates.id).notNull(),
+  sectionKey: varchar("section_key", { length: 50 }).notNull(), // 'header', 'greeting', 'lineItems', 'totals', etc.
+  sectionName: varchar("section_name", { length: 100 }).notNull(),
+  sectionType: varchar("section_type", { length: 50 }), // 'text', 'table', 'image', 'signature'
+  defaultVisible: boolean("default_visible").default(true),
+  requiredForType: boolean("required_for_type").default(false),
+  orderIndex: integer("order_index").notNull(),
+  content: text("content"), // HTML/template content
+  conditions: jsonb("conditions"), // visibility conditions
+  variables: jsonb("variables"), // section-specific variables
+});
+
+// Template Audit Trail
+export const templateAudit = pgTable("template_audit", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").references(() => communicationTemplates.id).notNull(),
+  action: varchar("action", { length: 50 }).notNull(), // 'created', 'updated', 'published', 'archived', 'used'
+  actorId: integer("actor_id").references(() => users.id),
+  previousVersionId: integer("previous_version_id"),
+  newVersionId: integer("new_version_id"),
+  changes: jsonb("changes"),
+  metadata: jsonb("metadata"), // usage stats, send count, etc.
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+// Template Assignments for defaults
+export const templateAssignments = pgTable("template_assignments", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").references(() => communicationTemplates.id).notNull(),
+  assignmentType: varchar("assignment_type", { length: 20 }).notNull(), // 'division', 'supplier', 'user'
+  assignmentId: integer("assignment_id").notNull(),
+  documentType: varchar("document_type", { length: 20 }).notNull(), // 'PO', 'RFQ', etc.
+  priority: integer("priority").default(0), // for precedence when multiple assignments
+  effectiveFrom: timestamp("effective_from").defaultNow(),
+  effectiveUntil: timestamp("effective_until"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Terms and Conditions Library
 export const termsConditionsLibrary = pgTable("terms_conditions_library", {
   id: serial("id").primaryKey(),
@@ -3899,6 +3980,11 @@ export const insertCompanyLocationSchema = createInsertSchema(companyLocations);
 export const insertQuoteTemplateSchema = createInsertSchema(quoteTemplates);
 export const insertEmailConfigurationSchema = createInsertSchema(emailConfigurations);
 export const insertEmailTemplateSchema = createInsertSchema(emailTemplates);
+export const insertCommunicationTemplateSchema = createInsertSchema(communicationTemplates);
+export const insertTemplateVersionSchema = createInsertSchema(templateVersions);
+export const insertTemplateSectionSchema = createInsertSchema(templateSections);
+export const insertTemplateAuditSchema = createInsertSchema(templateAudit);
+export const insertTemplateAssignmentSchema = createInsertSchema(templateAssignments);
 export const insertTermsConditionsSchema = createInsertSchema(termsConditionsLibrary);
 export const insertHandlingCostsConfigSchema = createInsertSchema(handlingCostsConfig);
 
@@ -3931,6 +4017,21 @@ export type InsertEmailConfiguration = z.infer<typeof insertEmailConfigurationSc
 
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+
+export type CommunicationTemplate = typeof communicationTemplates.$inferSelect;
+export type InsertCommunicationTemplate = z.infer<typeof insertCommunicationTemplateSchema>;
+
+export type TemplateVersion = typeof templateVersions.$inferSelect;
+export type InsertTemplateVersion = z.infer<typeof insertTemplateVersionSchema>;
+
+export type TemplateSection = typeof templateSections.$inferSelect;
+export type InsertTemplateSection = z.infer<typeof insertTemplateSectionSchema>;
+
+export type TemplateAudit = typeof templateAudit.$inferSelect;
+export type InsertTemplateAudit = z.infer<typeof insertTemplateAuditSchema>;
+
+export type TemplateAssignment = typeof templateAssignments.$inferSelect;
+export type InsertTemplateAssignment = z.infer<typeof insertTemplateAssignmentSchema>;
 
 export type TermsConditions = typeof termsConditionsLibrary.$inferSelect;
 export type InsertTermsConditions = z.infer<typeof insertTermsConditionsSchema>;
