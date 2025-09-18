@@ -10675,6 +10675,336 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate HTML preview for purchase order with template options
+  app.post("/api/procurement/purchase-orders/:id/preview-html", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      const { templateId = 'standard', options = {} } = req.body;
+
+      // Get PO details
+      const purchaseOrder = await storage.getPurchaseOrder(purchaseOrderId);
+      if (!purchaseOrder) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+
+      // Get PO items
+      const items = await storage.getPurchaseOrderItems(purchaseOrderId);
+
+      // Get supplier
+      const supplier = await storage.getSupplier(purchaseOrder.supplierId);
+
+      // Import template service to render with options
+      const { templateService } = await import('./templateService');
+      
+      // Prepare template data
+      const templateData = {
+        po: {
+          number: purchaseOrder.poNumber,
+          date: new Date(purchaseOrder.orderDate).toLocaleDateString(),
+          totalAmount: (Number(purchaseOrder.totalAmount) || 0).toFixed(2),
+          subtotal: (Number(purchaseOrder.subtotal) || 0).toFixed(2),
+          gstAmount: (Number(purchaseOrder.gstAmount) || 0).toFixed(2),
+          currency: purchaseOrder.currency || 'NZD',
+          specialInstructions: purchaseOrder.specialInstructions,
+          requestedDeliveryDate: purchaseOrder.requestedDeliveryDate ? 
+            new Date(purchaseOrder.requestedDeliveryDate).toLocaleDateString() : null,
+          deliveryAddress: purchaseOrder.deliveryAddress || 'Main Warehouse',
+          items: items.map((item: any) => ({
+            description: item.description,
+            itemCode: item.itemCode,
+            specifications: item.specifications,
+            quantity: item.quantity,
+            unitOfMeasure: item.unitOfMeasure,
+            unitPrice: (Number(item.unitPrice) || 0).toFixed(2),
+            totalPrice: (Number(item.totalPrice) || 0).toFixed(2)
+          }))
+        },
+        supplier: {
+          name: supplier?.name || 'N/A',
+          address: supplier?.address || '',
+          email: supplier?.email || '',
+          phone: supplier?.phone || '',
+          contactPerson: supplier?.contactPerson || ''
+        },
+        company: {
+          name: 'Lateral Engineering Limited',
+          address: 'Auckland, New Zealand',
+          email: 'accounts@lateralengineering.co.nz',
+          phone: '+64 9 123 4567',
+          website: 'www.lateralengineering.co.nz'
+        },
+        options
+      };
+
+      // Generate HTML based on template and options
+      let html = await templateService.renderTemplate('purchase_order', templateId, templateData, options);
+
+      // If no template found, use fallback HTML
+      if (!html) {
+        html = generateFallbackHTML(purchaseOrder, supplier, items, options);
+      }
+
+      res.json({ html });
+    } catch (error) {
+      console.error("Error generating HTML preview:", error);
+      res.status(500).json({ error: "Failed to generate preview" });
+    }
+  });
+
+  // Helper function to generate fallback HTML
+  function generateFallbackHTML(purchaseOrder: any, supplier: any, items: any[], options: any) {
+    const showLineItems = options.showLineItems !== false;
+    const showSingleLineItem = options.showSingleLineItem === true;
+    const showDescriptions = options.showDescriptions !== false;
+    const showSubtotals = options.showSubtotals === true;
+    const showTotals = options.showTotals !== false;
+    const showTerms = options.showTerms !== false;
+    const showSignature = options.showSignature === true;
+    const showNotes = options.showNotes !== false;
+    const showDeliveryDetails = options.showDeliveryDetails !== false;
+    const showPaymentTerms = options.showPaymentTerms !== false;
+
+    let html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+          padding: 40px; 
+          background: #f9fafb;
+          color: #1f2937;
+        }
+        .container {
+          max-width: 800px;
+          margin: 0 auto;
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          padding: 40px;
+        }
+        .header { 
+          border-bottom: 3px solid #1e3a8a; 
+          padding-bottom: 20px; 
+          margin-bottom: 30px; 
+        }
+        .company { 
+          font-size: 28px; 
+          font-weight: bold; 
+          color: #1e3a8a; 
+          margin-bottom: 8px;
+        }
+        .po-number { 
+          font-size: 18px; 
+          color: #4b5563; 
+          margin-top: 10px; 
+        }
+        .supplier-info { 
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          padding: 20px; 
+          border-radius: 8px; 
+          margin-bottom: 30px; 
+          border: 1px solid #bae6fd;
+        }
+        .supplier-info h3 {
+          color: #0369a1;
+          margin-top: 0;
+        }
+        table { 
+          width: 100%; 
+          border-collapse: collapse; 
+          margin-bottom: 30px; 
+        }
+        th { 
+          background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); 
+          color: white; 
+          padding: 12px; 
+          text-align: left; 
+          font-weight: 600;
+        }
+        td { 
+          padding: 12px; 
+          border-bottom: 1px solid #e5e7eb; 
+        }
+        tr:hover {
+          background-color: #f9fafb;
+        }
+        .totals { 
+          text-align: right; 
+          margin-top: 20px; 
+        }
+        .total-row { 
+          font-size: 20px; 
+          font-weight: bold; 
+          margin-top: 10px; 
+          color: #059669; 
+          padding: 10px;
+          background: #f0fdf4;
+          border-radius: 4px;
+          display: inline-block;
+        }
+        .terms { 
+          background: #f9fafb; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin-top: 40px; 
+          border: 1px solid #e5e7eb;
+        }
+        .terms h3 {
+          color: #374151;
+          margin-top: 0;
+        }
+        .signature-block {
+          margin-top: 60px;
+          display: flex;
+          justify-content: space-between;
+        }
+        .signature-line {
+          width: 45%;
+          border-top: 2px solid #d1d5db;
+          padding-top: 10px;
+          text-align: center;
+          color: #6b7280;
+        }
+        .badge {
+          display: inline-block;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .badge-urgent {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+        .badge-standard {
+          background: #dbeafe;
+          color: #1e40af;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="company">Lateral Engineering Limited</div>
+          <div class="po-number">Purchase Order: ${purchaseOrder.poNumber}</div>
+          <div>Date: ${new Date(purchaseOrder.orderDate).toLocaleDateString()}</div>
+          ${purchaseOrder.priority ? `<div style="margin-top: 10px;"><span class="badge badge-${purchaseOrder.priority === 'urgent' ? 'urgent' : 'standard'}">${purchaseOrder.priority.toUpperCase()}</span></div>` : ''}
+        </div>
+        
+        <div class="supplier-info">
+          <h3>Supplier Details</h3>
+          <div><strong>${supplier?.name || 'N/A'}</strong></div>
+          ${supplier?.contactPerson ? `<div>Attn: ${supplier.contactPerson}</div>` : ''}
+          <div>${supplier?.address || ''}</div>
+          <div>${supplier?.email || ''}</div>
+          <div>${supplier?.phone || ''}</div>
+        </div>`;
+
+    // Add delivery details if enabled
+    if (showDeliveryDetails && purchaseOrder.requestedDeliveryDate) {
+      html += `
+        <div class="supplier-info" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-color: #fbbf24;">
+          <h3 style="color: #d97706;">Delivery Information</h3>
+          <div><strong>Requested Delivery:</strong> ${new Date(purchaseOrder.requestedDeliveryDate).toLocaleDateString()}</div>
+          <div><strong>Delivery Address:</strong> ${purchaseOrder.deliveryAddress || 'Main Warehouse'}</div>
+        </div>`;
+    }
+
+    // Add items table
+    if (showLineItems && !showSingleLineItem) {
+      html += `
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Description</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map((item: any, index: number) => `
+            <tr>
+              <td>${index + 1}</td>
+              <td>
+                ${item.description}
+                ${showDescriptions && item.specifications ? `<br><small style="color: #6b7280;">${item.specifications}</small>` : ''}
+              </td>
+              <td>${item.quantity} ${item.unitOfMeasure || ''}</td>
+              <td>$${(Number(item.unitPrice) || 0).toFixed(2)}</td>
+              <td>$${(Number(item.totalPrice) || 0).toFixed(2)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    } else if (showSingleLineItem) {
+      html += `
+        <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+          <h3>Order Summary</h3>
+          <p><strong>${items.length} items</strong> - See attached detailed specification</p>
+        </div>`;
+    }
+
+    // Add totals
+    if (showTotals) {
+      html += `
+        <div class="totals">
+          ${showSubtotals ? `<div>Subtotal: $${(Number(purchaseOrder.subtotal) || 0).toFixed(2)}</div>` : ''}
+          <div>GST (15%): $${(Number(purchaseOrder.gstAmount) || 0).toFixed(2)}</div>
+          <div class="total-row">Total: $${(Number(purchaseOrder.totalAmount) || 0).toFixed(2)} ${purchaseOrder.currency || 'NZD'}</div>
+        </div>`;
+    }
+
+    // Add payment terms
+    if (showPaymentTerms) {
+      html += `
+        <div style="margin-top: 30px; padding: 15px; background: #f3f4f6; border-radius: 8px;">
+          <h4>Payment Terms</h4>
+          <p>${purchaseOrder.paymentTerms || 'Net 30 days'}</p>
+        </div>`;
+    }
+
+    // Add notes
+    if (showNotes && purchaseOrder.specialInstructions) {
+      html += `
+        <div style="margin-top: 30px;">
+          <h3>Special Instructions</h3>
+          <p>${purchaseOrder.specialInstructions}</p>
+        </div>`;
+    }
+
+    // Add terms
+    if (showTerms) {
+      html += `
+        <div class="terms">
+          <h3>Terms & Conditions</h3>
+          <p>Standard terms and conditions apply. All goods remain property of the supplier until full payment is received. 
+          Delivery subject to availability. Any disputes must be raised within 7 days of delivery.</p>
+        </div>`;
+    }
+
+    // Add signature block
+    if (showSignature) {
+      html += `
+        <div class="signature-block">
+          <div class="signature-line">
+            <div>Authorized By</div>
+          </div>
+          <div class="signature-line">
+            <div>Date</div>
+          </div>
+        </div>`;
+    }
+
+    html += `
+      </div>
+    </body>
+    </html>`;
+
+    return html;
+  }
+
   // Generate PDF for purchase order
   app.get("/api/procurement/purchase-orders/:id/pdf", async (req, res) => {
     try {

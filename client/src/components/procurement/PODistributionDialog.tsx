@@ -209,14 +209,55 @@ Lateral Engineering Procurement Team`);
     });
   };
 
-  const handlePreview = () => {
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState("");
+
+  const handlePreview = async () => {
+    try {
+      // Fetch the HTML preview with selected template and options
+      const response = await fetch(
+        `/api/procurement/purchase-orders/${purchaseOrder.id}/preview-html`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            templateId: selectedTemplate,
+            options: templateOptions
+          })
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setPreviewHtml(data.html);
+        setShowPreview(true);
+      } else {
+        toast({
+          title: "Preview Failed",
+          description: "Could not generate preview",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate preview",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handlePdfPreview = () => {
     // Build query params for template options
     const optionsParams = Object.entries(templateOptions)
       .filter(([_, value]) => value === true)
       .map(([key, _]) => `${key}=true`)
       .join('&');
     
-    // Open preview in new tab with template and options
+    // Open PDF preview in new tab with template and options
     window.open(
       `/api/procurement/purchase-orders/${purchaseOrder.id}/preview?template=${selectedTemplate}&${optionsParams}`, 
       '_blank'
@@ -224,6 +265,7 @@ Lateral Engineering Procurement Team`);
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -620,10 +662,14 @@ Lateral Engineering Procurement Team`);
                   </div>
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-4 space-y-2">
                   <Button variant="outline" onClick={handlePreview} className="w-full">
                     <Eye className="h-4 w-4 mr-2" />
                     Preview with Options
+                  </Button>
+                  <Button variant="ghost" onClick={handlePdfPreview} className="w-full" size="sm">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Preview as PDF
                   </Button>
                 </div>
               </CardContent>
@@ -879,5 +925,36 @@ Lateral Engineering Procurement Team`);
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* HTML Preview Modal */}
+    <Dialog open={showPreview} onOpenChange={setShowPreview}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Purchase Order Preview</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-auto border rounded-lg bg-white">
+          {previewHtml ? (
+            <div 
+              dangerouslySetInnerHTML={{ __html: previewHtml }}
+              className="p-8"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-muted-foreground">Loading preview...</p>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowPreview(false)}>
+            Close
+          </Button>
+          <Button onClick={handlePdfPreview}>
+            <Download className="h-4 w-4 mr-2" />
+            Download PDF
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
