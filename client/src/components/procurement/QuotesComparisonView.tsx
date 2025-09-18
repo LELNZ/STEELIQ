@@ -151,13 +151,15 @@ We look forward to another successful project together.`,
     queryKey: ["/api/suppliers"],
   });
 
-  // Fetch RFQs with responses (including evaluation and closed/awarded)
+  // Fetch RFQs with sent, evaluation and closed/awarded statuses
   const { data: rfqs = [], isLoading: rfqsLoading } = useQuery({
     queryKey: ["/api/procurement/rfqs"],
     queryFn: async () => {
-      const response = await fetch("/api/procurement/rfqs?status=sent,evaluation,closed");
+      const response = await fetch("/api/procurement/rfqs");
       if (!response.ok) throw new Error("Failed to fetch RFQs");
-      return response.json();
+      const allRfqs = await response.json();
+      // Filter for sent, evaluation, and closed statuses
+      return allRfqs.filter((rfq: any) => ['sent', 'evaluation', 'closed'].includes(rfq.status));
     },
   });
 
@@ -297,10 +299,8 @@ We look forward to another successful project together.`,
     },
   });
 
-  // Show RFQs that have responses (sent, evaluation, or closed with winner)
-  const activeRfqs = rfqs.filter((rfq: any) => 
-    ['sent', 'evaluation', 'closed'].includes(rfq.status) && rfq.responseCount > 0
-  );
+  // Show all sent RFQs (with or without responses)
+  const activeRfqs = rfqs;
   const selectedRfq = rfqs.find((rfq: any) => rfq.id === selectedRfqId);
 
   // Calculate comparison metrics
@@ -340,9 +340,9 @@ We look forward to another successful project together.`,
             ) : activeRfqs.length === 0 ? (
               <div className="col-span-3 text-center py-8">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">No RFQs with responses</p>
+                <p className="text-muted-foreground">No RFQs available for quotes</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Send RFQs to suppliers to receive quotes
+                  Send RFQs to suppliers to start receiving quotes
                 </p>
               </div>
             ) : (
@@ -375,11 +375,24 @@ We look forward to another successful project together.`,
                       </p>
                     </div>
                     <div className="text-right">
-                      <Badge variant="outline" className="mb-1">
-                        {rfq.responseCount || 0} quotes
-                      </Badge>
+                      {rfq.responseCount > 0 ? (
+                        <Badge variant="outline" className="mb-1">
+                          {rfq.responseCount} quotes
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="mb-1">
+                          Awaiting quotes
+                        </Badge>
+                      )}
                       {rfq.winningResponseId && (
                         <p className="text-xs text-green-600 font-medium">Winner Selected</p>
+                      )}
+                      {rfq.status === 'sent' && !rfq.responseCount && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          {rfq.responseDeadline ? 
+                            `Due: ${format(new Date(rfq.responseDeadline), 'MMM d')}` : 
+                            'No deadline'}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -504,8 +517,24 @@ We look forward to another successful project together.`,
                 <TableBody>
                   {responses.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground">
-                        No quotes received yet
+                      <TableCell colSpan={10} className="text-center py-8">
+                        <div className="flex flex-col items-center gap-3">
+                          <FileText className="h-10 w-10 text-muted-foreground" />
+                          <p className="text-muted-foreground font-medium">No quotes received yet</p>
+                          <p className="text-xs text-muted-foreground">
+                            {selectedRfq?.responseDeadline ? 
+                              `Response deadline: ${format(new Date(selectedRfq.responseDeadline), 'MMM d, yyyy')}` : 
+                              'Awaiting supplier responses'}
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setManualQuoteDialog(true)}
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add First Quote Manually
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
