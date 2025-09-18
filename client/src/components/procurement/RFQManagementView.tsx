@@ -1458,14 +1458,10 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                   data: {
                     title: titleInput?.value,
                     description: descInput?.value,
-                    responseDeadline: deadlineInput?.value ? new Date(deadlineInput.value) : editingRfq?.responseDeadline,
-                    deliveryRequiredBy: deliveryInput?.value ? new Date(deliveryInput.value) : editingRfq?.deliveryRequiredBy,
-                    deliveryTerms: typeof editingRfq?.deliveryTerms === 'object' 
-                      ? (editingRfq.deliveryTerms as any)?.value 
-                      : editingRfq?.deliveryTerms,
-                    paymentTerms: typeof editingRfq?.paymentTerms === 'object'
-                      ? (editingRfq.paymentTerms as any)?.value
-                      : editingRfq?.paymentTerms,
+                    responseDeadline: deadlineInput?.value ? new Date(deadlineInput.value) : undefined,
+                    deliveryRequiredBy: deliveryInput?.value ? new Date(deliveryInput.value) : undefined,
+                    deliveryTerms: editingRfq?.deliveryTerms,
+                    paymentTerms: editingRfq?.paymentTerms,
                   },
                 });
               }}
