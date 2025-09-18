@@ -11299,19 +11299,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create validation schema for RFQ updates with proper date handling
+  const updateRfqSchema = z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    category: z.string().optional(),
+    status: z.string().optional(),
+    responseDeadline: z.preprocess(
+      (val) => {
+        // Handle various date input formats
+        if (!val || val === '') return null;
+        if (val instanceof Date) return val;
+        if (typeof val === 'string') {
+          const date = new Date(val);
+          return isNaN(date.getTime()) ? null : date;
+        }
+        return null;
+      },
+      z.date().nullable().optional()
+    ),
+    deliveryRequiredBy: z.preprocess(
+      (val) => {
+        // Handle various date input formats
+        if (!val || val === '') return null;
+        if (val instanceof Date) return val;
+        if (typeof val === 'string') {
+          const date = new Date(val);
+          return isNaN(date.getTime()) ? null : date;
+        }
+        return null;
+      },
+      z.date().nullable().optional()
+    ),
+    deliveryTerms: z.string().optional(),
+    paymentTerms: z.string().optional(),
+    evaluationCriteria: z.any().optional(),
+    specialRequirements: z.string().optional(),
+    attachments: z.any().optional(),
+    invitedSuppliers: z.any().optional(),
+    publicRfq: z.boolean().optional(),
+    sentAt: z.date().nullable().optional(),
+    closedAt: z.date().nullable().optional(),
+    winningResponseId: z.number().nullable().optional(),
+  }).partial();
+
   // Update RFQ (status and other fields)
   app.patch("/api/procurement/rfqs/:id", async (req, res) => {
     try {
       const rfqId = parseInt(req.params.id);
-      const updateData = req.body;
+      
+      // Validate and transform the update data
+      const validationResult = updateRfqSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        console.error("RFQ update validation errors:", validationResult.error.errors);
+        return res.status(400).json({ 
+          error: "Invalid update data", 
+          details: validationResult.error.errors 
+        });
+      }
+      
+      const updateData = validationResult.data;
+      
+      // Remove undefined fields to avoid database errors
+      const cleanedData = Object.fromEntries(
+        Object.entries(updateData).filter(([_, value]) => value !== undefined)
+      );
+      
+      console.log("Updating RFQ with cleaned data:", {
+        rfqId,
+        fields: Object.keys(cleanedData),
+        dateFields: {
+          responseDeadline: cleanedData.responseDeadline instanceof Date ? 'Date object' : typeof cleanedData.responseDeadline,
+          deliveryRequiredBy: cleanedData.deliveryRequiredBy instanceof Date ? 'Date object' : typeof cleanedData.deliveryRequiredBy,
+        }
+      });
       
       // If only status is provided, use the specific status update method
-      if (Object.keys(updateData).length === 1 && updateData.status) {
-        const updatedRfq = await storage.updateRfqStatus(rfqId, updateData.status);
+      if (Object.keys(cleanedData).length === 1 && cleanedData.status) {
+        const updatedRfq = await storage.updateRfqStatus(rfqId, cleanedData.status);
         res.json(updatedRfq);
       } else {
         // Otherwise update all provided fields
-        const updatedRfq = await storage.updateRfqRequest(rfqId, updateData);
+        const updatedRfq = await storage.updateRfqRequest(rfqId, cleanedData);
         res.json(updatedRfq);
       }
     } catch (error) {
