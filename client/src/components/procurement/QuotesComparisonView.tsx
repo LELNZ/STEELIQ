@@ -79,6 +79,9 @@ export default function QuotesComparisonView() {
   });
   const [uploadedDocument, setUploadedDocument] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [addDocumentDialog, setAddDocumentDialog] = useState(false);
+  const [selectedResponseForDoc, setSelectedResponseForDoc] = useState<any>(null);
+  const [uploadingDocToResponse, setUploadingDocToResponse] = useState(false);
   const { toast } = useToast();
 
   // Acceptance message templates
@@ -690,11 +693,8 @@ We look forward to another successful project together.`,
                                   variant="ghost"
                                   className="h-8 w-8 p-0"
                                   onClick={() => {
-                                    // Add attachment
-                                    toast({
-                                      title: "Add Documents",
-                                      description: "Document upload feature coming soon",
-                                    });
+                                    setSelectedResponseForDoc(response);
+                                    setAddDocumentDialog(true);
                                   }}
                                 >
                                   <Plus className="h-4 w-4" />
@@ -1319,6 +1319,143 @@ We look forward to another successful project together.`,
               ) : (
                 <><Send className="h-4 w-4 mr-2" />Send Acceptance</>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Document Dialog */}
+      <Dialog open={addDocumentDialog} onOpenChange={setAddDocumentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Document to Quote</DialogTitle>
+            <DialogDescription>
+              Upload a document to attach to this quote response
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="quote-document">Select Document</Label>
+              <div className="space-y-2">
+                {!uploadedDocument ? (
+                  <div
+                    className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors cursor-pointer"
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = '.pdf,.doc,.docx,.xls,.xlsx';
+                      input.onchange = (e: any) => {
+                        const file = e.target?.files?.[0];
+                        if (file) {
+                          if (file.size > 10 * 1024 * 1024) {
+                            toast({
+                              title: "File too large",
+                              description: "Please select a file under 10MB",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          setUploadedDocument(file);
+                          toast({
+                            title: "File selected",
+                            description: `${file.name} ready for upload`,
+                          });
+                        }
+                      };
+                      input.click();
+                    }}
+                  >
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                    <p className="text-sm text-muted-foreground">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PDF, Word, Excel files (up to 10MB)
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Paperclip className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">{uploadedDocument.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({(uploadedDocument.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setUploadedDocument(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAddDocumentDialog(false);
+                setUploadedDocument(null);
+                setSelectedResponseForDoc(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!uploadedDocument || !selectedResponseForDoc) return;
+                
+                setUploadingDocToResponse(true);
+                try {
+                  const formData = new FormData();
+                  formData.append('document', uploadedDocument);
+                  formData.append('type', 'quote_attachment');
+                  
+                  const uploadResponse = await fetch('/api/procurement/documents/upload', {
+                    method: 'POST',
+                    body: formData,
+                  });
+                  
+                  if (!uploadResponse.ok) {
+                    throw new Error('Failed to upload document');
+                  }
+                  
+                  const uploadResult = await uploadResponse.json();
+                  
+                  // Update the response with the new attachment
+                  await apiRequest(`/api/procurement/rfqs/responses/${selectedResponseForDoc.id}/attachments`, "POST", {
+                    attachment: uploadResult,
+                  });
+                  
+                  toast({
+                    title: "Success",
+                    description: "Document uploaded successfully",
+                  });
+                  
+                  // Refresh the responses
+                  queryClient.invalidateQueries({ queryKey: [`/api/procurement/rfqs/${selectedRfqId}/responses`] });
+                  
+                  setAddDocumentDialog(false);
+                  setUploadedDocument(null);
+                  setSelectedResponseForDoc(null);
+                } catch (error) {
+                  console.error('Document upload failed:', error);
+                  toast({
+                    title: "Error",
+                    description: "Failed to upload document",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setUploadingDocToResponse(false);
+                }
+              }}
+              disabled={!uploadedDocument || uploadingDocToResponse}
+            >
+              {uploadingDocToResponse ? "Uploading..." : "Upload Document"}
             </Button>
           </DialogFooter>
         </DialogContent>

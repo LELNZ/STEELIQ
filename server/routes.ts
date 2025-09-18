@@ -11478,6 +11478,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add attachment to existing RFQ response
+  app.post("/api/procurement/rfqs/responses/:responseId/attachments", async (req, res) => {
+    try {
+      const responseId = parseInt(req.params.responseId);
+      const { attachment } = req.body;
+      
+      // Get the existing response
+      const [response] = await db.select()
+        .from(rfqResponses)
+        .where(eq(rfqResponses.id, responseId))
+        .limit(1);
+      
+      if (!response) {
+        return res.status(404).json({ error: "Quote response not found" });
+      }
+      
+      // Add attachment to existing attachments array
+      const currentAttachments = response.attachments || [];
+      const updatedAttachments = [...currentAttachments, attachment];
+      
+      // Update the response with new attachments
+      await db.update(rfqResponses)
+        .set({ 
+          attachments: updatedAttachments,
+          updatedAt: new Date()
+        })
+        .where(eq(rfqResponses.id, responseId));
+      
+      res.json({ success: true, attachments: updatedAttachments });
+    } catch (error) {
+      console.error("Error adding attachment to response:", error);
+      res.status(500).json({ error: "Failed to add attachment" });
+    }
+  });
+
   // Create manual quote (Fortune 500 Standard - Hybrid Approach)
   app.post("/api/procurement/rfqs/:id/quotes/manual", async (req, res) => {
     try {
