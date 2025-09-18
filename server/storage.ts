@@ -2005,8 +2005,63 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateRfqRequest(id: number, rfq: Partial<InsertRfqRequest>): Promise<RfqRequest> {
+    // Defensive date handling - ensure all date fields are proper Date objects or null
+    const sanitizedData: any = { ...rfq };
+    
+    // Handle date fields that might come as strings
+    const dateFields = ['responseDeadline', 'deliveryRequiredBy', 'sentAt', 'closedAt'];
+    
+    for (const field of dateFields) {
+      if (field in sanitizedData) {
+        const value = sanitizedData[field];
+        
+        if (value === null || value === undefined || value === '') {
+          // Keep null, remove undefined/empty strings
+          sanitizedData[field] = null;
+        } else if (typeof value === 'string') {
+          // Convert string to Date
+          const date = new Date(value);
+          if (isNaN(date.getTime())) {
+            console.error(`Invalid date string for field ${field}:`, value);
+            // Remove invalid dates rather than causing an error
+            delete sanitizedData[field];
+          } else {
+            sanitizedData[field] = date;
+          }
+        } else if (value instanceof Date) {
+          // Already a Date object, validate it
+          if (isNaN(value.getTime())) {
+            console.error(`Invalid Date object for field ${field}`);
+            delete sanitizedData[field];
+          }
+        } else {
+          // Unknown type, remove it
+          console.error(`Unknown type for date field ${field}:`, typeof value);
+          delete sanitizedData[field];
+        }
+      }
+    }
+    
+    // Remove any undefined values to prevent Drizzle errors
+    Object.keys(sanitizedData).forEach(key => {
+      if (sanitizedData[key] === undefined) {
+        delete sanitizedData[key];
+      }
+    });
+    
+    console.log('Updating RFQ in storage with sanitized data:', {
+      id,
+      fields: Object.keys(sanitizedData),
+      dateFieldTypes: dateFields.reduce((acc, field) => {
+        if (field in sanitizedData) {
+          acc[field] = sanitizedData[field] instanceof Date ? 'Date' : typeof sanitizedData[field];
+        }
+        return acc;
+      }, {} as any)
+    });
+    
     const [updated] = await db.update(rfqRequests)
-      .set({ ...rfq, updatedAt: new Date() })
+      .set({ ...sanitizedData, updatedAt: new Date() })
       .where(eq(rfqRequests.id, id))
       .returning();
     return updated;
