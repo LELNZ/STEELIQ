@@ -33,15 +33,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Initialize default templates (temporary endpoint for testing)
-  app.post("/api/templates/init-defaults", async (req, res) => {
+  app.get("/api/templates/init-defaults", async (req, res) => {
     try {
-      // Check if user is authenticated and admin
-      if (!req.session?.userId) {
-        return res.status(401).json({ error: "User not authenticated" });
-      }
-
-      // For now, allow all authenticated users to initialize templates
-      // In production, restrict to admin role only
+      // For testing only - remove in production
       const { templateService } = await import('./templateService');
       await templateService.createDefaultTemplates();
       res.json({ success: true, message: 'Default templates initialized' });
