@@ -173,6 +173,10 @@ export class EmailService {
   private createPOEmailHTML(body: string, poData: any, supplierData: any, portalUrl?: string, requestAcknowledgment?: boolean): string {
     const totalAmount = typeof poData.totalAmount === 'number' ? poData.totalAmount : parseFloat(poData.totalAmount) || 0;
     
+    // Check if body already contains a greeting to avoid duplication
+    const bodyLower = body.toLowerCase().trim();
+    const hasGreeting = bodyLower.startsWith('dear ') || bodyLower.startsWith('hello ') || bodyLower.startsWith('hi ');
+    
     const portalSection = portalUrl ? `
       <div style="background: #dbeafe; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #1e40af;">
         <h3>Action Required</h3>
@@ -188,52 +192,156 @@ export class EmailService {
       </div>
     ` : '';
 
+    // Enhanced professional email template with better styling
     return `
       <!DOCTYPE html>
       <html>
       <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Purchase Order ${poData.poNumber}</title>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .header { background: #1e40af; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; }
-          .footer { background: #f3f4f6; padding: 15px; text-align: center; font-size: 12px; color: #666; }
-          .po-details { background: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .company-info { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #f8fafc;
+          }
+          .container { max-width: 600px; margin: 0 auto; background-color: white; }
+          .header { 
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); 
+            color: white; 
+            padding: 30px 20px; 
+            text-align: center; 
+            border-radius: 8px 8px 0 0;
+          }
+          .header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+          .header p { margin: 5px 0 0 0; opacity: 0.9; font-size: 14px; }
+          .content { padding: 30px 20px; }
+          .greeting { margin-bottom: 20px; font-size: 16px; }
+          .message-body { margin: 20px 0; line-height: 1.7; }
+          .po-details { 
+            background: #f8fafc; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 25px 0; 
+            border-left: 4px solid #1e40af;
+          }
+          .po-details h3 { margin: 0 0 15px 0; color: #1e40af; font-size: 18px; }
+          .detail-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            padding: 8px 0; 
+            border-bottom: 1px solid #e2e8f0;
+          }
+          .detail-row:last-child { border-bottom: none; }
+          .detail-label { font-weight: 600; color: #475569; }
+          .detail-value { font-weight: 500; color: #1e293b; }
+          .amount { font-size: 20px; font-weight: 700; color: #059669; }
+          .instructions { 
+            background: #f0f9ff; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 20px 0; 
+            border-left: 4px solid #0ea5e9;
+          }
+          .company-info { 
+            margin-top: 30px; 
+            padding-top: 20px; 
+            border-top: 2px solid #e2e8f0; 
+            text-align: center;
+          }
+          .company-info h4 { margin: 0 0 10px 0; color: #1e40af; }
+          .footer { 
+            background: #f1f5f9; 
+            padding: 20px; 
+            text-align: center; 
+            font-size: 12px; 
+            color: #64748b; 
+            border-radius: 0 0 8px 8px;
+          }
+          @media only screen and (max-width: 600px) {
+            .container { margin: 10px; }
+            .header { padding: 20px 15px; }
+            .content { padding: 20px 15px; }
+            .detail-row { flex-direction: column; align-items: flex-start; }
+            .detail-value { margin-top: 5px; }
+          }
         </style>
       </head>
       <body>
-        <div class="header">
-          <h1>Purchase Order #${poData.poNumber}</h1>
-        </div>
-        <div class="content">
-          <p>Dear ${supplierData.name || 'Supplier'},</p>
-          
-          <div style="white-space: pre-line;">${body}</div>
-          
-          ${requestAcknowledgment ? portalSection : ''}
-          ${requestAcknowledgment ? signatureSection : ''}
-          
-          <div class="po-details">
-            <h3>Order Details:</h3>
-            <p><strong>PO Number:</strong> ${poData.poNumber}</p>
-            <p><strong>Date:</strong> ${new Date(poData.orderDate).toLocaleDateString()}</p>
-            <p><strong>Delivery Date:</strong> ${poData.deliveryDate ? new Date(poData.deliveryDate).toLocaleDateString() : 'TBD'}</p>
-            <p><strong>Total Amount:</strong> $${totalAmount.toFixed(2)}</p>
+        <div class="container">
+          <div class="header">
+            <h1>Purchase Order #${poData.poNumber}</h1>
+            <p>Lateral Engineering Limited • Auckland, New Zealand</p>
           </div>
+          <div class="content">
+            ${!hasGreeting ? `<div class="greeting">Dear ${supplierData.name || supplierData.company || 'Valued Partner'},</div>` : ''}
+            
+            <div class="message-body" style="white-space: pre-line;">${body}</div>
           
-          <p>Please find the detailed purchase order attached to this email.</p>
-          
-          <p>If you have any questions, please don't hesitate to contact us.</p>
-          
-          <div class="company-info">
-            <p><strong>Lateral Engineering Limited</strong><br>
-            Auckland, New Zealand<br>
-            Email: accounts@lateralengineering.co.nz</p>
+            ${requestAcknowledgment ? portalSection : ''}
+            ${requestAcknowledgment ? signatureSection : ''}
+            
+            <div class="po-details">
+              <h3>📋 Order Details</h3>
+              <div class="detail-row">
+                <span class="detail-label">PO Number:</span>
+                <span class="detail-value">${poData.poNumber}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Issue Date:</span>
+                <span class="detail-value">${new Date(poData.orderDate).toLocaleDateString('en-NZ', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Requested Delivery:</span>
+                <span class="detail-value">${poData.deliveryDate ? new Date(poData.deliveryDate).toLocaleDateString('en-NZ', { day: '2-digit', month: 'short', year: 'numeric' }) : 'As per agreement'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Total Amount:</span>
+                <span class="detail-value amount">$${totalAmount.toFixed(2)} ${poData.currency || 'NZD'}</span>
+              </div>
+              ${poData.supplierReference ? `
+              <div class="detail-row">
+                <span class="detail-label">Your Reference:</span>
+                <span class="detail-value">${poData.supplierReference}</span>
+              </div>
+              ` : ''}
+            </div>
+            
+            <div class="instructions">
+              <h4 style="margin: 0 0 10px 0; color: #0ea5e9;">📎 Next Steps</h4>
+              <p style="margin: 0;">• Review the detailed purchase order attached to this email<br>
+              • Confirm receipt and delivery schedule at your earliest convenience<br>
+              • Contact us immediately if you have any questions or concerns</p>
+            </div>
+            
+            ${poData.specialInstructions ? `
+            <div class="instructions" style="background: #fef9e7; border-left: 4px solid #f59e0b;">
+              <h4 style="margin: 0 0 10px 0; color: #d97706;">⚠️ Special Instructions</h4>
+              <p style="margin: 0; white-space: pre-line;">${poData.specialInstructions}</p>
+            </div>
+            ` : ''}
+            
+            <div class="company-info">
+              <h4>Lateral Engineering Limited</h4>
+              <p style="margin: 5px 0; color: #64748b;">
+                📍 Auckland, New Zealand<br>
+                📧 accounts@lateralengineering.co.nz<br>
+                🌐 www.lateralengineering.co.nz
+              </p>
+            </div>
           </div>
-        </div>
-        <div class="footer">
-          <p>This is an automated message from STEELIQ Procurement System</p>
-          <p>&copy; ${new Date().getFullYear()} Lateral Engineering Limited. All rights reserved.</p>
+          <div class="footer">
+            <p><strong>This is an automated message from STEELIQ Procurement System</strong></p>
+            <p>© ${new Date().getFullYear()} Lateral Engineering Limited. All rights reserved.</p>
+            <p style="margin-top: 10px; font-size: 11px;">
+              Please do not reply directly to this email. For inquiries, contact accounts@lateralengineering.co.nz
+            </p>
+          </div>
         </div>
       </body>
       </html>
