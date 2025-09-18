@@ -1461,16 +1461,24 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                 const deliveryTermsSelect = document.querySelector('#edit-delivery-terms + button') as HTMLButtonElement;
                 const paymentTermsSelect = document.querySelector('#edit-payment-terms + button') as HTMLButtonElement;
                 
+                const updateData: any = {
+                  title: titleInput?.value,
+                  description: descInput?.value,
+                  deliveryTerms: editingRfq?.deliveryTerms,
+                  paymentTerms: editingRfq?.paymentTerms,
+                };
+                
+                // Only include date fields if they have values
+                if (deadlineInput?.value) {
+                  updateData.responseDeadline = new Date(deadlineInput.value);
+                }
+                if (deliveryInput?.value) {
+                  updateData.deliveryRequiredBy = new Date(deliveryInput.value);
+                }
+                
                 updateRfqMutation.mutate({
                   rfqId: editingRfq?.id,
-                  data: {
-                    title: titleInput?.value,
-                    description: descInput?.value,
-                    responseDeadline: deadlineInput?.value ? new Date(deadlineInput.value) : undefined,
-                    deliveryRequiredBy: deliveryInput?.value ? new Date(deliveryInput.value) : undefined,
-                    deliveryTerms: editingRfq?.deliveryTerms,
-                    paymentTerms: editingRfq?.paymentTerms,
-                  },
+                  data: updateData,
                 });
               }}
             >
