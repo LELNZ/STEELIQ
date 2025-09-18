@@ -1020,7 +1020,27 @@ We look forward to another successful project together.`,
                             });
                             return;
                           }
+                          // Validate file type
+                          const allowedTypes = [
+                            'application/pdf',
+                            'application/msword',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                          ];
+                          if (!allowedTypes.includes(file.type)) {
+                            toast({
+                              title: "Invalid file type",
+                              description: "Please upload PDF, Word or Excel files only",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
                           setUploadedDocument(file);
+                          toast({
+                            title: "File selected",
+                            description: `${file.name} ready for upload`,
+                          });
                         }
                       };
                       input.click();
