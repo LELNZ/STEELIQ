@@ -33,6 +33,7 @@ import OrganizationSettingsPage from "@/pages/organization-settings";
 import EmailCostImport from "@/pages/EmailCostImport";
 import DrawingIntelligence from "@/pages/DrawingIntelligence";
 import SupplierIntegrationHub from "@/pages/SupplierIntegrationHub";
+import TemplateBuilder from "@/pages/TemplateBuilder";
 import SupplierPortal from "@/pages/SupplierPortal";
 import MobileOperations from "@/pages/mobile-operations";
 import ProductionFloor from "@/pages/ProductionFloor";
@@ -92,6 +93,7 @@ function Router() {
       <Route path="/settings/operations" component={OperationsSettingsNew} />
       <Route path="/settings/lifecycle-templates" component={LifecycleTemplates} />
       <Route path="/settings/audit-center" component={AuditCenter} />
+      <Route path="/settings/template-builder" component={TemplateBuilder} />
       <Route path="/organization-settings" component={OrganizationSettingsPage} />
       <Route path="/team-management" component={TeamManagement} />
       <Route path="/team-management/employee/:id" component={EmployeeProfile} />

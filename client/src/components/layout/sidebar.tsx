@@ -73,6 +73,7 @@ const navigation = [
       { name: "Organization Settings", href: "/organization-settings", icon: Building2 },
       { name: "Financial Settings", href: "/settings/financial", icon: DollarSign },
       { name: "Operations Settings", href: "/settings/operations", icon: Settings2 },
+      { name: "Template Builder", href: "/settings/template-builder", icon: FileText, badge: "NEW", badgeVariant: "success" },
       { name: "Team Management", href: "/team-management", icon: Users },
       { name: "Time & Payroll", href: "/time-payroll", icon: Timer },
       { name: "Audit Center", href: "/settings/audit-center", icon: Shield, badge: "Admin", badgeVariant: "warning" },
