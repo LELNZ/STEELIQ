@@ -154,17 +154,26 @@ We look forward to another successful project together.`,
     queryKey: ["/api/suppliers"],
   });
 
-  // Fetch RFQs with sent, evaluation and closed/awarded statuses (exclude draft)
+  // Fetch RFQs with sent, evaluation, completed and closed/awarded statuses (exclude draft)
   const { data: rfqs = [], isLoading: rfqsLoading } = useQuery({
     queryKey: ["/api/procurement/rfqs"],
     queryFn: async () => {
       const response = await fetch("/api/procurement/rfqs");
       if (!response.ok) throw new Error("Failed to fetch RFQs");
       const allRfqs = await response.json();
-      // Filter for sent, evaluation, and closed statuses - EXCLUDE draft RFQs
-      return allRfqs.filter((rfq: any) => 
-        ['sent', 'evaluation', 'closed'].includes(rfq.status) && rfq.status !== 'draft'
-      );
+      // Filter to exclude draft and cancelled RFQs - only show active procurement workflows
+      const validStatuses = ['sent', 'evaluation', 'completed', 'closed', 'awarded'];
+      return allRfqs.filter((rfq: any) => {
+        // Explicitly exclude draft status
+        if (rfq.status === 'draft' || rfq.status === 'cancelled') {
+          console.log(`Excluding RFQ ${rfq.rfqNumber} with status: ${rfq.status}`);
+          return false;
+        }
+        // Include RFQs with valid statuses or that have been sent (sentAt field is set)
+        const include = validStatuses.includes(rfq.status) || rfq.sentAt;
+        console.log(`RFQ ${rfq.rfqNumber}: status=${rfq.status}, sentAt=${rfq.sentAt}, include=${include}`);
+        return include;
+      });
     },
   });
 
@@ -280,6 +289,11 @@ We look forward to another successful project together.`,
           attachments = [uploadResult];
         } catch (error) {
           console.error('Document upload failed:', error);
+          toast({
+            title: "Warning",
+            description: "Document upload failed. Quote will be added without attachment.",
+            variant: "destructive",
+          });
           // Continue without document if upload fails
         } finally {
           setIsUploading(false);
