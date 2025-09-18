@@ -59,6 +59,20 @@ export default function PODistributionDialog({
   const [requireSignature, setRequireSignature] = useState(false);
   const [newCcEmail, setNewCcEmail] = useState("");
   const [newBccEmail, setNewBccEmail] = useState("");
+  
+  // Template content options
+  const [templateOptions, setTemplateOptions] = useState({
+    showLineItems: true,
+    showSingleLineItem: false,
+    showDescriptions: true,
+    showSubtotals: false,
+    showTotals: true,
+    showTerms: true,
+    showSignature: false,
+    showNotes: true,
+    showDeliveryDetails: true,
+    showPaymentTerms: true
+  });
 
   // Fetch quote history for this PO
   const { data: quoteHistory } = useQuery({
@@ -186,6 +200,7 @@ Lateral Engineering Procurement Team`);
       subject: emailSubject,
       body: emailBody,
       templateId: selectedTemplate,
+      templateOptions,
       deliveryMethod,
       formats,
       requireSignature,
@@ -195,8 +210,17 @@ Lateral Engineering Procurement Team`);
   };
 
   const handlePreview = () => {
-    // Open preview in new tab
-    window.open(`/api/procurement/purchase-orders/${purchaseOrder.id}/preview?template=${selectedTemplate}`, '_blank');
+    // Build query params for template options
+    const optionsParams = Object.entries(templateOptions)
+      .filter(([_, value]) => value === true)
+      .map(([key, _]) => `${key}=true`)
+      .join('&');
+    
+    // Open preview in new tab with template and options
+    window.open(
+      `/api/procurement/purchase-orders/${purchaseOrder.id}/preview?template=${selectedTemplate}&${optionsParams}`, 
+      '_blank'
+    );
   };
 
   return (
@@ -465,10 +489,141 @@ Lateral Engineering Procurement Team`);
                   ))}
                 </div>
 
+                {/* Content Options */}
+                <div className="pt-4 border-t">
+                  <h4 className="font-medium mb-3">Content Options</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Select which sections to include in the purchase order
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showLineItems"
+                        checked={templateOptions.showLineItems}
+                        onCheckedChange={(checked) =>
+                          setTemplateOptions({ ...templateOptions, showLineItems: checked as boolean })
+                        }
+                      />
+                      <label htmlFor="showLineItems" className="text-sm">
+                        All Line Items
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showSingleLineItem"
+                        checked={templateOptions.showSingleLineItem}
+                        onCheckedChange={(checked) =>
+                          setTemplateOptions({ ...templateOptions, showSingleLineItem: checked as boolean })
+                        }
+                        disabled={templateOptions.showLineItems}
+                      />
+                      <label htmlFor="showSingleLineItem" className="text-sm">
+                        Single Line Summary
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showDescriptions"
+                        checked={templateOptions.showDescriptions}
+                        onCheckedChange={(checked) =>
+                          setTemplateOptions({ ...templateOptions, showDescriptions: checked as boolean })
+                        }
+                      />
+                      <label htmlFor="showDescriptions" className="text-sm">
+                        Item Descriptions
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showSubtotals"
+                        checked={templateOptions.showSubtotals}
+                        onCheckedChange={(checked) =>
+                          setTemplateOptions({ ...templateOptions, showSubtotals: checked as boolean })
+                        }
+                      />
+                      <label htmlFor="showSubtotals" className="text-sm">
+                        Subtotals
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showTotals"
+                        checked={templateOptions.showTotals}
+                        onCheckedChange={(checked) =>
+                          setTemplateOptions({ ...templateOptions, showTotals: checked as boolean })
+                        }
+                      />
+                      <label htmlFor="showTotals" className="text-sm">
+                        Total Amount
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showDeliveryDetails"
+                        checked={templateOptions.showDeliveryDetails}
+                        onCheckedChange={(checked) =>
+                          setTemplateOptions({ ...templateOptions, showDeliveryDetails: checked as boolean })
+                        }
+                      />
+                      <label htmlFor="showDeliveryDetails" className="text-sm">
+                        Delivery Details
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showTerms"
+                        checked={templateOptions.showTerms}
+                        onCheckedChange={(checked) =>
+                          setTemplateOptions({ ...templateOptions, showTerms: checked as boolean })
+                        }
+                      />
+                      <label htmlFor="showTerms" className="text-sm">
+                        Terms & Conditions
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showPaymentTerms"
+                        checked={templateOptions.showPaymentTerms}
+                        onCheckedChange={(checked) =>
+                          setTemplateOptions({ ...templateOptions, showPaymentTerms: checked as boolean })
+                        }
+                      />
+                      <label htmlFor="showPaymentTerms" className="text-sm">
+                        Payment Terms
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showNotes"
+                        checked={templateOptions.showNotes}
+                        onCheckedChange={(checked) =>
+                          setTemplateOptions({ ...templateOptions, showNotes: checked as boolean })
+                        }
+                      />
+                      <label htmlFor="showNotes" className="text-sm">
+                        Additional Notes
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showSignature"
+                        checked={templateOptions.showSignature}
+                        onCheckedChange={(checked) =>
+                          setTemplateOptions({ ...templateOptions, showSignature: checked as boolean })
+                        }
+                      />
+                      <label htmlFor="showSignature" className="text-sm">
+                        Signature Block
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="pt-4">
                   <Button variant="outline" onClick={handlePreview} className="w-full">
                     <Eye className="h-4 w-4 mr-2" />
-                    Preview Selected Template
+                    Preview with Options
                   </Button>
                 </div>
               </CardContent>

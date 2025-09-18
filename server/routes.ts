@@ -32,6 +32,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Initialize default templates (temporary endpoint for testing)
+  app.post("/api/templates/init-defaults", async (req, res) => {
+    try {
+      // Check if user is authenticated and admin
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      // For now, allow all authenticated users to initialize templates
+      // In production, restrict to admin role only
+      const { templateService } = await import('./templateService');
+      await templateService.createDefaultTemplates();
+      res.json({ success: true, message: 'Default templates initialized' });
+    } catch (error) {
+      console.error('Error initializing templates:', error);
+      res.status(500).json({ error: 'Failed to initialize templates' });
+    }
+  });
+
   // Configure multer for file uploads
   const upload = multer({ 
     storage: multer.memoryStorage(),
@@ -10586,6 +10605,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         poData,
         supplierData: supplier,
         templateType,
+        templateId: req.body.templateId,
+        templateOptions: req.body.templateOptions,
         portalUrl: req.body.includePortalLink ? tempPortalUrl : undefined,
         requestAcknowledgment: req.body.requestAcknowledgment || requireSignature || false,
         formats: formats || { pdf: true }
