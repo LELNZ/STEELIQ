@@ -121,18 +121,11 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
   });
   const { toast } = useToast();
   
-  // Handle requisition passed from parent
-  useEffect(() => {
-    if (requisitionToConvert) {
-      setSelectedRequisition(requisitionToConvert);
-      setCreateRfqDialog(true);
-      onRequisitionProcessed?.();
-    }
-  }, [requisitionToConvert, onRequisitionProcessed]);
-
   // Fetch RFQs
-  const { data: rfqs = [], isLoading: rfqsLoading } = useQuery({
+  const { data: rfqs = [], isLoading: rfqsLoading, refetch: refetchRfqs } = useQuery({
     queryKey: ["/api/procurement/rfqs"],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   // Fetch all requisitions to see full workflow
@@ -143,7 +136,22 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
   // Fetch suppliers
   const { data: suppliers = [] } = useQuery({
     queryKey: ["/api/suppliers"],
+    staleTime: 0,
   });
+
+  // Handle requisition passed from parent
+  useEffect(() => {
+    if (requisitionToConvert) {
+      setSelectedRequisition(requisitionToConvert);
+      setCreateRfqDialog(true);
+      onRequisitionProcessed?.();
+    }
+  }, [requisitionToConvert, onRequisitionProcessed]);
+
+  // Force refresh RFQs on mount to ensure fresh data
+  useEffect(() => {
+    refetchRfqs();
+  }, [refetchRfqs]);
 
   // Create RFQ mutation
   const createRfqMutation = useMutation({
