@@ -10189,7 +10189,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get authenticated user from session
-      const authUser = req.user;
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const authUser = await AuthService.validateSession(token);
       
       if (!authUser) {
         return res.status(401).json({ error: "Authentication required" });
