@@ -242,7 +242,12 @@ export class EmailService {
 
   private async generatePOPDF(poData: any, supplierData: any, templateType: string): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ margin: 50 });
+      const doc = new PDFDocument({ 
+        margin: 50,
+        // Enable font embedding to support UTF-8 characters properly
+        bufferPages: true,
+        autoFirstPage: true
+      });
       const chunks: Buffer[] = [];
 
       doc.on('data', (chunk) => chunks.push(chunk));
@@ -291,9 +296,28 @@ export class EmailService {
         .text('SUPPLIER INFORMATION', 50, 200)
         .fillColor('#000000')
         .fontSize(10)
-        .text(supplierData.name || 'Supplier Name', 50, 220)
-        .text(supplierData.address || '', 50, 235)
-        .text(supplierData.email || '', 50, 250)
+        .text(supplierData.name || 'Supplier Name', 50, 220);
+      
+      // Handle address with UTF-8 characters properly
+      if (supplierData.address) {
+        // Replace problematic characters with safe alternatives
+        const cleanAddress = supplierData.address
+          .replace(/ā/g, 'a')
+          .replace(/Ā/g, 'A')
+          .replace(/ē/g, 'e')
+          .replace(/Ē/g, 'E')
+          .replace(/ī/g, 'i')
+          .replace(/Ī/g, 'I')
+          .replace(/ō/g, 'o')
+          .replace(/Ō/g, 'O')
+          .replace(/ū/g, 'u')
+          .replace(/Ū/g, 'U')
+          .replace(/['']/g, "'")
+          .replace(/[""]/g, '"');
+        doc.text(cleanAddress, 50, 235);
+      }
+      
+      doc.text(supplierData.email || '', 50, 250)
         .text(supplierData.phone || '', 50, 265);
 
       // Items header
