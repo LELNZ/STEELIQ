@@ -164,15 +164,12 @@ We look forward to another successful project together.`,
       // Filter to exclude draft and cancelled RFQs - only show active procurement workflows
       const validStatuses = ['sent', 'evaluation', 'completed', 'closed', 'awarded'];
       return allRfqs.filter((rfq: any) => {
-        // Explicitly exclude draft status
+        // Explicitly exclude draft and cancelled status
         if (rfq.status === 'draft' || rfq.status === 'cancelled') {
-          console.log(`Excluding RFQ ${rfq.rfqNumber} with status: ${rfq.status}`);
           return false;
         }
         // Include RFQs with valid statuses or that have been sent (sentAt field is set)
-        const include = validStatuses.includes(rfq.status) || rfq.sentAt;
-        console.log(`RFQ ${rfq.rfqNumber}: status=${rfq.status}, sentAt=${rfq.sentAt}, include=${include}`);
-        return include;
+        return validStatuses.includes(rfq.status) || rfq.sentAt;
       });
     },
   });
