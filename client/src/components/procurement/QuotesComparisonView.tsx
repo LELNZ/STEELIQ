@@ -24,6 +24,7 @@ import {
   Upload,
   Check,
   Send,
+  X,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -76,6 +77,8 @@ export default function QuotesComparisonView() {
     warrantyOffered: '',
     notes: '',
   });
+  const [uploadedDocument, setUploadedDocument] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
   // Acceptance message templates
@@ -151,15 +154,17 @@ We look forward to another successful project together.`,
     queryKey: ["/api/suppliers"],
   });
 
-  // Fetch RFQs with sent, evaluation and closed/awarded statuses
+  // Fetch RFQs with sent, evaluation and closed/awarded statuses (exclude draft)
   const { data: rfqs = [], isLoading: rfqsLoading } = useQuery({
     queryKey: ["/api/procurement/rfqs"],
     queryFn: async () => {
       const response = await fetch("/api/procurement/rfqs");
       if (!response.ok) throw new Error("Failed to fetch RFQs");
       const allRfqs = await response.json();
-      // Filter for sent, evaluation, and closed statuses
-      return allRfqs.filter((rfq: any) => ['sent', 'evaluation', 'closed'].includes(rfq.status));
+      // Filter for sent, evaluation, and closed statuses - EXCLUDE draft RFQs
+      return allRfqs.filter((rfq: any) => 
+        ['sent', 'evaluation', 'closed'].includes(rfq.status) && rfq.status !== 'draft'
+      );
     },
   });
 
@@ -252,8 +257,40 @@ We look forward to another successful project together.`,
 
   // Submit manual quote mutation
   const submitManualQuoteMutation = useMutation({
-    mutationFn: (data: any) =>
-      apiRequest(`/api/procurement/rfqs/${selectedRfqId}/responses`, "POST", data),
+    mutationFn: async (data: any) => {
+      // If there's a document, upload it first
+      let attachments = [];
+      if (uploadedDocument) {
+        const formData = new FormData();
+        formData.append('document', uploadedDocument);
+        formData.append('type', 'quote_pdf');
+        
+        try {
+          setIsUploading(true);
+          const uploadResponse = await fetch('/api/procurement/documents/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!uploadResponse.ok) {
+            throw new Error('Failed to upload document');
+          }
+          
+          const uploadResult = await uploadResponse.json();
+          attachments = [uploadResult];
+        } catch (error) {
+          console.error('Document upload failed:', error);
+          // Continue without document if upload fails
+        } finally {
+          setIsUploading(false);
+        }
+      }
+      
+      return apiRequest(`/api/procurement/rfqs/${selectedRfqId}/responses`, "POST", {
+        ...data,
+        attachments,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/procurement/rfqs/${selectedRfqId}/responses`] });
       setManualQuoteDialog(false);
@@ -265,6 +302,7 @@ We look forward to another successful project together.`,
         warrantyOffered: '',
         notes: '',
       });
+      setUploadedDocument(null);
       toast({
         title: "Success",
         description: "Quote added successfully",
@@ -948,18 +986,58 @@ We look forward to another successful project together.`,
               />
             </div>
             <div>
-              <Label htmlFor="documents">Attach Documents</Label>
-              <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors cursor-pointer">
-                <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                <p className="text-sm text-muted-foreground">
-                  Click to upload or drag and drop
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  PDF, Word, Excel files (up to 10MB)
-                </p>
-                <p className="text-xs text-orange-600 mt-2 font-medium">
-                  Document upload feature coming soon - save quote details now and add documents later
-                </p>
+              <Label htmlFor="documents">Attach Quote Document (Optional)</Label>
+              <div className="space-y-2">
+                {!uploadedDocument ? (
+                  <div
+                    className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors cursor-pointer"
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = '.pdf,.doc,.docx,.xls,.xlsx';
+                      input.onchange = (e: any) => {
+                        const file = e.target?.files?.[0];
+                        if (file) {
+                          if (file.size > 10 * 1024 * 1024) {
+                            toast({
+                              title: "File too large",
+                              description: "Please select a file under 10MB",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          setUploadedDocument(file);
+                        }
+                      };
+                      input.click();
+                    }}
+                  >
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                    <p className="text-sm text-muted-foreground">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PDF, Word, Excel files (up to 10MB)
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Paperclip className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">{uploadedDocument.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({(uploadedDocument.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setUploadedDocument(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -989,9 +1067,9 @@ We look forward to another successful project together.`,
                   lineItems: [],
                 });
               }}
-              disabled={submitManualQuoteMutation.isPending}
+              disabled={submitManualQuoteMutation.isPending || isUploading}
             >
-              Add Quote
+              {submitManualQuoteMutation.isPending || isUploading ? "Adding..." : "Add Quote"}
             </Button>
           </DialogFooter>
         </DialogContent>

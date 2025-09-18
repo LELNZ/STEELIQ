@@ -11402,6 +11402,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload document for procurement (quotes, POs, etc.)
+  app.post("/api/procurement/documents/upload", upload.single('document'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { type } = req.body;
+      const file = req.file;
+
+      // In production, you would upload to cloud storage here
+      // For now, we'll simulate the upload and return metadata
+      const documentInfo = {
+        id: Date.now(),
+        fileName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        type: type || 'quote_pdf',
+        uploadedAt: new Date(),
+        // In production, this would be a cloud storage URL
+        url: `/uploads/procurement/${file.originalname}`,
+      };
+
+      res.json(documentInfo);
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
   // Get RFQ responses/quotes
   app.get("/api/procurement/rfqs/:id/responses", async (req, res) => {
     try {
@@ -11436,6 +11466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         warrantyOffered: req.body.warrantyOffered,
         notes: req.body.notes,
         lineItems,
+        attachments: req.body.attachments || [], // Support document attachments
         submittedAt: new Date()
       });
       
