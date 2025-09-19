@@ -10690,6 +10690,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import template service to render with options
       const { templateService } = await import('./templateService');
       
+      // Get the template from database
+      const templateResult = await templateService.getTemplate(
+        'PO',
+        templateId === 'standard' ? 'PO_STANDARD' : 
+        templateId === 'detailed' ? 'PO_DETAILED' : 
+        templateId === 'simple' ? 'PO_SIMPLE' : 'PO_STANDARD'
+      );
+
       // Prepare template data
       const templateData = {
         po: {
@@ -10703,11 +10711,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           requestedDeliveryDate: purchaseOrder.requestedDeliveryDate ? 
             new Date(purchaseOrder.requestedDeliveryDate).toLocaleDateString() : null,
           deliveryAddress: purchaseOrder.deliveryAddress || 'Main Warehouse',
+          deliveryDate: purchaseOrder.requestedDeliveryDate ? 
+            new Date(purchaseOrder.requestedDeliveryDate).toLocaleDateString() : null,
           items: items.map((item: any) => ({
             description: item.description,
             itemCode: item.itemCode,
             specifications: item.specifications,
+            details: item.specifications,
             quantity: item.quantity,
+            unit: item.unitOfMeasure,
             unitOfMeasure: item.unitOfMeasure,
             unitPrice: (Number(item.unitPrice) || 0).toFixed(2),
             totalPrice: (Number(item.totalPrice) || 0).toFixed(2)
@@ -10727,14 +10739,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           phone: '+64 9 123 4567',
           website: 'www.lateralengineering.co.nz'
         },
+        theme: {
+          primaryColor: '#1e40af',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        },
+        greeting: 'Dear ' + (supplier?.name || 'Supplier') + ',',
+        body: 'Please find the purchase order details below. Please confirm receipt of this order at your earliest convenience.',
         options
       };
 
       // Generate HTML based on template and options
-      let html = await templateService.renderTemplate('purchase_order', templateId, templateData, options);
-
-      // If no template found, use fallback HTML
-      if (!html) {
+      let html: string;
+      if (templateResult && templateResult.version) {
+        // Render the template with the template content from database
+        html = templateService.renderTemplate(templateResult.version.content, templateData, options);
+      } else {
+        // Fallback to default template
         html = generateFallbackHTML(purchaseOrder, supplier, items, options);
       }
 
@@ -11003,7 +11023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/procurement/purchase-orders/:id/pdf", async (req, res) => {
     try {
       const purchaseOrderId = parseInt(req.params.id);
-      const templateId = req.query.template as string || 'default';
+      const templateId = req.query.template as string || 'standard';
 
       // Get PO details
       const purchaseOrder = await storage.getPurchaseOrder(purchaseOrderId);
@@ -11017,169 +11037,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get supplier
       const supplier = await storage.getSupplier(purchaseOrder.supplierId);
       
-      // Get template configuration
-      const template = await storage.getPOTemplate(templateId);
+      // Import template service
+      const { templateService } = await import('./templateService');
+      
+      // Get the template from database
+      const templateResult = await templateService.getTemplate(
+        'PO',
+        templateId === 'standard' ? 'PO_STANDARD' : 
+        templateId === 'detailed' ? 'PO_DETAILED' : 
+        templateId === 'simple' ? 'PO_SIMPLE' : 'PO_STANDARD'
+      );
 
-      // Generate HTML content based on template
-      let html = '';
-      
-      // Different layouts based on template
-      if (templateId === 'detailed' || template?.templateCode === 'DTL') {
-        // Detailed template with more information
-        html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 40px; }
-            .header { border-bottom: 2px solid ${template?.primaryColor || '#059669'}; padding-bottom: 20px; margin-bottom: 30px; }
-            .company { font-size: 24px; font-weight: bold; color: ${template?.primaryColor || '#059669'}; }
-            .po-number { font-size: 18px; color: #666; margin-top: 10px; }
-            .supplier-info { background: #f0fdf4; padding: 15px; border-radius: 5px; margin-bottom: 30px; border: 1px solid #86efac; }
-            .delivery-info { background: #f0f9ff; padding: 15px; border-radius: 5px; margin-bottom: 30px; border: 1px solid #bae6fd; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            th { background: ${template?.primaryColor || '#059669'}; color: white; padding: 12px; text-align: left; }
-            td { padding: 12px; border-bottom: 1px solid #ddd; }
-            .item-code { color: #666; font-size: 12px; }
-            .totals { text-align: right; margin-top: 20px; }
-            .total-row { font-size: 18px; font-weight: bold; margin-top: 10px; color: ${template?.primaryColor || '#059669'}; }
-            .terms { background: #f9fafb; padding: 20px; border-radius: 5px; margin-top: 40px; }
-          </style>
-        </head>
-        <body>`;
-      } else if (templateId === 'simple' || template?.templateCode === 'SMP') {
-        // Simple template - minimal information
-        html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            .header { margin-bottom: 20px; }
-            .company { font-size: 20px; font-weight: bold; }
-            .po-number { font-size: 16px; color: #666; margin-top: 5px; }
-            .supplier-info { margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th { background: #f3f4f6; padding: 8px; text-align: left; border-bottom: 2px solid #e5e7eb; }
-            td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
-            .totals { text-align: right; margin-top: 10px; }
-            .total-row { font-weight: bold; }
-          </style>
-        </head>
-        <body>`;
+      // Prepare template data
+      const templateData = {
+        po: {
+          number: purchaseOrder.poNumber,
+          date: new Date(purchaseOrder.orderDate).toLocaleDateString(),
+          totalAmount: (Number(purchaseOrder.totalAmount) || 0).toFixed(2),
+          subtotal: (Number(purchaseOrder.subtotal) || 0).toFixed(2),
+          gstAmount: (Number(purchaseOrder.gstAmount) || 0).toFixed(2),
+          currency: purchaseOrder.currency || 'NZD',
+          specialInstructions: purchaseOrder.specialInstructions,
+          requestedDeliveryDate: purchaseOrder.requestedDeliveryDate ? 
+            new Date(purchaseOrder.requestedDeliveryDate).toLocaleDateString() : null,
+          deliveryAddress: purchaseOrder.deliveryAddress || 'Main Warehouse',
+          deliveryDate: purchaseOrder.requestedDeliveryDate ? 
+            new Date(purchaseOrder.requestedDeliveryDate).toLocaleDateString() : null,
+          items: items.map((item: any) => ({
+            description: item.description,
+            itemCode: item.itemCode,
+            specifications: item.specifications,
+            details: item.specifications,
+            quantity: item.quantity,
+            unit: item.unitOfMeasure,
+            unitOfMeasure: item.unitOfMeasure,
+            unitPrice: (Number(item.unitPrice) || 0).toFixed(2),
+            totalPrice: (Number(item.totalPrice) || 0).toFixed(2)
+          }))
+        },
+        supplier: {
+          name: supplier?.name || 'N/A',
+          address: supplier?.address || '',
+          email: supplier?.email || '',
+          phone: supplier?.phone || '',
+          contactPerson: supplier?.contactPerson || ''
+        },
+        company: {
+          name: 'Lateral Engineering Limited',
+          address: 'Auckland, New Zealand',
+          email: 'accounts@lateralengineering.co.nz',
+          phone: '+64 9 123 4567',
+          website: 'www.lateralengineering.co.nz'
+        },
+        theme: {
+          primaryColor: '#1e40af',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        },
+        greeting: 'Dear ' + (supplier?.name || 'Supplier') + ',',
+        body: 'Please find the purchase order details below. Please confirm receipt of this order at your earliest convenience.'
+      };
+
+      // Generate HTML based on template
+      let html: string;
+      const options = {
+        showLineItems: true,
+        showDescriptions: true,
+        showTotals: true,
+        showDeliveryDetails: true,
+        showTerms: templateId === 'detailed',
+        showSignature: false,
+        showNotes: true,
+        showPaymentTerms: true
+      };
+
+      if (templateResult && templateResult.version) {
+        // Render the template with the template content from database
+        html = templateService.renderTemplate(templateResult.version.content, templateData, options);
       } else {
-        // Standard template (default)
-        html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 40px; }
-            .header { border-bottom: 2px solid ${template?.primaryColor || '#1e3a8a'}; padding-bottom: 20px; margin-bottom: 30px; }
-            .company { font-size: 24px; font-weight: bold; color: ${template?.primaryColor || '#1e3a8a'}; }
-            .po-number { font-size: 18px; color: #666; margin-top: 10px; }
-            .supplier-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 30px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            th { background: ${template?.primaryColor || '#1e3a8a'}; color: white; padding: 10px; text-align: left; }
-            td { padding: 10px; border-bottom: 1px solid #ddd; }
-            .totals { text-align: right; margin-top: 20px; }
-            .total-row { font-size: 18px; font-weight: bold; margin-top: 10px; }
-          </style>
-        </head>
-        <body>`;
+        // Fallback to default template
+        html = generateFallbackHTML(purchaseOrder, supplier, items, options);
       }
-      
-      // Continue with common HTML structure
-      html += `
-          <div class="header">
-            <div class="company">Lateral Engineering Limited</div>
-            <div class="po-number">Purchase Order: ${purchaseOrder.poNumber}</div>
-            <div>Date: ${new Date(purchaseOrder.orderDate).toLocaleDateString()}</div>
-          </div>
-          
-          <div class="supplier-info">
-            <h3>Supplier Details</h3>
-            <div><strong>${supplier?.name || 'N/A'}</strong></div>
-            <div>${supplier?.address || ''}</div>
-            <div>${supplier?.email || ''}</div>
-            <div>${supplier?.phone || ''}</div>
-          </div>
-          
-          <table>
-            <thead>
-              <tr>
-                <th>Item</th>
-                ${(templateId === 'detailed' || template?.showItemCodes) ? '<th>Code</th>' : ''}
-                <th>Description</th>
-                <th>Quantity</th>
-                ${(templateId !== 'simple' && template?.showPrices !== false) ? '<th>Unit Price</th>' : ''}
-                ${(templateId !== 'simple' && template?.showPrices !== false) ? '<th>Total</th>' : ''}
-              </tr>
-            </thead>
-            <tbody>
-              ${items.map((item: any, index: number) => {
-                if (templateId === 'detailed' || template?.showItemCodes) {
-                  return `
-                <tr>
-                  <td>${index + 1}</td>
-                  <td>${item.itemCode || '-'}</td>
-                  <td>${item.description}${item.specifications ? '<br><small>' + item.specifications + '</small>' : ''}</td>
-                  <td>${item.quantity} ${item.unitOfMeasure || ''}</td>
-                  <td>$${(Number(item.unitPrice) || 0).toFixed(2)}</td>
-                  <td>$${(Number(item.totalPrice) || 0).toFixed(2)}</td>
-                </tr>`;
-                } else if (templateId === 'simple') {
-                  return `
-                <tr>
-                  <td>${index + 1}</td>
-                  <td>${item.description}</td>
-                  <td>${item.quantity} ${item.unitOfMeasure || ''}</td>
-                </tr>`;
-                } else {
-                  return `
-                <tr>
-                  <td>${index + 1}</td>
-                  <td>${item.description}</td>
-                  <td>${item.quantity} ${item.unitOfMeasure || ''}</td>
-                  <td>$${(Number(item.unitPrice) || 0).toFixed(2)}</td>
-                  <td>$${(Number(item.totalPrice) || 0).toFixed(2)}</td>
-                </tr>`;
-                }
-              }).join('')}
-            </tbody>
-          </table>
-          
-          ${templateId !== 'simple' ? `
-          <div class="totals">
-            <div>Subtotal: $${(Number(purchaseOrder.subtotal) || 0).toFixed(2)}</div>
-            ${template?.showGst !== false ? `<div>GST (15%): $${(Number(purchaseOrder.gstAmount) || 0).toFixed(2)}</div>` : ''}
-            <div class="total-row">Total: $${(Number(purchaseOrder.totalAmount) || 0).toFixed(2)} ${purchaseOrder.currency || 'NZD'}</div>
-          </div>` : ''}
-          
-          ${purchaseOrder.specialInstructions ? `
-            <div style="margin-top: 40px;">
-              <h3>Special Instructions</h3>
-              <p>${purchaseOrder.specialInstructions}</p>
-            </div>
-          ` : ''}
-          
-          ${templateId === 'detailed' ? `
-            <div class="terms">
-              <h3>Terms & Conditions</h3>
-              <p>${template?.termsAndConditions || 'Standard terms and conditions apply. Payment terms: Net 30 days. Delivery subject to availability.'}</p>
-            </div>
-            
-            ${template?.showDeliveryDate !== false && purchaseOrder.requestedDeliveryDate ? `
-              <div class="delivery-info">
-                <h3>Delivery Information</h3>
-                <p><strong>Requested Delivery:</strong> ${new Date(purchaseOrder.requestedDeliveryDate).toLocaleDateString()}</p>
-                <p><strong>Delivery Address:</strong> ${purchaseOrder.deliveryAddress || 'Main Warehouse'}</p>
-              </div>
-            ` : ''}
-          ` : ''}
-        </body>
-        </html>
-      `;
 
       // Send HTML as response (browser will render as PDF preview)
       res.setHeader('Content-Type', 'text/html');
