@@ -3133,6 +3133,7 @@ export const userPreferences = pgTable("user_preferences", {
   emailNotifications: boolean("email_notifications").default(true),
   pushNotifications: boolean("push_notifications").default(false),
   dashboardLayout: jsonb("dashboard_layout"), // custom dashboard widget arrangement
+  templatePreferences: jsonb("template_preferences"), // saved template granular control preferences
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
@@ -3506,19 +3507,24 @@ export const communicationTemplates = pgTable("communication_templates", {
   id: serial("id").primaryKey(),
   code: varchar("code", { length: 50 }).unique().notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  type: varchar("type", { length: 20 }).notNull(), // 'PO', 'RFQ', 'QUOTE', 'INVOICE'
-  category: varchar("category", { length: 50 }), // 'standard', 'detailed', 'simple'
+  type: varchar("type", { length: 20 }).notNull(), // 'PO', 'RFQ', 'QUOTE', 'INVOICE', 'RECEIPT', 'DELIVERY_NOTE'
+  category: varchar("category", { length: 50 }), // 'document', 'communication', 'notification'
+  subCategory: varchar("sub_category", { length: 50 }), // 'acceptance_email', 'rejection_email', etc.
   description: text("description"),
   locale: varchar("locale", { length: 10 }).default("en-NZ"),
   scope: varchar("scope", { length: 20 }).default("org"), // 'org', 'division', 'supplier'
   scopeId: integer("scope_id"), // references division or supplier if scope-specific
   status: varchar("status", { length: 20 }).default("draft"), // 'draft', 'published', 'archived'
   currentVersionId: integer("current_version_id"),
+  basedOnTemplateId: integer("based_on_template_id").references(() => communicationTemplates.id),
+  isDefault: boolean("is_default").default(false), // marks category default
   defaultForScope: boolean("default_for_scope").default(false),
   theme: jsonb("theme"), // colors, fonts, logo settings
   sections: jsonb("sections"), // which sections to show/hide by default
   variables: jsonb("variables"), // available template variables for this type
+  defaultOptions: jsonb("default_options"), // default granular control settings
   createdBy: integer("created_by").references(() => users.id),
+  lastEditedBy: integer("last_edited_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

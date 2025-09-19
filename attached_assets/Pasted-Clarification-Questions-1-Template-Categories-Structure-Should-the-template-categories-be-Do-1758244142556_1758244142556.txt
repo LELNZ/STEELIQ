@@ -1,0 +1,49 @@
+Clarification Questions:
+1. Template Categories Structure
+Should the template categories be:
+
+Document Types: PO, RFQ, Quote, Invoice, Receipt, Delivery Note
+Communication Types: Acceptance Email, Rejection Email, Follow-up Email, Reminders
+Or both combined in the Template Builder?
+2. Default Template Inheritance
+When creating a new template from the category default:
+
+Should it copy all settings from the default (allowing independent editing)?
+Or inherit from default (changes to default affect all child templates)?
+Should we track which template was used as the base?
+3. Organization Settings Integration
+For the Template Builder in Organization Settings:
+
+Replace the current "Templates" tab entirely with the new Template Builder?
+Or add as a new tab called "Document Templates" keeping email templates separate?
+Should we keep the email notification templates (RFQ acceptance/rejection) in a separate section?
+4. Template Selection in Workflows
+In the PO send dialog dropdown:
+
+Show all PO templates or only "published/active" ones?
+Display format: "Template Name (Default)" or just "Template Name"?
+Should we show who created/last edited the template?
+5. Granular Controls Persistence
+When a user adjusts granular controls after selecting a template:
+
+Save these preferences for next time they use that template?
+Or always reset to template defaults?
+Allow saving as a new template variant?
+6. Consistent Branding Elements
+For the default templates, should these elements be:
+
+Shared across all categories: Company logo, colors (#1e40af blue), fonts, header/footer
+Category-specific: Layout structure, field visibility, content sections
+Pulled from Organization Settings: Company details, addresses, contact info
+7. Access Control
+Who should be able to:
+
+View templates: All users?
+Create/edit templates: Managers and above?
+Set category defaults: Admin only?
+Once you clarify these points, I'll implement a robust solution that:
+
+Creates default templates for each category with consistent STEELIQ branding
+Integrates Template Builder seamlessly into Organization Settings
+Ensures template selection works perfectly in all workflows
+Maintains Fortune 500 enterprise standards throughout

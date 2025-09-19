@@ -1,0 +1,57 @@
+Clarification Questions:
+1. Template Categories Structure
+Should the template categories be:
+
+Document Types: PO, RFQ, Quote, Invoice, Receipt, Delivery Note
+Communication Types: Acceptance Email, Rejection Email, Follow-up Email, Reminders
+Or both combined in the Template Builder? Document types and Communication Types
+
+
+2. Default Template Inheritance
+When creating a new template from the category default:
+
+Should it copy all settings from the default (allowing independent editing)? Yes
+Or inherit from default (changes to default affect all child templates)? NO
+Should we track which template was used as the base? Yes
+
+
+3. Organization Settings Integration
+For the Template Builder in Organization Settings:
+
+Replace the current "Templates" tab entirely with the new Template Builder? YES
+Or add as a new tab called "Document Templates" keeping email templates separate? NO i want this template builder to control both Document and Communication templates and Notification templates.
+Should we keep the email notification templates (RFQ acceptance/rejection) in a separate section? as above, the new Template builder is to control all forms of communication, notification, document templates.
+
+
+4. Template Selection in Workflows
+In the PO send dialog dropdown:
+
+Show all PO templates or only "published/active" ones? only active ones
+Display format: "Template Name (Default)" or just "Template Name"? Template Name (Default)
+Should we show who created/last edited the template? yes
+
+
+5. Granular Controls Persistence
+When a user adjusts granular controls after selecting a template:
+
+Save these preferences for next time they use that template? yes for quick user workflow
+Or always reset to template defaults? no
+Allow saving as a new template variant? yes
+
+
+6. Consistent Branding Elements
+For the default templates, should these elements be:
+
+Shared across all categories: Company logo, colors (#1e40af blue), fonts, header/footer - Yes
+Category-specific: Layout structure, field visibility, content sections - Yes
+Pulled from Organization Settings: Company details, addresses, contact info - Yes
+Ensure that we have the company logo, details and colors where necessary for each category as reqruied - compare with leading fortune 50 companies for direction. - To begin with create the defaults for my company "Lateral Engineering Limited" - see attached logo - make the rest of the documents professional easy to read, clean / clear and in line with our overall design of wanting to be fortune 50 leading platform.not to many colors 1 or 2 with 
+
+
+7. Access Control
+Who should be able to:
+
+View templates: All users? - no, user specific role. i.e appropriate access like full admin, estimator, director
+Create/edit templates: Managers and above? yes
+Set category defaults: Admin only? Managers and above
+Once you clarify these points, I'll implement a robust solution that:
