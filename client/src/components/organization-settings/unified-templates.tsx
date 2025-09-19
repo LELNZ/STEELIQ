@@ -20,6 +20,7 @@ import {
   Palette, Edit, Check, X, Download, Upload,
   RefreshCw, Layers, Star, Lock, Users
 } from "lucide-react";
+import { TemplateEditor } from '@/components/template-editor/TemplateEditor';
 
 interface Template {
   id: string;
@@ -711,6 +712,26 @@ export default function UnifiedTemplates() {
         </div>
       </Tabs>
 
+      {/* Template Editor Dialog */}
+      <Dialog open={editMode} onOpenChange={setEditMode}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0">
+          <div className="h-[90vh]">
+            <TemplateEditor
+              template={selectedTemplate}
+              onSave={async (updatedTemplate) => {
+                await saveMutation.mutateAsync(updatedTemplate);
+                setEditMode(false);
+                setSelectedTemplate(null);
+              }}
+              onCancel={() => {
+                setEditMode(false);
+                setSelectedTemplate(null);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Preview Dialog */}
       <Dialog open={previewMode} onOpenChange={setPreviewMode}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
@@ -721,27 +742,17 @@ export default function UnifiedTemplates() {
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-[60vh] w-full border rounded-md p-4">
-            {selectedTemplate ? (
-              <div className="space-y-4">
-                <div className="p-4 border rounded-lg">
-                  <h3 className="font-semibold mb-2">Template Information</h3>
-                  <p className="text-sm"><strong>Name:</strong> {selectedTemplate.name}</p>
-                  <p className="text-sm"><strong>Code:</strong> {selectedTemplate.code}</p>
-                  <p className="text-sm"><strong>Type:</strong> {selectedTemplate.templateType || selectedTemplate.type}</p>
-                  <p className="text-sm"><strong>Category:</strong> {selectedTemplate.category}</p>
-                  {selectedTemplate.description && (
-                    <p className="text-sm mt-2"><strong>Description:</strong> {selectedTemplate.description}</p>
-                  )}
-                </div>
-                <div className="p-4 border rounded-lg bg-muted/50">
-                  <p className="text-sm text-muted-foreground">
-                    Template preview will display here once the HTML template is configured.
-                    Use the editor to add your HTML template content with the available variables.
-                  </p>
-                </div>
+            {selectedTemplate?.htmlTemplate ? (
+              <div className="border rounded-lg p-6 bg-white">
+                <div dangerouslySetInnerHTML={{ __html: selectedTemplate.htmlTemplate }} />
               </div>
             ) : (
-              <p className="text-muted-foreground">No template selected.</p>
+              <div className="p-4 border rounded-lg bg-muted/50">
+                <p className="text-sm text-muted-foreground">
+                  Template preview will display here once the HTML template is configured.
+                  Use the editor to add your HTML template content with the available variables.
+                </p>
+              </div>
             )}
           </ScrollArea>
         </DialogContent>
