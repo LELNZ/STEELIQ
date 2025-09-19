@@ -648,7 +648,15 @@ export default function UnifiedTemplates() {
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-[60vh] w-full border rounded-md p-4">
-            <div dangerouslySetInnerHTML={{ __html: selectedTemplate?.htmlTemplate || '' }} />
+            {selectedTemplate?.content ? (
+              <div className="prose max-w-none">
+                <pre className="whitespace-pre-wrap font-sans">{selectedTemplate.content}</pre>
+              </div>
+            ) : selectedTemplate?.htmlTemplate ? (
+              <div dangerouslySetInnerHTML={{ __html: selectedTemplate.htmlTemplate }} />
+            ) : (
+              <p className="text-muted-foreground">No preview available for this template.</p>
+            )}
           </ScrollArea>
         </DialogContent>
       </Dialog>
