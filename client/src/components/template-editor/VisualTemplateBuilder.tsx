@@ -5,6 +5,7 @@ import 'grapesjs/dist/css/grapes.min.css';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { 
   Type, 
   Table, 
@@ -18,8 +19,7 @@ import {
   Calendar,
   MapPin,
   Hash,
-  AlignLeft,
-  Separator
+  AlignLeft
 } from 'lucide-react';
 
 interface VisualTemplateBuilderProps {
