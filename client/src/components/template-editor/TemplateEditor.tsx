@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import Editor from '@monaco-editor/react';
 import Handlebars from 'handlebars';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,12 +11,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useToast } from '@/hooks/use-toast';
 import {
   Code2, Eye, Save, Palette, Variable, FileText,
   Copy, Plus, ChevronRight, Settings, Play, History,
-  Download, Upload, RefreshCw, Search, BookOpen
+  Download, Upload, RefreshCw, Search, BookOpen, Brush, Code, Loader2
 } from 'lucide-react';
+
+// Lazy load the visual builder for better performance
+const VisualTemplateBuilder = lazy(() => 
+  import('./VisualTemplateBuilder').then(module => ({ 
+    default: module.VisualTemplateBuilder 
+  }))
+);
 
 // Define available template variables by category
 const templateVariables = {
@@ -149,12 +157,25 @@ const sampleData = {
     method: 'Truck',
     instructions: 'Please call site manager before delivery'
   },
+  recipient: {
+    name: 'Steel Supplies Ltd',
+    address: '456 Industrial Avenue',
+    city: 'Wellington',
+    state: 'Wellington',
+    zip: '6011',
+    contact: 'John Smith',
+    phone: '+64 4 987 6543'
+  },
   orderNumber: 'PO-2025-001',
   orderDate: '19/09/2025',
   dueDate: '26/09/2025',
   rfqNumber: 'RFQ-2025-042',
   quoteNumber: 'Q-2025-123',
   invoiceNumber: 'INV-2025-456',
+  documentNumber: 'PO-2025-001',
+  documentTitle: 'PURCHASE ORDER',
+  date: '19/09/2025',
+  validUntil: '26/09/2025',
   reference: 'REF-12345',
   status: 'Pending Approval',
   subtotal: 10000.00,
@@ -166,6 +187,7 @@ const sampleData = {
   terms: 'Standard terms and conditions apply. All prices exclude GST unless otherwise stated.',
   paymentTerms: 'Net 30 days from invoice date',
   deliveryTerms: 'FOB Auckland - Buyer arranges shipping',
+  buttonText: 'View Full Document',
   lineItems: [
     {
       itemNumber: '001',
@@ -203,11 +225,47 @@ interface TemplateEditorProps {
 export function TemplateEditor({ template, onSave, onCancel }: TemplateEditorProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('editor');
+  const [editorMode, setEditorMode] = useState<'visual' | 'code'>(template?.editorMode || 'code');
   const [htmlContent, setHtmlContent] = useState(template?.htmlTemplate || '');
   const [subjectContent, setSubjectContent] = useState(template?.subjectTemplate || '');
+  const [visualProjectData, setVisualProjectData] = useState(template?.visualProjectJson || null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('company');
   const [previewHtml, setPreviewHtml] = useState('');
+
+  // Handle save
+  const handleSave = () => {
+    onSave({
+      ...template,
+      htmlTemplate: htmlContent,
+      subjectTemplate: subjectContent,
+      visualProjectJson: visualProjectData,
+      editorMode: editorMode
+    });
+    toast({
+      title: 'Template saved',
+      description: 'Your template has been saved successfully.'
+    });
+  };
+
+  // Handle visual editor changes
+  const handleVisualChange = useCallback((html: string, projectData: any) => {
+    setHtmlContent(html);
+    setVisualProjectData(projectData);
+  }, []);
+
+  // Get all variables as flat array for visual builder
+  const getAllVariables = () => {
+    const allVars: string[] = [];
+    Object.values(templateVariables).forEach(category => {
+      category.forEach(variable => {
+        if (!variable.name.startsWith('#')) {
+          allVars.push(variable.name);
+        }
+      });
+    });
+    return allVars;
+  };
 
   // Insert variable at cursor position
   const insertVariable = useCallback((variable: string) => {
@@ -223,154 +281,133 @@ export function TemplateEditor({ template, onSave, onCancel }: TemplateEditorPro
   // Process template with sample data for preview using Handlebars
   const processTemplate = useCallback((templateStr: string, data: any) => {
     try {
-      // Register Handlebars helpers for common formatting
-      Handlebars.registerHelper('currency', function(value) {
-        if (typeof value === 'number') {
-          return new Intl.NumberFormat('en-NZ', {
-            style: 'currency',
-            currency: 'NZD'
-          }).format(value);
-        }
-        return value;
-      });
-      
-      Handlebars.registerHelper('date', function(value) {
-        if (value) {
-          return new Date(value).toLocaleDateString('en-NZ');
-        }
-        return value;
-      });
-      
-      Handlebars.registerHelper('number', function(value) {
-        if (typeof value === 'number') {
-          return new Intl.NumberFormat('en-NZ').format(value);
-        }
-        return value;
-      });
-      
-      // Compile and execute template
-      const template = Handlebars.compile(templateStr);
-      return template(data);
+      const compiledTemplate = Handlebars.compile(templateStr);
+      return compiledTemplate(data);
     } catch (error) {
       console.error('Template processing error:', error);
-      return `<div style="color: red; padding: 10px; border: 1px solid red; border-radius: 4px;">
-        <strong>Template Error:</strong> ${error.message}
-      </div>`;
+      return `<div class="text-red-500">Error processing template: ${error.message}</div>`;
     }
   }, []);
 
-  // Update preview when content changes
+  // Update preview when HTML content changes
   useEffect(() => {
     const processed = processTemplate(htmlContent, sampleData);
     setPreviewHtml(processed);
   }, [htmlContent, processTemplate]);
 
-  const handleSave = () => {
-    onSave({
-      ...template,
-      htmlTemplate: htmlContent,
-      subjectTemplate: subjectContent,
-      updatedAt: new Date().toISOString()
-    });
-  };
+  // Filter variables based on search
+  const filteredVariables = templateVariables[selectedCategory].filter(
+    variable => 
+      variable.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      variable.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b">
-        <div>
-          <h2 className="text-lg font-semibold">Template Editor</h2>
-          <p className="text-sm text-muted-foreground">
-            {template?.name || 'New Template'}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>
-            <Save className="h-4 w-4 mr-2" />
-            Save Template
-          </Button>
+      {/* Header */}
+      <div className="border-b bg-background px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold">Template Editor</h2>
+            <Badge variant="outline">
+              {template?.type || 'Template'}
+            </Badge>
+            {/* Editor Mode Toggle */}
+            <ToggleGroup 
+              type="single" 
+              value={editorMode} 
+              onValueChange={(value) => value && setEditorMode(value as 'visual' | 'code')}
+              className="border rounded-md"
+            >
+              <ToggleGroupItem value="visual" aria-label="Visual Editor">
+                <Brush className="h-4 w-4 mr-2" />
+                Visual Builder
+              </ToggleGroupItem>
+              <ToggleGroupItem value="code" aria-label="Code Editor">
+                <Code className="h-4 w-4 mr-2" />
+                HTML Code
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleSave}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Template
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 flex">
-        {/* Variable Palette */}
-        <div className="w-80 border-r bg-muted/20 p-4 overflow-auto">
-          <div className="space-y-4">
-            <div>
-              <Label>Search Variables</Label>
-              <div className="relative mt-1">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
+      {/* Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Variables Panel - Only show in code mode */}
+        {editorMode === 'code' && (
+          <div className="w-72 border-r bg-background flex flex-col">
+            <div className="p-3 border-b">
+              <h3 className="text-sm font-semibold mb-2">Template Variables</h3>
+              <Input
+                placeholder="Search variables..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-8"
+                prefix={<Search className="h-3 w-3" />}
+              />
             </div>
-
-            <div>
-              <Label>Category</Label>
+            <div className="p-3 border-b">
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.keys(templateVariables).map(cat => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  {Object.keys(templateVariables).map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            <Separator />
-
-            <ScrollArea className="h-[calc(100vh-280px)]">
-              <div className="space-y-2">
-                {templateVariables[selectedCategory as keyof typeof templateVariables]
-                  .filter(v => 
-                    searchTerm === '' || 
-                    v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    v.description.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map((variable) => (
-                    <Card
-                      key={variable.name}
-                      className="p-3 cursor-pointer hover:bg-accent transition-colors"
-                      onClick={() => insertVariable(variable.name)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <code className="text-xs font-mono text-primary">
-                            {`{{${variable.name}}}`}
-                          </code>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {variable.description}
-                          </p>
-                          <p className="text-xs text-muted-foreground/70 mt-1">
-                            Example: {variable.example}
-                          </p>
-                        </div>
-                        <Plus className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </Card>
-                  ))}
+            <ScrollArea className="flex-1">
+              <div className="p-3 space-y-1">
+                {filteredVariables.map((variable) => (
+                  <div
+                    key={variable.name}
+                    className="group flex items-start gap-2 p-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
+                    onClick={() => insertVariable(variable.name)}
+                  >
+                    <Variable className="h-3 w-3 mt-1 text-muted-foreground" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-mono text-primary">{`{{${variable.name}}}`}</p>
+                      <p className="text-xs text-muted-foreground">{variable.description}</p>
+                      <p className="text-xs text-muted-foreground italic">e.g. {variable.example}</p>
+                    </div>
+                    <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                ))}
               </div>
             </ScrollArea>
           </div>
-        </div>
+        )}
 
-        {/* Editor and Preview */}
-        <div className="flex-1">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <TabsList className="mx-4 mt-4 w-fit">
+        {/* Main Editor Area */}
+        <div className="flex-1 flex flex-col">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+            <TabsList className="w-full justify-start rounded-none border-b bg-background px-4">
               <TabsTrigger value="editor">
-                <Code2 className="h-4 w-4 mr-2" />
-                Editor
+                {editorMode === 'visual' ? (
+                  <>
+                    <Brush className="h-4 w-4 mr-2" />
+                    Visual Editor
+                  </>
+                ) : (
+                  <>
+                    <Code2 className="h-4 w-4 mr-2" />
+                    HTML Editor
+                  </>
+                )}
               </TabsTrigger>
               <TabsTrigger value="preview">
                 <Eye className="h-4 w-4 mr-2" />
@@ -384,37 +421,54 @@ export function TemplateEditor({ template, onSave, onCancel }: TemplateEditorPro
 
             <div className="flex-1 p-4">
               <TabsContent value="editor" className="h-full mt-0">
-                <div className="space-y-4 h-full">
-                  <div>
-                    <Label>Subject Template (for emails)</Label>
-                    <Input
-                      value={subjectContent}
-                      onChange={(e) => setSubjectContent(e.target.value)}
-                      placeholder="e.g., Purchase Order #{{orderNumber}} - {{company.name}}"
-                      className="mt-1"
+                {editorMode === 'visual' ? (
+                  <Suspense fallback={
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-muted-foreground">Loading visual editor...</span>
+                    </div>
+                  }>
+                    <VisualTemplateBuilder
+                      initialHtml={htmlContent}
+                      initialProject={visualProjectData}
+                      variables={getAllVariables()}
+                      onChange={handleVisualChange}
+                      templateType={template?.type || 'document'}
                     />
-                  </div>
-                  <div className="flex-1">
-                    <Label>HTML Template</Label>
-                    <div className="mt-1 h-[calc(100vh-300px)] border rounded-md">
-                      <Editor
-                        height="100%"
-                        defaultLanguage="html"
-                        value={htmlContent}
-                        onChange={(value) => setHtmlContent(value || '')}
-                        theme="vs-dark"
-                        options={{
-                          minimap: { enabled: false },
-                          fontSize: 14,
-                          wordWrap: 'on',
-                          automaticLayout: true,
-                          formatOnPaste: true,
-                          formatOnType: true
-                        }}
+                  </Suspense>
+                ) : (
+                  <div className="space-y-4 h-full">
+                    <div>
+                      <Label>Subject Template (for emails)</Label>
+                      <Input
+                        value={subjectContent}
+                        onChange={(e) => setSubjectContent(e.target.value)}
+                        placeholder="e.g., Purchase Order #{{orderNumber}} - {{company.name}}"
+                        className="mt-1"
                       />
                     </div>
+                    <div className="flex-1">
+                      <Label>HTML Template</Label>
+                      <div className="mt-1 h-[calc(100vh-300px)] border rounded-md">
+                        <Editor
+                          height="100%"
+                          defaultLanguage="html"
+                          value={htmlContent}
+                          onChange={(value) => setHtmlContent(value || '')}
+                          theme="vs-dark"
+                          options={{
+                            minimap: { enabled: false },
+                            fontSize: 14,
+                            wordWrap: 'on',
+                            automaticLayout: true,
+                            formatOnPaste: true,
+                            formatOnType: true
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </TabsContent>
 
               <TabsContent value="preview" className="h-full mt-0">
@@ -446,6 +500,7 @@ export function TemplateEditor({ template, onSave, onCancel }: TemplateEditorPro
                           value={template?.name || ''}
                           placeholder="e.g., Standard Purchase Order"
                           className="mt-1"
+                          disabled
                         />
                       </div>
                       <div>
@@ -454,6 +509,7 @@ export function TemplateEditor({ template, onSave, onCancel }: TemplateEditorPro
                           value={template?.code || ''}
                           placeholder="e.g., PO_STANDARD"
                           className="mt-1"
+                          disabled
                         />
                       </div>
                     </div>
@@ -464,7 +520,23 @@ export function TemplateEditor({ template, onSave, onCancel }: TemplateEditorPro
                         placeholder="Describe the purpose and use of this template..."
                         className="mt-1"
                         rows={3}
+                        disabled
                       />
+                    </div>
+                    <div>
+                      <Label>Default Editor Mode</Label>
+                      <Select value={editorMode} onValueChange={(value) => setEditorMode(value as 'visual' | 'code')}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="visual">Visual Builder (Drag & Drop)</SelectItem>
+                          <SelectItem value="code">HTML Code Editor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Choose the default editor mode for this template
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
