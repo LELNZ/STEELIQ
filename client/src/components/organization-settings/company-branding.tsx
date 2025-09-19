@@ -51,8 +51,8 @@ export default function CompanyBranding() {
   });
 
   useEffect(() => {
-    if (brandingData?.settingValue) {
-      const values = brandingData.settingValue as any;
+    if (brandingData?.value) {
+      const values = brandingData.value as any;
       form.reset({
         companyName: values.companyName || "",
         tagline: values.tagline || "",

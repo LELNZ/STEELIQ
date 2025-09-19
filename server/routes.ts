@@ -52,7 +52,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let query = db.select().from(communicationTemplates);
       if (types.length > 0) {
-        query = query.where(sql`type = ANY(${types})`);
+        // Use inArray for proper SQL array handling
+        const { inArray } = await import('drizzle-orm');
+        query = query.where(inArray(communicationTemplates.type, types));
       }
       
       const templates = await query;
@@ -4291,7 +4293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userPreferences } = await import('@shared/schema');
       const [preferences] = await db.select()
         .from(userPreferences)
-        .where(db.sql`user_id = ${user.id}`)
+        .where(eq(userPreferences.userId, user.id))
         .limit(1);
       
       if (!preferences) {
@@ -4328,7 +4330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...req.body,
           updatedAt: new Date()
         })
-        .where(db.sql`user_id = ${user.id}`)
+        .where(eq(userPreferences.userId, user.id))
         .returning();
       
       if (!preferences) {
@@ -4365,7 +4367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get existing preferences
       const [existing] = await db.select()
         .from(userPreferences)
-        .where(db.sql`user_id = ${user.id}`)
+        .where(eq(userPreferences.userId, user.id))
         .limit(1);
       
       if (!existing) {
@@ -4389,7 +4391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           updatedAt: new Date()
         })
-        .where(db.sql`user_id = ${user.id}`)
+        .where(eq(userPreferences.userId, user.id))
         .returning();
       
       res.json(updated);
