@@ -105,11 +105,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/communication-templates/:id", async (req, res) => {
     try {
-      const { communicationTemplates } = await import('@shared/schema');
-      const template = await db.select()
-        .from(communicationTemplates)
-        .where(eq(communicationTemplates.id, parseInt(req.params.id)))
-        .limit(1);
+      const { communicationTemplates, templateVersions } = await import('@shared/schema');
+      const templateId = parseInt(req.params.id);
+      
+      const template = await db.select({
+        id: communicationTemplates.id,
+        code: communicationTemplates.code,
+        name: communicationTemplates.name,
+        type: communicationTemplates.type,
+        category: communicationTemplates.category,
+        subCategory: communicationTemplates.subCategory,
+        description: communicationTemplates.description,
+        locale: communicationTemplates.locale,
+        scope: communicationTemplates.scope,
+        status: communicationTemplates.status,
+        currentVersionId: communicationTemplates.currentVersionId,
+        isDefault: communicationTemplates.isDefault,
+        defaultForScope: communicationTemplates.defaultForScope,
+        theme: communicationTemplates.theme,
+        sections: communicationTemplates.sections,
+        variables: communicationTemplates.variables,
+        defaultOptions: communicationTemplates.defaultOptions,
+        createdAt: communicationTemplates.createdAt,
+        updatedAt: communicationTemplates.updatedAt,
+        htmlTemplate: templateVersions.htmlTemplate,
+        subjectTemplate: templateVersions.subjectTemplate,
+        textTemplate: templateVersions.textTemplate
+      })
+      .from(communicationTemplates)
+      .leftJoin(templateVersions, eq(communicationTemplates.currentVersionId, templateVersions.id))
+      .where(eq(communicationTemplates.id, templateId))
+      .limit(1);
       
       if (template.length === 0) {
         return res.status(404).json({ error: 'Template not found' });
@@ -124,12 +150,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/communication-templates", async (req, res) => {
     try {
-      const { communicationTemplates } = await import('@shared/schema');
-      const [newTemplate] = await db.insert(communicationTemplates)
-        .values(req.body)
-        .returning();
+      const { communicationTemplates, templateVersions } = await import('@shared/schema');
+      const { htmlTemplate, subjectTemplate, textTemplate, ...templateData } = req.body;
       
-      res.json(newTemplate);
+      // Start transaction
+      const result = await db.transaction(async (tx) => {
+        // Create template
+        const [newTemplate] = await tx.insert(communicationTemplates)
+          .values(templateData)
+          .returning();
+        
+        // Create initial version
+        const [newVersion] = await tx.insert(templateVersions)
+          .values({
+            templateId: newTemplate.id,
+            version: '1.0.0',
+            versionNumber: 1,
+            htmlTemplate: htmlTemplate || '',
+            subjectTemplate: subjectTemplate || '',
+            textTemplate: textTemplate || '',
+            changelog: 'Initial version',
+            publishedAt: new Date(),
+            createdAt: new Date()
+          })
+          .returning();
+        
+        // Update template with current version
+        const [updatedTemplate] = await tx.update(communicationTemplates)
+          .set({ currentVersionId: newVersion.id })
+          .where(eq(communicationTemplates.id, newTemplate.id))
+          .returning();
+        
+        // Return template with version data
+        return {
+          ...updatedTemplate,
+          htmlTemplate: newVersion.htmlTemplate,
+          subjectTemplate: newVersion.subjectTemplate,
+          textTemplate: newVersion.textTemplate
+        };
+      });
+      
+      res.json(result);
     } catch (error) {
       console.error('Error creating template:', error);
       res.status(500).json({ error: 'Failed to create template' });
@@ -138,20 +199,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/communication-templates/:id", async (req, res) => {
     try {
-      const { communicationTemplates } = await import('@shared/schema');
-      const [updatedTemplate] = await db.update(communicationTemplates)
-        .set({ ...req.body, updatedAt: new Date() })
-        .where(db.sql`id = ${req.params.id}`)
+      const { communicationTemplates, templateVersions } = await import('@shared/schema');
+      const { desc } = await import('drizzle-orm');
+      const { htmlTemplate, subjectTemplate, textTemplate, ...templateData } = req.body;
+      const templateId = parseInt(req.params.id);
+      
+      // Start transaction for versioned update
+      const result = await db.transaction(async (tx) => {
+        // Get current version number
+        const currentTemplate = await tx.select()
+          .from(communicationTemplates)
+          .where(eq(communicationTemplates.id, templateId))
+          .limit(1);
+        
+        if (currentTemplate.length === 0) {
+          throw new Error('Template not found');
+        }
+        
+        // Get latest version number
+        const latestVersion = await tx.select({ versionNumber: templateVersions.versionNumber })
+          .from(templateVersions)
+          .where(eq(templateVersions.templateId, templateId))
+          .orderBy(desc(templateVersions.versionNumber))
+          .limit(1);
+        
+        const nextVersionNumber = (latestVersion[0]?.versionNumber || 0) + 1;
+        const versionString = `1.${nextVersionNumber}.0`;
+        
+        // Create new version
+        const [newVersion] = await tx.insert(templateVersions)
+          .values({
+            templateId: templateId,
+            version: versionString,
+            versionNumber: nextVersionNumber,
+            htmlTemplate: htmlTemplate || '',
+            subjectTemplate: subjectTemplate || '',
+            textTemplate: textTemplate || '',
+            changelog: 'Updated template',
+            publishedAt: new Date(),
+            createdAt: new Date()
+          })
+          .returning();
+        
+        // Update template metadata and current version
+        const [updatedTemplate] = await tx.update(communicationTemplates)
+          .set({
+            ...templateData,
+            currentVersionId: newVersion.id,
+            updatedAt: new Date()
+          })
+          .where(eq(communicationTemplates.id, templateId))
+          .returning();
+        
+        return {
+          ...updatedTemplate,
+          htmlTemplate: newVersion.htmlTemplate,
+          subjectTemplate: newVersion.subjectTemplate,
+          textTemplate: newVersion.textTemplate
+        };
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating template:', error);
+      if (error.message === 'Template not found') {
+        res.status(404).json({ error: 'Template not found' });
+      } else {
+        res.status(500).json({ error: 'Failed to update template' });
+      }
+    }
+  });
+
+  // Get template versions
+  app.get("/api/communication-templates/:id/versions", async (req, res) => {
+    try {
+      const { templateVersions } = await import('@shared/schema');
+      const templateId = parseInt(req.params.id);
+      
+      const versions = await db.select()
+        .from(templateVersions)
+        .where(eq(templateVersions.templateId, templateId))
+        .orderBy(templateVersions.versionNumber);
+      
+      res.json(versions);
+    } catch (error) {
+      console.error('Error fetching template versions:', error);
+      res.status(500).json({ error: 'Failed to fetch template versions' });
+    }
+  });
+
+  // Rollback to specific version
+  app.post("/api/communication-templates/:id/rollback/:versionId", async (req, res) => {
+    try {
+      const { communicationTemplates, templateVersions } = await import('@shared/schema');
+      const templateId = parseInt(req.params.id);
+      const versionId = parseInt(req.params.versionId);
+      
+      // Update template to use specific version
+      const [updated] = await db.update(communicationTemplates)
+        .set({ 
+          currentVersionId: versionId,
+          updatedAt: new Date()
+        })
+        .where(eq(communicationTemplates.id, templateId))
         .returning();
       
-      if (!updatedTemplate) {
+      if (!updated) {
         return res.status(404).json({ error: 'Template not found' });
       }
       
-      res.json(updatedTemplate);
+      // Get the full template with version data
+      const template = await db.select({
+        id: communicationTemplates.id,
+        code: communicationTemplates.code,
+        name: communicationTemplates.name,
+        type: communicationTemplates.type,
+        category: communicationTemplates.category,
+        htmlTemplate: templateVersions.htmlTemplate,
+        subjectTemplate: templateVersions.subjectTemplate,
+        textTemplate: templateVersions.textTemplate
+      })
+      .from(communicationTemplates)
+      .leftJoin(templateVersions, eq(communicationTemplates.currentVersionId, templateVersions.id))
+      .where(eq(communicationTemplates.id, templateId))
+      .limit(1);
+      
+      res.json(template[0]);
     } catch (error) {
-      console.error('Error updating template:', error);
-      res.status(500).json({ error: 'Failed to update template' });
+      console.error('Error rolling back template:', error);
+      res.status(500).json({ error: 'Failed to rollback template' });
     }
   });
 

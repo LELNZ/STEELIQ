@@ -136,7 +136,12 @@ export default function UnifiedTemplates() {
         title: "Success",
         description: "Template saved successfully"
       });
+      // Invalidate all template queries
       queryClient.invalidateQueries({ queryKey: ['/api/communication-templates'] });
+      // Also invalidate specific category queries
+      templateCategories.forEach(cat => {
+        queryClient.invalidateQueries({ queryKey: ['/api/communication-templates', cat.id] });
+      });
       setEditMode(false);
     }
   });
@@ -153,7 +158,12 @@ export default function UnifiedTemplates() {
         title: "Success",
         description: "Template deleted successfully"
       });
+      // Invalidate all template queries
       queryClient.invalidateQueries({ queryKey: ['/api/communication-templates'] });
+      // Also invalidate specific category queries
+      templateCategories.forEach(cat => {
+        queryClient.invalidateQueries({ queryKey: ['/api/communication-templates', cat.id] });
+      });
       setSelectedTemplate(null);
     }
   });

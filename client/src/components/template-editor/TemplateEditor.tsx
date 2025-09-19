@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
+import Handlebars from 'handlebars';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -219,43 +220,43 @@ export function TemplateEditor({ template, onSave, onCancel }: TemplateEditorPro
     });
   }, [toast]);
 
-  // Process template with sample data for preview
+  // Process template with sample data for preview using Handlebars
   const processTemplate = useCallback((templateStr: string, data: any) => {
-    let processed = templateStr;
-    
-    // Simple variable replacement for demo (in production, use a proper template engine like Handlebars)
-    Object.keys(data).forEach(key => {
-      const value = data[key];
-      if (typeof value === 'object' && !Array.isArray(value)) {
-        // Handle nested objects
-        Object.keys(value).forEach(nestedKey => {
-          const regex = new RegExp(`{{${key}\\.${nestedKey}}}`, 'g');
-          processed = processed.replace(regex, value[nestedKey]);
-        });
-      } else if (!Array.isArray(value)) {
-        // Handle simple values
-        const regex = new RegExp(`{{${key}}}`, 'g');
-        processed = processed.replace(regex, value);
-      }
-    });
-    
-    // Handle loops (simplified for demo)
-    const loopRegex = /{{#each\s+(\w+)}}([\s\S]*?){{\/each}}/g;
-    processed = processed.replace(loopRegex, (match, arrayName, loopContent) => {
-      const items = data[arrayName];
-      if (!items || !Array.isArray(items)) return '';
+    try {
+      // Register Handlebars helpers for common formatting
+      Handlebars.registerHelper('currency', function(value) {
+        if (typeof value === 'number') {
+          return new Intl.NumberFormat('en-NZ', {
+            style: 'currency',
+            currency: 'NZD'
+          }).format(value);
+        }
+        return value;
+      });
       
-      return items.map(item => {
-        let itemContent = loopContent;
-        Object.keys(item).forEach(key => {
-          const regex = new RegExp(`{{${key}}}`, 'g');
-          itemContent = itemContent.replace(regex, item[key]);
-        });
-        return itemContent;
-      }).join('');
-    });
-    
-    return processed;
+      Handlebars.registerHelper('date', function(value) {
+        if (value) {
+          return new Date(value).toLocaleDateString('en-NZ');
+        }
+        return value;
+      });
+      
+      Handlebars.registerHelper('number', function(value) {
+        if (typeof value === 'number') {
+          return new Intl.NumberFormat('en-NZ').format(value);
+        }
+        return value;
+      });
+      
+      // Compile and execute template
+      const template = Handlebars.compile(templateStr);
+      return template(data);
+    } catch (error) {
+      console.error('Template processing error:', error);
+      return `<div style="color: red; padding: 10px; border: 1px solid red; border-radius: 4px;">
+        <strong>Template Error:</strong> ${error.message}
+      </div>`;
+    }
   }, []);
 
   // Update preview when content changes
