@@ -32,16 +32,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Initialize default templates (temporary endpoint for testing)
+  // Initialize default templates
   app.get("/api/templates/init-defaults", async (req, res) => {
     try {
-      // For testing only - remove in production
-      const { templateService } = await import('./templateService');
-      await templateService.createDefaultTemplates();
-      res.json({ success: true, message: 'Default templates initialized' });
+      const { initializeDefaultTemplates } = await import('./defaultTemplates');
+      const result = await initializeDefaultTemplates();
+      res.json(result);
     } catch (error) {
       console.error('Error initializing templates:', error);
-      res.status(500).json({ error: 'Failed to initialize templates' });
+      res.status(500).json({ success: false, error: 'Failed to initialize templates' });
+    }
+  });
+
+  // Communication Templates API
+  app.get("/api/communication-templates", async (req, res) => {
+    try {
+      const { communicationTemplates } = await import('@shared/schema');
+      const types = req.query.types?.toString().split(',') || [];
+      
+      let query = db.select().from(communicationTemplates);
+      if (types.length > 0) {
+        query = query.where(db.sql`type = ANY(${types})`);
+      }
+      
+      const templates = await query;
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+      res.status(500).json({ error: 'Failed to fetch templates' });
+    }
+  });
+
+  app.get("/api/communication-templates/:id", async (req, res) => {
+    try {
+      const { communicationTemplates } = await import('@shared/schema');
+      const template = await db.select()
+        .from(communicationTemplates)
+        .where(db.sql`id = ${req.params.id}`)
+        .limit(1);
+      
+      if (template.length === 0) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+      
+      res.json(template[0]);
+    } catch (error) {
+      console.error('Error fetching template:', error);
+      res.status(500).json({ error: 'Failed to fetch template' });
+    }
+  });
+
+  app.post("/api/communication-templates", async (req, res) => {
+    try {
+      const { communicationTemplates } = await import('@shared/schema');
+      const [newTemplate] = await db.insert(communicationTemplates)
+        .values(req.body)
+        .returning();
+      
+      res.json(newTemplate);
+    } catch (error) {
+      console.error('Error creating template:', error);
+      res.status(500).json({ error: 'Failed to create template' });
+    }
+  });
+
+  app.put("/api/communication-templates/:id", async (req, res) => {
+    try {
+      const { communicationTemplates } = await import('@shared/schema');
+      const [updatedTemplate] = await db.update(communicationTemplates)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(db.sql`id = ${req.params.id}`)
+        .returning();
+      
+      if (!updatedTemplate) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+      
+      res.json(updatedTemplate);
+    } catch (error) {
+      console.error('Error updating template:', error);
+      res.status(500).json({ error: 'Failed to update template' });
+    }
+  });
+
+  app.delete("/api/communication-templates/:id", async (req, res) => {
+    try {
+      const { communicationTemplates } = await import('@shared/schema');
+      const [deletedTemplate] = await db.delete(communicationTemplates)
+        .where(db.sql`id = ${req.params.id}`)
+        .returning();
+      
+      if (!deletedTemplate) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+      
+      res.json({ success: true, message: 'Template deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      res.status(500).json({ error: 'Failed to delete template' });
+    }
+  });
+
+  app.post("/api/communication-templates/:id/set-default", async (req, res) => {
+    try {
+      const { communicationTemplates } = await import('@shared/schema');
+      
+      // First, get the template to know its type
+      const [template] = await db.select()
+        .from(communicationTemplates)
+        .where(db.sql`id = ${req.params.id}`)
+        .limit(1);
+      
+      if (!template) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+      
+      // Remove default from other templates of the same type
+      await db.update(communicationTemplates)
+        .set({ isDefault: false })
+        .where(db.sql`type = ${template.type} AND is_default = true`);
+      
+      // Set this template as default
+      const [updatedTemplate] = await db.update(communicationTemplates)
+        .set({ isDefault: true, defaultForScope: true })
+        .where(db.sql`id = ${req.params.id}`)
+        .returning();
+      
+      res.json(updatedTemplate);
+    } catch (error) {
+      console.error('Error setting default template:', error);
+      res.status(500).json({ error: 'Failed to set default template' });
     }
   });
 

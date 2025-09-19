@@ -1,5 +1,5 @@
 import { db } from './db';
-import { communicationTemplates, templateVersions, templateSections } from '@/shared/schema';
+import { communicationTemplates, templateVersions, templateSections } from '@shared/schema';
 
 export async function initializeDefaultTemplates() {
   try {
