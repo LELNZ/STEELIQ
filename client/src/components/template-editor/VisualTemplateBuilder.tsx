@@ -304,7 +304,6 @@ export function VisualTemplateBuilder({
     }
 
     // Debounced change handler
-    let changeTimeout: NodeJS.Timeout;
     const handleChange = () => {
       clearTimeout(changeTimeout);
       changeTimeout = setTimeout(() => {
