@@ -4278,6 +4278,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Preferences API
+  app.get("/api/user/preferences", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { userPreferences } = await import('@shared/schema');
+      const [preferences] = await db.select()
+        .from(userPreferences)
+        .where(db.sql`user_id = ${user.id}`)
+        .limit(1);
+      
+      if (!preferences) {
+        // Create default preferences if none exist
+        const [newPreferences] = await db.insert(userPreferences)
+          .values({
+            userId: user.id,
+            templatePreferences: {}
+          })
+          .returning();
+        
+        return res.json(newPreferences);
+      }
+      
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error fetching user preferences:", error);
+      res.status(500).json({ error: "Failed to fetch preferences" });
+    }
+  });
+
+  app.put("/api/user/preferences", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { userPreferences } = await import('@shared/schema');
+      const [preferences] = await db.update(userPreferences)
+        .set({
+          ...req.body,
+          updatedAt: new Date()
+        })
+        .where(db.sql`user_id = ${user.id}`)
+        .returning();
+      
+      if (!preferences) {
+        // Create if doesn't exist
+        const [newPreferences] = await db.insert(userPreferences)
+          .values({
+            userId: user.id,
+            ...req.body
+          })
+          .returning();
+        
+        return res.json(newPreferences);
+      }
+      
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error updating user preferences:", error);
+      res.status(500).json({ error: "Failed to update preferences" });
+    }
+  });
+
+  app.put("/api/user/preferences/templates", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { templatePreferences } = req.body;
+      const { userPreferences } = await import('@shared/schema');
+      
+      // Get existing preferences
+      const [existing] = await db.select()
+        .from(userPreferences)
+        .where(db.sql`user_id = ${user.id}`)
+        .limit(1);
+      
+      if (!existing) {
+        // Create new preferences
+        const [newPreferences] = await db.insert(userPreferences)
+          .values({
+            userId: user.id,
+            templatePreferences
+          })
+          .returning();
+        
+        return res.json(newPreferences);
+      }
+      
+      // Update template preferences
+      const [updated] = await db.update(userPreferences)
+        .set({
+          templatePreferences: {
+            ...existing.templatePreferences,
+            ...templatePreferences
+          },
+          updatedAt: new Date()
+        })
+        .where(db.sql`user_id = ${user.id}`)
+        .returning();
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating template preferences:", error);
+      res.status(500).json({ error: "Failed to update template preferences" });
+    }
+  });
+
   // Document Upload for Health & Safety Certificates
   const documentUpload = multer({
     storage: multer.diskStorage({

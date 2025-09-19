@@ -98,6 +98,23 @@ export default function PODistributionDialog({
     enabled: open,
   });
 
+  // Fetch user preferences
+  const { data: userPreferences } = useQuery({
+    queryKey: ["/api/user/preferences"],
+    enabled: open,
+  });
+
+  // Save template preferences mutation
+  const savePreferencesMutation = useMutation({
+    mutationFn: async (preferences: any) =>
+      apiRequest(`/api/user/preferences/templates`, "PUT", { 
+        templatePreferences: preferences 
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/preferences"] });
+    },
+  });
+
   // Initialize selected supplier from PO
   useEffect(() => {
     if (purchaseOrder?.supplierId && !selectedSupplierId) {
@@ -105,20 +122,31 @@ export default function PODistributionDialog({
     }
   }, [purchaseOrder]);
 
-  // Auto-select default template
+  // Auto-select default template and load saved preferences
   useEffect(() => {
     if (templates.length > 0 && !selectedTemplate) {
-      const defaultTemplate = templates.find((t: any) => t.isDefault) || templates[0];
-      setSelectedTemplate(defaultTemplate.id);
-      // Apply template's default options if available
-      if (defaultTemplate.defaultOptions) {
-        setTemplateOptions({
-          ...templateOptions,
-          ...defaultTemplate.defaultOptions
-        });
+      // Check if user has a saved preference
+      const savedTemplateId = userPreferences?.templatePreferences?.poTemplateId;
+      const templateToSelect = savedTemplateId 
+        ? templates.find((t: any) => t.id === savedTemplateId)
+        : templates.find((t: any) => t.isDefault) || templates[0];
+      
+      if (templateToSelect) {
+        setSelectedTemplate(templateToSelect.id);
+        
+        // Load saved options or use template defaults
+        const savedOptions = userPreferences?.templatePreferences?.poOptions;
+        if (savedOptions) {
+          setTemplateOptions(savedOptions);
+        } else if (templateToSelect.defaultOptions) {
+          setTemplateOptions({
+            ...templateOptions,
+            ...templateToSelect.defaultOptions
+          });
+        }
       }
     }
-  }, [templates]);
+  }, [templates, userPreferences]);
 
   // Update form when supplier changes
   useEffect(() => {
