@@ -569,6 +569,79 @@ export default function UnifiedTemplates() {
 
           <Card>
             <CardHeader>
+              <CardTitle className="text-base">Template Variables</CardTitle>
+              <CardDescription>
+                Use these variables in your template - they will be replaced with actual values
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-muted rounded-lg">
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-muted-foreground">Company Details</p>
+                  <div className="space-y-1">
+                    <code className="text-xs block">{'{company_name}'}</code>
+                    <code className="text-xs block">{'{company_address}'}</code>
+                    <code className="text-xs block">{'{company_email}'}</code>
+                    <code className="text-xs block">{'{company_phone}'}</code>
+                    <code className="text-xs block">{'{gst_number}'}</code>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-muted-foreground">Document Info</p>
+                  <div className="space-y-1">
+                    <code className="text-xs block">{'{document_number}'}</code>
+                    <code className="text-xs block">{'{date}'}</code>
+                    <code className="text-xs block">{'{due_date}'}</code>
+                    <code className="text-xs block">{'{reference}'}</code>
+                    <code className="text-xs block">{'{status}'}</code>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-muted-foreground">Financial</p>
+                  <div className="space-y-1">
+                    <code className="text-xs block">{'{subtotal}'}</code>
+                    <code className="text-xs block">{'{tax_amount}'}</code>
+                    <code className="text-xs block">{'{total}'}</code>
+                    <code className="text-xs block">{'{currency}'}</code>
+                    <code className="text-xs block">{'{payment_terms}'}</code>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-muted-foreground">Client/Supplier</p>
+                  <div className="space-y-1">
+                    <code className="text-xs block">{'{client_name}'}</code>
+                    <code className="text-xs block">{'{supplier_name}'}</code>
+                    <code className="text-xs block">{'{contact_person}'}</code>
+                    <code className="text-xs block">{'{contact_email}'}</code>
+                    <code className="text-xs block">{'{delivery_address}'}</code>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-muted-foreground">Job/Project</p>
+                  <div className="space-y-1">
+                    <code className="text-xs block">{'{job_name}'}</code>
+                    <code className="text-xs block">{'{project_name}'}</code>
+                    <code className="text-xs block">{'{job_reference}'}</code>
+                    <code className="text-xs block">{'{location}'}</code>
+                    <code className="text-xs block">{'{description}'}</code>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-muted-foreground">Line Items</p>
+                  <div className="space-y-1">
+                    <code className="text-xs block">{'{items_table}'}</code>
+                    <code className="text-xs block">{'{item_code}'}</code>
+                    <code className="text-xs block">{'{item_description}'}</code>
+                    <code className="text-xs block">{'{quantity}'}</code>
+                    <code className="text-xs block">{'{unit_price}'}</code>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="text-base">HTML Template</CardTitle>
             </CardHeader>
             <CardContent>
