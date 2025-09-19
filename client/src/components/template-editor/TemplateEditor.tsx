@@ -271,7 +271,7 @@ export function TemplateEditor({ template, onSave, onCancel }: TemplateEditorPro
   const insertVariable = useCallback((variable: string) => {
     // In a real implementation, this would insert at cursor position in Monaco
     const insertion = `{{${variable}}}`;
-    setHtmlContent(prev => prev + insertion);
+    setHtmlContent((prev: string) => prev + insertion);
     toast({
       description: `Inserted variable: ${insertion}`,
       duration: 2000
@@ -285,7 +285,7 @@ export function TemplateEditor({ template, onSave, onCancel }: TemplateEditorPro
       return compiledTemplate(data);
     } catch (error) {
       console.error('Template processing error:', error);
-      return `<div class="text-red-500">Error processing template: ${error.message}</div>`;
+      return `<div class="text-red-500">Error processing template: ${(error as Error).message}</div>`;
     }
   }, []);
 
@@ -296,8 +296,9 @@ export function TemplateEditor({ template, onSave, onCancel }: TemplateEditorPro
   }, [htmlContent, processTemplate]);
 
   // Filter variables based on search
-  const filteredVariables = templateVariables[selectedCategory].filter(
-    variable => 
+  const categoryVariables = templateVariables[selectedCategory as keyof typeof templateVariables] || [];
+  const filteredVariables = categoryVariables.filter(
+    (variable: any) => 
       variable.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       variable.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -348,13 +349,15 @@ export function TemplateEditor({ template, onSave, onCancel }: TemplateEditorPro
           <div className="w-72 border-r bg-background flex flex-col">
             <div className="p-3 border-b">
               <h3 className="text-sm font-semibold mb-2">Template Variables</h3>
-              <Input
-                placeholder="Search variables..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-8"
-                prefix={<Search className="h-3 w-3" />}
-              />
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                <Input
+                  placeholder="Search variables..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="h-8 pl-7"
+                />
+              </div>
             </div>
             <div className="p-3 border-b">
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>

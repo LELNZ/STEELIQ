@@ -180,8 +180,8 @@ export function VisualTemplateBuilder({
               <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">{{itemNumber}}</td>
               <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">{{description}}</td>
               <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">{{quantity}}</td>
-              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${{unitPrice}}</td>
-              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${{total}}</td>
+              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">{{unitPrice}}</td>
+              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">{{total}}</td>
             </tr>
             {{/each}}
           </tbody>
@@ -197,11 +197,11 @@ export function VisualTemplateBuilder({
       content: `
         <div class="totals-section" style="text-align: right; padding: 20px; background: #f9fafb; border-radius: 8px;">
           <div style="display: inline-block; text-align: left;">
-            <p style="margin-bottom: 8px;"><strong>Subtotal:</strong> <span style="margin-left: 40px;">${{subtotal}}</span></p>
-            <p style="margin-bottom: 8px;"><strong>Tax ({{taxRate}}%):</strong> <span style="margin-left: 40px;">${{tax}}</span></p>
-            <p style="margin-bottom: 8px;"><strong>Shipping:</strong> <span style="margin-left: 40px;">${{shipping}}</span></p>
+            <p style="margin-bottom: 8px;"><strong>Subtotal:</strong> <span style="margin-left: 40px;">{{subtotal}}</span></p>
+            <p style="margin-bottom: 8px;"><strong>Tax ({{taxRate}}%):</strong> <span style="margin-left: 40px;">{{tax}}</span></p>
+            <p style="margin-bottom: 8px;"><strong>Shipping:</strong> <span style="margin-left: 40px;">{{shipping}}</span></p>
             <hr style="border: 1px solid #e5e7eb; margin: 10px 0;">
-            <h3 style="color: #2563eb; font-size: 20px;"><strong>Total:</strong> <span style="margin-left: 40px;">${{total}}</span></h3>
+            <h3 style="color: #2563eb; font-size: 20px;"><strong>Total:</strong> <span style="margin-left: 40px;">{{total}}</span></h3>
           </div>
         </div>
       `,
