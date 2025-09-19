@@ -43,6 +43,8 @@ export function VisualTemplateBuilder({
 
   useEffect(() => {
     if (!editorRef.current) return;
+    
+    let changeTimeout: NodeJS.Timeout;
 
     const editorInstance = grapesjs.init({
       container: editorRef.current,
@@ -59,8 +61,8 @@ export function VisualTemplateBuilder({
       panels: {
         defaults: [
           {
-            id: 'panel-devices',
-            el: '.panel__devices',
+            id: 'basic-actions',
+            el: '.panel__basic-actions',
             buttons: [
               {
                 id: 'device-desktop',
@@ -288,23 +290,43 @@ export function VisualTemplateBuilder({
     if (initialProject) {
       editorInstance.loadProjectData(initialProject);
     } else if (initialHtml) {
-      editorInstance.setComponents(initialHtml);
+      // Extract styles and HTML separately
+      const styleMatch = initialHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+      const cleanHtml = initialHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+      
+      // Load HTML components
+      editorInstance.setComponents(cleanHtml);
+      
+      // Load CSS if present
+      if (styleMatch && styleMatch[1]) {
+        editorInstance.setStyle(styleMatch[1]);
+      }
     }
 
-    // Handle changes
-    editorInstance.on('component:update', () => {
-      const html = editorInstance.getHtml();
-      const css = editorInstance.getCss();
-      const projectData = editorInstance.getProjectData();
-      
-      // Combine HTML with embedded styles
-      const fullHtml = `<style>${css}</style>${html}`;
-      onChange(fullHtml, projectData);
-    });
+    // Debounced change handler
+    let changeTimeout: NodeJS.Timeout;
+    const handleChange = () => {
+      clearTimeout(changeTimeout);
+      changeTimeout = setTimeout(() => {
+        const html = editorInstance.getHtml();
+        const css = editorInstance.getCss();
+        const projectData = editorInstance.getProjectData();
+        
+        // Combine HTML with embedded styles
+        const fullHtml = css ? `<style>${css}</style>${html}` : html;
+        onChange(fullHtml, projectData);
+      }, 500);
+    };
+
+    // Handle changes with correct event names
+    editorInstance.on('component:update', handleChange);
+    editorInstance.on('component:styleUpdate', handleChange);
+    editorInstance.on('style:property:update', handleChange);
 
     setEditor(editorInstance);
 
     return () => {
+      clearTimeout(changeTimeout);
       editorInstance.destroy();
     };
   }, []);
@@ -314,10 +336,26 @@ export function VisualTemplateBuilder({
     if (!editor) return;
     
     const selected = editor.getSelected();
-    if (selected && selected.get('type') === 'text') {
-      const content = selected.get('content');
-      selected.set('content', content + ` {{${variable}}}`);
+    if (selected) {
+      const type = selected.get('type');
+      if (type === 'text' || type === 'default' || type === 'textnode') {
+        const content = selected.get('content') || '';
+        selected.set('content', content + ` {{${variable}}}`);
+      } else {
+        // Add as a new text component
+        selected.append(`<span>{{${variable}}}</span>`);
+      }
+    } else {
+      // Add to canvas if nothing selected
+      editor.addComponents(`<p>{{${variable}}}</p>`);
     }
+    
+    // Show notification
+    editor.runCommand('notifications:add', {
+      type: 'success',
+      title: 'Variable Inserted',
+      message: `Added {{${variable}}}`
+    });
   };
 
   return (
@@ -325,7 +363,32 @@ export function VisualTemplateBuilder({
       {/* GrapesJS Editor */}
       <Card className="flex-1 overflow-hidden">
         <div className="p-2 border-b flex items-center gap-2">
-          <div className="panel__devices flex gap-2"></div>
+          <div className="panel__basic-actions flex gap-2"></div>
+          <Separator orientation="vertical" className="h-6" />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => editor?.setDevice('desktop')}
+            title="Desktop View"
+          >
+            <Box className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => editor?.setDevice('tablet')}
+            title="Tablet View"
+          >
+            <FileText className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => editor?.setDevice('mobile')}
+            title="Mobile View"
+          >
+            <AlignLeft className="w-4 h-4" />
+          </Button>
           <Separator orientation="vertical" className="h-6" />
           <span className="text-sm text-muted-foreground">Visual Template Builder</span>
         </div>
