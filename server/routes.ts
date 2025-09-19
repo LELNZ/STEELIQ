@@ -44,13 +44,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Communication Templates API
+  // Initialize professional templates
+  app.get("/api/templates/init-professional", async (req, res) => {
+    try {
+      const { initializeProfessionalTemplates } = await import('./initializeProfessionalTemplates');
+      const result = await initializeProfessionalTemplates();
+      res.json(result);
+    } catch (error) {
+      console.error('Error initializing professional templates:', error);
+      res.status(500).json({ success: false, error: 'Failed to initialize professional templates' });
+    }
+  });
+
+  // Communication Templates API - includes HTML from template versions
   app.get("/api/communication-templates", async (req, res) => {
     try {
-      const { communicationTemplates } = await import('@shared/schema');
+      const { communicationTemplates, templateVersions } = await import('@shared/schema');
       const types = req.query.types?.toString().split(',') || [];
       
-      let query = db.select().from(communicationTemplates);
+      let query = db.select({
+        id: communicationTemplates.id,
+        code: communicationTemplates.code,
+        name: communicationTemplates.name,
+        type: communicationTemplates.type,
+        category: communicationTemplates.category,
+        subCategory: communicationTemplates.subCategory,
+        description: communicationTemplates.description,
+        locale: communicationTemplates.locale,
+        scope: communicationTemplates.scope,
+        status: communicationTemplates.status,
+        currentVersionId: communicationTemplates.currentVersionId,
+        isDefault: communicationTemplates.isDefault,
+        defaultForScope: communicationTemplates.defaultForScope,
+        theme: communicationTemplates.theme,
+        sections: communicationTemplates.sections,
+        variables: communicationTemplates.variables,
+        defaultOptions: communicationTemplates.defaultOptions,
+        createdAt: communicationTemplates.createdAt,
+        updatedAt: communicationTemplates.updatedAt,
+        htmlTemplate: templateVersions.htmlTemplate,
+        subjectTemplate: templateVersions.subjectTemplate,
+        textTemplate: templateVersions.textTemplate
+      })
+      .from(communicationTemplates)
+      .leftJoin(templateVersions, eq(communicationTemplates.currentVersionId, templateVersions.id));
+      
       if (types.length > 0) {
         // Use inArray for proper SQL array handling
         const { inArray } = await import('drizzle-orm');
