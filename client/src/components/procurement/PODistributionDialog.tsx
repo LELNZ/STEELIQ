@@ -92,12 +92,11 @@ export default function PODistributionDialog({
     enabled: !!(selectedSupplierId || purchaseOrder?.supplierId),
   });
 
-  // Fetch available templates - use mock data since API returns different structure
-  const templates = [
-    { id: "default", name: "Standard Template", description: "Company default PO template with blue theme" },
-    { id: "detailed", name: "Detailed Template", description: "Includes extended item descriptions with green theme" },
-    { id: "simple", name: "Simple Template", description: "Minimal information, prices only with gray theme" }
-  ];
+  // Fetch available PO templates from database
+  const { data: templates = [] } = useQuery({
+    queryKey: ["/api/communication-templates?types=PO"],
+    enabled: open,
+  });
 
   // Initialize selected supplier from PO
   useEffect(() => {
@@ -105,6 +104,21 @@ export default function PODistributionDialog({
       setSelectedSupplierId(purchaseOrder.supplierId.toString());
     }
   }, [purchaseOrder]);
+
+  // Auto-select default template
+  useEffect(() => {
+    if (templates.length > 0 && !selectedTemplate) {
+      const defaultTemplate = templates.find((t: any) => t.isDefault) || templates[0];
+      setSelectedTemplate(defaultTemplate.id);
+      // Apply template's default options if available
+      if (defaultTemplate.defaultOptions) {
+        setTemplateOptions({
+          ...templateOptions,
+          ...defaultTemplate.defaultOptions
+        });
+      }
+    }
+  }, [templates]);
 
   // Update form when supplier changes
   useEffect(() => {
