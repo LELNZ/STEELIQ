@@ -52,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let query = db.select().from(communicationTemplates);
       if (types.length > 0) {
-        query = query.where(db.sql`type = ANY(${types})`);
+        query = query.where(sql`type = ANY(${types})`);
       }
       
       const templates = await query;
@@ -68,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { communicationTemplates } = await import('@shared/schema');
       const template = await db.select()
         .from(communicationTemplates)
-        .where(db.sql`id = ${req.params.id}`)
+        .where(eq(communicationTemplates.id, parseInt(req.params.id)))
         .limit(1);
       
       if (template.length === 0) {
@@ -5290,7 +5290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { key } = req.params;
       const [setting] = await db.select()
         .from(organizationSettings)
-        .where(eq(organizationSettings.settingKey, key));
+        .where(eq(organizationSettings.key, key));
       
       res.json(setting || null);
     } catch (error) {
@@ -5313,25 +5313,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if setting exists
       const [existing] = await db.select()
         .from(organizationSettings)
-        .where(eq(organizationSettings.settingKey, settingKey));
+        .where(eq(organizationSettings.key, settingKey));
       
       if (existing) {
         // Update existing setting
         await db.update(organizationSettings)
           .set({
-            settingValue,
-            settingType,
+            value: settingValue,
+            category: settingType,
             description,
             updatedAt: new Date()
           })
-          .where(eq(organizationSettings.settingKey, settingKey));
+          .where(eq(organizationSettings.key, settingKey));
       } else {
         // Insert new setting
         await db.insert(organizationSettings)
           .values({
-            settingKey,
-            settingValue,
-            settingType,
+            key: settingKey,
+            value: settingValue,
+            category: settingType,
             description
           });
       }

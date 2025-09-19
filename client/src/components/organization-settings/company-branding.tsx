@@ -76,11 +76,18 @@ export default function CompanyBranding() {
         const formData = new FormData();
         formData.append("logo", data.logoFile);
         
-        const uploadResponse = await apiRequest("/api/organization/upload-logo", {
+        // Use native fetch for file upload since apiRequest expects JSON
+        const uploadRes = await fetch("/api/organization/upload-logo", {
           method: "POST",
           body: formData,
+          credentials: "include",
         });
         
+        if (!uploadRes.ok) {
+          throw new Error("Failed to upload logo");
+        }
+        
+        const uploadResponse = await uploadRes.json();
         finalLogoPath = uploadResponse.path;
       }
 
@@ -93,14 +100,11 @@ export default function CompanyBranding() {
         watermarkOpacity: data.watermarkOpacity,
       };
 
-      return apiRequest("/api/organization/settings", {
-        method: "PUT",
-        body: JSON.stringify({
-          settingKey: "branding",
-          settingValue: brandingSettings,
-          settingType: "branding",
-          description: "Company branding and logo settings"
-        }),
+      return apiRequest("/api/organization/settings", "PUT", {
+        settingKey: "branding",
+        settingValue: brandingSettings,
+        settingType: "branding",
+        description: "Company branding and logo settings"
       });
     },
     onSuccess: () => {
