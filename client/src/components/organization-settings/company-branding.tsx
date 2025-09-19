@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Upload, Save, Loader2, X, Eye, EyeOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { OrganizationSetting } from "@shared/schema";
+import lateralLogo from "@assets/lateral-engineering-logo.jpg";
 
 const brandingSchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
@@ -54,16 +55,30 @@ export default function CompanyBranding() {
     if (brandingData?.value) {
       const values = brandingData.value as any;
       form.reset({
-        companyName: values.companyName || "",
-        tagline: values.tagline || "",
-        description: values.description || "",
+        companyName: values.companyName || "Lateral Engineering Limited",
+        tagline: values.tagline || "Excellence in Steel Fabrication",
+        description: values.description || "Leading steel fabrication company specializing in structural steel, engineering solutions, and project management.",
         logoPath: values.logoPath || "",
         enableWatermark: values.enableWatermark || false,
         watermarkOpacity: values.watermarkOpacity || 0.15,
       });
       if (values.logoPath) {
         setLogoPreview(values.logoPath);
+      } else {
+        // Use default Lateral Engineering logo if no custom logo
+        setLogoPreview(lateralLogo);
       }
+    } else {
+      // Set defaults if no data exists yet
+      form.reset({
+        companyName: "Lateral Engineering Limited",
+        tagline: "Excellence in Steel Fabrication",
+        description: "Leading steel fabrication company specializing in structural steel, engineering solutions, and project management.",
+        logoPath: "",
+        enableWatermark: false,
+        watermarkOpacity: 0.15,
+      });
+      setLogoPreview(lateralLogo);
     }
   }, [brandingData, form]);
 
