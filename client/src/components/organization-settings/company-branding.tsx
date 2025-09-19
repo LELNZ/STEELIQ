@@ -24,6 +24,8 @@ const brandingSchema = z.object({
   logoFile: z.any().optional(),
   enableWatermark: z.boolean().default(false),
   watermarkOpacity: z.number().min(0.05).max(0.5).default(0.15),
+  emailSignature: z.string().optional(),
+  emailFooter: z.string().optional(),
 });
 
 type BrandingFormData = z.infer<typeof brandingSchema>;
@@ -61,6 +63,8 @@ export default function CompanyBranding() {
         logoPath: values.logoPath || "",
         enableWatermark: values.enableWatermark || false,
         watermarkOpacity: values.watermarkOpacity || 0.15,
+        emailSignature: values.emailSignature || "",
+        emailFooter: values.emailFooter || "",
       });
       if (values.logoPath) {
         setLogoPreview(values.logoPath);
@@ -77,6 +81,8 @@ export default function CompanyBranding() {
         logoPath: "",
         enableWatermark: false,
         watermarkOpacity: 0.15,
+        emailSignature: "Best regards,\n{user_name}\n{user_title}\nLateral Engineering Limited\n{company_phone}\n{company_email}",
+        emailFooter: "This email and any attachments are confidential and intended solely for the addressee.",
       });
       setLogoPreview(lateralLogo);
     }
@@ -374,6 +380,58 @@ export default function CompanyBranding() {
                   )}
                 />
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Email Settings</CardTitle>
+              <CardDescription>
+                Configure default email signature and footer for all outgoing communications
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <FormField
+                control={form.control}
+                name="emailSignature"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Signature</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        rows={5}
+                        placeholder="Best regards,&#10;{user_name}&#10;{user_title}&#10;{company_name}"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Default signature for all emails. Use variables like {'{user_name}'}, {'{user_title}'}, {'{company_name}'}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="emailFooter"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Footer</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        rows={3}
+                        placeholder="This email and any attachments are confidential..."
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Legal disclaimer or confidentiality notice for email footers
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
 
