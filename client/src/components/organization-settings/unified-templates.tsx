@@ -61,21 +61,21 @@ const templateCategories: TemplateCategory[] = [
     id: "sales",
     label: "Sales Documents",
     icon: FileText,
-    types: ["QUOTE", "INVOICE"],
+    types: ["Quote", "Invoice"],
     description: "Client quotes and invoices"
   },
   {
     id: "shipping",
     label: "Shipping & Receipts",
     icon: Truck,
-    types: ["RECEIPT", "DELIVERY_NOTE"],
+    types: ["Receipt", "DeliveryNote"],
     description: "Delivery notes and receipt confirmations"
   },
   {
     id: "communication",
     label: "Email Communications",
     icon: Mail,
-    types: ["EMAIL"],
+    types: ["AcceptanceEmail", "RejectionEmail", "FollowUp", "Reminders"],
     description: "Automated emails and notifications"
   }
 ];
@@ -721,14 +721,27 @@ export default function UnifiedTemplates() {
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-[60vh] w-full border rounded-md p-4">
-            {selectedTemplate?.content ? (
-              <div className="prose max-w-none">
-                <pre className="whitespace-pre-wrap font-sans">{selectedTemplate.content}</pre>
+            {selectedTemplate ? (
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-semibold mb-2">Template Information</h3>
+                  <p className="text-sm"><strong>Name:</strong> {selectedTemplate.name}</p>
+                  <p className="text-sm"><strong>Code:</strong> {selectedTemplate.code}</p>
+                  <p className="text-sm"><strong>Type:</strong> {selectedTemplate.templateType || selectedTemplate.type}</p>
+                  <p className="text-sm"><strong>Category:</strong> {selectedTemplate.category}</p>
+                  {selectedTemplate.description && (
+                    <p className="text-sm mt-2"><strong>Description:</strong> {selectedTemplate.description}</p>
+                  )}
+                </div>
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground">
+                    Template preview will display here once the HTML template is configured.
+                    Use the editor to add your HTML template content with the available variables.
+                  </p>
+                </div>
               </div>
-            ) : selectedTemplate?.htmlTemplate ? (
-              <div dangerouslySetInnerHTML={{ __html: selectedTemplate.htmlTemplate }} />
             ) : (
-              <p className="text-muted-foreground">No preview available for this template.</p>
+              <p className="text-muted-foreground">No template selected.</p>
             )}
           </ScrollArea>
         </DialogContent>
