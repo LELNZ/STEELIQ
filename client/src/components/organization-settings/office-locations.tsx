@@ -59,15 +59,17 @@ export default function OfficeLocations() {
   const saveLocationMutation = useMutation({
     mutationFn: async (location: CompanyLocation) => {
       if (location.id) {
-        await apiRequest(`/api/organization/locations/${location.id}`, {
-          method: "PUT",
-          body: JSON.stringify(location),
-        });
+        return await apiRequest(
+          `/api/organization/locations/${location.id}`,
+          "PUT",
+          location
+        );
       } else {
-        await apiRequest("/api/organization/locations", {
-          method: "POST",
-          body: JSON.stringify(location),
-        });
+        return await apiRequest(
+          "/api/organization/locations",
+          "POST",
+          location
+        );
       }
     },
     onSuccess: () => {
@@ -91,9 +93,10 @@ export default function OfficeLocations() {
   // Delete location
   const deleteLocationMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest(`/api/organization/locations/${id}`, {
-        method: "DELETE",
-      });
+      return await apiRequest(
+        `/api/organization/locations/${id}`,
+        "DELETE"
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/organization/locations"] });
