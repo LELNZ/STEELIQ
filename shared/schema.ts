@@ -3523,6 +3523,7 @@ export const communicationTemplates = pgTable("communication_templates", {
   sections: jsonb("sections"), // which sections to show/hide by default
   variables: jsonb("variables"), // available template variables for this type
   defaultOptions: jsonb("default_options"), // default granular control settings
+  defaultEditorMode: varchar("default_editor_mode", { length: 20 }).default("code"), // 'visual' or 'code'
   createdBy: integer("created_by").references(() => users.id),
   lastEditedBy: integer("last_edited_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
@@ -3539,6 +3540,8 @@ export const templateVersions = pgTable("template_versions", {
   htmlTemplate: text("html_template").notNull(),
   textTemplate: text("text_template"),
   pdfLayoutTemplate: text("pdf_layout_template"),
+  visualProjectJson: jsonb("visual_project_json"), // GrapesJS project data
+  editorMode: varchar("editor_mode", { length: 20 }).default("code"), // 'visual' or 'code'
   changelog: text("changelog"),
   createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
