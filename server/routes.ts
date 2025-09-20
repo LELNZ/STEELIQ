@@ -12823,6 +12823,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create default templates
+  app.post('/api/templates/create-defaults', async (req, res) => {
+    try {
+      const { defaultTemplatesService } = await import('./services/defaultTemplatesService');
+      const result = await defaultTemplatesService.createDefaultTemplates();
+      res.json(result);
+    } catch (error) {
+      console.error('Error creating default templates:', error);
+      res.status(500).json({ error: 'Failed to create default templates' });
+    }
+  });
+
+  // Generate PDF from template
+  app.post('/api/templates/generate-pdf', async (req, res) => {
+    try {
+      const { pdfGenerationService } = await import('./services/pdfGenerationService');
+      const { templateType, templateCode, supplierId, clientId, data } = req.body;
+      
+      const pdfBuffer = await pdfGenerationService.generatePDF({
+        templateType,
+        templateCode,
+        supplierId,
+        clientId,
+        data
+      });
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="document.pdf"');
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      res.status(500).json({ error: 'Failed to generate PDF' });
+    }
+  });
+
+  // Generate template preview
+  app.get('/api/templates/:id/preview', async (req, res) => {
+    try {
+      const { pdfGenerationService } = await import('./services/pdfGenerationService');
+      const html = await pdfGenerationService.generatePreview(req.params.id);
+      res.json({ html });
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      res.status(500).json({ error: 'Failed to generate preview' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
