@@ -10383,6 +10383,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Document History endpoints
+  app.get('/api/document-history', async (req, res) => {
+    try {
+      const history = await storage.getAllDocumentHistory();
+      res.json(history);
+    } catch (error) {
+      console.error('Error fetching document history:', error);
+      res.status(500).json({ error: 'Failed to fetch document history' });
+    }
+  });
+
+  app.get('/api/document-history/:type/:id', async (req, res) => {
+    try {
+      const { type, id } = req.params;
+      const history = await storage.getDocumentHistory(type, parseInt(id));
+      res.json(history);
+    } catch (error) {
+      console.error('Error fetching document history:', error);
+      res.status(500).json({ error: 'Failed to fetch document history' });
+    }
+  });
+
   // Archive a purchase order
   app.post("/api/procurement/purchase-orders/archive", async (req, res) => {
     try {
@@ -11089,6 +11111,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const accessToken = poTrackingService.generateAccessToken();
       const portalUrl = poTrackingService.generatePortalUrl(distributionId, accessToken);
 
+      // Track document send in history
+      await storage.trackDocumentSend({
+        documentType: 'PO',
+        documentId: purchaseOrderId,
+        documentNumber: purchaseOrder.poNumber,
+        action: 'sent',
+        templateCode: templateCode || 'PO_STANDARD',
+        templateOptions: templateOptions,
+        recipient: {
+          email: Array.isArray(to) ? to[0] : to,
+          name: supplier.name,
+        },
+        sendMethod: 'email',
+        htmlContent: emailResult.html?.substring(0, 5000), // Store first 5000 chars
+        emailStatus: 'sent',
+        emailTrackingId: emailResult.messageId,
+        sentBy: userId,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        metadata: {
+          supplierId: purchaseOrder.supplierId,
+          totalAmount: purchaseOrder.totalAmount,
+          jobId: purchaseOrder.jobId,
+          cc: cc,
+          bcc: bcc,
+        },
+      });
+
       // Update PO status to sent
       await storage.updatePurchaseOrder(purchaseOrderId, { status: 'sent' });
 
@@ -11621,6 +11671,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         html = generateFallbackHTML(purchaseOrder, supplier, items, templateOptions);
       }
 
+      // Track document action (download or view)
+      const currentUser = (req as any).user;
+      await storage.trackDocumentSend({
+        documentType: 'PO',
+        documentId: purchaseOrderId,
+        documentNumber: purchaseOrder.poNumber,
+        action: download ? 'downloaded' : 'viewed',
+        templateCode: templateCode,
+        templateOptions: templateOptions,
+        sendMethod: download ? 'download' : 'portal',
+        htmlContent: html.substring(0, 5000), // Store first 5000 chars
+        sentBy: currentUser?.id,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        metadata: {
+          supplier: supplier?.name,
+          totalAmount: purchaseOrder.totalAmount,
+        },
+      });
+      
       // If download is requested, convert HTML to PDF using Puppeteer
       if (download) {
         try {

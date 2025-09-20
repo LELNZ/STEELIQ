@@ -3591,6 +3591,64 @@ export const templateAssignments = pgTable("template_assignments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Document Send History - Track all documents sent/printed/downloaded
+export const documentHistory = pgTable("document_history", {
+  id: serial("id").primaryKey(),
+  documentType: varchar("document_type", { length: 50 }).notNull(), // 'PO', 'RFQ', 'Quote', 'Invoice', 'Report'
+  documentId: integer("document_id").notNull(), // ID of the PO, RFQ, Quote, etc.
+  documentNumber: varchar("document_number", { length: 100 }), // PO-0001, RFQ-0001, etc.
+  version: integer("version").default(1), // Version number if document is resent
+  action: varchar("action", { length: 50 }).notNull(), // 'sent', 'downloaded', 'printed', 'viewed', 'acknowledged'
+  templateId: integer("template_id").references(() => communicationTemplates.id), // Template used
+  templateCode: varchar("template_code", { length: 50 }), // Template code for quick reference
+  templateOptions: jsonb("template_options"), // Granular options used (showLineItems, showTerms, etc.)
+  recipient: jsonb("recipient"), // {email, name, company, etc.}
+  sendMethod: varchar("send_method", { length: 50 }), // 'email', 'portal', 'download', 'print'
+  htmlContent: text("html_content"), // Actual HTML content sent
+  pdfUrl: text("pdf_url"), // URL to stored PDF if applicable
+  emailStatus: varchar("email_status", { length: 50 }), // 'pending', 'sent', 'delivered', 'bounced', 'opened'
+  emailTrackingId: varchar("email_tracking_id", { length: 255 }), // SendGrid or email provider tracking ID
+  openedAt: timestamp("opened_at"),
+  clickedLinks: jsonb("clicked_links"), // Array of clicked link timestamps
+  acknowledgedAt: timestamp("acknowledged_at"),
+  acknowledgedBy: varchar("acknowledged_by", { length: 255 }),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  metadata: jsonb("metadata"), // Additional tracking info
+  sentBy: integer("sent_by").references(() => users.id),
+  sentAt: timestamp("sent_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Document Attachments - Track files attached to sent documents
+export const documentAttachments = pgTable("document_attachments", {
+  id: serial("id").primaryKey(),
+  documentHistoryId: integer("document_history_id").references(() => documentHistory.id).notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  fileType: varchar("file_type", { length: 50 }), // 'pdf', 'excel', 'image', etc.
+  fileSize: integer("file_size"), // in bytes
+  filePath: text("file_path"),
+  mimeType: varchar("mime_type", { length: 100 }),
+  isMainDocument: boolean("is_main_document").default(false), // True for the main PO/RFQ PDF
+  checksum: varchar("checksum", { length: 64 }), // SHA256 hash for integrity
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Document Access Logs - Track who views documents via portal
+export const documentAccessLogs = pgTable("document_access_logs", {
+  id: serial("id").primaryKey(),
+  documentHistoryId: integer("document_history_id").references(() => documentHistory.id).notNull(),
+  accessToken: varchar("access_token", { length: 255 }),
+  accessedBy: varchar("accessed_by", { length: 255 }), // Email or name
+  accessType: varchar("access_type", { length: 50 }), // 'view', 'download', 'print'
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  location: jsonb("location"), // Geo location if available
+  sessionDuration: integer("session_duration"), // in seconds
+  pagesViewed: jsonb("pages_viewed"), // Array of page numbers viewed
+  accessedAt: timestamp("accessed_at").defaultNow(),
+});
+
 // Organization-wide branding and template settings
 export const organizationBranding = pgTable("organization_branding", {
   id: serial("id").primaryKey(),

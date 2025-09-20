@@ -33,6 +33,7 @@ import RFQManagementView from "@/components/procurement/RFQManagementView";
 import QuotesComparisonView from "@/components/procurement/QuotesComparisonView";
 import ConvertToPODialog from "@/components/procurement/ConvertToPODialog";
 import AuditLogViewer from "@/components/procurement/AuditLogViewer";
+import DocumentHistoryView from "@/components/procurement/DocumentHistoryView";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -351,6 +352,7 @@ export default function Procurement() {
             <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
             <TabsTrigger value="receiving">Receiving</TabsTrigger>
             <TabsTrigger value="audit">Audit Trail</TabsTrigger>
+            <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="archived">Archived</TabsTrigger>
           </TabsList>
 
@@ -1113,6 +1115,11 @@ export default function Procurement() {
         {/* Audit Trail Tab */}
         <TabsContent value="audit" className="space-y-2">
           <AuditLogViewer />
+        </TabsContent>
+
+        {/* Document History Tab */}
+        <TabsContent value="documents" className="space-y-2">
+          <DocumentHistoryView />
         </TabsContent>
       </Tabs>
 

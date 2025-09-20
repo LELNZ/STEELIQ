@@ -25,7 +25,8 @@ import {
   type GoodsReceipt, type InsertGoodsReceipt, type GoodsReceiptItem, type InsertGoodsReceiptItem,
   type PurchaseOrder, type InsertPurchaseOrder, type PurchaseOrderItem, type InsertPurchaseOrderItem,
   quotes, quoteHistory, quoteViews,
-  type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView
+  type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView,
+  documentHistory, documentAttachments, documentAccessLogs
 } from "@shared/schema";
 import { desc, eq, lt, asc, like, and, or, sql, inArray, not, ne } from "drizzle-orm";
 import { db } from "./db";
@@ -267,6 +268,14 @@ export interface IStorage {
   archivePurchaseOrder(poId: number, archiverId: number, reason?: string): Promise<PurchaseOrder>;
   unarchivePurchaseOrder(poId: number): Promise<void>;
   getArchivedPurchaseOrders(): Promise<PurchaseOrder[]>;
+
+  // Document History Tracking
+  trackDocumentSend(data: any): Promise<any>;
+  getDocumentHistory(documentType: string, documentId: number): Promise<any[]>;
+  getAllDocumentHistory(): Promise<any[]>;
+  updateDocumentStatus(historyId: number, status: string, metadata?: any): Promise<void>;
+  getDocumentHistoryByNumber(documentNumber: string): Promise<any[]>;
+  recordDocumentAccess(historyId: number, accessData: any): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2438,6 +2447,140 @@ export class DatabaseStorage implements IStorage {
       .where(eq(rfqRequests.id, rfq.id));
     
     return purchaseOrder;
+  }
+
+  // Document History Tracking Methods
+  async trackDocumentSend(data: any): Promise<any> {
+    const [history] = await db.insert(documentHistory).values({
+      documentType: data.documentType,
+      documentId: data.documentId,
+      documentNumber: data.documentNumber,
+      version: data.version || 1,
+      action: data.action, // 'sent', 'downloaded', 'printed', 'viewed'
+      templateId: data.templateId,
+      templateCode: data.templateCode,
+      templateOptions: data.templateOptions,
+      recipient: data.recipient,
+      sendMethod: data.sendMethod,
+      htmlContent: data.htmlContent,
+      pdfUrl: data.pdfUrl,
+      emailStatus: data.emailStatus,
+      emailTrackingId: data.emailTrackingId,
+      ipAddress: data.ipAddress,
+      userAgent: data.userAgent,
+      metadata: data.metadata,
+      sentBy: data.sentBy,
+      sentAt: new Date(),
+    }).returning();
+
+    // If there are attachments, record them
+    if (data.attachments && data.attachments.length > 0) {
+      for (const attachment of data.attachments) {
+        await db.insert(documentAttachments).values({
+          documentHistoryId: history.id,
+          fileName: attachment.fileName,
+          fileType: attachment.fileType,
+          fileSize: attachment.fileSize,
+          filePath: attachment.filePath,
+          mimeType: attachment.mimeType,
+          isMainDocument: attachment.isMainDocument,
+          checksum: attachment.checksum,
+        });
+      }
+    }
+
+    return history;
+  }
+
+  async getDocumentHistory(documentType: string, documentId: number): Promise<any[]> {
+    const history = await db
+      .select()
+      .from(documentHistory)
+      .where(
+        and(
+          eq(documentHistory.documentType, documentType),
+          eq(documentHistory.documentId, documentId)
+        )
+      )
+      .orderBy(desc(documentHistory.sentAt));
+
+    // Get attachments for each history record
+    for (const record of history) {
+      const attachments = await db
+        .select()
+        .from(documentAttachments)
+        .where(eq(documentAttachments.documentHistoryId, record.id));
+      record.attachments = attachments;
+    }
+
+    return history;
+  }
+
+  async getAllDocumentHistory(): Promise<any[]> {
+    const history = await db
+      .select({
+        id: documentHistory.id,
+        documentType: documentHistory.documentType,
+        documentId: documentHistory.documentId,
+        documentNumber: documentHistory.documentNumber,
+        version: documentHistory.version,
+        action: documentHistory.action,
+        templateCode: documentHistory.templateCode,
+        recipient: documentHistory.recipient,
+        sendMethod: documentHistory.sendMethod,
+        emailStatus: documentHistory.emailStatus,
+        acknowledgedAt: documentHistory.acknowledgedAt,
+        sentBy: documentHistory.sentBy,
+        sentAt: documentHistory.sentAt,
+      })
+      .from(documentHistory)
+      .orderBy(desc(documentHistory.sentAt))
+      .limit(100); // Limit to last 100 records for performance
+
+    return history;
+  }
+
+  async updateDocumentStatus(historyId: number, status: string, metadata?: any): Promise<void> {
+    const updates: any = { emailStatus: status };
+    
+    if (status === 'opened') {
+      updates.openedAt = new Date();
+    }
+    if (status === 'acknowledged') {
+      updates.acknowledgedAt = new Date();
+      if (metadata?.acknowledgedBy) {
+        updates.acknowledgedBy = metadata.acknowledgedBy;
+      }
+    }
+    if (metadata) {
+      updates.metadata = metadata;
+    }
+
+    await db.update(documentHistory).set(updates).where(eq(documentHistory.id, historyId));
+  }
+
+  async getDocumentHistoryByNumber(documentNumber: string): Promise<any[]> {
+    const history = await db
+      .select()
+      .from(documentHistory)
+      .where(eq(documentHistory.documentNumber, documentNumber))
+      .orderBy(desc(documentHistory.sentAt));
+
+    return history;
+  }
+
+  async recordDocumentAccess(historyId: number, accessData: any): Promise<void> {
+    await db.insert(documentAccessLogs).values({
+      documentHistoryId: historyId,
+      accessToken: accessData.accessToken,
+      accessedBy: accessData.accessedBy,
+      accessType: accessData.accessType,
+      ipAddress: accessData.ipAddress,
+      userAgent: accessData.userAgent,
+      location: accessData.location,
+      sessionDuration: accessData.sessionDuration,
+      pagesViewed: accessData.pagesViewed,
+    });
   }
 }
 

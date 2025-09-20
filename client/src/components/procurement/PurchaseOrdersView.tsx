@@ -393,11 +393,39 @@ export default function PurchaseOrdersView() {
                               </DropdownMenuItem>
                             </>
                           )}
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              // Download PDF with default template
+                              const link = document.createElement('a');
+                              link.href = `/api/procurement/purchase-orders/${po.id}/pdf?templateCode=PO_STANDARD&showLineItems=true&showDescriptions=true&showTotals=true&showTerms=true&showDeliveryDetails=true&showPaymentTerms=true&download=true`;
+                              link.download = `PO-${po.poNumber}.pdf`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              
+                              toast({
+                                title: "Downloading PDF",
+                                description: `Purchase Order ${po.poNumber} is being downloaded`,
+                              });
+                            }}
+                          >
                             <Download className="mr-2 h-4 w-4" />
                             Download PDF
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              // Open PDF in new tab for printing
+                              window.open(
+                                `/api/procurement/purchase-orders/${po.id}/pdf?templateCode=PO_STANDARD&showLineItems=true&showDescriptions=true&showTotals=true&showTerms=true&showDeliveryDetails=true&showPaymentTerms=true`,
+                                '_blank'
+                              );
+                              
+                              toast({
+                                title: "Opening PDF",
+                                description: "Opening PDF for printing in new tab",
+                              });
+                            }}
+                          >
                             <Printer className="mr-2 h-4 w-4" />
                             Print
                           </DropdownMenuItem>
