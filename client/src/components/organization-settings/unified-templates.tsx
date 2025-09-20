@@ -14,11 +14,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   FileText, Package, Mail, Receipt, Truck, FileCheck,
   Code, Eye, Save, Plus, Copy, Trash2, Settings,
   Palette, Edit, Check, X, Download, Upload,
-  RefreshCw, Layers, Star, Lock, Users
+  RefreshCw, Layers, Star, Lock, Users, AlertCircle
 } from "lucide-react";
 import { TemplateEditor } from '@/components/template-editor/TemplateEditor';
 
@@ -89,6 +90,11 @@ export default function UnifiedTemplates() {
   const [previewMode, setPreviewMode] = useState(false);
   const [activeTab, setActiveTab] = useState("list");
 
+  // Migration state
+  const { data: migrationStatus } = useQuery({
+    queryKey: ['/api/templates/migration/status'],
+  });
+
   // Template editor state
   const [editorContent, setEditorContent] = useState<any>({
     name: "",
@@ -115,6 +121,30 @@ export default function UnifiedTemplates() {
       const response = await fetch(`/api/communication-templates?types=${category.types.join(',')}`);
       if (!response.ok) throw new Error('Failed to fetch templates');
       return response.json();
+    }
+  });
+
+  // Run migration mutation
+  const migrationMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/templates/migration/run', {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Migration Complete",
+        description: "Legacy templates have been migrated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/templates/migration/status'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/communication-templates'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Migration Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   });
 
@@ -238,6 +268,38 @@ export default function UnifiedTemplates() {
 
   const renderTemplateList = () => (
     <div className="space-y-4">
+      {/* Migration Alert */}
+      {migrationStatus?.needsMigration && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Legacy Templates Found</AlertTitle>
+          <AlertDescription className="mt-2 space-y-2">
+            <p>
+              You have {migrationStatus.totalPoTemplates} legacy PO templates that can be migrated to the new unified template system.
+              {migrationStatus.migratedTemplates > 0 && ` (${migrationStatus.migratedTemplates} already migrated)`}
+            </p>
+            <Button 
+              onClick={() => migrationMutation.mutate()}
+              disabled={migrationMutation.isPending}
+              size="sm"
+              className="mt-2"
+            >
+              {migrationMutation.isPending ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Migrating...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Migrate Templates
+                </>
+              )}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold">Available Templates</h3>

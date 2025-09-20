@@ -12800,6 +12800,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Template migration endpoints
+  app.get('/api/templates/migration/status', async (req, res) => {
+    try {
+      const { templateMigrationService } = await import('./services/templateMigrationService');
+      const status = await templateMigrationService.getMigrationStatus();
+      res.json(status);
+    } catch (error) {
+      console.error('Error checking migration status:', error);
+      res.status(500).json({ error: 'Failed to check migration status' });
+    }
+  });
+
+  app.post('/api/templates/migration/run', async (req, res) => {
+    try {
+      const { templateMigrationService } = await import('./services/templateMigrationService');
+      const result = await templateMigrationService.migratePOTemplates();
+      res.json(result);
+    } catch (error) {
+      console.error('Error running migration:', error);
+      res.status(500).json({ error: 'Failed to run migration' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
