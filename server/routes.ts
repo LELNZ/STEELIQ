@@ -12850,6 +12850,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test template system
+  app.post('/api/templates/test-system', async (req, res) => {
+    try {
+      const { testTemplateSystem } = await import('./testing/testTemplateSystem');
+      await testTemplateSystem.runAllTests();
+      res.json({ success: true, message: 'Test suite completed - check server logs for results' });
+    } catch (error) {
+      console.error('Error running template tests:', error);
+      res.status(500).json({ error: 'Failed to run template tests' });
+    }
+  });
+
+  // Test PDF generation
+  app.post('/api/templates/test-pdf', async (req, res) => {
+    try {
+      const { testPdfGeneration } = await import('./testing/testPdfGeneration');
+      const results = await testPdfGeneration();
+      res.json({ success: true, results });
+    } catch (error) {
+      console.error('Error testing PDF generation:', error);
+      res.status(500).json({ error: 'Failed to test PDF generation' });
+    }
+  });
+
   // Generate PDF from template
   app.post('/api/templates/generate-pdf', async (req, res) => {
     try {
