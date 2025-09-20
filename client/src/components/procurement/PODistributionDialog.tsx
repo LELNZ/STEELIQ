@@ -53,7 +53,7 @@ export default function PODistributionDialog({
   const [bccEmails, setBccEmails] = useState<string[]>([]);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState("default");
+  const [selectedTemplate, setSelectedTemplate] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState("email");
   const [formats, setFormats] = useState({ pdf: true, excel: false, csv: false });
   const [requireSignature, setRequireSignature] = useState(false);
@@ -93,10 +93,13 @@ export default function PODistributionDialog({
   });
 
   // Fetch available PO templates from database
-  const { data: templates = [] } = useQuery({
-    queryKey: ["/api/communication-templates?types=PO"],
+  const { data: templatesResponse } = useQuery({
+    queryKey: ["/api/communication-templates"],
     enabled: open,
   });
+
+  // Filter PO templates from the response
+  const templates = templatesResponse?.filter((t: any) => t.type === 'PO' && t.category === 'Documents') || [];
 
   // Fetch user preferences
   const { data: userPreferences } = useQuery({
@@ -125,28 +128,22 @@ export default function PODistributionDialog({
   // Auto-select default template and load saved preferences
   useEffect(() => {
     if (templates.length > 0 && !selectedTemplate) {
-      // Check if user has a saved preference
-      const savedTemplateId = userPreferences?.templatePreferences?.poTemplateId;
-      const templateToSelect = savedTemplateId 
-        ? templates.find((t: any) => t.id === savedTemplateId)
-        : templates.find((t: any) => t.isDefault) || templates[0];
+      // Find the default template or use the first one
+      const defaultTemplate = templates.find((t: any) => t.isDefault || t.code === 'PO_STANDARD') || templates[0];
       
-      if (templateToSelect) {
-        setSelectedTemplate(templateToSelect.id);
+      if (defaultTemplate) {
+        setSelectedTemplate(defaultTemplate.code);
         
-        // Load saved options or use template defaults
-        const savedOptions = userPreferences?.templatePreferences?.poOptions;
-        if (savedOptions) {
-          setTemplateOptions(savedOptions);
-        } else if (templateToSelect.defaultOptions) {
+        // Load template defaults if available
+        if (defaultTemplate.variables) {
           setTemplateOptions({
             ...templateOptions,
-            ...templateToSelect.defaultOptions
+            ...defaultTemplate.variables
           });
         }
       }
     }
-  }, [templates, userPreferences]);
+  }, [templates]);
 
   // Update form when supplier changes
   useEffect(() => {
@@ -241,8 +238,8 @@ Lateral Engineering Procurement Team`);
       bcc: bccEmails,
       subject: emailSubject,
       body: emailBody,
-      templateId: selectedTemplate,
-      templateOptions,
+      templateCode: selectedTemplate,  // Changed from templateId to templateCode
+      customMessage: emailBody,
       deliveryMethod,
       formats,
       requireSignature,
@@ -548,37 +545,63 @@ Lateral Engineering Procurement Team`);
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3">
-                  {templates.map((template: any) => (
-                    <div
-                      key={template.id}
-                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                        selectedTemplate === template.id
-                          ? "border-primary bg-primary/5"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                      onClick={() => setSelectedTemplate(template.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium">{template.name}</h4>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {template.description}
-                          </p>
+                  {templates.length > 0 ? (
+                    templates.map((template: any) => (
+                      <div
+                        key={template.code}
+                        className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                          selectedTemplate === template.code
+                            ? "border-primary bg-primary/5"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                        onClick={() => setSelectedTemplate(template.code)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{template.name}</h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {template.description || "Professional template for purchase orders"}
+                            </p>
+                            {template.isDefault && (
+                              <Badge variant="secondary" className="mt-2">
+                                Default
+                              </Badge>
+                            )}
+                          </div>
+                          {selectedTemplate === template.code && (
+                            <CheckCircle className="h-5 w-5 text-primary" />
+                          )}
                         </div>
-                        {selectedTemplate === template.id && (
-                          <CheckCircle className="h-5 w-5 text-primary" />
-                        )}
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>No templates available</p>
+                      <p className="text-sm mt-1">Please create templates in Organization Settings</p>
                     </div>
-                  ))}
+                  )}
                 </div>
 
                 {/* Content Options */}
+                {/* Simplified template info - templates control the layout */}
                 <div className="pt-4 border-t">
-                  <h4 className="font-medium mb-3">Content Options</h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Select which sections to include in the purchase order
+                  <h4 className="font-medium mb-3">Template Information</h4>
+                  <p className="text-sm text-muted-foreground">
+                    The selected template will determine the layout and styling of your purchase order.
                   </p>
+                  {selectedTemplate && (
+                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                      <p className="text-sm font-medium">Selected: {templates.find((t: any) => t.code === selectedTemplate)?.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Template Code: {selectedTemplate}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Remove old content options - templates now control this */}
+                <div className="hidden">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex items-center space-x-2">
                       <Checkbox
