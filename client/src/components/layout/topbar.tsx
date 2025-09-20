@@ -56,7 +56,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
                 <span className="sm:hidden">LEL</span>
                 <span className="hidden sm:inline">Lateral Engineering Limited</span>
               </h1>
-              <p className="text-muted-foreground text-xs hidden lg:block">Steel Management</p>
+              <p className="text-muted-foreground text-xs hidden lg:block">STEELIQ</p>
             </div>
           </div>
           {/* Real-time sync badge - only on large screens */}
