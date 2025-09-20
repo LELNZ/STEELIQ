@@ -421,18 +421,59 @@ export class IntegratedEmailService {
     }
 
     try {
-      const msg: any = {
-        to: params.to,
-        from: params.from,
-        subject: params.subject,
-        text: params.text || params.subject,
-        html: params.html,
+      // Validate and sanitize email addresses
+      const sanitizeEmail = (email: string | string[]): string | string[] => {
+        if (Array.isArray(email)) {
+          return email.filter(e => e && e.includes('@')).map(e => e.trim());
+        }
+        return email?.trim() || '';
       };
 
-      if (params.cc) msg.cc = params.cc;
-      if (params.bcc) msg.bcc = params.bcc;
+      // Ensure we have valid from and to addresses
+      const fromAddress = params.from || 'accounts@lateralengineering.co.nz';
+      const toAddresses = sanitizeEmail(params.to);
+      
+      if (!toAddresses || (Array.isArray(toAddresses) && toAddresses.length === 0)) {
+        throw new Error('No valid recipient email addresses provided');
+      }
+
+      const msg: any = {
+        to: toAddresses,
+        from: fromAddress,
+        subject: params.subject || 'No Subject',
+        text: params.text || params.subject || 'Please see the attached document.',
+        html: params.html || '<p>Please see the attached document.</p>',
+      };
+
+      if (params.cc) {
+        const ccAddresses = sanitizeEmail(params.cc);
+        if (ccAddresses && (!Array.isArray(ccAddresses) || ccAddresses.length > 0)) {
+          msg.cc = ccAddresses;
+        }
+      }
+      
+      if (params.bcc) {
+        const bccAddresses = sanitizeEmail(params.bcc);
+        if (bccAddresses && (!Array.isArray(bccAddresses) || bccAddresses.length > 0)) {
+          msg.bcc = bccAddresses;
+        }
+      }
+      
       if (params.replyTo) msg.replyTo = params.replyTo;
-      if (params.attachments) msg.attachments = params.attachments;
+      if (params.attachments && params.attachments.length > 0) {
+        msg.attachments = params.attachments;
+      }
+
+      // Log the message structure for debugging (without sensitive content)
+      console.log('Sending email with structure:', {
+        to: msg.to,
+        from: msg.from,
+        subject: msg.subject,
+        hasHtml: !!msg.html,
+        hasAttachments: !!msg.attachments?.length,
+        cc: msg.cc,
+        bcc: msg.bcc
+      });
 
       const [response] = await sgMail.send(msg);
       
@@ -442,9 +483,23 @@ export class IntegratedEmailService {
       };
     } catch (error: any) {
       console.error('SendGrid error:', error);
+      
+      // Log detailed error information for debugging
+      if (error.response?.body?.errors) {
+        console.error('SendGrid error details:', JSON.stringify(error.response.body.errors, null, 2));
+      }
+      
+      // Extract meaningful error message
+      let errorMessage = 'Failed to send email';
+      if (error.response?.body?.errors?.[0]?.message) {
+        errorMessage = error.response.body.errors[0].message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       return { 
         success: false, 
-        error: error.message || 'Failed to send email' 
+        error: errorMessage
       };
     }
   }
