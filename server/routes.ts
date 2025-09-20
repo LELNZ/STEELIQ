@@ -11108,16 +11108,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/procurement/purchase-orders/:id/preview", async (req, res) => {
     try {
       const purchaseOrderId = parseInt(req.params.id);
-      const templateId = req.query.template as string;
-
+      const templateCode = req.query.templateCode as string || 'PO_STANDARD';
+      
       // Get PO details
       const purchaseOrder = await storage.getPurchaseOrder(purchaseOrderId);
       if (!purchaseOrder) {
         return res.status(404).json({ error: "Purchase order not found" });
       }
 
-      // For now, return a mock PDF URL
-      const previewUrl = `/api/procurement/purchase-orders/${purchaseOrderId}/pdf?template=${templateId}`;
+      // Pass all query params (including templateCode and all options) to the PDF endpoint
+      const queryString = Object.entries(req.query)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('&');
+      
+      const previewUrl = `/api/procurement/purchase-orders/${purchaseOrderId}/pdf?${queryString}`;
       res.redirect(previewUrl);
     } catch (error) {
       console.error("Error previewing purchase order:", error);
@@ -11501,7 +11505,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/procurement/purchase-orders/:id/pdf", async (req, res) => {
     try {
       const purchaseOrderId = parseInt(req.params.id);
-      const templateId = req.query.template as string || 'standard';
+      const templateCode = req.query.templateCode as string || 'PO_STANDARD';
+      
+      // Parse template options from query params
+      const templateOptions: any = {};
+      Object.keys(req.query).forEach(key => {
+        if (key !== 'templateCode' && req.query[key] === 'true') {
+          templateOptions[key] = true;
+        }
+      });
 
       // Get PO details
       const purchaseOrder = await storage.getPurchaseOrder(purchaseOrderId);
@@ -11515,16 +11527,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get supplier
       const supplier = await storage.getSupplier(purchaseOrder.supplierId);
       
-      // Import template service
-      const { templateService } = await import('./templateService');
+      // Import database and tables properly
+      const { db } = await import('./db');
+      const { communicationTemplates, templateVersions } = await import('@shared/schema');
+      const { sql } = await import('drizzle-orm');
       
       // Get the template from database
-      const templateResult = await templateService.getTemplate(
-        'PO',
-        templateId === 'standard' ? 'PO_STANDARD' : 
-        templateId === 'detailed' ? 'PO_DETAILED' : 
-        templateId === 'simple' ? 'PO_SIMPLE' : 'PO_STANDARD'
-      );
+      const templateQuery = await db
+        .select({
+          id: communicationTemplates.id,
+          code: communicationTemplates.code,
+          name: communicationTemplates.name,
+          content: templateVersions.htmlTemplate,
+          variables: communicationTemplates.variables,
+          defaultOptions: communicationTemplates.defaultOptions
+        })
+        .from(communicationTemplates)
+        .leftJoin(templateVersions, sql`${templateVersions.id} = ${communicationTemplates.currentVersionId}`)
+        .where(sql`${communicationTemplates.code} = ${templateCode} AND ${communicationTemplates.type} = 'PO' AND ${communicationTemplates.category} = 'Documents'`);
+      
+      const template = templateQuery[0];
 
       // Prepare template data
       const templateData = {
@@ -11572,28 +11594,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
         },
         greeting: 'Dear ' + (supplier?.name || 'Supplier') + ',',
-        body: 'Please find the purchase order details below. Please confirm receipt of this order at your earliest convenience.'
+        body: 'Please find the purchase order details below. Please confirm receipt of this order at your earliest convenience.',
+        options: templateOptions  // Pass the granular content options
       };
 
-      // Generate HTML based on template
+      // Generate HTML based on template and options
       let html: string;
-      const options = {
-        showLineItems: true,
-        showDescriptions: true,
-        showTotals: true,
-        showDeliveryDetails: true,
-        showTerms: templateId === 'detailed',
-        showSignature: false,
-        showNotes: true,
-        showPaymentTerms: true
-      };
-
-      if (templateResult && templateResult.version) {
-        // Render the template with the template content from database
-        html = templateService.renderTemplate(templateResult.version.content, templateData, options);
+      if (template && template.content) {
+        // Use Handlebars to render the template with granular options
+        const Handlebars = (await import('handlebars')).default;
+        
+        // Register helper for granular content control
+        Handlebars.registerHelper('if_option', function(this: any, optionName: string, opts: any) {
+          if (templateOptions[optionName] !== false) {
+            return opts.fn(this);
+          } else {
+            return opts.inverse(this);
+          }
+        });
+        
+        const compiledTemplate = Handlebars.compile(template.content);
+        html = compiledTemplate(templateData);
       } else {
-        // Fallback to default template
-        html = generateFallbackHTML(purchaseOrder, supplier, items, options);
+        // Fallback to default template if no template found
+        html = generateFallbackHTML(purchaseOrder, supplier, items, templateOptions);
       }
 
       // Send HTML as response (browser will render as PDF preview)
