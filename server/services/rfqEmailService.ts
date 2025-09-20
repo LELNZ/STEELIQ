@@ -26,7 +26,8 @@ export class RFQEmailService {
 
   async sendRFQToSuppliers(
     rfqId: number,
-    supplierIds: number[]
+    supplierIds: number[],
+    templateCode?: string
   ): Promise<{ sent: number; failed: number; errors: string[] }> {
     const results = { sent: 0, failed: 0, errors: [] as string[] };
 
@@ -61,7 +62,8 @@ export class RFQEmailService {
             supplier,
             requisitionDetails,
             requisitionItemsList,
-            portalUrl
+            portalUrl,
+            templateCode
           });
 
           const msg = {

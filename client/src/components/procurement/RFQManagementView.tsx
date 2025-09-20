@@ -119,6 +119,7 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
     sourceNotes: "",
     attachmentFile: null as File | null,
   });
+  const [selectedRfqTemplate, setSelectedRfqTemplate] = useState("RFQ_STANDARD");
   const { toast } = useToast();
   
   // Fetch RFQs
@@ -137,6 +138,11 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
   const { data: suppliers = [] } = useQuery({
     queryKey: ["/api/suppliers"],
     staleTime: 0,
+  });
+  
+  // Fetch RFQ templates
+  const { data: rfqTemplates = [] } = useQuery({
+    queryKey: ["/api/templates/type/RFQ"],
   });
 
   // Handle requisition passed from parent
@@ -176,8 +182,8 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
 
   // Send RFQ mutation
   const sendRfqMutation = useMutation({
-    mutationFn: ({ rfqId, supplierIds }: { rfqId: number; supplierIds: number[] }) =>
-      apiRequest(`/api/procurement/rfqs/${rfqId}/send`, "POST", { supplierIds }),
+    mutationFn: ({ rfqId, supplierIds, templateCode }: { rfqId: number; supplierIds: number[]; templateCode?: string }) =>
+      apiRequest(`/api/procurement/rfqs/${rfqId}/send`, "POST", { supplierIds, templateCode }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/procurement/rfqs"] });
       setSendRfqDialog(false);
@@ -818,6 +824,23 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
           </DialogHeader>
           
           <div className="space-y-4">
+            {/* Template Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="rfq-template">Email Template</Label>
+              <Select value={selectedRfqTemplate} onValueChange={setSelectedRfqTemplate}>
+                <SelectTrigger id="rfq-template">
+                  <SelectValue placeholder="Select a template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rfqTemplates.map((template: any) => (
+                    <SelectItem key={template.code} value={template.code}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Search Bar */}
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -1084,6 +1107,7 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
                   sendRfqMutation.mutate({
                     rfqId: selectedRfq?.id,
                     supplierIds: selectedSuppliers,
+                    templateCode: selectedRfqTemplate,
                   });
                 }}
               >

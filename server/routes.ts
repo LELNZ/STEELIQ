@@ -11899,13 +11899,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/procurement/rfqs/:id/send", async (req, res) => {
     try {
       const rfqId = parseInt(req.params.id);
-      const { supplierIds } = req.body;
+      const { supplierIds, templateCode } = req.body;
       
       // Import the RFQ email service
       const { rfqEmailService } = await import('./services/rfqEmailService');
       
-      // Send emails to suppliers
-      const result = await rfqEmailService.sendRFQToSuppliers(rfqId, supplierIds);
+      // Send emails to suppliers with template
+      const result = await rfqEmailService.sendRFQToSuppliers(rfqId, supplierIds, templateCode);
       
       res.json({ 
         success: true, 
