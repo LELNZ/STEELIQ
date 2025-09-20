@@ -11111,7 +11111,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const accessToken = poTrackingService.generateAccessToken();
       const portalUrl = poTrackingService.generatePortalUrl(distributionId, accessToken);
 
-      // Track document send in history
+      // Track document send in history (temporarily disabled until table is created)
+      // TODO: Enable document tracking once database tables are created
+      /*
       await storage.trackDocumentSend({
         documentType: 'PO',
         documentId: purchaseOrderId,
@@ -11138,6 +11140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           bcc: bcc,
         },
       });
+      */
 
       // Update PO status to sent
       await storage.updatePurchaseOrder(purchaseOrderId, { status: 'sent' });
@@ -11671,7 +11674,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         html = generateFallbackHTML(purchaseOrder, supplier, items, templateOptions);
       }
 
-      // Track document action (download or view)
+      // Track document action (download or view) - temporarily disabled until table is created
+      // TODO: Enable document tracking once database tables are created
+      /*
       const currentUser = (req as any).user;
       await storage.trackDocumentSend({
         documentType: 'PO',
@@ -11690,6 +11695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalAmount: purchaseOrder.totalAmount,
         },
       });
+      */
       
       // If download is requested, convert HTML to PDF using Puppeteer
       if (download) {
