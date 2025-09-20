@@ -11145,22 +11145,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use the proper integrated services
       const { templateHierarchyService } = await import('./services/templateHierarchyService');
-      const { db, sql, communicationTemplates, templateVersions } = await import('./db');
+      const db = await import('./db');
       
-      // Get the template from database
-      const [template] = await db
+      // Get the template from database - using raw SQL for safety
+      const templateQuery = await db.db
         .select({
-          id: communicationTemplates.id,
-          code: communicationTemplates.code,
-          name: communicationTemplates.name,
-          content: templateVersions.htmlTemplate,
-          variables: communicationTemplates.variables,
-          defaultOptions: communicationTemplates.defaultOptions
+          id: db.communicationTemplates.id,
+          code: db.communicationTemplates.code,
+          name: db.communicationTemplates.name,
+          content: db.templateVersions.htmlTemplate,
+          variables: db.communicationTemplates.variables,
+          defaultOptions: db.communicationTemplates.defaultOptions
         })
-        .from(communicationTemplates)
-        .leftJoin(templateVersions, sql`${templateVersions.id} = ${communicationTemplates.currentVersionId}`)
-        .where(sql`${communicationTemplates.code} = ${templateCode} AND ${communicationTemplates.type} = 'PO' AND ${communicationTemplates.category} = 'Documents'`)
-        .limit(1);
+        .from(db.communicationTemplates)
+        .leftJoin(db.templateVersions, db.sql`${db.templateVersions.id} = ${db.communicationTemplates.currentVersionId}`)
+        .where(db.sql`${db.communicationTemplates.code} = ${templateCode} AND ${db.communicationTemplates.type} = 'PO' AND ${db.communicationTemplates.category} = 'Documents'`);
+      
+      const template = templateQuery[0];
 
       // Prepare template data
       const templateData = {
