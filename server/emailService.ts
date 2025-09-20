@@ -132,7 +132,21 @@ export class EmailService {
 
       // Try to use database template first
       let htmlBody: string;
+      // Map data to match template variables
       const templateData = {
+        // Direct PO fields for template compatibility
+        orderNumber: params.poData.poNumber,
+        orderDate: params.poData.orderDate,
+        deliveryDate: params.poData.deliveryDate,
+        dueDate: params.poData.deliveryDate,
+        totalAmount: totalAmount,
+        currency: params.poData.currency || 'NZD',
+        lineItems: params.poData.items || [],
+        specialInstructions: params.poData.specialInstructions,
+        supplierReference: params.poData.supplierReference,
+        paymentTerms: params.poData.paymentTerms || 'Net 30',
+        deliveryAddress: params.poData.deliveryAddress,
+        // Nested objects for advanced templates
         po: {
           ...params.poData,
           number: params.poData.poNumber,
@@ -147,7 +161,8 @@ export class EmailService {
           company: params.supplierData.company,
           email: params.supplierData.email,
           phone: params.supplierData.phone,
-          address: params.supplierData.address
+          address: params.supplierData.address,
+          contactPerson: params.supplierData.primaryContact?.name || params.supplierData.accountManager
         },
         company: {
           name: 'Lateral Engineering Limited',
@@ -157,8 +172,10 @@ export class EmailService {
           website: 'www.lateralengineering.co.nz'
         },
         body: params.body,
+        emailBody: params.body, // Alternative variable name
         greeting: params.body.toLowerCase().trim().startsWith('dear ') ? '' : `Dear ${params.supplierData.name || params.supplierData.company || 'Valued Partner'},`,
         year: new Date().getFullYear(),
+        currentDate: new Date().toLocaleDateString('en-NZ'),
         portalUrl: params.portalUrl,
         requestAcknowledgment: params.requestAcknowledgment
       };
