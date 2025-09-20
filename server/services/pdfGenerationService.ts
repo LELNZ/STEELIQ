@@ -349,25 +349,18 @@ export class PDFGenerationService {
   private async getTemplate(type: string, code?: string, supplierId?: number) {
     // First check for supplier-specific override
     if (supplierId) {
-      // Use getEffectiveTemplate which is the correct method
-      const supplierTemplate = await templateHierarchyService.getEffectiveTemplate(type, code, supplierId);
-      if (supplierTemplate) {
-        // Transform the response to match expected format
-        const [template] = await db
-          .select({
-            id: communicationTemplates.id,
-            code: communicationTemplates.code,
-            name: communicationTemplates.name,
-            htmlTemplate: templateVersions.htmlTemplate,
-            defaultOptions: communicationTemplates.defaultOptions,
-            theme: communicationTemplates.theme
-          })
-          .from(communicationTemplates)
-          .leftJoin(templateVersions, sql`${templateVersions.id} = ${communicationTemplates.currentVersionId}`)
-          .where(sql`${communicationTemplates.id} = ${supplierTemplate.id}`)
-          .limit(1);
-        
-        if (template) return template;
+      // Use getTemplateForSupplier which is the correct method
+      const supplierTemplateResult = await templateHierarchyService.getTemplateForSupplier(type, supplierId);
+      if (supplierTemplateResult && supplierTemplateResult.template) {
+        // Return the template with HTML content from version
+        return {
+          id: supplierTemplateResult.template.id,
+          code: supplierTemplateResult.template.code,
+          name: supplierTemplateResult.template.name,
+          htmlTemplate: supplierTemplateResult.version?.htmlTemplate || supplierTemplateResult.version?.content,
+          defaultOptions: supplierTemplateResult.template.defaultOptions,
+          theme: supplierTemplateResult.template.theme
+        };
       }
     }
     

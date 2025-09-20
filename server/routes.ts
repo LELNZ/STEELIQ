@@ -11144,7 +11144,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const supplier = await storage.getSupplier(purchaseOrder.supplierId);
 
       // Import database and tables properly
-      const { db, sql, communicationTemplates, templateVersions } = await import('./db');
+      const { db } = await import('./db');
+      const { communicationTemplates, templateVersions } = await import('@shared/schema');
+      const { sql } = await import('drizzle-orm');
       
       // Get the template from database
       const templateQuery = await db
@@ -11216,7 +11218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let html: string;
       if (template && template.content) {
         // Use Handlebars to render the template with granular options
-        const Handlebars = require('handlebars');
+        const Handlebars = (await import('handlebars')).default;
         
         // Register helper for granular content control
         Handlebars.registerHelper('if_option', function(this: any, optionName: string, opts: any) {
