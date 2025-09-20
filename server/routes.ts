@@ -17,7 +17,7 @@ import csv from 'csv-parser';
 import { Readable } from 'stream';
 import { analyzeConstructionDrawing, validateSteelSpecifications } from "./pdf-analysis";
 import { googleAuth } from "./googleAuth";
-import { emailService } from "./emailService";
+import { integratedEmailService } from "./services/integratedEmailService";
 import { poTrackingService } from "./poTracking";
 
 export async function registerRoutes(app: Express): Promise<Server> {

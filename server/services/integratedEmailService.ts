@@ -2,7 +2,7 @@ import sgMail from '@sendgrid/mail';
 import { pdfGenerationService } from './pdfGenerationService';
 import { templateHierarchyService } from './templateHierarchyService';
 import { db } from '../db';
-import { sql } from 'drizzle-orm';
+import { sql, inArray } from 'drizzle-orm';
 import { 
   purchaseOrders, 
   suppliers, 
@@ -181,11 +181,23 @@ export class IntegratedEmailService {
         throw new Error('RFQ not found');
       }
 
-      // Get suppliers
+      // Get suppliers - validate and parse supplier IDs first
+      const validSupplierIds = params.supplierIds
+        .map(id => parseInt(id.toString(), 10))
+        .filter(id => !isNaN(id) && id > 0);
+      
+      if (validSupplierIds.length === 0) {
+        return { 
+          success: false, 
+          results: [], 
+          error: 'No valid supplier IDs provided' 
+        };
+      }
+
       const suppliersList = await db
         .select()
         .from(suppliers)
-        .where(sql`${suppliers.id} IN (${sql.raw(params.supplierIds.join(','))})`);
+        .where(inArray(suppliers.id, validSupplierIds));
 
       const branding = await templateHierarchyService.getOrganizationBranding();
       const results = [];
