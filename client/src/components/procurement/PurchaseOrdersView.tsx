@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +75,7 @@ export default function PurchaseOrdersView() {
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusDialogPO, setStatusDialogPO] = useState<any>(null);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [defaultTemplate, setDefaultTemplate] = useState<string>('PO_STANDARD');
   const { toast } = useToast();
 
   // Fetch approved requisitions ready for conversion
@@ -141,6 +142,30 @@ export default function PurchaseOrdersView() {
       });
     },
   });
+
+  // Fetch default PO template
+  useEffect(() => {
+    async function fetchDefaultTemplate() {
+      try {
+        const response = await fetch('/api/communication-templates?types=PO');
+        if (response.ok) {
+          const templates = await response.json();
+          // Filter for Document category templates
+          const documentTemplates = templates.filter((t: any) => t.category === 'Documents');
+          // Find the default template or fallback to PO_STANDARD
+          const defaultTemplateObj = documentTemplates.find((t: any) => t.isDefault) || 
+                                    documentTemplates.find((t: any) => t.code === 'PO_STANDARD') ||
+                                    documentTemplates[0];
+          if (defaultTemplateObj) {
+            setDefaultTemplate(defaultTemplateObj.code);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching default template:', error);
+      }
+    }
+    fetchDefaultTemplate();
+  }, []);
 
   const filteredPOs = purchaseOrders.filter((po: any) => {
     const supplier = suppliers.find((s: any) => s.id === po.supplierId);
@@ -397,7 +422,7 @@ export default function PurchaseOrdersView() {
                             onClick={() => {
                               // Download PDF with default template
                               const link = document.createElement('a');
-                              link.href = `/api/procurement/purchase-orders/${po.id}/pdf?templateCode=PO_STANDARD&showLineItems=true&showDescriptions=true&showTotals=true&showTerms=true&showDeliveryDetails=true&showPaymentTerms=true&download=true`;
+                              link.href = `/api/procurement/purchase-orders/${po.id}/pdf?templateCode=${defaultTemplate}&showLineItems=true&showDescriptions=true&showTotals=true&showTerms=true&showDeliveryDetails=true&showPaymentTerms=true&download=true`;
                               link.download = `PO-${po.poNumber}.pdf`;
                               document.body.appendChild(link);
                               link.click();
@@ -414,15 +439,39 @@ export default function PurchaseOrdersView() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
-                              // Open PDF in new tab for printing
-                              window.open(
-                                `/api/procurement/purchase-orders/${po.id}/pdf?templateCode=PO_STANDARD&showLineItems=true&showDescriptions=true&showTotals=true&showTerms=true&showDeliveryDetails=true&showPaymentTerms=true`,
-                                '_blank'
-                              );
+                              // Create hidden iframe for printing
+                              const printFrame = document.createElement('iframe');
+                              printFrame.style.display = 'none';
+                              printFrame.src = `/api/procurement/purchase-orders/${po.id}/pdf?templateCode=${defaultTemplate}&showLineItems=true&showDescriptions=true&showTotals=true&showTerms=true&showDeliveryDetails=true&showPaymentTerms=true`;
+                              document.body.appendChild(printFrame);
+
+                              // Handle iframe load and trigger print
+                              printFrame.onload = () => {
+                                setTimeout(() => {
+                                  if (printFrame.contentWindow) {
+                                    try {
+                                      printFrame.contentWindow.focus();
+                                      printFrame.contentWindow.print();
+                                    } catch (error) {
+                                      console.error('Error printing:', error);
+                                      // Fallback to opening in new window
+                                      window.open(printFrame.src, '_blank');
+                                      toast({
+                                        title: "Print Dialog",
+                                        description: "Please use the browser's print function (Ctrl+P or Cmd+P)",
+                                      });
+                                    }
+                                  }
+                                  // Clean up iframe after printing
+                                  setTimeout(() => {
+                                    document.body.removeChild(printFrame);
+                                  }, 1000);
+                                }, 500); // Small delay to ensure PDF is fully rendered
+                              };
                               
                               toast({
-                                title: "Opening PDF",
-                                description: "Opening PDF for printing in new tab",
+                                title: "Preparing Print",
+                                description: `Preparing Purchase Order ${po.poNumber} for printing`,
                               });
                             }}
                           >

@@ -322,7 +322,7 @@ export class PDFGenerationService {
       });
       
       // Wait for any images or fonts to load
-      await page.waitForTimeout(500);
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Generate PDF with A4 format
       const pdfBuffer = await page.pdf({

@@ -11111,36 +11111,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const accessToken = poTrackingService.generateAccessToken();
       const portalUrl = poTrackingService.generatePortalUrl(distributionId, accessToken);
 
-      // Track document send in history (temporarily disabled until table is created)
-      // TODO: Enable document tracking once database tables are created
-      /*
-      await storage.trackDocumentSend({
-        documentType: 'PO',
-        documentId: purchaseOrderId,
-        documentNumber: purchaseOrder.poNumber,
-        action: 'sent',
-        templateCode: templateCode || 'PO_STANDARD',
-        templateOptions: templateOptions,
-        recipient: {
-          email: Array.isArray(to) ? to[0] : to,
-          name: supplier.name,
-        },
-        sendMethod: 'email',
-        htmlContent: emailResult.html?.substring(0, 5000), // Store first 5000 chars
-        emailStatus: 'sent',
-        emailTrackingId: emailResult.messageId,
-        sentBy: userId,
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-        metadata: {
-          supplierId: purchaseOrder.supplierId,
-          totalAmount: purchaseOrder.totalAmount,
-          jobId: purchaseOrder.jobId,
-          cc: cc,
-          bcc: bcc,
-        },
-      });
-      */
+      // Track document send in history
+      try {
+        await storage.trackDocumentSend({
+          documentType: 'PO',
+          documentId: purchaseOrderId,
+          documentNumber: purchaseOrder.poNumber,
+          action: 'sent',
+          templateCode: templateCode || 'PO_STANDARD',
+          templateOptions: templateOptions,
+          recipient: {
+            email: Array.isArray(to) ? to[0] : to,
+            name: supplier.name,
+          },
+          sendMethod: 'email',
+          htmlContent: emailResult.html?.substring(0, 5000), // Store first 5000 chars
+          emailStatus: 'sent',
+          emailTrackingId: emailResult.messageId,
+          sentBy: userId,
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+          metadata: {
+            supplierId: purchaseOrder.supplierId,
+            totalAmount: purchaseOrder.totalAmount,
+            jobId: purchaseOrder.jobId,
+            cc: cc,
+            bcc: bcc,
+          },
+        });
+      } catch (trackingError) {
+        console.error('Failed to track document send:', trackingError);
+        // Continue anyway - tracking failure shouldn't stop the PO from being sent
+      }
 
       // Update PO status to sent
       await storage.updatePurchaseOrder(purchaseOrderId, { status: 'sent' });
@@ -11674,28 +11676,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         html = generateFallbackHTML(purchaseOrder, supplier, items, templateOptions);
       }
 
-      // Track document action (download or view) - temporarily disabled until table is created
-      // TODO: Enable document tracking once database tables are created
-      /*
-      const currentUser = (req as any).user;
-      await storage.trackDocumentSend({
-        documentType: 'PO',
-        documentId: purchaseOrderId,
-        documentNumber: purchaseOrder.poNumber,
-        action: download ? 'downloaded' : 'viewed',
-        templateCode: templateCode,
-        templateOptions: templateOptions,
-        sendMethod: download ? 'download' : 'portal',
-        htmlContent: html.substring(0, 5000), // Store first 5000 chars
-        sentBy: currentUser?.id,
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-        metadata: {
-          supplier: supplier?.name,
-          totalAmount: purchaseOrder.totalAmount,
-        },
-      });
-      */
+      // Track document action (download or view)
+      try {
+        const currentUser = (req as any).user;
+        await storage.trackDocumentSend({
+          documentType: 'PO',
+          documentId: purchaseOrderId,
+          documentNumber: purchaseOrder.poNumber,
+          action: download ? 'downloaded' : 'viewed',
+          templateCode: templateCode,
+          templateOptions: templateOptions,
+          sendMethod: download ? 'download' : 'portal',
+          htmlContent: html.substring(0, 5000), // Store first 5000 chars
+          sentBy: currentUser?.id,
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+          metadata: {
+            supplier: supplier?.name,
+            totalAmount: purchaseOrder.totalAmount,
+          },
+        });
+      } catch (trackingError) {
+        console.error('Failed to track document action:', trackingError);
+        // Continue anyway - tracking failure shouldn't stop the PDF from being generated
+      }
       
       // If download is requested, convert HTML to PDF using Puppeteer
       if (download) {
