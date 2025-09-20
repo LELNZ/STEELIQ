@@ -12765,6 +12765,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Organization branding endpoints
+  app.get('/api/organization/branding', async (req, res) => {
+    try {
+      const { templateHierarchyService } = await import('./services/templateHierarchyService');
+      const branding = await templateHierarchyService.getOrganizationBranding();
+      res.json(branding);
+    } catch (error) {
+      console.error('Error fetching organization branding:', error);
+      res.status(500).json({ error: 'Failed to fetch branding settings' });
+    }
+  });
+
+  app.put('/api/organization/branding', async (req, res) => {
+    try {
+      const { templateHierarchyService } = await import('./services/templateHierarchyService');
+      await templateHierarchyService.updateOrganizationBranding(req.body);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error updating organization branding:', error);
+      res.status(500).json({ error: 'Failed to update branding settings' });
+    }
+  });
+
+  // Get color scheme presets
+  app.get('/api/organization/color-schemes', async (req, res) => {
+    try {
+      const { templateHierarchyService } = await import('./services/templateHierarchyService');
+      const schemes = templateHierarchyService.getColorSchemePresets();
+      res.json(schemes);
+    } catch (error) {
+      console.error('Error fetching color schemes:', error);
+      res.status(500).json({ error: 'Failed to fetch color schemes' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
