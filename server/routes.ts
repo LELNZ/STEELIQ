@@ -11046,21 +11046,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tempAccessToken = poTrackingService.generateAccessToken();
       const tempPortalUrl = poTrackingService.generatePortalUrl(tempDistId, tempAccessToken);
 
-      // Send the actual email with attachments
-      const emailResult = await emailService.sendPurchaseOrder({
+      // Import the integrated email service
+      const { integratedEmailService } = await import('./services/integratedEmailService');
+      
+      // Send the actual email with attachments using integrated service
+      const emailResult = await integratedEmailService.sendPurchaseOrder({
+        purchaseOrderId,
         to: Array.isArray(to) ? to : [to],
         cc: cc ? (Array.isArray(cc) ? cc : [cc]) : undefined,
-        bcc: bcc ? (Array.isArray(bcc) ? bcc : [bcc]) : undefined,
-        subject: subject || `Purchase Order ${purchaseOrder.poNumber}`,
-        body: body || `Please find attached Purchase Order ${purchaseOrder.poNumber} for your review and processing.`,
-        poData,
-        supplierData: supplier,
-        templateType,
-        templateId: req.body.templateId,
-        templateOptions: req.body.templateOptions,
-        portalUrl: req.body.includePortalLink ? tempPortalUrl : undefined,
-        requestAcknowledgment: req.body.requestAcknowledgment || requireSignature || false,
-        formats: formats || { pdf: true }
+        templateCode: req.body.templateCode || 'PO_STANDARD',
+        customMessage: body || `Please find attached Purchase Order ${purchaseOrder.poNumber} for your review and processing.`
       });
 
       if (!emailResult.success) {
@@ -11901,11 +11896,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rfqId = parseInt(req.params.id);
       const { supplierIds, templateCode } = req.body;
       
-      // Import the RFQ email service
-      const { rfqEmailService } = await import('./services/rfqEmailService');
+      // Import the integrated email service
+      const { integratedEmailService } = await import('./services/integratedEmailService');
       
       // Send emails to suppliers with template
-      const result = await rfqEmailService.sendRFQToSuppliers(rfqId, supplierIds, templateCode);
+      const result = await integratedEmailService.sendRFQ({
+        rfqId,
+        supplierIds,
+        templateCode,
+        customMessage: req.body.customMessage
+      });
       
       res.json({ 
         success: true, 
@@ -11924,11 +11924,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rfqId = parseInt(req.params.id);
       const { supplierIds } = req.body;
       
-      // Import the RFQ email service
-      const { rfqEmailService } = await import('./services/rfqEmailService');
+      // Import the integrated email service
+      const { integratedEmailService } = await import('./services/integratedEmailService');
       
       // Send emails to additional suppliers
-      const result = await rfqEmailService.sendRFQToSuppliers(rfqId, supplierIds);
+      const result = await integratedEmailService.sendRFQ({
+        rfqId,
+        supplierIds
+      });
       
       res.json({ 
         success: true, 
@@ -11971,15 +11974,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Import the RFQ email service
-      const { rfqEmailService } = await import('./services/rfqEmailService');
+      // Import the integrated email service
+      const { integratedEmailService } = await import('./services/integratedEmailService');
       
-      // Send reminder emails (reuse the sendRFQToSuppliers function)
-      const result = await rfqEmailService.sendRFQToSuppliers(
-        rfqId, 
-        nonResponsiveSuppliers.map((s: any) => s.id),
-        true // isReminder flag
-      );
+      // Send reminder emails
+      const result = await integratedEmailService.sendRFQ({
+        rfqId,
+        supplierIds: nonResponsiveSuppliers.map((s: any) => s.id),
+        customMessage: 'This is a reminder - please submit your quote by the due date.'
+      });
       
       res.json({ 
         success: true, 
