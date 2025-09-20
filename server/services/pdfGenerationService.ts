@@ -313,25 +313,38 @@ export class PDFGenerationService {
       await this.initBrowser();
       page = await this.browser.newPage();
       
+      // Set viewport for consistent rendering
+      await page.setViewport({ width: 1280, height: 720 });
+      
       // Set the HTML content
       await page.setContent(html, {
-        waitUntil: 'networkidle0'
+        waitUntil: ['domcontentloaded', 'networkidle0']
       });
+      
+      // Wait for any images or fonts to load
+      await page.waitForTimeout(500);
       
       // Generate PDF with A4 format
       const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
         margin: {
-          top: template.defaultOptions?.margins?.top || '20mm',
-          bottom: template.defaultOptions?.margins?.bottom || '20mm',
-          left: template.defaultOptions?.margins?.left || '20mm',
-          right: template.defaultOptions?.margins?.right || '20mm',
+          top: '10mm',
+          bottom: '10mm',
+          left: '10mm',
+          right: '10mm',
         },
-        displayHeaderFooter: false
+        displayHeaderFooter: false,
+        preferCSSPageSize: false
       });
       
-      return pdfBuffer;
+      // Validate the PDF buffer
+      if (!pdfBuffer || pdfBuffer.length === 0) {
+        throw new Error('PDF generation returned empty buffer');
+      }
+      
+      console.log(`PDF generated successfully: ${pdfBuffer.length} bytes`);
+      return Buffer.from(pdfBuffer);
       
     } catch (error) {
       console.error('PDF generation failed:', error);

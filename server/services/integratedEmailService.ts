@@ -118,6 +118,12 @@ export class IntegratedEmailService {
         data: templateData,
         contentOptions: params.contentOptions // Pass granular content controls
       });
+      
+      // Validate PDF buffer
+      if (!pdfBuffer || pdfBuffer.length === 0) {
+        throw new Error('PDF generation failed - empty buffer');
+      }
+      console.log('Generated PDF buffer size:', pdfBuffer.length, 'bytes');
 
       // Get email template
       const [emailTemplate] = await db
@@ -142,10 +148,11 @@ export class IntegratedEmailService {
         : this.getDefaultPOEmailHtml(templateData);
 
       // Send email with attachment
-      return this.sendEmail({
+      const result = await this.sendEmail({
         to: params.to,
         cc: params.cc,
         from: branding?.email || 'accounts@lateralengineering.co.nz',
+        replyTo: branding?.email || 'accounts@lateralengineering.co.nz',
         subject: emailSubject,
         html: emailHtml,
         attachments: [{
@@ -155,6 +162,12 @@ export class IntegratedEmailService {
           disposition: 'attachment'
         }]
       });
+      
+      // Return result and include HTML for tracking
+      return {
+        ...result,
+        html: emailHtml
+      };
 
     } catch (error) {
       console.error('Error sending purchase order:', error);
@@ -520,22 +533,149 @@ export class IntegratedEmailService {
 
   // Default email HTML templates
   private getDefaultPOEmailHtml(data: any): string {
+    const formatDate = (date: any) => {
+      if (!date) return 'As per agreement';
+      const d = new Date(date);
+      return d.toLocaleDateString('en-NZ', { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      });
+    };
+    
+    const formatCurrency = (amount: any) => {
+      return Number(amount || 0).toLocaleString('en-NZ', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      });
+    };
+    
     return `
-      <div style="font-family: Arial, sans-serif; color: #333;">
-        <h2>Purchase Order ${data.po.number}</h2>
-        <p>Dear ${data.supplier.company || 'Supplier'},</p>
-        <p>Please find attached Purchase Order ${data.po.number} for ${data.po.jobName || 'your reference'}.</p>
-        ${data.customMessage ? `<p>${data.customMessage}</p>` : ''}
-        <p><strong>Key Details:</strong></p>
-        <ul>
-          <li>PO Number: ${data.po.number}</li>
-          <li>Date: ${new Date(data.po.date).toLocaleDateString()}</li>
-          ${data.po.deliveryDate ? `<li>Required Delivery: ${new Date(data.po.deliveryDate).toLocaleDateString()}</li>` : ''}
-          <li>Total Amount: $${data.po.total.toFixed(2)} ${data.po.currency}</li>
-        </ul>
-        <p>Please acknowledge receipt of this purchase order.</p>
-        <p>Best regards,<br>Procurement Team<br>Lateral Engineering Limited</p>
-      </div>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+          }
+          .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+          }
+          .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px 10px 0 0;
+            text-align: center;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+          }
+          .content {
+            background: #fff;
+            padding: 30px;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+          }
+          .details {
+            background-color: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+          }
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          .detail-row:last-child {
+            border-bottom: none;
+          }
+          .attachment-notice {
+            background-color: #fef3c7;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 20px 0;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="email-container">
+          <div class="header">
+            <h1>Purchase Order ${data.po.number}</h1>
+            <p style="margin: 5px 0 0 0; opacity: 0.95;">Lateral Engineering Limited</p>
+          </div>
+          
+          <div class="content">
+            <p>Dear ${data.supplier.company || data.supplier.name || 'Valued Supplier'},</p>
+            
+            <p>We are pleased to submit <strong>Purchase Order ${data.po.number}</strong> for your review and acknowledgment.</p>
+            
+            <div class="details">
+              <div class="detail-row">
+                <span><strong>Order Date:</strong></span>
+                <span>${formatDate(data.po.date)}</span>
+              </div>
+              <div class="detail-row">
+                <span><strong>Delivery Required:</strong></span>
+                <span>${formatDate(data.po.deliveryDate)}</span>
+              </div>
+              ${data.po.jobNumber ? `
+              <div class="detail-row">
+                <span><strong>Project:</strong></span>
+                <span>${data.po.jobNumber} - ${data.po.jobName || ''}</span>
+              </div>
+              ` : ''}
+              <div class="detail-row">
+                <span><strong>Total Amount:</strong></span>
+                <span style="font-size: 18px; color: #667eea;">
+                  ${data.po.currency || 'NZD'} $${formatCurrency(data.po.total)}
+                </span>
+              </div>
+            </div>
+            
+            <div class="attachment-notice">
+              <strong>📎 Purchase Order Attached</strong><br>
+              Please review the attached PDF for complete order details, terms, and conditions.
+            </div>
+            
+            ${data.customMessage ? `<p>${data.customMessage}</p>` : ''}
+            
+            <p>Please acknowledge receipt of this purchase order at your earliest convenience.</p>
+            
+            <div class="footer">
+              <p>Best regards,<br>
+              <strong>Procurement Team</strong><br>
+              Lateral Engineering Limited</p>
+              
+              <p style="color: #9ca3af; font-size: 12px; margin-top: 20px;">
+                📧 accounts@lateralengineering.co.nz<br>
+                📍 Auckland, New Zealand
+              </p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
     `;
   }
 
