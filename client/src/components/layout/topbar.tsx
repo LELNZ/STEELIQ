@@ -32,12 +32,13 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
       <div className="flex items-center justify-between gap-2">
         {/* Mobile menu button and logo */}
         <div className="flex items-center min-w-0 flex-1 gap-2">
-          {/* Hamburger menu button - only on mobile */}
+          {/* Hamburger menu button - controls sidebar collapse */}
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden h-8 w-8"
+            className="h-8 w-8"
             onClick={onMenuClick}
+            title="Toggle sidebar"
           >
             <Menu className="h-5 w-5" />
           </Button>

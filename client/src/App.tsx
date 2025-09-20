@@ -117,6 +117,9 @@ function Router() {
 function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sidebarCollapsed') === 'true';
+  });
   
   if (!isAuthenticated) {
     return (
@@ -126,9 +129,15 @@ function Layout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const toggleSidebarCollapse = () => {
+    const newCollapsed = !isSidebarCollapsed;
+    setIsSidebarCollapsed(newCollapsed);
+    localStorage.setItem('sidebarCollapsed', newCollapsed.toString());
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <TopBar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <TopBar onMenuClick={toggleSidebarCollapse} />
       <div className="flex min-h-screen pt-0">
         {/* Mobile sidebar overlay */}
         <div 
@@ -142,7 +151,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         <div className={`${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } md:translate-x-0 fixed md:relative transition-transform duration-200 z-50 md:z-auto`}>
-          <Sidebar />
+          <Sidebar isCollapsed={isSidebarCollapsed} />
         </div>
         
         <main className="flex-1 p-2 sm:p-4 md:p-6 pb-20 max-w-full overflow-x-hidden">

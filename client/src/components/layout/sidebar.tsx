@@ -1,9 +1,6 @@
 import { Link, useLocation } from "wouter";
-import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import logoIcon from "@assets/LEL Symbol only.png";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -28,9 +25,7 @@ import {
   Factory,
   Calendar,
   ShoppingCart,
-  Shield,
-  ChevronLeft,
-  ChevronRight
+  Shield
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -86,22 +81,12 @@ const navigation = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isCollapsed?: boolean;
+}
+
+export default function Sidebar({ isCollapsed = false }: SidebarProps) {
   const [location] = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    // Load collapsed state from localStorage
-    const saved = localStorage.getItem('sidebarCollapsed');
-    return saved === 'true';
-  });
-
-  useEffect(() => {
-    // Save collapsed state to localStorage
-    localStorage.setItem('sidebarCollapsed', isCollapsed.toString());
-  }, [isCollapsed]);
-
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
 
   return (
     <div className={cn(
@@ -109,32 +94,6 @@ export default function Sidebar() {
       isCollapsed ? "w-20" : "w-64"
     )}>
       <div className="bg-card rounded-xl shadow-lg border h-full flex flex-col overflow-hidden">
-        {/* Collapse Toggle Button */}
-        <div className="p-3 border-b flex justify-between items-center">
-          {!isCollapsed && (
-            <div className="flex items-center gap-2">
-              <img src={logoIcon} alt="LEL" className="h-6 w-6" />
-              <span className="text-sm font-semibold">STEELIQ</span>
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleSidebar}
-            className={cn(
-              "p-0 h-8 w-8",
-              isCollapsed && "mx-auto"
-            )}
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-
         {/* Navigation */}
         <nav className={cn(
           "overflow-y-auto flex-1",
