@@ -1,6 +1,9 @@
 import { Link, useLocation } from "wouter";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import logoIcon from "@assets/LEL Symbol only.png";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -25,7 +28,9 @@ import {
   Factory,
   Calendar,
   ShoppingCart,
-  Shield
+  Shield,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -83,43 +88,129 @@ const navigation = [
 
 export default function Sidebar() {
   const [location] = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    // Load collapsed state from localStorage
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved === 'true';
+  });
+
+  useEffect(() => {
+    // Save collapsed state to localStorage
+    localStorage.setItem('sidebarCollapsed', isCollapsed.toString());
+  }, [isCollapsed]);
+
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
 
   return (
-    <div className="w-64 flex-shrink-0 p-4 pt-8 h-screen">
+    <div className={cn(
+      "flex-shrink-0 p-4 pt-8 h-screen transition-all duration-300 ease-in-out",
+      isCollapsed ? "w-20" : "w-64"
+    )}>
       <div className="bg-card rounded-xl shadow-lg border h-full flex flex-col overflow-hidden">
+        {/* Collapse Toggle Button */}
+        <div className="p-3 border-b flex justify-between items-center">
+          {!isCollapsed && (
+            <div className="flex items-center gap-2">
+              <img src={logoIcon} alt="LEL" className="h-6 w-6" />
+              <span className="text-sm font-semibold">STEELIQ</span>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebar}
+            className={cn(
+              "p-0 h-8 w-8",
+              isCollapsed && "mx-auto"
+            )}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
 
         {/* Navigation */}
-        <nav className="p-4 overflow-y-auto flex-1">
+        <nav className={cn(
+          "overflow-y-auto flex-1",
+          isCollapsed ? "p-2" : "p-4"
+        )}>
           {navigation.map((section) => (
-            <div key={section.name} className="mb-6">
-              <h3 className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                {section.name}
-              </h3>
+            <div key={section.name} className={cn(
+              isCollapsed ? "mb-3" : "mb-6"
+            )}>
+              {!isCollapsed && (
+                <h3 className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                  {section.name}
+                </h3>
+              )}
               <ul className="space-y-1">
                 {section.items.map((item) => {
                   const isActive = location === item.href;
+                  const linkContent = (
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "flex items-center text-sm font-medium rounded-lg transition-colors",
+                        isCollapsed ? "px-2 py-2 justify-center" : "px-3 py-2.5",
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      <item.icon className={cn(
+                        "h-4 w-4 flex-shrink-0",
+                        !isCollapsed && "mr-3"
+                      )} />
+                      {!isCollapsed && (
+                        <>
+                          <span className="flex-1">{item.name}</span>
+                          {item.badge && (
+                            <Badge 
+                              variant={item.badgeVariant as any || "secondary"} 
+                              className="ml-2 h-5 px-2 text-xs"
+                            >
+                              {item.badge}
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                    </Link>
+                  );
+
+                  if (isCollapsed) {
+                    return (
+                      <li key={item.name}>
+                        <Tooltip delayDuration={0}>
+                          <TooltipTrigger asChild>
+                            {linkContent}
+                          </TooltipTrigger>
+                          <TooltipContent side="right" sideOffset={5}>
+                            <div className="flex items-center gap-2">
+                              <span>{item.name}</span>
+                              {item.badge && (
+                                <Badge 
+                                  variant={item.badgeVariant as any || "secondary"} 
+                                  className="h-5 px-2 text-xs"
+                                >
+                                  {item.badge}
+                                </Badge>
+                              )}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </li>
+                    );
+                  }
+
                   return (
                     <li key={item.name}>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors",
-                          isActive
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                        )}
-                      >
-                        <item.icon className="mr-3 h-4 w-4" />
-                        <span className="flex-1">{item.name}</span>
-                        {item.badge && (
-                          <Badge 
-                            variant={item.badgeVariant as any || "secondary"} 
-                            className="ml-2 h-5 px-2 text-xs"
-                          >
-                            {item.badge}
-                          </Badge>
-                        )}
-                      </Link>
+                      {linkContent}
                     </li>
                   );
                 })}
