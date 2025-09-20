@@ -12838,6 +12838,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create email templates
+  app.post('/api/templates/create-email-templates', async (req, res) => {
+    try {
+      const { emailTemplatesService } = await import('./services/emailTemplatesService');
+      const result = await emailTemplatesService.createEmailTemplates();
+      res.json(result);
+    } catch (error) {
+      console.error('Error creating email templates:', error);
+      res.status(500).json({ error: 'Failed to create email templates' });
+    }
+  });
+
   // Generate PDF from template
   app.post('/api/templates/generate-pdf', async (req, res) => {
     try {
