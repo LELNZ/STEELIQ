@@ -11506,11 +11506,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const purchaseOrderId = parseInt(req.params.id);
       const templateCode = req.query.templateCode as string || 'PO_STANDARD';
+      const download = req.query.download === 'true'; // Check if download is requested
       
       // Parse template options from query params
       const templateOptions: any = {};
       Object.keys(req.query).forEach(key => {
-        if (key !== 'templateCode' && req.query[key] === 'true') {
+        if (key !== 'templateCode' && key !== 'download' && req.query[key] === 'true') {
           templateOptions[key] = true;
         }
       });
@@ -11620,9 +11621,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         html = generateFallbackHTML(purchaseOrder, supplier, items, templateOptions);
       }
 
-      // Send HTML as response (browser will render as PDF preview)
-      res.setHeader('Content-Type', 'text/html');
-      res.send(html);
+      // If download is requested, convert HTML to PDF using Puppeteer
+      if (download) {
+        try {
+          // Import Puppeteer Core which uses system chromium
+          const puppeteer = await import('puppeteer-core');
+          
+          // Launch browser with system chromium
+          const browser = await puppeteer.default.launch({
+            headless: true,
+            executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+          });
+          
+          const page = await browser.newPage();
+          
+          // Set HTML content
+          await page.setContent(html, {
+            waitUntil: 'networkidle0'
+          });
+          
+          // Emulate screen media for better CSS rendering
+          await page.emulateMediaType('screen');
+          
+          // Generate PDF in A4 format
+          const pdfBuffer = await page.pdf({
+            format: 'A4',
+            printBackground: true,
+            margin: {
+              top: '20mm',
+              right: '20mm',
+              bottom: '20mm',
+              left: '20mm'
+            },
+            displayHeaderFooter: false
+          });
+          
+          // Close browser
+          await browser.close();
+          
+          // Set headers for PDF download
+          const fileName = `PO-${purchaseOrder.poNumber}.pdf`;
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Length', pdfBuffer.length.toString());
+          res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+          
+          // Send PDF buffer as binary
+          res.end(pdfBuffer, 'binary');
+        } catch (pdfError) {
+          console.error("Error generating PDF with Puppeteer:", pdfError);
+          // Fallback to HTML if PDF generation fails
+          res.setHeader('Content-Type', 'text/html');
+          res.send(html);
+        }
+      } else {
+        // Send HTML as response for preview
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+      }
     } catch (error) {
       console.error("Error generating PDF:", error);
       res.status(500).json({ error: "Failed to generate PDF" });

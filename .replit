@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["jq", "chromium", "glib"]
+packages = ["jq", "chromium", "glib", "nss", "nspr", "fontconfig", "freetype"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -28,7 +28,7 @@ localPort = 43941
 externalPort = 3001
 
 [[ports]]
-localPort = 45943
+localPort = 44619
 externalPort = 3003
 
 [workflows]

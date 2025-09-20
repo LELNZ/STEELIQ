@@ -323,6 +323,34 @@ Lateral Engineering Procurement Team`);
     );
   };
 
+  const handlePdfDownload = () => {
+    if (!selectedTemplate) {
+      toast({
+        title: "Template Required",
+        description: "Please select a template before downloading PDF",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Build query params for template and granular content options
+    const optionsParams = Object.entries(templateOptions)
+      .filter(([_, value]) => value === true)
+      .map(([key, _]) => `${key}=true`)
+      .join('&');
+    
+    // Create a link to download the PDF with download=true parameter
+    const downloadUrl = `/api/procurement/purchase-orders/${purchaseOrder.id}/pdf?templateCode=${selectedTemplate}&${optionsParams}&download=true`;
+    
+    // Create temporary link and trigger download
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `PO-${purchaseOrder.poNumber}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1034,7 +1062,7 @@ Lateral Engineering Procurement Team`);
           <Button variant="outline" onClick={() => setShowPreview(false)}>
             Close
           </Button>
-          <Button onClick={handlePdfPreview}>
+          <Button onClick={handlePdfDownload}>
             <Download className="h-4 w-4 mr-2" />
             Download PDF
           </Button>
