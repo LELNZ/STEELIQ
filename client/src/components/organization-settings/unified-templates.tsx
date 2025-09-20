@@ -127,9 +127,14 @@ export default function UnifiedTemplates() {
   // Run migration mutation
   const migrationMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/templates/migration/run', {
+      const response = await fetch('/api/templates/migration/run', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+      if (!response.ok) throw new Error('Migration failed');
+      return response.json();
     },
     onSuccess: () => {
       toast({
