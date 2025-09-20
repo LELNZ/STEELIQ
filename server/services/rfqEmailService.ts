@@ -4,6 +4,7 @@ import { rfqRequests, rfqResponses, suppliers, purchaseRequisitions, requisition
 import { eq, inArray } from 'drizzle-orm';
 import { format } from 'date-fns';
 import { getDeliveryTermLabel } from '@shared/constants/deliveryTerms';
+import { templateService } from '../templateService';
 
 // Initialize SendGrid
 if (process.env.SENDGRID_API_KEY) {
@@ -55,7 +56,7 @@ export class RFQEmailService {
         try {
           const portalUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'steeliq.replit.app'}/supplier/rfq/${rfqId}?token=${this.generateAccessToken()}`;
           
-          const emailContent = this.generateRFQEmailContent({
+          const emailContent = await this.generateRFQEmailContent({
             rfq,
             supplier,
             requisitionDetails,
@@ -120,15 +121,77 @@ export class RFQEmailService {
     }
   }
 
-  private generateRFQEmailContent(params: {
+  private async generateRFQEmailContent(params: {
     rfq: any;
     supplier: any;
     requisitionDetails: any;
     requisitionItemsList: any[];
     portalUrl: string;
-  }): string {
-    const { rfq, supplier, requisitionDetails, requisitionItemsList, portalUrl } = params;
+    templateCode?: string;
+  }): Promise<string> {
+    const { rfq, supplier, requisitionDetails, requisitionItemsList, portalUrl, templateCode } = params;
     
+    // Try to use database template first
+    try {
+      const templateResult = await templateService.getTemplate(
+        'RFQ', 
+        templateCode || 'RFQ_STANDARD'
+      );
+      
+      if (templateResult) {
+        // Map data to match template variables
+        const templateData = {
+          // Direct RFQ fields for template compatibility
+          rfqNumber: rfq.rfqNumber,
+          title: rfq.title,
+          description: rfq.description,
+          responseDeadline: rfq.responseDeadline,
+          deliveryRequiredBy: rfq.deliveryRequiredBy,
+          deliveryTerms: getDeliveryTermLabel(rfq.deliveryTerms || 'delivery_workshop'),
+          paymentTerms: rfq.paymentTerms || 'Net 30',
+          specialRequirements: rfq.specialRequirements,
+          lineItems: requisitionItemsList || [],
+          items: requisitionItemsList || [],
+          // Nested objects for advanced templates
+          rfq: {
+            ...rfq,
+            number: rfq.rfqNumber,
+            formattedDeadline: rfq.responseDeadline ? format(new Date(rfq.responseDeadline), 'PPP') : 'Not specified',
+            formattedDeliveryDate: rfq.deliveryRequiredBy ? format(new Date(rfq.deliveryRequiredBy), 'PPP') : 'As soon as possible'
+          },
+          supplier: {
+            name: supplier.name || supplier.company || 'Valued Supplier',
+            company: supplier.company,
+            email: supplier.email,
+            phone: supplier.phone,
+            address: supplier.address
+          },
+          company: {
+            name: this.companyName,
+            email: this.fromEmail,
+            replyTo: this.replyToEmail
+          },
+          portalUrl: portalUrl,
+          currentDate: new Date().toLocaleDateString('en-NZ'),
+          year: new Date().getFullYear()
+        };
+        
+        // Render template with data
+        return templateService.renderTemplate(
+          templateResult.version.htmlTemplate,
+          templateData,
+          {
+            showLineItems: requisitionItemsList.length > 0,
+            showTerms: true,
+            showDeliveryDetails: true
+          }
+        );
+      }
+    } catch (error) {
+      console.error('Error rendering RFQ template, falling back to hardcoded:', error);
+    }
+    
+    // Fallback to hardcoded template
     return `
       <!DOCTYPE html>
       <html>
