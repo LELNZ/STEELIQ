@@ -6,7 +6,7 @@ import { sql, inArray } from 'drizzle-orm';
 import { 
   purchaseOrders, 
   suppliers, 
-  rfqs,
+  rfqRequests,
   quotes,
   organizationSettings,
   communicationTemplates,
@@ -173,8 +173,8 @@ export class IntegratedEmailService {
       // Fetch RFQ data
       const [rfqData] = await db
         .select()
-        .from(rfqs)
-        .where(sql`${rfqs.id} = ${params.rfqId}`)
+        .from(rfqRequests)
+        .where(sql`${rfqRequests.id} = ${params.rfqId}`)
         .limit(1);
 
       if (!rfqData) {
