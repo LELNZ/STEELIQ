@@ -3508,12 +3508,12 @@ export const communicationTemplates = pgTable("communication_templates", {
   code: varchar("code", { length: 50 }).unique().notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   type: varchar("type", { length: 20 }).notNull(), // 'PO', 'RFQ', 'QUOTE', 'INVOICE', 'RECEIPT', 'DELIVERY_NOTE'
-  category: varchar("category", { length: 50 }), // 'document', 'communication', 'notification'
+  category: varchar("category", { length: 50 }), // 'Documents', 'Email', 'Notifications'
   subCategory: varchar("sub_category", { length: 50 }), // 'acceptance_email', 'rejection_email', etc.
   description: text("description"),
   locale: varchar("locale", { length: 10 }).default("en-NZ"),
-  scope: varchar("scope", { length: 20 }).default("org"), // 'org', 'division', 'supplier'
-  scopeId: integer("scope_id"), // references division or supplier if scope-specific
+  scope: varchar("scope", { length: 20 }).default("org"), // 'org', 'division', 'supplier', 'client'
+  scopeId: integer("scope_id"), // references division, supplier, or client if scope-specific
   status: varchar("status", { length: 20 }).default("draft"), // 'draft', 'published', 'archived'
   currentVersionId: integer("current_version_id"),
   basedOnTemplateId: integer("based_on_template_id").references(() => communicationTemplates.id),
@@ -3589,6 +3589,44 @@ export const templateAssignments = pgTable("template_assignments", {
   effectiveUntil: timestamp("effective_until"),
   createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Organization-wide branding and template settings
+export const organizationBranding = pgTable("organization_branding", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").default(1), // Support for multi-org in future
+  brandName: varchar("brand_name", { length: 255 }).default("Lateral Engineering Limited"),
+  colorScheme: varchar("color_scheme", { length: 50 }).default("professional"), // professional, modern, vibrant, minimal, corporate
+  primaryColor: varchar("primary_color", { length: 7 }).default("#3b82f6"), // Blue
+  secondaryColor: varchar("secondary_color", { length: 7 }).default("#10b981"), // Green
+  accentColor: varchar("accent_color", { length: 7 }).default("#f59e0b"), // Amber
+  textColor: varchar("text_color", { length: 7 }).default("#1f2937"), // Dark Gray
+  backgroundColor: varchar("background_color", { length: 7 }).default("#ffffff"), // White
+  logoUrl: text("logo_url"),
+  faviconUrl: text("favicon_url"),
+  fontFamily: varchar("font_family", { length: 255 }).default("Helvetica Neue, Arial, sans-serif"),
+  headingFontFamily: varchar("heading_font_family", { length: 255 }).default("Helvetica Neue, Arial, sans-serif"),
+  defaultPaperSize: varchar("default_paper_size", { length: 10 }).default("A4"),
+  headerLayout: jsonb("header_layout").default({ style: "professional", showLogo: true, showDate: true }),
+  footerLayout: jsonb("footer_layout").default({ style: "simple", showPageNumbers: true, showCompanyInfo: true }),
+  customCss: text("custom_css"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Supplier-specific template overrides
+export const supplierTemplateOverrides = pgTable("supplier_template_overrides", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
+  templateType: varchar("template_type", { length: 20 }).notNull(), // 'PO', 'RFQ', etc.
+  templateId: integer("template_id").references(() => communicationTemplates.id).notNull(),
+  isActive: boolean("is_active").default(true),
+  priority: integer("priority").default(100), // Higher priority overrides lower
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Terms and Conditions Library
