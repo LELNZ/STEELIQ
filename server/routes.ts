@@ -11129,7 +11129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/procurement/purchase-orders/:id/preview-html", async (req, res) => {
     try {
       const purchaseOrderId = parseInt(req.params.id);
-      const { templateId = 'standard', options = {} } = req.body;
+      const { templateCode = 'PO_STANDARD', templateOptions = {} } = req.body;
 
       // Get PO details
       const purchaseOrder = await storage.getPurchaseOrder(purchaseOrderId);
@@ -11143,16 +11143,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get supplier
       const supplier = await storage.getSupplier(purchaseOrder.supplierId);
 
-      // Import template service to render with options
-      const { templateService } = await import('./templateService');
+      // Use the proper integrated services
+      const { templateHierarchyService } = await import('./services/templateHierarchyService');
+      const { db, sql, communicationTemplates, templateVersions } = await import('./db');
       
       // Get the template from database
-      const templateResult = await templateService.getTemplate(
-        'PO',
-        templateId === 'standard' ? 'PO_STANDARD' : 
-        templateId === 'detailed' ? 'PO_DETAILED' : 
-        templateId === 'simple' ? 'PO_SIMPLE' : 'PO_STANDARD'
-      );
+      const [template] = await db
+        .select({
+          id: communicationTemplates.id,
+          code: communicationTemplates.code,
+          name: communicationTemplates.name,
+          content: templateVersions.htmlTemplate,
+          variables: communicationTemplates.variables,
+          defaultOptions: communicationTemplates.defaultOptions
+        })
+        .from(communicationTemplates)
+        .leftJoin(templateVersions, sql`${templateVersions.id} = ${communicationTemplates.currentVersionId}`)
+        .where(sql`${communicationTemplates.code} = ${templateCode} AND ${communicationTemplates.type} = 'PO' AND ${communicationTemplates.category} = 'Documents'`)
+        .limit(1);
 
       // Prepare template data
       const templateData = {
@@ -11201,17 +11209,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         greeting: 'Dear ' + (supplier?.name || 'Supplier') + ',',
         body: 'Please find the purchase order details below. Please confirm receipt of this order at your earliest convenience.',
-        options
+        options: templateOptions  // Pass the granular content options
       };
 
       // Generate HTML based on template and options
       let html: string;
-      if (templateResult && templateResult.version) {
-        // Render the template with the template content from database
-        html = templateService.renderTemplate(templateResult.version.content, templateData, options);
+      if (template && template.content) {
+        // Use Handlebars to render the template with granular options
+        const Handlebars = require('handlebars');
+        
+        // Register helper for granular content control
+        Handlebars.registerHelper('if_option', function(this: any, optionName: string, opts: any) {
+          if (templateOptions[optionName] !== false) {
+            return opts.fn(this);
+          }
+          return opts.inverse(this);
+        });
+        
+        // Compile and render the template
+        const compiledTemplate = Handlebars.compile(template.content);
+        html = compiledTemplate(templateData);
       } else {
         // Fallback to default template
-        html = generateFallbackHTML(purchaseOrder, supplier, items, options);
+        html = generateFallbackHTML(purchaseOrder, supplier, items, templateOptions);
       }
 
       res.json({ html });
