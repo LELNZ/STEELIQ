@@ -56,6 +56,7 @@ export class IntegratedEmailService {
     cc?: string | string[];
     templateCode?: string;
     customMessage?: string;
+    contentOptions?: Record<string, boolean>; // Added for granular content control
   }): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
       // Fetch PO data with all relations
@@ -109,12 +110,13 @@ export class IntegratedEmailService {
         customMessage: params.customMessage
       };
 
-      // Generate PDF using template system
+      // Generate PDF using template system with content options
       const pdfBuffer = await pdfGenerationService.generatePDF({
         templateType: 'PO',
         templateCode: params.templateCode,
         supplierId: poData.supplier?.id,
-        data: templateData
+        data: templateData,
+        contentOptions: params.contentOptions // Pass granular content controls
       });
 
       // Get email template

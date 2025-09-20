@@ -238,8 +238,9 @@ Lateral Engineering Procurement Team`);
       bcc: bccEmails,
       subject: emailSubject,
       body: emailBody,
-      templateCode: selectedTemplate,  // Changed from templateId to templateCode
+      templateCode: selectedTemplate,  // Template code like 'PO_STANDARD'
       customMessage: emailBody,
+      templateOptions,  // Pass granular content control options
       deliveryMethod,
       formats,
       requireSignature,
@@ -252,6 +253,15 @@ Lateral Engineering Procurement Team`);
   const [previewHtml, setPreviewHtml] = useState("");
 
   const handlePreview = async () => {
+    if (!selectedTemplate) {
+      toast({
+        title: "Template Required",
+        description: "Please select a template before previewing",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       // Fetch the HTML preview with selected template and options
       const response = await fetch(
@@ -262,8 +272,8 @@ Lateral Engineering Procurement Team`);
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            templateId: selectedTemplate,
-            options: templateOptions
+            templateCode: selectedTemplate,  // Use template code
+            templateOptions: templateOptions  // Pass granular content options
           })
         }
       );
@@ -290,15 +300,25 @@ Lateral Engineering Procurement Team`);
   };
 
   const handlePdfPreview = () => {
-    // Build query params for template options
+    if (!selectedTemplate) {
+      toast({
+        title: "Template Required",
+        description: "Please select a template before generating PDF",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Build query params for template and granular content options
     const optionsParams = Object.entries(templateOptions)
       .filter(([_, value]) => value === true)
       .map(([key, _]) => `${key}=true`)
       .join('&');
     
     // Open PDF preview in new tab with template and options
+    // Include templateCode in the preview URL
     window.open(
-      `/api/procurement/purchase-orders/${purchaseOrder.id}/preview?template=${selectedTemplate}&${optionsParams}`, 
+      `/api/procurement/purchase-orders/${purchaseOrder.id}/preview?templateCode=${selectedTemplate}&${optionsParams}`,
       '_blank'
     );
   };
@@ -543,65 +563,51 @@ Lateral Engineering Procurement Team`);
                 <CardTitle>Select Template</CardTitle>
                 <CardDescription>Choose the PO format and layout</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-3">
-                  {templates.length > 0 ? (
-                    templates.map((template: any) => (
-                      <div
-                        key={template.code}
-                        className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                          selectedTemplate === template.code
-                            ? "border-primary bg-primary/5"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                        onClick={() => setSelectedTemplate(template.code)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium">{template.name}</h4>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {template.description || "Professional template for purchase orders"}
-                            </p>
-                            {template.isDefault && (
-                              <Badge variant="secondary" className="mt-2">
-                                Default
-                              </Badge>
-                            )}
-                          </div>
-                          {selectedTemplate === template.code && (
-                            <CheckCircle className="h-5 w-5 text-primary" />
-                          )}
+              <CardContent className="space-y-6">
+                {/* Template Selection Dropdown */}
+                <div className="space-y-2">
+                  <Label htmlFor="template-select">Document Template</Label>
+                  <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                    <SelectTrigger id="template-select" className="w-full">
+                      <SelectValue placeholder="Select a template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.length > 0 ? (
+                        templates.map((template: any) => (
+                          <SelectItem key={template.code} value={template.code}>
+                            <div className="flex items-center gap-2">
+                              <span>{template.name}</span>
+                              {template.isDefault && (
+                                <Badge variant="secondary" className="ml-2 text-xs">
+                                  Default
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          No templates available
                         </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p>No templates available</p>
-                      <p className="text-sm mt-1">Please create templates in Organization Settings</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Content Options */}
-                {/* Simplified template info - templates control the layout */}
-                <div className="pt-4 border-t">
-                  <h4 className="font-medium mb-3">Template Information</h4>
-                  <p className="text-sm text-muted-foreground">
-                    The selected template will determine the layout and styling of your purchase order.
-                  </p>
+                      )}
+                    </SelectContent>
+                  </Select>
                   {selectedTemplate && (
-                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                      <p className="text-sm font-medium">Selected: {templates.find((t: any) => t.code === selectedTemplate)?.name}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Template Code: {selectedTemplate}
-                      </p>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {templates.find((t: any) => t.code === selectedTemplate)?.description || "Professional purchase order template"}
+                    </p>
                   )}
                 </div>
 
-                {/* Remove old content options - templates now control this */}
-                <div className="hidden">
+                {/* Granular Content Options */}
+                <div className="space-y-4 pt-4 border-t">
+                  <div>
+                    <h4 className="font-medium mb-2">Content Sections</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Select which sections to include in the purchase order
+                    </p>
+                  </div>
+                  
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -727,14 +733,29 @@ Lateral Engineering Procurement Team`);
                   </div>
                 </div>
 
-                <div className="pt-4 space-y-2">
-                  <Button variant="outline" onClick={handlePreview} className="w-full">
+                {/* Action Buttons - After configuration */}
+                <div className="pt-4 border-t space-y-2">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Preview your document with selected template and options before sending
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={handlePreview} 
+                    className="w-full"
+                    disabled={!selectedTemplate}
+                  >
                     <Eye className="h-4 w-4 mr-2" />
-                    Preview with Options
+                    Preview with Selected Options
                   </Button>
-                  <Button variant="ghost" onClick={handlePdfPreview} className="w-full" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    onClick={handlePdfPreview} 
+                    className="w-full" 
+                    size="sm"
+                    disabled={!selectedTemplate}
+                  >
                     <FileText className="h-4 w-4 mr-2" />
-                    Preview as PDF
+                    Generate PDF Preview
                   </Button>
                 </div>
               </CardContent>

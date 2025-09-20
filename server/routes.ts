@@ -10999,9 +10999,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subject,
         body,
         templateId,
+        templateCode,
+        templateOptions,
         deliveryMethod,
         formats,
         requireSignature,
+        customMessage,
       } = req.body;
 
       // Get user
@@ -11049,13 +11052,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import the integrated email service
       const { integratedEmailService } = await import('./services/integratedEmailService');
       
-      // Send the actual email with attachments using integrated service
+      // Send the actual email with attachments using integrated service with content options
       const emailResult = await integratedEmailService.sendPurchaseOrder({
         purchaseOrderId,
         to: Array.isArray(to) ? to : [to],
         cc: cc ? (Array.isArray(cc) ? cc : [cc]) : undefined,
-        templateCode: req.body.templateCode || 'PO_STANDARD',
-        customMessage: body || `Please find attached Purchase Order ${purchaseOrder.poNumber} for your review and processing.`
+        templateCode: templateCode || 'PO_STANDARD',
+        customMessage: customMessage || body || `Please find attached Purchase Order ${purchaseOrder.poNumber} for your review and processing.`,
+        contentOptions: templateOptions // Pass the granular content control options
       });
 
       if (!emailResult.success) {

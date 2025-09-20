@@ -282,6 +282,7 @@ export class PDFGenerationService {
     clientId?: number;
     data: any;
     outputPath?: string;
+    contentOptions?: Record<string, boolean>; // Added for granular content control
   }): Promise<Buffer> {
     let page;
     
@@ -296,8 +297,13 @@ export class PDFGenerationService {
       // Get organization branding
       const branding = await templateHierarchyService.getOrganizationBranding();
       
-      // Prepare template data with branding
+      // Prepare template data with branding and content options
       const templateData = this.prepareTemplateData(options.templateType, options.data, branding);
+      
+      // Add content options to template data
+      if (options.contentOptions) {
+        templateData.options = options.contentOptions;
+      }
       
       // Compile and render the template
       const compiledTemplate = Handlebars.compile(template.htmlTemplate);
@@ -343,8 +349,26 @@ export class PDFGenerationService {
   private async getTemplate(type: string, code?: string, supplierId?: number) {
     // First check for supplier-specific override
     if (supplierId) {
-      const supplierTemplate = await templateHierarchyService.getSupplierTemplate(supplierId, type);
-      if (supplierTemplate) return supplierTemplate;
+      // Use getEffectiveTemplate which is the correct method
+      const supplierTemplate = await templateHierarchyService.getEffectiveTemplate(type, code, supplierId);
+      if (supplierTemplate) {
+        // Transform the response to match expected format
+        const [template] = await db
+          .select({
+            id: communicationTemplates.id,
+            code: communicationTemplates.code,
+            name: communicationTemplates.name,
+            htmlTemplate: templateVersions.htmlTemplate,
+            defaultOptions: communicationTemplates.defaultOptions,
+            theme: communicationTemplates.theme
+          })
+          .from(communicationTemplates)
+          .leftJoin(templateVersions, sql`${templateVersions.id} = ${communicationTemplates.currentVersionId}`)
+          .where(sql`${communicationTemplates.id} = ${supplierTemplate.id}`)
+          .limit(1);
+        
+        if (template) return template;
+      }
     }
     
     // Then check for specific template by code
