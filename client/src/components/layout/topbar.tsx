@@ -51,12 +51,11 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
                 className="w-full h-full object-contain"
               />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex items-center">
               <h1 className="text-sm sm:text-base lg:text-xl font-bold text-foreground truncate">
                 <span className="sm:hidden">LEL</span>
                 <span className="hidden sm:inline">Lateral Engineering Limited</span>
               </h1>
-              <p className="text-muted-foreground text-xs hidden lg:block">STEELIQ</p>
             </div>
           </div>
           {/* Real-time sync badge - only on large screens */}
