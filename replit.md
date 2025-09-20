@@ -136,6 +136,12 @@ Internal Team                          External Suppliers
 - Email cost import system
 - Supplier and client management
 - Audit trail system
+- **Template Management System** (Jan 2025)
+  - Database-driven templates for PO, RFQ, and Quotes
+  - Visual template builder with GrapesJS
+  - Template version control
+  - Variable mapping and dynamic rendering
+  - Template selection in send dialogs
 
 ### 🚧 In Active Development (January 2025)
 - ✅ RFQ management UI and workflow (COMPLETE)
