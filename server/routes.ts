@@ -11143,23 +11143,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get supplier
       const supplier = await storage.getSupplier(purchaseOrder.supplierId);
 
-      // Use the proper integrated services
-      const { templateHierarchyService } = await import('./services/templateHierarchyService');
-      const db = await import('./db');
+      // Import database and tables properly
+      const { db, sql, communicationTemplates, templateVersions } = await import('./db');
       
-      // Get the template from database - using raw SQL for safety
-      const templateQuery = await db.db
+      // Get the template from database
+      const templateQuery = await db
         .select({
-          id: db.communicationTemplates.id,
-          code: db.communicationTemplates.code,
-          name: db.communicationTemplates.name,
-          content: db.templateVersions.htmlTemplate,
-          variables: db.communicationTemplates.variables,
-          defaultOptions: db.communicationTemplates.defaultOptions
+          id: communicationTemplates.id,
+          code: communicationTemplates.code,
+          name: communicationTemplates.name,
+          content: templateVersions.htmlTemplate,
+          variables: communicationTemplates.variables,
+          defaultOptions: communicationTemplates.defaultOptions
         })
-        .from(db.communicationTemplates)
-        .leftJoin(db.templateVersions, db.sql`${db.templateVersions.id} = ${db.communicationTemplates.currentVersionId}`)
-        .where(db.sql`${db.communicationTemplates.code} = ${templateCode} AND ${db.communicationTemplates.type} = 'PO' AND ${db.communicationTemplates.category} = 'Documents'`);
+        .from(communicationTemplates)
+        .leftJoin(templateVersions, sql`${templateVersions.id} = ${communicationTemplates.currentVersionId}`)
+        .where(sql`${communicationTemplates.code} = ${templateCode} AND ${communicationTemplates.type} = 'PO' AND ${communicationTemplates.category} = 'Documents'`);
       
       const template = templateQuery[0];
 
