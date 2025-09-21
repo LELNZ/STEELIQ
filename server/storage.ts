@@ -2777,7 +2777,7 @@ export class DatabaseStorage implements IStorage {
   async clearProcurementData(userId: number): Promise<{ deletedCounts: any }> {
     const counts: any = {};
 
-    // Clear in order of dependencies without transaction to avoid rollback issues
+    // Clear in order of dependencies to handle circular foreign keys
     // Start with dependent tables first
     try {
       counts.goodsReceiptItems = await db.delete(goodsReceiptItems).returning().then(r => r.length);
@@ -2786,8 +2786,10 @@ export class DatabaseStorage implements IStorage {
       counts.goodsReceiptItems = 0;
     }
     
+    // Clear goods receipts using raw SQL to avoid column issues
     try {
-      counts.goodsReceipts = await db.delete(goodsReceipts).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM goods_receipts RETURNING id`);
+      counts.goodsReceipts = result.rows.length;
     } catch (e) {
       console.error("Error clearing goods receipts:", e);
       counts.goodsReceipts = 0;
@@ -2800,19 +2802,27 @@ export class DatabaseStorage implements IStorage {
       counts.purchaseOrderItems = 0;
     }
     
+    // Clear po_document_config using raw SQL to avoid column issues
     try {
-      counts.poDocumentConfig = await db.delete(poDocumentConfig).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM po_document_config RETURNING id`);
+      counts.poDocumentConfig = result.rows.length;
     } catch (e) {
       console.error("Error clearing PO document config:", e);
       counts.poDocumentConfig = 0;
     }
     
-    // Clear purchase orders - set job_id to null first to avoid FK constraint issues
+    // Handle circular foreign keys between purchase_orders and purchase_requisitions
+    // First, break the circular references by setting foreign keys to null
     try {
-      // First update all purchase orders to set job_id to null
-      await db.update(purchaseOrders).set({ jobId: null });
-      // Then delete them
-      counts.purchaseOrders = await db.delete(purchaseOrders).returning().then(r => r.length);
+      // Break the link from requisitions to POs
+      await db.execute(sql`UPDATE purchase_requisitions SET converted_to_po_id = NULL`);
+      
+      // Break the link from POs to requisitions and jobs
+      await db.execute(sql`UPDATE purchase_orders SET requisition_id = NULL, job_id = NULL`);
+      
+      // Now we can safely delete purchase orders
+      const poResult = await db.execute(sql`DELETE FROM purchase_orders RETURNING id`);
+      counts.purchaseOrders = poResult.rows.length;
     } catch (e) {
       console.error("Error clearing purchase orders:", e);
       counts.purchaseOrders = 0;
@@ -2827,10 +2837,9 @@ export class DatabaseStorage implements IStorage {
     
     // Clear RFQ requests - set job_id to null first
     try {
-      // First update all RFQ requests to set job_id to null
-      await db.update(rfqRequests).set({ jobId: null });
-      // Then delete them
-      counts.rfqRequests = await db.delete(rfqRequests).returning().then(r => r.length);
+      await db.execute(sql`UPDATE rfq_requests SET job_id = NULL`);
+      const rfqResult = await db.execute(sql`DELETE FROM rfq_requests RETURNING id`);
+      counts.rfqRequests = rfqResult.rows.length;
     } catch (e) {
       console.error("Error clearing RFQ requests:", e);
       counts.rfqRequests = 0;
@@ -2850,12 +2859,11 @@ export class DatabaseStorage implements IStorage {
       counts.requisitionItems = 0;
     }
     
-    // Clear purchase requisitions - set job_id to null first
+    // Clear purchase requisitions - set job_id to null first, already broke PO link above
     try {
-      // First update all requisitions to set job_id to null
-      await db.update(purchaseRequisitions).set({ jobId: null });
-      // Then delete them
-      counts.purchaseRequisitions = await db.delete(purchaseRequisitions).returning().then(r => r.length);
+      await db.execute(sql`UPDATE purchase_requisitions SET job_id = NULL`);
+      const reqResult = await db.execute(sql`DELETE FROM purchase_requisitions RETURNING id`);
+      counts.purchaseRequisitions = reqResult.rows.length;
     } catch (e) {
       console.error("Error clearing purchase requisitions:", e);
       counts.purchaseRequisitions = 0;
@@ -2953,25 +2961,28 @@ export class DatabaseStorage implements IStorage {
         Object.assign(allCounts, result.deletedCounts);
       }
       if (category === 'audit') {
-        // Clear audit trails without transaction to avoid rollback issues
+        // Clear audit trails using raw SQL to avoid column issues
         const counts: any = {};
         
         try {
-          counts.documentAccessLogs = await db.delete(documentAccessLogs).returning().then(r => r.length);
+          const result = await db.execute(sql`DELETE FROM document_access_logs RETURNING id`);
+          counts.documentAccessLogs = result.rows.length;
         } catch (e) {
           console.error("Error clearing document access logs:", e);
           counts.documentAccessLogs = 0;
         }
         
         try {
-          counts.documentAttachments = await db.delete(documentAttachments).returning().then(r => r.length);
+          const result = await db.execute(sql`DELETE FROM document_attachments RETURNING id`);
+          counts.documentAttachments = result.rows.length;
         } catch (e) {
           console.error("Error clearing document attachments:", e);
           counts.documentAttachments = 0;
         }
         
         try {
-          counts.documentHistory = await db.delete(documentHistory).returning().then(r => r.length);
+          const result = await db.execute(sql`DELETE FROM document_history RETURNING id`);
+          counts.documentHistory = result.rows.length;
         } catch (e) {
           console.error("Error clearing document history:", e);
           counts.documentHistory = 0;
