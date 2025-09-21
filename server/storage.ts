@@ -2610,38 +2610,45 @@ export class DatabaseStorage implements IStorage {
       audit: ['audit_log', 'system_audit_log', 'document_history', 'document_attachments', 'document_access_logs']
     };
 
-    // Start a transaction for backup
-    await db.transaction(async (tx) => {
-      for (const category of categories) {
-        const tables = categoryTables[category] || [];
-        
-        for (const tableName of tables) {
-          try {
-            // Get all records from the table using raw SQL
-            const result = await tx.execute(sql.raw(`SELECT * FROM ${tableName}`));
-            const records = result.rows;
+    // Process each category without a transaction to avoid rollback issues
+    for (const category of categories) {
+      const tables = categoryTables[category] || [];
+      
+      for (const tableName of tables) {
+        try {
+          // Get all records from the table using raw SQL
+          const result = await db.execute(sql.raw(`SELECT * FROM ${tableName}`));
+          const records = result.rows;
+          
+          if (records.length > 0) {
+            tableCount++;
+            totalRecords += records.length;
+            tableStats.push({ table: tableName, count: records.length });
             
-            if (records.length > 0) {
-              tableCount++;
-              totalRecords += records.length;
-              tableStats.push({ table: tableName, count: records.length });
+            // Store each record in backup_data in batches
+            const batchSize = 100;
+            for (let i = 0; i < records.length; i += batchSize) {
+              const batch = records.slice(i, i + batchSize);
+              const insertValues = batch.map(record => ({
+                backupId,
+                tableName,
+                recordData: record,
+                originalRecordId: record.id || null
+              }));
               
-              // Store each record in backup_data
-              for (const record of records) {
-                await tx.insert(backupData).values({
-                  backupId,
-                  tableName,
-                  recordData: record,
-                  originalRecordId: record.id || null
-                });
+              try {
+                await db.insert(backupData).values(insertValues);
+              } catch (batchError) {
+                console.error(`Error inserting batch for table ${tableName}:`, batchError);
               }
             }
-          } catch (error) {
-            console.error(`Error backing up table ${tableName}:`, error);
           }
+        } catch (error) {
+          console.error(`Error backing up table ${tableName}:`, error);
+          // Continue with other tables even if one fails
         }
       }
-    });
+    }
 
     // Create backup metadata record
     const [metadata] = await db.insert(backupMetadata).values({
