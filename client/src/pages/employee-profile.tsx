@@ -42,9 +42,9 @@ interface EmployeeProfile {
 
 export default function EmployeeProfile() {
   const [, navigate] = useLocation();
-  const { id } = useParams() as { id: string };
+  const { id } = useParams<{ id?: string }>();
   const { toast } = useToast();
-  const isNewEmployee = id === "new";
+  const isNewEmployee = !id || id === "new";
   const [isEditing, setIsEditing] = useState(isNewEmployee);
   const [activeTab, setActiveTab] = useState("overview");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
