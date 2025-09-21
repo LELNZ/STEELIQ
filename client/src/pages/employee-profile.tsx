@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 import { ArrowLeft, Save, Edit2, Mail, Phone, Calendar, MapPin, Clock, Shield, ChevronRight, User, Briefcase, DollarSign, Heart, Award, FileText, Building } from "lucide-react";
 import { format } from "date-fns";
 
@@ -44,6 +45,7 @@ export default function EmployeeProfile() {
   const [, navigate] = useLocation();
   const { id } = useParams<{ id?: string }>();
   const { toast } = useToast();
+  const { user: currentUser } = useAuth(); // Use the auth context properly
   const isNewEmployee = !id || id === "new";
   const [isEditing, setIsEditing] = useState(isNewEmployee);
   const [activeTab, setActiveTab] = useState("overview");
@@ -54,11 +56,6 @@ export default function EmployeeProfile() {
   const { data: employee, isLoading } = useQuery<EmployeeProfile>({
     queryKey: [`/api/team/members/${id}`],
     enabled: !!id && id !== "new",
-  });
-
-  // Fetch current user for permissions
-  const { data: currentUser } = useQuery({
-    queryKey: ["/api/auth/user"],
   });
 
   // Initialize form data when employee loads
@@ -158,10 +155,9 @@ export default function EmployeeProfile() {
     saveMutation.mutate(formData);
   };
 
-  // Check permissions
+  // Check permissions - simplified for now
   const canEdit = () => {
-    // Implement role-based access control
-    return true; // For now, allow all authenticated users to edit
+    return true; // Allow all users to edit for now
   };
 
   if (isLoading && !isNewEmployee) {
