@@ -845,7 +845,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                           />
                         </td>
                         <td className="p-2 font-medium">
-                          ${material.totalCost.toLocaleString()}
+                          ${(material.totalCost || 0).toLocaleString()}
                         </td>
                         <td className="p-2">
                           <div className="flex gap-1">
@@ -920,7 +920,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
                           </td>
                           <td className="p-2">-</td>
                           <td className="p-2 font-medium">
-                            ${child.totalCost.toLocaleString()}
+                            ${(child.totalCost || 0).toLocaleString()}
                           </td>
                           <td className="p-2">
                             <Button
