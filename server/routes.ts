@@ -2577,6 +2577,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/estimations", async (req, res) => {
     try {
       const projectData = req.body;
+      
+      // Generate project number if not provided
+      if (!projectData.projectNumber) {
+        const user = await AuthService.getAuthenticatedUser(req);
+        if (!user) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+        projectData.projectNumber = await storage.generateNumber('EST', user.id);
+      }
+      
       const project = await storage.createEstimationProject(projectData);
       res.status(201).json(project);
     } catch (error) {
@@ -2918,6 +2928,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/estimations", async (req, res) => {
     try {
       const projectData = req.body;
+      
+      // Generate project number if not provided
+      if (!projectData.projectNumber) {
+        const user = await AuthService.getAuthenticatedUser(req);
+        if (!user) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+        projectData.projectNumber = await storage.generateNumber('EST', user.id);
+      }
+      
       const project = await storage.createEstimationProject(projectData);
       res.status(201).json(project);
     } catch (error) {
@@ -3032,11 +3052,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Estimation not found" });
       }
       
+      // Generate new project number for the duplicate
+      const projectNumber = await storage.generateNumber('EST', user.id);
+      
       // Create a new estimation with copied data
       const newName = `${original.project.name} (Copy)`;
       const newProject = await storage.createEstimationProject({
         name: newName,
         description: original.project.description,
+        projectNumber: projectNumber,
         clientId: original.project.clientId,
         status: 'draft', // Always start copies as draft
         targetValue: original.project.targetValue,
