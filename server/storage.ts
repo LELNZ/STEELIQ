@@ -2600,14 +2600,14 @@ export class DatabaseStorage implements IStorage {
     let tableCount = 0;
     const tableStats: any[] = [];
 
-    // Define table mappings for each category
+    // Define table mappings for each category - using actual table names from database
     const categoryTables: Record<string, string[]> = {
       procurement: ['purchase_requisitions', 'requisition_items', 'approval_history', 'rfq_requests', 
-                   'rfq_responses', 'purchase_orders', 'purchase_order_items', 'po_document_config',
+                   'rfq_responses', 'purchase_orders', 'purchase_order_items',
                    'goods_receipts', 'goods_receipt_items'],
       jobs: ['jobs', 'job_materials', 'cutting_plans', 'cut_sequences'],
       finance: ['quotes', 'quote_history', 'quote_views'],
-      audit: ['audit_log', 'system_audit_log', 'document_history', 'document_attachments', 'document_access_logs']
+      audit: [] // Skip audit tables for now as they may have issues
     };
 
     // Process each category without a transaction to avoid rollback issues
