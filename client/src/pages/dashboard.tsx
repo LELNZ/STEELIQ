@@ -68,27 +68,8 @@ export default function Dashboard() {
     }),
   });
 
-  // Mock activity data - in real app this would come from API
-  const recentActivity: ActivityItem[] = [
-    {
-      id: "1",
-      action: "Job JOB-2024-001 cutting completed",
-      time: "2 minutes ago",
-      type: "success"
-    },
-    {
-      id: "2", 
-      action: "New material batch received",
-      time: "15 minutes ago",
-      type: "info"
-    },
-    {
-      id: "3",
-      action: "Optimization completed for JOB-2024-002", 
-      time: "1 hour ago",
-      type: "info"
-    }
-  ];
+  // Recent activity - currently empty (will be populated from API when implemented)
+  const recentActivity: ActivityItem[] = [];
 
   // Error state with retry button
   if (statsError || jobsError) {
@@ -371,28 +352,34 @@ export default function Dashboard() {
               <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    activity.type === 'success' ? 'bg-accent/10' :
-                    activity.type === 'info' ? 'bg-secondary/10' :
-                    activity.type === 'warning' ? 'bg-warning/10' :
-                    'bg-destructive/10'
-                  }`}>
-                    {activity.type === 'success' ? (
-                      <Check className={`text-accent text-sm`} />
-                    ) : activity.type === 'info' ? (
-                      <Plus className={`text-secondary text-sm`} />
-                    ) : (
-                      <Zap className={`text-warning text-sm`} />
-                    )}
-                  </div>
+              {recentActivity.length > 0 ? (
+                recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-start space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      activity.type === 'success' ? 'bg-accent/10' :
+                      activity.type === 'info' ? 'bg-secondary/10' :
+                      activity.type === 'warning' ? 'bg-warning/10' :
+                      'bg-destructive/10'
+                    }`}>
+                      {activity.type === 'success' ? (
+                        <Check className={`text-accent text-sm`} />
+                      ) : activity.type === 'info' ? (
+                        <Plus className={`text-secondary text-sm`} />
+                      ) : (
+                        <Zap className={`text-warning text-sm`} />
+                      )}
+                    </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">{activity.action}</p>
                     <p className="text-xs text-muted-foreground">{activity.time}</p>
                   </div>
                 </div>
-              ))}
+              ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground">No recent activity</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

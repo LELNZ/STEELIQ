@@ -93,9 +93,6 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
           <div className="relative">
             <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
               <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-              <Badge className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center p-0">
-                2
-              </Badge>
             </Button>
           </div>
 
