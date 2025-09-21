@@ -2817,7 +2817,25 @@ export class DatabaseStorage implements IStorage {
       counts.poDocumentConfig = 0;
     }
     
-    // 5. Clear po_distribution (depends on purchase_orders)
+    // 5. Clear po_email_log (depends on po_distribution)
+    try {
+      const result = await db.execute(sql`DELETE FROM po_email_log RETURNING id`);
+      counts.poEmailLog = result.rows.length;
+    } catch (e) {
+      console.error("Error clearing PO email log:", e);
+      counts.poEmailLog = 0;
+    }
+    
+    // 6. Clear po_status_log (depends on purchase_orders)
+    try {
+      const result = await db.execute(sql`DELETE FROM po_status_log RETURNING id`);
+      counts.poStatusLog = result.rows.length;
+    } catch (e) {
+      console.error("Error clearing PO status log:", e);
+      counts.poStatusLog = 0;
+    }
+    
+    // 7. Clear po_distribution (depends on purchase_orders)
     try {
       const result = await db.execute(sql`DELETE FROM po_distribution RETURNING id`);
       counts.poDistribution = result.rows.length;
@@ -2826,7 +2844,7 @@ export class DatabaseStorage implements IStorage {
       counts.poDistribution = 0;
     }
     
-    // 6. Handle circular foreign keys between tables
+    // 8. Handle circular foreign keys between tables
     // Break all foreign key references first
     try {
       // Break all links to avoid constraint violations
@@ -2837,7 +2855,7 @@ export class DatabaseStorage implements IStorage {
       console.error("Error breaking foreign key links:", e);
     }
     
-    // 7. Now delete purchase_orders
+    // 9. Now delete purchase_orders
     try {
       const result = await db.execute(sql`DELETE FROM purchase_orders RETURNING id`);
       counts.purchaseOrders = result.rows.length;
