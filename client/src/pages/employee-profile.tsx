@@ -85,9 +85,9 @@ export default function EmployeeProfile() {
   const saveMutation = useMutation({
     mutationFn: async (data: any) => {
       if (isNewEmployee) {
-        return apiRequest("POST", "/api/team/members", data);
+        return apiRequest("/api/team/members", "POST", data);
       } else {
-        return apiRequest("PUT", `/api/team/members/${id}`, data);
+        return apiRequest(`/api/team/members/${id}`, "PUT", data);
       }
     },
     onSuccess: (result) => {
