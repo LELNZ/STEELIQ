@@ -1336,7 +1336,7 @@ function ProjectOverview({ projects, onSelectProject }: {
         <EstimationTable 
           estimations={projects.map(p => ({
             ...p,
-            totalCost: p.totalCost.toString(),
+            totalCost: (p.totalCost || 0).toString(),
             margin: p.margin?.toString() || '',
             estimatedHours: '',
             createdAt: p.createdAt?.toString() || new Date().toISOString(),
