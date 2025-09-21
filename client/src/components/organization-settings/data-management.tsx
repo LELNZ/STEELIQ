@@ -253,6 +253,7 @@ export default function DataManagement() {
   const dataCategories = [
     { id: "procurement", label: "Procurement (Requisitions, RFQs, POs, Receipts)", icon: <Database className="h-4 w-4" /> },
     { id: "jobs", label: "Jobs & Projects", icon: <HardDrive className="h-4 w-4" /> },
+    { id: "estimation", label: "AI Estimation Engine (Projects, Simulations)", icon: <Settings className="h-4 w-4" /> },
     { id: "finance", label: "Financial Records (Quotes, Invoices)", icon: <DollarSign className="h-4 w-4" /> },
     { id: "audit", label: "Audit Trails & History", icon: <Clock className="h-4 w-4" /> },
   ];
@@ -504,11 +505,11 @@ export default function DataManagement() {
                         <div>
                           <h4 className="font-medium">{seq.sequenceType}</h4>
                           <p className="text-sm text-muted-foreground">
-                            Current: {seq.prefix}{String(seq.currentNumber).padStart(seq.padLength, '0')}
+                            Current: {seq.prefix}{seq.includeYear && new Date().getFullYear() + '-'}{String(seq.currentNumber).padStart(seq.padLength, '0')}
                           </p>
                         </div>
                         <Badge variant="outline">
-                          Next: {seq.prefix}{String(seq.currentNumber + 1).padStart(seq.padLength, '0')}
+                          Next: {seq.prefix}{seq.includeYear && new Date().getFullYear() + '-'}{String(seq.currentNumber + 1).padStart(seq.padLength, '0')}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-2 mt-3">
