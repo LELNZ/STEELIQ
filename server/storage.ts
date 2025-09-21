@@ -2817,7 +2817,16 @@ export class DatabaseStorage implements IStorage {
       counts.poDocumentConfig = 0;
     }
     
-    // 5. Handle circular foreign keys between tables
+    // 5. Clear po_distribution (depends on purchase_orders)
+    try {
+      const result = await db.execute(sql`DELETE FROM po_distribution RETURNING id`);
+      counts.poDistribution = result.rows.length;
+    } catch (e) {
+      console.error("Error clearing PO distribution:", e);
+      counts.poDistribution = 0;
+    }
+    
+    // 6. Handle circular foreign keys between tables
     // Break all foreign key references first
     try {
       // Break all links to avoid constraint violations
@@ -2828,7 +2837,7 @@ export class DatabaseStorage implements IStorage {
       console.error("Error breaking foreign key links:", e);
     }
     
-    // 6. Now delete purchase_orders
+    // 7. Now delete purchase_orders
     try {
       const result = await db.execute(sql`DELETE FROM purchase_orders RETURNING id`);
       counts.purchaseOrders = result.rows.length;
@@ -2983,39 +2992,9 @@ export class DatabaseStorage implements IStorage {
     const counts: any = {};
 
     // Clear all estimation-related tables using raw SQL
-    // First clear dependent tables
-    try {
-      const result = await db.execute(sql`DELETE FROM estimation_consumables RETURNING id`);
-      counts.estimationConsumables = result.rows.length;
-    } catch (e) {
-      console.error("Error clearing estimation consumables:", e);
-      counts.estimationConsumables = 0;
-    }
+    // Clear in proper order to handle foreign key constraints
     
-    try {
-      const result = await db.execute(sql`DELETE FROM estimation_equipment RETURNING id`);
-      counts.estimationEquipment = result.rows.length;
-    } catch (e) {
-      console.error("Error clearing estimation equipment:", e);
-      counts.estimationEquipment = 0;
-    }
-    
-    try {
-      const result = await db.execute(sql`DELETE FROM estimation_labor RETURNING id`);
-      counts.estimationLabor = result.rows.length;
-    } catch (e) {
-      console.error("Error clearing estimation labor:", e);
-      counts.estimationLabor = 0;
-    }
-    
-    try {
-      const result = await db.execute(sql`DELETE FROM estimation_materials RETURNING id`);
-      counts.estimationMaterials = result.rows.length;
-    } catch (e) {
-      console.error("Error clearing estimation materials:", e);
-      counts.estimationMaterials = 0;
-    }
-    
+    // 1. Clear estimation_data first (contains the actual estimation details)
     try {
       const result = await db.execute(sql`DELETE FROM estimation_data RETURNING id`);
       counts.estimationData = result.rows.length;
@@ -3024,7 +3003,16 @@ export class DatabaseStorage implements IStorage {
       counts.estimationData = 0;
     }
     
-    // Clear optimization simulations
+    // 2. Clear estimations_archive
+    try {
+      const result = await db.execute(sql`DELETE FROM estimations_archive RETURNING id`);
+      counts.estimationsArchive = result.rows.length;
+    } catch (e) {
+      console.error("Error clearing estimations archive:", e);
+      counts.estimationsArchive = 0;
+    }
+    
+    // 3. Clear optimization simulations
     try {
       const result = await db.execute(sql`DELETE FROM optimization_simulations RETURNING id`);
       counts.optimizationSimulations = result.rows.length;
@@ -3033,7 +3021,16 @@ export class DatabaseStorage implements IStorage {
       counts.optimizationSimulations = 0;
     }
     
-    // Finally clear estimation projects
+    // 4. Clear test_estimation_project if it exists
+    try {
+      const result = await db.execute(sql`DELETE FROM test_estimation_project RETURNING id`);
+      counts.testEstimationProject = result.rows.length;
+    } catch (e) {
+      // This table might not always exist, so we can ignore errors
+      counts.testEstimationProject = 0;
+    }
+    
+    // 5. Finally clear estimation projects (main table)
     try {
       const result = await db.execute(sql`DELETE FROM estimation_projects RETURNING id`);
       counts.estimationProjects = result.rows.length;
