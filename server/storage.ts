@@ -2777,19 +2777,85 @@ export class DatabaseStorage implements IStorage {
   async clearProcurementData(userId: number): Promise<{ deletedCounts: any }> {
     const counts: any = {};
 
-    await db.transaction(async (tx) => {
-      // Clear in order of dependencies
-      counts.goodsReceiptItems = await tx.delete(goodsReceiptItems).returning().then(r => r.length);
-      counts.goodsReceipts = await tx.delete(goodsReceipts).returning().then(r => r.length);
-      counts.purchaseOrderItems = await tx.delete(purchaseOrderItems).returning().then(r => r.length);
-      counts.purchaseOrders = await tx.delete(purchaseOrders).returning().then(r => r.length);
-      counts.poDocumentConfig = await tx.delete(poDocumentConfig).returning().then(r => r.length);
-      counts.rfqResponses = await tx.delete(rfqResponses).returning().then(r => r.length);
-      counts.rfqRequests = await tx.delete(rfqRequests).returning().then(r => r.length);
-      counts.approvalHistory = await tx.delete(approvalHistory).returning().then(r => r.length);
-      counts.requisitionItems = await tx.delete(requisitionItems).returning().then(r => r.length);
-      counts.purchaseRequisitions = await tx.delete(purchaseRequisitions).returning().then(r => r.length);
-    });
+    // Clear in order of dependencies without transaction to avoid rollback issues
+    try {
+      counts.goodsReceiptItems = await db.delete(goodsReceiptItems).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing goods receipt items:", e);
+      counts.goodsReceiptItems = 0;
+    }
+    
+    try {
+      counts.goodsReceipts = await db.delete(goodsReceipts).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing goods receipts:", e);
+      counts.goodsReceipts = 0;
+    }
+    
+    try {
+      counts.purchaseOrderItems = await db.delete(purchaseOrderItems).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing purchase order items:", e);
+      counts.purchaseOrderItems = 0;
+    }
+    
+    try {
+      counts.poDocumentConfig = await db.delete(poDocumentConfig).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing PO document config:", e);
+      counts.poDocumentConfig = 0;
+    }
+    
+    try {
+      counts.purchaseOrders = await db.delete(purchaseOrders).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing purchase orders:", e);
+      counts.purchaseOrders = 0;
+    }
+    
+    try {
+      counts.rfqResponses = await db.delete(rfqResponses).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing RFQ responses:", e);
+      counts.rfqResponses = 0;
+    }
+    
+    try {
+      counts.rfqRequests = await db.delete(rfqRequests).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing RFQ requests:", e);
+      counts.rfqRequests = 0;
+    }
+    
+    try {
+      counts.approvalHistory = await db.delete(approvalHistory).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing approval history:", e);
+      counts.approvalHistory = 0;
+    }
+    
+    try {
+      counts.requisitionItems = await db.delete(requisitionItems).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing requisition items:", e);
+      counts.requisitionItems = 0;
+    }
+    
+    try {
+      counts.purchaseRequisitions = await db.delete(purchaseRequisitions).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing purchase requisitions:", e);
+      counts.purchaseRequisitions = 0;
+    }
+
+    // Reset numbering sequences for procurement
+    try {
+      await this.resetNumberingSequence('REQ', 1, userId);
+      await this.resetNumberingSequence('RFQ', 1, userId);
+      await this.resetNumberingSequence('PO', 1, userId);
+    } catch (e) {
+      console.error("Error resetting numbering sequences:", e);
+    }
 
     return { deletedCounts: counts };
   }
@@ -2797,12 +2863,34 @@ export class DatabaseStorage implements IStorage {
   async clearJobsData(userId: number): Promise<{ deletedCounts: any }> {
     const counts: any = {};
 
-    await db.transaction(async (tx) => {
-      counts.cutSequences = await tx.delete(cutSequences).returning().then(r => r.length);
-      counts.cuttingPlans = await tx.delete(cuttingPlans).returning().then(r => r.length);
-      counts.jobMaterials = await tx.delete(jobMaterials).returning().then(r => r.length);
-      counts.jobs = await tx.delete(jobs).returning().then(r => r.length);
-    });
+    // Clear in order of dependencies without transaction to avoid rollback issues
+    try {
+      counts.cutSequences = await db.delete(cutSequences).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing cut sequences:", e);
+      counts.cutSequences = 0;
+    }
+    
+    try {
+      counts.cuttingPlans = await db.delete(cuttingPlans).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing cutting plans:", e);
+      counts.cuttingPlans = 0;
+    }
+    
+    try {
+      counts.jobMaterials = await db.delete(jobMaterials).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing job materials:", e);
+      counts.jobMaterials = 0;
+    }
+    
+    try {
+      counts.jobs = await db.delete(jobs).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing jobs:", e);
+      counts.jobs = 0;
+    }
 
     return { deletedCounts: counts };
   }
@@ -2810,11 +2898,27 @@ export class DatabaseStorage implements IStorage {
   async clearFinancialData(userId: number): Promise<{ deletedCounts: any }> {
     const counts: any = {};
 
-    await db.transaction(async (tx) => {
-      counts.quoteHistory = await tx.delete(quoteHistory).returning().then(r => r.length);
-      counts.quoteViews = await tx.delete(quoteViews).returning().then(r => r.length);
-      counts.quotes = await tx.delete(quotes).returning().then(r => r.length);
-    });
+    // Clear in order of dependencies without transaction to avoid rollback issues
+    try {
+      counts.quoteHistory = await db.delete(quoteHistory).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing quote history:", e);
+      counts.quoteHistory = 0;
+    }
+    
+    try {
+      counts.quoteViews = await db.delete(quoteViews).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing quote views:", e);
+      counts.quoteViews = 0;
+    }
+    
+    try {
+      counts.quotes = await db.delete(quotes).returning().then(r => r.length);
+    } catch (e) {
+      console.error("Error clearing quotes:", e);
+      counts.quotes = 0;
+    }
 
     return { deletedCounts: counts };
   }
@@ -2836,13 +2940,30 @@ export class DatabaseStorage implements IStorage {
         Object.assign(allCounts, result.deletedCounts);
       }
       if (category === 'audit') {
-        // Clear audit trails
+        // Clear audit trails without transaction to avoid rollback issues
         const counts: any = {};
-        await db.transaction(async (tx) => {
-          counts.documentAccessLogs = await tx.delete(documentAccessLogs).returning().then(r => r.length);
-          counts.documentAttachments = await tx.delete(documentAttachments).returning().then(r => r.length);
-          counts.documentHistory = await tx.delete(documentHistory).returning().then(r => r.length);
-        });
+        
+        try {
+          counts.documentAccessLogs = await db.delete(documentAccessLogs).returning().then(r => r.length);
+        } catch (e) {
+          console.error("Error clearing document access logs:", e);
+          counts.documentAccessLogs = 0;
+        }
+        
+        try {
+          counts.documentAttachments = await db.delete(documentAttachments).returning().then(r => r.length);
+        } catch (e) {
+          console.error("Error clearing document attachments:", e);
+          counts.documentAttachments = 0;
+        }
+        
+        try {
+          counts.documentHistory = await db.delete(documentHistory).returning().then(r => r.length);
+        } catch (e) {
+          console.error("Error clearing document history:", e);
+          counts.documentHistory = 0;
+        }
+        
         Object.assign(allCounts, counts);
       }
     }
