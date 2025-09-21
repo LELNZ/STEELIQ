@@ -142,6 +142,12 @@ Internal Team                          External Suppliers
   - Template version control
   - Variable mapping and dynamic rendering
   - Template selection in send dialogs
+- **Enhanced Data Management System** (Jan 2025)
+  - Comprehensive data clearing with foreign key constraint handling
+  - AI Estimation Engine data clearing
+  - Configurable starting numbers for all sequences
+  - Simple numbering format (PREFIX-00001)
+  - Automatic estimation numbering generation
 
 ### 🚧 In Active Development (January 2025)
 - ✅ RFQ management UI and workflow (COMPLETE)
