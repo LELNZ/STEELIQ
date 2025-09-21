@@ -10466,6 +10466,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get PO Document Configuration
+  app.get("/api/procurement/purchase-orders/:id/document-config", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      const config = await storage.getPoDocumentConfig(purchaseOrderId);
+      res.json(config || null);
+    } catch (error) {
+      console.error("Error fetching PO document config:", error);
+      res.status(500).json({ error: "Failed to fetch PO document configuration" });
+    }
+  });
+
+  // Upsert PO Document Configuration
+  app.put("/api/procurement/purchase-orders/:id/document-config", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      const { templateCode, granularOptions } = req.body;
+      const userId = req.user?.id;
+
+      if (!templateCode || !granularOptions) {
+        return res.status(400).json({ error: "Template code and granular options are required" });
+      }
+
+      const config = await storage.upsertPoDocumentConfig({
+        purchaseOrderId,
+        templateCode,
+        granularOptions,
+        updatedBy: userId,
+        createdBy: userId,
+      });
+
+      res.json(config);
+    } catch (error) {
+      console.error("Error saving PO document config:", error);
+      res.status(500).json({ error: "Failed to save PO document configuration" });
+    }
+  });
+
   // Get quote history for a purchase order
   app.get("/api/procurement/purchase-orders/:id/quote-history", async (req, res) => {
     try {

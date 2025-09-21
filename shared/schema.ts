@@ -1025,6 +1025,24 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
   lineTotal: decimal("line_total", { precision: 10, scale: 2 }),
 })
 
+// PO Document Configuration - stores template and granular options per PO
+export const poDocumentConfig = pgTable("po_document_config", {
+  id: serial("id").primaryKey(),
+  purchaseOrderId: integer("purchase_order_id")
+    .references(() => purchaseOrders.id)
+    .notNull()
+    .unique(), // One config per PO
+  templateCode: text("template_code").notNull(), // e.g., 'PO_STANDARD', 'PO_DETAILED', 'PO_SIMPLE'
+  granularOptions: jsonb("granular_options").notNull(), // JSON object with all granular control settings
+  status: text("status").default("active"), // active, locked (after sending)
+  lockedAt: timestamp("locked_at"), // When config was locked
+  lockedBy: integer("locked_by").references(() => users.id),
+  createdBy: integer("created_by").references(() => users.id),
+  updatedBy: integer("updated_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
 // Company Divisions - for multi-division branding
 export const companyDivisions = pgTable("company_divisions", {
   id: serial("id").primaryKey(),
@@ -1764,6 +1782,12 @@ export const insertPurchaseOrderItemSchema = createInsertSchema(purchaseOrderIte
   id: true,
 });
 
+export const insertPoDocumentConfigSchema = createInsertSchema(poDocumentConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   id: true,
   createdAt: true,
@@ -2032,6 +2056,9 @@ export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
 
 export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
 export type InsertPurchaseOrderItem = z.infer<typeof insertPurchaseOrderItemSchema>;
+
+export type PoDocumentConfig = typeof poDocumentConfig.$inferSelect;
+export type InsertPoDocumentConfig = z.infer<typeof insertPoDocumentConfigSchema>;
 
 export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;

@@ -30,6 +30,7 @@ import {
 import PODistributionDialog from "./PODistributionDialog";
 import { POAuditTrail } from "./POAuditTrail";
 import QuoteHistoryPanel from "./QuoteHistoryPanel";
+import DocumentActions from "./DocumentActions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface PurchaseOrderDetailsDialogProps {
@@ -80,14 +81,6 @@ export default function PurchaseOrderDetailsDialog({
   // In future, this could be enhanced to link to actual location entities
   const deliveryLocation = null;
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleDownloadPDF = () => {
-    // Implementation for PDF download would go here
-    console.log("Download PDF for PO:", purchaseOrder.poNumber);
-  };
 
   const handleSendToSupplier = () => {
     setShowDistributionDialog(true);
@@ -297,14 +290,11 @@ export default function PurchaseOrderDetailsDialog({
               <Shield className="h-4 w-4 mr-1" />
               View Audit Trail
             </Button>
-            <Button variant="outline" size="sm" onClick={handlePrint}>
-              <Printer className="h-4 w-4 mr-1" />
-              Print
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
-              <Download className="h-4 w-4 mr-1" />
-              Download PDF
-            </Button>
+            <DocumentActions
+              purchaseOrderId={purchaseOrder?.id}
+              purchaseOrderNumber={purchaseOrder?.poNumber}
+              variant="buttons"
+            />
             {(purchaseOrder?.status === "draft" || 
               purchaseOrder?.status === "approved" || 
               purchaseOrder?.status === "sent") && (

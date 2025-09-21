@@ -6,7 +6,7 @@ import {
   estimationProjects, estimationData, estimationMaterials, estimationLabor, estimationEquipment, estimationConsumables,
   teamMembers, archivedEmployees, employeeAuditLog, auditLog, systemAuditLog,
   purchaseRequisitions, requisitionItems, approvalRules, approvalHistory, rfqRequests, rfqResponses, goodsReceipts, goodsReceiptItems,
-  purchaseOrders, purchaseOrderItems, poTemplates,
+  purchaseOrders, purchaseOrderItems, poDocumentConfig, poTemplates,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
@@ -23,6 +23,7 @@ import {
   type ApprovalRule, type InsertApprovalRule, type ApprovalHistory, type InsertApprovalHistory,
   type RfqRequest, type InsertRfqRequest, type RfqResponse, type InsertRfqResponse,
   type GoodsReceipt, type InsertGoodsReceipt, type GoodsReceiptItem, type InsertGoodsReceiptItem,
+  type PoDocumentConfig, type InsertPoDocumentConfig,
   type PurchaseOrder, type InsertPurchaseOrder, type PurchaseOrderItem, type InsertPurchaseOrderItem,
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView,
@@ -257,6 +258,10 @@ export interface IStorage {
   generatePONumber(): Promise<string>;
   convertRequisitionToPO(requisitionId: number, supplierId: number, userId: number): Promise<PurchaseOrder>;
   createPOFromRfqResponse(rfqResponseId: number, userId: number): Promise<PurchaseOrder>;
+  
+  // PO Document Configuration
+  getPoDocumentConfig(purchaseOrderId: number): Promise<PoDocumentConfig | undefined>;
+  upsertPoDocumentConfig(config: InsertPoDocumentConfig): Promise<PoDocumentConfig>;
   
   // Procurement - Purchase Order Items
   getPurchaseOrderItems(purchaseOrderId: number): Promise<PurchaseOrderItem[]>;
@@ -2447,6 +2452,40 @@ export class DatabaseStorage implements IStorage {
       .where(eq(rfqRequests.id, rfq.id));
     
     return purchaseOrder;
+  }
+
+  // PO Document Configuration Methods
+  async getPoDocumentConfig(purchaseOrderId: number): Promise<PoDocumentConfig | undefined> {
+    const [config] = await db
+      .select()
+      .from(poDocumentConfig)
+      .where(eq(poDocumentConfig.purchaseOrderId, purchaseOrderId));
+    return config || undefined;
+  }
+
+  async upsertPoDocumentConfig(config: InsertPoDocumentConfig): Promise<PoDocumentConfig> {
+    // Check if config exists
+    const existing = await this.getPoDocumentConfig(config.purchaseOrderId);
+    
+    if (existing) {
+      // Update existing config
+      const [updated] = await db
+        .update(poDocumentConfig)
+        .set({ 
+          ...config, 
+          updatedAt: new Date() 
+        })
+        .where(eq(poDocumentConfig.purchaseOrderId, config.purchaseOrderId))
+        .returning();
+      return updated;
+    } else {
+      // Create new config
+      const [created] = await db
+        .insert(poDocumentConfig)
+        .values(config)
+        .returning();
+      return created;
+    }
   }
 
   // Document History Tracking Methods
