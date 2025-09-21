@@ -5254,6 +5254,302 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Data Management Routes (Backup, Restore, Clear Data)
+  app.get("/api/data-management/backups", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const backups = await storage.listBackups();
+      res.json(backups);
+    } catch (error) {
+      console.error("Error fetching backups:", error);
+      res.status(500).json({ message: "Failed to fetch backups" });
+    }
+  });
+
+  app.post("/api/data-management/backup", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { categories, description } = req.body;
+      
+      if (!categories || !Array.isArray(categories) || categories.length === 0) {
+        return res.status(400).json({ error: "Please specify categories to backup" });
+      }
+
+      const result = await storage.createBackup(categories, user.id, description);
+      res.json({ 
+        success: true, 
+        backupId: result.backupId,
+        metadata: result.metadata,
+        message: "Backup created successfully" 
+      });
+    } catch (error) {
+      console.error("Error creating backup:", error);
+      res.status(500).json({ message: "Failed to create backup" });
+    }
+  });
+
+  app.get("/api/data-management/backup/:backupId", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { backupId } = req.params;
+      const details = await storage.getBackupDetails(backupId);
+      res.json(details);
+    } catch (error) {
+      console.error("Error fetching backup details:", error);
+      res.status(500).json({ message: "Failed to fetch backup details" });
+    }
+  });
+
+  app.post("/api/data-management/restore", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { backupId } = req.body;
+      
+      if (!backupId) {
+        return res.status(400).json({ error: "Backup ID is required" });
+      }
+
+      const result = await storage.restoreBackup(backupId, user.id);
+      
+      if (result.success) {
+        res.json({ success: true, message: result.message });
+      } else {
+        res.status(400).json({ error: result.message });
+      }
+    } catch (error) {
+      console.error("Error restoring backup:", error);
+      res.status(500).json({ message: "Failed to restore backup" });
+    }
+  });
+
+  app.delete("/api/data-management/backup/:backupId", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { backupId } = req.params;
+      await storage.deleteBackup(backupId);
+      res.json({ success: true, message: "Backup deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting backup:", error);
+      res.status(500).json({ message: "Failed to delete backup" });
+    }
+  });
+
+  app.post("/api/data-management/clear-data", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { categories, createBackup: shouldCreateBackup } = req.body;
+      
+      if (!categories || !Array.isArray(categories) || categories.length === 0) {
+        return res.status(400).json({ error: "Please specify categories to clear" });
+      }
+
+      let backupId = null;
+      
+      // Create backup before clearing if requested
+      if (shouldCreateBackup) {
+        const backupResult = await storage.createBackup(
+          categories, 
+          user.id, 
+          `Pre-clear backup ${new Date().toLocaleString()}`
+        );
+        backupId = backupResult.backupId;
+      }
+
+      // Clear the specified data
+      const result = await storage.clearAllBusinessData(categories, user.id);
+      
+      res.json({ 
+        success: true, 
+        deletedCounts: result.deletedCounts,
+        backupId,
+        message: "Data cleared successfully" 
+      });
+    } catch (error) {
+      console.error("Error clearing data:", error);
+      res.status(500).json({ message: "Failed to clear data" });
+    }
+  });
+
+  app.post("/api/data-management/clear-procurement", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const result = await storage.clearProcurementData(user.id);
+      res.json({ 
+        success: true, 
+        deletedCounts: result.deletedCounts,
+        message: "Procurement data cleared successfully" 
+      });
+    } catch (error) {
+      console.error("Error clearing procurement data:", error);
+      res.status(500).json({ message: "Failed to clear procurement data" });
+    }
+  });
+
+  app.post("/api/data-management/clear-jobs", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const result = await storage.clearJobsData(user.id);
+      res.json({ 
+        success: true, 
+        deletedCounts: result.deletedCounts,
+        message: "Jobs data cleared successfully" 
+      });
+    } catch (error) {
+      console.error("Error clearing jobs data:", error);
+      res.status(500).json({ message: "Failed to clear jobs data" });
+    }
+  });
+
+  app.post("/api/data-management/clear-finance", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const result = await storage.clearFinancialData(user.id);
+      res.json({ 
+        success: true, 
+        deletedCounts: result.deletedCounts,
+        message: "Financial data cleared successfully" 
+      });
+    } catch (error) {
+      console.error("Error clearing financial data:", error);
+      res.status(500).json({ message: "Failed to clear financial data" });
+    }
+  });
+
+  // Numbering Sequences Management
+  app.get("/api/data-management/numbering-sequences", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const sequences = await storage.getNumberingSequences();
+      res.json(sequences);
+    } catch (error) {
+      console.error("Error fetching numbering sequences:", error);
+      res.status(500).json({ message: "Failed to fetch numbering sequences" });
+    }
+  });
+
+  app.put("/api/data-management/numbering-sequences/:sequenceType", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { sequenceType } = req.params;
+      const updates = req.body;
+      
+      const updated = await storage.updateNumberingSequence(sequenceType, updates);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating numbering sequence:", error);
+      res.status(500).json({ message: "Failed to update numbering sequence" });
+    }
+  });
+
+  app.post("/api/data-management/numbering-sequences/:sequenceType/reset", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { sequenceType } = req.params;
+      const { startingNumber = 1 } = req.body;
+      
+      await storage.resetNumberingSequence(sequenceType, startingNumber, user.id);
+      res.json({ 
+        success: true, 
+        message: `${sequenceType} numbering reset to start at ${startingNumber}` 
+      });
+    } catch (error) {
+      console.error("Error resetting numbering sequence:", error);
+      res.status(500).json({ message: "Failed to reset numbering sequence" });
+    }
+  });
+
+  app.post("/api/data-management/initialize-sequences", async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      await storage.initializeNumberingSequences();
+      res.json({ 
+        success: true, 
+        message: "Numbering sequences initialized successfully" 
+      });
+    } catch (error) {
+      console.error("Error initializing numbering sequences:", error);
+      res.status(500).json({ message: "Failed to initialize numbering sequences" });
+    }
+  });
+
   // Enhanced Time & Payroll Routes
   app.get("/api/payroll/integration", async (req, res) => {
     try {

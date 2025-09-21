@@ -7,6 +7,7 @@ import {
   teamMembers, archivedEmployees, employeeAuditLog, auditLog, systemAuditLog,
   purchaseRequisitions, requisitionItems, approvalRules, approvalHistory, rfqRequests, rfqResponses, goodsReceipts, goodsReceiptItems,
   purchaseOrders, purchaseOrderItems, poDocumentConfig, poTemplates,
+  backupMetadata, backupData, numberingSequences,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
@@ -25,6 +26,8 @@ import {
   type GoodsReceipt, type InsertGoodsReceipt, type GoodsReceiptItem, type InsertGoodsReceiptItem,
   type PoDocumentConfig, type InsertPoDocumentConfig,
   type PurchaseOrder, type InsertPurchaseOrder, type PurchaseOrderItem, type InsertPurchaseOrderItem,
+  type BackupMetadata, type InsertBackupMetadata, type BackupData, type InsertBackupData,
+  type NumberingSequence, type InsertNumberingSequence,
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView,
   documentHistory, documentAttachments, documentAccessLogs
@@ -281,6 +284,26 @@ export interface IStorage {
   updateDocumentStatus(historyId: number, status: string, metadata?: any): Promise<void>;
   getDocumentHistoryByNumber(documentNumber: string): Promise<any[]>;
   recordDocumentAccess(historyId: number, accessData: any): Promise<void>;
+
+  // Data Management - Backup & Restore
+  createBackup(categories: string[], userId: number, description?: string): Promise<{ backupId: string; metadata: BackupMetadata }>;
+  listBackups(): Promise<BackupMetadata[]>;
+  getBackupDetails(backupId: string): Promise<{ metadata: BackupMetadata; tableStats: any[] }>;
+  restoreBackup(backupId: string, userId: number): Promise<{ success: boolean; message: string }>;
+  deleteBackup(backupId: string): Promise<void>;
+  
+  // Data Management - Clear Data
+  clearProcurementData(userId: number): Promise<{ deletedCounts: any }>;
+  clearJobsData(userId: number): Promise<{ deletedCounts: any }>;
+  clearFinancialData(userId: number): Promise<{ deletedCounts: any }>;
+  clearAllBusinessData(categories: string[], userId: number): Promise<{ deletedCounts: any }>;
+  
+  // Numbering Sequences
+  getNumberingSequences(): Promise<NumberingSequence[]>;
+  getNextSequenceNumber(sequenceType: string): Promise<string>;
+  updateNumberingSequence(sequenceType: string, updates: Partial<InsertNumberingSequence>): Promise<NumberingSequence>;
+  resetNumberingSequence(sequenceType: string, startingNumber: number, userId: number): Promise<void>;
+  initializeNumberingSequences(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1447,27 +1470,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async generateRequisitionNumber(): Promise<string> {
-    // Use simple REQ-0000 format for clarity and consistency
-    // This prevents confusion when months change and maintains sequential numbering
-    const latestReq = await db.select({ requisitionNumber: purchaseRequisitions.requisitionNumber })
-      .from(purchaseRequisitions)
-      .where(sql`"requisition_number" LIKE 'REQ-%'`)
-      .orderBy(desc(purchaseRequisitions.id)) // Order by ID to get truly latest
-      .limit(1);
-    
-    let nextNumber = 1;
-    if (latestReq.length > 0 && latestReq[0].requisitionNumber) {
-      // Extract number from REQ-XXXX format (also handles old REQ-YYYYMM-XXX format)
-      const reqNum = latestReq[0].requisitionNumber;
-      const match = reqNum.match(/REQ-(?:\d{6}-)?(\d+)$/);
-      if (match) {
-        nextNumber = parseInt(match[1], 10) + 1;
-      }
-    }
-    
-    // Pad to 4 digits for better sorting and clarity
-    const paddedNumber = String(nextNumber).padStart(4, '0');
-    return `REQ-${paddedNumber}`;
+    // Use centralized numbering sequence
+    return await this.getNextSequenceNumber('REQ');
   }
 
   // Procurement - Requisition Items
@@ -1810,25 +1814,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async generatePONumber(): Promise<string> {
-    // Get the highest PO number overall
-    const latestPO = await db.select({ poNumber: purchaseOrders.poNumber })
-      .from(purchaseOrders)
-      .where(sql`po_number LIKE 'PO-%'`)
-      .orderBy(sql`po_number DESC`)
-      .limit(1);
-    
-    let nextNumber = 1;
-    if (latestPO.length > 0 && latestPO[0].poNumber) {
-      // Extract the number from the last PO (format: PO-NNNN)
-      const match = latestPO[0].poNumber.match(/PO-(\d+)/);
-      if (match) {
-        nextNumber = parseInt(match[1], 10) + 1;
-      }
-    }
-    
-    // Format with 4 digits
-    const paddedNumber = String(nextNumber).padStart(4, '0');
-    return `PO-${paddedNumber}`;
+    // Use centralized numbering sequence
+    return await this.getNextSequenceNumber('PO');
   }
 
   async convertRequisitionToPO(requisitionId: number, supplierId: number, userId: number): Promise<PurchaseOrder> {
@@ -2090,24 +2077,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async generateRfqNumber(): Promise<string> {
-    // Use simple RFQ-0000 format for consistency with PO and REQ numbering
-    const latestRfq = await db.select({ rfqNumber: rfqRequests.rfqNumber })
-      .from(rfqRequests)
-      .where(sql`"rfq_number" LIKE 'RFQ-%'`)
-      .orderBy(sql`rfq_number DESC`)
-      .limit(1);
-    
-    let nextNumber = 1;
-    if (latestRfq.length > 0 && latestRfq[0].rfqNumber) {
-      // Extract the number from the last RFQ (handles both old and new formats)
-      const match = latestRfq[0].rfqNumber.match(/RFQ-(?:\d{6}-)?(\d+)/);
-      if (match) {
-        nextNumber = parseInt(match[1], 10) + 1;
-      }
-    }
-    
-    const paddedNumber = String(nextNumber).padStart(4, '0');
-    return `RFQ-${paddedNumber}`;
+    // Use centralized numbering sequence
+    return await this.getNextSequenceNumber('RFQ');
   }
 
   // RFQ Responses Implementation
@@ -2620,6 +2591,362 @@ export class DatabaseStorage implements IStorage {
       sessionDuration: accessData.sessionDuration,
       pagesViewed: accessData.pagesViewed,
     });
+  }
+
+  // Data Management - Backup & Restore
+  async createBackup(categories: string[], userId: number, description?: string): Promise<{ backupId: string; metadata: BackupMetadata }> {
+    const backupId = `backup_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    let totalRecords = 0;
+    let tableCount = 0;
+    const tableStats: any[] = [];
+
+    // Define table mappings for each category
+    const categoryTables: Record<string, string[]> = {
+      procurement: ['purchase_requisitions', 'requisition_items', 'approval_history', 'rfq_requests', 
+                   'rfq_responses', 'purchase_orders', 'purchase_order_items', 'po_document_config',
+                   'goods_receipts', 'goods_receipt_items'],
+      jobs: ['jobs', 'job_materials', 'cutting_plans', 'cut_sequences'],
+      finance: ['quotes', 'quote_history', 'quote_views'],
+      audit: ['audit_log', 'system_audit_log', 'document_history', 'document_attachments', 'document_access_logs']
+    };
+
+    // Start a transaction for backup
+    await db.transaction(async (tx) => {
+      for (const category of categories) {
+        const tables = categoryTables[category] || [];
+        
+        for (const tableName of tables) {
+          try {
+            // Get all records from the table using raw SQL
+            const result = await tx.execute(sql.raw(`SELECT * FROM ${tableName}`));
+            const records = result.rows;
+            
+            if (records.length > 0) {
+              tableCount++;
+              totalRecords += records.length;
+              tableStats.push({ table: tableName, count: records.length });
+              
+              // Store each record in backup_data
+              for (const record of records) {
+                await tx.insert(backupData).values({
+                  backupId,
+                  tableName,
+                  recordData: record,
+                  originalRecordId: record.id || null
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`Error backing up table ${tableName}:`, error);
+          }
+        }
+      }
+    });
+
+    // Create backup metadata record
+    const [metadata] = await db.insert(backupMetadata).values({
+      backupId,
+      backupName: description || `Backup ${new Date().toLocaleString()}`,
+      description,
+      backupType: 'manual',
+      categories: categories,
+      tableCount,
+      recordCount: totalRecords,
+      backupSize: totalRecords * 1000, // Rough estimate
+      status: 'active',
+      createdBy: userId
+    }).returning();
+
+    return { backupId, metadata };
+  }
+
+  async listBackups(): Promise<BackupMetadata[]> {
+    return await db
+      .select()
+      .from(backupMetadata)
+      .where(eq(backupMetadata.status, 'active'))
+      .orderBy(desc(backupMetadata.createdAt));
+  }
+
+  async getBackupDetails(backupId: string): Promise<{ metadata: BackupMetadata; tableStats: any[] }> {
+    const [metadata] = await db
+      .select()
+      .from(backupMetadata)
+      .where(eq(backupMetadata.backupId, backupId));
+
+    // Get table statistics
+    const stats = await db
+      .select({
+        tableName: backupData.tableName,
+        count: sql<number>`COUNT(*)::int`
+      })
+      .from(backupData)
+      .where(eq(backupData.backupId, backupId))
+      .groupBy(backupData.tableName);
+
+    return { metadata, tableStats: stats };
+  }
+
+  async restoreBackup(backupId: string, userId: number): Promise<{ success: boolean; message: string }> {
+    try {
+      // Get backup metadata
+      const [metadata] = await db
+        .select()
+        .from(backupMetadata)
+        .where(eq(backupMetadata.backupId, backupId));
+
+      if (!metadata) {
+        return { success: false, message: 'Backup not found' };
+      }
+
+      // Get all backup data
+      const backupRecords = await db
+        .select()
+        .from(backupData)
+        .where(eq(backupData.backupId, backupId));
+
+      // Group records by table
+      const recordsByTable: Record<string, any[]> = {};
+      for (const record of backupRecords) {
+        if (!recordsByTable[record.tableName]) {
+          recordsByTable[record.tableName] = [];
+        }
+        recordsByTable[record.tableName].push(record.recordData);
+      }
+
+      // Clear existing data and restore from backup
+      await db.transaction(async (tx) => {
+        // First clear the target tables
+        for (const tableName of Object.keys(recordsByTable)) {
+          try {
+            await tx.execute(sql.raw(`TRUNCATE TABLE ${tableName} CASCADE`));
+          } catch (error) {
+            console.error(`Error clearing table ${tableName}:`, error);
+          }
+        }
+
+        // Then restore the data
+        for (const [tableName, records] of Object.entries(recordsByTable)) {
+          for (const record of records) {
+            try {
+              // Build dynamic insert query
+              const columns = Object.keys(record).join(', ');
+              const values = Object.values(record);
+              const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+              
+              await tx.execute(sql.raw(`INSERT INTO ${tableName} (${columns}) VALUES (${placeholders})`, values));
+            } catch (error) {
+              console.error(`Error restoring to table ${tableName}:`, error);
+            }
+          }
+        }
+      });
+
+      // Update metadata
+      await db
+        .update(backupMetadata)
+        .set({ restoredAt: new Date() })
+        .where(eq(backupMetadata.backupId, backupId));
+
+      return { success: true, message: 'Backup restored successfully' };
+    } catch (error) {
+      console.error('Restore error:', error);
+      return { success: false, message: 'Failed to restore backup' };
+    }
+  }
+
+  async deleteBackup(backupId: string): Promise<void> {
+    // Delete backup data
+    await db.delete(backupData).where(eq(backupData.backupId, backupId));
+    
+    // Mark metadata as deleted
+    await db
+      .update(backupMetadata)
+      .set({ status: 'deleted', deletedAt: new Date() })
+      .where(eq(backupMetadata.backupId, backupId));
+  }
+
+  // Data Management - Clear Data
+  async clearProcurementData(userId: number): Promise<{ deletedCounts: any }> {
+    const counts: any = {};
+
+    await db.transaction(async (tx) => {
+      // Clear in order of dependencies
+      counts.goodsReceiptItems = await tx.delete(goodsReceiptItems).returning().then(r => r.length);
+      counts.goodsReceipts = await tx.delete(goodsReceipts).returning().then(r => r.length);
+      counts.purchaseOrderItems = await tx.delete(purchaseOrderItems).returning().then(r => r.length);
+      counts.purchaseOrders = await tx.delete(purchaseOrders).returning().then(r => r.length);
+      counts.poDocumentConfig = await tx.delete(poDocumentConfig).returning().then(r => r.length);
+      counts.rfqResponses = await tx.delete(rfqResponses).returning().then(r => r.length);
+      counts.rfqRequests = await tx.delete(rfqRequests).returning().then(r => r.length);
+      counts.approvalHistory = await tx.delete(approvalHistory).returning().then(r => r.length);
+      counts.requisitionItems = await tx.delete(requisitionItems).returning().then(r => r.length);
+      counts.purchaseRequisitions = await tx.delete(purchaseRequisitions).returning().then(r => r.length);
+    });
+
+    return { deletedCounts: counts };
+  }
+
+  async clearJobsData(userId: number): Promise<{ deletedCounts: any }> {
+    const counts: any = {};
+
+    await db.transaction(async (tx) => {
+      counts.cutSequences = await tx.delete(cutSequences).returning().then(r => r.length);
+      counts.cuttingPlans = await tx.delete(cuttingPlans).returning().then(r => r.length);
+      counts.jobMaterials = await tx.delete(jobMaterials).returning().then(r => r.length);
+      counts.jobs = await tx.delete(jobs).returning().then(r => r.length);
+    });
+
+    return { deletedCounts: counts };
+  }
+
+  async clearFinancialData(userId: number): Promise<{ deletedCounts: any }> {
+    const counts: any = {};
+
+    await db.transaction(async (tx) => {
+      counts.quoteHistory = await tx.delete(quoteHistory).returning().then(r => r.length);
+      counts.quoteViews = await tx.delete(quoteViews).returning().then(r => r.length);
+      counts.quotes = await tx.delete(quotes).returning().then(r => r.length);
+    });
+
+    return { deletedCounts: counts };
+  }
+
+  async clearAllBusinessData(categories: string[], userId: number): Promise<{ deletedCounts: any }> {
+    const allCounts: any = {};
+
+    for (const category of categories) {
+      if (category === 'procurement') {
+        const result = await this.clearProcurementData(userId);
+        Object.assign(allCounts, result.deletedCounts);
+      }
+      if (category === 'jobs') {
+        const result = await this.clearJobsData(userId);
+        Object.assign(allCounts, result.deletedCounts);
+      }
+      if (category === 'finance') {
+        const result = await this.clearFinancialData(userId);
+        Object.assign(allCounts, result.deletedCounts);
+      }
+      if (category === 'audit') {
+        // Clear audit trails
+        const counts: any = {};
+        await db.transaction(async (tx) => {
+          counts.documentAccessLogs = await tx.delete(documentAccessLogs).returning().then(r => r.length);
+          counts.documentAttachments = await tx.delete(documentAttachments).returning().then(r => r.length);
+          counts.documentHistory = await tx.delete(documentHistory).returning().then(r => r.length);
+        });
+        Object.assign(allCounts, counts);
+      }
+    }
+
+    return { deletedCounts: allCounts };
+  }
+
+  // Numbering Sequences
+  async getNumberingSequences(): Promise<NumberingSequence[]> {
+    return await db.select().from(numberingSequences).orderBy(asc(numberingSequences.sequenceType));
+  }
+
+  async getNextSequenceNumber(sequenceType: string): Promise<string> {
+    // Get or create sequence
+    let [sequence] = await db
+      .select()
+      .from(numberingSequences)
+      .where(eq(numberingSequences.sequenceType, sequenceType));
+
+    if (!sequence) {
+      // Create new sequence with defaults
+      const prefix = sequenceType + '-';
+      [sequence] = await db
+        .insert(numberingSequences)
+        .values({
+          sequenceType,
+          currentNumber: 0,
+          prefix,
+          includeYear: false,
+          padLength: 5,
+          startingNumber: 1
+        })
+        .returning();
+    }
+
+    // Increment and get next number
+    const nextNumber = sequence.currentNumber + 1;
+    
+    // Update the sequence
+    await db
+      .update(numberingSequences)
+      .set({ 
+        currentNumber: nextNumber,
+        updatedAt: new Date()
+      })
+      .where(eq(numberingSequences.sequenceType, sequenceType));
+
+    // Format the number
+    const paddedNumber = String(nextNumber).padStart(sequence.padLength, '0');
+    
+    if (sequence.includeYear) {
+      const year = new Date().getFullYear();
+      return `${sequence.prefix}${year}-${paddedNumber}`;
+    } else {
+      return `${sequence.prefix}${paddedNumber}`;
+    }
+  }
+
+  async updateNumberingSequence(sequenceType: string, updates: Partial<InsertNumberingSequence>): Promise<NumberingSequence> {
+    const [updated] = await db
+      .update(numberingSequences)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(numberingSequences.sequenceType, sequenceType))
+      .returning();
+
+    return updated;
+  }
+
+  async resetNumberingSequence(sequenceType: string, startingNumber: number, userId: number): Promise<void> {
+    await db
+      .update(numberingSequences)
+      .set({
+        currentNumber: startingNumber - 1, // Set to one less so next number is the starting number
+        startingNumber,
+        lastResetAt: new Date(),
+        lastResetBy: userId,
+        updatedAt: new Date()
+      })
+      .where(eq(numberingSequences.sequenceType, sequenceType));
+  }
+
+  async initializeNumberingSequences(): Promise<void> {
+    // Initialize default sequences if they don't exist
+    const sequences = [
+      { sequenceType: 'PO', prefix: 'PO-', padLength: 5 },
+      { sequenceType: 'REQ', prefix: 'REQ-', padLength: 5 },
+      { sequenceType: 'RFQ', prefix: 'RFQ-', padLength: 5 },
+      { sequenceType: 'INV', prefix: 'INV-', padLength: 5 },
+      { sequenceType: 'QUOTE', prefix: 'Q-', padLength: 5 },
+      { sequenceType: 'JOB', prefix: 'JOB-', padLength: 5 },
+      { sequenceType: 'GRN', prefix: 'GRN-', padLength: 5 }
+    ];
+
+    for (const seq of sequences) {
+      const [existing] = await db
+        .select()
+        .from(numberingSequences)
+        .where(eq(numberingSequences.sequenceType, seq.sequenceType));
+
+      if (!existing) {
+        await db.insert(numberingSequences).values({
+          ...seq,
+          currentNumber: 0,
+          includeYear: false,
+          startingNumber: 1
+        });
+      }
+    }
   }
 }
 

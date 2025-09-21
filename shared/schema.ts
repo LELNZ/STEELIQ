@@ -4212,3 +4212,60 @@ export type InsertGoodsReceipt = z.infer<typeof insertGoodsReceiptSchema>;
 
 export type GoodsReceiptItem = typeof goodsReceiptItems.$inferSelect;
 export type InsertGoodsReceiptItem = z.infer<typeof insertGoodsReceiptItemSchema>;
+
+// Data Management - Backup System
+export const backupMetadata = pgTable("backup_metadata", {
+  id: serial("id").primaryKey(),
+  backupId: text("backup_id").notNull().unique(), // Unique identifier for this backup
+  backupName: text("backup_name").notNull(),
+  description: text("description"),
+  backupType: text("backup_type").notNull(), // 'manual', 'pre_clear', 'scheduled'
+  categories: jsonb("categories").notNull(), // Array of categories backed up ['procurement', 'jobs', 'finance']
+  tableCount: integer("table_count").notNull(),
+  recordCount: integer("record_count").notNull(),
+  backupSize: integer("backup_size"), // Size in bytes
+  status: text("status").notNull().default("active"), // 'active', 'restoring', 'deleted'
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  restoredAt: timestamp("restored_at"),
+  deletedAt: timestamp("deleted_at"),
+});
+
+// Data Management - Backup Data Storage
+export const backupData = pgTable("backup_data", {
+  id: serial("id").primaryKey(),
+  backupId: text("backup_id").references(() => backupMetadata.backupId).notNull(),
+  tableName: text("table_name").notNull(),
+  recordData: jsonb("record_data").notNull(), // Complete record as JSON
+  recordId: integer("original_record_id"), // Original record ID for reference
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Numbering Sequences - Store current sequence numbers
+export const numberingSequences = pgTable("numbering_sequences", {
+  id: serial("id").primaryKey(),
+  sequenceType: text("sequence_type").notNull().unique(), // 'PO', 'REQ', 'RFQ', 'INV', 'QUOTE', etc.
+  currentNumber: integer("current_number").notNull().default(0),
+  prefix: text("prefix").notNull(), // 'PO-', 'REQ-', 'RFQ-'
+  includeYear: boolean("include_year").default(false), // Whether to include year in number
+  padLength: integer("pad_length").default(5), // How many digits to pad (00001)
+  startingNumber: integer("starting_number").default(1), // User-defined starting number
+  lastResetAt: timestamp("last_reset_at"),
+  lastResetBy: integer("last_reset_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Insert schemas for backup system
+export const insertBackupMetadataSchema = createInsertSchema(backupMetadata);
+export const insertBackupDataSchema = createInsertSchema(backupData);
+export const insertNumberingSequenceSchema = createInsertSchema(numberingSequences);
+
+// Type exports for backup system
+export type BackupMetadata = typeof backupMetadata.$inferSelect;
+export type InsertBackupMetadata = z.infer<typeof insertBackupMetadataSchema>;
+
+export type BackupData = typeof backupData.$inferSelect;
+export type InsertBackupData = z.infer<typeof insertBackupDataSchema>;
+
+export type NumberingSequence = typeof numberingSequences.$inferSelect;
+export type InsertNumberingSequence = z.infer<typeof insertNumberingSequenceSchema>;
