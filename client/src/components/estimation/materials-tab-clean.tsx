@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -39,10 +40,12 @@ import {
   DollarSign,
   ChevronDown,
   ChevronRight,
-  HelpCircle
+  HelpCircle,
+  FileText,
+  Download
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface MaterialCost {
   id: string;
@@ -187,6 +190,212 @@ function MaterialSearch({ value, onChange, onSelect, availableMaterials, placeho
         </div>
       )}
     </div>
+  );
+}
+
+// Import MTO Dialog Component
+interface ImportMTODialogProps {
+  projectId?: number;
+  onImport: (materials: MaterialCost[]) => void;
+}
+
+function ImportMTODialog({ projectId, onImport }: ImportMTODialogProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedDrawingId, setSelectedDrawingId] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  
+  // Fetch drawing projects
+  const { data: drawingProjects = [], isLoading: isLoadingProjects, error: projectsError } = useQuery({
+    queryKey: ['/api/drawing-projects'],
+    enabled: isOpen
+  });
+  
+  // Fetch drawings for selected project
+  const { data: drawings = [], isLoading: isLoadingDrawings, error: drawingsError } = useQuery({
+    queryKey: ['/api/drawings', selectedProjectId],
+    enabled: !!selectedProjectId && isOpen
+  });
+  
+  // Fetch material takeoffs for selected drawing
+  const { data: takeoffs = [], isLoading: isLoadingTakeoffs, error: takeoffsError } = useQuery({
+    queryKey: ['/api/material-takeoffs', selectedDrawingId],
+    enabled: !!selectedDrawingId && isOpen
+  });
+  
+  const handleImport = async () => {
+    if (!selectedDrawingId) {
+      toast({
+        title: "Selection Required",
+        description: "Please select a drawing to import materials from",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      // Fetch detailed material takeoffs for the selected drawing
+      const response = await apiRequest(`/api/material-takeoffs/drawing/${selectedDrawingId}`, {
+        method: 'GET'
+      });
+      
+      const takeoffsData = await response.json();
+      
+      // Transform takeoff data to MaterialCost format
+      const importedMaterials: MaterialCost[] = takeoffsData.map((takeoff: any) => ({
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        materialCode: takeoff.section || takeoff.mark,
+        materialName: takeoff.section || `Material ${takeoff.mark}`,
+        designation: takeoff.mark,
+        drawingReference: takeoff.drawingRef || `Drawing ${selectedDrawingId}`,
+        quantity: parseFloat(takeoff.quantity) || 1,
+        unit: "m",
+        unitCost: parseFloat(takeoff.unitPrice) || 0,
+        totalCost: parseFloat(takeoff.totalPrice) || 0,
+        wasteFactor: parseFloat(takeoff.wastage) || 5,
+        totalWeight: parseFloat(takeoff.weight) || 0,
+        phase: takeoff.phase || "",
+        handlingTime: 0,
+        handlingCost: 0,
+        notes: `Imported from Drawing: ${takeoff.drawingRef || selectedDrawingId}`,
+        aiSuggested: false
+      }));
+      
+      onImport(importedMaterials);
+      setIsOpen(false);
+      setSelectedProjectId("");
+      setSelectedDrawingId("");
+    } catch (error) {
+      console.error("Error importing MTO:", error);
+      toast({
+        title: "Import Failed",
+        description: "Failed to import materials from takeoff",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const resetSelections = () => {
+    setSelectedProjectId("");
+    setSelectedDrawingId("");
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (!open) resetSelections();
+    }}>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <FileText className="h-4 w-4 mr-2" />
+          Import from MTO
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Import Materials from Takeoff</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="project">Select Drawing Project</Label>
+            <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={isLoadingProjects}>
+              <SelectTrigger>
+                <SelectValue placeholder={isLoadingProjects ? "Loading projects..." : "Choose a project..."} />
+              </SelectTrigger>
+              <SelectContent>
+                {projectsError ? (
+                  <SelectItem value="error" disabled>Error loading projects</SelectItem>
+                ) : drawingProjects.length === 0 ? (
+                  <SelectItem value="none" disabled>No projects available</SelectItem>
+                ) : (
+                  drawingProjects.map((project: any) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      {project.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {selectedProjectId && (
+            <div className="space-y-2">
+              <Label htmlFor="drawing">Select Drawing</Label>
+              <Select value={selectedDrawingId} onValueChange={setSelectedDrawingId} disabled={isLoadingDrawings}>
+                <SelectTrigger>
+                  <SelectValue placeholder={isLoadingDrawings ? "Loading drawings..." : "Choose a drawing..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {drawingsError ? (
+                    <SelectItem value="error" disabled>Error loading drawings</SelectItem>
+                  ) : drawings.length === 0 ? (
+                    <SelectItem value="none" disabled>No drawings available</SelectItem>
+                  ) : (
+                    drawings.map((drawing: any) => (
+                      <SelectItem key={drawing.id} value={drawing.id.toString()}>
+                        {drawing.fileName} {drawing.revisionNumber && `(Rev: ${drawing.revisionNumber})`}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          {selectedDrawingId && (
+            <div className="rounded-lg border p-4 bg-muted/50">
+              <div className="text-sm">
+                {isLoadingTakeoffs ? (
+                  <p className="text-muted-foreground">Loading material takeoffs...</p>
+                ) : takeoffsError ? (
+                  <p className="text-destructive">Error loading takeoffs</p>
+                ) : takeoffs.length === 0 ? (
+                  <p className="text-muted-foreground">No material takeoffs found for this drawing</p>
+                ) : (
+                  <>
+                    <p className="font-medium mb-2">Preview: {takeoffs.length} materials found</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      {takeoffs.slice(0, 3).map((takeoff: any, index: number) => (
+                        <li key={index}>
+                          • {takeoff.mark}: {takeoff.section} - {takeoff.quantity} units
+                        </li>
+                      ))}
+                      {takeoffs.length > 3 && (
+                        <li>... and {takeoffs.length - 3} more</li>
+                      )}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button onClick={handleImport} disabled={!selectedDrawingId || isLoading}>
+            {isLoading ? (
+              <>
+                <Clock className="h-4 w-4 mr-2 animate-spin" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Import Materials
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -412,6 +621,18 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
     }
   };
 
+  // Handle importing materials from MTO
+  const handleImportMTO = (importedMaterials: MaterialCost[]) => {
+    // Combine existing materials with imported ones
+    const updatedMaterials = [...materials, ...importedMaterials];
+    onUpdate(updatedMaterials);
+    
+    toast({
+      title: "MTO Import Successful",
+      description: `Imported ${importedMaterials.length} materials from takeoff`,
+    });
+  };
+
   // Apply AI suggestion
   const applyAiSuggestion = (suggestion: MaterialCost) => {
     addMaterial({ ...suggestion, aiSuggested: true });
@@ -482,6 +703,10 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Material Cost Breakdown</h3>
         <div className="flex gap-2">
+          <ImportMTODialog 
+            projectId={projectId}
+            onImport={handleImportMTO}
+          />
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>

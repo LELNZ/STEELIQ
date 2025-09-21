@@ -7033,6 +7033,161 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoints for Material Takeoff Import
+  // Note: Reusing existing drawing projects endpoint for consistency
+  app.get('/api/drawing-projects', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Filter by authenticated user for security
+      const projects = await db.select()
+        .from(drawingProjects)
+        .where(eq(drawingProjects.userId, user.id))
+        .orderBy(desc(drawingProjects.createdAt));
+      
+      res.json(projects);
+    } catch (error) {
+      console.error('Error fetching drawing projects:', error);
+      res.status(500).json({ message: 'Failed to fetch drawing projects' });
+    }
+  });
+
+  app.get('/api/drawings/:projectId', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const projectId = parseInt(req.params.projectId);
+      if (!projectId) {
+        return res.status(400).json({ error: "Invalid project ID" });
+      }
+
+      // Verify project belongs to user
+      const [project] = await db.select()
+        .from(drawingProjects)
+        .where(and(
+          eq(drawingProjects.id, projectId),
+          eq(drawingProjects.userId, user.id)
+        ))
+        .limit(1);
+      
+      if (!project) {
+        return res.status(403).json({ error: "Access denied to this project" });
+      }
+
+      const projectDrawings = await db.select()
+        .from(drawings)
+        .where(eq(drawings.projectId, projectId))
+        .orderBy(desc(drawings.uploadedAt));
+      
+      res.json(projectDrawings);
+    } catch (error) {
+      console.error('Error fetching drawings:', error);
+      res.status(500).json({ message: 'Failed to fetch drawings' });
+    }
+  });
+
+  app.get('/api/material-takeoffs/:drawingId', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const drawingId = parseInt(req.params.drawingId);
+      if (!drawingId) {
+        return res.status(400).json({ error: "Invalid drawing ID" });
+      }
+
+      // Verify drawing's project belongs to user
+      const [drawing] = await db.select({
+        drawingId: drawings.id,
+        projectUserId: drawingProjects.userId
+      })
+        .from(drawings)
+        .innerJoin(drawingProjects, eq(drawings.projectId, drawingProjects.id))
+        .where(and(
+          eq(drawings.id, drawingId),
+          eq(drawingProjects.userId, user.id)
+        ))
+        .limit(1);
+      
+      if (!drawing) {
+        return res.status(403).json({ error: "Access denied to this drawing" });
+      }
+
+      // Get basic takeoff info for preview
+      const takeoffs = await db.select({
+        id: materialTakeoffs.id,
+        mark: materialTakeoffs.mark,
+        section: materialTakeoffs.section,
+        quantity: materialTakeoffs.quantity
+      })
+        .from(materialTakeoffs)
+        .where(eq(materialTakeoffs.drawingId, drawingId))
+        .limit(10); // Limit for preview
+      
+      res.json(takeoffs);
+    } catch (error) {
+      console.error('Error fetching material takeoffs:', error);
+      res.status(500).json({ message: 'Failed to fetch material takeoffs' });
+    }
+  });
+
+  app.get('/api/material-takeoffs/drawing/:drawingId', async (req, res) => {
+    try {
+      const token = req.cookies.auth_token || req.headers.authorization?.replace('Bearer ', '');
+      const user = await AuthService.validateSession(token);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const drawingId = parseInt(req.params.drawingId);
+      if (!drawingId) {
+        return res.status(400).json({ error: "Invalid drawing ID" });
+      }
+
+      // Verify drawing's project belongs to user
+      const [drawing] = await db.select({
+        drawingId: drawings.id,
+        projectUserId: drawingProjects.userId
+      })
+        .from(drawings)
+        .innerJoin(drawingProjects, eq(drawings.projectId, drawingProjects.id))
+        .where(and(
+          eq(drawings.id, drawingId),
+          eq(drawingProjects.userId, user.id)
+        ))
+        .limit(1);
+      
+      if (!drawing) {
+        return res.status(403).json({ error: "Access denied to this drawing" });
+      }
+
+      // Get full takeoff data for import
+      const takeoffs = await db.select()
+        .from(materialTakeoffs)
+        .where(eq(materialTakeoffs.drawingId, drawingId));
+      
+      res.json(takeoffs);
+    } catch (error) {
+      console.error('Error fetching material takeoffs:', error);
+      res.status(500).json({ message: 'Failed to fetch material takeoffs' });
+    }
+  });
+
   // Mobile Operations API endpoints
   app.get('/api/mobile-operations/stats', async (req, res) => {
     try {

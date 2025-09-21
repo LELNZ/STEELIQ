@@ -148,6 +148,13 @@ Internal Team                          External Suppliers
   - Configurable starting numbers for all sequences
   - Simple numbering format (PREFIX-00001)
   - Automatic estimation numbering generation
+- **Import from MTO Integration** (Sep 2025)
+  - Direct import from material takeoffs to estimation
+  - Three-step selection flow: Project → Drawing → Materials
+  - Automated data transformation to estimation format
+  - Preview before import with material counts
+  - Secure API endpoints with user ownership verification
+  - Saves 30-60 minutes per estimation by eliminating re-entry
 
 ### 🚧 In Active Development (January 2025)
 - ✅ RFQ management UI and workflow (COMPLETE)

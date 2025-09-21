@@ -327,15 +327,56 @@ interface AIDetection {
 - **> 80% Confidence:** Auto-verified (green check) - Spot check only
 - All items available for manual override
 
-### Manual Markup Tools
+### Manual Markup Tools with Color-Coded System
 
-**Purpose:** Handle what AI misses or gets wrong
+**Purpose:** Handle what AI misses or gets wrong, with clear visual categorization
 
-1. **Rectangle Tool:** Draw boundaries around missed members
-2. **Line Tool:** Mark weld lines AI didn't detect
-3. **Point Tool:** Mark bolt locations manually
-4. **Text Tool:** Add notes and clarifications
-5. **Measure Tool:** Verify dimensions against drawings
+#### Color Coding Standard for Member Types
+
+| Color | Element Type | Example | Hex Code | Usage |
+|-------|-------------|---------|----------|-------|
+| 🔴 **Red** | Columns | UC/UB columns, SHS/RHS posts | #FF0000 | Primary vertical members |
+| 🔵 **Blue** | Beams | UB/PFC beams, floor joists | #0066FF | Primary horizontal members |
+| 🟢 **Green** | Connections | Cleats, brackets, gussets | #00AA00 | Connection plates/angles |
+| 🟡 **Yellow** | Bracing | Rods, angles, ties | #FFD700 | Diagonal bracing, ties |
+| 🟣 **Purple** | Plates | Base plates, end plates | #9933FF | Flat plates |
+| 🟠 **Orange** | Secondary | Purlins, girts, rails | #FF8C00 | Secondary members |
+| 🟤 **Brown** | Bolts/Fasteners | M20, M24 bolts | #8B4513 | Bolt groups, fasteners |
+| ⚫ **Black** | Welds | Fillet, butt welds | #000000 | Weld lines/symbols |
+| 🔷 **Cyan** | Miscellaneous | Handrails, gratings, ladders | #00FFFF | Misc items |
+| 🩶 **Gray** | Uncertain/Review | Needs verification | #808080 | Low confidence items |
+
+#### Workflow for Multi-Color Markup
+
+1. **Quick Selection Mode**
+   - Press 'C' → Red column tool active
+   - Press 'B' → Blue beam tool active  
+   - Press 'P' → Purple plate tool active
+   - Press 'W' → Black weld tool active
+
+2. **Smart Drawing**
+   - Rectangle: For members (auto-detects vertical=column, horizontal=beam)
+   - Line: For welds or bracing
+   - Circle: For bolt groups
+   - Polygon: For irregular plates
+
+3. **Auto-Population After Drawing**
+   - Member Mark: Auto-incremented (C1, C2, B1, B2)
+   - Material: Dropdown of likely matches from library
+   - Quantity: Default 1, adjustable
+   - Length: Extracted from nearby text or measured
+
+4. **Visual Feedback**
+   - AI-detected: 30% opacity, dashed border
+   - Manual verified: 50% opacity, solid border
+   - Manual added: 70% opacity, bold border
+   - Conflicted: Dotted red border
+
+5. **Review Priority by Color**
+   - Red (Columns): Critical structural, review first
+   - Blue (Beams): Primary structure, review second
+   - Green (Connections): Important for labor, review third
+   - Others: Review as needed
 
 ---
 
