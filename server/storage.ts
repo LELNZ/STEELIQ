@@ -296,6 +296,7 @@ export interface IStorage {
   clearProcurementData(userId: number): Promise<{ deletedCounts: any }>;
   clearJobsData(userId: number): Promise<{ deletedCounts: any }>;
   clearFinancialData(userId: number): Promise<{ deletedCounts: any }>;
+  clearEstimationData(userId: number): Promise<{ deletedCounts: any }>;
   clearAllBusinessData(categories: string[], userId: number): Promise<{ deletedCounts: any }>;
   
   // Numbering Sequences
@@ -2777,16 +2778,19 @@ export class DatabaseStorage implements IStorage {
   async clearProcurementData(userId: number): Promise<{ deletedCounts: any }> {
     const counts: any = {};
 
-    // Clear in order of dependencies to handle circular foreign keys
-    // Start with dependent tables first
+    // Use raw SQL throughout to avoid any ORM schema issues
+    // Clear in proper order handling all foreign key constraints
+    
+    // 1. Clear goods_receipt_items first (depends on goods_receipts)
     try {
-      counts.goodsReceiptItems = await db.delete(goodsReceiptItems).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM goods_receipt_items RETURNING id`);
+      counts.goodsReceiptItems = result.rows.length;
     } catch (e) {
       console.error("Error clearing goods receipt items:", e);
       counts.goodsReceiptItems = 0;
     }
     
-    // Clear goods receipts using raw SQL to avoid column issues
+    // 2. Clear goods_receipts
     try {
       const result = await db.execute(sql`DELETE FROM goods_receipts RETURNING id`);
       counts.goodsReceipts = result.rows.length;
@@ -2795,14 +2799,16 @@ export class DatabaseStorage implements IStorage {
       counts.goodsReceipts = 0;
     }
     
+    // 3. Clear purchase_order_items (depends on purchase_orders)
     try {
-      counts.purchaseOrderItems = await db.delete(purchaseOrderItems).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM purchase_order_items RETURNING id`);
+      counts.purchaseOrderItems = result.rows.length;
     } catch (e) {
       console.error("Error clearing purchase order items:", e);
       counts.purchaseOrderItems = 0;
     }
     
-    // Clear po_document_config using raw SQL to avoid column issues
+    // 4. Clear po_document_config
     try {
       const result = await db.execute(sql`DELETE FROM po_document_config RETURNING id`);
       counts.poDocumentConfig = result.rows.length;
@@ -2811,59 +2817,66 @@ export class DatabaseStorage implements IStorage {
       counts.poDocumentConfig = 0;
     }
     
-    // Handle circular foreign keys between purchase_orders and purchase_requisitions
-    // First, break the circular references by setting foreign keys to null
+    // 5. Handle circular foreign keys between tables
+    // Break all foreign key references first
     try {
-      // Break the link from requisitions to POs
-      await db.execute(sql`UPDATE purchase_requisitions SET converted_to_po_id = NULL`);
-      
-      // Break the link from POs to requisitions and jobs
+      // Break all links to avoid constraint violations
+      await db.execute(sql`UPDATE purchase_requisitions SET converted_to_po_id = NULL, job_id = NULL`);
       await db.execute(sql`UPDATE purchase_orders SET requisition_id = NULL, job_id = NULL`);
-      
-      // Now we can safely delete purchase orders
-      const poResult = await db.execute(sql`DELETE FROM purchase_orders RETURNING id`);
-      counts.purchaseOrders = poResult.rows.length;
+      await db.execute(sql`UPDATE rfq_requests SET job_id = NULL`);
+    } catch (e) {
+      console.error("Error breaking foreign key links:", e);
+    }
+    
+    // 6. Now delete purchase_orders
+    try {
+      const result = await db.execute(sql`DELETE FROM purchase_orders RETURNING id`);
+      counts.purchaseOrders = result.rows.length;
     } catch (e) {
       console.error("Error clearing purchase orders:", e);
       counts.purchaseOrders = 0;
     }
     
+    // 7. Clear rfq_responses (depends on rfq_requests)
     try {
-      counts.rfqResponses = await db.delete(rfqResponses).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM rfq_responses RETURNING id`);
+      counts.rfqResponses = result.rows.length;
     } catch (e) {
       console.error("Error clearing RFQ responses:", e);
       counts.rfqResponses = 0;
     }
     
-    // Clear RFQ requests - set job_id to null first
+    // 8. Clear rfq_requests
     try {
-      await db.execute(sql`UPDATE rfq_requests SET job_id = NULL`);
-      const rfqResult = await db.execute(sql`DELETE FROM rfq_requests RETURNING id`);
-      counts.rfqRequests = rfqResult.rows.length;
+      const result = await db.execute(sql`DELETE FROM rfq_requests RETURNING id`);
+      counts.rfqRequests = result.rows.length;
     } catch (e) {
       console.error("Error clearing RFQ requests:", e);
       counts.rfqRequests = 0;
     }
     
+    // 9. Clear approval_history
     try {
-      counts.approvalHistory = await db.delete(approvalHistory).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM approval_history RETURNING id`);
+      counts.approvalHistory = result.rows.length;
     } catch (e) {
       console.error("Error clearing approval history:", e);
       counts.approvalHistory = 0;
     }
     
+    // 10. Clear requisition_items (depends on purchase_requisitions)
     try {
-      counts.requisitionItems = await db.delete(requisitionItems).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM requisition_items RETURNING id`);
+      counts.requisitionItems = result.rows.length;
     } catch (e) {
       console.error("Error clearing requisition items:", e);
       counts.requisitionItems = 0;
     }
     
-    // Clear purchase requisitions - set job_id to null first, already broke PO link above
+    // 11. Finally clear purchase_requisitions
     try {
-      await db.execute(sql`UPDATE purchase_requisitions SET job_id = NULL`);
-      const reqResult = await db.execute(sql`DELETE FROM purchase_requisitions RETURNING id`);
-      counts.purchaseRequisitions = reqResult.rows.length;
+      const result = await db.execute(sql`DELETE FROM purchase_requisitions RETURNING id`);
+      counts.purchaseRequisitions = result.rows.length;
     } catch (e) {
       console.error("Error clearing purchase requisitions:", e);
       counts.purchaseRequisitions = 0;
@@ -2874,6 +2887,7 @@ export class DatabaseStorage implements IStorage {
       await this.resetNumberingSequence('REQ', 1, userId);
       await this.resetNumberingSequence('RFQ', 1, userId);
       await this.resetNumberingSequence('PO', 1, userId);
+      await this.resetNumberingSequence('GRN', 1, userId);
     } catch (e) {
       console.error("Error resetting numbering sequences:", e);
     }
@@ -2884,33 +2898,44 @@ export class DatabaseStorage implements IStorage {
   async clearJobsData(userId: number): Promise<{ deletedCounts: any }> {
     const counts: any = {};
 
-    // Clear in order of dependencies without transaction to avoid rollback issues
+    // Clear in order of dependencies using raw SQL
     try {
-      counts.cutSequences = await db.delete(cutSequences).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM cut_sequences RETURNING id`);
+      counts.cutSequences = result.rows.length;
     } catch (e) {
       console.error("Error clearing cut sequences:", e);
       counts.cutSequences = 0;
     }
     
     try {
-      counts.cuttingPlans = await db.delete(cuttingPlans).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM cutting_plans RETURNING id`);
+      counts.cuttingPlans = result.rows.length;
     } catch (e) {
       console.error("Error clearing cutting plans:", e);
       counts.cuttingPlans = 0;
     }
     
     try {
-      counts.jobMaterials = await db.delete(jobMaterials).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM job_materials RETURNING id`);
+      counts.jobMaterials = result.rows.length;
     } catch (e) {
       console.error("Error clearing job materials:", e);
       counts.jobMaterials = 0;
     }
     
     try {
-      counts.jobs = await db.delete(jobs).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM jobs RETURNING id`);
+      counts.jobs = result.rows.length;
     } catch (e) {
       console.error("Error clearing jobs:", e);
       counts.jobs = 0;
+    }
+
+    // Reset job numbering sequence
+    try {
+      await this.resetNumberingSequence('JOB', 1, userId);
+    } catch (e) {
+      console.error("Error resetting job numbering:", e);
     }
 
     return { deletedCounts: counts };
@@ -2919,26 +2944,109 @@ export class DatabaseStorage implements IStorage {
   async clearFinancialData(userId: number): Promise<{ deletedCounts: any }> {
     const counts: any = {};
 
-    // Clear in order of dependencies without transaction to avoid rollback issues
+    // Clear in order of dependencies using raw SQL
     try {
-      counts.quoteHistory = await db.delete(quoteHistory).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM quote_history RETURNING id`);
+      counts.quoteHistory = result.rows.length;
     } catch (e) {
       console.error("Error clearing quote history:", e);
       counts.quoteHistory = 0;
     }
     
     try {
-      counts.quoteViews = await db.delete(quoteViews).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM quote_views RETURNING id`);
+      counts.quoteViews = result.rows.length;
     } catch (e) {
       console.error("Error clearing quote views:", e);
       counts.quoteViews = 0;
     }
     
     try {
-      counts.quotes = await db.delete(quotes).returning().then(r => r.length);
+      const result = await db.execute(sql`DELETE FROM quotes RETURNING id`);
+      counts.quotes = result.rows.length;
     } catch (e) {
       console.error("Error clearing quotes:", e);
       counts.quotes = 0;
+    }
+
+    // Reset quote numbering sequence
+    try {
+      await this.resetNumberingSequence('QUOTE', 1, userId);
+    } catch (e) {
+      console.error("Error resetting quote numbering:", e);
+    }
+
+    return { deletedCounts: counts };
+  }
+
+  async clearEstimationData(userId: number): Promise<{ deletedCounts: any }> {
+    const counts: any = {};
+
+    // Clear all estimation-related tables using raw SQL
+    // First clear dependent tables
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_consumables RETURNING id`);
+      counts.estimationConsumables = result.rows.length;
+    } catch (e) {
+      console.error("Error clearing estimation consumables:", e);
+      counts.estimationConsumables = 0;
+    }
+    
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_equipment RETURNING id`);
+      counts.estimationEquipment = result.rows.length;
+    } catch (e) {
+      console.error("Error clearing estimation equipment:", e);
+      counts.estimationEquipment = 0;
+    }
+    
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_labor RETURNING id`);
+      counts.estimationLabor = result.rows.length;
+    } catch (e) {
+      console.error("Error clearing estimation labor:", e);
+      counts.estimationLabor = 0;
+    }
+    
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_materials RETURNING id`);
+      counts.estimationMaterials = result.rows.length;
+    } catch (e) {
+      console.error("Error clearing estimation materials:", e);
+      counts.estimationMaterials = 0;
+    }
+    
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_data RETURNING id`);
+      counts.estimationData = result.rows.length;
+    } catch (e) {
+      console.error("Error clearing estimation data:", e);
+      counts.estimationData = 0;
+    }
+    
+    // Clear optimization simulations
+    try {
+      const result = await db.execute(sql`DELETE FROM optimization_simulations RETURNING id`);
+      counts.optimizationSimulations = result.rows.length;
+    } catch (e) {
+      console.error("Error clearing optimization simulations:", e);
+      counts.optimizationSimulations = 0;
+    }
+    
+    // Finally clear estimation projects
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_projects RETURNING id`);
+      counts.estimationProjects = result.rows.length;
+    } catch (e) {
+      console.error("Error clearing estimation projects:", e);
+      counts.estimationProjects = 0;
+    }
+
+    // Reset estimation numbering sequence
+    try {
+      await this.resetNumberingSequence('EST', 1, userId);
+    } catch (e) {
+      console.error("Error resetting estimation numbering:", e);
     }
 
     return { deletedCounts: counts };
@@ -2958,6 +3066,10 @@ export class DatabaseStorage implements IStorage {
       }
       if (category === 'finance') {
         const result = await this.clearFinancialData(userId);
+        Object.assign(allCounts, result.deletedCounts);
+      }
+      if (category === 'estimation') {
+        const result = await this.clearEstimationData(userId);
         Object.assign(allCounts, result.deletedCounts);
       }
       if (category === 'audit') {
