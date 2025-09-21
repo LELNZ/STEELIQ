@@ -2778,6 +2778,7 @@ export class DatabaseStorage implements IStorage {
     const counts: any = {};
 
     // Clear in order of dependencies without transaction to avoid rollback issues
+    // Start with dependent tables first
     try {
       counts.goodsReceiptItems = await db.delete(goodsReceiptItems).returning().then(r => r.length);
     } catch (e) {
@@ -2806,7 +2807,11 @@ export class DatabaseStorage implements IStorage {
       counts.poDocumentConfig = 0;
     }
     
+    // Clear purchase orders - set job_id to null first to avoid FK constraint issues
     try {
+      // First update all purchase orders to set job_id to null
+      await db.update(purchaseOrders).set({ jobId: null });
+      // Then delete them
       counts.purchaseOrders = await db.delete(purchaseOrders).returning().then(r => r.length);
     } catch (e) {
       console.error("Error clearing purchase orders:", e);
@@ -2820,7 +2825,11 @@ export class DatabaseStorage implements IStorage {
       counts.rfqResponses = 0;
     }
     
+    // Clear RFQ requests - set job_id to null first
     try {
+      // First update all RFQ requests to set job_id to null
+      await db.update(rfqRequests).set({ jobId: null });
+      // Then delete them
       counts.rfqRequests = await db.delete(rfqRequests).returning().then(r => r.length);
     } catch (e) {
       console.error("Error clearing RFQ requests:", e);
@@ -2841,7 +2850,11 @@ export class DatabaseStorage implements IStorage {
       counts.requisitionItems = 0;
     }
     
+    // Clear purchase requisitions - set job_id to null first
     try {
+      // First update all requisitions to set job_id to null
+      await db.update(purchaseRequisitions).set({ jobId: null });
+      // Then delete them
       counts.purchaseRequisitions = await db.delete(purchaseRequisitions).returning().then(r => r.length);
     } catch (e) {
       console.error("Error clearing purchase requisitions:", e);
