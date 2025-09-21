@@ -94,6 +94,7 @@ function Router() {
       <Route path="/settings/audit-center" component={AuditCenter} />
       <Route path="/organization-settings" component={OrganizationSettingsPage} />
       <Route path="/team-management" component={TeamManagement} />
+      <Route path="/team-management/employee/new" component={EmployeeProfile} />
       <Route path="/team-management/employee/:id" component={EmployeeProfile} />
       <Route path="/time-payroll" component={TimePayroll} />
       <Route path="/projects/:projectId/lifecycle" component={ProjectLifecycleTracker} />
