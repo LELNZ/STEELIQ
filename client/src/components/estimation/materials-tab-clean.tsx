@@ -619,8 +619,16 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
 
   // Handle importing materials from MTO
   const handleImportMTO = (importedMaterials: MaterialCost[]) => {
-    // Combine existing materials with imported ones
-    const updatedMaterials = [...materials, ...importedMaterials];
+    // Filter out empty placeholder materials (those with no materialCode and no totalCost)
+    const nonEmptyMaterials = materials.filter(m => 
+      m.materialCode || m.materialName || m.totalCost > 0
+    );
+    
+    // Replace empty materials with imported ones, or append if all existing materials have content
+    const updatedMaterials = nonEmptyMaterials.length === materials.length 
+      ? [...materials, ...importedMaterials]  // All existing have content, append
+      : [...nonEmptyMaterials, ...importedMaterials]; // Replace empty ones
+    
     onUpdate(updatedMaterials);
     
     toast({
