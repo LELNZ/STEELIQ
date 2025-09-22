@@ -161,7 +161,7 @@ function ConnectionComponentsTab({ connectionComponents }: { connectionComponent
   // Add mutation
   const addMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("POST", "/api/connection-components", data);
+      return await apiRequest("/api/connection-components", "POST", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/connection-components"] });
@@ -183,7 +183,7 @@ function ConnectionComponentsTab({ connectionComponents }: { connectionComponent
   // Edit mutation
   const editMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest("PUT", `/api/connection-components/${id}`, data);
+      return await apiRequest(`/api/connection-components/${id}`, "PUT", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/connection-components"] });
@@ -206,7 +206,7 @@ function ConnectionComponentsTab({ connectionComponents }: { connectionComponent
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/connection-components/${id}`);
+      await apiRequest(`/api/connection-components/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/connection-components"] });
@@ -462,15 +462,28 @@ interface ConnectionComponentDialogProps {
   initialData?: ConnectionComponent | null;
 }
 
-const connectionComponentFormSchema = insertConnectionComponentSchema.omit({
-  id: true,
-  created_at: true,
-  updated_at: true,
-  created_by: true,
-  updated_by: true,
-}).extend({
+const connectionComponentFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
   component_type: z.enum(['end_plate', 'stiffener_plate', 'base_plate', 'cleat']),
-  holes: z.number().min(0).default(0),
+  section_compatibility: z.string().min(1, "Section compatibility is required"),
+  height: z.coerce.number().min(0).default(0),
+  width: z.coerce.number().min(0).default(0),
+  thickness: z.coerce.number().min(0).default(0),
+  weight: z.coerce.number().min(0).default(0),
+  surface_area: z.coerce.number().min(0).default(0),
+  weld_time_per_hour: z.coerce.number().min(0).default(0),
+  material_grade: z.string().default('250'),
+  standard: z.string().optional().default(''),
+  holes: z.coerce.number().min(0).default(0),
+  labor_time: z.coerce.number().optional(),
+  material_cost: z.coerce.number().optional(),
+  unit: z.string().default('each'),
+  category: z.string().default('connections'),
+  subcategory: z.string().optional(),
+  specification: z.string().optional(),
+  is_standard: z.boolean().default(true),
+  is_active: z.boolean().default(true),
+  notes: z.string().optional(),
 });
 
 function ConnectionComponentDialog({ 
@@ -507,16 +520,24 @@ function ConnectionComponentDialog({
           name: initialData.name || '',
           component_type: initialData.component_type || 'end_plate',
           section_compatibility: initialData.section_compatibility || '',
-          height: initialData.height || 0,
-          width: initialData.width || 0,
-          thickness: initialData.thickness || 0,
-          weight: initialData.weight || 0,
-          surface_area: initialData.surface_area || 0,
-          weld_time_per_hour: initialData.weld_time_per_hour || 0,
+          height: parseFloat(initialData.height as any) || 0,
+          width: parseFloat(initialData.width as any) || 0,
+          thickness: parseFloat(initialData.thickness as any) || 0,
+          weight: parseFloat(initialData.weight as any) || 0,
+          surface_area: parseFloat(initialData.surface_area as any) || 0,
+          weld_time_per_hour: parseFloat(initialData.weld_time_per_hour as any) || 0,
           material_grade: initialData.material_grade || '250',
           standard: initialData.standard || '',
           holes: initialData.holes || 0,
+          labor_time: parseFloat(initialData.labor_time as any) || undefined,
+          material_cost: parseFloat(initialData.material_cost as any) || undefined,
+          unit: initialData.unit || 'each',
+          category: initialData.category || 'connections',
+          subcategory: initialData.subcategory || undefined,
+          specification: initialData.specification || undefined,
+          is_standard: initialData.is_standard ?? true,
           is_active: initialData.is_active ?? true,
+          notes: initialData.notes || undefined,
         });
       } else {
         form.reset({
@@ -532,7 +553,15 @@ function ConnectionComponentDialog({
           material_grade: '250',
           standard: '',
           holes: 0,
+          labor_time: undefined,
+          material_cost: undefined,
+          unit: 'each',
+          category: 'connections',
+          subcategory: undefined,
+          specification: undefined,
+          is_standard: true,
           is_active: true,
+          notes: undefined,
         });
       }
     }
