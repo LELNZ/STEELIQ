@@ -84,7 +84,7 @@ export default function OrganizedMaterialLibrary({
     { id: 'consumables', label: 'Consumables', count: materials?.filter(m => getMaterialCategory(m) === 'consumables').length || 0 },
     { id: 'connections', label: 'Connections', count: connectionComponents?.length || 0 },
     { id: 'other', label: 'Other', count: materials?.filter(m => getMaterialCategory(m) === 'other').length || 0 },
-  ].filter(cat => cat.count > 0 || cat.id === 'all');
+  ].filter(cat => cat.count > 0 || cat.id === 'all' || cat.id === 'connections');
 
   if (isLoading) {
     return (
