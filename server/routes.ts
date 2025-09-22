@@ -1547,6 +1547,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Supplier prices for estimation
+  app.get("/api/supplier-prices/material/:materialId", async (req, res) => {
+    try {
+      const materialId = parseInt(req.params.materialId);
+      
+      // Get material suppliers with supplier details
+      const { materialSuppliers } = await import('@shared/schema');
+      const result = await db.select({
+        supplierId: suppliers.id,
+        supplierName: suppliers.name,
+        pricePerMeter: materialSuppliers.pricePerMeter,
+        pricePerKg: materialSuppliers.pricePerKg,
+        tonRate: materialSuppliers.tonRate,
+        leadTimeDays: materialSuppliers.leadTimeDays,
+        lastUpdated: materialSuppliers.lastUpdated,
+        isPrimary: materialSuppliers.isPrimary
+      })
+      .from(materialSuppliers)
+      .leftJoin(suppliers, eq(suppliers.id, materialSuppliers.supplierId))
+      .where(eq(materialSuppliers.materialId, materialId))
+      .orderBy(desc(materialSuppliers.isPrimary), materialSuppliers.pricePerMeter);
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching supplier prices:", error);
+      res.status(500).json({ error: "Failed to fetch supplier prices" });
+    }
+  });
+
   app.post("/api/materials/:materialId/suppliers", async (req, res) => {
     try {
       const materialId = parseInt(req.params.materialId);

@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { SupplierPriceRefresh } from "./supplier-price-refresh";
 
 interface MaterialCost {
   id: string;
@@ -710,6 +711,10 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
           <ImportMTODialog 
             projectId={projectId}
             onImport={handleImportMTO}
+          />
+          <SupplierPriceRefresh
+            materials={materials}
+            onPricesUpdate={onUpdate}
           />
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
