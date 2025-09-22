@@ -242,12 +242,12 @@ function ImportMTODialog({ projectId, onImport }: ImportMTODialogProps) {
       // Transform takeoff data to MaterialCost format
       const importedMaterials: MaterialCost[] = takeoffsData.map((takeoff: any) => ({
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        materialCode: takeoff.section || takeoff.mark,
+        materialCode: takeoff.mark || "",
         materialName: takeoff.section || `Material ${takeoff.mark}`,
-        designation: takeoff.mark,
-        drawingReference: takeoff.drawingRef || `Drawing ${selectedDrawingId}`,
+        designation: `${takeoff.mark} - ${takeoff.section}`,
+        drawingReference: takeoff.drawingRef || `Drawing Ref`,
         quantity: parseFloat(takeoff.quantity) || 1,
-        unit: "m",
+        unit: "EA",
         unitCost: parseFloat(takeoff.unitPrice) || 0,
         totalCost: parseFloat(takeoff.totalPrice) || 0,
         wasteFactor: parseFloat(takeoff.wastage) || 5,
@@ -255,7 +255,7 @@ function ImportMTODialog({ projectId, onImport }: ImportMTODialogProps) {
         phase: takeoff.phase || "",
         handlingTime: 0,
         handlingCost: 0,
-        notes: `Imported from Drawing: ${takeoff.drawingRef || selectedDrawingId}`,
+        notes: `Grade: ${takeoff.grade || 'N/A'}, Phase: ${takeoff.phase || 'N/A'}`,
         aiSuggested: false
       }));
       
