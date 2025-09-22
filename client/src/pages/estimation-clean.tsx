@@ -290,7 +290,7 @@ export default function EstimationPage() {
     mutationFn: async (data: EstimationData) => {
       console.log('Saving estimation data:', data);
       // apiRequest already handles response parsing and error throwing
-      const result = await apiRequest("PUT", `/api/estimations/${currentProject?.id}`, data);
+      const result = await apiRequest(`/api/estimations/${currentProject?.id}`, "PUT", data);
       console.log('Save response:', result);
       
       // Update original data to match current state after successful save

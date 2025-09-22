@@ -141,10 +141,10 @@ export default function TeamManagement() {
       try {
         if (data.id) {
           console.log("Updating existing member with ID:", data.id);
-          return apiRequest("PUT", `/api/team/members/${data.id}`, data);
+          return apiRequest(`/api/team/members/${data.id}`, "PUT", data);
         } else {
           console.log("Creating new member");
-          return apiRequest("POST", "/api/team/members", data);
+          return apiRequest("/api/team/members", "POST", data);
         }
       } catch (error) {
         console.error("API request failed:", error);
@@ -175,9 +175,9 @@ export default function TeamManagement() {
   const roleMutation = useMutation({
     mutationFn: async (data: any) => {
       if (data.id) {
-        return apiRequest("PUT", `/api/team/roles/${data.id}`, data);
+        return apiRequest(`/api/team/roles/${data.id}`, "PUT", data);
       } else {
-        return apiRequest("POST", "/api/team/roles", data);
+        return apiRequest("/api/team/roles", "POST", data);
       }
     },
     onSuccess: () => {
@@ -202,9 +202,9 @@ export default function TeamManagement() {
   const departmentMutation = useMutation({
     mutationFn: async (data: any) => {
       if (data.id) {
-        return apiRequest("PUT", `/api/team/departments/${data.id}`, data);
+        return apiRequest(`/api/team/departments/${data.id}`, "PUT", data);
       } else {
-        return apiRequest("POST", "/api/team/departments", data);
+        return apiRequest("/api/team/departments", "POST", data);
       }
     },
     onSuccess: () => {
