@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -989,7 +990,10 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
           <DialogHeader>
             <DialogTitle>Add Connection Detail</DialogTitle>
           </DialogHeader>
-          <AddChildItemForm onSubmit={handleAddChildItem} />
+          <AddChildItemForm 
+            onSubmit={handleAddChildItem}
+            parentSection={materials.find(m => m.id === addChildItemMaterialId)?.section}
+          />
         </DialogContent>
       </Dialog>
     </div>
@@ -1526,7 +1530,15 @@ function EditMaterialDialog({
 }
 
 // Add Child Item Form Component
-function AddChildItemForm({ onSubmit }: { onSubmit: (data: Partial<MaterialChildItem>) => void }) {
+function AddChildItemForm({ onSubmit, parentSection }: { 
+  onSubmit: (data: Partial<MaterialChildItem>) => void;
+  parentSection?: string;
+}) {
+  const [useLibrary, setUseLibrary] = useState(false);
+  const [selectedComponent, setSelectedComponent] = useState<any>(null);
+  const [libraryComponents, setLibraryComponents] = useState<any[]>([]);
+  const [isLoadingComponents, setIsLoadingComponents] = useState(false);
+  
   const [formData, setFormData] = useState({
     type: 'stiffener' as MaterialChildItem['type'],
     description: '',
@@ -1536,7 +1548,8 @@ function AddChildItemForm({ onSubmit }: { onSubmit: (data: Partial<MaterialChild
     thickness: undefined as number | undefined,
     size: '',
     length: undefined as number | undefined,
-    notes: ''
+    notes: '',
+    weldTime: undefined as number | undefined // Add weld time for labor calculations
   });
 
   const connectionTypes = [
@@ -1551,9 +1564,58 @@ function AddChildItemForm({ onSubmit }: { onSubmit: (data: Partial<MaterialChild
 
   const selectedType = connectionTypes.find(t => t.value === formData.type);
 
+  // Load library components when type changes and library mode is active
+  React.useEffect(() => {
+    if (useLibrary && formData.type) {
+      loadLibraryComponents();
+    }
+  }, [useLibrary, formData.type]);
+
+  const loadLibraryComponents = async () => {
+    setIsLoadingComponents(true);
+    try {
+      // Extract section from parent (e.g., "UB 457x152x52" -> "UB")
+      const sectionType = parentSection?.split(' ')[0] || 'all';
+      const response = await fetch(
+        `/api/connection-components/search/${sectionType}?type=${formData.type}`
+      );
+      if (response.ok) {
+        const components = await response.json();
+        setLibraryComponents(components);
+      }
+    } catch (error) {
+      console.error('Error loading library components:', error);
+    } finally {
+      setIsLoadingComponents(false);
+    }
+  };
+
+  // Auto-populate fields when a library component is selected
+  const handleLibrarySelection = (componentId: string) => {
+    const component = libraryComponents.find(c => c.id.toString() === componentId);
+    if (component) {
+      setSelectedComponent(component);
+      
+      // Auto-populate form fields based on component data
+      setFormData(prev => ({
+        ...prev,
+        description: component.name,
+        thickness: component.thickness || undefined,
+        size: component.dimensions || '',
+        unitCost: component.unit_rate || 0,
+        notes: component.specifications || '',
+        weldTime: component.weld_time_per_unit || undefined
+      }));
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    // Include weld time data in submission for labor calculations
+    onSubmit({
+      ...formData,
+      libraryComponentId: selectedComponent?.id
+    });
     // Reset form
     setFormData({
       type: 'stiffener',
@@ -1564,15 +1626,43 @@ function AddChildItemForm({ onSubmit }: { onSubmit: (data: Partial<MaterialChild
       thickness: undefined,
       size: '',
       length: undefined,
-      notes: ''
+      notes: '',
+      weldTime: undefined
     });
+    setSelectedComponent(null);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Toggle between Manual Entry and Library Selection */}
+      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+        <div className="space-y-0.5">
+          <Label>Use Connection Library</Label>
+          <p className="text-sm text-muted-foreground">
+            Select from verified industry-standard components
+          </p>
+        </div>
+        <Switch
+          checked={useLibrary}
+          onCheckedChange={(checked) => {
+            setUseLibrary(checked);
+            if (!checked) {
+              setSelectedComponent(null);
+              setLibraryComponents([]);
+            }
+          }}
+        />
+      </div>
+
       <div>
         <Label htmlFor="child-type">Connection Type</Label>
-        <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as any }))}>
+        <Select 
+          value={formData.type} 
+          onValueChange={(value) => {
+            setFormData(prev => ({ ...prev, type: value as any }));
+            setSelectedComponent(null); // Clear selection when type changes
+          }}
+        >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -1585,6 +1675,43 @@ function AddChildItemForm({ onSubmit }: { onSubmit: (data: Partial<MaterialChild
           </SelectContent>
         </Select>
       </div>
+
+      {/* Library Component Selection (when enabled) */}
+      {useLibrary && (
+        <div>
+          <Label htmlFor="library-component">Select from Library</Label>
+          {isLoadingComponents ? (
+            <div className="flex items-center justify-center p-4 border rounded-lg">
+              <span className="text-sm text-muted-foreground">Loading components...</span>
+            </div>
+          ) : libraryComponents.length > 0 ? (
+            <Select 
+              value={selectedComponent?.id?.toString() || ''} 
+              onValueChange={handleLibrarySelection}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a component from library" />
+              </SelectTrigger>
+              <SelectContent>
+                {libraryComponents.map(comp => (
+                  <SelectItem key={comp.id} value={comp.id.toString()}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{comp.name}</span>
+                      {comp.specifications && (
+                        <span className="text-xs text-muted-foreground">{comp.specifications}</span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-sm text-muted-foreground p-3 border rounded-lg">
+              No library components available for {selectedType?.label} in this section
+            </p>
+          )}
+        </div>
+      )}
 
       <div>
         <Label htmlFor="child-description">Description</Label>
