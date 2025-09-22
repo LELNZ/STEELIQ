@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Material } from "@shared/schema";
-import { Search, Package, Edit, Trash2, DollarSign, Plus } from "lucide-react";
+import { Material, ConnectionComponent } from "@shared/schema";
+import { Search, Package, Edit, Trash2, DollarSign, Plus, Wrench, Settings } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -64,6 +64,11 @@ export default function OrganizedMaterialLibrary({
     return 'other';
   }
 
+  // Fetch connection components count
+  const { data: connectionComponents } = useQuery<ConnectionComponent[]>({
+    queryKey: ["/api/connection-components"],
+  });
+
   const materialCategories = [
     { id: 'all', label: 'All Materials', count: materials?.length || 0 },
     { id: 'shs', label: 'SHS', count: materials?.filter(m => getMaterialCategory(m) === 'shs').length || 0 },
@@ -77,6 +82,7 @@ export default function OrganizedMaterialLibrary({
     { id: 'sheets', label: 'Sheets', count: materials?.filter(m => getMaterialCategory(m) === 'sheets').length || 0 },
     { id: 'pipes', label: 'Pipes', count: materials?.filter(m => getMaterialCategory(m) === 'pipes').length || 0 },
     { id: 'consumables', label: 'Consumables', count: materials?.filter(m => getMaterialCategory(m) === 'consumables').length || 0 },
+    { id: 'connections', label: 'Connections', count: connectionComponents?.length || 0 },
     { id: 'other', label: 'Other', count: materials?.filter(m => getMaterialCategory(m) === 'other').length || 0 },
   ].filter(cat => cat.count > 0 || cat.id === 'all');
 
@@ -131,6 +137,8 @@ export default function OrganizedMaterialLibrary({
         <TabsContent value={activeCategory} className="space-y-4">
           {activeCategory === 'consumables' ? (
             <ConsumablesTab materials={filteredMaterials?.filter(m => getMaterialCategory(m) === 'consumables') || []} />
+          ) : activeCategory === 'connections' ? (
+            <ConnectionComponentsTab connectionComponents={connectionComponents || []} />
           ) : filteredMaterials && filteredMaterials.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredMaterials.map((material) => (
@@ -472,6 +480,388 @@ function ConsumablesTab({ materials }: { materials: Material[] }) {
             <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
             <p className="text-muted-foreground">No consumables found</p>
             <p className="text-sm text-muted-foreground">Add welding electrodes, cutting discs, and other supplies</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Connection Components Tab Component with Add functionality
+function ConnectionComponentsTab({ connectionComponents }: { connectionComponents: ConnectionComponent[] }) {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<string>("all");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [formData, setFormData] = useState({
+    component_type: "end_plate",
+    section_compatibility: "",
+    name: "",
+    height: 0,
+    width: 0,
+    thickness: 0,
+    weld_time_per_hour: 0,
+    material_grade: "250",
+    category: "Connection Components",
+    subcategory: "",
+    standard: "AS/NZS",
+    specification: "",
+    notes: ""
+  });
+
+  const addComponentMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch("/api/connection-components", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error("Failed to add connection component");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/connection-components"] });
+      setIsAddDialogOpen(false);
+      setFormData({
+        component_type: "end_plate",
+        section_compatibility: "",
+        name: "",
+        height: 0,
+        width: 0,
+        thickness: 0,
+        weld_time_per_hour: 0,
+        material_grade: "250",
+        category: "Connection Components",
+        subcategory: "",
+        standard: "AS/NZS",
+        specification: "",
+        notes: ""
+      });
+      toast({
+        title: "Success",
+        description: "Connection component added successfully"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add connection component",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    addComponentMutation.mutate(formData);
+  };
+
+  // Filter components by type
+  const filteredComponents = connectionComponents?.filter(component => {
+    if (selectedType === "all") return true;
+    return component.component_type === selectedType;
+  });
+
+  // Group components by type for display
+  const componentTypes = [
+    { id: "all", label: "All Components", count: connectionComponents?.length || 0 },
+    { id: "end_plate", label: "End Plates", count: connectionComponents?.filter(c => c.component_type === "end_plate").length || 0 },
+    { id: "stiffener_plate", label: "Stiffener Plates", count: connectionComponents?.filter(c => c.component_type === "stiffener_plate").length || 0 },
+    { id: "base_plate", label: "Base Plates", count: connectionComponents?.filter(c => c.component_type === "base_plate").length || 0 },
+    { id: "cleat", label: "Cleats", count: connectionComponents?.filter(c => c.component_type === "cleat").length || 0 },
+  ].filter(type => type.count > 0 || type.id === "all");
+
+  return (
+    <div className="space-y-6">
+      {/* Header with Add Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-medium">Connection Components Library</h3>
+          <p className="text-sm text-muted-foreground">
+            Standard connection components with exact dimensions and weld times
+          </p>
+        </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button data-testid="button-add-connection">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Component
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[700px]">
+            <DialogHeader>
+              <DialogTitle>Add New Connection Component</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="component_type">Component Type *</Label>
+                  <Select 
+                    value={formData.component_type} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, component_type: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="end_plate">End Plate</SelectItem>
+                      <SelectItem value="stiffener_plate">Stiffener Plate</SelectItem>
+                      <SelectItem value="base_plate">Base Plate</SelectItem>
+                      <SelectItem value="cleat">Cleat</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="section_compatibility">Section Compatibility *</Label>
+                  <Input
+                    id="section_compatibility"
+                    value={formData.section_compatibility}
+                    onChange={(e) => setFormData(prev => ({ ...prev, section_compatibility: e.target.value }))}
+                    placeholder="e.g. 150UB, 200UC, ALL"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="name">Component Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g. End Plate for 150UB18.0"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="height">Height (mm) *</Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    step="0.1"
+                    value={formData.height}
+                    onChange={(e) => setFormData(prev => ({ ...prev, height: parseFloat(e.target.value) || 0 }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="width">Width (mm) *</Label>
+                  <Input
+                    id="width"
+                    type="number"
+                    step="0.1"
+                    value={formData.width}
+                    onChange={(e) => setFormData(prev => ({ ...prev, width: parseFloat(e.target.value) || 0 }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="thickness">Thickness (mm) *</Label>
+                  <Input
+                    id="thickness"
+                    type="number"
+                    step="0.1"
+                    value={formData.thickness}
+                    onChange={(e) => setFormData(prev => ({ ...prev, thickness: parseFloat(e.target.value) || 0 }))}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="weld_time_per_hour">Weld Time (h/h)</Label>
+                  <Input
+                    id="weld_time_per_hour"
+                    type="number"
+                    step="0.001"
+                    value={formData.weld_time_per_hour}
+                    onChange={(e) => setFormData(prev => ({ ...prev, weld_time_per_hour: parseFloat(e.target.value) || 0 }))}
+                    placeholder="e.g. 0.325"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="material_grade">Material Grade</Label>
+                  <Input
+                    id="material_grade"
+                    value={formData.material_grade}
+                    onChange={(e) => setFormData(prev => ({ ...prev, material_grade: e.target.value }))}
+                    placeholder="e.g. 250"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="standard">Standard</Label>
+                  <Input
+                    id="standard"
+                    value={formData.standard}
+                    onChange={(e) => setFormData(prev => ({ ...prev, standard: e.target.value }))}
+                    placeholder="e.g. AS/NZS 1554"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="subcategory">Subcategory</Label>
+                  <Input
+                    id="subcategory"
+                    value={formData.subcategory}
+                    onChange={(e) => setFormData(prev => ({ ...prev, subcategory: e.target.value }))}
+                    placeholder="e.g. Heavy Duty"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="specification">Specification</Label>
+                <Textarea
+                  id="specification"
+                  value={formData.specification}
+                  onChange={(e) => setFormData(prev => ({ ...prev, specification: e.target.value }))}
+                  placeholder="Technical specifications, hole patterns, etc."
+                  rows={2}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Additional notes about usage, installation, etc."
+                  rows={2}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={addComponentMutation.isPending}>
+                  {addComponentMutation.isPending ? "Adding..." : "Add Component"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Component Type Filter */}
+      <div className="flex items-center space-x-2 overflow-x-auto">
+        {componentTypes.map((type) => (
+          <Button
+            key={type.id}
+            variant={selectedType === type.id ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedType(type.id)}
+            className="whitespace-nowrap"
+            data-testid={`filter-${type.id}`}
+          >
+            {type.label}
+            <Badge variant="secondary" className="ml-2">
+              {type.count}
+            </Badge>
+          </Button>
+        ))}
+      </div>
+
+      {/* Components Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredComponents && filteredComponents.length > 0 ? (
+          filteredComponents.map((component) => (
+            <Card key={component.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Wrench className="h-5 w-5 text-blue-500" />
+                    <CardTitle className="text-sm font-medium leading-tight">
+                      {component.name}
+                    </CardTitle>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Badge variant="outline" className="text-xs">
+                      {component.component_type.replace('_', ' ')}
+                    </Badge>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Compatible: {component.section_compatibility}
+                </p>
+              </CardHeader>
+              
+              <CardContent className="space-y-3">
+                {/* Dimensions */}
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <p className="text-muted-foreground">Height</p>
+                    <p className="font-medium">{component.height}mm</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Width</p>
+                    <p className="font-medium">{component.width}mm</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Thickness</p>
+                    <p className="font-medium">{component.thickness}mm</p>
+                  </div>
+                </div>
+
+                {/* Weld Time and Grade */}
+                <div className="flex items-center justify-between text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs">Weld Time</p>
+                    <p className="font-medium">{component.weld_time_per_hour} h/h</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-muted-foreground text-xs">Grade</p>
+                    <p className="font-medium">{component.material_grade || '250'}</p>
+                  </div>
+                </div>
+
+                {/* Weight and Surface Area */}
+                {(component.weight || component.surface_area) && (
+                  <div className="flex items-center justify-between border-t pt-2 text-sm">
+                    {component.weight && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Weight</p>
+                        <p className="font-medium">{component.weight} kg</p>
+                      </div>
+                    )}
+                    {component.surface_area && (
+                      <div className="text-right">
+                        <p className="text-muted-foreground text-xs">Surface</p>
+                        <p className="font-medium">{component.surface_area} m²</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Standard */}
+                {component.standard && (
+                  <div className="border-t pt-2">
+                    <p className="text-xs text-muted-foreground">Standard: {component.standard}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-8">
+            <Wrench className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <p className="text-muted-foreground">No connection components found</p>
+            <p className="text-sm text-muted-foreground">
+              {selectedType === "all" 
+                ? "Add end plates, stiffener plates, and other connection components"
+                : `No ${selectedType.replace('_', ' ')} components available`
+              }
+            </p>
           </div>
         )}
       </div>
