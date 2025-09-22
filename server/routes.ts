@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -1639,6 +1639,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching skill levels:", error);
       res.status(500).json({ error: "Failed to fetch skill levels" });
+    }
+  });
+
+  // Connection Components API endpoints
+  app.get("/api/connection-components", async (req, res) => {
+    try {
+      const { component_type, section_compatibility, is_active = true } = req.query;
+      
+      let query = db.select().from(connectionComponents);
+      
+      const conditions = [];
+      if (component_type) {
+        conditions.push(eq(connectionComponents.component_type, component_type as string));
+      }
+      if (section_compatibility) {
+        conditions.push(eq(connectionComponents.section_compatibility, section_compatibility as string));
+      }
+      if (is_active !== undefined) {
+        conditions.push(eq(connectionComponents.is_active, is_active === 'true'));
+      }
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+      
+      const result = await query.orderBy(
+        connectionComponents.component_type,
+        connectionComponents.section_compatibility,
+        connectionComponents.name
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching connection components:", error);
+      res.status(500).json({ error: "Failed to fetch connection components" });
+    }
+  });
+
+  app.get("/api/connection-components/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const [component] = await db.select()
+        .from(connectionComponents)
+        .where(eq(connectionComponents.id, id));
+      
+      if (!component) {
+        return res.status(404).json({ error: "Connection component not found" });
+      }
+      
+      res.json(component);
+    } catch (error) {
+      console.error("Error fetching connection component:", error);
+      res.status(500).json({ error: "Failed to fetch connection component" });
+    }
+  });
+
+  app.post("/api/connection-components", async (req, res) => {
+    try {
+      const componentData = req.body;
+      
+      // Validate required fields
+      if (!componentData.component_type || !componentData.section_compatibility || !componentData.name) {
+        return res.status(400).json({ error: "Missing required fields: component_type, section_compatibility, name" });
+      }
+      
+      const [newComponent] = await db.insert(connectionComponents)
+        .values({
+          ...componentData,
+          created_by: req.user?.id || null
+        })
+        .returning();
+      
+      res.status(201).json(newComponent);
+    } catch (error) {
+      console.error("Error creating connection component:", error);
+      res.status(500).json({ error: "Failed to create connection component" });
+    }
+  });
+
+  app.put("/api/connection-components/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const componentData = req.body;
+      
+      const [updatedComponent] = await db.update(connectionComponents)
+        .set({
+          ...componentData,
+          updated_at: new Date()
+        })
+        .where(eq(connectionComponents.id, id))
+        .returning();
+      
+      if (!updatedComponent) {
+        return res.status(404).json({ error: "Connection component not found" });
+      }
+      
+      res.json(updatedComponent);
+    } catch (error) {
+      console.error("Error updating connection component:", error);
+      res.status(500).json({ error: "Failed to update connection component" });
+    }
+  });
+
+  app.delete("/api/connection-components/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      const [deletedComponent] = await db.delete(connectionComponents)
+        .where(eq(connectionComponents.id, id))
+        .returning();
+      
+      if (!deletedComponent) {
+        return res.status(404).json({ error: "Connection component not found" });
+      }
+      
+      res.json({ message: "Connection component deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting connection component:", error);
+      res.status(500).json({ error: "Failed to delete connection component" });
+    }
+  });
+
+  // Bulk import endpoint for Excel data
+  app.post("/api/connection-components/bulk-import", async (req, res) => {
+    try {
+      const components = req.body.components;
+      
+      if (!Array.isArray(components)) {
+        return res.status(400).json({ error: "Components must be an array" });
+      }
+      
+      const results = await db.insert(connectionComponents)
+        .values(components.map(comp => ({
+          ...comp,
+          created_by: req.user?.id || null
+        })))
+        .returning();
+      
+      res.status(201).json({ 
+        message: `Successfully imported ${results.length} connection components`,
+        components: results 
+      });
+    } catch (error) {
+      console.error("Error bulk importing connection components:", error);
+      res.status(500).json({ error: "Failed to bulk import connection components" });
     }
   });
 
