@@ -2374,6 +2374,64 @@ export const estimationTemplates = pgTable("estimation_templates", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Unified Operation Items Table - Central source of truth for all estimation operations
+export const operationItems = pgTable("operation_items", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id).notNull(),
+  parentMaterialId: varchar("parent_material_id", { length: 255 }), // Link to parent material
+  
+  // Core categorization
+  category: varchar("category", { length: 50 }).notNull(), // fabrication|connection|assembly|surface|handling
+  type: varchar("type", { length: 50 }).notNull(), // cutting|drilling|welding|grinding|blasting|painting|stiffener|endplate|etc
+  description: text("description").notNull(),
+  
+  // Quantities & Measurements
+  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull().default("1"),
+  unit: varchar("unit", { length: 20 }).notNull().default("ea"),
+  unitCost: decimal("unit_cost", { precision: 10, scale: 4 }).default("0"),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).default("0"),
+  
+  // Operation-specific dimensions
+  thickness: decimal("thickness", { precision: 8, scale: 2 }), // mm
+  size: varchar("size", { length: 100 }), // dimension string
+  length: decimal("length", { precision: 10, scale: 2 }), // mm
+  diameter: decimal("diameter", { precision: 8, scale: 2 }), // mm
+  area: decimal("area", { precision: 10, scale: 2 }), // m²
+  weldTime: decimal("weld_time", { precision: 8, scale: 2 }), // minutes
+  
+  // Labor routing
+  laborHours: decimal("labor_hours", { precision: 8, scale: 2 }),
+  laborRate: decimal("labor_rate", { precision: 8, scale: 2 }),
+  skillLevel: varchar("skill_level", { length: 20 }), // apprentice|standard|senior|specialist
+  location: varchar("location", { length: 20 }), // workshop|site
+  
+  // Consumables data
+  consumablesData: jsonb("consumables_data"), // Array of {item, quantity, unit, cost}
+  
+  // Coating/surface treatment data
+  coatingData: jsonb("coating_data"), // {type, layers, area, dryTime, cost}
+  
+  // Source tracking
+  sourceType: varchar("source_type", { length: 20 }).default("manual"), // manual|library|standard
+  sourceId: integer("source_id"), // Reference to connectionComponents.id or standards table
+  libraryComponentId: integer("library_component_id").references(() => connectionComponents.id),
+  
+  // Additional metadata
+  notes: text("notes"),
+  specifications: text("specifications"),
+  position: varchar("position", { length: 50 }), // flat|vertical|overhead|difficult
+  
+  // Sync tracking
+  syncedToMaterial: boolean("synced_to_material").default(false),
+  syncedToLabor: boolean("synced_to_labor").default(false),
+  syncedToConsumables: boolean("synced_to_consumables").default(false),
+  syncedToCoatings: boolean("synced_to_coatings").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: integer("created_by").references(() => users.id),
+});
+
 export const aiEstimationHistory = pgTable("ai_estimation_history", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => estimationProjects.id),
@@ -2423,6 +2481,12 @@ export const insertAiEstimationHistorySchema = createInsertSchema(aiEstimationHi
   createdAt: true,
 });
 
+export const insertOperationItemSchema = createInsertSchema(operationItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Estimation types
 export type EstimationProject = typeof estimationProjects.$inferSelect;
 export type InsertEstimationProject = z.infer<typeof insertEstimationProjectSchema>;
@@ -2444,6 +2508,9 @@ export type InsertEstimationTemplate = z.infer<typeof insertEstimationTemplateSc
 
 export type AiEstimationHistory = typeof aiEstimationHistory.$inferSelect;
 export type InsertAiEstimationHistory = z.infer<typeof insertAiEstimationHistorySchema>;
+
+export type OperationItem = typeof operationItems.$inferSelect;
+export type InsertOperationItem = z.infer<typeof insertOperationItemSchema>;
 
 // Team Management Schema
 export const roles = pgTable("roles", {

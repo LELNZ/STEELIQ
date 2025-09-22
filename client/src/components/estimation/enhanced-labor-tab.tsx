@@ -243,7 +243,7 @@ export function EnhancedLaborTab({ labor, setLabor }: EnhancedLaborTabProps) {
                     value={newItem.skillLevel} 
                     onValueChange={(value) => {
                       const rate = updateRate('workshop', value);
-                      setNewItem(prev => ({ ...prev, skillLevel: value, rate }));
+                      setNewItem(prev => ({ ...prev, skillLevel: value as LaborItem['skillLevel'], rate }));
                     }}
                   >
                     <SelectTrigger>
@@ -322,7 +322,7 @@ export function EnhancedLaborTab({ labor, setLabor }: EnhancedLaborTabProps) {
                     value={newItem.skillLevel} 
                     onValueChange={(value) => {
                       const rate = updateRate('site', value);
-                      setNewItem(prev => ({ ...prev, skillLevel: value, rate }));
+                      setNewItem(prev => ({ ...prev, skillLevel: value as LaborItem['skillLevel'], rate }));
                     }}
                   >
                     <SelectTrigger>
