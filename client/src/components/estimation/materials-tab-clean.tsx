@@ -55,6 +55,7 @@ interface MaterialCost {
   materialId?: number;
   materialCode: string;
   materialName: string;
+  section?: string; // Steel section (e.g., "UB 457x152x52")
   quantity: number;
   unit: string;
   unitCost: number;
@@ -78,6 +79,7 @@ interface MaterialCost {
   phase?: string; // Construction phase
   level?: string; // Building level/floor
   gridLine?: string; // Grid reference (e.g., "A-1")
+  sequenceNumber?: number; // Sequence for ordering
   // Child items for connections and accessories
   childItems?: MaterialChildItem[];
   parentId?: string; // If this is a child item
@@ -96,6 +98,8 @@ interface MaterialChildItem {
   size?: string; // For bolts, cleats
   length?: number; // For welds
   notes?: string;
+  weldTime?: number; // Weld time from library component (minutes)
+  libraryComponentId?: number; // Track which library component was used
 }
 
 interface MaterialsTabProps {
@@ -1598,15 +1602,25 @@ function AddChildItemForm({ onSubmit, parentSection }: {
     if (component) {
       setSelectedComponent(component);
       
+      // Build size string from height and width
+      let sizeStr = '';
+      if (component.width && component.height) {
+        sizeStr = `${component.width}x${component.height}`;
+      } else if (component.width) {
+        sizeStr = `${component.width}`;
+      } else if (component.height) {
+        sizeStr = `${component.height}`;
+      }
+      
       // Auto-populate form fields based on component data
       setFormData(prev => ({
         ...prev,
         description: component.name,
-        thickness: component.thickness || undefined,
-        size: component.dimensions || '',
-        unitCost: component.unit_rate || 0,
-        notes: component.specifications || '',
-        weldTime: component.weld_time_per_unit || undefined
+        thickness: component.thickness ? parseFloat(component.thickness) : undefined,
+        size: sizeStr,
+        unitCost: component.material_cost ? parseFloat(component.material_cost) : 0,
+        notes: component.specification || '',
+        weldTime: component.weld_time_per_hour ? parseFloat(component.weld_time_per_hour) * 60 : undefined // Convert hours to minutes
       }));
     }
   };
