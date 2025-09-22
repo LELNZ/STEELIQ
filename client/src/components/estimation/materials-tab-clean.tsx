@@ -237,11 +237,7 @@ function ImportMTODialog({ projectId, onImport }: ImportMTODialogProps) {
     setIsLoading(true);
     try {
       // Fetch detailed material takeoffs for the selected drawing
-      const response = await apiRequest(`/api/material-takeoffs/drawing/${selectedDrawingId}`, {
-        method: 'GET'
-      });
-      
-      const takeoffsData = await response.json();
+      const takeoffsData = await apiRequest(`/api/material-takeoffs/drawing/${selectedDrawingId}`, 'GET');
       
       // Transform takeoff data to MaterialCost format
       const importedMaterials: MaterialCost[] = takeoffsData.map((takeoff: any) => ({
