@@ -1695,6 +1695,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search connection components for estimation integration
+  app.get("/api/connection-components/search/:section", async (req, res) => {
+    try {
+      const { section } = req.params;
+      const { type } = req.query;
+      
+      let query = db.select().from(connectionComponents);
+      
+      const conditions = [eq(connectionComponents.is_active, true)];
+      
+      // Handle section compatibility - match exact section or 'All Sections'
+      if (section && section !== 'all') {
+        conditions.push(
+          or(
+            like(connectionComponents.section_compatibility, `%${section}%`),
+            eq(connectionComponents.section_compatibility, 'All Sections')
+          )
+        );
+      }
+      
+      // Filter by component type if provided
+      if (type) {
+        const typeMap: Record<string, string> = {
+          'endplate': 'end_plate',
+          'baseplate': 'base_plate',
+          'stiffener': 'stiffener_plate',
+          'cleat': 'cleat'
+        };
+        const componentType = typeMap[type as string] || type as string;
+        conditions.push(eq(connectionComponents.component_type, componentType));
+      }
+      
+      query = query.where(and(...conditions));
+      
+      const result = await query.orderBy(
+        connectionComponents.name
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error searching connection components:", error);
+      res.status(500).json({ error: "Failed to search connection components" });
+    }
+  });
+
   app.post("/api/connection-components", async (req, res) => {
     try {
       const componentData = req.body;
