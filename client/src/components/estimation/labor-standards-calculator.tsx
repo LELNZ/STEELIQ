@@ -176,13 +176,39 @@ export function LaborStandardsCalculator({ materials, onLaborUpdate }: LaborCalc
           totalWorkshopHours += drillingHours * config.workshopEfficiency;
         }
 
-        // 3. WELDING - Estimate weld lengths based on material size
-        if (material.quantity > 0 && weldingStandards.length > 0) {
-          // Estimate weld length: typically 20-50% of material length for connections
-          const estimatedWeldLength = material.quantity * 0.3; // 30% of material length
+        // 3. WELDING - Check for connection components with actual weld times first
+        let weldingTime = 0;
+        let weldSource = 'estimated';
+        
+        // Check if material has connection child items with weld time from library
+        if (material.childItems && material.childItems.length > 0) {
+          const connectionWeldTime = material.childItems.reduce((sum, child) => {
+            // If child has weldTime from library component
+            if ((child as any).weldTime) {
+              return sum + ((child as any).weldTime * child.quantity);
+            }
+            // If it's a weld type, use its length
+            if (child.type === 'weld' && child.length) {
+              const weldStd = weldingStandards.find(w => w.weld_type === 'fillet') || weldingStandards[0];
+              return sum + (child.length * (weldStd.time_per_meter || 25) / 1000); // Convert mm to meters
+            }
+            return sum;
+          }, 0);
           
+          if (connectionWeldTime > 0) {
+            weldingTime = connectionWeldTime;
+            weldSource = 'library';
+          }
+        }
+        
+        // Fall back to estimation if no library data
+        if (weldingTime === 0 && material.quantity > 0 && weldingStandards.length > 0) {
+          const estimatedWeldLength = material.quantity * 0.3; // 30% of material length
           const weldingStd = weldingStandards.find(w => w.weld_type === 'fillet') || weldingStandards[0];
-          const weldingTime = estimatedWeldLength * (weldingStd.time_per_meter || 25); // minutes
+          weldingTime = estimatedWeldLength * (weldingStd.time_per_meter || 25); // minutes
+        }
+        
+        if (weldingTime > 0) {
           const weldingHours = (weldingTime / 60) * positionFactor * skillMultiplier;
           
           // Split welding: 60% workshop, 40% site
@@ -194,8 +220,8 @@ export function LaborStandardsCalculator({ materials, onLaborUpdate }: LaborCalc
             baseTime: weldingTime,
             workshopHours: workshopWeldHours,
             siteHours: siteWeldHours,
-            estimatedWeldLength,
-            standard: weldingStd.name
+            source: weldSource,
+            standard: weldSource === 'library' ? 'Connection Components Library' : 'Estimated'
           });
           
           totalWorkshopHours += workshopWeldHours * config.workshopEfficiency;
