@@ -1450,6 +1450,7 @@ function EstimationWorkspace({
           <MaterialsTab
             materials={estimationData.materials}
             onUpdate={(materials) => setEstimationData({ ...estimationData, materials })}
+            onLaborUpdate={(laborItems) => setEstimationData({ ...estimationData, labor: laborItems })}
             availableMaterials={materials}
           />
         </TabsContent>

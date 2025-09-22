@@ -1576,6 +1576,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Labor Standards API endpoints
+  app.get("/api/labor-standards/welding", async (req, res) => {
+    try {
+      const result = await db.select()
+        .from(weldingStandards)
+        .where(eq(weldingStandards.isActive, true))
+        .orderBy(weldingStandards.size);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching welding standards:", error);
+      res.status(500).json({ error: "Failed to fetch welding standards" });
+    }
+  });
+
+  app.get("/api/labor-standards/drilling", async (req, res) => {
+    try {
+      const result = await db.select()
+        .from(drillingStandards)
+        .where(eq(drillingStandards.isActive, true))
+        .orderBy(drillingStandards.diameterMax);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching drilling standards:", error);
+      res.status(500).json({ error: "Failed to fetch drilling standards" });
+    }
+  });
+
+  app.get("/api/labor-standards/cutting", async (req, res) => {
+    try {
+      const result = await db.select()
+        .from(cuttingStandards)
+        .where(eq(cuttingStandards.isActive, true))
+        .orderBy(cuttingStandards.thicknessMax);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching cutting standards:", error);
+      res.status(500).json({ error: "Failed to fetch cutting standards" });
+    }
+  });
+
+  app.get("/api/labor-standards/position-factors", async (req, res) => {
+    try {
+      const result = await db.select()
+        .from(positionFactors)
+        .where(eq(positionFactors.isActive, true))
+        .orderBy(positionFactors.factor);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching position factors:", error);
+      res.status(500).json({ error: "Failed to fetch position factors" });
+    }
+  });
+
+  app.get("/api/labor-standards/skill-levels", async (req, res) => {
+    try {
+      const result = await db.select()
+        .from(skillLevels)
+        .where(eq(skillLevels.isActive, true))
+        .orderBy(skillLevels.multiplier);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching skill levels:", error);
+      res.status(500).json({ error: "Failed to fetch skill levels" });
+    }
+  });
+
   app.post("/api/materials/:materialId/suppliers", async (req, res) => {
     try {
       const materialId = parseInt(req.params.materialId);

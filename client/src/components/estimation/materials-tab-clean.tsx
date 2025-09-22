@@ -47,6 +47,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { SupplierPriceRefresh } from "./supplier-price-refresh";
+import { LaborStandardsCalculator } from "./labor-standards-calculator";
 
 interface MaterialCost {
   id: string;
@@ -100,6 +101,7 @@ interface MaterialsTabProps {
   materials: MaterialCost[];
   availableMaterials: any[];
   onUpdate: (materials: MaterialCost[]) => void;
+  onLaborUpdate?: (laborItems: any[]) => void;
   projectId?: number;
 }
 
@@ -396,7 +398,7 @@ function ImportMTODialog({ projectId, onImport }: ImportMTODialogProps) {
   );
 }
 
-export function MaterialsTab({ materials, availableMaterials, onUpdate, projectId }: MaterialsTabProps) {
+export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborUpdate, projectId }: MaterialsTabProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MaterialCost | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -716,6 +718,12 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, projectI
             materials={materials}
             onPricesUpdate={onUpdate}
           />
+          {onLaborUpdate && (
+            <LaborStandardsCalculator
+              materials={materials}
+              onLaborUpdate={onLaborUpdate}
+            />
+          )}
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>
