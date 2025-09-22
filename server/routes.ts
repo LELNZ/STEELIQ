@@ -1645,7 +1645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Connection Components API endpoints
   app.get("/api/connection-components", async (req, res) => {
     try {
-      const { component_type, section_compatibility, is_active = true } = req.query;
+      const { component_type, section_compatibility, is_active } = req.query;
       
       let query = db.select().from(connectionComponents);
       
