@@ -25,6 +25,21 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Calculator, Wrench, Clock, Users, TrendingUp, AlertCircle, Settings } from "lucide-react";
 
+interface MaterialChildItem {
+  id: string;
+  type: 'stiffener' | 'endplate' | 'baseplate' | 'cleat' | 'bolt' | 'weld' | 'other';
+  description: string;
+  quantity: number;
+  unit: string;
+  unitCost: number;
+  totalCost: number;
+  thickness?: number;
+  size?: string;
+  length?: number;
+  notes?: string;
+  weldTime?: number; // Weld time from library component (in minutes)
+}
+
 interface MaterialCost {
   id: string;
   materialCode: string;
@@ -33,6 +48,7 @@ interface MaterialCost {
   unit: string;
   designation?: string;
   totalWeight?: number;
+  childItems?: MaterialChildItem[]; // Connection details from library
 }
 
 interface LaborCost {

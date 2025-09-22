@@ -1677,25 +1677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/connection-components/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const [component] = await db.select()
-        .from(connectionComponents)
-        .where(eq(connectionComponents.id, id));
-      
-      if (!component) {
-        return res.status(404).json({ error: "Connection component not found" });
-      }
-      
-      res.json(component);
-    } catch (error) {
-      console.error("Error fetching connection component:", error);
-      res.status(500).json({ error: "Failed to fetch connection component" });
-    }
-  });
-
-  // Search connection components for estimation integration
+  // Search connection components for estimation integration (must be before :id route)
   app.get("/api/connection-components/search/:section", async (req, res) => {
     try {
       const { section } = req.params;
@@ -1737,6 +1719,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error searching connection components:", error);
       res.status(500).json({ error: "Failed to search connection components" });
+    }
+  });
+
+  app.get("/api/connection-components/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const [component] = await db.select()
+        .from(connectionComponents)
+        .where(eq(connectionComponents.id, id));
+      
+      if (!component) {
+        return res.status(404).json({ error: "Connection component not found" });
+      }
+      
+      res.json(component);
+    } catch (error) {
+      console.error("Error fetching connection component:", error);
+      res.status(500).json({ error: "Failed to fetch connection component" });
     }
   });
 

@@ -531,7 +531,9 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
       thickness: childData.thickness,
       size: childData.size,
       length: childData.length,
-      notes: childData.notes || ''
+      notes: childData.notes || '',
+      weldTime: (childData as any).weldTime, // Include weld time from library component
+      libraryComponentId: (childData as any).libraryComponentId // Track library component source
     };
 
     const updatedMaterials = materials.map(material => {
