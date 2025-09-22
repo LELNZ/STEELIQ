@@ -208,19 +208,19 @@ function ImportMTODialog({ projectId, onImport }: ImportMTODialogProps) {
   
   // Fetch drawing projects
   const { data: drawingProjects = [], isLoading: isLoadingProjects, error: projectsError } = useQuery({
-    queryKey: ['/api/mto/projects'],
+    queryKey: ['/api/drawing-projects'],
     enabled: isOpen
   });
   
   // Fetch drawings for selected project
   const { data: drawings = [], isLoading: isLoadingDrawings, error: drawingsError } = useQuery({
-    queryKey: [`/api/mto/projects/${selectedProjectId}/drawings`],
+    queryKey: [`/api/drawings/${selectedProjectId}`],
     enabled: !!selectedProjectId && isOpen
   });
   
   // Fetch material takeoffs for selected drawing
   const { data: takeoffs = [], isLoading: isLoadingTakeoffs, error: takeoffsError } = useQuery({
-    queryKey: [`/api/mto/drawings/${selectedDrawingId}/takeoffs`],
+    queryKey: [`/api/material-takeoffs/${selectedDrawingId}`],
     enabled: !!selectedDrawingId && isOpen
   });
   
