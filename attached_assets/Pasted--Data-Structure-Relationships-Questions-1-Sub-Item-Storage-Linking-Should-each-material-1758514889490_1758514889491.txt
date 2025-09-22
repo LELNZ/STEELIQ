@@ -1,0 +1,58 @@
+📋 Data Structure & Relationships Questions:
+1. Sub-Item Storage & Linking:
+
+Should each material have a standardized set of sub-items (cutting, drilling, welding, install, coatings, bolts, etc.) or should these be dynamically generated based on material type? Yes we already have a table for some sub items, please add additional / standard subitems to that table.
+How should we link sub-items across tabs? For example, if material "C2" has a "cutting time" sub-item, should this be the same record that appears in the Labor tab, or separate linked records? im not sure what you mean? if C2 has cutting time and drilling time both of these need to show up in the labor tab with the designation C2 cutting time and C2 drilling time - perhaps group per element - so in labor tab C2 is the first line item with sub item for the total relevant labor element. C5 has cutting, drilling, welding, bolts, coatings, in the materials tab - the flow though to the labor tab would but C5 line item with sub line items of cutting, sub line item drilling, sub line item welding with totals and so on with their respective splits for workshop / onsite / subcontractor - allow the estimator to select an action button on each line item in the labor tab only that can move a workshop labor item into onsite or into subcontractor and vice versa maintaining the designation. 
+
+
+2. Material Type Rules:
+
+Do different material types (columns, beams, plates, angles) have different standard sub-item templates?
+For example: Columns might need base plates and anchor bolts, while beams might need end plates and cleats?  great question can we add to our unified templates the ability to create material type subitem sets - i think if you have a look at previous coms we did discus this need. 
+
+
+🎨 UI/UX & Display Questions:
+3. Materials Tab Sub-Item Display:
+
+How should sub-items be displayed in the materials tab? Expandable rows under each material? Separate columns? A detailed view modal?
+Should all sub-items always be visible or only when expanded? have them as sub items to the main line item with the ability to expand / collapse the sub items for usability and workflow.
+
+4. Cross-Tab Identification:
+
+In the Labor tab, how should we identify which labor items came from which materials? Should it show "C2 - Cutting Time" or group by operation type? show C2 as the line item with subitem cutting time, subitem drilling time, subitem welding time etc. all for subitems to be expandalbe / colapasble
+Same question for Consumables and Coatings tabs? same as above - everything needs to maintain designation ID
+
+
+⚙️ Calculation & Business Logic Questions:
+5. Quantity Calculations:
+
+For consumables like bolts: How do we calculate quantities? Based on connection requirements, material length, or user-defined formulas? search document for instruction first, if no clean instruction then base it on connection requirements
+For coatings: Should coverage be calculated by surface area, weight, or length? Hot dip Galvanising is always by weight, other coatins are always by surface area. if the requirement is HDG+coating then that needs to calculate both. again all of these numbers need to be reviewd by the estimator.
+
+
+6. Standard Templates:
+
+Do you have existing business rules for what sub-items each material type should have? no - make suggestion
+Should I use industry standards or do you want to define custom templates? lets have a look and see if this will be fit for purpose.
+
+
+🔄 Synchronization & Updates Questions:
+7. Bidirectional Updates:
+
+When a user edits cutting time in the materials sub-item, should it update the total cutting hours in the Labor tab immediately? when the user edits cutting time in the materials sub item - that subitem is connected to a line item designation in the labor tab for example C2 main line item in material tab shows cutting time as a sub item of 10 workshop hours, in the labor tab there is a line item called C2 with the same sub item cutting time of 10 workshop hours - this ensure consistency. when either of these subline items are modified the total labor summary metrics will update automatically i.e workshop totals, onsite totals, subcontractor totals, total labor total.
+If someone updates the total cutting hours in the Labor tab, how should it distribute back to individual materials? Proportionally? Allow manual allocation? the user can only update the subline item in the labor tab that is specifically linked to the materials line item subitem.
+
+8. Conflict Resolution:
+
+What happens if totals don't match between tabs? Should we show warnings or auto-reconcile? - why would this happen? we need to build the system to ensure accuracy.
+
+🎯 Priority & Scope Questions:
+9. Implementation Phases:
+
+Should we start with just the labor sub-items (cutting, drilling, welding, install) first, then add consumables and coatings?
+Or build the full system at once? build the full system
+
+10. Testing Approach:
+
+Would you like to test the current basic calculator first to validate the calculation logic, then enhance it with sub-items?
+Or should I build the full sub-item system from scratch? review and build the full system then test

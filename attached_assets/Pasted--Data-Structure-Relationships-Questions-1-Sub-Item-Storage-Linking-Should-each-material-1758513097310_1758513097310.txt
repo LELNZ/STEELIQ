@@ -1,0 +1,44 @@
+📋 Data Structure & Relationships Questions:
+1. Sub-Item Storage & Linking:
+
+Should each material have a standardized set of sub-items (cutting, drilling, welding, install, coatings, bolts, etc.) or should these be dynamically generated based on material type?
+How should we link sub-items across tabs? For example, if material "C2" has a "cutting time" sub-item, should this be the same record that appears in the Labor tab, or separate linked records?
+2. Material Type Rules:
+
+Do different material types (columns, beams, plates, angles) have different standard sub-item templates?
+For example: Columns might need base plates and anchor bolts, while beams might need end plates and cleats?
+🎨 UI/UX & Display Questions:
+3. Materials Tab Sub-Item Display:
+
+How should sub-items be displayed in the materials tab? Expandable rows under each material? Separate columns? A detailed view modal?
+Should all sub-items always be visible or only when expanded?
+4. Cross-Tab Identification:
+
+In the Labor tab, how should we identify which labor items came from which materials? Should it show "C2 - Cutting Time" or group by operation type?
+Same question for Consumables and Coatings tabs?
+⚙️ Calculation & Business Logic Questions:
+5. Quantity Calculations:
+
+For consumables like bolts: How do we calculate quantities? Based on connection requirements, material length, or user-defined formulas?
+For coatings: Should coverage be calculated by surface area, weight, or length?
+6. Standard Templates:
+
+Do you have existing business rules for what sub-items each material type should have?
+Should I use industry standards or do you want to define custom templates?
+🔄 Synchronization & Updates Questions:
+7. Bidirectional Updates:
+
+When a user edits cutting time in the materials sub-item, should it update the total cutting hours in the Labor tab immediately?
+If someone updates the total cutting hours in the Labor tab, how should it distribute back to individual materials? Proportionally? Allow manual allocation?
+8. Conflict Resolution:
+
+What happens if totals don't match between tabs? Should we show warnings or auto-reconcile?
+🎯 Priority & Scope Questions:
+9. Implementation Phases:
+
+Should we start with just the labor sub-items (cutting, drilling, welding, install) first, then add consumables and coatings?
+Or build the full system at once?
+10. Testing Approach:
+
+Would you like to test the current basic calculator first to validate the calculation logic, then enhance it with sub-items?
+Or should I build the full sub-item system from scratch?

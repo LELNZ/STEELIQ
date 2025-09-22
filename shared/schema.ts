@@ -614,6 +614,51 @@ export const roleAllowances = pgTable("role_allowances", {
   createdAt: timestamp("created_at").defaultNow()
 });
 
+// Connection Components Library (Master reference for standard connection components)
+export const connectionComponents = pgTable("connection_components", {
+  id: serial("id").primaryKey(),
+  component_type: varchar("component_type", { length: 50 }).notNull(), // end_plate, stiffener_plate, base_plate, cleat, etc.
+  section_compatibility: varchar("section_compatibility", { length: 100 }).notNull(), // 50PFC, 65PFC, 80PFC, ALL, CUSTOM
+  name: varchar("name", { length: 200 }).notNull(), // Descriptive name
+  
+  // Physical dimensions
+  height: decimal("height", { precision: 10, scale: 2 }), // mm
+  width: decimal("width", { precision: 10, scale: 2 }), // mm  
+  thickness: decimal("thickness", { precision: 10, scale: 2 }), // mm
+  
+  // Labor and processing
+  weld_time_per_hour: decimal("weld_time_per_hour", { precision: 10, scale: 4 }), // from Excel data
+  labor_time: decimal("labor_time", { precision: 10, scale: 2 }), // total labor time in minutes
+  
+  // Material properties
+  material_grade: varchar("material_grade", { length: 50 }).default("250"), // Steel grade
+  weight: decimal("weight", { precision: 10, scale: 3 }), // kg
+  surface_area: decimal("surface_area", { precision: 10, scale: 3 }), // m²
+  
+  // Cost information
+  material_cost: decimal("material_cost", { precision: 10, scale: 2 }), // cost per unit
+  unit: varchar("unit", { length: 20 }).notNull().default("each"), // each, kg, m²
+  
+  // Template and categorization
+  category: varchar("category", { length: 50 }).notNull(), // connections, fabrication, hardware
+  subcategory: varchar("subcategory", { length: 50 }), // structural, architectural, miscellaneous
+  
+  // Standards and specifications
+  standard: varchar("standard", { length: 100 }), // AS/NZS, AWS, etc.
+  specification: text("specification"), // Additional technical specifications
+  
+  // Usage and availability
+  is_standard: boolean("is_standard").default(true), // true for standard components, false for custom
+  is_active: boolean("is_active").default(true),
+  usage_frequency: integer("usage_frequency").default(0), // track how often this component is used
+  
+  // Metadata
+  notes: text("notes"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+  created_by: integer("created_by").references(() => users.id)
+});
+
 // Material Sub Items
 export const materialSubItems = pgTable("material_sub_items", {
   id: serial("id").primaryKey(),
@@ -625,6 +670,9 @@ export const materialSubItems = pgTable("material_sub_items", {
   unit: varchar("unit", { length: 20 }).notNull(), // each, meters, kg
   unit_cost: decimal("unit_cost", { precision: 10, scale: 2 }),
   total_cost: decimal("total_cost", { precision: 10, scale: 2 }),
+  
+  // Link to connection components library
+  connection_component_id: integer("connection_component_id").references(() => connectionComponents.id), // Reference to standard component
   
   // Labor allocation
   labor_allocation: varchar("labor_allocation", { length: 50 }).notNull().default("workshop"), // workshop, onsite, subcontractor
@@ -1694,6 +1742,13 @@ export const insertMaterialSchema = createInsertSchema(materials).omit({
   ),
 });
 
+export const insertConnectionComponentSchema = createInsertSchema(connectionComponents).omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+  usage_frequency: true,
+});
+
 export const insertInventorySchema = createInsertSchema(inventory).omit({
   id: true,
   createdAt: true,
@@ -2076,6 +2131,9 @@ export type InsertMaterialCategory = z.infer<typeof insertMaterialCategorySchema
 
 export type Material = typeof materials.$inferSelect;
 export type InsertMaterial = z.infer<typeof insertMaterialSchema>;
+
+export type ConnectionComponent = typeof connectionComponents.$inferSelect;
+export type InsertConnectionComponent = z.infer<typeof insertConnectionComponentSchema>;
 
 export type Inventory = typeof inventory.$inferSelect;
 export type InsertInventory = z.infer<typeof insertInventorySchema>;
