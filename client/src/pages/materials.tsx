@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -470,6 +470,7 @@ const connectionComponentFormSchema = insertConnectionComponentSchema.omit({
   updated_by: true,
 }).extend({
   component_type: z.enum(['end_plate', 'stiffener_plate', 'base_plate', 'cleat']),
+  holes: z.number().min(0).default(0),
 });
 
 function ConnectionComponentDialog({ 
@@ -482,20 +483,60 @@ function ConnectionComponentDialog({
   const form = useForm<z.infer<typeof connectionComponentFormSchema>>({
     resolver: zodResolver(connectionComponentFormSchema),
     defaultValues: {
-      name: initialData?.name || '',
-      component_type: initialData?.component_type || 'end_plate',
-      section_compatibility: initialData?.section_compatibility || '',
-      height: initialData?.height || 0,
-      width: initialData?.width || 0,
-      thickness: initialData?.thickness || 0,
-      weight: initialData?.weight || 0,
-      surface_area: initialData?.surface_area || 0,
-      weld_time_per_hour: initialData?.weld_time_per_hour || 0,
-      material_grade: initialData?.material_grade || '250',
-      standard: initialData?.standard || '',
-      is_active: initialData?.is_active ?? true,
+      name: '',
+      component_type: 'end_plate',
+      section_compatibility: '',
+      height: 0,
+      width: 0,
+      thickness: 0,
+      weight: 0,
+      surface_area: 0,
+      weld_time_per_hour: 0,
+      material_grade: '250',
+      standard: '',
+      holes: 0,
+      is_active: true,
     },
   });
+
+  // Reset form with initialData when dialog opens
+  React.useEffect(() => {
+    if (open) {
+      if (initialData) {
+        form.reset({
+          name: initialData.name || '',
+          component_type: initialData.component_type || 'end_plate',
+          section_compatibility: initialData.section_compatibility || '',
+          height: initialData.height || 0,
+          width: initialData.width || 0,
+          thickness: initialData.thickness || 0,
+          weight: initialData.weight || 0,
+          surface_area: initialData.surface_area || 0,
+          weld_time_per_hour: initialData.weld_time_per_hour || 0,
+          material_grade: initialData.material_grade || '250',
+          standard: initialData.standard || '',
+          holes: initialData.holes || 0,
+          is_active: initialData.is_active ?? true,
+        });
+      } else {
+        form.reset({
+          name: '',
+          component_type: 'end_plate',
+          section_compatibility: '',
+          height: 0,
+          width: 0,
+          thickness: 0,
+          weight: 0,
+          surface_area: 0,
+          weld_time_per_hour: 0,
+          material_grade: '250',
+          standard: '',
+          holes: 0,
+          is_active: true,
+        });
+      }
+    }
+  }, [open, initialData, form]);
 
   const handleSubmit = (data: z.infer<typeof connectionComponentFormSchema>) => {
     onSubmit(data);
@@ -703,6 +744,31 @@ function ConnectionComponentDialog({
                 )}
               />
             </div>
+
+            {/* Holes field - only for end plates, base plates, and cleats */}
+            {(form.watch('component_type') === 'end_plate' || 
+              form.watch('component_type') === 'base_plate' || 
+              form.watch('component_type') === 'cleat') && (
+              <FormField
+                control={form.control}
+                name="holes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Number of Holes</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min="0"
+                        placeholder="0" 
+                        {...field} 
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

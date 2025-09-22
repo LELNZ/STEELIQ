@@ -625,6 +625,7 @@ export const connectionComponents = pgTable("connection_components", {
   height: decimal("height", { precision: 10, scale: 2 }), // mm
   width: decimal("width", { precision: 10, scale: 2 }), // mm  
   thickness: decimal("thickness", { precision: 10, scale: 2 }), // mm
+  holes: integer("holes").default(0), // Number of holes (for end plates, base plates, cleats)
   
   // Labor and processing
   weld_time_per_hour: decimal("weld_time_per_hour", { precision: 10, scale: 4 }), // from Excel data
