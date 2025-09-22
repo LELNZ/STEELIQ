@@ -4699,13 +4699,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const teamMemberId = parseInt(req.params.teamMemberId);
       
-      const result = await db.execute(`
-        SELECT * FROM performance_reviews 
-        WHERE team_member_id = $1 
-        ORDER BY review_period_start DESC
-      `, [teamMemberId]);
+      const reviews = await db
+        .select()
+        .from(performanceReviews)
+        .where(eq(performanceReviews.teamMemberId, teamMemberId))
+        .orderBy(desc(performanceReviews.reviewPeriodStart));
 
-      res.json(result.rows);
+      res.json(reviews);
     } catch (error) {
       console.error("Error fetching performance reviews:", error);
       res.status(500).json({ error: "Failed to fetch performance reviews" });
