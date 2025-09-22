@@ -4354,10 +4354,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set session token in HTTP-only cookie
       res.cookie('auth_token', result.token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: false, // Explicitly set to false for dev environment
         sameSite: 'lax',
         path: '/',
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        domain: undefined // Let Express determine the domain
       });
 
       res.json({
