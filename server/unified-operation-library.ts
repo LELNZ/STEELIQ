@@ -13,6 +13,8 @@ import {
 export async function unifiedOperationLibrary(req: any, res: any) {
   try {
     const { category, type, q, compatibility, show_all, limit = 50, offset = 0 } = req.query;
+    
+    console.log('Operation library request:', { category, type, q, compatibility, show_all, limit, offset });
 
     if (!category || !type) {
       return res.status(400).json({ error: "Category and type are required" });
@@ -22,12 +24,14 @@ export async function unifiedOperationLibrary(req: any, res: any) {
     const searchTerm = q ? `%${String(q).toLowerCase()}%` : null;
     const limitNum = Math.min(parseInt(String(limit)), 100);
     const offsetNum = parseInt(String(offset)) || 0;
+    const showAllOptions = show_all === 'true';
     
     // Results array for normalized items
     let results = [];
 
     // Route to appropriate table based on category and type
-    switch (category) {
+    console.log('About to switch on category:', category, typeof category);
+    switch (String(category).trim().toLowerCase()) {
       case 'fabrication':
         switch (type) {
           case 'cutting':
@@ -367,8 +371,9 @@ export async function unifiedOperationLibrary(req: any, res: any) {
         
       case 'connection': {
         // For connections, we use assembly templates that match the connection types
-        const connectionQuery = db.select().from(assemblyTemplates)
-          .where(eq(assemblyTemplates.is_active, true));
+        console.log('Processing connection category - type:', type, 'searchTerm:', searchTerm);
+        
+        let whereConditions = [eq(assemblyTemplates.is_active, true)];
         
         // Filter by connection type using code pattern or name matching
         if (type && type !== 'any') {
@@ -384,16 +389,18 @@ export async function unifiedOperationLibrary(req: any, res: any) {
           };
           
           const patterns = typeMapping[type];
-          if (patterns) {
-            connectionQuery = connectionQuery.where(
-              or(
-                ...patterns.map(pattern => 
-                  like(sql`UPPER(${assemblyTemplates.code})`, `${pattern}%`)
-                )
-              )
+          console.log('Type patterns:', patterns);
+          
+          if (patterns && patterns.length > 0) {
+            const patternConditions = patterns.map(pattern => 
+              like(sql`UPPER(${assemblyTemplates.code})`, `${pattern}%`)
             );
+            whereConditions.push(or(...patternConditions)!);
           }
         }
+        
+        let connectionQuery = db.select().from(assemblyTemplates)
+          .where(and(...whereConditions));
         
         if (searchTerm) {
           connectionQuery = connectionQuery.where(
@@ -460,7 +467,7 @@ export async function unifiedOperationLibrary(req: any, res: any) {
       }
         
       case 'assembly': {
-        const assemblyQuery = db.select().from(assemblyTemplates)
+        let assemblyQuery = db.select().from(assemblyTemplates)
           .where(eq(assemblyTemplates.is_active, true));
         
         if (searchTerm) {
