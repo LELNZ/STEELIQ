@@ -7,7 +7,7 @@ import {
   teamMembers, archivedEmployees, employeeAuditLog, auditLog, systemAuditLog,
   purchaseRequisitions, requisitionItems, approvalRules, approvalHistory, rfqRequests, rfqResponses, goodsReceipts, goodsReceiptItems,
   purchaseOrders, purchaseOrderItems, poDocumentConfig, poTemplates,
-  backupMetadata, backupData, numberingSequences,
+  backupMetadata, backupData, numberingSequences, operationItems,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
@@ -28,6 +28,7 @@ import {
   type PurchaseOrder, type InsertPurchaseOrder, type PurchaseOrderItem, type InsertPurchaseOrderItem,
   type BackupMetadata, type InsertBackupMetadata, type BackupData, type InsertBackupData,
   type NumberingSequence, type InsertNumberingSequence,
+  type OperationItem, type InsertOperationItem,
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView,
   documentHistory, documentAttachments, documentAccessLogs

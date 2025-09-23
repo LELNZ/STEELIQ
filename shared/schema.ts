@@ -660,6 +660,67 @@ export const connectionComponents = pgTable("connection_components", {
   created_by: integer("created_by").references(() => users.id)
 });
 
+// Unified Operation Items - Central hub for all fabrication operations
+export const operationItems = pgTable("operation_items", {
+  id: serial("id").primaryKey(),
+  estimationId: integer("estimation_id").references(() => estimationProjects.id).notNull(),
+  parentMaterialId: varchar("parent_material_id", { length: 100 }), // Link to parent material
+  
+  // Core operation classification
+  category: varchar("category", { length: 50 }).notNull(), // fabrication, connection, assembly, surface, handling
+  type: varchar("type", { length: 50 }).notNull(), // cutting, drilling, welding, grinding, blasting, painting, stiffener, endplate, etc
+  description: text("description").notNull(),
+  
+  // Quantities and measurements
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull().default("1"),
+  unit: varchar("unit", { length: 20 }).notNull().default("each"), // each, m, kg, m², hours
+  unitCost: decimal("unit_cost", { precision: 10, scale: 2 }).default("0"),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }).default("0"),
+  
+  // Physical dimensions (when applicable)
+  thickness: decimal("thickness", { precision: 10, scale: 2 }), // mm
+  size: varchar("size", { length: 100 }), // Size description
+  length: decimal("length", { precision: 10, scale: 2 }), // mm or meters
+  width: decimal("width", { precision: 10, scale: 2 }), // mm
+  diameter: decimal("diameter", { precision: 10, scale: 2 }), // mm for holes
+  area: decimal("area", { precision: 10, scale: 2 }), // m² for surface treatment
+  
+  // Labor allocation
+  laborHours: decimal("labor_hours", { precision: 10, scale: 2 }).default("0"),
+  laborLocation: varchar("labor_location", { length: 50 }).default("workshop"), // workshop, site, both
+  skillLevel: varchar("skill_level", { length: 50 }).default("standard"), // apprentice, standard, senior, specialist
+  weldTime: decimal("weld_time", { precision: 10, scale: 2 }), // minutes from library component
+  
+  // Consumables data
+  consumablesData: jsonb("consumables_data"), // Array of consumables required
+  
+  // Coatings data
+  coatingData: jsonb("coating_data"), // Coating specifications and requirements
+  
+  // Source tracking
+  sourceType: varchar("source_type", { length: 50 }).default("manual"), // manual, library, standard
+  sourceId: integer("source_id"), // ID from library/standards
+  libraryComponentId: integer("library_component_id").references(() => connectionComponents.id),
+  
+  // Processing details
+  method: varchar("method", { length: 100 }), // plasma, saw, laser, mag_drill, etc
+  position: varchar("position", { length: 50 }), // flat, vertical, overhead, etc
+  
+  // Routing flags
+  includeInLabor: boolean("include_in_labor").default(true),
+  includeInMaterials: boolean("include_in_materials").default(false),
+  includeInConsumables: boolean("include_in_consumables").default(false),
+  includeInCoatings: boolean("include_in_coatings").default(false),
+  
+  // Metadata
+  notes: text("notes"),
+  sequence: integer("sequence"), // Order of operations
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: integer("created_by").references(() => users.id)
+});
+
 // Material Sub Items
 export const materialSubItems = pgTable("material_sub_items", {
   id: serial("id").primaryKey(),
@@ -2372,64 +2433,6 @@ export const estimationTemplates = pgTable("estimation_templates", {
   createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Unified Operation Items Table - Central source of truth for all estimation operations
-export const operationItems = pgTable("operation_items", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").references(() => estimationProjects.id).notNull(),
-  parentMaterialId: varchar("parent_material_id", { length: 255 }), // Link to parent material
-  
-  // Core categorization
-  category: varchar("category", { length: 50 }).notNull(), // fabrication|connection|assembly|surface|handling
-  type: varchar("type", { length: 50 }).notNull(), // cutting|drilling|welding|grinding|blasting|painting|stiffener|endplate|etc
-  description: text("description").notNull(),
-  
-  // Quantities & Measurements
-  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull().default("1"),
-  unit: varchar("unit", { length: 20 }).notNull().default("ea"),
-  unitCost: decimal("unit_cost", { precision: 10, scale: 4 }).default("0"),
-  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).default("0"),
-  
-  // Operation-specific dimensions
-  thickness: decimal("thickness", { precision: 8, scale: 2 }), // mm
-  size: varchar("size", { length: 100 }), // dimension string
-  length: decimal("length", { precision: 10, scale: 2 }), // mm
-  diameter: decimal("diameter", { precision: 8, scale: 2 }), // mm
-  area: decimal("area", { precision: 10, scale: 2 }), // m²
-  weldTime: decimal("weld_time", { precision: 8, scale: 2 }), // minutes
-  
-  // Labor routing
-  laborHours: decimal("labor_hours", { precision: 8, scale: 2 }),
-  laborRate: decimal("labor_rate", { precision: 8, scale: 2 }),
-  skillLevel: varchar("skill_level", { length: 20 }), // apprentice|standard|senior|specialist
-  location: varchar("location", { length: 20 }), // workshop|site
-  
-  // Consumables data
-  consumablesData: jsonb("consumables_data"), // Array of {item, quantity, unit, cost}
-  
-  // Coating/surface treatment data
-  coatingData: jsonb("coating_data"), // {type, layers, area, dryTime, cost}
-  
-  // Source tracking
-  sourceType: varchar("source_type", { length: 20 }).default("manual"), // manual|library|standard
-  sourceId: integer("source_id"), // Reference to connectionComponents.id or standards table
-  libraryComponentId: integer("library_component_id").references(() => connectionComponents.id),
-  
-  // Additional metadata
-  notes: text("notes"),
-  specifications: text("specifications"),
-  position: varchar("position", { length: 50 }), // flat|vertical|overhead|difficult
-  
-  // Sync tracking
-  syncedToMaterial: boolean("synced_to_material").default(false),
-  syncedToLabor: boolean("synced_to_labor").default(false),
-  syncedToConsumables: boolean("synced_to_consumables").default(false),
-  syncedToCoatings: boolean("synced_to_coatings").default(false),
-  
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  createdBy: integer("created_by").references(() => users.id),
 });
 
 export const aiEstimationHistory = pgTable("ai_estimation_history", {
