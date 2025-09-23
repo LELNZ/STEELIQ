@@ -181,6 +181,20 @@ export async function unifiedOperationLibrary(req: any, res: any) {
               };
             });
             break;
+          
+          case 'grinding':
+          case 'coping':
+          case 'notching':
+          case 'punching':
+            // These operations don't have dedicated tables yet
+            // Return empty results for now
+            results = [];
+            break;
+            
+          default:
+            // For any other fabrication types, return empty results
+            results = [];
+            break;
         }
         break;
         
@@ -397,18 +411,38 @@ export async function unifiedOperationLibrary(req: any, res: any) {
       }
         
       case 'assembly': {
-        let assemblyQuery = db.select().from(assemblyTemplates)
-          .where(eq(assemblyTemplates.is_active, true));
+        // Map assembly types to code patterns
+        const assemblyTypePatterns: Record<string, string[]> = {
+          'column_connection': ['COL', 'COLUMN'],
+          'beam_connection': ['BEAM', 'GIRDER'],
+          'bracing_connection': ['BRACE', 'BRACING'],
+          'template': ['TRUSS', 'FRAME', 'STAIR', 'MISC']
+        };
         
-        if (searchTerm) {
-          assemblyQuery = assemblyQuery.where(
-            or(
-              like(sql`LOWER(${assemblyTemplates.code})`, searchTerm),
-              like(sql`LOWER(${assemblyTemplates.name})`, searchTerm),
-              like(sql`LOWER(${assemblyTemplates.description})`, searchTerm)
-            )
+        const typePatterns = assemblyTypePatterns[String(type)] || [];
+        
+        const whereConditions = [eq(assemblyTemplates.is_active, true)];
+        
+        // Filter by type patterns
+        if (typePatterns.length > 0) {
+          const typeConditions = typePatterns.map(pattern => 
+            like(assemblyTemplates.code, `%${pattern}%`)
           );
+          whereConditions.push(or(...typeConditions));
         }
+        
+        // Add search conditions
+        if (searchTerm) {
+          const searchConditions = [
+            like(sql`LOWER(${assemblyTemplates.code})`, searchTerm),
+            like(sql`LOWER(${assemblyTemplates.name})`, searchTerm),
+            like(sql`LOWER(${assemblyTemplates.description})`, searchTerm)
+          ];
+          whereConditions.push(or(...searchConditions));
+        }
+        
+        let assemblyQuery = db.select().from(assemblyTemplates)
+          .where(and(...whereConditions));
         
         const assemblyResults = await assemblyQuery
           .limit(limitNum)

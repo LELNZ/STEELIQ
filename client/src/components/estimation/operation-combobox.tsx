@@ -108,9 +108,7 @@ export function OperationCombobox({
   const selectedItem = operations?.find((item) => item.id === value);
 
   const handleSelect = (itemId: string) => {
-    console.log('handleSelect called with:', itemId);
     const item = operations?.find((op) => op.id === itemId);
-    console.log('Found item:', item);
     onSelect(item || null);
     setOpen(false);
     setSearch('');
