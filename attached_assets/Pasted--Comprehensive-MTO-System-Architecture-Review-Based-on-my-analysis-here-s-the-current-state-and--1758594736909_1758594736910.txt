@@ -1,0 +1,147 @@
+🔍 Comprehensive MTO System Architecture Review
+Based on my analysis, here's the current state and critical gaps in your automated AI MTO system:
+
+✅ What's Working
+Connection Components Library - 102 components properly integrated
+Material → Labor Flow - Calculator uses component weld times
+Standards Infrastructure - Database has welding, drilling, cutting standards tables
+API Endpoints - /api/labor-standards/* endpoints functional
+🔴 Critical Architecture Gaps
+1. Incomplete Operation Coverage
+Current system only handles connection types (stiffener, endplate, baseplate, cleat, bolt, weld). Missing:
+
+Fabrication: Cutting, Drilling, Grinding
+Surface Treatment: Blasting, Priming, Painting
+Handling: Crane ops, Transport, Storage
+Assembly: Fitting, Rigging, Installation
+2. One-Way Data Flow
+Current: Materials → Labor (✅)
+Missing: Labor → Materials (❌)
+         Consumables ↔ Materials (❌)
+         Coatings ↔ Materials (❌)
+3. Schema Misalignment
+The MaterialChildItem type union doesn't support new operation types, preventing proper routing and bi-directional sync.
+
+4. Dialog Limitations
+"Add Connection Detail" is connection-centric, not pulling from Operations Settings for cutting/drilling/labor operations.
+
+🏗️ Recommended Architecture Redesign
+Phase 1: Unified Operation Model
+Create a single OperationItem entity in schema:
+
+// shared/schema.ts
+export const operationItems = pgTable("operation_items", {
+  id: serial("id").primaryKey(),
+  estimationId: integer("estimation_id").references(() => estimations.id),
+  parentMaterialId: varchar("parent_material_id"), // Link to parent material
+  
+  // Core fields
+  category: varchar("category"), // fabrication|connection|assembly|surface|handling
+  type: varchar("type"), // cutting|drilling|welding|grinding|blasting|painting|etc
+  description: text("description"),
+  
+  // Quantities & Measurements
+  quantity: numeric("quantity"),
+  unit: varchar("unit"),
+  unitCost: numeric("unit_cost"),
+  
+  // Operation-specific data
+  thickness: numeric("thickness"),
+  size: varchar("size"),
+  length: numeric("length"),
+  diameter: numeric("diameter"),
+  area: numeric("area"),
+  weldTime: numeric("weld_time"),
+  
+  // Routing fields
+  laborHours: numeric("labor_hours"),
+  consumablesData: jsonb("consumables_data"),
+  coatingData: jsonb("coating_data"),
+  
+  // Source tracking
+  sourceType: varchar("source_type"), // manual|library|standard
+  sourceId: integer("source_id"), // ID from library/standards
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+Phase 2: Enhanced Add Operation Dialog
+Transform the dialog to pull from multiple sources:
+
+// Data sources for dropdown population
+const operationSources = {
+  fabrication: {
+    cutting: () => fetch('/api/labor-standards/cutting'),
+    drilling: () => fetch('/api/labor-standards/drilling'),
+    grinding: () => fetch('/api/labor-standards/grinding')
+  },
+  connections: {
+    components: () => fetch('/api/connection-components/search/...') 
+  },
+  surface: {
+    blasting: () => fetch('/api/surface-standards/blasting'),
+    painting: () => fetch('/api/coating-standards')
+  }
+};
+Phase 3: Bi-Directional Sync Implementation
+// Unified state management
+const OperationManager = {
+  // Single source of truth
+  operations: OperationItem[],
+  
+  // Tab projections
+  getMaterialsView: () => operations.filter(op => op.category === 'connection'),
+  getLaborView: () => operations.map(op => ({ hours: op.laborHours, ... })),
+  getConsumablesView: () => operations.flatMap(op => op.consumablesData),
+  getCoatingsView: () => operations.filter(op => op.category === 'surface'),
+  
+  // Update propagation
+  updateOperation: (id, changes) => {
+    // Update operation
+    // Recalculate derived fields
+    // Invalidate all tab queries
+    // Trigger summary recalc
+  }
+};
+Phase 4: Complete Data Pathways
+Add Operation Dialog
+    ↓
+Category Selection
+    ↓
+Pull from Operations Settings
+    ↓
+Create OperationItem
+    ↓
+Route to tabs based on category:
+├── fabrication → Labor + Consumables
+├── connection → Materials + Labor  
+├── assembly → Labor
+├── surface → Coatings + Labor
+└── handling → Labor
+    ↓
+All tabs read/write from OperationItems
+    ↓
+Summary aggregates all operations
+📋 Implementation Checklist
+Immediate Actions:
+⬜ Fix enhanced-labor-tab.tsx type errors (skillLevel)
+⬜ Create operationItems table in schema
+⬜ Add missing operation types to frontend enums
+Core Development:
+⬜ Build unified OperationItem model
+⬜ Replace "Add Connection" with "Add Operation" dialog
+⬜ Connect to Operations Settings data sources
+⬜ Implement category-based routing logic
+Integration:
+⬜ Create bi-directional sync manager
+⬜ Update all tabs to use OperationItem projections
+⬜ Add operation CRUD endpoints
+⬜ Implement cache invalidation strategy
+Testing:
+⬜ Verify cutting/drilling flow to labor
+⬜ Test coating operations routing
+⬜ Validate bi-directional updates
+⬜ Confirm summary recalculations
+This architecture ensures all operations flow correctly through your MTO system with complete bi-directional synchronization and proper schema alignment.
+
+Would you like me to switch to Build mode and start implementing these changes, beginning with the unified OperationItem model?

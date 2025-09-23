@@ -49,6 +49,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { SupplierPriceRefresh } from "./supplier-price-refresh";
 import { LaborStandardsCalculator } from "./labor-standards-calculator";
+import AddOperationDialog from "./add-operation-dialog";
 
 interface MaterialCost {
   id: string;
@@ -520,7 +521,82 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
     setIsAddChildDialogOpen(true);
   };
 
-  // Handle child item submission from dialog
+  // Handle operation submission from new dialog
+  const handleAddOperation = (operation: any) => {
+    const materialId = addChildItemMaterialId;
+    if (!materialId) return;
+
+    // Create child item from operation
+    const newChildItem: MaterialChildItem = {
+      id: `op-${Date.now()}`,
+      type: operation.type as MaterialChildItem['type'],
+      description: operation.description,
+      quantity: operation.quantity,
+      unit: operation.unit,
+      unitCost: operation.unitCost,
+      totalCost: operation.totalCost,
+      thickness: operation.thickness,
+      size: operation.size,
+      length: operation.length,
+      notes: operation.notes,
+      weldTime: operation.weldTime,
+      libraryComponentId: operation.libraryComponentId
+    };
+
+    const updatedMaterials = materials.map(material => {
+      if (material.id === materialId) {
+        const currentChildItems = material.childItems || [];
+        const updated = { 
+          ...material, 
+          childItems: [...currentChildItems, newChildItem],
+          isExpanded: true
+        };
+        
+        // Recalculate total including child items
+        const adjustedQuantity = updated.quantity * (1 + updated.wasteFactor / 100);
+        updated.totalCost = adjustedQuantity * updated.unitCost + updated.handlingCost;
+        const childTotal = updated.childItems.reduce((sum, child) => sum + child.totalCost, 0);
+        updated.totalCost += childTotal;
+        
+        return updated;
+      }
+      return material;
+    });
+
+    onUpdate(updatedMaterials);
+
+    // Route to appropriate tabs
+    if (operation.includeInLabor && onLaborUpdate) {
+      onLaborUpdate([{
+        id: `labor-${Date.now()}`,
+        operationId: newChildItem.id,
+        description: operation.description,
+        hours: operation.laborHours,
+        location: operation.laborLocation,
+        skillLevel: operation.skillLevel,
+        rate: operation.laborLocation === 'site' ? 120 : 85,
+        parentMaterialId: materialId,
+        category: operation.category,
+        type: operation.type
+      }]);
+    }
+
+    // Handle consumables routing
+    if (operation.consumablesData && operation.consumablesData.length > 0) {
+      // This would be sent to consumables tab
+      console.log('Routing consumables:', operation.consumablesData);
+    }
+
+    toast({
+      title: "Operation Added",
+      description: `${operation.description} added successfully`
+    });
+    
+    setIsAddChildDialogOpen(false);
+    setAddChildItemMaterialId(null);
+  };
+  
+  // Legacy handler for backward compatibility
   const handleAddChildItem = (childData: Partial<MaterialChildItem>) => {
     if (!addChildItemMaterialId) return;
 
@@ -880,8 +956,10 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
                                     variant="outline"
                                     size="sm"
                                     onClick={() => addChildItem(material.id)}
+                                    title="Add Operation"
                                   >
                                     <Plus className="h-4 w-4" />
+                                    <span className="ml-1">Add Operation</span>
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
@@ -990,18 +1068,14 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
         availableMaterials={availableMaterials}
       />
 
-      {/* Add Child Item Dialog */}
-      <Dialog open={isAddChildDialogOpen} onOpenChange={setIsAddChildDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add Connection Detail</DialogTitle>
-          </DialogHeader>
-          <AddChildItemForm 
-            onSubmit={handleAddChildItem}
-            parentSection={materials.find(m => m.id === addChildItemMaterialId)?.section}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Add Operation Dialog */}
+      <AddOperationDialog
+        open={isAddChildDialogOpen}
+        onOpenChange={setIsAddChildDialogOpen}
+        onSubmit={handleAddOperation}
+        parentMaterial={materials.find(m => m.id === addChildItemMaterialId)}
+        estimationId={projectId || 0}
+      />
     </div>
   );
 }
