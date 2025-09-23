@@ -509,6 +509,27 @@ export const positionFactors = pgTable("position_factors", {
   updated_at: timestamp("updated_at").defaultNow().notNull()
 });
 
+// Blasting Standards - Industry best practice fields
+export const blastingStandards = pgTable("blasting_standards", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  surface_profile: varchar("surface_profile", { length: 20 }).notNull(), // Sa1, Sa2, Sa2.5, Sa3 (ISO 8501-1)
+  grit_type: varchar("grit_type", { length: 50 }).notNull(), // steel_shot, aluminum_oxide, garnet, glass_bead
+  grit_size: varchar("grit_size", { length: 50 }), // 0.5-2.5mm ranges
+  pressure_psi_min: integer("pressure_psi_min"), // 60-120 typical
+  pressure_psi_max: integer("pressure_psi_max"),
+  coverage_rate_m2_per_hour: decimal("coverage_rate_m2_per_hour", { precision: 10, scale: 2 }).notNull(),
+  consumption_kg_per_m2: decimal("consumption_kg_per_m2", { precision: 10, scale: 2 }).notNull(),
+  labor_hours_per_m2: decimal("labor_hours_per_m2", { precision: 10, scale: 4 }).notNull(),
+  dust_collection_required: boolean("dust_collection_required").default(true),
+  surface_cleanliness: varchar("surface_cleanliness", { length: 50 }), // commercial, near_white, white_metal
+  preparation_type: varchar("preparation_type", { length: 50 }), // blast, wire_brush, wipe_down
+  equipment: varchar("equipment", { length: 100 }), // blast_pot, wire_brush_mechanical, manual
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull()
+});
+
 // Assembly Templates
 export const assemblyTemplates = pgTable("assembly_templates", {
   id: serial("id").primaryKey(),
@@ -1462,12 +1483,15 @@ export const coatingSystems = pgTable("coating_systems", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  coatingType: text("coating_type").notNull(), // galvanizing, paint, intumescent, etc.
+  coatingType: text("coating_type").notNull(), // galvanizing, paint, intumescent, primer, etc.
   pricingMethod: text("pricing_method").notNull().default("per_sqm"), // per_sqm, per_kg, per_piece
   pricePerUnit: decimal("price_per_unit", { precision: 10, scale: 2 }),
   coverageRate: decimal("coverage_rate", { precision: 10, scale: 2 }), // m²/L for paints
   applicationMethod: text("application_method"), // spray, brush, dip, roller
   preparationRequired: text("preparation_required"), // blast, grind, degrease - shown as tags
+  preparationMethods: jsonb("preparation_methods").default('[]'), // ["wire_brush", "blast_sa2.5", "blast_sa3"]
+  coverageAdjustmentFactors: jsonb("coverage_adjustment_factors").default('{}'), // {"wire_brush": 1.15, "blast_sa2.5": 1.0}
+  applicationMethodFactors: jsonb("application_method_factors").default('{}'), // {"spray": 0.9, "brush": 1.2, "roller": 1.1}
   dryingTime: integer("drying_time"), // minutes
   coatsRequired: integer("coats_required").default(1), // number of coats
   isActive: boolean("is_active").default(true),

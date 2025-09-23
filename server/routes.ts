@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -1804,6 +1804,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error deleting connection component:", error);
       res.status(500).json({ error: "Failed to delete connection component" });
     }
+  });
+
+  // Unified Operation Library API
+  app.get("/api/operation-library", async (req, res) => {
+    const { unifiedOperationLibrary } = await import('./unified-operation-library');
+    await unifiedOperationLibrary(req, res);
+  });
+
+  // Get supported types for a category
+  app.get("/api/operation-library/types", async (req, res) => {
+    const { getOperationTypes } = await import('./unified-operation-library');
+    getOperationTypes(req, res);
+  });
+
+  // Expand assembly template into operations
+  app.get("/api/operation-library/assembly/:id/expand", async (req, res) => {
+    const { expandAssemblyTemplate } = await import('./unified-operation-library');
+    await expandAssemblyTemplate(req, res);
   });
 
   // Bulk import endpoint for Excel data
