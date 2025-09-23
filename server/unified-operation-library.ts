@@ -329,18 +329,19 @@ export async function unifiedOperationLibrary(req: any, res: any) {
           }
         }
         
-        let connectionQuery = db.select().from(assemblyTemplates)
-          .where(and(...whereConditions));
-        
+        // Add search conditions to the same array to prevent overriding
         if (searchTerm) {
-          connectionQuery = connectionQuery.where(
+          whereConditions.push(
             or(
               like(sql`LOWER(${assemblyTemplates.code})`, searchTerm),
               like(sql`LOWER(${assemblyTemplates.name})`, searchTerm),
               like(sql`LOWER(${assemblyTemplates.description})`, searchTerm)
-            )
+            )!
           );
         }
+        
+        let connectionQuery = db.select().from(assemblyTemplates)
+          .where(and(...whereConditions));
         
         const connectionResults = await connectionQuery
           .limit(limitNum)
