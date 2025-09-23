@@ -444,6 +444,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
       leadTime: materialData.leadTime,
       notes: materialData.notes,
       totalCost: 0,
+      childItems: [], // Initialize childItems array
       ...materialData
     };
 

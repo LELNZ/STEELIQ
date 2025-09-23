@@ -457,6 +457,8 @@ export default function AddOperationDialog({
 
   // Handle form submission
   const handleSubmit = () => {
+    console.log('AddOperationDialog handleSubmit called', { selectedCategory, selectedType, formData });
+    
     // Validate required fields
     if (!selectedCategory || !selectedType) {
       toast({
@@ -492,6 +494,7 @@ export default function AddOperationDialog({
       setShowSaveDialog(true);
     } else {
       // Direct submit for manual entry
+      console.log('Submitting operation directly:', operationData);
       onSubmit(operationData);
       onOpenChange(false);
     }
@@ -501,8 +504,11 @@ export default function AddOperationDialog({
   const handleSaveDialogConfirm = async (saveOption: 'estimate' | 'update' | 'create') => {
     if (!saveDialogData) return;
     
+    console.log('Save dialog confirm:', saveOption, saveDialogData);
+    
     if (saveOption === 'estimate') {
       // Just save to estimate
+      console.log('Submitting operation from save dialog:', saveDialogData);
       onSubmit(saveDialogData);
     } else if (saveOption === 'update' && selectedLibraryItem?.source) {
       // Update library item
