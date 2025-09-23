@@ -202,31 +202,31 @@ export default function AddOperationDialog({
   // Fetch library components based on category and type
   const { data: libraryComponents = [] } = useQuery({
     queryKey: ['/api/connection-components', selectedCategory, selectedType],
-    enabled: useLibrary && selectedCategory && selectedType
+    enabled: !!(useLibrary && selectedCategory && selectedType)
   });
 
   // Fetch welding standards
   const { data: weldingStandards = [] } = useQuery({
     queryKey: ['/api/labor-standards/welding'],
-    enabled: selectedType === 'weld' || selectedType === 'welding'
+    enabled: !!(selectedType === 'weld' || selectedType === 'welding')
   });
 
   // Fetch drilling standards
   const { data: drillingStandards = [] } = useQuery({
     queryKey: ['/api/labor-standards/drilling'],
-    enabled: selectedType === 'drilling'
+    enabled: !!(selectedType === 'drilling')
   });
 
   // Fetch cutting standards
   const { data: cuttingStandards = [] } = useQuery({
     queryKey: ['/api/labor-standards/cutting'],
-    enabled: selectedType === 'cutting'
+    enabled: !!(selectedType === 'cutting')
   });
 
   // Fetch assembly templates
   const { data: assemblyTemplates = [] } = useQuery({
     queryKey: ['/api/assembly-templates'],
-    enabled: useLibrary
+    enabled: !!useLibrary
   });
 
   // Auto-calculate consumables when operation details change

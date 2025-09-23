@@ -959,7 +959,6 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
                                     title="Add Operation"
                                   >
                                     <Plus className="h-4 w-4" />
-                                    <span className="ml-1">Add Operation</span>
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
