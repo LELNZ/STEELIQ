@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface OperationSaveDialogProps {
   open: boolean;
@@ -162,8 +163,4 @@ export function OperationSaveDialog({
       </AlertDialogContent>
     </AlertDialog>
   );
-}
-
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
 }
