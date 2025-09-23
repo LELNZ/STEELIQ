@@ -365,6 +365,81 @@ export async function unifiedOperationLibrary(req: any, res: any) {
         }
         break;
         
+      case 'connection':
+        // For connections, we use assembly templates that match the connection types
+        let connectionQuery = db.select().from(assemblyTemplates)
+          .where(eq(assemblyTemplates.is_active, true));
+        
+        // Filter by connection type if provided
+        if (type && type !== 'any') {
+          connectionQuery = connectionQuery.where(
+            eq(assemblyTemplates.connection_type, type)
+          );
+        }
+        
+        if (searchTerm) {
+          connectionQuery = connectionQuery.where(
+            or(
+              like(sql`LOWER(${assemblyTemplates.code})`, searchTerm),
+              like(sql`LOWER(${assemblyTemplates.name})`, searchTerm),
+              like(sql`LOWER(${assemblyTemplates.description})`, searchTerm)
+            )
+          );
+        }
+        
+        const connectionResults = await connectionQuery
+          .limit(limitNum)
+          .offset(offsetNum)
+          .orderBy(assemblyTemplates.code);
+        
+        results = connectionResults.map(item => {
+          const components = item.components || [];
+          const isCompatible = !compatibility || 
+            compatibility === 'ALL' || 
+            !item.main_material || 
+            item.main_material === compatibility ||
+            showAllOptions;
+          
+          // Build preview summary for connection templates
+          const componentSummary = components.length > 0 
+            ? components.map((c: any) => `${c.quantity}x ${c.type}`).join(', ')
+            : 'No components defined';
+          
+          return {
+            id: `connection_template_${item.id}`,
+            source: { table: 'assembly_templates', id: item.id },
+            category: 'connection',
+            type: item.connection_type || type,
+            code: item.code,
+            name: item.name,
+            description: item.description || `Connection template: ${componentSummary}`,
+            unit: 'connection',
+            defaults: {
+              totalLaborHours: components.reduce((acc: number, c: any) => 
+                acc + (c.laborHours || 0) * (c.quantity || 1), 0),
+              totalCost: components.reduce((acc: number, c: any) => 
+                acc + (c.unitCost || 0) * (c.quantity || 1), 0)
+            },
+            dimensions: {
+              componentCount: components.length
+            },
+            compatibility: { 
+              sections: item.main_material ? [item.main_material] : ['ALL'], 
+              isCompatible,
+              warning: !isCompatible ? `Template designed for ${item.main_material} sections` : null
+            },
+            appliesTo: 'composite',
+            components,
+            preview: {
+              summary: componentSummary,
+              operationCount: components.length,
+              estimatedTime: components.reduce((acc: number, c: any) => 
+                acc + (c.laborHours || 0) * (c.quantity || 1), 0)
+            }
+          };
+        });
+        break;
+        
       case 'assembly':
         let assemblyQuery = db.select().from(assemblyTemplates)
           .where(eq(assemblyTemplates.is_active, true));
@@ -430,6 +505,12 @@ export async function unifiedOperationLibrary(req: any, res: any) {
             }
           };
         });
+        break;
+        
+      case 'handling':
+        // Handling operations are typically custom or project-specific
+        // Return empty for now until we have handling standards table
+        results = [];
         break;
         
       default:
