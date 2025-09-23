@@ -41,6 +41,8 @@ import {
   BookOpen
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { OperationCombobox } from "./operation-combobox";
+import { OperationSaveDialog } from "./operation-save-dialog";
 
 // Operation Categories with Icons and Colors
 const OPERATION_CATEGORIES = {
@@ -172,6 +174,9 @@ export default function AddOperationDialog({
   const [selectedType, setSelectedType] = useState<string>("");
   const [useLibrary, setUseLibrary] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [selectedLibraryItem, setSelectedLibraryItem] = useState<any>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveDialogData, setSaveDialogData] = useState<any>(null);
   
   // Form data with comprehensive fields
   const [formData, setFormData] = useState<Partial<OperationItem>>({
@@ -199,10 +204,16 @@ export default function AddOperationDialog({
   // Validation warnings
   const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
 
-  // Fetch library components based on category and type
-  const { data: libraryComponents = [] } = useQuery({
-    queryKey: ['/api/connection-components', selectedCategory, selectedType],
-    enabled: !!(useLibrary && selectedCategory && selectedType)
+  // Fetch operation types for selected category
+  const { data: operationTypes = [] } = useQuery({
+    queryKey: ['/api/operation-library/types', selectedCategory],
+    queryFn: async () => {
+      const params = new URLSearchParams({ category: selectedCategory });
+      const response = await fetch(`/api/operation-library/types?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch operation types');
+      return response.json();
+    },
+    enabled: !!selectedCategory
   });
 
   // Fetch welding standards
@@ -416,6 +427,34 @@ export default function AddOperationDialog({
     }
   };
 
+  // Handle library item selection
+  const handleLibraryItemSelect = (item: any) => {
+    if (!item) {
+      setSelectedLibraryItem(null);
+      return;
+    }
+    
+    setSelectedLibraryItem(item);
+    
+    // Apply defaults from library item
+    setFormData(prev => ({
+      ...prev,
+      description: item.description || prev.description,
+      unit: item.unit || prev.unit,
+      laborHours: item.defaults?.laborHours || prev.laborHours,
+      unitCost: item.defaults?.unitCost || prev.unitCost,
+      method: item.defaults?.method || prev.method,
+      sourceType: 'library',
+      sourceId: item.source?.id,
+      libraryComponentId: item.source?.id
+    }));
+    
+    // Handle assembly templates differently
+    if (item.appliesTo === 'composite' && item.source?.table === 'assembly_templates') {
+      handleTemplateSelect(item);
+    }
+  };
+
   // Handle form submission
   const handleSubmit = () => {
     // Validate required fields
@@ -436,16 +475,87 @@ export default function AddOperationDialog({
     if (formData.laborLocation === "site") laborRate = 120;
     else if (formData.skillLevel === "specialist") laborRate = 150;
 
-    // Submit the operation
-    onSubmit({
+    // Prepare operation data
+    const operationData = {
       ...formData,
       category: selectedCategory,
+      type: selectedType,
       totalCost,
       laborRate,
-      consumablesData: calculatedConsumables
-    });
+      consumablesData: calculatedConsumables,
+      libraryItem: selectedLibraryItem
+    };
 
-    // Reset and close
+    // Show save dialog if using library item with changes
+    if (useLibrary && selectedLibraryItem) {
+      setSaveDialogData(operationData);
+      setShowSaveDialog(true);
+    } else {
+      // Direct submit for manual entry
+      onSubmit(operationData);
+      onOpenChange(false);
+    }
+  };
+
+  // Handle save dialog response
+  const handleSaveDialogConfirm = async (saveOption: 'estimate' | 'update' | 'create') => {
+    if (!saveDialogData) return;
+    
+    if (saveOption === 'estimate') {
+      // Just save to estimate
+      onSubmit(saveDialogData);
+    } else if (saveOption === 'update' && selectedLibraryItem?.source) {
+      // Update library item
+      try {
+        const response = await fetch(`/api/${selectedLibraryItem.source.table}/${selectedLibraryItem.source.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(saveDialogData)
+        });
+        
+        if (!response.ok) throw new Error('Failed to update library item');
+        
+        toast({
+          title: "Library Updated",
+          description: "The library item has been updated successfully"
+        });
+        
+        onSubmit(saveDialogData);
+      } catch (error) {
+        toast({
+          title: "Update Failed",
+          description: "Failed to update the library item",
+          variant: "destructive"
+        });
+      }
+    } else if (saveOption === 'create') {
+      // Create new library item
+      try {
+        const endpoint = selectedLibraryItem?.source?.table || 'connection-components';
+        const response = await fetch(`/api/${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(saveDialogData)
+        });
+        
+        if (!response.ok) throw new Error('Failed to create library item');
+        
+        toast({
+          title: "Library Item Created",
+          description: "A new library item has been created successfully"
+        });
+        
+        onSubmit(saveDialogData);
+      } catch (error) {
+        toast({
+          title: "Creation Failed",
+          description: "Failed to create the library item",
+          variant: "destructive"
+        });
+      }
+    }
+    
+    setShowSaveDialog(false);
     onOpenChange(false);
   };
 
@@ -504,7 +614,7 @@ export default function AddOperationDialog({
                 <div>
                   <Label>Select Operation Type</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                    {OPERATION_CATEGORIES[selectedCategory].types.map(type => (
+                    {(operationTypes.length > 0 ? operationTypes : OPERATION_CATEGORIES[selectedCategory]?.types || []).map(type => (
                       <Button
                         key={type}
                         variant="outline"
@@ -555,34 +665,45 @@ export default function AddOperationDialog({
 
                   {/* Library Selection */}
                   {useLibrary && (
-                    <div>
+                    <div className="space-y-2">
                       <Label>Select from Library</Label>
-                      <Select onValueChange={(value) => {
-                        const component = libraryComponents.find(c => c.id.toString() === value);
-                        if (component) {
-                          setFormData(prev => ({
-                            ...prev,
-                            description: component.name,
-                            sourceType: "library",
-                            sourceId: component.id,
-                            libraryComponentId: component.id,
-                            // Apply component dimensions and welding time
-                            thickness: component.thickness,
-                            weldTime: component.weldTime
-                          }));
-                        }
-                      }}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select component" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {libraryComponents.map(component => (
-                            <SelectItem key={component.id} value={component.id.toString()}>
-                              {component.code} - {component.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <OperationCombobox
+                        category={selectedCategory}
+                        type={selectedType}
+                        parentSection={parentMaterial?.section}
+                        value={selectedLibraryItem?.id}
+                        onSelect={handleLibraryItemSelect}
+                        placeholder="Search operations..."
+                        showAllOptions={false}
+                        onCreateNew={() => {
+                          // Handle creating new library item
+                          setUseLibrary(false);
+                          toast({
+                            title: "Create New",
+                            description: "Fill in the details to create a new library item"
+                          });
+                        }}
+                      />
+                      
+                      {selectedLibraryItem && (
+                        <Alert>
+                          <Info className="h-4 w-4" />
+                          <AlertDescription>
+                            <div className="space-y-1">
+                              <div>Selected: <strong>{selectedLibraryItem.name}</strong></div>
+                              {selectedLibraryItem.description && (
+                                <div className="text-sm text-muted-foreground">{selectedLibraryItem.description}</div>
+                              )}
+                              {selectedLibraryItem.compatibility?.warning && (
+                                <div className="text-sm text-orange-600">
+                                  <AlertTriangle className="h-3 w-3 inline mr-1" />
+                                  {selectedLibraryItem.compatibility.warning}
+                                </div>
+                              )}
+                            </div>
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </div>
                   )}
 
@@ -1041,6 +1162,15 @@ export default function AddOperationDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      
+      {/* Save Dialog */}
+      <OperationSaveDialog
+        open={showSaveDialog}
+        onOpenChange={setShowSaveDialog}
+        onSave={handleSaveDialogConfirm}
+        operationType={selectedType?.replace(/_/g, " ") || "operation"}
+        userRole="admin"
+      />
     </Dialog>
   );
 }
