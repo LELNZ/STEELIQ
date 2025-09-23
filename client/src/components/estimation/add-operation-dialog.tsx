@@ -192,7 +192,7 @@ export default function AddOperationDialog({
     skillLevel: "standard",
     sourceType: "manual",
     includeInLabor: true,
-    includeInMaterials: false,
+    includeInMaterials: true, // Default to true for fabrication operations
     includeInConsumables: false,
     includeInCoatings: false,
     sequence: 100

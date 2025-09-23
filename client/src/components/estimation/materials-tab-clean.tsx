@@ -89,7 +89,7 @@ interface MaterialCost {
 
 interface MaterialChildItem {
   id: string;
-  type: 'stiffener' | 'endplate' | 'baseplate' | 'cleat' | 'bolt' | 'weld' | 'other';
+  type: 'stiffener' | 'endplate' | 'baseplate' | 'cleat' | 'bolt' | 'weld' | 'cutting' | 'drilling' | 'welding' | 'grinding' | 'punching' | 'coping' | 'notching' | 'other';
   description: string;
   quantity: number;
   unit: string;
