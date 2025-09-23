@@ -1581,7 +1581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = await db.select()
         .from(weldingStandards)
-        .where(eq(weldingStandards.isActive, true))
+        .where(eq(weldingStandards.is_active, true))
         .orderBy(weldingStandards.size);
       res.json(result);
     } catch (error) {
@@ -1594,8 +1594,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = await db.select()
         .from(drillingStandards)
-        .where(eq(drillingStandards.isActive, true))
-        .orderBy(drillingStandards.diameterMax);
+        .where(eq(drillingStandards.is_active, true))
+        .orderBy(drillingStandards.diameter_max);
       res.json(result);
     } catch (error) {
       console.error("Error fetching drilling standards:", error);
@@ -1607,8 +1607,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = await db.select()
         .from(cuttingStandards)
-        .where(eq(cuttingStandards.isActive, true))
-        .orderBy(cuttingStandards.thicknessMax);
+        .where(eq(cuttingStandards.is_active, true))
+        .orderBy(cuttingStandards.thickness_max);
       res.json(result);
     } catch (error) {
       console.error("Error fetching cutting standards:", error);
@@ -1620,7 +1620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = await db.select()
         .from(positionFactors)
-        .where(eq(positionFactors.isActive, true))
+        .where(eq(positionFactors.is_active, true))
         .orderBy(positionFactors.factor);
       res.json(result);
     } catch (error) {
