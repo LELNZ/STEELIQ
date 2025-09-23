@@ -370,11 +370,29 @@ export async function unifiedOperationLibrary(req: any, res: any) {
         let connectionQuery = db.select().from(assemblyTemplates)
           .where(eq(assemblyTemplates.is_active, true));
         
-        // Filter by connection type if provided
+        // Filter by connection type using code pattern or name matching
         if (type && type !== 'any') {
-          connectionQuery = connectionQuery.where(
-            eq(assemblyTemplates.connection_type, type)
-          );
+          const typeMapping: Record<string, string[]> = {
+            'stiffener': ['STIFF'],
+            'endplate': ['ENDPL', 'END-PLATE'],
+            'baseplate': ['BASEP', 'BASE-PLATE'],
+            'cleat': ['CLEAT', 'ANGLE'],
+            'gusset': ['GUSST', 'GUSSET'],
+            'bracket': ['BRACK', 'BRACKET'],
+            'bolt': ['BOLT'],
+            'weld': ['WELD']
+          };
+          
+          const patterns = typeMapping[type];
+          if (patterns) {
+            connectionQuery = connectionQuery.where(
+              or(
+                ...patterns.map(pattern => 
+                  like(sql`UPPER(${assemblyTemplates.code})`, `${pattern}%`)
+                )
+              )
+            );
+          }
         }
         
         if (searchTerm) {
