@@ -524,7 +524,12 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
   // Handle operation submission from new dialog
   const handleAddOperation = (operation: any) => {
     const materialId = addChildItemMaterialId;
-    if (!materialId) return;
+    if (!materialId) {
+      console.error('No material ID set for adding operation');
+      return;
+    }
+    
+    console.log('Adding operation to material:', materialId, operation);
 
     // Create child item from operation
     const newChildItem: MaterialChildItem = {
