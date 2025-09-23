@@ -365,9 +365,9 @@ export async function unifiedOperationLibrary(req: any, res: any) {
         }
         break;
         
-      case 'connection':
+      case 'connection': {
         // For connections, we use assembly templates that match the connection types
-        let connectionQuery = db.select().from(assemblyTemplates)
+        const connectionQuery = db.select().from(assemblyTemplates)
           .where(eq(assemblyTemplates.is_active, true));
         
         // Filter by connection type using code pattern or name matching
@@ -457,9 +457,10 @@ export async function unifiedOperationLibrary(req: any, res: any) {
           };
         });
         break;
+      }
         
-      case 'assembly':
-        let assemblyQuery = db.select().from(assemblyTemplates)
+      case 'assembly': {
+        const assemblyQuery = db.select().from(assemblyTemplates)
           .where(eq(assemblyTemplates.is_active, true));
         
         if (searchTerm) {
@@ -524,6 +525,7 @@ export async function unifiedOperationLibrary(req: any, res: any) {
           };
         });
         break;
+      }
         
       case 'handling':
         // Handling operations are typically custom or project-specific
