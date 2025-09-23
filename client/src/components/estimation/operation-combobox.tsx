@@ -122,6 +122,7 @@ export function OperationCombobox({
       <CommandItem
         key={item.id}
         value={item.id}
+        onSelect={() => handleSelect(item.id)}
         className="flex flex-col gap-1 py-2 cursor-pointer"
         data-testid={`operation-item-${item.id}`}
       >
@@ -189,10 +190,7 @@ export function OperationCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[400px] p-0" align="start">
-        <Command 
-          shouldFilter={false}
-          onValueChange={handleSelect}
-        >
+        <Command shouldFilter={false}>
           <CommandInput
             placeholder="Search operations..."
             value={search}

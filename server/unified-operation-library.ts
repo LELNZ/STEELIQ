@@ -250,8 +250,7 @@ export async function unifiedOperationLibrary(req: any, res: any) {
               coatingQuery = coatingQuery.where(
                 or(
                   like(sql`LOWER(${coatingSystems.name})`, searchTerm),
-                  like(sql`LOWER(${coatingSystems.description})`, searchTerm),
-                  like(sql`LOWER(${coatingSystems.applicationMethod})`, searchTerm)
+                  like(sql`LOWER(${coatingSystems.description})`, searchTerm)
                 )
               );
             }
@@ -280,10 +279,10 @@ export async function unifiedOperationLibrary(req: any, res: any) {
                   coatsRequired: item.coatsRequired || 1,
                   preparationRequired: item.preparationRequired,
                   dryingTime: item.dryingTime,
-                  applicationMethod: item.applicationMethod,
-                  preparationMethods: item.preparationMethods || [],
-                  coverageAdjustmentFactors: item.coverageAdjustmentFactors || {},
-                  applicationMethodFactors: item.applicationMethodFactors || {}
+                  applicationMethod: null,
+                  preparationMethods: [],
+                  coverageAdjustmentFactors: {},
+                  applicationMethodFactors: {}
                 },
                 dimensions: {},
                 compatibility: {
@@ -291,7 +290,7 @@ export async function unifiedOperationLibrary(req: any, res: any) {
                   isCompatible,
                   warning: !isCompatible ? 'Coating application may vary by section' : null
                 },
-                tags: [item.applicationMethod, item.preparationRequired].filter(Boolean),
+                tags: [item.preparationRequired].filter(Boolean),
                 appliesTo: 'single'
               };
             });
