@@ -567,17 +567,24 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
 
     // Route to appropriate tabs
     if (operation.includeInLabor && onLaborUpdate) {
+      const laborRate = operation.laborLocation === 'site' ? 120 : 85;
+      const laborHours = operation.laborHours || 0;
+      // Map location to labor category
+      const laborCategory = operation.laborLocation === 'site' ? 'onsite' : 'workshop';
+      
       onLaborUpdate([{
         id: `labor-${Date.now()}`,
         operationId: newChildItem.id,
         description: operation.description,
-        hours: operation.laborHours,
+        hours: laborHours,
         location: operation.laborLocation,
         skillLevel: operation.skillLevel,
-        rate: operation.laborLocation === 'site' ? 120 : 85,
+        rate: laborRate,
+        totalCost: laborHours * laborRate, // Calculate totalCost
         parentMaterialId: materialId,
-        category: operation.category,
-        type: operation.type
+        category: laborCategory, // Use mapped category
+        subcategory: operation.type || 'fabrication', // Add subcategory
+        notes: operation.notes
       }]);
     }
 
