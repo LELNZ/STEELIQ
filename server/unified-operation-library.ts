@@ -466,7 +466,7 @@ export async function unifiedOperationLibrary(req: any, res: any) {
             id: `assembly_templates_${item.id}`,
             source: { table: 'assembly_templates', id: item.id },
             category: 'assembly',
-            type: 'template',
+            type: String(type), // Use the requested type, not 'template'
             code: item.code,
             name: item.name,
             description: item.description || `Assembly template: ${componentSummary}`,
