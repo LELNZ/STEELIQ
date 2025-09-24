@@ -14003,6 +14003,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/operations/batch-create", async (req, res) => {
+    try {
+      const { operationService } = await import('./services/operation-service');
+      const { projectId, materialDesignations, operations } = req.body;
+
+      if (!projectId || !materialDesignations || !operations) {
+        return res.status(400).json({
+          error: "Missing required fields: projectId, materialDesignations, operations"
+        });
+      }
+
+      const createdOperations = await operationService.batchCreateOperations(
+        projectId,
+        materialDesignations,
+        operations,
+        req.session?.userId
+      );
+
+      res.json(createdOperations);
+    } catch (error) {
+      console.error("Error batch creating operations:", error);
+      res.status(500).json({ error: "Failed to batch create operations" });
+    }
+  });
+
+  app.post("/api/operations/clone", async (req, res) => {
+    try {
+      const { operationService } = await import('./services/operation-service');
+      const { projectId, sourceMaterialDesignation, targetMaterialDesignations } = req.body;
+
+      if (!projectId || !sourceMaterialDesignation || !targetMaterialDesignations) {
+        return res.status(400).json({
+          error: "Missing required fields: projectId, sourceMaterialDesignation, targetMaterialDesignations"
+        });
+      }
+
+      const clonedOperations = await operationService.cloneOperations(
+        projectId,
+        sourceMaterialDesignation,
+        targetMaterialDesignations,
+        req.session?.userId
+      );
+
+      res.json(clonedOperations);
+    } catch (error) {
+      console.error("Error cloning operations:", error);
+      res.status(500).json({ error: "Failed to clone operations" });
+    }
+  });
+
   app.get("/api/operations/consumption-rates/:operationType", async (req, res) => {
     try {
       const { operationService } = await import('./services/operation-service');
@@ -14022,6 +14072,187 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching consumption rates:", error);
       res.status(500).json({ error: "Failed to fetch consumption rates" });
+    }
+  });
+
+  // Consumption Rates Settings API
+  app.get("/api/consumption-rates", async (req, res) => {
+    try {
+      const { consumptionRatesService } = await import('./services/consumption-rates-service');
+      const { activeOnly } = req.query;
+      const rates = await consumptionRatesService.getAllConsumptionRates(
+        activeOnly !== 'false'
+      );
+      res.json(rates);
+    } catch (error) {
+      console.error("Error fetching consumption rates:", error);
+      res.status(500).json({ error: "Failed to fetch consumption rates" });
+    }
+  });
+
+  app.get("/api/consumption-rates/lookup", async (req, res) => {
+    try {
+      const { consumptionRatesService } = await import('./services/consumption-rates-service');
+      const { operationType, method, materialType, thickness, diameter } = req.query;
+      
+      if (!operationType) {
+        return res.status(400).json({ error: "Operation type is required" });
+      }
+
+      const rate = await consumptionRatesService.getConsumptionRates(
+        operationType as string,
+        method as string,
+        materialType as string,
+        thickness ? parseFloat(thickness as string) : undefined,
+        diameter ? parseFloat(diameter as string) : undefined
+      );
+      
+      res.json(rate);
+    } catch (error) {
+      console.error("Error looking up consumption rate:", error);
+      res.status(500).json({ error: "Failed to lookup consumption rate" });
+    }
+  });
+
+  app.post("/api/consumption-rates", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const { consumptionRatesService } = await import('./services/consumption-rates-service');
+      const rate = await consumptionRatesService.saveConsumptionRate(
+        req.body,
+        req.session.userId
+      );
+      res.json(rate);
+    } catch (error) {
+      console.error("Error saving consumption rate:", error);
+      res.status(500).json({ error: "Failed to save consumption rate" });
+    }
+  });
+
+  app.delete("/api/consumption-rates/:id", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const { consumptionRatesService } = await import('./services/consumption-rates-service');
+      await consumptionRatesService.deleteConsumptionRate(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting consumption rate:", error);
+      res.status(500).json({ error: "Failed to delete consumption rate" });
+    }
+  });
+
+  app.post("/api/consumption-rates/initialize-defaults", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const { consumptionRatesService } = await import('./services/consumption-rates-service');
+      await consumptionRatesService.initializeDefaultRates(req.session.userId);
+      res.json({ success: true, message: "Default consumption rates initialized" });
+    } catch (error) {
+      console.error("Error initializing default rates:", error);
+      res.status(500).json({ error: "Failed to initialize default rates" });
+    }
+  });
+
+  // Operation Templates API
+  app.get("/api/operation-templates", async (req, res) => {
+    try {
+      const { consumptionRatesService } = await import('./services/consumption-rates-service');
+      const { category, operationType, activeOnly } = req.query;
+      
+      const templates = await consumptionRatesService.getOperationTemplates(
+        category as string,
+        operationType as string,
+        activeOnly !== 'false'
+      );
+      
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching operation templates:", error);
+      res.status(500).json({ error: "Failed to fetch operation templates" });
+    }
+  });
+
+  app.get("/api/operation-templates/code/:code", async (req, res) => {
+    try {
+      const { consumptionRatesService } = await import('./services/consumption-rates-service');
+      const template = await consumptionRatesService.getTemplateByCode(req.params.code);
+      
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching operation template:", error);
+      res.status(500).json({ error: "Failed to fetch operation template" });
+    }
+  });
+
+  app.post("/api/operation-templates", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const { consumptionRatesService } = await import('./services/consumption-rates-service');
+      const template = await consumptionRatesService.saveOperationTemplate(
+        req.body,
+        req.session.userId
+      );
+      res.json(template);
+    } catch (error) {
+      console.error("Error saving operation template:", error);
+      res.status(500).json({ error: "Failed to save operation template" });
+    }
+  });
+
+  app.delete("/api/operation-templates/:id", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const { consumptionRatesService } = await import('./services/consumption-rates-service');
+      await consumptionRatesService.deleteOperationTemplate(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting operation template:", error);
+      res.status(500).json({ error: "Failed to delete operation template" });
+    }
+  });
+
+  app.post("/api/operation-templates/:id/increment-usage", async (req, res) => {
+    try {
+      const { consumptionRatesService } = await import('./services/consumption-rates-service');
+      await consumptionRatesService.incrementTemplateUsage(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error incrementing template usage:", error);
+      res.status(500).json({ error: "Failed to increment template usage" });
+    }
+  });
+
+  app.post("/api/operation-templates/initialize-defaults", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const { consumptionRatesService } = await import('./services/consumption-rates-service');
+      await consumptionRatesService.initializeDefaultTemplates(req.session.userId);
+      res.json({ success: true, message: "Default operation templates initialized" });
+    } catch (error) {
+      console.error("Error initializing default templates:", error);
+      res.status(500).json({ error: "Failed to initialize default templates" });
     }
   });
 

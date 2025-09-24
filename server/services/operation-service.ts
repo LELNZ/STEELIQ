@@ -397,22 +397,45 @@ export class OperationService {
       throw new Error('Operation not found');
     }
 
-    // Delete related labor items
-    if (operation.labor_item_ids && Array.isArray(operation.labor_item_ids)) {
+    // Delete related items by designation (more robust than ID arrays)
+    // This ensures all related items are deleted even if IDs weren't stored
+    if (operation.operation_designation && operation.project_id) {
+      // Delete labor items with this operation designation
       await db.delete(estimationLabor)
-        .where(inArray(estimationLabor.id, operation.labor_item_ids as number[]));
-    }
+        .where(and(
+          eq(estimationLabor.project_id, operation.project_id),
+          eq(estimationLabor.designation, operation.operation_designation)
+        ));
 
-    // Delete related consumable items
-    if (operation.consumable_item_ids && Array.isArray(operation.consumable_item_ids)) {
+      // Delete consumable items with this operation designation
       await db.delete(estimationConsumables)
-        .where(inArray(estimationConsumables.id, operation.consumable_item_ids as number[]));
-    }
+        .where(and(
+          eq(estimationConsumables.project_id, operation.project_id),
+          eq(estimationConsumables.designation, operation.operation_designation)
+        ));
 
-    // Delete related coating items
-    if (operation.coating_item_ids && Array.isArray(operation.coating_item_ids)) {
+      // Delete coating items with this operation designation
       await db.delete(estimationCoatings)
-        .where(inArray(estimationCoatings.id, operation.coating_item_ids as number[]));
+        .where(and(
+          eq(estimationCoatings.project_id, operation.project_id),
+          eq(estimationCoatings.designation, operation.operation_designation)
+        ));
+    } else {
+      // Fallback to ID-based deletion if designation isn't available
+      if (operation.labor_item_ids && Array.isArray(operation.labor_item_ids)) {
+        await db.delete(estimationLabor)
+          .where(inArray(estimationLabor.id, operation.labor_item_ids as number[]));
+      }
+
+      if (operation.consumable_item_ids && Array.isArray(operation.consumable_item_ids)) {
+        await db.delete(estimationConsumables)
+          .where(inArray(estimationConsumables.id, operation.consumable_item_ids as number[]));
+      }
+
+      if (operation.coating_item_ids && Array.isArray(operation.coating_item_ids)) {
+        await db.delete(estimationCoatings)
+          .where(inArray(estimationCoatings.id, operation.coating_item_ids as number[]));
+      }
     }
 
     // Delete the operation itself
@@ -480,6 +503,94 @@ export class OperationService {
         .set(updates)
         .where(eq(estimationOperations.id, operationId));
     }
+  }
+
+  // Batch create operations for multiple materials
+  async batchCreateOperations(
+    projectId: number,
+    materialDesignations: string[],
+    operations: Array<{
+      operationType: string;
+      description: string;
+      operationData?: any;
+      method?: string;
+      position?: string;
+      includeInLabor?: boolean;
+      includeInConsumables?: boolean;
+      includeInCoatings?: boolean;
+    }>,
+    userId?: number
+  ): Promise<EstimationOperation[]> {
+    const createdOperations: EstimationOperation[] = [];
+
+    // For each material designation
+    for (const designation of materialDesignations) {
+      // Create each operation
+      for (const opConfig of operations) {
+        const operation = await this.createOperation({
+          projectId,
+          materialDesignation: designation,
+          operationType: opConfig.operationType,
+          description: opConfig.description,
+          operationData: opConfig.operationData,
+          method: opConfig.method,
+          position: opConfig.position,
+          includeInLabor: opConfig.includeInLabor,
+          includeInConsumables: opConfig.includeInConsumables,
+          includeInCoatings: opConfig.includeInCoatings,
+          userId
+        });
+
+        createdOperations.push(operation);
+      }
+    }
+
+    return createdOperations;
+  }
+
+  // Clone operations from one material to another
+  async cloneOperations(
+    projectId: number,
+    sourceMaterialDesignation: string,
+    targetMaterialDesignations: string[],
+    userId?: number
+  ): Promise<EstimationOperation[]> {
+    // Get all operations for the source material
+    const sourceOperations = await db.select()
+      .from(estimationOperations)
+      .where(and(
+        eq(estimationOperations.project_id, projectId),
+        eq(estimationOperations.material_designation, sourceMaterialDesignation)
+      ));
+
+    if (sourceOperations.length === 0) {
+      throw new Error('No operations found for source material');
+    }
+
+    const clonedOperations: EstimationOperation[] = [];
+
+    // Clone to each target material
+    for (const targetDesignation of targetMaterialDesignations) {
+      for (const sourceOp of sourceOperations) {
+        const clonedOp = await this.createOperation({
+          projectId,
+          materialDesignation: targetDesignation,
+          operationType: sourceOp.operation_type,
+          description: sourceOp.description,
+          operationData: sourceOp.operation_data,
+          method: sourceOp.method || undefined,
+          position: sourceOp.position || undefined,
+          includeInLabor: sourceOp.include_in_labor,
+          includeInConsumables: sourceOp.include_in_consumables,
+          includeInCoatings: sourceOp.include_in_coatings,
+          userId
+        });
+
+        clonedOperations.push(clonedOp);
+      }
+    }
+
+    return clonedOperations;
   }
 
   // Get consumption rates from settings (placeholder for future implementation)
