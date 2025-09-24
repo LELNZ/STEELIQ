@@ -58,7 +58,7 @@ export class OperationService {
     } = params;
 
     // Generate unique operation designation
-    const operationDesignation = this.generateOperationDesignation(materialDesignation, operationType);
+    const operationDesignation = await this.generateOperationDesignation(projectId, materialDesignation, operationType);
 
     // Create the operation record
     const [operation] = await db.insert(estimationOperations)
@@ -86,10 +86,25 @@ export class OperationService {
     return operation;
   }
 
-  // Generate operation designation (e.g., C1-cut, B2-drill, PL1-weld)
-  private generateOperationDesignation(materialDesignation: string, operationType: string): string {
+  // Generate unique operation designation (e.g., C1-cut-1, B2-drill-2, PL1-weld-3)
+  private async generateOperationDesignation(
+    projectId: number,
+    materialDesignation: string,
+    operationType: string
+  ): Promise<string> {
     const shortType = this.getOperationShortCode(operationType);
-    return `${materialDesignation}-${shortType}`;
+    
+    // Count existing operations of this type for this material
+    const existingOps = await db.select({ id: estimationOperations.id })
+      .from(estimationOperations)
+      .where(and(
+        eq(estimationOperations.project_id, projectId),
+        eq(estimationOperations.material_designation, materialDesignation),
+        eq(estimationOperations.operation_type, operationType)
+      ));
+    
+    const sequence = existingOps.length + 1;
+    return `${materialDesignation}-${shortType}-${sequence}`;
   }
 
   // Get short code for operation type
