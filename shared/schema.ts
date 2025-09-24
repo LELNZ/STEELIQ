@@ -2480,6 +2480,46 @@ export const estimationCoatings = pgTable("estimation_coatings", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Operations tracking table for complete traceability
+export const estimationOperations = pgTable("estimation_operations", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  materialId: text("material_id").notNull(), // Reference to material in materials table
+  materialDesignation: text("material_designation").notNull(), // C1, B2, PL1
+  operationType: text("operation_type").notNull(), // cut, drill, weld, grind, coat, etc.
+  operationDesignation: text("operation_designation").notNull(), // C1-cut, B2-drill, PL1-weld
+  description: text("description").notNull(),
+  sequenceOrder: integer("sequence_order"), // Order of operations
+  
+  // Operation details
+  operationData: jsonb("operation_data"), // Stores all operation-specific data
+  method: text("method"), // plasma, saw, laser, mag_drill, etc.
+  position: text("position"), // flat, vertical, overhead
+  
+  // Routing flags
+  includeInLabor: boolean("include_in_labor").default(false),
+  includeInConsumables: boolean("include_in_consumables").default(false),
+  includeInCoatings: boolean("include_in_coatings").default(false),
+  includeInEquipment: boolean("include_in_equipment").default(false),
+  
+  // Cost overrides
+  laborCostOverride: decimal("labor_cost_override", { precision: 10, scale: 2 }),
+  consumablesCostOverride: decimal("consumables_cost_override", { precision: 10, scale: 2 }),
+  coatingsCostOverride: decimal("coatings_cost_override", { precision: 10, scale: 2 }),
+  
+  // References to created items in other tables
+  laborItemIds: jsonb("labor_item_ids"), // Array of IDs created in labor table
+  consumableItemIds: jsonb("consumable_item_ids"), // Array of IDs created in consumables
+  coatingItemIds: jsonb("coating_item_ids"), // Array of IDs created in coatings
+  
+  // Metadata
+  status: text("status").default("planned"), // planned, in-progress, completed
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const estimationTemplates = pgTable("estimation_templates", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -2535,6 +2575,12 @@ export const insertEstimationCoatingsSchema = createInsertSchema(estimationCoati
   createdAt: true,
 });
 
+export const insertEstimationOperationsSchema = createInsertSchema(estimationOperations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertEstimationTemplateSchema = createInsertSchema(estimationTemplates).omit({
   id: true,
   createdAt: true,
@@ -2570,6 +2616,9 @@ export type InsertEstimationConsumable = z.infer<typeof insertEstimationConsumab
 
 export type EstimationCoatings = typeof estimationCoatings.$inferSelect;
 export type InsertEstimationCoatings = z.infer<typeof insertEstimationCoatingsSchema>;
+
+export type EstimationOperations = typeof estimationOperations.$inferSelect;
+export type InsertEstimationOperations = z.infer<typeof insertEstimationOperationsSchema>;
 
 export type EstimationTemplate = typeof estimationTemplates.$inferSelect;
 export type InsertEstimationTemplate = z.infer<typeof insertEstimationTemplateSchema>;
