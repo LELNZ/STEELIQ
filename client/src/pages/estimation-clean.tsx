@@ -1450,7 +1450,15 @@ function EstimationWorkspace({
           <MaterialsTab
             materials={estimationData.materials}
             onUpdate={(materials) => setEstimationData({ ...estimationData, materials })}
-            onLaborUpdate={(laborItems) => setEstimationData({ ...estimationData, labor: laborItems })}
+            onLaborUpdate={(laborItems) => {
+              // Append new labor items to existing ones instead of replacing
+              setEstimationData(prev => {
+                if (!prev) return prev;
+                const currentLabor = prev.labor || [];
+                const updatedLabor = [...currentLabor, ...laborItems];
+                return { ...prev, labor: updatedLabor };
+              });
+            }}
             availableMaterials={materials}
           />
         </TabsContent>
