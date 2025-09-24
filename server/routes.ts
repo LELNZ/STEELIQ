@@ -19,8 +19,13 @@ import { analyzeConstructionDrawing, validateSteelSpecifications } from "./pdf-a
 import { googleAuth } from "./googleAuth";
 import { integratedEmailService } from "./services/integratedEmailService";
 import { poTrackingService } from "./poTracking";
+import { OperationService } from "./services/operation-service";
+import { ConsumptionRatesService } from "./services/consumption-rates-service";
+import { estimationMaterials, estimationOperations } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const operationService = new OperationService();
+  const consumptionRatesService = new ConsumptionRatesService();
   // Health check endpoint for deployment monitoring
   app.get("/api/health", (req, res) => {
     res.json({
