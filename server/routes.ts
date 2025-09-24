@@ -13856,6 +13856,175 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Operations API endpoints
+  app.post("/api/operations", async (req, res) => {
+    try {
+      const { operationService } = await import('./services/operation-service');
+      const {
+        projectId,
+        materialDesignation,
+        materialId,
+        operationType,
+        description,
+        operationData,
+        method,
+        position,
+        includeInLabor,
+        includeInConsumables,
+        includeInCoatings
+      } = req.body;
+
+      if (!projectId || !materialDesignation || !operationType || !description) {
+        return res.status(400).json({
+          error: "Missing required fields: projectId, materialDesignation, operationType, description"
+        });
+      }
+
+      const operation = await operationService.createOperation({
+        projectId,
+        materialDesignation,
+        materialId,
+        operationType,
+        description,
+        operationData,
+        method,
+        position,
+        includeInLabor,
+        includeInConsumables,
+        includeInCoatings,
+        userId: req.session?.userId
+      });
+
+      res.json(operation);
+    } catch (error) {
+      console.error("Error creating operation:", error);
+      res.status(500).json({ error: "Failed to create operation" });
+    }
+  });
+
+  app.post("/api/operations/apply-to-materials", async (req, res) => {
+    try {
+      const { operationService } = await import('./services/operation-service');
+      const { templateOperationId, materialDesignations, projectId } = req.body;
+
+      if (!templateOperationId || !materialDesignations || !projectId) {
+        return res.status(400).json({
+          error: "Missing required fields: templateOperationId, materialDesignations, projectId"
+        });
+      }
+
+      const operations = await operationService.applyToMultipleMaterials(
+        templateOperationId,
+        materialDesignations,
+        projectId,
+        req.session?.userId
+      );
+
+      res.json(operations);
+    } catch (error) {
+      console.error("Error applying operation to materials:", error);
+      res.status(500).json({ error: "Failed to apply operation to materials" });
+    }
+  });
+
+  app.get("/api/operations/project/:projectId", async (req, res) => {
+    try {
+      const { operationService } = await import('./services/operation-service');
+      const projectId = parseInt(req.params.projectId);
+      
+      if (!projectId) {
+        return res.status(400).json({ error: "Invalid project ID" });
+      }
+
+      const operations = await operationService.getProjectOperations(projectId);
+      res.json(operations);
+    } catch (error) {
+      console.error("Error fetching project operations:", error);
+      res.status(500).json({ error: "Failed to fetch project operations" });
+    }
+  });
+
+  app.patch("/api/operations/:id/costs", async (req, res) => {
+    try {
+      const { operationService } = await import('./services/operation-service');
+      const operationId = parseInt(req.params.id);
+      const { laborCost, consumablesCost, coatingsCost } = req.body;
+
+      if (!operationId) {
+        return res.status(400).json({ error: "Invalid operation ID" });
+      }
+
+      await operationService.updateOperationCosts(
+        operationId,
+        laborCost,
+        consumablesCost,
+        coatingsCost
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating operation costs:", error);
+      res.status(500).json({ error: "Failed to update operation costs" });
+    }
+  });
+
+  app.delete("/api/operations/:id", async (req, res) => {
+    try {
+      const { operationService } = await import('./services/operation-service');
+      const operationId = parseInt(req.params.id);
+
+      if (!operationId) {
+        return res.status(400).json({ error: "Invalid operation ID" });
+      }
+
+      await operationService.deleteOperation(operationId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting operation:", error);
+      res.status(500).json({ error: "Failed to delete operation" });
+    }
+  });
+
+  app.delete("/api/operations/material/:projectId/:materialDesignation", async (req, res) => {
+    try {
+      const { operationService } = await import('./services/operation-service');
+      const projectId = parseInt(req.params.projectId);
+      const { materialDesignation } = req.params;
+
+      if (!projectId || !materialDesignation) {
+        return res.status(400).json({ error: "Invalid project ID or material designation" });
+      }
+
+      await operationService.deleteOperationsForMaterial(projectId, materialDesignation);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting material operations:", error);
+      res.status(500).json({ error: "Failed to delete material operations" });
+    }
+  });
+
+  app.get("/api/operations/consumption-rates/:operationType", async (req, res) => {
+    try {
+      const { operationService } = await import('./services/operation-service');
+      const { operationType } = req.params;
+      const { method } = req.query;
+
+      if (!operationType) {
+        return res.status(400).json({ error: "Operation type is required" });
+      }
+
+      const rates = await operationService.getConsumptionRates(
+        operationType,
+        method as string
+      );
+
+      res.json(rates);
+    } catch (error) {
+      console.error("Error fetching consumption rates:", error);
+      res.status(500).json({ error: "Failed to fetch consumption rates" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
