@@ -1,0 +1,39 @@
+Questions for Clarification:
+1. Material Designations
+Should users be able to manually override auto-generated designations (C1, B2, PL1)? Yes
+If a user adds the same material twice, should it be C1 and C2, or should duplicates share designation? at the point of creation when adding a designation show a red warning lable for example "this designation is already created" do you want to duplicate it or add a lowercase identifier for example C1a or C1b etc - make suggestion for best practice.
+2. Operation Calculations
+For drilling operations, how should we calculate drill bit consumption? (bits per X holes?) yes use best practice this needs to be a editable number - perhaps in the "operations Settings page" under drilling with each line item to have a drill bit consumption datapoint? suggest best practice and ensure we create this pathway and update numbers as per your research and best practice.
+For cutting, should we auto-calculate consumables like cutting discs/gas? yes same as above include bandsaw blades.
+Should welding operations auto-calculate welding rod consumption based on weld length? yes if MMAW is selected however we default workshop welding is c02 shielded fluxcore MAG or mixgas solidwire MIG, MMAW is usually a siteweld requirement if the MIG/MAG operation is not suitable.
+3. Operation Management
+Do operations need a status field? (planned/in-progress/complete) - no.
+When deleting an operation, should we cascade delete from all tabs or soft delete? yes cascade delete from all tabs to keep consistency. 
+What happens to operations if the parent material is deleted? all subitem/childitems are deleted from associated tabs and summarys
+4. Cost Calculations
+Should operations have cost override capabilities? (like labor rates can be edited) yes
+How do we handle operations that affect material cost? (e.g., special treatments) what do you mean?
+Should we track estimated vs actual costs for operations? this should be in the backcosting system.
+5. Complex Operations
+How should we handle operations that span multiple materials? (e.g., weld joining C1 to B1)
+Should such operations appear under both materials or have a special designation like "C1-B1-weld"? yes ensure this is clear, we may have a column C1 with a short stub or beam/rafter B1 welded to it this needs to be different from a column with no welded addition. 
+6. Surface/Coating Operations
+Should coating operations auto-calculate surface area from material dimensions? yes
+Formula: Surface area = perimeter × length. Do we have perimeter data for all sections? we already have a surface area input in the material library for each of our materials - when adding cleats or items that dont have a item - calculate it and update that part then update the coatings operation. for example if the cleat is a new size that is not in the library then create a new item and auto calculate the surface area - sugest best practice.
+Should primers/paints have coverage rates (m²/liter)? do we need this?
+7. Templates & Reusability
+Should users be able to save operation combinations as templates? yes we have had this question.
+Example: "Standard column prep" = cutting + drilling + grinding + welding + cleanup + priming
+Would this be project-specific or company-wide? it will need to be saved to the template settings where user can create / edit / delete etc.
+8. Data Integrity
+Should we track who created/modified operations? (user_id, timestamp) no
+Do we need operation history/changelog? no
+How do we handle operations if estimation is duplicated? - keep all associated data if the estimation is duplicated with a new estimation number, then prompt user to review for any changes required. We need to be able to have multiple estimations for each project just as we need to have the ability to send multiple inoives and partical invoices / progress claims etc. 
+9. UI/UX Considerations
+Should operations show a visual timeline/sequence? what do yo mean
+Should incompatible operations be prevented? (can't prime before cleaning) no
+Should we show operation dependencies visually? what do you mean
+10. Reporting
+In PDF exports, should operations be grouped by material or by type? what is best practice?
+Should we show operation sequence/timeline in reports? what is best practice?
+Do we need operation cost breakdowns in reports? yes

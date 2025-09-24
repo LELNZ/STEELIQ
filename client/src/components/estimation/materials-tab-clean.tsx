@@ -68,6 +68,10 @@ interface MaterialCost {
   leadTime?: number;
   notes?: string;
   aiSuggested?: boolean;
+  // Length tracking for accurate calculations
+  length?: number; // Individual piece length (default 6.0m)
+  lengthUnit?: string; // Unit of measurement (m, mm, ft)
+  totalLength?: number; // quantity × length
   // Surface area and weight for coating integration
   surfaceAreaPerMeter?: number;
   weightPerMeter?: number;
@@ -427,13 +431,48 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
     return { time: timeMinutes, cost };
   };
 
+  // Generate material designation based on material code
+  const generateMaterialDesignation = (materialCode: string, existingDesignations: string[]): string => {
+    // Extract type from material code
+    let prefix = 'M'; // Default for unknown types
+    
+    if (materialCode.includes('UC')) prefix = 'C';  // Column
+    else if (materialCode.includes('UB')) prefix = 'B';  // Beam
+    else if (materialCode.includes('PFC')) prefix = 'CH'; // Channel
+    else if (materialCode.includes('PLATE')) prefix = 'PL'; // Plate
+    else if (materialCode.includes('SHS')) prefix = 'SHS'; // Square Hollow
+    else if (materialCode.includes('RHS')) prefix = 'RHS'; // Rectangular Hollow
+    else if (materialCode.includes('CHS')) prefix = 'CHS'; // Circular Hollow
+    else if (materialCode.includes('ROD')) prefix = 'R';   // Rod
+    else if (materialCode.includes('ANGLE')) prefix = 'L'; // Angle
+    else if (materialCode.includes('FLAT')) prefix = 'FL'; // Flat Bar
+    
+    // Find next available number
+    let counter = 1;
+    while (existingDesignations.includes(`${prefix}${counter}`)) {
+      counter++;
+    }
+    
+    return `${prefix}${counter}`;
+  };
+
   // Add new material to estimation
   const addMaterial = (materialData: Partial<MaterialCost>) => {
+    // Get existing designations
+    const existingDesignations = materials.map(m => m.designation).filter(Boolean) as string[];
+    
+    // Generate designation if not provided
+    const designation = materialData.designation || 
+      generateMaterialDesignation(materialData.materialCode || '', existingDesignations);
+    
     const newMaterial: MaterialCost = {
       id: Date.now().toString(),
       materialId: materialData.materialId,
       materialCode: materialData.materialCode || "",
       materialName: materialData.materialName || "",
+      designation, // Auto-generated or provided designation
+      length: materialData.length || 6.0, // Default 6m length
+      lengthUnit: materialData.lengthUnit || 'm',
       quantity: materialData.quantity || 1,
       unit: materialData.unit || "m",
       unitCost: materialData.unitCost || 0,
@@ -444,6 +483,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
       leadTime: materialData.leadTime,
       notes: materialData.notes,
       totalCost: 0,
+      totalLength: 0, // Will be calculated below
       childItems: [], // Initialize childItems array
       ...materialData
     };
@@ -451,6 +491,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
     // Calculate totals with waste factor
     const adjustedQuantity = newMaterial.quantity * (1 + newMaterial.wasteFactor / 100);
     newMaterial.totalCost = adjustedQuantity * newMaterial.unitCost + newMaterial.handlingCost;
+    newMaterial.totalLength = (newMaterial.length || 6.0) * newMaterial.quantity;
 
     const updatedMaterials = [...materials, newMaterial];
     onUpdate(updatedMaterials);
@@ -873,6 +914,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
                   <tr className="border-b text-sm">
                     <th className="text-left p-2">Material</th>
                     <th className="text-left p-2">Designation</th>
+                    <th className="text-left p-2">Length (m)</th>
                     <th className="text-left p-2">Drawing Ref</th>
                     <th className="text-left p-2">Quantity</th>
                     <th className="text-left p-2">Unit Cost</th>
@@ -920,6 +962,21 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
                             placeholder="C1, B2..."
                             className="w-20 text-sm"
                             title="Member designation (e.g., C1 for Column 1, B2 for Beam 2)"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            type="number"
+                            value={material.length || 6.0}
+                            onChange={(e) => {
+                              const length = parseFloat(e.target.value) || 6.0;
+                              updateMaterialField(material.id, 'length', length);
+                              // Also update total length
+                              updateMaterialField(material.id, 'totalLength', length * material.quantity);
+                            }}
+                            step="0.1"
+                            className="w-20 text-sm"
+                            title="Individual piece length in meters"
                           />
                         </td>
                         <td className="p-2">
@@ -1010,7 +1067,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
                               <span className="text-sm">{child.description}</span>
                             </div>
                           </td>
-                          <td className="p-2" colSpan={2}>
+                          <td className="p-2" colSpan={3}>
                             {child.size && <span className="text-xs text-gray-600">Size: {child.size}</span>}
                             {child.thickness && <span className="text-xs text-gray-600">Thickness: {child.thickness}mm</span>}
                           </td>

@@ -2383,6 +2383,10 @@ export const estimationMaterials = pgTable("estimation_materials", {
   materialId: integer("material_id").references(() => materials.id),
   materialCode: text("material_code").notNull(),
   materialName: text("material_name").notNull(),
+  designation: text("designation"), // C1, B2, PL1, etc. - stable reference for material
+  length: decimal("length", { precision: 10, scale: 3 }).default("6.0"), // Individual piece length in meters
+  lengthUnit: text("length_unit").default("m"), // Unit of measurement (m, mm, ft)
+  totalLength: decimal("total_length", { precision: 12, scale: 3 }), // quantity × length
   quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(),
   unitCost: decimal("unit_cost", { precision: 10, scale: 4 }).notNull(),
   totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
@@ -2398,6 +2402,9 @@ export const estimationMaterials = pgTable("estimation_materials", {
 export const estimationLabor = pgTable("estimation_labor", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => estimationProjects.id),
+  designation: text("designation"), // C1-cut, B2-drill, PL1-weld - tracks parent material and operation
+  parentMaterialId: text("parent_material_id"), // Reference to parent material
+  operationType: text("operation_type"), // cut, drill, weld, etc. from operation
   category: text("category").notNull(), // workshop, onsite, subcontractor
   type: text("type").notNull(), // fabrication, welding, assembly, finishing, etc.
   description: text("description").notNull(),
@@ -2436,12 +2443,38 @@ export const estimationEquipment = pgTable("estimation_equipment", {
 export const estimationConsumables = pgTable("estimation_consumables", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => estimationProjects.id),
+  designation: text("designation"), // C1-cut, B2-drill - tracks parent material and operation
+  parentMaterialId: text("parent_material_id"), // Reference to parent material
+  operationType: text("operation_type"), // cut, drill, weld, etc. from operation
   item: text("item").notNull(),
   category: text("category"), // welding, cutting, finishing, fasteners, etc.
   quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(),
   unit: text("unit").notNull(),
   unitCost: decimal("unit_cost", { precision: 10, scale: 4 }).notNull(),
   totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
+  supplier: text("supplier"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const estimationCoatings = pgTable("estimation_coatings", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  designation: text("designation"), // C1-coat, B2-prime - tracks parent material and operation
+  parentMaterialId: text("parent_material_id"), // Reference to parent material  
+  operationType: text("operation_type"), // prime, paint, galvanize, etc. from operation
+  coatingSystemId: integer("coating_system_id").references(() => coatingSystems.id),
+  coatingType: text("coating_type").notNull(), // primer, paint, galvanizing, etc.
+  description: text("description").notNull(),
+  surfaceArea: decimal("surface_area", { precision: 10, scale: 3 }).notNull(), // m²
+  coatsRequired: integer("coats_required").default(1),
+  coverageRate: decimal("coverage_rate", { precision: 10, scale: 3 }), // m²/L
+  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(), // liters or kg
+  unit: text("unit").notNull().default("L"), // L, kg, m²
+  unitCost: decimal("unit_cost", { precision: 10, scale: 4 }).notNull(),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
+  preparationMethod: text("preparation_method"), // blast, grind, degrease
+  applicationMethod: text("application_method"), // spray, brush, dip
   supplier: text("supplier"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -2497,6 +2530,11 @@ export const insertEstimationConsumableSchema = createInsertSchema(estimationCon
   createdAt: true,
 });
 
+export const insertEstimationCoatingsSchema = createInsertSchema(estimationCoatings).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertEstimationTemplateSchema = createInsertSchema(estimationTemplates).omit({
   id: true,
   createdAt: true,
@@ -2529,6 +2567,9 @@ export type InsertEstimationEquipment = z.infer<typeof insertEstimationEquipment
 
 export type EstimationConsumable = typeof estimationConsumables.$inferSelect;
 export type InsertEstimationConsumable = z.infer<typeof insertEstimationConsumableSchema>;
+
+export type EstimationCoatings = typeof estimationCoatings.$inferSelect;
+export type InsertEstimationCoatings = z.infer<typeof insertEstimationCoatingsSchema>;
 
 export type EstimationTemplate = typeof estimationTemplates.$inferSelect;
 export type InsertEstimationTemplate = z.infer<typeof insertEstimationTemplateSchema>;
