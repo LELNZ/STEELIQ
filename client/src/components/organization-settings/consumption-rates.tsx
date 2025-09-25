@@ -328,8 +328,8 @@ export default function ConsumptionRates() {
                     <div>
                       <Label htmlFor="operationType">Operation Type *</Label>
                       <Select
-                        value={formData.operationType || ""}
-                        onValueChange={(value) => setFormData({...formData, operationType: value})}
+                        value={formData.operation_type || ""}
+                        onValueChange={(value) => setFormData({...formData, operation_type: value})}
                       >
                         <SelectTrigger id="operationType" data-testid="select-operation-type">
                           <SelectValue placeholder="Select type" />
@@ -348,8 +348,8 @@ export default function ConsumptionRates() {
                       <Label htmlFor="operationMethod">Method (Optional)</Label>
                       <Input
                         id="operationMethod"
-                        value={formData.operationMethod || ""}
-                        onChange={(e) => setFormData({...formData, operationMethod: e.target.value})}
+                        value={formData.operation_method || ""}
+                        onChange={(e) => setFormData({...formData, operation_method: e.target.value})}
                         placeholder="e.g., Bandsaw, Gas Cut"
                         data-testid="input-operation-method"
                       />
@@ -361,8 +361,8 @@ export default function ConsumptionRates() {
                       <Label htmlFor="primaryConsumable">Primary Consumable *</Label>
                       <Input
                         id="primaryConsumable"
-                        value={formData.primaryConsumable || ""}
-                        onChange={(e) => setFormData({...formData, primaryConsumable: e.target.value})}
+                        value={formData.primary_consumable || ""}
+                        onChange={(e) => setFormData({...formData, primary_consumable: e.target.value})}
                         placeholder="e.g., Cutting disc"
                         data-testid="input-primary-consumable"
                       />
@@ -384,8 +384,8 @@ export default function ConsumptionRates() {
                     <div>
                       <Label htmlFor="primaryUnit">Unit *</Label>
                       <Select
-                        value={formData.primaryConsumableUnit || "per cut"}
-                        onValueChange={(value) => setFormData({...formData, primaryConsumableUnit: value})}
+                        value={formData.primary_consumable_unit || "per cut"}
+                        onValueChange={(value) => setFormData({...formData, primary_consumable_unit: value})}
                       >
                         <SelectTrigger id="primaryUnit" data-testid="select-primary-unit">
                           <SelectValue />
@@ -404,8 +404,8 @@ export default function ConsumptionRates() {
                       <Label htmlFor="secondaryConsumable">Secondary Consumable</Label>
                       <Input
                         id="secondaryConsumable"
-                        value={formData.secondaryConsumable || ""}
-                        onChange={(e) => setFormData({...formData, secondaryConsumable: e.target.value})}
+                        value={formData.secondary_consumable || ""}
+                        onChange={(e) => setFormData({...formData, secondary_consumable: e.target.value})}
                         placeholder="e.g., Coolant"
                         data-testid="input-secondary-consumable"
                       />
@@ -417,8 +417,8 @@ export default function ConsumptionRates() {
                         id="secondaryRate"
                         type="number"
                         step="0.01"
-                        value={formData.secondaryConsumableRate || ""}
-                        onChange={(e) => setFormData({...formData, secondaryConsumableRate: parseFloat(e.target.value)})}
+                        value={formData.secondary_consumable_rate || ""}
+                        onChange={(e) => setFormData({...formData, secondary_consumable_rate: parseFloat(e.target.value)})}
                         data-testid="input-secondary-rate"
                       />
                     </div>
@@ -426,8 +426,8 @@ export default function ConsumptionRates() {
                     <div>
                       <Label htmlFor="secondaryUnit">Unit</Label>
                       <Select
-                        value={formData.secondaryConsumableUnit || ""}
-                        onValueChange={(value) => setFormData({...formData, secondaryConsumableUnit: value})}
+                        value={formData.secondary_consumable_unit || ""}
+                        onValueChange={(value) => setFormData({...formData, secondary_consumable_unit: value})}
                       >
                         <SelectTrigger id="secondaryUnit" data-testid="select-secondary-unit">
                           <SelectValue placeholder="Select unit" />
@@ -457,8 +457,8 @@ export default function ConsumptionRates() {
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="isActive"
-                        checked={formData.isActive || false}
-                        onCheckedChange={(checked) => setFormData({...formData, isActive: checked})}
+                        checked={formData.is_active !== undefined ? formData.is_active : true}
+                        onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
                         data-testid="switch-is-active"
                       />
                       <Label htmlFor="isActive">Active</Label>
@@ -467,8 +467,8 @@ export default function ConsumptionRates() {
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="isDefault"
-                        checked={formData.isCompanyDefault || false}
-                        onCheckedChange={(checked) => setFormData({...formData, isCompanyDefault: checked})}
+                        checked={formData.is_company_default || false}
+                        onCheckedChange={(checked) => setFormData({...formData, is_company_default: checked})}
                         data-testid="switch-is-default"
                       />
                       <Label htmlFor="isDefault">Company Default</Label>
