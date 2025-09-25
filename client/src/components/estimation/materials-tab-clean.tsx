@@ -113,6 +113,8 @@ interface MaterialsTabProps {
   onUpdate: (materials: MaterialCost[]) => void;
   onLaborUpdate?: (laborItems: any[]) => void;
   onConsumablesUpdate?: (consumableItems: any[]) => void;
+  onLaborDelete?: (operationId: string) => void;
+  onConsumablesDelete?: (operationId: string) => void;
   projectId?: number;
 }
 
@@ -427,7 +429,7 @@ const getCategoryFromType = (type: string): string => {
   return typeMap[type.toLowerCase()] || 'general';
 };
 
-export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborUpdate, onConsumablesUpdate, projectId }: MaterialsTabProps) {
+export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborUpdate, onConsumablesUpdate, onLaborDelete, onConsumablesDelete, projectId }: MaterialsTabProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MaterialCost | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -763,6 +765,14 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
 
   // Remove child item
   const removeChildItem = (materialId: string, childId: string) => {
+    // Cascade delete to labor and consumables tabs
+    if (onLaborDelete) {
+      onLaborDelete(childId);
+    }
+    if (onConsumablesDelete) {
+      onConsumablesDelete(childId);
+    }
+    
     const updatedMaterials = materials.map(material => {
       if (material.id === materialId && material.childItems) {
         const updatedChildItems = material.childItems.filter(child => child.id !== childId);
@@ -779,6 +789,12 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
       return material;
     });
     onUpdate(updatedMaterials);
+    
+    // Show success message
+    toast({
+      title: "Operation Removed",
+      description: "Operation and associated labor/consumables have been removed"
+    });
   };
 
   // Handle material selection from search dropdown

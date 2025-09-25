@@ -1468,6 +1468,26 @@ function EstimationWorkspace({
                 return { ...prev, consumables: updatedConsumables };
               });
             }}
+            onLaborDelete={(operationId) => {
+              // Remove labor items associated with the deleted operation
+              setEstimationData(prev => {
+                if (!prev) return prev;
+                const filteredLabor = (prev.labor || []).filter(
+                  (item: any) => item.operationId !== operationId
+                );
+                return { ...prev, labor: filteredLabor };
+              });
+            }}
+            onConsumablesDelete={(operationId) => {
+              // Remove consumable items associated with the deleted operation
+              setEstimationData(prev => {
+                if (!prev) return prev;
+                const filteredConsumables = (prev.consumables || []).filter(
+                  (item: any) => item.operationId !== operationId
+                );
+                return { ...prev, consumables: filteredConsumables };
+              });
+            }}
             availableMaterials={materials}
           />
         </TabsContent>
