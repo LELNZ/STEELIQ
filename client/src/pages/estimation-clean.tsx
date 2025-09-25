@@ -1459,6 +1459,15 @@ function EstimationWorkspace({
                 return { ...prev, labor: updatedLabor };
               });
             }}
+            onConsumablesUpdate={(consumableItems) => {
+              // Append new consumable items to existing ones instead of replacing
+              setEstimationData(prev => {
+                if (!prev) return prev;
+                const currentConsumables = prev.consumables || [];
+                const updatedConsumables = [...currentConsumables, ...consumableItems];
+                return { ...prev, consumables: updatedConsumables };
+              });
+            }}
             availableMaterials={materials}
           />
         </TabsContent>

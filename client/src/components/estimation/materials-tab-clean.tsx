@@ -112,6 +112,7 @@ interface MaterialsTabProps {
   availableMaterials: any[];
   onUpdate: (materials: MaterialCost[]) => void;
   onLaborUpdate?: (laborItems: any[]) => void;
+  onConsumablesUpdate?: (consumableItems: any[]) => void;
   projectId?: number;
 }
 
@@ -408,7 +409,25 @@ function ImportMTODialog({ projectId, onImport }: ImportMTODialogProps) {
   );
 }
 
-export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborUpdate, projectId }: MaterialsTabProps) {
+// Helper function to map operation types to consumable categories
+const getCategoryFromType = (type: string): string => {
+  const typeMap: Record<string, string> = {
+    'drill_bits': 'cutting_tools',
+    'drill bits': 'cutting_tools',
+    'coolant': 'chemicals',
+    'disc': 'cutting_tools',
+    'wire': 'welding',
+    'gas': 'welding',
+    'contact_tips': 'welding',
+    'contact tips': 'welding',
+    'grit': 'abrasives',
+    'paint': 'chemicals',
+    'thinner': 'chemicals'
+  };
+  return typeMap[type.toLowerCase()] || 'general';
+};
+
+export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborUpdate, onConsumablesUpdate, projectId }: MaterialsTabProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MaterialCost | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -636,9 +655,29 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
     }
 
     // Handle consumables routing
-    if (operation.consumablesData && operation.consumablesData.length > 0) {
-      // This would be sent to consumables tab
-      console.log('Routing consumables:', operation.consumablesData);
+    if (operation.includeInConsumables && operation.consumablesData && operation.consumablesData.length > 0 && onConsumablesUpdate) {
+      // Get parent material for designation
+      const parentMaterial = materials.find(m => m.id === materialId);
+      
+      // Map consumables data to the format expected by consumables tab
+      const consumableItems = operation.consumablesData.map((item: any, index: number) => ({
+        id: `cons-${Date.now()}-${index}`,
+        designation: parentMaterial?.designation || '',
+        operationDesignation: `${parentMaterial?.designation || 'OP'}-${operation.type}-${index + 1}`,
+        category: getCategoryFromType(item.type),
+        itemType: item.type || 'consumable',
+        specification: item.description || '',
+        quantity: item.quantity || 1,
+        unit: item.unit || 'each',
+        unitCost: item.unitCost || 0,
+        totalCost: (item.quantity || 1) * (item.unitCost || 0),
+        notes: `Auto-generated from ${operation.description}`,
+        parentMaterialId: materialId,
+        operationId: newChildItem.id
+      }));
+      
+      onConsumablesUpdate(consumableItems);
+      console.log('Routed consumables to consumables tab:', consumableItems);
     }
 
     toast({
