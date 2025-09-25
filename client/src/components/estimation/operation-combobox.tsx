@@ -196,7 +196,7 @@ export function OperationCombobox({
             value={search}
             onValueChange={setSearch}
           />
-          <CommandList>
+          <CommandList className="max-h-[300px] overflow-y-auto">
             {isLoading ? (
               <div className="p-4 text-center text-sm text-muted-foreground">
                 Loading operations...
