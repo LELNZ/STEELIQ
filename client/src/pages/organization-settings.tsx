@@ -40,7 +40,7 @@ export default function OrganizationSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-11 gap-2">
+        <TabsList className="flex flex-wrap w-full gap-2">
           <TabsTrigger value="branding" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Branding</span>
