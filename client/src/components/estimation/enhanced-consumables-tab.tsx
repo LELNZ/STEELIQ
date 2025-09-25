@@ -11,6 +11,8 @@ import { Plus, Trash2, Zap, Wrench, Droplets, Palette, Bolt } from "lucide-react
 
 interface ConsumableItem {
   id: string;
+  designation?: string; // Material designation (e.g., C1, B2, PL1)
+  operationDesignation?: string; // Operation designation (e.g., C1-cut-1, B2-drill-2)
   category: string;
   itemType: string;
   specification: string;
@@ -318,6 +320,7 @@ export default function EnhancedConsumablesTab({ consumables, setConsumables }: 
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Designation</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Specification</TableHead>
@@ -335,6 +338,12 @@ export default function EnhancedConsumablesTab({ consumables, setConsumables }: 
                   
                   return (
                     <TableRow key={item.id}>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">{item.designation || '-'}</span>
+                          <span className="text-xs text-muted-foreground">{item.operationDesignation || '-'}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Icon className={`h-4 w-4 ${categoryData?.color || 'text-gray-500'}`} />

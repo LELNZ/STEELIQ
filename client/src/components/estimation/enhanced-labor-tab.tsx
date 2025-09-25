@@ -12,6 +12,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 interface LaborItem {
   id: string;
+  designation?: string; // Material designation (e.g., C1, B2, PL1)
+  operationDesignation?: string; // Operation designation (e.g., C1-cut-1, B2-drill-2)
   category: 'workshop' | 'onsite' | 'subcontractor';
   subcategory: string;
   description: string;
@@ -488,6 +490,7 @@ export function EnhancedLaborTab({ labor, setLabor }: EnhancedLaborTabProps) {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Designation</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Subcategory</TableHead>
                   <TableHead>Description</TableHead>
@@ -503,6 +506,12 @@ export function EnhancedLaborTab({ labor, setLabor }: EnhancedLaborTabProps) {
               <TableBody>
                 {labor.map((item) => (
                   <TableRow key={item.id}>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-sm">{item.designation || '-'}</span>
+                        <span className="text-xs text-muted-foreground">{item.operationDesignation || '-'}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{item.category}</Badge>
                     </TableCell>

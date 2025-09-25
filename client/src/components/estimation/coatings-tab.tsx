@@ -16,6 +16,8 @@ import { useQuery } from "@tanstack/react-query";
 
 interface CoatingCost {
   id: string;
+  designation?: string; // Material designation (e.g., C1, B2, PL1)
+  operationDesignation?: string; // Operation designation (e.g., C1-paint-1, B2-blast-2)
   coatingName: string;
   coatingType: "paint" | "galvanizing" | "powder_coating";
   category: "primer" | "topcoat" | "finish" | "protective";
@@ -638,6 +640,14 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
+                      <div className="flex flex-col mr-3">
+                        <span className="text-xs text-muted-foreground">Designation</span>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">{coating.designation || '-'}</span>
+                          <span className="text-xs text-muted-foreground">{coating.operationDesignation || '-'}</span>
+                        </div>
+                      </div>
+                      <Separator orientation="vertical" className="h-8 mx-2" />
                       <h4 className="font-medium">{coating.coatingName}</h4>
                       <Badge className={getCoatingTypeColor(coating.coatingType || 'paint')}>
                         {(coating.coatingType || 'paint').replace('_', ' ')}
