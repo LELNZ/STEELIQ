@@ -133,6 +133,44 @@ export async function unifiedOperationLibrary(req: any, res: any) {
             });
             break;
             
+          case 'grinding':
+            // Query grinding_standards table directly with SQL
+            const grindingResults = await db.execute(sql`
+              SELECT * FROM grinding_standards 
+              WHERE is_active = true
+              ${searchTerm ? sql`AND (LOWER(name) LIKE ${searchTerm} OR LOWER(description) LIKE ${searchTerm})` : sql``}
+              ORDER BY name
+              LIMIT ${limitNum} OFFSET ${offsetNum}
+            `);
+            
+            results = grindingResults.rows.map((item: any) => {
+              const isCompatible = !compatibility || compatibility === 'ALL' || showAllOptions;
+              
+              return {
+                id: `grinding_standards_${item.id}`,
+                source: { table: 'grinding_standards', id: item.id },
+                category: 'fabrication',
+                type: 'grinding',
+                code: item.name,
+                name: item.name,
+                description: item.description || `${item.process_type} - ${item.surface_finish}`,
+                unit: 'm2',
+                defaults: {
+                  laborHours: parseFloat(item.time_per_m2 || 10) / 60,
+                  method: item.equipment,
+                  discConsumption: parseFloat(item.disc_consumption_rate || 0.1)
+                },
+                dimensions: {},
+                compatibility: {
+                  sections: ['ALL'],
+                  isCompatible,
+                  warning: !isCompatible ? 'Check grinding requirements for this section' : null
+                },
+                appliesTo: 'single'
+              };
+            });
+            break;
+            
           case 'welding':
           case 'weld':
             let weldingQuery = db.select().from(weldingStandards)

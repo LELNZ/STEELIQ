@@ -258,6 +258,17 @@ export default function AddOperationDialog({
     enabled: !!useLibrary
   });
 
+  // Fetch consumption rates from database
+  const { data: dbConsumptionRates = [] } = useQuery({
+    queryKey: ['/api/consumption-rates/by-operation', selectedCategory, selectedType],
+    queryFn: async () => {
+      const response = await fetch(`/api/consumption-rates/by-operation?category=${selectedCategory}&type=${selectedType}`);
+      if (!response.ok) throw new Error('Failed to fetch consumption rates');
+      return response.json();
+    },
+    enabled: !!selectedCategory && !!selectedType
+  });
+
   // Apply consumption rates when fetched
   useEffect(() => {
     if (!consumptionRates || consumptionRates.length === 0) return;
@@ -345,12 +356,19 @@ export default function AddOperationDialog({
       let quantity = 0;
       
       // Evaluate formula based on operation data
+      // First check if we have database rates, otherwise use defaults
+      const dbRate = dbConsumptionRates?.find(r => r.operation_type === operation.type);
+      
       switch (operation.type) {
         case "cutting":
-          quantity = (operation.quantity || 0) / 10; // 1 disc per 10 cuts
+          // Use database rate if available, otherwise default to 1 disc per 10 cuts
+          const cuttingRate = dbRate?.primary_consumable_rate || 0.1;
+          quantity = (operation.quantity || 0) * cuttingRate;
           break;
         case "grinding":
-          quantity = ((operation.quantity || 0) * (parentMaterial?.weightPerMeter || 0)) * 0.02;
+          // Use database rate if available, otherwise default formula
+          const grindingRate = dbRate?.primary_consumable_rate || 0.02;
+          quantity = ((operation.quantity || 0) * (parentMaterial?.weightPerMeter || 0)) * grindingRate;
           break;
         case "welding":
           if (consumable === "wire") {

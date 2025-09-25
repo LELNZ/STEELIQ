@@ -14119,6 +14119,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/consumption-rates/by-operation", async (req, res) => {
+    try {
+      const { category, type } = req.query;
+      
+      if (!type) {
+        return res.status(400).json({ error: "Operation type required" });
+      }
+
+      // Map operation types to database values
+      const operationType = String(type);
+      
+      const query = `
+        SELECT * FROM consumption_rate_settings
+        WHERE operation_type = $1 
+        AND is_active = true
+        ORDER BY is_company_default DESC
+      `;
+      
+      const result = await db.execute(sql.raw(query, [operationType]));
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Error fetching operation consumption rates:", error);
+      res.status(500).json({ error: "Failed to fetch consumption rates" });
+    }
+  });
+
   app.post("/api/consumption-rates", async (req, res) => {
     try {
       if (!req.session?.userId) {
