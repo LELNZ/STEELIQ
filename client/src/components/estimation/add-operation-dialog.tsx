@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import { 
   Package, 
   Zap, 
@@ -228,6 +229,23 @@ export default function AddOperationDialog({
     enabled: !!(selectedType === 'drilling')
   });
 
+  // Fetch consumption rates for the selected operation type
+  const { data: consumptionRates } = useQuery({
+    queryKey: ['/api/consumption-rates', selectedCategory, selectedType],
+    queryFn: async () => {
+      if (!selectedCategory || !selectedType) return null;
+      const params = new URLSearchParams({ 
+        category: selectedCategory,
+        type: selectedType 
+      });
+      const response = await fetch(`/api/consumption-rates?${params}`);
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!selectedCategory && !!selectedType
+  });
+
   // Fetch cutting standards
   const { data: cuttingStandards = [] } = useQuery({
     queryKey: ['/api/labor-standards/cutting'],
@@ -240,9 +258,33 @@ export default function AddOperationDialog({
     enabled: !!useLibrary
   });
 
+  // Apply consumption rates when fetched
+  useEffect(() => {
+    if (!consumptionRates || consumptionRates.length === 0) return;
+    
+    // Find the most relevant consumption rate
+    const rate = consumptionRates[0]; // For now, take the first one
+    
+    if (rate) {
+      setFormData(prev => ({
+        ...prev,
+        unitCost: rate.unitCost || prev.unitCost,
+        unit: rate.unit || prev.unit
+      }));
+      
+      // Calculate labor hours based on labor rate
+      if (rate.laborHours) {
+        setFormData(prev => ({
+          ...prev,
+          laborHours: rate.laborHours * (prev.quantity || 1)
+        }));
+      }
+    }
+  }, [consumptionRates]);
+
   // Auto-calculate consumables when operation details change
   useEffect(() => {
-    if (formData.type && CONSUMABLES_FORMULAS[formData.type]) {
+    if (formData.type) {
       const consumables = calculateConsumables(formData);
       setCalculatedConsumables(consumables);
       setFormData(prev => ({
@@ -250,7 +292,7 @@ export default function AddOperationDialog({
         consumablesData: consumables
       }));
     }
-  }, [formData.type, formData.quantity, formData.length, formData.area, formData.laborHours]);
+  }, [formData.type, formData.quantity, formData.length, formData.area, formData.laborHours, consumptionRates]);
 
   // Validate operation sequence
   useEffect(() => {
@@ -261,6 +303,40 @@ export default function AddOperationDialog({
   // Calculate consumables based on operation type
   const calculateConsumables = (operation: Partial<OperationItem>) => {
     const consumables = [];
+    
+    // First try to use consumption rates from database
+    if (consumptionRates && consumptionRates.length > 0) {
+      consumptionRates.forEach(rate => {
+        if (rate.consumablesDetails) {
+          try {
+            const details = typeof rate.consumablesDetails === 'string' 
+              ? JSON.parse(rate.consumablesDetails) 
+              : rate.consumablesDetails;
+            
+            if (Array.isArray(details)) {
+              details.forEach(item => {
+                consumables.push({
+                  type: item.type || item.name || 'Consumable',
+                  quantity: (item.quantity || 1) * (operation.quantity || 1),
+                  unit: item.unit || 'each',
+                  description: item.description || '',
+                  unitCost: item.unitCost || 0,
+                  designation: `${parentMaterial?.designation || 'OP'}-${operation.type}-cons`
+                });
+              });
+            }
+          } catch (e) {
+            console.error('Failed to parse consumables details:', e);
+          }
+        }
+      });
+      
+      if (consumables.length > 0) {
+        return consumables;
+      }
+    }
+    
+    // Fallback to formula-based calculation if no rates from database
     const formulas = CONSUMABLES_FORMULAS[operation.type || ""];
     
     if (!formulas) return [];
@@ -1142,10 +1218,20 @@ export default function AddOperationDialog({
                     <DollarSign className="h-4 w-4" />
                     <AlertDescription>
                       <div className="space-y-1">
-                        <div>Material: ${(formData.quantity * formData.unitCost).toFixed(2)}</div>
-                        <div>Labor: ${(formData.laborHours * (formData.laborLocation === "site" ? 120 : 85)).toFixed(2)}</div>
-                        <div className="font-medium">
-                          Total: ${((formData.quantity * formData.unitCost) + (formData.laborHours * (formData.laborLocation === "site" ? 120 : 85))).toFixed(2)}
+                        {consumptionRates && consumptionRates.length > 0 && (
+                          <div className="text-xs text-green-600 mb-2">
+                            <Info className="h-3 w-3 inline mr-1" />
+                            Using consumption rates from database
+                          </div>
+                        )}
+                        <div>Material/Operation: {formData.quantity} × ${formData.unitCost.toFixed(2)} = ${(formData.quantity * formData.unitCost).toFixed(2)}</div>
+                        <div>Labor: {formData.laborHours.toFixed(2)} hrs × ${formData.laborLocation === "site" ? 120 : 85}/hr = ${(formData.laborHours * (formData.laborLocation === "site" ? 120 : 85)).toFixed(2)}</div>
+                        {calculatedConsumables.length > 0 && (
+                          <div>Consumables: {calculatedConsumables.length} items (calculated)</div>
+                        )}
+                        <Separator className="my-1" />
+                        <div className="font-medium text-lg">
+                          Total Cost: ${((formData.quantity * formData.unitCost) + (formData.laborHours * (formData.laborLocation === "site" ? 120 : 85))).toFixed(2)}
                         </div>
                       </div>
                     </AlertDescription>
