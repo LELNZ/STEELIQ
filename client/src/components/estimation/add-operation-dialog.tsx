@@ -173,7 +173,7 @@ export default function AddOperationDialog({
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
-  const [useLibrary, setUseLibrary] = useState(false);
+  const [useLibrary, setUseLibrary] = useState(true); // Default to true to show database operations
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [selectedLibraryItem, setSelectedLibraryItem] = useState<any>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -737,7 +737,7 @@ export default function AddOperationDialog({
 
                   {/* Use Library Toggle */}
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="use-library">Use Component Library</Label>
+                    <Label htmlFor="use-library">Use Operations from Database</Label>
                     <Switch
                       id="use-library"
                       checked={useLibrary}
