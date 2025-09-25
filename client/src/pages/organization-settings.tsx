@@ -12,7 +12,8 @@ import {
   Globe,
   PenTool,
   Brush,
-  Database
+  Database,
+  Settings2
 } from "lucide-react";
 import CompanyBranding from "@/components/organization-settings/company-branding";
 import OfficeLocations from "@/components/organization-settings/office-locations";
@@ -24,6 +25,7 @@ import ClientPortal from "@/components/organization-settings/client-portal";
 import ESignatures from "@/components/organization-settings/e-signatures";
 import BrandingSettings from "@/components/organization-settings/branding-settings";
 import DataManagement from "@/components/organization-settings/data-management";
+import ConsumptionRates from "@/components/organization-settings/consumption-rates";
 
 export default function OrganizationSettings() {
   const [activeTab, setActiveTab] = useState("branding");
@@ -38,7 +40,7 @@ export default function OrganizationSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-10 gap-2">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-11 gap-2">
           <TabsTrigger value="branding" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Branding</span>
@@ -78,6 +80,10 @@ export default function OrganizationSettings() {
           <TabsTrigger value="data" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Data</span>
+          </TabsTrigger>
+          <TabsTrigger value="consumption" className="flex items-center gap-2">
+            <Settings2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Rates</span>
           </TabsTrigger>
         </TabsList>
 
@@ -120,6 +126,10 @@ export default function OrganizationSettings() {
 
           <TabsContent value="data" className="mt-0">
             <DataManagement />
+          </TabsContent>
+
+          <TabsContent value="consumption" className="mt-0">
+            <ConsumptionRates />
           </TabsContent>
         </Card>
       </Tabs>

@@ -271,15 +271,10 @@ export function OperationCombobox({
             onWheel={(e) => {
               // Stop propagation to prevent parent scrolling
               e.stopPropagation();
-              
-              // Only prevent default if we're at the boundaries
-              const element = e.currentTarget;
-              const isAtTop = element.scrollTop === 0;
-              const isAtBottom = element.scrollHeight - element.scrollTop === element.clientHeight;
-              
-              if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
-                e.preventDefault();
-              }
+            }}
+            onWheelCapture={(e) => {
+              // Also stop during capture phase to ensure it doesn't bubble
+              e.stopPropagation();
             }}
           >
             {isLoading ? (

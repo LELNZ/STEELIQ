@@ -14163,6 +14163,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/consumption-rates/:id", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const { consumptionRatesService } = await import('./services/consumption-rates-service');
+      const rate = await consumptionRatesService.updateConsumptionRate(
+        parseInt(req.params.id),
+        req.body,
+        req.session.userId
+      );
+      res.json(rate);
+    } catch (error) {
+      console.error("Error updating consumption rate:", error);
+      res.status(500).json({ error: "Failed to update consumption rate" });
+    }
+  });
+
   app.delete("/api/consumption-rates/:id", async (req, res) => {
     try {
       if (!req.session?.userId) {

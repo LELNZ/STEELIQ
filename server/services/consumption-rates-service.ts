@@ -233,6 +233,12 @@ export class ConsumptionRatesService {
     return result.rows as ConsumptionRateSetting[];
   }
 
+  // Update consumption rate setting
+  async updateConsumptionRate(id: number, rate: Partial<ConsumptionRateSetting>, userId: number): Promise<ConsumptionRateSetting> {
+    // Add the id to the rate object and call saveConsumptionRate which handles updates
+    return this.saveConsumptionRate({ ...rate, id }, userId);
+  }
+
   // Delete consumption rate setting
   async deleteConsumptionRate(id: number): Promise<void> {
     await db.execute(sql`DELETE FROM consumption_rate_settings WHERE id = ${id}`);
