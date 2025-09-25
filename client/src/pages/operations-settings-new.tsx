@@ -7,12 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Pencil, Trash2, Plus, Info, ChevronDown } from 'lucide-react';
+import { Pencil, Trash2, Plus, Info, ChevronDown, Settings2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { StandardTooltip } from '@/components/ui/tooltip-standard';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
+import ConsumptionRates from '@/components/organization-settings/consumption-rates';
 import { 
   Dialog, 
   DialogContent, 
@@ -81,6 +82,11 @@ const tabs = [
     value: 'labor-rates',
     label: 'Labor Rates',
     tooltip: 'Manage role-based labor rates with skill levels, allowances, and overtime multipliers for accurate cost estimation'
+  },
+  {
+    value: 'consumption-rates',
+    label: 'Consumption Rates',
+    tooltip: 'Configure consumption rates for materials and consumables used in operations'
   }
 ];
 
@@ -100,7 +106,7 @@ export default function OperationsSettings() {
 
         <Tabs defaultValue="fabrication" className="w-full">
           {/* Tabs on single line with proper spacing */}
-          <TabsList className="grid grid-cols-8 h-10 p-1 bg-muted w-full gap-0">
+          <TabsList className="grid grid-cols-9 h-10 p-1 bg-muted w-full gap-0">
             {tabs.map((tab) => (
               <TabsTrigger 
                 key={tab.value} 
@@ -142,6 +148,10 @@ export default function OperationsSettings() {
           
           <TabsContent value="labor-rates" className="mt-4">
             <LaborRatesTab />
+          </TabsContent>
+          
+          <TabsContent value="consumption-rates" className="mt-4">
+            <ConsumptionRates />
           </TabsContent>
         </Tabs>
       </div>
