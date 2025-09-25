@@ -14130,15 +14130,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Map operation types to database values
       const operationType = String(type);
       
-      const query = `
-        SELECT * FROM consumption_rate_settings
-        WHERE operation_type = $1 
-        AND is_active = true
-        ORDER BY is_company_default DESC
-      `;
-      
-      const result = await db.execute(sql.raw(query, [operationType]));
-      res.json(result.rows);
+      const result = await db
+        .select()
+        .from(consumptionRateSettings)
+        .where(and(
+          eq(consumptionRateSettings.operationType, operationType),
+          eq(consumptionRateSettings.isActive, true)
+        ))
+        .orderBy(desc(consumptionRateSettings.isCompanyDefault));
+      res.json(result);
     } catch (error) {
       console.error("Error fetching operation consumption rates:", error);
       res.status(500).json({ error: "Failed to fetch consumption rates" });

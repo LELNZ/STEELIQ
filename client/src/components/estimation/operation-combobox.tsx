@@ -1,20 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Check, ChevronsUpDown, AlertTriangle, Plus } from 'lucide-react';
+import { Check, AlertTriangle, Plus, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 
@@ -56,7 +44,7 @@ export function OperationCombobox({
   parentSection,
   value,
   onSelect,
-  placeholder = 'Select operation...',
+  placeholder = 'Search operations...',
   disabled = false,
   showAllOptions = false,
   onCreateNew,
@@ -64,7 +52,11 @@ export function OperationCombobox({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -107,30 +99,108 @@ export function OperationCombobox({
 
   const selectedItem = operations?.find((item) => item.id === value);
 
+  // Handle clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Reset highlighted index when operations change
+  useEffect(() => {
+    setHighlightedIndex(0);
+  }, [operations]);
+
   const handleSelect = (itemId: string) => {
     const item = operations?.find((op) => op.id === itemId);
     onSelect(item || null);
     setOpen(false);
     setSearch('');
+    setHighlightedIndex(0);
+    
+    // Update input to show selected item name
+    if (inputRef.current && item) {
+      inputRef.current.value = item.name;
+    }
   };
 
-  const renderItem = (item: OperationItem) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      setOpen(true);
+      return;
+    }
+
+    if (!open || !operations || operations.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex((prev) => 
+          prev < operations.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex((prev) => prev > 0 ? prev - 1 : prev);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (operations[highlightedIndex]) {
+          handleSelect(operations[highlightedIndex].id);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setOpen(false);
+        inputRef.current?.blur();
+        break;
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setOpen(true);
+    
+    // Clear selection if user starts typing
+    if (selectedItem && e.target.value !== selectedItem.name) {
+      onSelect(null);
+    }
+  };
+
+  const handleFocus = () => {
+    setOpen(true);
+    // Select all text on focus for easy replacement
+    inputRef.current?.select();
+  };
+
+  const renderItem = (item: OperationItem, index: number) => {
     const isAssembly = item.appliesTo === 'composite';
     const hasWarning = !item.compatibility.isCompatible;
+    const isSelected = value === item.id;
+    const isHighlighted = highlightedIndex === index;
 
     return (
-      <CommandItem
+      <div
         key={item.id}
-        value={item.id}
-        onSelect={() => handleSelect(item.id)}
-        className="flex flex-col gap-1 py-2 cursor-pointer"
+        onClick={() => handleSelect(item.id)}
+        onMouseEnter={() => setHighlightedIndex(index)}
+        className={cn(
+          "flex flex-col gap-1 px-3 py-2 cursor-pointer transition-colors",
+          isHighlighted && "bg-accent",
+          isSelected && "bg-accent/50"
+        )}
         data-testid={`operation-item-${item.id}`}
       >
         <div className="flex items-center gap-2">
           <Check
             className={cn(
               'h-4 w-4 shrink-0',
-              value === item.id ? 'opacity-100' : 'opacity-0'
+              isSelected ? 'opacity-100' : 'opacity-0'
             )}
           />
           <div className="flex-1">
@@ -162,74 +232,85 @@ export function OperationCombobox({
             )}
           </div>
         </div>
-      </CommandItem>
+      </div>
     );
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
+    <div className="relative" ref={containerRef}>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          ref={inputRef}
+          type="text"
           role="combobox"
           aria-expanded={open}
-          className="justify-between"
+          aria-controls="operation-listbox"
+          aria-activedescendant={operations?.[highlightedIndex]?.id}
+          className="pl-9 pr-3"
+          placeholder={placeholder}
           disabled={disabled}
+          value={search || (selectedItem?.name && !open ? selectedItem.name : '')}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          data-testid="input-operation-search"
+        />
+      </div>
+
+      {open && !disabled && (
+        <div 
+          id="operation-listbox"
+          role="listbox"
+          className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg"
+          style={{ maxHeight: '300px' }}
         >
-          {selectedItem ? (
-            <span className="flex items-center gap-2">
-              {selectedItem.name}
-              {!selectedItem.compatibility.isCompatible && (
-                <AlertTriangle className="h-3 w-3 text-yellow-500" />
-              )}
-            </span>
-          ) : (
-            placeholder
-          )}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
-        <Command shouldFilter={false}>
-          <CommandInput
-            placeholder="Search operations..."
-            value={search}
-            onValueChange={setSearch}
-          />
-          <CommandList className="max-h-[300px] overflow-y-auto">
+          <div 
+            ref={listRef}
+            className="max-h-[300px] overflow-y-auto overscroll-contain"
+            onWheel={(e) => {
+              // Stop propagation to prevent parent scrolling
+              e.stopPropagation();
+              
+              // Only prevent default if we're at the boundaries
+              const element = e.currentTarget;
+              const isAtTop = element.scrollTop === 0;
+              const isAtBottom = element.scrollHeight - element.scrollTop === element.clientHeight;
+              
+              if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+                e.preventDefault();
+              }
+            }}
+          >
             {isLoading ? (
               <div className="p-4 text-center text-sm text-muted-foreground">
                 Loading operations...
               </div>
             ) : operations?.length === 0 ? (
-              <CommandEmpty>
-                <div className="flex flex-col items-center gap-2 p-4">
-                  <div className="text-sm text-muted-foreground">
-                    No operations found.
-                  </div>
-                  {onCreateNew && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setOpen(false);
-                        onCreateNew();
-                      }}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Create New
-                    </Button>
-                  )}
+              <div className="flex flex-col items-center gap-2 p-4">
+                <div className="text-sm text-muted-foreground">
+                  No operations found.
                 </div>
-              </CommandEmpty>
+                {onCreateNew && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setOpen(false);
+                      onCreateNew();
+                    }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Create New
+                  </Button>
+                )}
+              </div>
             ) : (
-              <CommandGroup>
-                {operations?.map(renderItem)}
-              </CommandGroup>
+              operations?.map((item, index) => renderItem(item, index))
             )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
