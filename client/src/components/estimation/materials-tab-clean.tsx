@@ -115,6 +115,8 @@ interface MaterialsTabProps {
   onConsumablesUpdate?: (consumableItems: any[]) => void;
   onLaborDelete?: (operationId: string) => void;
   onConsumablesDelete?: (operationId: string) => void;
+  onQuantityChange?: (operationId: string, newQuantity: number, oldQuantity: number) => void;
+  onMaterialAreaWeightChange?: (totalSurfaceArea: number, totalWeight: number) => void;
   projectId?: number;
 }
 
@@ -429,7 +431,7 @@ const getCategoryFromType = (type: string): string => {
   return typeMap[type.toLowerCase()] || 'general';
 };
 
-export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborUpdate, onConsumablesUpdate, onLaborDelete, onConsumablesDelete, projectId }: MaterialsTabProps) {
+export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborUpdate, onConsumablesUpdate, onLaborDelete, onConsumablesDelete, onQuantityChange, onMaterialAreaWeightChange, projectId }: MaterialsTabProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MaterialCost | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -543,8 +545,14 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
 
   // Update material field inline
   const updateMaterialField = (id: string, field: keyof MaterialCost, value: any) => {
+    // Track old quantity for parent material quantity changes
+    let oldQuantity = 0;
+    let materialId = '';
+    
     const updatedMaterials = materials.map(material => {
       if (material.id === id) {
+        oldQuantity = material.quantity;
+        materialId = material.id;
         const updated = { ...material, [field]: value };
         // Recalculate totals if quantity, unitCost, or wasteFactor changed
         if (['quantity', 'unitCost', 'wasteFactor', 'handlingCost'].includes(field)) {
@@ -565,6 +573,27 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
       return material;
     });
     onUpdate(updatedMaterials);
+    
+    // Propagate parent material quantity changes to all associated child operations
+    if (field === 'quantity' && onQuantityChange && oldQuantity !== value) {
+      const material = materials.find(m => m.id === materialId);
+      if (material?.childItems) {
+        // Trigger recalculation for each child item
+        material.childItems.forEach(child => {
+          onQuantityChange(child.id, child.quantity, child.quantity);
+        });
+      }
+    }
+    
+    // Trigger coatings recalculation when surface area or weight changes
+    if (field === 'quantity' && onMaterialAreaWeightChange) {
+      const material = updatedMaterials.find(m => m.id === materialId);
+      if (material) {
+        const totalArea = updatedMaterials.reduce((sum, m) => sum + (m.totalSurfaceArea || 0), 0);
+        const totalWeight = updatedMaterials.reduce((sum, m) => sum + (m.totalWeight || 0), 0);
+        onMaterialAreaWeightChange(totalArea, totalWeight);
+      }
+    }
   };
 
   // Toggle expanded state for materials with child items
@@ -737,11 +766,17 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
 
   // Update child item
   const updateChildItem = (materialId: string, childId: string, updates: Partial<MaterialChildItem>) => {
+    // Track old quantity for propagation
+    let oldQuantity = 0;
+    let newQuantity = 0;
+    
     const updatedMaterials = materials.map(material => {
       if (material.id === materialId && material.childItems) {
         const updatedChildItems = material.childItems.map(child => {
           if (child.id === childId) {
+            oldQuantity = child.quantity;
             const updatedChild = { ...child, ...updates };
+            newQuantity = updatedChild.quantity;
             updatedChild.totalCost = updatedChild.quantity * updatedChild.unitCost;
             return updatedChild;
           }
@@ -761,6 +796,11 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
       return material;
     });
     onUpdate(updatedMaterials);
+    
+    // Propagate quantity change to labor and consumables if quantity changed
+    if (updates.quantity !== undefined && onQuantityChange && oldQuantity !== newQuantity) {
+      onQuantityChange(childId, newQuantity, oldQuantity);
+    }
   };
 
   // Remove child item

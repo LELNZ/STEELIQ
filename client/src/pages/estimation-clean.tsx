@@ -1488,6 +1488,66 @@ function EstimationWorkspace({
                 return { ...prev, consumables: filteredConsumables };
               });
             }}
+            onQuantityChange={(operationId, newQuantity, oldQuantity) => {
+              // Recalculate labor and consumables when operation quantity changes
+              setEstimationData(prev => {
+                if (!prev) return prev;
+                
+                // Handle zero to non-zero transition carefully
+                const scaleFactor = oldQuantity > 0 ? newQuantity / oldQuantity : 1;
+                
+                // Update labor hours proportionally
+                const updatedLabor = (prev.labor || []).map((item: any) => {
+                  if (item.operationId === operationId) {
+                    return {
+                      ...item,
+                      hours: item.hours * scaleFactor,
+                      totalCost: (item.hours * scaleFactor) * item.rate
+                    };
+                  }
+                  return item;
+                });
+                
+                // Update consumables quantities proportionally
+                const updatedConsumables = (prev.consumables || []).map((item: any) => {
+                  if (item.operationId === operationId) {
+                    const newQty = item.quantity * scaleFactor;
+                    return {
+                      ...item,
+                      quantity: newQty,
+                      totalCost: newQty * item.unitCost
+                    };
+                  }
+                  return item;
+                });
+                
+                return { 
+                  ...prev, 
+                  labor: updatedLabor,
+                  consumables: updatedConsumables
+                };
+              });
+            }}
+            onMaterialAreaWeightChange={(totalSurfaceArea, totalWeight) => {
+              // Recalculate coatings based on new total surface area and weight
+              setEstimationData(prev => {
+                if (!prev) return prev;
+                
+                const updatedCoatings = (prev.coatings || []).map((coating: any) => {
+                  // Recalculate based on coating type
+                  if (coating.coatingType === 'galvanizing' && coating.weightKg) {
+                    // Weight-based calculation for galvanizing
+                    coating.totalCost = coating.unitCost * totalWeight;
+                  } else if (coating.surfaceArea) {
+                    // Area-based calculation for paint/powder
+                    coating.totalCost = coating.unitCost * totalSurfaceArea * (coating.coats || 1);
+                  }
+                  return coating;
+                });
+                
+                return { ...prev, coatings: updatedCoatings };
+              });
+            }}
             availableMaterials={materials}
           />
         </TabsContent>
