@@ -13864,6 +13864,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Operations API endpoints
   app.post("/api/operations", async (req, res) => {
     try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
       const { operationService } = await import('./services/operation-service');
       const {
         projectId,
@@ -13897,7 +13902,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         includeInLabor,
         includeInConsumables,
         includeInCoatings,
-        userId: req.session?.userId
+        userId: user.id
       });
 
       res.json(operation);
@@ -14147,14 +14152,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/consumption-rates", async (req, res) => {
     try {
-      if (!req.session?.userId) {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
         return res.status(401).json({ error: "Authentication required" });
       }
       
       const { consumptionRatesService } = await import('./services/consumption-rates-service');
       const rate = await consumptionRatesService.saveConsumptionRate(
         req.body,
-        req.session.userId
+        user.id
       );
       res.json(rate);
     } catch (error) {
@@ -14165,7 +14171,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/consumption-rates/:id", async (req, res) => {
     try {
-      if (!req.session?.userId) {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
         return res.status(401).json({ error: "Authentication required" });
       }
       
@@ -14173,7 +14180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rate = await consumptionRatesService.updateConsumptionRate(
         parseInt(req.params.id),
         req.body,
-        req.session.userId
+        user.id
       );
       res.json(rate);
     } catch (error) {
@@ -14184,7 +14191,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/consumption-rates/:id", async (req, res) => {
     try {
-      if (!req.session?.userId) {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
         return res.status(401).json({ error: "Authentication required" });
       }
       
@@ -14199,12 +14207,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/consumption-rates/initialize-defaults", async (req, res) => {
     try {
-      if (!req.session?.userId) {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
         return res.status(401).json({ error: "Authentication required" });
       }
       
       const { consumptionRatesService } = await import('./services/consumption-rates-service');
-      await consumptionRatesService.initializeDefaultRates(req.session.userId);
+      await consumptionRatesService.initializeDefaultRates(user.id);
       res.json({ success: true, message: "Default consumption rates initialized" });
     } catch (error) {
       console.error("Error initializing default rates:", error);
