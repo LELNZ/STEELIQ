@@ -123,7 +123,9 @@ export default function ConsumptionRates() {
   const { data: rates, isLoading } = useQuery({
     queryKey: ['/api/consumption-rates', { activeOnly: false }],
     queryFn: async () => {
-      const response = await fetch('/api/consumption-rates?activeOnly=false');
+      const response = await fetch('/api/consumption-rates?activeOnly=false', {
+        credentials: 'include'
+      });
       if (!response.ok) throw new Error('Failed to fetch rates');
       return response.json() as Promise<ConsumptionRate[]>;
     },
