@@ -4665,8 +4665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         secure: false, // Explicitly set to false for dev environment
         sameSite: 'lax',
         path: '/',
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        domain: undefined // Let Express determine the domain
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
 
       res.json({
