@@ -134,16 +134,10 @@ export default function ConsumptionRates() {
     mutationFn: async (data: Partial<ConsumptionRate>) => {
       if (editingRate) {
         // Update existing rate
-        return apiRequest(`/api/consumption-rates/${editingRate.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify(data),
-        });
+        return apiRequest(`/api/consumption-rates/${editingRate.id}`, 'PATCH', data);
       } else {
         // Create new rate
-        return apiRequest('/api/consumption-rates', {
-          method: 'POST',
-          body: JSON.stringify(data),
-        });
+        return apiRequest('/api/consumption-rates', 'POST', data);
       }
     },
     onSuccess: () => {
@@ -166,9 +160,7 @@ export default function ConsumptionRates() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/consumption-rates/${id}`, {
-        method: 'DELETE',
-      });
+      return apiRequest(`/api/consumption-rates/${id}`, 'DELETE');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/consumption-rates'] });
@@ -189,10 +181,7 @@ export default function ConsumptionRates() {
   // Toggle active status
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: number; is_active: boolean }) => {
-      return apiRequest(`/api/consumption-rates/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ is_active }),
-      });
+      return apiRequest(`/api/consumption-rates/${id}`, 'PATCH', { is_active });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/consumption-rates'] });
