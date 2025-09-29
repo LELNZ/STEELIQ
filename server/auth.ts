@@ -168,6 +168,20 @@ export class AuthService {
     };
   }
 
+  // Get authenticated user from request
+  static async getAuthenticatedUser(req: any) {
+    try {
+      const token = req.cookies?.auth_token || req.headers?.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return null;
+      }
+      return await this.validateSession(token);
+    } catch (error) {
+      console.error('Get authenticated user error:', error);
+      return null;
+    }
+  }
+
   // Validate session token
   static async validateSession(token: string) {
     try {
