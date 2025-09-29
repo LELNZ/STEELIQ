@@ -4688,7 +4688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await AuthService.logout(token);
       }
 
-      res.clearCookie('auth_token');
+      res.clearCookie('auth_token', { path: '/' });
       res.json({ success: true });
     } catch (error) {
       console.error("Logout error:", error);
@@ -4708,7 +4708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await AuthService.validateSession(token);
       
       if (!user) {
-        res.clearCookie('auth_token');
+        res.clearCookie('auth_token', { path: '/' });
         return res.status(401).json({ error: "Invalid or expired session" });
       }
 

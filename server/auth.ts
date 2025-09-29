@@ -168,10 +168,36 @@ export class AuthService {
     };
   }
 
+  // Extract token from request with fallback methods
+  static extractToken(req: any): string | null {
+    // Method 1: Check parsed cookies (if cookie-parser is working)
+    if (req.cookies?.auth_token) {
+      return req.cookies.auth_token;
+    }
+    
+    // Method 2: Check Authorization header
+    const authHeader = req.headers?.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      return authHeader.slice(7);
+    }
+    
+    // Method 3: Manually parse cookie header as fallback
+    const rawCookie = req.headers?.cookie;
+    if (rawCookie) {
+      const cookies = rawCookie.split(';').map(s => s.trim());
+      const authCookie = cookies.find(s => s.startsWith('auth_token='));
+      if (authCookie) {
+        return decodeURIComponent(authCookie.split('=')[1]);
+      }
+    }
+    
+    return null;
+  }
+
   // Get authenticated user from request
   static async getAuthenticatedUser(req: any) {
     try {
-      const token = req.cookies?.auth_token || req.headers?.authorization?.replace('Bearer ', '');
+      const token = this.extractToken(req);
       if (!token) {
         return null;
       }
