@@ -97,9 +97,17 @@ export default function CompanyBranding() {
         const formData = new FormData();
         formData.append("logo", data.logoFile);
         
+        // Add Authorization header if token exists
+        const headers: HeadersInit = {};
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        
         // Use native fetch for file upload since apiRequest expects JSON
         const uploadRes = await fetch("/api/organization/upload-logo", {
           method: "POST",
+          headers,
           body: formData,
           credentials: "include",
         });

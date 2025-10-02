@@ -342,8 +342,16 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
         formData.append('attachment', data.attachmentFile);
       }
       
+      // Add Authorization header if token exists
+      const headers: HeadersInit = {};
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`/api/procurement/rfqs/${data.rfqId}/quotes/manual`, {
         method: 'POST',
+        headers,
         body: formData,
         credentials: 'include',
       });
