@@ -35,11 +35,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Check for existing token on mount
+  const hasToken = !!localStorage.getItem('auth_token');
+
   // Query to check authentication status
   const { data: authData, isLoading, refetch } = useQuery({
     queryKey: ["/api/auth/user"],
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: hasToken, // Only run if we have a token
   });
 
   // Get current clock status
@@ -84,6 +88,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { requires2FA: true };
       }
 
+      // Store token in localStorage for subsequent requests
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+      }
+
       // Set user from the response (response contains user, token, expiresAt)
       if (data.user) {
         setUser(data.user);
@@ -110,10 +119,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      // Get token for logout request
+      const token = localStorage.getItem('auth_token');
+      
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
+        headers: token ? {
+          'Authorization': `Bearer ${token}`
+        } : {},
       });
+
+      // Clear token from localStorage
+      localStorage.removeItem('auth_token');
 
       // Clear local state
       setUser(null);
@@ -129,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
       // Still clear local state even if logout request fails
+      localStorage.removeItem('auth_token');
       setUser(null);
       setCurrentClockStatus(null);
       queryClient.clear();
