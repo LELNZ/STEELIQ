@@ -91,7 +91,7 @@ const OPERATION_TYPES = [
 
 const CONSUMABLE_UNITS = [
   "per cut",
-  "per hole",
+  "per hole",  
   "per meter",
   "per m²",
   "per kg",
@@ -99,7 +99,7 @@ const CONSUMABLE_UNITS = [
   "per piece",
   "blade per cut",
   "L per cut",
-  "L per meter",
+  "L per meter", 
   "L per hour",
   "disc per cut",
   "disc per m²",
@@ -109,7 +109,7 @@ const CONSUMABLE_UNITS = [
   "tips",
   "pcs",
   "belt per m²"
-];
+].filter((value, index, self) => self.indexOf(value) === index); // Remove any duplicates
 
 export default function ConsumptionRates() {
   const { toast } = useToast();
