@@ -4498,10 +4498,71 @@ export const numberingSequences = pgTable("numbering_sequences", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Consumption Rate Settings - Track consumable usage rates for operations
+export const consumptionRateSettings = pgTable("consumption_rate_settings", {
+  id: serial("id").primaryKey(),
+  operationType: text("operation_type").notNull(),
+  method: text("method"),
+  materialType: text("material_type"),
+  thicknessMin: decimal("thickness_min", { precision: 6, scale: 2 }),
+  thicknessMax: decimal("thickness_max", { precision: 6, scale: 2 }),
+  diameterMin: decimal("diameter_min", { precision: 6, scale: 2 }),
+  diameterMax: decimal("diameter_max", { precision: 6, scale: 2 }),
+  laborHoursPerUnit: decimal("labor_hours_per_unit", { precision: 8, scale: 4 }),
+  laborUnit: text("labor_unit"),
+  skillLevel: text("skill_level"),
+  crewSize: integer("crew_size").default(1),
+  primaryConsumable: text("primary_consumable"),
+  primaryConsumableRate: decimal("primary_consumable_rate", { precision: 10, scale: 4 }),
+  primaryConsumableUnit: text("primary_consumable_unit"),
+  secondaryConsumable: text("secondary_consumable"),
+  secondaryConsumableRate: decimal("secondary_consumable_rate", { precision: 10, scale: 4 }),
+  secondaryConsumableUnit: text("secondary_consumable_unit"),
+  tertiaryConsumable: text("tertiary_consumable"),
+  tertiaryConsumableRate: decimal("tertiary_consumable_rate", { precision: 10, scale: 4 }),
+  tertiaryConsumableUnit: text("tertiary_consumable_unit"),
+  consumablesDetails: jsonb("consumables_details"),
+  equipmentCostPerHour: decimal("equipment_cost_per_hour", { precision: 10, scale: 2 }),
+  equipmentUtilization: decimal("equipment_utilization", { precision: 5, scale: 2 }).default("100"),
+  notes: text("notes"),
+  isCompanyDefault: boolean("is_company_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Operation Templates - Reusable operation definitions
+export const operationTemplates = pgTable("operation_templates", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  operationType: text("operation_type").notNull(),
+  category: text("category").notNull(),
+  operationData: jsonb("operation_data"),
+  method: text("method"),
+  position: text("position"),
+  defaultLaborHours: decimal("default_labor_hours", { precision: 8, scale: 2 }),
+  defaultHourlyRate: decimal("default_hourly_rate", { precision: 10, scale: 2 }),
+  includeInLabor: boolean("include_in_labor").default(true),
+  includeInConsumables: boolean("include_in_consumables").default(false),
+  includeInCoatings: boolean("include_in_coatings").default(false),
+  includeInEquipment: boolean("include_in_equipment").default(false),
+  isCompanyStandard: boolean("is_company_standard").default(false),
+  isActive: boolean("is_active").default(true),
+  usageCount: integer("usage_count").default(0),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas for backup system
 export const insertBackupMetadataSchema = createInsertSchema(backupMetadata);
 export const insertBackupDataSchema = createInsertSchema(backupData);
 export const insertNumberingSequenceSchema = createInsertSchema(numberingSequences);
+export const insertConsumptionRateSettingsSchema = createInsertSchema(consumptionRateSettings);
+export const insertOperationTemplatesSchema = createInsertSchema(operationTemplates);
 
 // Type exports for backup system
 export type BackupMetadata = typeof backupMetadata.$inferSelect;
@@ -4512,3 +4573,9 @@ export type InsertBackupData = z.infer<typeof insertBackupDataSchema>;
 
 export type NumberingSequence = typeof numberingSequences.$inferSelect;
 export type InsertNumberingSequence = z.infer<typeof insertNumberingSequenceSchema>;
+
+export type ConsumptionRateSetting = typeof consumptionRateSettings.$inferSelect;
+export type InsertConsumptionRateSetting = z.infer<typeof insertConsumptionRateSettingsSchema>;
+
+export type OperationTemplate = typeof operationTemplates.$inferSelect;
+export type InsertOperationTemplate = z.infer<typeof insertOperationTemplatesSchema>;
