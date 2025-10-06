@@ -97,26 +97,35 @@ const OPERATION_TYPES = [
 ];
 
 const CONSUMABLE_UNITS = [
+  // Rate-based units (most common)
   "per cut",
-  "per hole",  
+  "per hole",
   "per meter",
   "per m²",
-  "per kg",
-  "per hour",
   "per piece",
-  "blade per cut",
+  "per hour",
+  "per kg",
+  
+  // Quantity units
+  "L",
   "L per cut",
-  "L per meter", 
+  "L per hole", 
+  "L per meter",
+  "L per m²",
   "L per hour",
+  
+  // Disc/blade units
+  "disc",
   "disc per cut",
   "disc per m²",
-  "disc",
+  "blade per cut",
+  
+  // Other units
   "kg",
-  "L",
-  "tips",
   "pcs",
+  "tips",
   "belt per m²"
-].filter((value, index, self) => self.indexOf(value) === index); // Remove any duplicates
+];
 
 export default function ConsumptionRates() {
   const { toast } = useToast();
@@ -254,7 +263,7 @@ export default function ConsumptionRates() {
         primaryConsumableUnit: rate.primaryConsumableUnit || "per cut",
         secondaryConsumable: rate.secondaryConsumable,
         secondaryConsumableRate: rate.secondaryConsumableRate,
-        secondaryConsumableUnit: rate.secondaryConsumableUnit || "",
+        secondaryConsumableUnit: rate.secondaryConsumableUnit || undefined,
         equipmentCostPerHour: rate.equipmentCostPerHour,
         equipmentUtilization: rate.equipmentUtilization,
         isActive: rate.isActive,
@@ -497,7 +506,7 @@ export default function ConsumptionRates() {
                     <div>
                       <Label htmlFor="secondaryUnit">Unit</Label>
                       <Select
-                        value={formData.secondaryConsumableUnit || ""}
+                        value={formData.secondaryConsumableUnit}
                         onValueChange={(value) => setFormData({...formData, secondaryConsumableUnit: value})}
                       >
                         <SelectTrigger id="secondaryUnit" data-testid="select-secondary-unit">
