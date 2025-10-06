@@ -97,11 +97,18 @@ const CONSUMABLE_UNITS = [
   "per kg",
   "per hour",
   "per piece",
+  "blade per cut",
+  "L per cut",
+  "L per meter",
+  "L per hour",
+  "disc per cut",
+  "disc per m²",
   "disc",
   "kg",
   "L",
   "tips",
-  "pcs"
+  "pcs",
+  "belt per m²"
 ];
 
 export default function ConsumptionRates() {
@@ -134,12 +141,37 @@ export default function ConsumptionRates() {
   // Create/Update mutation
   const saveMutation = useMutation({
     mutationFn: async (data: Partial<ConsumptionRate>) => {
+      // Convert camelCase to snake_case for backend
+      const backendData = {
+        operation_type: data.operationType,
+        method: data.method,
+        material_type: data.materialType,
+        thickness_min: data.thicknessMin,
+        thickness_max: data.thicknessMax,
+        diameter_min: data.diameterMin,
+        diameter_max: data.diameterMax,
+        labor_hours_per_unit: data.laborHoursPerUnit,
+        labor_unit: data.laborUnit,
+        skill_level: data.skillLevel,
+        crew_size: data.crewSize,
+        primary_consumable: data.primaryConsumable,
+        primary_consumable_rate: data.primaryConsumableRate,
+        primary_consumable_unit: data.primaryConsumableUnit,
+        secondary_consumable: data.secondaryConsumable,
+        secondary_consumable_rate: data.secondaryConsumableRate,
+        secondary_consumable_unit: data.secondaryConsumableUnit,
+        equipment_cost_per_hour: data.equipmentCostPerHour,
+        equipment_utilization: data.equipmentUtilization,
+        is_active: data.isActive,
+        is_company_default: data.isCompanyDefault,
+      };
+      
       if (editingRate) {
         // Update existing rate
-        return apiRequest(`/api/consumption-rates/${editingRate.id}`, 'PATCH', data);
+        return apiRequest(`/api/consumption-rates/${editingRate.id}`, 'PATCH', backendData);
       } else {
         // Create new rate
-        return apiRequest('/api/consumption-rates', 'POST', data);
+        return apiRequest('/api/consumption-rates', 'POST', backendData);
       }
     },
     onSuccess: () => {
@@ -197,7 +229,29 @@ export default function ConsumptionRates() {
   const handleOpenDialog = (rate?: ConsumptionRate) => {
     if (rate) {
       setEditingRate(rate);
-      setFormData(rate);
+      setFormData({
+        operationType: rate.operationType,
+        method: rate.method,
+        materialType: rate.materialType,
+        thicknessMin: rate.thicknessMin,
+        thicknessMax: rate.thicknessMax,
+        diameterMin: rate.diameterMin,
+        diameterMax: rate.diameterMax,
+        laborHoursPerUnit: rate.laborHoursPerUnit,
+        laborUnit: rate.laborUnit,
+        skillLevel: rate.skillLevel,
+        crewSize: rate.crewSize,
+        primaryConsumable: rate.primaryConsumable,
+        primaryConsumableRate: rate.primaryConsumableRate,
+        primaryConsumableUnit: rate.primaryConsumableUnit || "per cut",
+        secondaryConsumable: rate.secondaryConsumable,
+        secondaryConsumableRate: rate.secondaryConsumableRate,
+        secondaryConsumableUnit: rate.secondaryConsumableUnit || "",
+        equipmentCostPerHour: rate.equipmentCostPerHour,
+        equipmentUtilization: rate.equipmentUtilization,
+        isActive: rate.isActive,
+        isCompanyDefault: rate.isCompanyDefault,
+      });
     } else {
       setEditingRate(null);
       setFormData({
