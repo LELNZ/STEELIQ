@@ -14023,9 +14023,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
       
+      // Convert snake_case keys from frontend to camelCase for the service
+      const convertedBody: any = {};
+      if (req.body.operation_type !== undefined) convertedBody.operationType = req.body.operation_type;
+      if (req.body.method !== undefined) convertedBody.method = req.body.method;
+      if (req.body.material_type !== undefined) convertedBody.materialType = req.body.material_type;
+      if (req.body.thickness_min !== undefined) convertedBody.thicknessMin = req.body.thickness_min;
+      if (req.body.thickness_max !== undefined) convertedBody.thicknessMax = req.body.thickness_max;
+      if (req.body.diameter_min !== undefined) convertedBody.diameterMin = req.body.diameter_min;
+      if (req.body.diameter_max !== undefined) convertedBody.diameterMax = req.body.diameter_max;
+      if (req.body.labor_hours_per_unit !== undefined) convertedBody.laborHoursPerUnit = req.body.labor_hours_per_unit;
+      if (req.body.labor_unit !== undefined) convertedBody.laborUnit = req.body.labor_unit;
+      if (req.body.skill_level !== undefined) convertedBody.skillLevel = req.body.skill_level;
+      if (req.body.crew_size !== undefined) convertedBody.crewSize = req.body.crew_size;
+      if (req.body.primary_consumable !== undefined) convertedBody.primaryConsumable = req.body.primary_consumable;
+      if (req.body.primary_consumable_rate !== undefined) convertedBody.primaryConsumableRate = req.body.primary_consumable_rate;
+      if (req.body.primary_consumable_unit !== undefined) convertedBody.primaryConsumableUnit = req.body.primary_consumable_unit;
+      if (req.body.secondary_consumable !== undefined) convertedBody.secondaryConsumable = req.body.secondary_consumable;
+      if (req.body.secondary_consumable_rate !== undefined) convertedBody.secondaryConsumableRate = req.body.secondary_consumable_rate;
+      if (req.body.secondary_consumable_unit !== undefined) convertedBody.secondaryConsumableUnit = req.body.secondary_consumable_unit;
+      if (req.body.equipment_cost_per_hour !== undefined) convertedBody.equipmentCostPerHour = req.body.equipment_cost_per_hour;
+      if (req.body.equipment_utilization !== undefined) convertedBody.equipmentUtilization = req.body.equipment_utilization;
+      if (req.body.notes !== undefined) convertedBody.notes = req.body.notes;
+      if (req.body.is_active !== undefined) convertedBody.isActive = req.body.is_active;
+      if (req.body.is_company_default !== undefined) convertedBody.isCompanyDefault = req.body.is_company_default;
+      
       const { consumptionRatesService } = await import('./services/consumption-rates-service');
       const rate = await consumptionRatesService.saveConsumptionRate(
-        req.body,
+        convertedBody,
         user.id
       );
       res.json(rate);
@@ -14042,10 +14067,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
       
+      // Convert snake_case keys from frontend to camelCase for the service
+      const convertedBody: any = {};
+      if (req.body.operation_type !== undefined) convertedBody.operationType = req.body.operation_type;
+      if (req.body.method !== undefined) convertedBody.method = req.body.method;
+      if (req.body.material_type !== undefined) convertedBody.materialType = req.body.material_type;
+      if (req.body.thickness_min !== undefined) convertedBody.thicknessMin = req.body.thickness_min;
+      if (req.body.thickness_max !== undefined) convertedBody.thicknessMax = req.body.thickness_max;
+      if (req.body.diameter_min !== undefined) convertedBody.diameterMin = req.body.diameter_min;
+      if (req.body.diameter_max !== undefined) convertedBody.diameterMax = req.body.diameter_max;
+      if (req.body.labor_hours_per_unit !== undefined) convertedBody.laborHoursPerUnit = req.body.labor_hours_per_unit;
+      if (req.body.labor_unit !== undefined) convertedBody.laborUnit = req.body.labor_unit;
+      if (req.body.skill_level !== undefined) convertedBody.skillLevel = req.body.skill_level;
+      if (req.body.crew_size !== undefined) convertedBody.crewSize = req.body.crew_size;
+      if (req.body.primary_consumable !== undefined) convertedBody.primaryConsumable = req.body.primary_consumable;
+      if (req.body.primary_consumable_rate !== undefined) convertedBody.primaryConsumableRate = req.body.primary_consumable_rate;
+      if (req.body.primary_consumable_unit !== undefined) convertedBody.primaryConsumableUnit = req.body.primary_consumable_unit;
+      if (req.body.secondary_consumable !== undefined) convertedBody.secondaryConsumable = req.body.secondary_consumable;
+      if (req.body.secondary_consumable_rate !== undefined) convertedBody.secondaryConsumableRate = req.body.secondary_consumable_rate;
+      if (req.body.secondary_consumable_unit !== undefined) convertedBody.secondaryConsumableUnit = req.body.secondary_consumable_unit;
+      if (req.body.equipment_cost_per_hour !== undefined) convertedBody.equipmentCostPerHour = req.body.equipment_cost_per_hour;
+      if (req.body.equipment_utilization !== undefined) convertedBody.equipmentUtilization = req.body.equipment_utilization;
+      if (req.body.notes !== undefined) convertedBody.notes = req.body.notes;
+      if (req.body.is_active !== undefined) convertedBody.isActive = req.body.is_active;
+      if (req.body.is_company_default !== undefined) convertedBody.isCompanyDefault = req.body.is_company_default;
+      
       const { consumptionRatesService } = await import('./services/consumption-rates-service');
       const rate = await consumptionRatesService.updateConsumptionRate(
         parseInt(req.params.id),
-        req.body,
+        convertedBody,
         user.id
       );
       res.json(rate);
