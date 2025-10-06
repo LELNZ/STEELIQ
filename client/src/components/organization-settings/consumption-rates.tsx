@@ -161,6 +161,9 @@ export default function ConsumptionRates() {
       // Convert camelCase to snake_case for backend - only include defined fields
       const backendData: any = {};
       
+      console.log("Frontend formData:", data);
+      console.log("Primary rate value:", data.primaryConsumableRate, "Type:", typeof data.primaryConsumableRate);
+      
       // Only add fields that are not undefined
       if (data.operationType !== undefined) backendData.operation_type = data.operationType;
       if (data.method !== undefined) backendData.method = data.method;
@@ -184,6 +187,8 @@ export default function ConsumptionRates() {
       if (data.notes !== undefined) backendData.notes = data.notes;
       if (data.isActive !== undefined) backendData.is_active = data.isActive;
       if (data.isCompanyDefault !== undefined) backendData.is_company_default = data.isCompanyDefault;
+      
+      console.log("Backend data being sent:", backendData);
       
       if (editingRate) {
         // Update existing rate

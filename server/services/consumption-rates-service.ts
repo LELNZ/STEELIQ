@@ -94,6 +94,9 @@ export class ConsumptionRatesService {
   async saveConsumptionRate(rate: Partial<ConsumptionRateSetting>, userId: number): Promise<ConsumptionRateSetting> {
     const now = new Date();
     
+    console.log("Backend received rate data:", rate);
+    console.log("Primary rate field:", rate.primaryConsumableRate, "Type:", typeof rate.primaryConsumableRate);
+    
     if (rate.id) {
       // Update existing using Drizzle ORM - only update provided fields
       const updateData: Partial<InsertConsumptionRateSetting> = {
@@ -113,7 +116,11 @@ export class ConsumptionRatesService {
       if (rate.skillLevel !== undefined) updateData.skillLevel = rate.skillLevel || null;
       if (rate.crewSize !== undefined) updateData.crewSize = rate.crewSize ?? null;
       if (rate.primaryConsumable !== undefined) updateData.primaryConsumable = rate.primaryConsumable || null;
-      if (rate.primaryConsumableRate !== undefined) updateData.primaryConsumableRate = rate.primaryConsumableRate?.toString() || null;
+      if (rate.primaryConsumableRate !== undefined) {
+        console.log("Processing primaryConsumableRate:", rate.primaryConsumableRate);
+        updateData.primaryConsumableRate = rate.primaryConsumableRate?.toString() || null;
+        console.log("Stored as:", updateData.primaryConsumableRate);
+      }
       if (rate.primaryConsumableUnit !== undefined) updateData.primaryConsumableUnit = rate.primaryConsumableUnit || null;
       if (rate.secondaryConsumable !== undefined) updateData.secondaryConsumable = rate.secondaryConsumable || null;
       if (rate.secondaryConsumableRate !== undefined) updateData.secondaryConsumableRate = rate.secondaryConsumableRate?.toString() || null;
@@ -123,6 +130,8 @@ export class ConsumptionRatesService {
       if (rate.notes !== undefined) updateData.notes = rate.notes || null;
       if (rate.isCompanyDefault !== undefined) updateData.isCompanyDefault = rate.isCompanyDefault;
       if (rate.isActive !== undefined) updateData.isActive = rate.isActive;
+      
+      console.log("Final updateData:", updateData);
 
       const result = await db
         .update(consumptionRateSettings)
