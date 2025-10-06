@@ -242,7 +242,6 @@ export default function ConsumptionRates() {
     setEditingRate(null);
     setFormData({
       ...duplicateData,
-      notes: `Duplicated from rate #${id}`,
     });
     setDialogOpen(true);
   };
@@ -252,7 +251,8 @@ export default function ConsumptionRates() {
     const matchesSearch = 
       rate.operation_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       rate.primary_consumable?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rate.notes?.toLowerCase().includes(searchQuery.toLowerCase());
+      rate.operation_method?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rate.material_type?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesFilter = filterType === "all" || rate.operation_type === filterType;
     
