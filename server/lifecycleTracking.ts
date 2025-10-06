@@ -91,7 +91,7 @@ export class LifecycleTrackingService {
       const tasks = await db.select()
         .from(projectLifecycleTasks)
         .where(eq(projectLifecycleTasks.phaseId, phase.id))
-        .orderBy(asc(projectLifecycleTasks.createdAt));
+        .orderBy(asc(projectLifecycleTasks.id));
 
       return {
         ...phase,
