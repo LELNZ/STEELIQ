@@ -9,7 +9,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems, projectLifecycleEvents } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems, projectLifecycleEvents, projectLifecyclePhases, estimationProjects, projectLifecycleTemplates } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -6201,15 +6201,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
+  
+  // Debug endpoint to test initialization directly
+  app.get('/api/projects/:id/lifecycle/debug', async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      
+      // Check project exists
+      const [project] = await db.select()
+        .from(estimationProjects)
+        .where(eq(estimationProjects.id, projectId))
+        .limit(1);
+      
+      // Check existing phases
+      const existingPhases = await db.select()
+        .from(projectLifecyclePhases)
+        .where(eq(projectLifecyclePhases.projectId, projectId));
+      
+      // Check templates
+      const templates = await db.select()
+        .from(projectLifecycleTemplates)
+        .limit(5);
+      
+      res.json({
+        projectId,
+        projectExists: !!project,
+        projectName: project?.name || 'Not found',
+        hasExistingLifecycle: existingPhases.length > 0,
+        existingPhasesCount: existingPhases.length,
+        availableTemplates: templates.map(t => ({
+          id: t.id,
+          name: t.templateName,
+          isActive: t.isActive
+        }))
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        error: error.message,
+        stack: error.stack 
+      });
+    }
+  });
 
   app.post('/api/projects/:id/lifecycle/initialize', async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const { templateId } = req.body;
+      
+      console.log(`[DEBUG] Initializing lifecycle for project ${projectId} with template ${templateId || 'default'}`);
+      
+      // Check if lifecycle already exists for this project
+      const existingPhases = await db.select()
+        .from(projectLifecyclePhases)
+        .where(eq(projectLifecyclePhases.projectId, projectId))
+        .limit(1);
+      
+      if (existingPhases.length > 0) {
+        console.log(`[DEBUG] Lifecycle already initialized for project ${projectId}`);
+        return res.status(400).json({ 
+          error: "Lifecycle already initialized for this project",
+          message: "This project already has lifecycle tracking initialized."
+        });
+      }
+      
       const result = await lifecycleTrackingService.initializeProjectLifecycle(projectId, templateId);
+      console.log(`[DEBUG] Lifecycle initialized successfully for project ${projectId}`);
       res.json(result);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(`[ERROR] Failed to initialize lifecycle for project ${req.params.id}:`, error);
+      res.status(500).json({ 
+        error: error.message,
+        details: "Failed to initialize lifecycle tracking. Please check server logs for details."
+      });
     }
   });
 
