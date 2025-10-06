@@ -1,58 +1,13 @@
 import { db } from "../db";
-import { eq, and, or, between, sql } from "drizzle-orm";
-
-// Define the table schemas locally since they're not in shared/schema yet
-interface ConsumptionRateSetting {
-  id: number;
-  operation_type: string;
-  method?: string | null;
-  material_type?: string | null;
-  thickness_min?: number | null;
-  thickness_max?: number | null;
-  diameter_min?: number | null;
-  diameter_max?: number | null;
-  labor_hours_per_unit?: number | null;
-  labor_unit?: string | null;
-  skill_level?: string | null;
-  crew_size?: number | null;
-  primary_consumable?: string | null;
-  primary_consumable_rate?: number | null;
-  primary_consumable_unit?: string | null;
-  secondary_consumable?: string | null;
-  secondary_consumable_rate?: number | null;
-  secondary_consumable_unit?: string | null;
-  equipment_cost_per_hour?: number | null;
-  equipment_utilization?: number | null;
-  is_company_default?: boolean | null;
-  is_active?: boolean | null;
-  created_by?: number | null;
-  created_at?: Date | null;
-  updated_at?: Date | null;
-}
-
-interface OperationTemplate {
-  id: number;
-  code: string;
-  name: string;
-  description?: string | null;
-  operation_type: string;
-  category: string;
-  operation_data?: any;
-  method?: string | null;
-  position?: string | null;
-  default_labor_hours?: number | null;
-  default_hourly_rate?: number | null;
-  include_in_labor?: boolean | null;
-  include_in_consumables?: boolean | null;
-  include_in_coatings?: boolean | null;
-  include_in_equipment?: boolean | null;
-  is_company_standard?: boolean | null;
-  is_active?: boolean | null;
-  usage_count?: number | null;
-  created_by?: number | null;
-  created_at?: Date | null;
-  updated_at?: Date | null;
-}
+import { eq, and, or, between, sql, desc, gte, lte, isNull } from "drizzle-orm";
+import { 
+  consumptionRateSettings, 
+  operationTemplates,
+  type ConsumptionRateSetting,
+  type OperationTemplate,
+  type InsertConsumptionRateSetting,
+  type InsertOperationTemplate
+} from "@shared/schema";
 
 export class ConsumptionRatesService {
   // Get consumption rates for an operation type
@@ -65,54 +20,74 @@ export class ConsumptionRatesService {
   ): Promise<ConsumptionRateSetting | null> {
     // Build query conditions
     const conditions = [
-      `operation_type = $1`,
-      `is_active = true`
+      eq(consumptionRateSettings.operationType, operationType),
+      eq(consumptionRateSettings.isActive, true)
     ];
-    const params: any[] = [operationType];
-    let paramIndex = 2;
 
+    // Add optional method condition (match specific or null)
     if (method) {
-      conditions.push(`(method = $${paramIndex} OR method IS NULL)`);
-      params.push(method);
-      paramIndex++;
+      conditions.push(
+        or(
+          eq(consumptionRateSettings.method, method),
+          isNull(consumptionRateSettings.method)
+        )!
+      );
     }
 
+    // Add optional material type condition (match specific or null)
     if (materialType) {
-      conditions.push(`(material_type = $${paramIndex} OR material_type IS NULL)`);
-      params.push(materialType);
-      paramIndex++;
+      conditions.push(
+        or(
+          eq(consumptionRateSettings.materialType, materialType),
+          isNull(consumptionRateSettings.materialType)
+        )!
+      );
     }
 
+    // Add thickness range condition
     if (thickness !== undefined) {
-      conditions.push(`(
-        (thickness_min IS NULL AND thickness_max IS NULL) OR 
-        ($${paramIndex} BETWEEN COALESCE(thickness_min, 0) AND COALESCE(thickness_max, 9999))
-      )`);
-      params.push(thickness);
-      paramIndex++;
+      conditions.push(
+        or(
+          and(
+            isNull(consumptionRateSettings.thicknessMin),
+            isNull(consumptionRateSettings.thicknessMax)
+          ),
+          and(
+            gte(sql`${thickness}`, sql`COALESCE(${consumptionRateSettings.thicknessMin}, 0)`),
+            lte(sql`${thickness}`, sql`COALESCE(${consumptionRateSettings.thicknessMax}, 9999)`)
+          )
+        )!
+      );
     }
 
+    // Add diameter range condition
     if (diameter !== undefined) {
-      conditions.push(`(
-        (diameter_min IS NULL AND diameter_max IS NULL) OR 
-        ($${paramIndex} BETWEEN COALESCE(diameter_min, 0) AND COALESCE(diameter_max, 9999))
-      )`);
-      params.push(diameter);
-      paramIndex++;
+      conditions.push(
+        or(
+          and(
+            isNull(consumptionRateSettings.diameterMin),
+            isNull(consumptionRateSettings.diameterMax)
+          ),
+          and(
+            gte(sql`${diameter}`, sql`COALESCE(${consumptionRateSettings.diameterMin}, 0)`),
+            lte(sql`${diameter}`, sql`COALESCE(${consumptionRateSettings.diameterMax}, 9999)`)
+          )
+        )!
+      );
     }
 
-    const query = `
-      SELECT * FROM consumption_rate_settings
-      WHERE ${conditions.join(' AND ')}
-      ORDER BY 
-        CASE WHEN method IS NOT NULL THEN 0 ELSE 1 END,
-        CASE WHEN material_type IS NOT NULL THEN 0 ELSE 1 END,
-        is_company_default DESC
-      LIMIT 1
-    `;
+    const result = await db
+      .select()
+      .from(consumptionRateSettings)
+      .where(and(...conditions))
+      .orderBy(
+        sql`CASE WHEN ${consumptionRateSettings.method} IS NOT NULL THEN 0 ELSE 1 END`,
+        sql`CASE WHEN ${consumptionRateSettings.materialType} IS NOT NULL THEN 0 ELSE 1 END`,
+        desc(consumptionRateSettings.isCompanyDefault)
+      )
+      .limit(1);
 
-    const result = await db.execute(sql.raw(query, params));
-    return result.rows[0] as ConsumptionRateSetting | null;
+    return result[0] || null;
   }
 
   // Create or update consumption rate setting
@@ -120,117 +95,99 @@ export class ConsumptionRatesService {
     const now = new Date();
     
     if (rate.id) {
-      // Update existing
-      const updateQuery = `
-        UPDATE consumption_rate_settings
-        SET 
-          operation_type = COALESCE($1, operation_type),
-          method = $2,
-          material_type = $3,
-          thickness_min = $4,
-          thickness_max = $5,
-          diameter_min = $6,
-          diameter_max = $7,
-          labor_hours_per_unit = $8,
-          labor_unit = $9,
-          skill_level = $10,
-          crew_size = $11,
-          primary_consumable = $12,
-          primary_consumable_rate = $13,
-          primary_consumable_unit = $14,
-          secondary_consumable = $15,
-          secondary_consumable_rate = $16,
-          secondary_consumable_unit = $17,
-          equipment_cost_per_hour = $18,
-          equipment_utilization = $19,
-          is_company_default = $20,
-          is_active = COALESCE($21, is_active),
-          updated_at = $22
-        WHERE id = $23
-        RETURNING *
-      `;
+      // Update existing using Drizzle ORM
+      const updateData: Partial<InsertConsumptionRateSetting> = {
+        ...(rate.operationType !== undefined && { operationType: rate.operationType }),
+        method: rate.method || null,
+        materialType: rate.materialType || null,
+        thicknessMin: rate.thicknessMin?.toString() || null,
+        thicknessMax: rate.thicknessMax?.toString() || null,
+        diameterMin: rate.diameterMin?.toString() || null,
+        diameterMax: rate.diameterMax?.toString() || null,
+        laborHoursPerUnit: rate.laborHoursPerUnit?.toString() || null,
+        laborUnit: rate.laborUnit || null,
+        skillLevel: rate.skillLevel || null,
+        crewSize: rate.crewSize ?? null,
+        primaryConsumable: rate.primaryConsumable || null,
+        primaryConsumableRate: rate.primaryConsumableRate?.toString() || null,
+        primaryConsumableUnit: rate.primaryConsumableUnit || null,
+        secondaryConsumable: rate.secondaryConsumable || null,
+        secondaryConsumableRate: rate.secondaryConsumableRate?.toString() || null,
+        secondaryConsumableUnit: rate.secondaryConsumableUnit || null,
+        tertiaryConsumable: rate.tertiaryConsumable || null,
+        tertiaryConsumableRate: rate.tertiaryConsumableRate?.toString() || null,
+        tertiaryConsumableUnit: rate.tertiaryConsumableUnit || null,
+        consumablesDetails: rate.consumablesDetails || null,
+        equipmentCostPerHour: rate.equipmentCostPerHour?.toString() || null,
+        equipmentUtilization: rate.equipmentUtilization?.toString() || null,
+        notes: rate.notes || null,
+        ...(rate.isCompanyDefault !== undefined && { isCompanyDefault: rate.isCompanyDefault }),
+        ...(rate.isActive !== undefined && { isActive: rate.isActive }),
+        updatedAt: now,
+      };
+
+      const result = await db
+        .update(consumptionRateSettings)
+        .set(updateData)
+        .where(eq(consumptionRateSettings.id, rate.id))
+        .returning();
       
-      const result = await db.execute(sql.raw(updateQuery, [
-        rate.operation_type || null,
-        rate.method || null,
-        rate.material_type || null,
-        rate.thickness_min ?? null,
-        rate.thickness_max ?? null,
-        rate.diameter_min ?? null,
-        rate.diameter_max ?? null,
-        rate.labor_hours_per_unit ?? null,
-        rate.labor_unit || null,
-        rate.skill_level || null,
-        rate.crew_size ?? null,
-        rate.primary_consumable || null,
-        rate.primary_consumable_rate ?? null,
-        rate.primary_consumable_unit || null,
-        rate.secondary_consumable || null,
-        rate.secondary_consumable_rate ?? null,
-        rate.secondary_consumable_unit || null,
-        rate.equipment_cost_per_hour ?? null,
-        rate.equipment_utilization ?? null,
-        rate.is_company_default ?? null,
-        rate.is_active ?? null,  // Ensure undefined becomes null
-        now,
-        rate.id
-      ]));
-      
-      return result.rows[0] as ConsumptionRateSetting;
+      return result[0];
     } else {
-      // Create new
-      const insertQuery = `
-        INSERT INTO consumption_rate_settings (
-          operation_type, method, material_type,
-          thickness_min, thickness_max, diameter_min, diameter_max,
-          labor_hours_per_unit, labor_unit, skill_level, crew_size,
-          primary_consumable, primary_consumable_rate, primary_consumable_unit,
-          secondary_consumable, secondary_consumable_rate, secondary_consumable_unit,
-          equipment_cost_per_hour, equipment_utilization,
-          is_company_default, is_active, created_by, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
-        RETURNING *
-      `;
+      // Create new using Drizzle ORM
+      const insertData: Partial<InsertConsumptionRateSetting> = {
+        operationType: rate.operationType!,
+        method: rate.method || null,
+        materialType: rate.materialType || null,
+        thicknessMin: rate.thicknessMin?.toString() || null,
+        thicknessMax: rate.thicknessMax?.toString() || null,
+        diameterMin: rate.diameterMin?.toString() || null,
+        diameterMax: rate.diameterMax?.toString() || null,
+        laborHoursPerUnit: rate.laborHoursPerUnit?.toString() || null,
+        laborUnit: rate.laborUnit || null,
+        skillLevel: rate.skillLevel || null,
+        crewSize: rate.crewSize ?? 1,
+        primaryConsumable: rate.primaryConsumable || null,
+        primaryConsumableRate: rate.primaryConsumableRate?.toString() || null,
+        primaryConsumableUnit: rate.primaryConsumableUnit || null,
+        secondaryConsumable: rate.secondaryConsumable || null,
+        secondaryConsumableRate: rate.secondaryConsumableRate?.toString() || null,
+        secondaryConsumableUnit: rate.secondaryConsumableUnit || null,
+        tertiaryConsumable: rate.tertiaryConsumable || null,
+        tertiaryConsumableRate: rate.tertiaryConsumableRate?.toString() || null,
+        tertiaryConsumableUnit: rate.tertiaryConsumableUnit || null,
+        consumablesDetails: rate.consumablesDetails || null,
+        equipmentCostPerHour: rate.equipmentCostPerHour?.toString() || null,
+        equipmentUtilization: rate.equipmentUtilization?.toString() || null,
+        notes: rate.notes || null,
+        isCompanyDefault: rate.isCompanyDefault ?? false,
+        isActive: rate.isActive ?? true,
+        createdBy: userId,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      const result = await db
+        .insert(consumptionRateSettings)
+        .values(insertData as InsertConsumptionRateSetting)
+        .returning();
       
-      const result = await db.execute(sql.raw(insertQuery, [
-        rate.operation_type,
-        rate.method,
-        rate.material_type,
-        rate.thickness_min,
-        rate.thickness_max,
-        rate.diameter_min,
-        rate.diameter_max,
-        rate.labor_hours_per_unit,
-        rate.labor_unit,
-        rate.skill_level,
-        rate.crew_size,
-        rate.primary_consumable,
-        rate.primary_consumable_rate,
-        rate.primary_consumable_unit,
-        rate.secondary_consumable,
-        rate.secondary_consumable_rate,
-        rate.secondary_consumable_unit,
-        rate.equipment_cost_per_hour,
-        rate.equipment_utilization,
-        rate.is_company_default ?? false,
-        rate.is_active ?? true,
-        userId,
-        now,
-        now
-      ]));
-      
-      return result.rows[0] as ConsumptionRateSetting;
+      return result[0];
     }
   }
 
   // Get all consumption rate settings
   async getAllConsumptionRates(activeOnly: boolean = true): Promise<ConsumptionRateSetting[]> {
-    const query = activeOnly
-      ? `SELECT * FROM consumption_rate_settings WHERE is_active = true ORDER BY operation_type, method`
-      : `SELECT * FROM consumption_rate_settings ORDER BY operation_type, method`;
+    const query = db
+      .select()
+      .from(consumptionRateSettings)
+      .orderBy(consumptionRateSettings.operationType, consumptionRateSettings.method);
+
+    if (activeOnly) {
+      return await query.where(eq(consumptionRateSettings.isActive, true));
+    }
     
-    const result = await db.execute(sql.raw(query));
-    return result.rows as ConsumptionRateSetting[];
+    return await query;
   }
 
   // Update consumption rate setting
@@ -241,7 +198,9 @@ export class ConsumptionRatesService {
 
   // Delete consumption rate setting
   async deleteConsumptionRate(id: number): Promise<void> {
-    await db.execute(sql`DELETE FROM consumption_rate_settings WHERE id = ${id}`);
+    await db
+      .delete(consumptionRateSettings)
+      .where(eq(consumptionRateSettings.id, id));
   }
 
   // Get operation templates
@@ -251,45 +210,47 @@ export class ConsumptionRatesService {
     activeOnly: boolean = true
   ): Promise<OperationTemplate[]> {
     const conditions = [];
-    const params = [];
-    let paramIndex = 1;
 
     if (activeOnly) {
-      conditions.push(`is_active = true`);
+      conditions.push(eq(operationTemplates.isActive, true));
     }
 
     if (category) {
-      conditions.push(`category = $${paramIndex}`);
-      params.push(category);
-      paramIndex++;
+      conditions.push(eq(operationTemplates.category, category));
     }
 
     if (operationType) {
-      conditions.push(`operation_type = $${paramIndex}`);
-      params.push(operationType);
-      paramIndex++;
+      conditions.push(eq(operationTemplates.operationType, operationType));
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const query = `
-      SELECT * FROM operation_templates 
-      ${whereClause}
-      ORDER BY is_company_standard DESC, usage_count DESC, name
-    `;
+    const query = db
+      .select()
+      .from(operationTemplates)
+      .orderBy(
+        desc(operationTemplates.isCompanyStandard),
+        desc(operationTemplates.usageCount),
+        operationTemplates.name
+      );
 
-    const result = await db.execute(sql.raw(query, params));
-    return result.rows as OperationTemplate[];
+    if (conditions.length > 0) {
+      return await query.where(and(...conditions));
+    }
+    
+    return await query;
   }
 
   // Get template by code
   async getTemplateByCode(code: string): Promise<OperationTemplate | null> {
-    const result = await db.execute(sql`
-      SELECT * FROM operation_templates 
-      WHERE code = ${code} AND is_active = true
-      LIMIT 1
-    `);
+    const result = await db
+      .select()
+      .from(operationTemplates)
+      .where(and(
+        eq(operationTemplates.code, code),
+        eq(operationTemplates.isActive, true)
+      ))
+      .limit(1);
     
-    return result.rows[0] as OperationTemplate | null;
+    return result[0] || null;
   }
 
   // Save operation template
@@ -297,106 +258,83 @@ export class ConsumptionRatesService {
     const now = new Date();
 
     if (template.id) {
-      // Update existing template
-      const updateQuery = `
-        UPDATE operation_templates
-        SET 
-          code = COALESCE($1, code),
-          name = COALESCE($2, name),
-          description = $3,
-          operation_type = COALESCE($4, operation_type),
-          category = COALESCE($5, category),
-          operation_data = $6,
-          method = $7,
-          position = $8,
-          default_labor_hours = $9,
-          default_hourly_rate = $10,
-          include_in_labor = $11,
-          include_in_consumables = $12,
-          include_in_coatings = $13,
-          include_in_equipment = $14,
-          is_company_standard = $15,
-          is_active = $16,
-          updated_at = $17
-        WHERE id = $18
-        RETURNING *
-      `;
+      // Update existing template using Drizzle ORM
+      const updateData: Partial<InsertOperationTemplate> = {
+        ...(template.code !== undefined && { code: template.code }),
+        ...(template.name !== undefined && { name: template.name }),
+        description: template.description || null,
+        ...(template.operationType !== undefined && { operationType: template.operationType }),
+        ...(template.category !== undefined && { category: template.category }),
+        operationData: template.operationData || null,
+        method: template.method || null,
+        position: template.position || null,
+        defaultLaborHours: template.defaultLaborHours?.toString() || null,
+        defaultHourlyRate: template.defaultHourlyRate?.toString() || null,
+        includeInLabor: template.includeInLabor ?? true,
+        includeInConsumables: template.includeInConsumables ?? false,
+        includeInCoatings: template.includeInCoatings ?? false,
+        includeInEquipment: template.includeInEquipment ?? false,
+        isCompanyStandard: template.isCompanyStandard ?? false,
+        isActive: template.isActive ?? true,
+        updatedAt: now
+      };
 
-      const result = await db.execute(sql.raw(updateQuery, [
-        template.code,
-        template.name,
-        template.description,
-        template.operation_type,
-        template.category,
-        JSON.stringify(template.operation_data || {}),
-        template.method,
-        template.position,
-        template.default_labor_hours,
-        template.default_hourly_rate,
-        template.include_in_labor,
-        template.include_in_consumables,
-        template.include_in_coatings,
-        template.include_in_equipment,
-        template.is_company_standard,
-        template.is_active,
-        now,
-        template.id
-      ]));
+      const result = await db
+        .update(operationTemplates)
+        .set(updateData)
+        .where(eq(operationTemplates.id, template.id))
+        .returning();
 
-      return result.rows[0] as OperationTemplate;
+      return result[0];
     } else {
-      // Create new template
-      const insertQuery = `
-        INSERT INTO operation_templates (
-          code, name, description, operation_type, category,
-          operation_data, method, position,
-          default_labor_hours, default_hourly_rate,
-          include_in_labor, include_in_consumables, include_in_coatings, include_in_equipment,
-          is_company_standard, is_active, usage_count,
-          created_by, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
-        RETURNING *
-      `;
+      // Create new template using Drizzle ORM
+      const insertData: Partial<InsertOperationTemplate> = {
+        code: template.code!,
+        name: template.name!,
+        description: template.description || null,
+        operationType: template.operationType!,
+        category: template.category!,
+        operationData: template.operationData || null,
+        method: template.method || null,
+        position: template.position || null,
+        defaultLaborHours: template.defaultLaborHours?.toString() || null,
+        defaultHourlyRate: template.defaultHourlyRate?.toString() || null,
+        includeInLabor: template.includeInLabor ?? true,
+        includeInConsumables: template.includeInConsumables ?? false,
+        includeInCoatings: template.includeInCoatings ?? false,
+        includeInEquipment: template.includeInEquipment ?? false,
+        isCompanyStandard: template.isCompanyStandard ?? false,
+        isActive: template.isActive ?? true,
+        usageCount: 0,
+        createdBy: userId,
+        createdAt: now,
+        updatedAt: now
+      };
 
-      const result = await db.execute(sql.raw(insertQuery, [
-        template.code,
-        template.name,
-        template.description,
-        template.operation_type,
-        template.category,
-        JSON.stringify(template.operation_data || {}),
-        template.method,
-        template.position,
-        template.default_labor_hours,
-        template.default_hourly_rate,
-        template.include_in_labor,
-        template.include_in_consumables,
-        template.include_in_coatings,
-        template.include_in_equipment,
-        template.is_company_standard,
-        template.is_active,
-        0,
-        userId,
-        now,
-        now
-      ]));
+      const result = await db
+        .insert(operationTemplates)
+        .values(insertData as InsertOperationTemplate)
+        .returning();
 
-      return result.rows[0] as OperationTemplate;
+      return result[0];
     }
   }
 
   // Increment template usage count
   async incrementTemplateUsage(templateId: number): Promise<void> {
-    await db.execute(sql`
-      UPDATE operation_templates 
-      SET usage_count = usage_count + 1
-      WHERE id = ${templateId}
-    `);
+    await db
+      .update(operationTemplates)
+      .set({
+        usageCount: sql`${operationTemplates.usageCount} + 1`
+      })
+      .where(eq(operationTemplates.id, templateId));
   }
 
   // Delete operation template
   async deleteOperationTemplate(id: number): Promise<void> {
-    await db.execute(sql`DELETE FROM operation_templates WHERE id = ${id}`);
+    await db
+      .delete(operationTemplates)
+      .where(eq(operationTemplates.id, id));
   }
 
   // Initialize default consumption rates
