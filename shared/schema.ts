@@ -4520,6 +4520,7 @@ export const consumptionRateSettings = pgTable("consumption_rate_settings", {
   secondaryConsumableUnit: text("secondary_consumable_unit"),
   equipmentCostPerHour: decimal("equipment_cost_per_hour", { precision: 10, scale: 2 }),
   equipmentUtilization: decimal("equipment_utilization", { precision: 5, scale: 2 }).default("100"),
+  notes: text("notes"),
   isCompanyDefault: boolean("is_company_default").default(false),
   isActive: boolean("is_active").default(true),
   createdBy: integer("created_by").references(() => users.id),
