@@ -155,6 +155,13 @@ Internal Team                          External Suppliers
   - Preview before import with material counts
   - Secure API endpoints with user ownership verification
   - Saves 30-60 minutes per estimation by eliminating re-entry
+- **Consumption Rates Management System** (Oct 2025)
+  - Comprehensive consumption rates for fabrication operations
+  - Operation templates for standard procedures
+  - Material/thickness/diameter-based lookups
+  - Integration with AI estimation workflow
+  - Type-safe Drizzle ORM implementation
+  - Full CRUD operations with authentication
 
 ### 🚧 In Active Development (January 2025)
 - ✅ RFQ management UI and workflow (COMPLETE)
