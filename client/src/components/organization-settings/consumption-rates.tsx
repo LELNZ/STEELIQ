@@ -30,6 +30,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -46,7 +51,9 @@ import {
   Copy, 
   Search,
   Filter,
-  Settings
+  Settings,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -117,6 +124,7 @@ export default function ConsumptionRates() {
   const [filterType, setFilterType] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRate, setEditingRate] = useState<ConsumptionRate | null>(null);
+  const [expandedSections, setExpandedSections] = useState<string[]>(OPERATION_TYPES);
   const [formData, setFormData] = useState<Partial<ConsumptionRate>>({
     operationType: "",
     primaryConsumable: "",
@@ -312,6 +320,24 @@ export default function ConsumptionRates() {
     
     return matchesSearch && matchesFilter;
   });
+
+  // Group rates by operation type
+  const groupedRates = filteredRates?.reduce((acc, rate) => {
+    const type = rate.operationType;
+    if (!acc[type]) {
+      acc[type] = [];
+    }
+    acc[type].push(rate);
+    return acc;
+  }, {} as Record<string, ConsumptionRate[]>);
+
+  const toggleSection = (operationType: string) => {
+    setExpandedSections(prev => 
+      prev.includes(operationType) 
+        ? prev.filter(t => t !== operationType)
+        : [...prev, operationType]
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -539,98 +565,129 @@ export default function ConsumptionRates() {
             <div className="text-center py-8 text-muted-foreground">
               Loading consumption rates...
             </div>
-          ) : filteredRates?.length === 0 ? (
+          ) : !groupedRates || Object.keys(groupedRates).length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No consumption rates found. Click "Add Rate" to create your first rate.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Operation Type</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Primary Consumable</TableHead>
-                  <TableHead>Rate</TableHead>
-                  <TableHead>Secondary</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRates?.map((rate) => (
-                  <TableRow key={rate.id} data-testid={`row-rate-${rate.id}`}>
-                    <TableCell className="font-medium">
-                      {rate.operationType.charAt(0).toUpperCase() + rate.operationType.slice(1).replace('_', ' ')}
-                    </TableCell>
-                    <TableCell>
-                      {rate.method || "-"}
-                    </TableCell>
-                    <TableCell>
-                      {rate.primaryConsumable}
-                    </TableCell>
-                    <TableCell>
-                      {rate.primaryConsumableRate} {rate.primaryConsumableUnit}
-                    </TableCell>
-                    <TableCell>
-                      {rate.secondaryConsumable ? (
-                        <span className="text-sm">
-                          {rate.secondaryConsumable} ({rate.secondaryConsumableRate} {rate.secondaryConsumableUnit})
-                        </span>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={rate.isActive}
-                          onCheckedChange={(checked) => toggleActiveMutation.mutate({ 
-                            id: rate.id, 
-                            isActive: checked 
-                          })}
-                          data-testid={`switch-active-${rate.id}`}
-                        />
-                        {rate.isCompanyDefault && (
-                          <Badge variant="secondary" className="text-xs">
-                            Default
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleOpenDialog(rate)}
-                          data-testid={`button-edit-${rate.id}`}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDuplicate(rate)}
-                          data-testid={`button-duplicate-${rate.id}`}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            if (confirm('Are you sure you want to delete this rate?')) {
-                              deleteMutation.mutate(rate.id);
-                            }
-                          }}
-                          data-testid={`button-delete-${rate.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="space-y-4">
+              {Object.entries(groupedRates).map(([operationType, operationRates]) => (
+                <Collapsible
+                  key={operationType}
+                  open={expandedSections.includes(operationType)}
+                  onOpenChange={() => toggleSection(operationType)}
+                >
+                  <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted/30 hover:bg-muted/50 rounded-lg transition-colors">
+                    <div className="flex items-center gap-2">
+                      {expandedSections.includes(operationType) ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                      <h3 className="font-semibold">
+                        {operationType.charAt(0).toUpperCase() + operationType.slice(1).replace('_', ' ')}
+                      </h3>
+                      <Badge variant="outline" className="ml-2">
+                        {operationRates.length}
+                      </Badge>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-2">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Method</TableHead>
+                          <TableHead>Diameter/Size</TableHead>
+                          <TableHead>Primary Consumable</TableHead>
+                          <TableHead>Rate</TableHead>
+                          <TableHead>Secondary</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {operationRates.map((rate) => (
+                          <TableRow key={rate.id} data-testid={`row-rate-${rate.id}`}>
+                            <TableCell>
+                              {rate.method?.replace(/_/g, ' ') || "-"}
+                            </TableCell>
+                            <TableCell>
+                              {rate.diameterMin && rate.diameterMax ? (
+                                rate.diameterMin === rate.diameterMax 
+                                  ? `${rate.diameterMin}mm`
+                                  : `${rate.diameterMin}-${rate.diameterMax}mm`
+                              ) : "-"}
+                            </TableCell>
+                            <TableCell>
+                              {rate.primaryConsumable}
+                            </TableCell>
+                            <TableCell>
+                              {rate.primaryConsumableRate} {rate.primaryConsumableUnit}
+                            </TableCell>
+                            <TableCell>
+                              {rate.secondaryConsumable ? (
+                                <span className="text-sm">
+                                  {rate.secondaryConsumable} ({rate.secondaryConsumableRate} {rate.secondaryConsumableUnit})
+                                </span>
+                              ) : "-"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={rate.isActive}
+                                  onCheckedChange={(checked) => toggleActiveMutation.mutate({ 
+                                    id: rate.id, 
+                                    isActive: checked 
+                                  })}
+                                  data-testid={`switch-active-${rate.id}`}
+                                />
+                                {rate.isCompanyDefault && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Default
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleOpenDialog(rate)}
+                                  data-testid={`button-edit-${rate.id}`}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDuplicate(rate)}
+                                  data-testid={`button-duplicate-${rate.id}`}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    if (confirm('Are you sure you want to delete this rate?')) {
+                                      deleteMutation.mutate(rate.id);
+                                    }
+                                  }}
+                                  data-testid={`button-delete-${rate.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
