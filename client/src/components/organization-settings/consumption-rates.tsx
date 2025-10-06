@@ -456,9 +456,12 @@ export default function ConsumptionRates() {
                       <Input
                         id="primaryRate"
                         type="number"
-                        step="0.01"
+                        step="0.0001"
                         value={formData.primaryConsumableRate || ""}
-                        onChange={(e) => setFormData({...formData, primaryConsumableRate: parseFloat(e.target.value)})}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData({...formData, primaryConsumableRate: value ? parseFloat(value) : undefined});
+                        }}
                         placeholder="0.1"
                         data-testid="input-primary-rate"
                       />
@@ -499,9 +502,12 @@ export default function ConsumptionRates() {
                       <Input
                         id="secondaryRate"
                         type="number"
-                        step="0.01"
+                        step="0.0001"
                         value={formData.secondaryConsumableRate || ""}
-                        onChange={(e) => setFormData({...formData, secondaryConsumableRate: parseFloat(e.target.value)})}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData({...formData, secondaryConsumableRate: value ? parseFloat(value) : undefined});
+                        }}
                         data-testid="input-secondary-rate"
                       />
                     </div>
