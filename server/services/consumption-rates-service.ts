@@ -95,32 +95,34 @@ export class ConsumptionRatesService {
     const now = new Date();
     
     if (rate.id) {
-      // Update existing using Drizzle ORM
+      // Update existing using Drizzle ORM - only update provided fields
       const updateData: Partial<InsertConsumptionRateSetting> = {
-        ...(rate.operationType !== undefined && { operationType: rate.operationType }),
-        method: rate.method || null,
-        materialType: rate.materialType || null,
-        thicknessMin: rate.thicknessMin?.toString() || null,
-        thicknessMax: rate.thicknessMax?.toString() || null,
-        diameterMin: rate.diameterMin?.toString() || null,
-        diameterMax: rate.diameterMax?.toString() || null,
-        laborHoursPerUnit: rate.laborHoursPerUnit?.toString() || null,
-        laborUnit: rate.laborUnit || null,
-        skillLevel: rate.skillLevel || null,
-        crewSize: rate.crewSize ?? null,
-        primaryConsumable: rate.primaryConsumable || null,
-        primaryConsumableRate: rate.primaryConsumableRate?.toString() || null,
-        primaryConsumableUnit: rate.primaryConsumableUnit || null,
-        secondaryConsumable: rate.secondaryConsumable || null,
-        secondaryConsumableRate: rate.secondaryConsumableRate?.toString() || null,
-        secondaryConsumableUnit: rate.secondaryConsumableUnit || null,
-
-        equipmentCostPerHour: rate.equipmentCostPerHour?.toString() || null,
-        equipmentUtilization: rate.equipmentUtilization?.toString() || null,
-        ...(rate.isCompanyDefault !== undefined && { isCompanyDefault: rate.isCompanyDefault }),
-        ...(rate.isActive !== undefined && { isActive: rate.isActive }),
         updatedAt: now,
       };
+
+      // Only include fields that are explicitly provided (not undefined)
+      if (rate.operationType !== undefined) updateData.operationType = rate.operationType;
+      if (rate.method !== undefined) updateData.method = rate.method || null;
+      if (rate.materialType !== undefined) updateData.materialType = rate.materialType || null;
+      if (rate.thicknessMin !== undefined) updateData.thicknessMin = rate.thicknessMin?.toString() || null;
+      if (rate.thicknessMax !== undefined) updateData.thicknessMax = rate.thicknessMax?.toString() || null;
+      if (rate.diameterMin !== undefined) updateData.diameterMin = rate.diameterMin?.toString() || null;
+      if (rate.diameterMax !== undefined) updateData.diameterMax = rate.diameterMax?.toString() || null;
+      if (rate.laborHoursPerUnit !== undefined) updateData.laborHoursPerUnit = rate.laborHoursPerUnit?.toString() || null;
+      if (rate.laborUnit !== undefined) updateData.laborUnit = rate.laborUnit || null;
+      if (rate.skillLevel !== undefined) updateData.skillLevel = rate.skillLevel || null;
+      if (rate.crewSize !== undefined) updateData.crewSize = rate.crewSize ?? null;
+      if (rate.primaryConsumable !== undefined) updateData.primaryConsumable = rate.primaryConsumable || null;
+      if (rate.primaryConsumableRate !== undefined) updateData.primaryConsumableRate = rate.primaryConsumableRate?.toString() || null;
+      if (rate.primaryConsumableUnit !== undefined) updateData.primaryConsumableUnit = rate.primaryConsumableUnit || null;
+      if (rate.secondaryConsumable !== undefined) updateData.secondaryConsumable = rate.secondaryConsumable || null;
+      if (rate.secondaryConsumableRate !== undefined) updateData.secondaryConsumableRate = rate.secondaryConsumableRate?.toString() || null;
+      if (rate.secondaryConsumableUnit !== undefined) updateData.secondaryConsumableUnit = rate.secondaryConsumableUnit || null;
+      if (rate.equipmentCostPerHour !== undefined) updateData.equipmentCostPerHour = rate.equipmentCostPerHour?.toString() || null;
+      if (rate.equipmentUtilization !== undefined) updateData.equipmentUtilization = rate.equipmentUtilization?.toString() || null;
+      if (rate.notes !== undefined) updateData.notes = rate.notes || null;
+      if (rate.isCompanyDefault !== undefined) updateData.isCompanyDefault = rate.isCompanyDefault;
+      if (rate.isActive !== undefined) updateData.isActive = rate.isActive;
 
       const result = await db
         .update(consumptionRateSettings)
