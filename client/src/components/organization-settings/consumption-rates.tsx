@@ -52,30 +52,30 @@ import { apiRequest } from "@/lib/queryClient";
 
 interface ConsumptionRate {
   id: number;
-  operation_type: string;
-  operation_method?: string;
-  material_type?: string;
-  thickness_min?: number;
-  thickness_max?: number;
-  diameter_min?: number;
-  diameter_max?: number;
-  primary_consumable?: string;
-  primary_consumable_rate?: number;
-  primary_consumable_unit?: string;
-  secondary_consumable?: string;
-  secondary_consumable_rate?: number;
-  secondary_consumable_unit?: string;
-  tertiary_consumable?: string;
-  tertiary_consumable_rate?: number;
-  tertiary_consumable_unit?: string;
-  consumables_details?: any;
-  notes?: string;
-  is_active: boolean;
-  is_company_default: boolean;
-  created_by?: number;
-  created_at?: string;
-  updated_by?: number;
-  updated_at?: string;
+  operationType: string;
+  method?: string;
+  materialType?: string;
+  thicknessMin?: number;
+  thicknessMax?: number;
+  diameterMin?: number;
+  diameterMax?: number;
+  laborHoursPerUnit?: number;
+  laborUnit?: string;
+  skillLevel?: string;
+  crewSize?: number;
+  primaryConsumable?: string;
+  primaryConsumableRate?: number;
+  primaryConsumableUnit?: string;
+  secondaryConsumable?: string;
+  secondaryConsumableRate?: number;
+  secondaryConsumableUnit?: string;
+  equipmentCostPerHour?: number;
+  equipmentUtilization?: number;
+  isCompanyDefault: boolean;
+  isActive: boolean;
+  createdBy?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const OPERATION_TYPES = [
@@ -111,12 +111,12 @@ export default function ConsumptionRates() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRate, setEditingRate] = useState<ConsumptionRate | null>(null);
   const [formData, setFormData] = useState<Partial<ConsumptionRate>>({
-    operation_type: "",
-    primary_consumable: "",
-    primary_consumable_rate: 0,
-    primary_consumable_unit: "per cut",
-    is_active: true,
-    is_company_default: false,
+    operationType: "",
+    primaryConsumable: "",
+    primaryConsumableRate: 0,
+    primaryConsumableUnit: "per cut",
+    isActive: true,
+    isCompanyDefault: false,
   });
 
   // Fetch consumption rates
@@ -182,8 +182,8 @@ export default function ConsumptionRates() {
 
   // Toggle active status
   const toggleActiveMutation = useMutation({
-    mutationFn: async ({ id, is_active }: { id: number; is_active: boolean }) => {
-      return apiRequest(`/api/consumption-rates/${id}`, 'PATCH', { is_active });
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      return apiRequest(`/api/consumption-rates/${id}`, 'PATCH', { is_active: isActive });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/consumption-rates'] });
@@ -201,12 +201,12 @@ export default function ConsumptionRates() {
     } else {
       setEditingRate(null);
       setFormData({
-        operation_type: "",
-        primary_consumable: "",
-        primary_consumable_rate: 0,
-        primary_consumable_unit: "per cut",
-        is_active: true,
-        is_company_default: false,
+        operationType: "",
+        primaryConsumable: "",
+        primaryConsumableRate: 0,
+        primaryConsumableUnit: "per cut",
+        isActive: true,
+        isCompanyDefault: false,
       });
     }
     setDialogOpen(true);
@@ -216,17 +216,17 @@ export default function ConsumptionRates() {
     setDialogOpen(false);
     setEditingRate(null);
     setFormData({
-      operation_type: "",
-      primary_consumable: "",
-      primary_consumable_rate: 0,
-      primary_consumable_unit: "per cut",
-      is_active: true,
-      is_company_default: false,
+      operationType: "",
+      primaryConsumable: "",
+      primaryConsumableRate: 0,
+      primaryConsumableUnit: "per cut",
+      isActive: true,
+      isCompanyDefault: false,
     });
   };
 
   const handleSubmit = () => {
-    if (!formData.operation_type || !formData.primary_consumable) {
+    if (!formData.operationType || !formData.primaryConsumable) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -238,7 +238,7 @@ export default function ConsumptionRates() {
   };
 
   const handleDuplicate = (rate: ConsumptionRate) => {
-    const { id, created_at, updated_at, created_by, updated_by, ...duplicateData } = rate;
+    const { id, createdAt, updatedAt, createdBy, ...duplicateData } = rate;
     setEditingRate(null);
     setFormData({
       ...duplicateData,
@@ -249,12 +249,12 @@ export default function ConsumptionRates() {
   // Filter rates
   const filteredRates = rates?.filter(rate => {
     const matchesSearch = 
-      rate.operation_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rate.primary_consumable?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rate.operation_method?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rate.material_type?.toLowerCase().includes(searchQuery.toLowerCase());
+      rate.operationType?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rate.primaryConsumable?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rate.method?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rate.materialType?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesFilter = filterType === "all" || rate.operation_type === filterType;
+    const matchesFilter = filterType === "all" || rate.operationType === filterType;
     
     return matchesSearch && matchesFilter;
   });
@@ -319,8 +319,8 @@ export default function ConsumptionRates() {
                     <div>
                       <Label htmlFor="operationType">Operation Type *</Label>
                       <Select
-                        value={formData.operation_type || ""}
-                        onValueChange={(value) => setFormData({...formData, operation_type: value})}
+                        value={formData.operationType || ""}
+                        onValueChange={(value) => setFormData({...formData, operationType: value})}
                       >
                         <SelectTrigger id="operationType" data-testid="select-operation-type">
                           <SelectValue placeholder="Select type" />
@@ -339,8 +339,8 @@ export default function ConsumptionRates() {
                       <Label htmlFor="operationMethod">Method (Optional)</Label>
                       <Input
                         id="operationMethod"
-                        value={formData.operation_method || ""}
-                        onChange={(e) => setFormData({...formData, operation_method: e.target.value})}
+                        value={formData.method || ""}
+                        onChange={(e) => setFormData({...formData, method: e.target.value})}
                         placeholder="e.g., Bandsaw, Gas Cut"
                         data-testid="input-operation-method"
                       />
@@ -352,8 +352,8 @@ export default function ConsumptionRates() {
                       <Label htmlFor="primaryConsumable">Primary Consumable *</Label>
                       <Input
                         id="primaryConsumable"
-                        value={formData.primary_consumable || ""}
-                        onChange={(e) => setFormData({...formData, primary_consumable: e.target.value})}
+                        value={formData.primaryConsumable || ""}
+                        onChange={(e) => setFormData({...formData, primaryConsumable: e.target.value})}
                         placeholder="e.g., Cutting disc"
                         data-testid="input-primary-consumable"
                       />
@@ -365,8 +365,8 @@ export default function ConsumptionRates() {
                         id="primaryRate"
                         type="number"
                         step="0.01"
-                        value={formData.primary_consumable_rate || ""}
-                        onChange={(e) => setFormData({...formData, primary_consumable_rate: parseFloat(e.target.value)})}
+                        value={formData.primaryConsumableRate || ""}
+                        onChange={(e) => setFormData({...formData, primaryConsumableRate: parseFloat(e.target.value)})}
                         placeholder="0.1"
                         data-testid="input-primary-rate"
                       />
@@ -375,8 +375,8 @@ export default function ConsumptionRates() {
                     <div>
                       <Label htmlFor="primaryUnit">Unit *</Label>
                       <Select
-                        value={formData.primary_consumable_unit || "per cut"}
-                        onValueChange={(value) => setFormData({...formData, primary_consumable_unit: value})}
+                        value={formData.primaryConsumableUnit || "per cut"}
+                        onValueChange={(value) => setFormData({...formData, primaryConsumableUnit: value})}
                       >
                         <SelectTrigger id="primaryUnit" data-testid="select-primary-unit">
                           <SelectValue />
@@ -395,8 +395,8 @@ export default function ConsumptionRates() {
                       <Label htmlFor="secondaryConsumable">Secondary Consumable</Label>
                       <Input
                         id="secondaryConsumable"
-                        value={formData.secondary_consumable || ""}
-                        onChange={(e) => setFormData({...formData, secondary_consumable: e.target.value})}
+                        value={formData.secondaryConsumable || ""}
+                        onChange={(e) => setFormData({...formData, secondaryConsumable: e.target.value})}
                         placeholder="e.g., Coolant"
                         data-testid="input-secondary-consumable"
                       />
@@ -408,8 +408,8 @@ export default function ConsumptionRates() {
                         id="secondaryRate"
                         type="number"
                         step="0.01"
-                        value={formData.secondary_consumable_rate || ""}
-                        onChange={(e) => setFormData({...formData, secondary_consumable_rate: parseFloat(e.target.value)})}
+                        value={formData.secondaryConsumableRate || ""}
+                        onChange={(e) => setFormData({...formData, secondaryConsumableRate: parseFloat(e.target.value)})}
                         data-testid="input-secondary-rate"
                       />
                     </div>
@@ -417,8 +417,8 @@ export default function ConsumptionRates() {
                     <div>
                       <Label htmlFor="secondaryUnit">Unit</Label>
                       <Select
-                        value={formData.secondary_consumable_unit || ""}
-                        onValueChange={(value) => setFormData({...formData, secondary_consumable_unit: value})}
+                        value={formData.secondaryConsumableUnit || ""}
+                        onValueChange={(value) => setFormData({...formData, secondaryConsumableUnit: value})}
                       >
                         <SelectTrigger id="secondaryUnit" data-testid="select-secondary-unit">
                           <SelectValue placeholder="Select unit" />
@@ -448,8 +448,8 @@ export default function ConsumptionRates() {
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="isActive"
-                        checked={formData.is_active !== undefined ? formData.is_active : true}
-                        onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
+                        checked={formData.isActive !== undefined ? formData.isActive : true}
+                        onCheckedChange={(checked) => setFormData({...formData, isActive: checked})}
                         data-testid="switch-is-active"
                       />
                       <Label htmlFor="isActive">Active</Label>
@@ -458,8 +458,8 @@ export default function ConsumptionRates() {
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="isDefault"
-                        checked={formData.is_company_default || false}
-                        onCheckedChange={(checked) => setFormData({...formData, is_company_default: checked})}
+                        checked={formData.isCompanyDefault || false}
+                        onCheckedChange={(checked) => setFormData({...formData, isCompanyDefault: checked})}
                         data-testid="switch-is-default"
                       />
                       <Label htmlFor="isDefault">Company Default</Label>
@@ -506,35 +506,35 @@ export default function ConsumptionRates() {
                 {filteredRates?.map((rate) => (
                   <TableRow key={rate.id} data-testid={`row-rate-${rate.id}`}>
                     <TableCell className="font-medium">
-                      {rate.operation_type.charAt(0).toUpperCase() + rate.operation_type.slice(1).replace('_', ' ')}
+                      {rate.operationType.charAt(0).toUpperCase() + rate.operationType.slice(1).replace('_', ' ')}
                     </TableCell>
                     <TableCell>
-                      {rate.operation_method || "-"}
+                      {rate.method || "-"}
                     </TableCell>
                     <TableCell>
-                      {rate.primary_consumable}
+                      {rate.primaryConsumable}
                     </TableCell>
                     <TableCell>
-                      {rate.primary_consumable_rate} {rate.primary_consumable_unit}
+                      {rate.primaryConsumableRate} {rate.primaryConsumableUnit}
                     </TableCell>
                     <TableCell>
-                      {rate.secondary_consumable ? (
+                      {rate.secondaryConsumable ? (
                         <span className="text-sm">
-                          {rate.secondary_consumable} ({rate.secondary_consumable_rate} {rate.secondary_consumable_unit})
+                          {rate.secondaryConsumable} ({rate.secondaryConsumableRate} {rate.secondaryConsumableUnit})
                         </span>
                       ) : "-"}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Switch
-                          checked={rate.is_active}
+                          checked={rate.isActive}
                           onCheckedChange={(checked) => toggleActiveMutation.mutate({ 
                             id: rate.id, 
-                            is_active: checked 
+                            isActive: checked 
                           })}
                           data-testid={`switch-active-${rate.id}`}
                         />
-                        {rate.is_company_default && (
+                        {rate.isCompanyDefault && (
                           <Badge variant="secondary" className="text-xs">
                             Default
                           </Badge>
