@@ -3013,113 +3013,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Project Lifecycle Tracking API
-  const { lifecycleTrackingService } = await import('./lifecycleTracking');
+  // Lifecycle Template Management Routes - Import the service
   const { lifecycleTemplateService } = await import('./lifecycleTemplates');
-  
-  // Initialize lifecycle for a project
-  app.post("/api/projects/:projectId/lifecycle/initialize", async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.projectId);
-      const { templateId } = req.body;
-      
-      const result = await lifecycleTrackingService.initializeProjectLifecycle(projectId, templateId);
-      res.json(result);
-    } catch (error) {
-      console.error("Error initializing project lifecycle:", error);
-      res.status(500).json({ error: "Failed to initialize project lifecycle" });
-    }
-  });
-  
-  // Get project lifecycle overview
-  app.get("/api/projects/:projectId/lifecycle", async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.projectId);
-      const lifecycle = await lifecycleTrackingService.getProjectLifecycle(projectId);
-      res.json(lifecycle);
-    } catch (error) {
-      console.error("Error fetching project lifecycle:", error);
-      res.status(500).json({ error: "Failed to fetch project lifecycle" });
-    }
-  });
-  
-  // Update task status
-  app.patch("/api/lifecycle/tasks/:taskId", async (req, res) => {
-    try {
-      const user = await AuthService.getAuthenticatedUser(req);
-      
-      if (!user) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-      
-      const taskId = parseInt(req.params.taskId);
-      const { status, notes } = req.body;
-      
-      const result = await lifecycleTrackingService.updateTaskStatus(taskId, status, user.id, notes);
-      res.json(result);
-    } catch (error) {
-      console.error("Error updating task status:", error);
-      res.status(500).json({ error: "Failed to update task status" });
-    }
-  });
-  
-  // Update phase status
-  app.patch("/api/lifecycle/phases/:phaseId", async (req, res) => {
-    try {
-      const user = await AuthService.getAuthenticatedUser(req);
-      
-      if (!user) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-      
-      const phaseId = parseInt(req.params.phaseId);
-      const { status, blockingReason } = req.body;
-      
-      const result = await lifecycleTrackingService.updatePhaseStatus(phaseId, status, user.id, blockingReason);
-      res.json(result);
-    } catch (error) {
-      console.error("Error updating phase status:", error);
-      res.status(500).json({ error: "Failed to update phase status" });
-    }
-  });
-  
-  // Add stakeholder
-  app.post("/api/projects/:projectId/stakeholders", async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.projectId);
-      const stakeholder = await lifecycleTrackingService.addProjectStakeholder(projectId, req.body);
-      res.json(stakeholder);
-    } catch (error) {
-      console.error("Error adding stakeholder:", error);
-      res.status(500).json({ error: "Failed to add stakeholder" });
-    }
-  });
-  
-  // Get project events
-  app.get("/api/projects/:projectId/events", async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.projectId);
-      const limit = parseInt(req.query.limit as string) || 50;
-      const events = await lifecycleTrackingService.getProjectEvents(projectId, limit);
-      res.json(events);
-    } catch (error) {
-      console.error("Error fetching project events:", error);
-      res.status(500).json({ error: "Failed to fetch project events" });
-    }
-  });
-  
-  // Get stakeholder view
-  app.get("/api/projects/:projectId/stakeholder-view/:type", async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.projectId);
-      const stakeholderType = req.params.type;
-      const view = await lifecycleTrackingService.getStakeholderView(projectId, stakeholderType);
-      res.json(view);
-    } catch (error) {
-      console.error("Error fetching stakeholder view:", error);
-      res.status(500).json({ error: "Failed to fetch stakeholder view" });
-    }
-  });
 
   // Lifecycle Template Management Routes
   app.get("/api/lifecycle-templates", async (req, res) => {
@@ -6295,6 +6190,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project lifecycle routes
+  const { lifecycleTrackingService } = await import('./lifecycleTracking');
+  
   app.get('/api/projects/:id/lifecycle', async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
