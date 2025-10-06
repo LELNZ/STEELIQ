@@ -116,7 +116,7 @@ export default function ProjectLifecycleTracker() {
   // Initialize lifecycle mutation
   const initializeMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", `/api/projects/${projectIdNum}/lifecycle/initialize`, {});
+      return await apiRequest(`/api/projects/${projectIdNum}/lifecycle/initialize`, "POST", {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectIdNum}/lifecycle`] });
@@ -137,7 +137,7 @@ export default function ProjectLifecycleTracker() {
   // Update task status mutation
   const updateTaskMutation = useMutation({
     mutationFn: async ({ taskId, status, notes }: { taskId: number; status: string; notes?: string }) => {
-      return await apiRequest("PATCH", `/api/projects/${projectIdNum}/lifecycle/tasks/${taskId}`, { 
+      return await apiRequest(`/api/projects/${projectIdNum}/lifecycle/tasks/${taskId}`, "PATCH", { 
         status, 
         notes,
         completedAt: status === 'completed' ? new Date() : null
