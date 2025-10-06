@@ -158,30 +158,32 @@ export default function ConsumptionRates() {
   // Create/Update mutation
   const saveMutation = useMutation({
     mutationFn: async (data: Partial<ConsumptionRate>) => {
-      // Convert camelCase to snake_case for backend
-      const backendData = {
-        operation_type: data.operationType,
-        method: data.method,
-        material_type: data.materialType,
-        thickness_min: data.thicknessMin,
-        thickness_max: data.thicknessMax,
-        diameter_min: data.diameterMin,
-        diameter_max: data.diameterMax,
-        labor_hours_per_unit: data.laborHoursPerUnit,
-        labor_unit: data.laborUnit,
-        skill_level: data.skillLevel,
-        crew_size: data.crewSize,
-        primary_consumable: data.primaryConsumable,
-        primary_consumable_rate: data.primaryConsumableRate,
-        primary_consumable_unit: data.primaryConsumableUnit,
-        secondary_consumable: data.secondaryConsumable,
-        secondary_consumable_rate: data.secondaryConsumableRate,
-        secondary_consumable_unit: data.secondaryConsumableUnit,
-        equipment_cost_per_hour: data.equipmentCostPerHour,
-        equipment_utilization: data.equipmentUtilization,
-        is_active: data.isActive,
-        is_company_default: data.isCompanyDefault,
-      };
+      // Convert camelCase to snake_case for backend - only include defined fields
+      const backendData: any = {};
+      
+      // Only add fields that are not undefined
+      if (data.operationType !== undefined) backendData.operation_type = data.operationType;
+      if (data.method !== undefined) backendData.method = data.method;
+      if (data.materialType !== undefined) backendData.material_type = data.materialType;
+      if (data.thicknessMin !== undefined) backendData.thickness_min = data.thicknessMin;
+      if (data.thicknessMax !== undefined) backendData.thickness_max = data.thicknessMax;
+      if (data.diameterMin !== undefined) backendData.diameter_min = data.diameterMin;
+      if (data.diameterMax !== undefined) backendData.diameter_max = data.diameterMax;
+      if (data.laborHoursPerUnit !== undefined) backendData.labor_hours_per_unit = data.laborHoursPerUnit;
+      if (data.laborUnit !== undefined) backendData.labor_unit = data.laborUnit;
+      if (data.skillLevel !== undefined) backendData.skill_level = data.skillLevel;
+      if (data.crewSize !== undefined) backendData.crew_size = data.crewSize;
+      if (data.primaryConsumable !== undefined) backendData.primary_consumable = data.primaryConsumable;
+      if (data.primaryConsumableRate !== undefined) backendData.primary_consumable_rate = data.primaryConsumableRate;
+      if (data.primaryConsumableUnit !== undefined) backendData.primary_consumable_unit = data.primaryConsumableUnit;
+      if (data.secondaryConsumable !== undefined) backendData.secondary_consumable = data.secondaryConsumable;
+      if (data.secondaryConsumableRate !== undefined) backendData.secondary_consumable_rate = data.secondaryConsumableRate;
+      if (data.secondaryConsumableUnit !== undefined) backendData.secondary_consumable_unit = data.secondaryConsumableUnit;
+      if (data.equipmentCostPerHour !== undefined) backendData.equipment_cost_per_hour = data.equipmentCostPerHour;
+      if (data.equipmentUtilization !== undefined) backendData.equipment_utilization = data.equipmentUtilization;
+      if (data.notes !== undefined) backendData.notes = data.notes;
+      if (data.isActive !== undefined) backendData.is_active = data.isActive;
+      if (data.isCompanyDefault !== undefined) backendData.is_company_default = data.isCompanyDefault;
       
       if (editingRate) {
         // Update existing rate
