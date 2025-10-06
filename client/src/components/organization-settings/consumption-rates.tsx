@@ -268,6 +268,7 @@ export default function ConsumptionRates() {
         secondaryConsumableUnit: rate.secondaryConsumableUnit || undefined,
         equipmentCostPerHour: rate.equipmentCostPerHour,
         equipmentUtilization: rate.equipmentUtilization,
+        notes: rate.notes,  // Add the notes field here
         isActive: rate.isActive,
         isCompanyDefault: rate.isCompanyDefault,
       });

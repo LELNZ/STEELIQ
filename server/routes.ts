@@ -14042,8 +14042,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
       
-      console.log("PATCH /api/consumption-rates/:id - Request body:", JSON.stringify(req.body, null, 2));
-      
       const { consumptionRatesService } = await import('./services/consumption-rates-service');
       const rate = await consumptionRatesService.updateConsumptionRate(
         parseInt(req.params.id),
