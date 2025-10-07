@@ -2919,6 +2919,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Estimation Projects API
+  app.get("/api/estimations/stats", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Calculate average days to close from accepted estimations
+      const avgDaysResult = await db
+        .select({
+          avgDays: sql`COALESCE(AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 86400), 0)`
+        })
+        .from(estimationProjects)
+        .where(eq(estimationProjects.status, 'accepted'))
+        .catch(() => [{ avgDays: 0 }]);
+      
+      const avgDaysToClose = Math.round(Number(avgDaysResult[0]?.avgDays || 0));
+      
+      res.json({
+        avgDaysToClose: avgDaysToClose > 0 ? avgDaysToClose : 14 // Default to 14 if no data
+      });
+    } catch (error) {
+      console.error('Error fetching estimation stats:', error);
+      res.status(500).json({ message: 'Failed to fetch estimation stats' });
+    }
+  });
+
   app.get("/api/estimations", async (req, res) => {
     try {
       const projects = await storage.getEstimationProjects();
