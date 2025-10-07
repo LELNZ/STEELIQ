@@ -6356,7 +6356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(users)
         .where(eq(users.id, userId));
       
-      // Create document object
+      // Create document object with file data
       const newDocument = {
         id: Date.now(), // Simple ID generation
         filename: req.file.originalname,
@@ -6364,7 +6364,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileType: req.file.mimetype,
         uploadedAt: new Date(),
         uploadedBy: user?.name || 'Unknown',
-        filePath: req.file.path
+        fileData: req.file.buffer.toString('base64'), // Store file as base64
+        filePath: null // Not used with memory storage
       };
       
       // Update task with new document
@@ -6425,14 +6426,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Document not found' });
       }
       
-      // Send file
-      if (foundDocument.filePath && fs.existsSync(foundDocument.filePath)) {
-        res.download(foundDocument.filePath, foundDocument.filename);
-      } else {
-        // Fallback: create a simple text file with document info
+      // Send file from base64 data
+      if (foundDocument.fileData) {
+        const buffer = Buffer.from(foundDocument.fileData, 'base64');
         res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
         res.setHeader('Content-Disposition', `attachment; filename="${foundDocument.filename}"`);
-        res.send(`Document: ${foundDocument.filename}\nUploaded: ${foundDocument.uploadedAt}\nSize: ${foundDocument.fileSize} bytes`);
+        res.send(buffer);
+      } else if (foundDocument.filePath && fs.existsSync(foundDocument.filePath)) {
+        // Fallback: try file path if it exists (for legacy documents)
+        res.download(foundDocument.filePath, foundDocument.filename);
+      } else {
+        res.status(404).json({ error: 'Document data not found' });
       }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -6463,14 +6467,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Document not found' });
       }
       
-      // Send file for preview
-      if (foundDocument.filePath && fs.existsSync(foundDocument.filePath)) {
+      // Send file for preview from base64 data
+      if (foundDocument.fileData) {
+        const buffer = Buffer.from(foundDocument.fileData, 'base64');
+        res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `inline; filename="${foundDocument.filename}"`);
+        res.send(buffer);
+      } else if (foundDocument.filePath && fs.existsSync(foundDocument.filePath)) {
+        // Fallback: try file path if it exists (for legacy documents)
         res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
         res.sendFile(path.resolve(foundDocument.filePath));
       } else {
-        // Fallback: send a placeholder
-        res.setHeader('Content-Type', 'text/plain');
-        res.send(`Preview not available for: ${foundDocument.filename}`);
+        res.status(404).json({ error: 'Document data not found for preview' });
       }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
