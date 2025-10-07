@@ -8441,16 +8441,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Return financial statistics
+      // Calculate real financial statistics from database
+      // Get revenue from paid invoices (sales invoices to clients)
+      const revenueResult = await db
+        .select({ total: sql`COALESCE(SUM(paid_amount), 0)` })
+        .from(invoices)
+        .where(and(
+          eq(invoices.type, 'sales'),
+          eq(invoices.status, 'paid')
+        ));
+      
+      // Get expenses from paid purchase invoices
+      const expensesResult = await db
+        .select({ total: sql`COALESCE(SUM(paid_amount), 0)` })
+        .from(invoices)
+        .where(and(
+          eq(invoices.type, 'purchase'),
+          eq(invoices.status, 'paid')
+        ));
+      
+      // Get accounts receivable (unpaid sales invoices)
+      const receivableResult = await db
+        .select({ total: sql`COALESCE(SUM(total_amount - paid_amount), 0)` })
+        .from(invoices)
+        .where(and(
+          eq(invoices.type, 'sales'),
+          ne(invoices.status, 'paid')
+        ));
+      
+      // Get accounts payable (unpaid purchase invoices)
+      const payableResult = await db
+        .select({ total: sql`COALESCE(SUM(total_amount - paid_amount), 0)` })
+        .from(invoices)
+        .where(and(
+          eq(invoices.type, 'purchase'),
+          ne(invoices.status, 'paid')
+        ));
+      
+      // Get overdue invoices amount
+      const overdueResult = await db
+        .select({ total: sql`COALESCE(SUM(total_amount - paid_amount), 0)` })
+        .from(invoices)
+        .where(and(
+          eq(invoices.type, 'sales'),
+          ne(invoices.status, 'paid'),
+          lt(invoices.dueDate, new Date())
+        ));
+      
+      // Calculate cash on hand from payments
+      const cashResult = await db
+        .select({ 
+          inflow: sql`COALESCE(SUM(CASE WHEN i.type = 'sales' THEN p.amount ELSE 0 END), 0)`,
+          outflow: sql`COALESCE(SUM(CASE WHEN i.type = 'purchase' THEN p.amount ELSE 0 END), 0)`
+        })
+        .from(payments)
+        .leftJoin(invoices, eq(payments.invoiceId, invoices.id));
+      
+      const revenue = Number(revenueResult[0]?.total || 0);
+      const expenses = Number(expensesResult[0]?.total || 0);
+      const profit = revenue - expenses;
+      const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
+      const cashOnHand = Number(cashResult[0]?.inflow || 0) - Number(cashResult[0]?.outflow || 0);
+      
       const stats = {
-        revenue: 2345678,
-        expenses: 1876543,
-        profit: 469135,
-        profitMargin: 20.0,
-        cashOnHand: 523890,
-        accountsReceivable: 387654,
-        accountsPayable: 234567,
-        overduedInvoices: 45678
+        revenue: revenue,
+        expenses: expenses,
+        profit: profit,
+        profitMargin: profitMargin,
+        cashOnHand: cashOnHand,
+        accountsReceivable: Number(receivableResult[0]?.total || 0),
+        accountsPayable: Number(payableResult[0]?.total || 0),
+        overduedInvoices: Number(overdueResult[0]?.total || 0)
       };
       
       res.json(stats);
@@ -8469,14 +8530,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const metrics = [
-        { period: "Jan 2025", revenue: 1890000, expenses: 1512000, profit: 378000, profitMargin: 20.0, grossMargin: 35.5, ebitda: 425000, cashFlow: 392000, workingCapital: 523000 },
-        { period: "Dec 2024", revenue: 2145000, expenses: 1687000, profit: 458000, profitMargin: 21.4, grossMargin: 36.2, ebitda: 503000, cashFlow: 478000, workingCapital: 498000 },
-        { period: "Nov 2024", revenue: 1987000, expenses: 1590000, profit: 397000, profitMargin: 20.0, grossMargin: 34.8, ebitda: 442000, cashFlow: 415000, workingCapital: 476000 },
-        { period: "Oct 2024", revenue: 2234000, expenses: 1765000, profit: 469000, profitMargin: 21.0, grossMargin: 35.8, ebitda: 514000, cashFlow: 489000, workingCapital: 512000 },
-        { period: "Sep 2024", revenue: 2098000, expenses: 1658000, profit: 440000, profitMargin: 21.0, grossMargin: 35.2, ebitda: 485000, cashFlow: 456000, workingCapital: 498000 },
-        { period: "Aug 2024", revenue: 1956000, expenses: 1565000, profit: 391000, profitMargin: 20.0, grossMargin: 34.5, ebitda: 436000, cashFlow: 412000, workingCapital: 467000 }
-      ];
+      // Get monthly financial metrics for the last 6 months
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      // Aggregate monthly revenue and expenses from invoices
+      const monthlyData = await db
+        .select({
+          month: sql`TO_CHAR(invoice_date, 'Mon YYYY')`,
+          monthSort: sql`TO_CHAR(invoice_date, 'YYYY-MM')`,
+          revenue: sql`COALESCE(SUM(CASE WHEN type = 'sales' THEN paid_amount ELSE 0 END), 0)`,
+          expenses: sql`COALESCE(SUM(CASE WHEN type = 'purchase' THEN paid_amount ELSE 0 END), 0)`,
+          receivables: sql`COALESCE(SUM(CASE WHEN type = 'sales' AND status != 'paid' THEN total_amount - paid_amount ELSE 0 END), 0)`,
+          payables: sql`COALESCE(SUM(CASE WHEN type = 'purchase' AND status != 'paid' THEN total_amount - paid_amount ELSE 0 END), 0)`
+        })
+        .from(invoices)
+        .where(gte(invoices.invoiceDate, sixMonthsAgo))
+        .groupBy(sql`TO_CHAR(invoice_date, 'Mon YYYY'), TO_CHAR(invoice_date, 'YYYY-MM')`)
+        .orderBy(sql`TO_CHAR(invoice_date, 'YYYY-MM') DESC`)
+        .limit(6);
+      
+      // Get monthly cash flow from payments
+      const cashFlowData = await db
+        .select({
+          monthSort: sql`TO_CHAR(payment_date, 'YYYY-MM')`,
+          cashFlow: sql`COALESCE(SUM(p.amount * CASE WHEN i.type = 'sales' THEN 1 ELSE -1 END), 0)`
+        })
+        .from(payments)
+        .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
+        .where(gte(payments.paymentDate, sixMonthsAgo))
+        .groupBy(sql`TO_CHAR(payment_date, 'YYYY-MM')`);
+      
+      // Create cash flow map for easy lookup
+      const cashFlowMap = new Map(cashFlowData.map(cf => [cf.monthSort, Number(cf.cashFlow)]));
+      
+      // Calculate metrics for each month
+      const metrics = monthlyData.map(row => {
+        const revenue = Number(row.revenue || 0);
+        const expenses = Number(row.expenses || 0);
+        const profit = revenue - expenses;
+        const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
+        const grossMargin = revenue > 0 ? ((revenue - expenses * 0.65) / revenue) * 100 : 0; // Assuming 65% COGS
+        const ebitda = profit + (expenses * 0.1); // Simplified EBITDA calculation
+        const workingCapital = Number(row.receivables || 0) - Number(row.payables || 0);
+        const cashFlow = cashFlowMap.get(row.monthSort) || 0;
+        
+        return {
+          period: row.month,
+          revenue: Math.round(revenue),
+          expenses: Math.round(expenses),
+          profit: Math.round(profit),
+          profitMargin: Math.round(profitMargin * 10) / 10,
+          grossMargin: Math.round(grossMargin * 10) / 10,
+          ebitda: Math.round(ebitda),
+          cashFlow: Math.round(cashFlow),
+          workingCapital: Math.round(workingCapital)
+        };
+      });
       
       res.json(metrics);
     } catch (error) {
@@ -8493,11 +8603,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
+      // Calculate KPIs from real data
+      const currentMonth = new Date();
+      const lastMonth = new Date(currentMonth);
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+      const yearStart = new Date(currentMonth.getFullYear(), 0, 1);
+      
+      // Get current and last month revenue
+      const revenueData = await db
+        .select({
+          current: sql`COALESCE(SUM(CASE WHEN invoice_date >= ${currentMonth.toISOString().slice(0, 7) + '-01'} THEN paid_amount ELSE 0 END), 0)`,
+          lastMonth: sql`COALESCE(SUM(CASE WHEN invoice_date >= ${lastMonth.toISOString().slice(0, 7) + '-01'} AND invoice_date < ${currentMonth.toISOString().slice(0, 7) + '-01'} THEN paid_amount ELSE 0 END), 0)`,
+          yearToDate: sql`COALESCE(SUM(CASE WHEN invoice_date >= ${yearStart.toISOString()} THEN paid_amount ELSE 0 END), 0)`
+        })
+        .from(invoices)
+        .where(eq(invoices.type, 'sales'));
+      
+      // Get profit margins from job estimates
+      const marginData = await db
+        .select({
+          avgGrossMargin: sql`COALESCE(AVG(profit_margin), 0)`,
+          avgNetMargin: sql`COALESCE(AVG((total_estimate_value - total_material_cost - total_labor_cost - total_overhead_cost) / NULLIF(total_estimate_value, 0) * 100), 0)`
+        })
+        .from(jobEstimates)
+        .where(eq(jobEstimates.approvalStatus, 'approved'));
+      
+      // Calculate cash conversion cycle
+      const cashConversionData = await db
+        .select({
+          avgDaysSales: sql`COALESCE(AVG(EXTRACT(EPOCH FROM (paid_date - invoice_date)) / 86400), 0)`,
+          totalReceived: sql`COUNT(*) FILTER (WHERE status = 'paid')`,
+          totalInvoices: sql`COUNT(*)`
+        })
+        .from(invoices)
+        .where(eq(invoices.type, 'sales'));
+      
+      const currentRevenue = Number(revenueData[0]?.current || 0);
+      const lastMonthRevenue = Number(revenueData[0]?.lastMonth || 0);
+      const yearRevenue = Number(revenueData[0]?.yearToDate || 0);
+      
+      // Calculate revenue growth
+      const revenueGrowth = lastMonthRevenue > 0 ? ((currentRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
+      
+      // Calculate cash conversion rate
+      const cashConversionRate = Number(cashConversionData[0]?.totalInvoices) > 0 
+        ? (Number(cashConversionData[0]?.totalReceived) / Number(cashConversionData[0]?.totalInvoices)) * 100 
+        : 0;
+      
       const kpis = [
-        { name: "Revenue Growth", value: 12.5, target: 10, trend: "up", change: 2.5, status: "on-track", unit: "%" },
-        { name: "Gross Margin", value: 35.5, target: 35, trend: "up", change: 0.5, status: "on-track", unit: "%" },
-        { name: "Net Profit Margin", value: 20.0, target: 22.5, trend: "stable", change: 0, status: "warning", unit: "%" },
-        { name: "Cash Conversion", value: 87, target: 85, trend: "up", change: 2, status: "on-track", unit: "%" }
+        { 
+          name: "Revenue Growth", 
+          value: Math.round(revenueGrowth * 10) / 10, 
+          target: 10, 
+          trend: revenueGrowth > 0 ? "up" : revenueGrowth < 0 ? "down" : "stable", 
+          change: Math.round(revenueGrowth * 10) / 10,
+          status: revenueGrowth >= 10 ? "on-track" : revenueGrowth >= 5 ? "warning" : "off-track",
+          unit: "%" 
+        },
+        { 
+          name: "Gross Margin", 
+          value: Math.round(Number(marginData[0]?.avgGrossMargin || 0) * 10) / 10,
+          target: 35, 
+          trend: "stable", 
+          change: 0,
+          status: Number(marginData[0]?.avgGrossMargin || 0) >= 35 ? "on-track" : "warning",
+          unit: "%" 
+        },
+        { 
+          name: "Net Profit Margin", 
+          value: Math.round(Number(marginData[0]?.avgNetMargin || 0) * 10) / 10,
+          target: 22.5, 
+          trend: "stable", 
+          change: 0,
+          status: Number(marginData[0]?.avgNetMargin || 0) >= 22.5 ? "on-track" : "warning",
+          unit: "%" 
+        },
+        { 
+          name: "Cash Conversion", 
+          value: Math.round(cashConversionRate),
+          target: 85, 
+          trend: cashConversionRate > 85 ? "up" : "stable",
+          change: 0,
+          status: cashConversionRate >= 85 ? "on-track" : "warning",
+          unit: "%" 
+        }
       ];
       
       res.json(kpis);
@@ -8516,17 +8705,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const cashFlowData = Array.from({ length: 30 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (29 - i));
-        return {
-          date: date.toISOString(),
-          inflow: Math.floor(Math.random() * 50000) + 30000,
-          outflow: Math.floor(Math.random() * 40000) + 25000,
-          netCashFlow: 0,
-          balance: 523890 + (Math.random() - 0.5) * 100000
-        };
-      });
+      // Get daily cash flow for the last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      // Get daily payment inflows and outflows
+      const dailyCashFlow = await db
+        .select({
+          date: sql`DATE(payment_date)`,
+          inflow: sql`COALESCE(SUM(CASE WHEN i.type = 'sales' THEN p.amount ELSE 0 END), 0)`,
+          outflow: sql`COALESCE(SUM(CASE WHEN i.type = 'purchase' THEN p.amount ELSE 0 END), 0)`
+        })
+        .from(payments)
+        .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
+        .where(gte(payments.paymentDate, thirtyDaysAgo))
+        .groupBy(sql`DATE(payment_date)`)
+        .orderBy(sql`DATE(payment_date)`);
+      
+      // Calculate running balance
+      let runningBalance = 0;
+      const cashFlowData = [];
+      
+      // Fill in all days including those with no transactions
+      const currentDate = new Date(thirtyDaysAgo);
+      const today = new Date();
+      
+      while (currentDate <= today) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const dayData = dailyCashFlow.find(d => d.date?.toString().includes(dateStr));
+        
+        const inflow = Number(dayData?.inflow || 0);
+        const outflow = Number(dayData?.outflow || 0);
+        const netCashFlow = inflow - outflow;
+        runningBalance += netCashFlow;
+        
+        cashFlowData.push({
+          date: currentDate.toISOString(),
+          inflow: Math.round(inflow),
+          outflow: Math.round(outflow),
+          netCashFlow: Math.round(netCashFlow),
+          balance: Math.round(runningBalance)
+        });
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
 
       res.json(cashFlowData);
     } catch (error) {
@@ -8543,15 +8765,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const invoices = [
-        { id: "1", invoiceNumber: "INV-2025-001", clientName: "BuildCorp Ltd", amount: 125000, dueDate: "2025-02-15", status: "pending", paymentTerms: "Net 30" },
-        { id: "2", invoiceNumber: "INV-2025-002", clientName: "SteelWorks Inc", amount: 87500, dueDate: "2025-01-31", status: "overdue", daysOverdue: 10, paymentTerms: "Net 30" },
-        { id: "3", invoiceNumber: "INV-2024-245", clientName: "Construction Partners", amount: 156000, dueDate: "2025-01-25", status: "paid", paymentTerms: "Net 30" },
-        { id: "4", invoiceNumber: "INV-2025-003", clientName: "Industrial Projects", amount: 92000, dueDate: "2025-02-28", status: "pending", paymentTerms: "Net 45" },
-        { id: "5", invoiceNumber: "INV-2025-004", clientName: "Metro Development", amount: 178000, dueDate: "2025-02-10", status: "pending", paymentTerms: "Net 30" }
-      ];
+      // Get real sales invoices from the database
+      const invoicesData = await db
+        .select({
+          id: invoices.id,
+          invoiceNumber: invoices.invoiceNumber,
+          clientId: invoices.jobId,
+          amount: invoices.totalAmount,
+          paidAmount: invoices.paidAmount,
+          dueDate: invoices.dueDate,
+          status: invoices.status,
+          paymentTerms: invoices.paymentTerms,
+          invoiceDate: invoices.invoiceDate
+        })
+        .from(invoices)
+        .where(eq(invoices.type, 'sales'))
+        .orderBy(desc(invoices.dueDate))
+        .limit(10);
+      
+      // Get client names
+      const clientIds = invoicesData.map(inv => inv.clientId).filter(id => id != null);
+      const clientsData = clientIds.length > 0 
+        ? await db.select().from(clients).where(sql`${clients.id} = ANY(${clientIds})`)
+        : [];
+      const clientsMap = new Map(clientsData.map(c => [c.id, c.name]));
+      
+      // Format invoices with calculated fields
+      const today = new Date();
+      const formattedInvoices = invoicesData.map(inv => {
+        const dueDate = inv.dueDate ? new Date(inv.dueDate) : null;
+        const daysOverdue = dueDate && dueDate < today && inv.status !== 'paid' 
+          ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+          : 0;
+        
+        let status = inv.status || 'pending';
+        if (status !== 'paid' && daysOverdue > 0) {
+          status = 'overdue';
+        }
+        
+        return {
+          id: inv.id.toString(),
+          invoiceNumber: inv.invoiceNumber || `INV-${inv.id}`,
+          clientName: inv.clientId ? clientsMap.get(inv.clientId) || 'Unknown Client' : 'Direct Sale',
+          amount: Number(inv.amount || 0),
+          paidAmount: Number(inv.paidAmount || 0),
+          dueDate: inv.dueDate ? inv.dueDate.toISOString().split('T')[0] : null,
+          status: status,
+          daysOverdue: daysOverdue > 0 ? daysOverdue : undefined,
+          paymentTerms: inv.paymentTerms || 'Net 30'
+        };
+      });
 
-      res.json(invoices);
+      res.json(formattedInvoices);
     } catch (error) {
       console.error('Error fetching invoices:', error);
       res.status(500).json({ message: 'Failed to fetch invoices' });
@@ -8566,15 +8831,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const bills = [
-        { id: "1", billNumber: "BILL-2025-001", vendorName: "Asmuss Steel", amount: 78500, dueDate: "2025-02-05", status: "pending", category: "Materials" },
-        { id: "2", billNumber: "BILL-2025-002", vendorName: "Industrial Equipment Co", amount: 23400, dueDate: "2025-01-30", status: "overdue", category: "Equipment" },
-        { id: "3", billNumber: "BILL-2025-003", vendorName: "Professional Services Ltd", amount: 12500, dueDate: "2025-02-15", status: "pending", category: "Services" },
-        { id: "4", billNumber: "BILL-2025-004", vendorName: "Power & Energy Solutions", amount: 8900, dueDate: "2025-02-10", status: "pending", category: "Utilities" },
-        { id: "5", billNumber: "BILL-2025-005", vendorName: "Safety Equipment Direct", amount: 4200, dueDate: "2025-02-20", status: "pending", category: "Safety" }
-      ];
+      // Get real purchase invoices (bills) from the database
+      const billsData = await db
+        .select({
+          id: invoices.id,
+          invoiceNumber: invoices.invoiceNumber,
+          supplierId: invoices.supplierId,
+          amount: invoices.totalAmount,
+          paidAmount: invoices.paidAmount,
+          dueDate: invoices.dueDate,
+          status: invoices.status,
+          category: invoices.notes
+        })
+        .from(invoices)
+        .where(eq(invoices.type, 'purchase'))
+        .orderBy(desc(invoices.dueDate))
+        .limit(10);
+      
+      // Get supplier names
+      const supplierIds = billsData.map(bill => bill.supplierId).filter(id => id != null);
+      const suppliersData = supplierIds.length > 0
+        ? await db.select().from(suppliers).where(sql`${suppliers.id} = ANY(${supplierIds})`)
+        : [];
+      const suppliersMap = new Map(suppliersData.map(s => [s.id, s.name]));
+      
+      // Format bills
+      const today = new Date();
+      const formattedBills = billsData.map(bill => {
+        const dueDate = bill.dueDate ? new Date(bill.dueDate) : null;
+        const isOverdue = dueDate && dueDate < today && bill.status !== 'paid';
+        
+        return {
+          id: bill.id.toString(),
+          billNumber: bill.invoiceNumber || `BILL-${bill.id}`,
+          vendorName: bill.supplierId ? suppliersMap.get(bill.supplierId) || 'Unknown Vendor' : 'Direct Purchase',
+          amount: Number(bill.amount || 0),
+          dueDate: bill.dueDate ? bill.dueDate.toISOString().split('T')[0] : null,
+          status: isOverdue ? 'overdue' : (bill.status || 'pending'),
+          category: bill.category || 'Materials'
+        };
+      });
 
-      res.json(bills);
+      res.json(formattedBills);
     } catch (error) {
       console.error('Error fetching bills:', error);
       res.status(500).json({ message: 'Failed to fetch bills' });
