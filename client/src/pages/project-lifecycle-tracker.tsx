@@ -39,7 +39,11 @@ import {
   FileCheck,
   Milestone,
   Lock,
-  Zap
+  Zap,
+  X,
+  File,
+  FileImage,
+  Maximize2
 } from "lucide-react";
 
 interface LifecyclePhase {
@@ -85,6 +89,15 @@ interface LifecycleEvent {
   metadata?: any;
 }
 
+// Helper function to format file size
+function formatFileSize(bytes: number): string {
+  if (!bytes) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
 export default function ProjectLifecycleTracker() {
   const { projectId } = useParams();
   const [, navigate] = useLocation();
@@ -100,6 +113,36 @@ export default function ProjectLifecycleTracker() {
   const [stakeholderView, setStakeholderView] = useState<'all' | 'client' | 'engineer' | 'subcontractor'>('all');
   const [taskNotes, setTaskNotes] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [previewDocument, setPreviewDocument] = useState<TaskDocument | null>(null);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+
+  // Document download function
+  const downloadDocument = async (doc: TaskDocument) => {
+    try {
+      // Create a download link for the document
+      const response = await fetch(`/api/projects/${projectIdNum}/lifecycle/documents/${doc.id}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download document",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Fetch lifecycle data
   const { data: lifecycle, isLoading } = useQuery({
@@ -241,7 +284,6 @@ export default function ProjectLifecycleTracker() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Project Lifecycle Tracker</h1>
-            <p className="text-muted-foreground mt-1">Fortune 500 standard process tracking with STRUMIS integration</p>
           </div>
           <div className="flex gap-2">
             <Tooltip>
@@ -581,17 +623,54 @@ export default function ProjectLifecycleTracker() {
               <div>
                 <Label>Documents</Label>
                 <div className="space-y-2">
-                  {selectedTask?.documents?.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-2 border rounded">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        <span className="text-sm">{doc.filename}</span>
-                      </div>
-                      <Button size="sm" variant="ghost">
-                        <Download className="h-4 w-4" />
-                      </Button>
+                  {selectedTask?.documents?.length > 0 ? (
+                    selectedTask.documents.map((doc) => {
+                      const isImage = doc.fileType?.startsWith('image/');
+                      const isPDF = doc.fileType === 'application/pdf';
+                      const canPreview = isImage || isPDF;
+                      
+                      return (
+                        <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                          <div className="flex items-center gap-3 flex-1">
+                            {isImage ? <FileImage className="h-5 w-5 text-blue-500" /> : 
+                             isPDF ? <FileText className="h-5 w-5 text-red-500" /> : 
+                             <File className="h-5 w-5 text-gray-500" />}
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">{doc.filename}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {new Date(doc.uploadedAt).toLocaleDateString()} • {formatFileSize(doc.fileSize)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {canPreview && (
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => {
+                                  setPreviewDocument(doc);
+                                  setShowPreviewDialog(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => downloadDocument(doc)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-sm text-muted-foreground text-center py-2">
+                      No documents uploaded yet
                     </div>
-                  ))}
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -667,6 +746,67 @@ export default function ProjectLifecycleTracker() {
                 Upload
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Document Preview Dialog */}
+        <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+          <DialogContent className="max-w-5xl max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>{previewDocument?.filename}</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => previewDocument && downloadDocument(previewDocument)}
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Download
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowPreviewDialog(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="relative w-full h-[70vh] overflow-auto">
+              {previewDocument?.fileType?.startsWith('image/') ? (
+                <img
+                  src={`/api/projects/${projectIdNum}/lifecycle/documents/${previewDocument.id}/preview`}
+                  alt={previewDocument.filename}
+                  className="w-full h-auto object-contain"
+                />
+              ) : previewDocument?.fileType === 'application/pdf' ? (
+                <iframe
+                  src={`/api/projects/${projectIdNum}/lifecycle/documents/${previewDocument.id}/preview`}
+                  className="w-full h-full border-0"
+                  title={previewDocument.filename}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <File className="h-24 w-24 mb-4" />
+                  <p className="text-lg mb-2">Preview not available for this file type</p>
+                  <Button
+                    onClick={() => previewDocument && downloadDocument(previewDocument)}
+                    variant="outline"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download to View
+                  </Button>
+                </div>
+              )}
+            </div>
+            {previewDocument && (
+              <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                <span>Size: {formatFileSize(previewDocument.fileSize)}</span>
+                <span>Uploaded: {new Date(previewDocument.uploadedAt).toLocaleString()}</span>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
