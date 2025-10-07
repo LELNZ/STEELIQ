@@ -214,7 +214,9 @@ export default function Dashboard() {
               <div className="flex-1">
                 <p className="text-muted-foreground text-xs sm:text-sm font-medium">Material Efficiency</p>
                 <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">
-                  {stats?.avgEfficiency ? Number(stats.avgEfficiency).toFixed(1) : '0.0'}%
+                  {stats?.avgEfficiency && stats.avgEfficiency > 0 
+                    ? `${Number(stats.avgEfficiency).toFixed(1)}%` 
+                    : <span className="text-lg sm:text-xl lg:text-2xl text-muted-foreground">No data</span>}
                 </p>
               </div>
               <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
@@ -252,7 +254,9 @@ export default function Dashboard() {
               <div className="flex-1">
                 <p className="text-muted-foreground text-xs sm:text-sm font-medium">Total Value</p>
                 <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">
-                  ${stats?.totalValue?.toLocaleString() ?? '0'}
+                  {stats?.totalValue && stats.totalValue > 0 
+                    ? `$${stats.totalValue.toLocaleString()}` 
+                    : <span className="text-lg sm:text-xl lg:text-2xl text-muted-foreground">No data</span>}
                 </p>
               </div>
               <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
