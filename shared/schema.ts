@@ -2064,13 +2064,54 @@ export const aiCuttingOptimization = pgTable("ai_cutting_optimization", {
   projectId: integer("project_id").references(() => estimationProjects.id),
   materialType: text("material_type").notNull(), // linear, sheet, angle
   stockLength: integer("stock_length").notNull(), // standard lengths 6000, 9000, 12000
-  cutList: jsonb("cut_list").notNull(), // array of required cuts with angles
-  optimization: jsonb("optimization"), // optimized nesting solution
+  cutList: jsonb("cut_list").notNull(), // array of required cuts with angles - TO BE DEPRECATED
+  optimization: jsonb("optimization"), // optimized nesting solution - TO BE DEPRECATED
   wastePercentage: decimal("waste_percentage"),
   totalStock: integer("total_stock"), // pieces of stock required
   algorithm: text("algorithm").default("genetic"), // genetic, simulated_annealing, ml
   efficiency: decimal("efficiency"), // 0-1 score
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// NEW: Normalized tables for ai_cutting_optimization
+export const cuttingRequirements = pgTable("cutting_requirements", {
+  id: serial("id").primaryKey(),
+  optimizationId: integer("optimization_id").references(() => aiCuttingOptimization.id).notNull(),
+  sequenceNumber: integer("sequence_number").notNull(), // Order of cut in the list
+  materialId: integer("material_id").references(() => materials.id),
+  length: decimal("length", { precision: 10, scale: 3 }).notNull(), // Required cut length
+  quantity: integer("quantity").notNull().default(1), // Number of pieces needed
+  angle: decimal("angle", { precision: 5, scale: 2 }), // Cut angle in degrees
+  priority: integer("priority").default(1), // 1=high, 2=medium, 3=low
+  label: text("label"), // Optional label for the cut
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const cuttingPatterns = pgTable("cutting_patterns", {
+  id: serial("id").primaryKey(),
+  optimizationId: integer("optimization_id").references(() => aiCuttingOptimization.id).notNull(),
+  patternNumber: integer("pattern_number").notNull(), // Pattern sequence number
+  stockPieceNumber: integer("stock_piece_number").notNull(), // Which stock piece this pattern uses
+  stockLength: decimal("stock_length", { precision: 10, scale: 3 }).notNull(), // Length of stock used
+  usedLength: decimal("used_length", { precision: 10, scale: 3 }).notNull(), // Total length utilized
+  wasteLength: decimal("waste_length", { precision: 10, scale: 3 }).notNull(), // Waste from this pattern
+  efficiency: decimal("efficiency", { precision: 5, scale: 2 }).notNull(), // Pattern efficiency %
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const cuttingInstructions = pgTable("cutting_instructions", {
+  id: serial("id").primaryKey(),
+  patternId: integer("pattern_id").references(() => cuttingPatterns.id).notNull(),
+  requirementId: integer("requirement_id").references(() => cuttingRequirements.id).notNull(),
+  stepNumber: integer("step_number").notNull(), // Order of execution
+  startPosition: decimal("start_position", { precision: 10, scale: 3 }).notNull(), // Where to start cut on stock
+  endPosition: decimal("end_position", { precision: 10, scale: 3 }).notNull(), // Where to end cut
+  cutLength: decimal("cut_length", { precision: 10, scale: 3 }).notNull(), // Length of the cut
+  angle: decimal("angle", { precision: 5, scale: 2 }), // Angle of cut if applicable
+  toolRequired: text("tool_required"), // plasma, saw, laser, etc.
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const globalConfiguration = pgTable("global_configuration", {
