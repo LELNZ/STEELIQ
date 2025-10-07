@@ -10135,46 +10135,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
+      // Return empty timeline until real data integration
       const projectTimeline = {
-        projects: [
-          {
-            id: 1,
-            jobNumber: "JOB-2025-001",
-            name: "Steel Frame Warehouse",
-            client: "BuildCorp Ltd",
-            startDate: "Jan 15",
-            dueDate: "Mar 1",
-            progress: 65,
-            status: "on-track",
-            phase: "Fabrication",
-            resourceConflicts: 0
-          },
-          {
-            id: 2,
-            jobNumber: "JOB-2025-002",
-            name: "Bridge Support Structure",
-            client: "Metro Development",
-            startDate: "Jan 20",
-            dueDate: "Feb 28",
-            progress: 35,
-            status: "at-risk",
-            phase: "Cutting",
-            resourceConflicts: 2
-          }
-        ],
-        resourceConflicts: [
-          {
-            date: "Feb 5",
-            type: "Labor",
-            resource: "Senior Welders",
-            projects: ["JOB-2025-001", "JOB-2025-002"],
-            impact: "2-day delay risk"
-          }
-        ],
-        milestones: [
-          { project: "JOB-2025-001", milestone: "Material Delivery", date: "Jan 20", status: "completed" },
-          { project: "JOB-2025-001", milestone: "Cutting Complete", date: "Feb 5", status: "in-progress" }
-        ]
+        projects: [],
+        resourceConflicts: [],
+        milestones: []
       };
 
       res.json(projectTimeline);

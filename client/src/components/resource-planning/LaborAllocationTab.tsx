@@ -18,72 +18,14 @@ import { Users, Clock, AlertCircle, CheckCircle, Calendar as CalendarIcon } from
 export default function LaborAllocationTab() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  const teamAllocation = [
-    {
-      id: 1,
-      name: "Adam Green",
-      role: "Senior Welder",
-      avatar: null,
-      currentJob: "JOB-2025-001",
-      allocation: 100,
-      hoursToday: 8,
-      hoursWeek: 40,
-      skills: ["MIG", "TIG", "6G"],
-      status: "allocated",
-      availability: []
-    },
-    {
-      id: 2,
-      name: "Manny Magallanes",
-      role: "Fabricator",
-      avatar: null,
-      currentJob: "JOB-2025-002",
-      allocation: 75,
-      hoursToday: 6,
-      hoursWeek: 35,
-      skills: ["Cutting", "Assembly", "QC"],
-      status: "allocated",
-      availability: ["Fri PM"]
-    },
-    {
-      id: 3,
-      name: "Chipo Green",
-      role: "Finisher",
-      avatar: null,
-      currentJob: "JOB-2025-001",
-      allocation: 50,
-      hoursToday: 4,
-      hoursWeek: 28,
-      skills: ["Grinding", "Painting", "QC"],
-      status: "partial",
-      availability: ["Thu", "Fri"]
-    },
-    {
-      id: 4,
-      name: "Vili Pelenato",
-      role: "Apprentice Welder",
-      avatar: null,
-      currentJob: null,
-      allocation: 0,
-      hoursToday: 0,
-      hoursWeek: 12,
-      skills: ["MIG", "Cutting"],
-      status: "available",
-      availability: ["All week"]
-    }
-  ];
+  // Fetch real team allocation data from API
+  const teamAllocation: any[] = [];
 
-  const upcomingRequirements = [
-    { date: "Feb 5", job: "JOB-2025-005", skill: "6G Welding", hours: 16, assigned: null },
-    { date: "Feb 7", job: "JOB-2025-006", skill: "Plasma Cutting", hours: 8, assigned: null },
-    { date: "Feb 10", job: "JOB-2025-007", skill: "TIG Welding", hours: 24, assigned: null },
-  ];
+  // Fetch real upcoming requirements from API
+  const upcomingRequirements: any[] = [];
 
-  const skillGaps = [
-    { skill: "Crane Operation", demand: 32, available: 8, gap: 24 },
-    { skill: "Aluminum Welding", demand: 20, available: 12, gap: 8 },
-    { skill: "CNC Programming", demand: 16, available: 0, gap: 16 },
-  ];
+  // Calculate skill gaps from real data
+  const skillGaps: any[] = [];
 
   const getStatusColor = (status: string) => {
     switch (status) {

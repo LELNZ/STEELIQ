@@ -20,70 +20,14 @@ import {
 export default function EquipmentSchedulingTab() {
   const [view, setView] = useState("schedule");
 
-  const equipment = [
-    {
-      id: 1,
-      name: "Plasma Cutter #1",
-      type: "Cutting",
-      status: "operating",
-      currentJob: "JOB-2025-001",
-      utilization: 85,
-      nextMaintenance: "Feb 15",
-      hoursUsed: 1234,
-      hoursUntilService: 166,
-      efficiency: 92
-    },
-    {
-      id: 2,
-      name: "Press Brake #2",
-      type: "Forming",
-      status: "idle",
-      currentJob: null,
-      utilization: 65,
-      nextMaintenance: "Mar 1",
-      hoursUsed: 987,
-      hoursUntilService: 413,
-      efficiency: 88
-    },
-    {
-      id: 3,
-      name: "Welding Bay 1",
-      type: "Welding",
-      status: "operating",
-      currentJob: "JOB-2025-002",
-      utilization: 92,
-      nextMaintenance: "Feb 8",
-      hoursUsed: 2156,
-      hoursUntilService: 44,
-      efficiency: 95
-    },
-    {
-      id: 4,
-      name: "Drill Press #1",
-      type: "Drilling",
-      status: "maintenance",
-      currentJob: null,
-      utilization: 0,
-      nextMaintenance: "In Progress",
-      hoursUsed: 1500,
-      hoursUntilService: 0,
-      efficiency: 0
-    }
-  ];
+  // Fetch real equipment data from API
+  const equipment: any[] = [];
 
-  const upcomingSchedule = [
-    { time: "08:00", equipment: "Plasma Cutter #1", job: "JOB-2025-001", duration: "4h", operator: "Manny M." },
-    { time: "08:30", equipment: "Welding Bay 1", job: "JOB-2025-002", duration: "6h", operator: "Adam G." },
-    { time: "10:00", equipment: "Press Brake #2", job: "JOB-2025-003", duration: "2h", operator: "Vili P." },
-    { time: "13:00", equipment: "Plasma Cutter #1", job: "JOB-2025-004", duration: "3h", operator: "Chipo G." },
-  ];
+  // Fetch real schedule from API
+  const upcomingSchedule: any[] = [];
 
-  const maintenanceSchedule = [
-    { equipment: "Welding Bay 1", type: "Preventive", date: "Feb 8", duration: "4h", priority: "high" },
-    { equipment: "Plasma Cutter #1", type: "Preventive", date: "Feb 15", duration: "6h", priority: "medium" },
-    { equipment: "Press Brake #2", type: "Preventive", date: "Mar 1", duration: "3h", priority: "low" },
-    { equipment: "Drill Press #1", type: "Corrective", date: "Today", duration: "8h", priority: "critical" },
-  ];
+  // Fetch real maintenance schedule from API
+  const maintenanceSchedule: any[] = [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
