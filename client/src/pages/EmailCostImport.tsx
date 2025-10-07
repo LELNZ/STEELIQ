@@ -3,13 +3,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Mail, FileSearch, TrendingUp, Settings2, Upload, RefreshCw } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import EmailAccountsTab from "@/components/email-cost-import/EmailAccountsTab";
 import ImportedCostsTab from "@/components/email-cost-import/ImportedCostsTab";
 import CostVarianceTab from "@/components/email-cost-import/CostVarianceTab";
 import SupplierTemplatesTab from "@/components/email-cost-import/SupplierTemplatesTab";
 
+interface EmailCostStats {
+  pendingReview: number;
+  totalImported: number;
+  variancePercent: number;
+  autoMatchRate: number;
+}
+
 export default function EmailCostImport() {
   const [activeTab, setActiveTab] = useState("accounts");
+  
+  const { data: stats } = useQuery<EmailCostStats>({
+    queryKey: ["/api/email-cost-import/stats"]
+  });
 
   return (
     <div className="container mx-auto p-4">
@@ -27,7 +39,7 @@ export default function EmailCostImport() {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground">Pending Review</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">12</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">{stats?.pendingReview || 0}</p>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-2">
                   Imported costs awaiting review
                 </p>
@@ -44,7 +56,7 @@ export default function EmailCostImport() {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Imported</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">$45,678</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">${stats?.totalImported?.toLocaleString() || '0'}</p>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-2">
                   This month's imported costs
                 </p>
@@ -61,7 +73,7 @@ export default function EmailCostImport() {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground">Variance Alert</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-500 mt-0.5 sm:mt-1">+15.2%</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-500 mt-0.5 sm:mt-1">{stats?.variancePercent > 0 ? '+' : ''}{stats?.variancePercent || 0}%</p>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-2">
                   Average cost overrun
                 </p>
@@ -78,7 +90,7 @@ export default function EmailCostImport() {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground">Auto-Match Rate</p>
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">87%</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">{stats?.autoMatchRate || 0}%</p>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-2">
                   Invoices auto-matched to jobs
                 </p>

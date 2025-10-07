@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Wifi, WifiOff, Battery, Clock, MapPin, Users } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import TimeTrackingTab from "@/components/mobile-operations/TimeTrackingTab";
 import SiteInspectionTab from "@/components/mobile-operations/SiteInspectionTab";
 import DocumentCaptureTab from "@/components/mobile-operations/DocumentCaptureTab";
@@ -12,12 +13,25 @@ import OfflineSyncTab from "@/components/mobile-operations/OfflineSyncTab";
 import { offlineSync } from "@/lib/offlineSync";
 import { useToast } from "@/hooks/use-toast";
 
+interface MobileOperationsStats {
+  activeWorkers: number;
+  activeSites: number;
+  hoursToday: number;
+  documentsTotal: number;
+  documentsToday: number;
+}
+
 export default function MobileOperations() {
   const { toast } = useToast();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error">("idle");
   const [pendingSync, setPendingSync] = useState(0);
+  
+  const { data: stats } = useQuery<MobileOperationsStats>({
+    queryKey: ["/api/mobile-operations/stats"],
+    refetchInterval: 30000 // Refresh every 30 seconds
+  });
   
   // Initialize offline sync and monitor network status
   useEffect(() => {
@@ -155,7 +169,7 @@ export default function MobileOperations() {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-xs font-medium text-muted-foreground">Active Workers</p>
-                <p className="text-xl font-bold text-foreground mt-0.5">12</p>
+                <p className="text-xl font-bold text-foreground mt-0.5">{stats?.activeWorkers || 0}</p>
               </div>
               <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             </div>
@@ -167,7 +181,7 @@ export default function MobileOperations() {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-xs font-medium text-muted-foreground">Sites Active</p>
-                <p className="text-xl font-bold text-foreground mt-0.5">3</p>
+                <p className="text-xl font-bold text-foreground mt-0.5">{stats?.activeSites || 0}</p>
               </div>
               <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             </div>
@@ -179,7 +193,7 @@ export default function MobileOperations() {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-xs font-medium text-muted-foreground">Hours Today</p>
-                <p className="text-xl font-bold text-foreground mt-0.5">84.5</p>
+                <p className="text-xl font-bold text-foreground mt-0.5">{stats?.hoursToday || 0}</p>
               </div>
               <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             </div>
@@ -192,8 +206,8 @@ export default function MobileOperations() {
               <div className="flex-1">
                 <p className="text-xs font-medium text-muted-foreground">Documents</p>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <p className="text-xl font-bold text-foreground">156</p>
-                  <Badge variant="outline" className="text-xs h-5">+23</Badge>
+                  <p className="text-xl font-bold text-foreground">{stats?.documentsTotal || 0}</p>
+                  <Badge variant="outline" className="text-xs h-5">+{stats?.documentsToday || 0}</Badge>
                 </div>
               </div>
               <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />

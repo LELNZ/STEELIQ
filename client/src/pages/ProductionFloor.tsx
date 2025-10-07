@@ -33,6 +33,10 @@ interface ProductionStats {
   defectRate: number;
   onTimeDelivery: number;
   utilizationRate: number;
+  activeStaff: number;
+  currentShift: string;
+  wipTonnage: number;
+  overallProgress: number;
 }
 
 export default function ProductionFloor() {
@@ -195,15 +199,15 @@ export default function ProductionFloor() {
             </div>
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-blue-600" />
-              <span className="text-sm">Floor Staff: 18 active</span>
+              <span className="text-sm">Floor Staff: {stats?.activeStaff || 0} active</span>
             </div>
             <div className="flex items-center gap-2">
               <Factory className="h-5 w-5 text-purple-600" />
-              <span className="text-sm">Shift: Day Shift (7:00 AM - 3:30 PM)</span>
+              <span className="text-sm">Shift: {stats?.currentShift || 'No shift'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-orange-600" />
-              <span className="text-sm">WIP: 24.5 tonnes</span>
+              <span className="text-sm">WIP: {stats?.wipTonnage || 0} tonnes</span>
             </div>
           </div>
           <Badge variant="outline" className="bg-green-50">
@@ -214,9 +218,9 @@ export default function ProductionFloor() {
         <div className="mt-4">
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="text-muted-foreground">Overall Production Progress</span>
-            <span className="font-medium">68%</span>
+            <span className="font-medium">{stats?.overallProgress || 0}%</span>
           </div>
-          <Progress value={68} className="h-2" />
+          <Progress value={stats?.overallProgress || 0} className="h-2" />
         </div>
       </Card>
 
