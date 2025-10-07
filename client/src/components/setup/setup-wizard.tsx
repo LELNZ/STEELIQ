@@ -123,7 +123,7 @@ export default function SetupWizard({ open, onOpenChange }: SetupWizardProps) {
           weightPerMeter: 7.85,
           grade: "300W",
           pricePerKg: 2.50,
-          supplier: "Steel & Tube"
+          supplier: "Sample Supplier"
         },
         {
           code: "ANG-50x50x5",
@@ -135,7 +135,7 @@ export default function SetupWizard({ open, onOpenChange }: SetupWizardProps) {
           weightPerMeter: 3.77,
           grade: "300W",
           pricePerKg: 2.50,
-          supplier: "Steel & Tube"
+          supplier: "Sample Supplier"
         },
         {
           code: "RHS-50x25x2.5",
@@ -147,7 +147,7 @@ export default function SetupWizard({ open, onOpenChange }: SetupWizardProps) {
           weightPerMeter: 2.42,
           grade: "350W",
           pricePerKg: 2.75,
-          supplier: "Steel & Tube"
+          supplier: "Sample Supplier"
         }
       ];
 
