@@ -67,7 +67,7 @@ interface LifecycleTask {
   completedAt?: Date;
   completedBy?: string;
   notes?: string;
-  documents?: TaskDocument[];
+  attachedDocuments?: TaskDocument[];
 }
 
 interface TaskDocument {
@@ -448,10 +448,10 @@ export default function ProjectLifecycleTracker() {
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            {task.documents && task.documents.length > 0 && (
+                            {task.attachedDocuments && task.attachedDocuments.length > 0 && (
                               <Badge variant="secondary" className="text-xs">
                                 <Paperclip className="h-3 w-3 mr-1" />
-                                {task.documents.length}
+                                {task.attachedDocuments.length}
                               </Badge>
                             )}
                             {task.automationTrigger && (
@@ -552,7 +552,7 @@ export default function ProjectLifecycleTracker() {
                             </Badge>
                           </td>
                           <td className="p-4">
-                            {task.documents?.length || 0} files
+                            {task.attachedDocuments?.length || 0} files
                           </td>
                           <td className="p-4">
                             <Button
@@ -623,8 +623,8 @@ export default function ProjectLifecycleTracker() {
               <div>
                 <Label>Documents</Label>
                 <div className="space-y-2">
-                  {selectedTask?.documents?.length > 0 ? (
-                    selectedTask.documents.map((doc) => {
+                  {selectedTask?.attachedDocuments?.length > 0 ? (
+                    selectedTask.attachedDocuments.map((doc) => {
                       const isImage = doc.fileType?.startsWith('image/');
                       const isPDF = doc.fileType === 'application/pdf';
                       const canPreview = isImage || isPDF;
