@@ -258,139 +258,75 @@ export function ApiConnectionsTab() {
 
       {/* Connections Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              {getStatusIcon("connected")}
-              <div>
-                <h4 className="font-semibold">Steel & Tube Holdings</h4>
-                <p className="text-sm text-muted-foreground">Price & Stock API</p>
+        {isLoading ? (
+          <div className="col-span-full flex items-center justify-center h-32">
+            <p className="text-muted-foreground">Loading connections...</p>
+          </div>
+        ) : connections && connections.length > 0 ? (
+          connections.map((connection: any) => (
+            <Card key={connection.id} className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  {getStatusIcon(connection.status || "pending")}
+                  <div>
+                    <h4 className="font-semibold">{connection.name || connection.supplierName}</h4>
+                    <p className="text-sm text-muted-foreground">{connection.apiType || "API Connection"}</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm">
+                  <Settings className="h-4 w-4" />
+                </Button>
               </div>
-            </div>
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Type:</span>
-              <span>REST API</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Products:</span>
-              <span>1,245</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Last Sync:</span>
-              <span>2 mins ago</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Status:</span>
-              {getStatusBadge("connected")}
-            </div>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1"
-              onClick={() => testConnectionMutation.mutate(1)}
-            >
-              <TestTube className="h-4 w-4 mr-2" />
-              Test
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Sync
-            </Button>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              {getStatusIcon("connected")}
-              <div>
-                <h4 className="font-semibold">Fletcher Steel</h4>
-                <p className="text-sm text-muted-foreground">Catalog API</p>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Type:</span>
+                  <span>{connection.apiType || "REST API"}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Products:</span>
+                  <span>{connection.productCount || 0}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Last Sync:</span>
+                  <span>{connection.lastSync ? new Date(connection.lastSync).toLocaleString() : "Never"}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Status:</span>
+                  {getStatusBadge(connection.status || "pending")}
+                </div>
               </div>
-            </div>
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Type:</span>
-              <span>GraphQL</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Products:</span>
-              <span>892</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Last Sync:</span>
-              <span>15 mins ago</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Status:</span>
-              {getStatusBadge("connected")}
-            </div>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <Button variant="outline" size="sm" className="flex-1">
-              <TestTube className="h-4 w-4 mr-2" />
-              Test
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Sync
-            </Button>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              {getStatusIcon("error")}
-              <div>
-                <h4 className="font-semibold">Vulcan Steel</h4>
-                <p className="text-sm text-muted-foreground">FTP/CSV Import</p>
+              <div className="flex gap-2 mt-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => testConnectionMutation.mutate(connection.id)}
+                >
+                  <TestTube className="h-4 w-4 mr-2" />
+                  Test
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Sync
+                </Button>
               </div>
-            </div>
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4" />
-            </Button>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full">
+            <Card className="p-8">
+              <div className="flex flex-col items-center justify-center text-center space-y-3">
+                <Globe className="h-12 w-12 text-muted-foreground" />
+                <div>
+                  <h3 className="font-semibold">No API Connections Yet</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Click "Add Connection" to integrate with your suppliers' systems
+                  </p>
+                </div>
+              </div>
+            </Card>
           </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Type:</span>
-              <span>CSV/FTP</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Products:</span>
-              <span>567</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Last Sync:</span>
-              <span className="text-red-600">Failed</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Status:</span>
-              {getStatusBadge("error")}
-            </div>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <Button variant="outline" size="sm" className="flex-1">
-              <TestTube className="h-4 w-4 mr-2" />
-              Test
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
-          </div>
-        </Card>
+        )}
       </div>
 
       {/* Connection Logs */}
@@ -399,46 +335,40 @@ export function ApiConnectionsTab() {
           <h3 className="font-semibold">Connection Activity</h3>
         </div>
         <div className="p-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Time</TableHead>
-                <TableHead>Connection</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Details</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell>2 mins ago</TableCell>
-                <TableCell>Steel & Tube Holdings</TableCell>
-                <TableCell>Price Sync</TableCell>
-                <TableCell>
-                  <Badge className="bg-green-100 text-green-800">Success</Badge>
-                </TableCell>
-                <TableCell>Updated 145 prices</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>15 mins ago</TableCell>
-                <TableCell>Fletcher Steel</TableCell>
-                <TableCell>Catalog Update</TableCell>
-                <TableCell>
-                  <Badge className="bg-green-100 text-green-800">Success</Badge>
-                </TableCell>
-                <TableCell>Added 23 new products</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>1 hour ago</TableCell>
-                <TableCell>Vulcan Steel</TableCell>
-                <TableCell>FTP Connection</TableCell>
-                <TableCell>
-                  <Badge className="bg-red-100 text-red-800">Failed</Badge>
-                </TableCell>
-                <TableCell>Authentication error</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          {connections && connections.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Connection</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Details</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {connections.map((connection: any) => (
+                  connection.logs?.slice(0, 5).map((log: any, idx: number) => (
+                    <TableRow key={`${connection.id}-${idx}`}>
+                      <TableCell>{log.timestamp ? new Date(log.timestamp).toLocaleString() : "N/A"}</TableCell>
+                      <TableCell>{connection.name || connection.supplierName}</TableCell>
+                      <TableCell>{log.action || "Sync"}</TableCell>
+                      <TableCell>
+                        <Badge className={log.status === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                          {log.status || "Unknown"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{log.details || "No details available"}</TableCell>
+                    </TableRow>
+                  ))
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No connection activity to display
+            </div>
+          )}
         </div>
       </Card>
     </div>
