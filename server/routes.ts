@@ -9359,11 +9359,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const forecast = [
-        { period: "Next 30 Days", projectedInflow: 425000, projectedOutflow: 380000, projectedBalance: 568890, confidence: 92 },
-        { period: "30-60 Days", projectedInflow: 520000, projectedOutflow: 470000, projectedBalance: 618890, confidence: 85 },
-        { period: "60-90 Days", projectedInflow: 480000, projectedOutflow: 495000, projectedBalance: 603890, confidence: 78 }
-      ];
+      // Return empty forecast data when no actual data exists
+      const forecast: any[] = [];
 
       res.json(forecast);
     } catch (error) {
@@ -9381,12 +9378,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const jobCosts = [
-        { id: "1", jobNumber: "JOB-2025-001", projectName: "Steel Frame Warehouse", clientName: "BuildCorp Ltd", revenue: 325000, directCosts: 195000, overheads: 39000, profit: 91000, profitMargin: 28.0, status: "completed", materialCost: 115000, laborCost: 65000, equipmentCost: 15000, subcontractorCost: 0, otherCost: 0 },
-        { id: "2", jobNumber: "JOB-2025-002", projectName: "Bridge Support Structure", clientName: "Metro Development", revenue: 478000, directCosts: 334600, overheads: 66920, profit: 76480, profitMargin: 16.0, status: "in-progress", materialCost: 198000, laborCost: 98600, equipmentCost: 38000, subcontractorCost: 0, otherCost: 0 },
-        { id: "3", jobNumber: "JOB-2025-003", projectName: "Industrial Platform", clientName: "SteelWorks Inc", revenue: 156000, directCosts: 101400, overheads: 20280, profit: 34320, profitMargin: 22.0, status: "completed", materialCost: 58000, laborCost: 35400, equipmentCost: 8000, subcontractorCost: 0, otherCost: 0 },
-        { id: "4", jobNumber: "JOB-2025-004", projectName: "Manufacturing Plant Extension", clientName: "Industrial Projects", revenue: 892000, directCosts: 642240, overheads: 128448, profit: 121312, profitMargin: 13.6, status: "in-progress", materialCost: 385000, laborCost: 198240, equipmentCost: 45000, subcontractorCost: 14000, otherCost: 0 }
-      ];
+      // Get actual job costs from database
+      const jobCosts = await db.select({
+        id: sql<string>`${jobs.id}::text`,
+        jobNumber: jobs.jobNumber,
+        projectName: jobs.name,
+        clientName: sql<string>`''`,
+        revenue: sql<number>`COALESCE(${jobs.quotedPrice}, 0)`,
+        directCosts: sql<number>`0`,
+        overheads: sql<number>`0`,
+        profit: sql<number>`0`,
+        profitMargin: sql<number>`0`,
+        status: jobs.status,
+        materialCost: sql<number>`0`,
+        laborCost: sql<number>`0`,
+        equipmentCost: sql<number>`0`,
+        subcontractorCost: sql<number>`0`,
+        otherCost: sql<number>`0`
+      })
+      .from(jobs)
+      .limit(20);
 
       res.json(jobCosts);
     } catch (error) {
@@ -9403,13 +9414,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const categories = [
-        { category: "Materials", amount: 756000, percentage: 45, budget: 700000, variance: 8.0, trend: "up" },
-        { category: "Labor", amount: 396640, percentage: 30, budget: 420000, variance: -5.6, trend: "down" },
-        { category: "Equipment", amount: 106000, percentage: 15, budget: 100000, variance: 6.0, trend: "up" },
-        { category: "Subcontractors", amount: 14000, percentage: 5, budget: 25000, variance: -44.0, trend: "down" },
-        { category: "Overhead", amount: 254648, percentage: 5, budget: 250000, variance: 1.9, trend: "stable" }
-      ];
+      // Return empty categories when no actual data exists
+      const categories: any[] = [];
 
       res.json(categories);
     } catch (error) {
@@ -9426,13 +9432,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const materials = [
-        { material: "UC 310x97", quantity: 125, unitCost: 145.50, totalCost: 18187.50, supplier: "Asmuss Steel", priceChange: 3.5 },
-        { material: "SHS 100x100x6", quantity: 200, unitCost: 78.25, totalCost: 15650.00, supplier: "Fletcher Steel", priceChange: -2.1 },
-        { material: "UB 610x229x125", quantity: 85, unitCost: 312.00, totalCost: 26520.00, supplier: "Asmuss Steel", priceChange: 5.2 },
-        { material: "12mm Plate", quantity: 45, unitCost: 125.00, totalCost: 5625.00, supplier: "Steel & Tube", priceChange: 0.0 },
-        { material: "RHS 250x150x9", quantity: 150, unitCost: 185.75, totalCost: 27862.50, supplier: "Asmuss Steel", priceChange: 4.1 }
-      ];
+      // Return empty materials when no actual data exists
+      const materials: any[] = [];
 
       res.json(materials);
     } catch (error) {
@@ -9479,13 +9480,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const budgets = [
-        { id: "1", category: "Materials", period: "Q1 2025", budgetAmount: 700000, actualAmount: 485000, variance: -215000, variancePercentage: -30.7, remaining: 215000, status: "on-track", lastUpdated: new Date().toISOString(), projectedTotal: 680000, alerts: [] },
-        { id: "2", category: "Labor", period: "Q1 2025", budgetAmount: 420000, actualAmount: 285000, variance: -135000, variancePercentage: -32.1, remaining: 135000, status: "on-track", lastUpdated: new Date().toISOString(), projectedTotal: 405000, alerts: [] },
-        { id: "3", category: "Equipment", period: "Q1 2025", budgetAmount: 100000, actualAmount: 78000, variance: -22000, variancePercentage: -22.0, remaining: 22000, status: "warning", lastUpdated: new Date().toISOString(), projectedTotal: 108000, alerts: ["Projected to exceed budget by 8%"] },
-        { id: "4", category: "Subcontractors", period: "Q1 2025", budgetAmount: 50000, actualAmount: 12000, variance: -38000, variancePercentage: -76.0, remaining: 38000, status: "on-track", lastUpdated: new Date().toISOString(), projectedTotal: 35000, alerts: [] },
-        { id: "5", category: "Overhead", period: "Q1 2025", budgetAmount: 250000, actualAmount: 198000, variance: -52000, variancePercentage: -20.8, remaining: 52000, status: "over-budget", lastUpdated: new Date().toISOString(), projectedTotal: 265000, alerts: ["Over budget by $15,000", "Review overhead costs immediately"] }
-      ];
+      // Return empty budget data when no actual budgets exist
+      const budgets: any[] = [];
 
       res.json(budgets);
     } catch (error) {
@@ -9502,11 +9498,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const alerts = [
-        { id: "1", type: "critical", category: "Materials", message: "Material costs projected to exceed budget by 18% this quarter due to steel price increases", actionRequired: true, timestamp: new Date().toISOString() },
-        { id: "2", type: "warning", category: "Equipment", message: "Equipment rental costs trending 8% above budget - consider purchasing vs renting analysis", actionRequired: false, timestamp: new Date().toISOString() },
-        { id: "3", type: "info", category: "Labor", message: "Labor costs 12% under budget due to efficiency improvements", actionRequired: false, timestamp: new Date().toISOString() }
-      ];
+      // Return empty alerts when no actual alerts exist
+      const alerts: any[] = [];
 
       res.json(alerts);
     } catch (error) {
@@ -9523,13 +9516,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const forecast = [
-        { period: "Feb 2025", projected: 580000, budget: 550000, confidence: 88 },
-        { period: "Mar 2025", projected: 620000, budget: 600000, confidence: 82 },
-        { period: "Apr 2025", projected: 590000, budget: 600000, confidence: 75 },
-        { period: "May 2025", projected: 610000, budget: 600000, confidence: 70 },
-        { period: "Jun 2025", projected: 630000, budget: 650000, confidence: 65 }
-      ];
+      // Return empty forecast when no actual data exists
+      const forecast: any[] = [];
 
       res.json(forecast);
     } catch (error) {
