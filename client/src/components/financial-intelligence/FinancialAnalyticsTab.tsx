@@ -386,30 +386,39 @@ export default function FinancialAnalyticsTab() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <Doughnut2
-                data={{
-                  labels: ['Fabrication', 'Installation', 'Maintenance', 'Consulting', 'Other'],
-                  datasets: [{
-                    data: [45, 25, 15, 10, 5],
-                    backgroundColor: [
-                      'rgba(59, 130, 246, 0.8)',
-                      'rgba(34, 197, 94, 0.8)',
-                      'rgba(251, 191, 36, 0.8)',
-                      'rgba(239, 68, 68, 0.8)',
-                      'rgba(156, 163, 175, 0.8)'
-                    ],
-                  }]
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'right' as const,
+              {revenueBreakdown && Object.keys(revenueBreakdown).length > 0 ? (
+                <Doughnut2
+                  data={{
+                    labels: Object.keys(revenueBreakdown),
+                    datasets: [{
+                      data: Object.values(revenueBreakdown),
+                      backgroundColor: [
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(34, 197, 94, 0.8)',
+                        'rgba(251, 191, 36, 0.8)',
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(156, 163, 175, 0.8)'
+                      ],
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'right' as const,
+                      }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <PieChart className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                    <p>No revenue data available</p>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -427,30 +436,39 @@ export default function FinancialAnalyticsTab() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <Doughnut2
-                data={{
-                  labels: ['Materials', 'Labor', 'Equipment', 'Overhead', 'Other'],
-                  datasets: [{
-                    data: [35, 30, 15, 15, 5],
-                    backgroundColor: [
-                      'rgba(239, 68, 68, 0.8)',
-                      'rgba(251, 191, 36, 0.8)',
-                      'rgba(59, 130, 246, 0.8)',
-                      'rgba(156, 163, 175, 0.8)',
-                      'rgba(34, 197, 94, 0.8)'
-                    ],
-                  }]
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'right' as const,
+              {expenseBreakdown && Object.keys(expenseBreakdown).length > 0 ? (
+                <Doughnut2
+                  data={{
+                    labels: Object.keys(expenseBreakdown),
+                    datasets: [{
+                      data: Object.values(expenseBreakdown),
+                      backgroundColor: [
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(251, 191, 36, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(156, 163, 175, 0.8)',
+                        'rgba(34, 197, 94, 0.8)'
+                      ],
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'right' as const,
+                      }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <PieChart className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                    <p>No expense data available</p>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
