@@ -49,14 +49,12 @@ export default function Jobs() {
           value={activeJobs}
           subtitle={`${jobs.length > 0 ? Math.round((activeJobs / jobs.length) * 100) : 0}% of total`}
           icon={<Briefcase className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />}
-          trend={{ value: 8, isPositive: true }}
         />
         <MetricCard
           title="Material Efficiency"
           value={`${efficiency}%`}
           subtitle="Efficiency rate"
           icon={<TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />}
-          trend={{ value: 5, isPositive: true }}
         />
         <MetricCard
           title="Weekly Volume"
@@ -69,7 +67,6 @@ export default function Jobs() {
           value={`$${totalValue.toLocaleString()}`}
           subtitle="This month"
           icon={<CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />}
-          trend={{ value: 12, isPositive: true }}
         />
       </div>
 

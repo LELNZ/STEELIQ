@@ -8792,50 +8792,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-      // Return production metrics
+      // Return empty production metrics - will be populated from real data
       const metrics = {
-        dailyOutput: [
-          { date: "2025-01-15", planned: 45, actual: 42, efficiency: 93 },
-          { date: "2025-01-16", planned: 45, actual: 48, efficiency: 107 },
-          { date: "2025-01-17", planned: 45, actual: 44, efficiency: 98 },
-          { date: "2025-01-18", planned: 45, actual: 46, efficiency: 102 },
-          { date: "2025-01-19", planned: 45, actual: 41, efficiency: 91 },
-          { date: "2025-01-20", planned: 45, actual: 43, efficiency: 96 },
-          { date: "2025-01-21", planned: 45, actual: 42, efficiency: 93 }
-        ],
-        machineUtilization: [
-          { machine: "Plasma Cutter #1", utilization: 85, targetUtilization: 80 },
-          { machine: "Press Brake #2", utilization: 65, targetUtilization: 75 },
-          { machine: "Welding Bay 1", utilization: 92, targetUtilization: 85 },
-          { machine: "Welding Bay 2", utilization: 78, targetUtilization: 85 },
-          { machine: "Drill Press #1", utilization: 70, targetUtilization: 70 }
-        ],
-        qualityMetrics: [
-          { metric: "First Pass Yield", value: 92, target: 95, trend: "up" },
-          { metric: "Defect Rate", value: 2, target: 3, trend: "down" },
-          { metric: "Rework Rate", value: 4, target: 5, trend: "stable" }
-        ],
-        productionByType: [
-          { type: "Beams", value: 35, percentage: 35 },
-          { type: "Columns", value: 25, percentage: 25 },
-          { type: "Plates", value: 20, percentage: 20 },
-          { type: "Frames", value: 15, percentage: 15 },
-          { type: "Other", value: 5, percentage: 5 }
-        ],
+        dailyOutput: [],
+        machineUtilization: [],
+        qualityMetrics: [],
+        productionByType: [],
         oeeBreakdown: {
-          availability: 92,
-          performance: 87,
-          quality: 96,
-          oee: 77
+          availability: 0,
+          performance: 0,
+          quality: 0,
+          oee: 0
         },
-        kpis: [
-          { name: "Output", value: 42, unit: "tonnes", target: 45, status: "warning" },
-          { name: "Efficiency", value: 87, unit: "%", target: 85, status: "on-track" },
-          { name: "Quality", value: 96, unit: "%", target: 95, status: "on-track" },
-          { name: "Safety", value: 125, unit: "days", target: 100, status: "on-track" },
-          { name: "Delivery", value: 94, unit: "%", target: 95, status: "warning" },
-          { name: "Utilization", value: 78, unit: "%", target: 80, status: "warning" }
-        ]
+        kpis: []
       };
       
       res.json(metrics);

@@ -320,14 +320,12 @@ export default function RemnantManagement() {
             value={stats.totalRemnants.toString()}
             subtitle="Available for reuse"
             icon={<Package2 className="h-4 w-4 sm:h-5 sm:w-5" />}
-            trend={{ value: 12, isPositive: true }}
           />
           <MetricCard
             title="Total Value"
             value={`$${stats.totalValue.toFixed(2)}`}
             subtitle="Current inventory value"
             icon={<BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />}
-            trend={{ value: 8, isPositive: true }}
           />
           <MetricCard
             title="Average Length"
@@ -340,7 +338,6 @@ export default function RemnantManagement() {
             value={`${stats.utilizationRate}%`}
             subtitle="Remnant reuse efficiency"
             icon={<BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />}
-            trend={{ value: 5, isPositive: true }}
           />
         </div>
       )}
