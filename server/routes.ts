@@ -8303,6 +8303,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Resource Planning routes
+  app.get('/api/resource-planning/stats', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Calculate resource planning metrics from database
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Calculate workshop capacity (based on active jobs vs max capacity)
+      const activeJobsResult = await db
+        .select({ count: sql`COUNT(*)` })
+        .from(jobs)
+        .where(eq(jobs.status, 'in_progress'))
+        .catch(() => [{ count: 0 }]);
+      
+      const maxCapacity = 20; // Assume max 20 concurrent jobs
+      const activeJobs = Number(activeJobsResult[0]?.count || 0);
+      const workshopCapacity = Math.min(100, Math.round((activeJobs / maxCapacity) * 100));
+      
+      // Calculate labor utilization
+      const totalWorkersResult = await db
+        .select({ count: sql`COUNT(*)` })
+        .from(users)
+        .where(eq(users.role, 'worker'))
+        .catch(() => [{ count: 0 }]);
+      
+      const activeWorkersResult = await db
+        .selectDistinct({ userId: timeEntries.userId })
+        .from(timeEntries)
+        .where(and(
+          gte(timeEntries.clockIn, today),
+          isNull(timeEntries.clockOut)
+        ))
+        .catch(() => []);
+      
+      const totalWorkers = Number(totalWorkersResult[0]?.count || 0);
+      const activeWorkers = activeWorkersResult.length;
+      const laborUtilization = totalWorkers > 0 
+        ? Math.min(100, Math.round((activeWorkers / totalWorkers) * 100))
+        : 0;
+      const availableWorkers = Math.max(0, totalWorkers - activeWorkers);
+      
+      // Calculate equipment usage (simplified - based on jobs using equipment)
+      const totalMachines = 12; // Assume 12 machines total
+      const machinesInUseResult = await db
+        .select({ count: sql`COUNT(DISTINCT machine_id)` })
+        .from(machineAllocations)
+        .where(and(
+          isNotNull(machineAllocations.machineId),
+          eq(machineAllocations.status, 'active')
+        ))
+        .catch(() => [{ count: 0 }]);
+      
+      const machinesInUse = Number(machinesInUseResult[0]?.count || 0);
+      const equipmentUsage = Math.min(100, Math.round((machinesInUse / totalMachines) * 100));
+      const idleMachines = Math.max(0, totalMachines - machinesInUse);
+      
+      // Calculate schedule health based on overdue jobs
+      const overdueJobsResult = await db
+        .select({ count: sql`COUNT(*)` })
+        .from(jobs)
+        .where(and(
+          eq(jobs.status, 'in_progress'),
+          lt(jobs.dueDate, today)
+        ))
+        .catch(() => [{ count: 0 }]);
+      
+      const overdueJobs = Number(overdueJobsResult[0]?.count || 0);
+      const scheduleHealth = overdueJobs === 0 ? 'good' : overdueJobs <= 3 ? 'warning' : 'critical';
+      
+      // Count resolved conflicts (simplified - count jobs moved from delayed to in_progress today)
+      const conflictsResolvedResult = await db
+        .select({ count: sql`COUNT(*)` })
+        .from(jobs)
+        .where(and(
+          eq(jobs.status, 'in_progress'),
+          gte(jobs.actualStartDate, today)
+        ))
+        .catch(() => [{ count: 0 }]);
+      
+      const conflictsResolved = Number(conflictsResolvedResult[0]?.count || 0);
+      
+      res.json({
+        workshopCapacity,
+        laborUtilization,
+        equipmentUsage,
+        availableWorkers,
+        idleMachines,
+        scheduleHealth,
+        conflictsResolved
+      });
+    } catch (error) {
+      console.error('Error fetching resource planning stats:', error);
+      res.status(500).json({ message: 'Failed to fetch resource planning stats' });
+    }
+  });
+
   // Production Floor Tracking routes
   app.get('/api/production-floor/stats', async (req, res) => {
     try {

@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { 
   Calendar, Users, Wrench, TrendingUp, AlertCircle, 
   CheckCircle, Clock, BarChart3, Activity, Settings, Factory,
@@ -18,12 +18,27 @@ import LaborAllocationTab from "@/components/resource-planning/LaborAllocationTa
 import EquipmentSchedulingTab from "@/components/resource-planning/EquipmentSchedulingTab";
 import ProjectTimelineTab from "@/components/resource-planning/ProjectTimelineTab";
 
+interface ResourcePlanningStats {
+  workshopCapacity: number;
+  laborUtilization: number;
+  equipmentUsage: number;
+  availableWorkers: number;
+  idleMachines: number;
+  scheduleHealth: "good" | "warning" | "critical";
+  conflictsResolved: number;
+}
+
 export default function ResourcePlanning() {
   const [activeTab, setActiveTab] = useState("capacity");
   const [showProductionSyncDialog, setShowProductionSyncDialog] = useState(false);
   const [productionData, setProductionData] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: stats } = useQuery<ResourcePlanningStats>({
+    queryKey: ["/api/resource-planning/stats"],
+    refetchInterval: 60000 // Refresh every minute
+  });
 
   // Check for production floor sync on mount
   React.useEffect(() => {
@@ -58,8 +73,8 @@ export default function ResourcePlanning() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground">Workshop Capacity</p>
-                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">78%</p>
-                  <Progress value={78} className="mt-2 h-1.5" />
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">{stats?.workshopCapacity || 0}%</p>
+                  <Progress value={stats?.workshopCapacity || 0} className="mt-2 h-1.5" />
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1">Optimal: 75-85%</p>
                 </div>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
@@ -74,9 +89,9 @@ export default function ResourcePlanning() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground">Labor Utilization</p>
-                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">82%</p>
-                  <Progress value={82} className="mt-2 h-1.5" />
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">4 available workers</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">{stats?.laborUtilization || 0}%</p>
+                  <Progress value={stats?.laborUtilization || 0} className="mt-2 h-1.5" />
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">{stats?.availableWorkers || 0} available workers</p>
                 </div>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
                   <Users className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />
@@ -90,9 +105,9 @@ export default function ResourcePlanning() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground">Equipment Usage</p>
-                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">65%</p>
-                  <Progress value={65} className="mt-2 h-1.5" />
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">2 machines idle</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">{stats?.equipmentUsage || 0}%</p>
+                  <Progress value={stats?.equipmentUsage || 0} className="mt-2 h-1.5" />
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">{stats?.idleMachines || 0} machines idle</p>
                 </div>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
                   <Wrench className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />
@@ -107,10 +122,12 @@ export default function ResourcePlanning() {
                 <div className="flex-1">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground">Schedule Health</p>
                   <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1 flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
-                    Good
+                    {stats?.scheduleHealth === 'good' && <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />}
+                    {stats?.scheduleHealth === 'warning' && <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />}
+                    {stats?.scheduleHealth === 'critical' && <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />}
+                    {stats?.scheduleHealth ? (stats.scheduleHealth.charAt(0).toUpperCase() + stats.scheduleHealth.slice(1)) : 'Unknown'}
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">3 conflicts resolved</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">{stats?.conflictsResolved || 0} conflicts resolved</p>
                 </div>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
                   <Clock className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />
