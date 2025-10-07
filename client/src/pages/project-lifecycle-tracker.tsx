@@ -144,6 +144,40 @@ export default function ProjectLifecycleTracker() {
     }
   };
 
+  // Document delete function
+  const deleteDocument = async (doc: TaskDocument) => {
+    if (!confirm(`Are you sure you want to delete "${doc.filename}"?`)) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/projects/${projectIdNum}/lifecycle/documents/${doc.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ taskId: selectedTask?.id })
+      });
+      
+      if (!response.ok) throw new Error('Delete failed');
+      
+      // Refresh the lifecycle data to show updated documents
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectIdNum}/lifecycle`] });
+      
+      toast({
+        title: "Success",
+        description: "Document deleted successfully"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete document",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Fetch lifecycle data
   const { data: lifecycle, isLoading } = useQuery({
     queryKey: [`/api/projects/${projectIdNum}/lifecycle`],
@@ -661,6 +695,14 @@ export default function ProjectLifecycleTracker() {
                               onClick={() => downloadDocument(doc)}
                             >
                               <Download className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => deleteDocument(doc)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>

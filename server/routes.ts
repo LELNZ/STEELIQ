@@ -389,10 +389,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Configure multer for file uploads
-  // Configure multer for disk storage
+  // Industry-standard secure file upload configuration
   const uploadStorage = multer.diskStorage({
     destination: function (req, file, cb) {
-      const uploadDir = 'uploads/lifecycle-documents';
+      // Store outside web root for security
+      const uploadDir = path.join(process.cwd(), '.secure-uploads', 'lifecycle-documents');
       // Create directory if it doesn't exist
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
@@ -400,15 +401,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
-      // Generate unique filename with timestamp
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + '-' + file.originalname);
+      // Sanitize and generate secure filename
+      const sanitizedName = file.originalname
+        .replace(/[^a-zA-Z0-9.-]/g, '_') // Remove special characters
+        .replace(/\.{2,}/g, '_') // Remove double dots
+        .substring(0, 100); // Limit length
+      
+      // Generate unique filename with timestamp and random ID
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(2, 8);
+      const extension = path.extname(sanitizedName);
+      const baseName = path.basename(sanitizedName, extension);
+      
+      cb(null, `${timestamp}_${randomId}_${baseName}${extension}`);
     }
   });
 
+  // File filter for security (allowlist approach)
+  const fileFilter = (req: any, file: any, cb: any) => {
+    // Allowed file types (industry standard)
+    const allowedTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf',
+      'application/msword', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'application/vnd.ms-excel', // .xls
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'text/plain', 'text/csv'
+    ];
+    
+    // Check MIME type
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error('Invalid file type. Only images, PDFs, and documents are allowed.'), false);
+    }
+    
+    // Check file extension
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.csv'];
+    const extension = path.extname(file.originalname).toLowerCase();
+    
+    if (!allowedExtensions.includes(extension)) {
+      return cb(new Error('Invalid file extension.'), false);
+    }
+    
+    cb(null, true);
+  };
+
   const upload = multer({ 
     storage: uploadStorage,
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+    fileFilter: fileFilter,
+    limits: { 
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+      files: 1 // Only one file at a time
+    }
   });
 
   // Import/Export validation schemas
@@ -6442,9 +6486,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Document not found' });
       }
       
-      // Send file from disk
-      if (foundDocument.filePath && fs.existsSync(foundDocument.filePath)) {
-        res.download(foundDocument.filePath, foundDocument.filename);
+      // Send file from disk with security headers
+      if (foundDocument.filePath) {
+        // Handle both old and new file paths
+        const filePath = foundDocument.filePath.startsWith('/') || foundDocument.filePath.includes(':') 
+          ? foundDocument.filePath 
+          : path.join(process.cwd(), foundDocument.filePath);
+          
+        if (fs.existsSync(filePath)) {
+          // Set security headers (OWASP standards)
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+          res.setHeader('X-Frame-Options', 'DENY');
+          res.download(filePath, foundDocument.filename);
+        } else if (foundDocument.fileData) {
+          // Fallback to base64 data if file not found
+          const buffer = Buffer.from(foundDocument.fileData, 'base64');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+          res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
+          res.setHeader('Content-Disposition', `attachment; filename="${foundDocument.filename}"`);
+          res.send(buffer);
+        } else {
+          res.status(404).json({ error: 'Document file not found' });
+        }
+      } else if (foundDocument.fileData) {
+        // Fallback to base64 data for legacy documents
+        const buffer = Buffer.from(foundDocument.fileData, 'base64');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename="${foundDocument.filename}"`);
+        res.send(buffer);
       } else {
         res.status(404).json({ error: 'Document file not found' });
       }
@@ -6477,14 +6547,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Document not found' });
       }
       
-      // Send file for preview
-      if (foundDocument.filePath && fs.existsSync(foundDocument.filePath)) {
+      // Send file for preview with proper security headers
+      if (foundDocument.filePath) {
+        // Handle both old and new file paths
+        const filePath = foundDocument.filePath.startsWith('/') || foundDocument.filePath.includes(':') 
+          ? foundDocument.filePath 
+          : path.join(process.cwd(), foundDocument.filePath);
+        
+        // Check if file exists
+        if (fs.existsSync(filePath)) {
+          // Set security headers (OWASP standards)
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+          res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+          res.setHeader('Content-Security-Policy', "default-src 'self'");
+          res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
+          res.setHeader('Content-Disposition', `inline; filename="${foundDocument.filename}"`);
+          res.sendFile(path.resolve(filePath));
+        } else if (foundDocument.fileData) {
+          // Fallback to base64 data if file not found
+          const buffer = Buffer.from(foundDocument.fileData, 'base64');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+          res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
+          res.setHeader('Content-Disposition', `inline; filename="${foundDocument.filename}"`);
+          res.send(buffer);
+        } else {
+          res.status(404).json({ error: 'Document file not found' });
+        }
+      } else if (foundDocument.fileData) {
+        // Handle base64 encoded files (legacy)
+        const buffer = Buffer.from(foundDocument.fileData, 'base64');
         res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
         res.setHeader('Content-Disposition', `inline; filename="${foundDocument.filename}"`);
-        res.sendFile(path.resolve(foundDocument.filePath));
+        res.send(buffer);
       } else {
-        res.status(404).json({ error: 'Document file not found for preview' });
+        // Fallback: Show a placeholder for documents without file data
+        res.setHeader('Content-Type', 'text/html');
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head><title>Document Preview</title></head>
+          <body style="font-family: Arial, sans-serif; padding: 20px; text-align: center;">
+            <h2>Preview Not Available</h2>
+            <p>This document was uploaded before preview was supported.</p>
+            <p><strong>Filename:</strong> ${foundDocument.filename}</p>
+            <p><strong>Size:</strong> ${foundDocument.fileSize ? (foundDocument.fileSize / 1024).toFixed(1) + ' KB' : 'Unknown'}</p>
+            <p><strong>Uploaded:</strong> ${foundDocument.uploadedAt || 'Unknown date'}</p>
+            <p style="margin-top: 20px; color: #666;">Please re-upload the document to enable preview.</p>
+          </body>
+          </html>
+        `);
       }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Delete document
+  app.delete('/api/projects/:projectId/lifecycle/documents/:documentId', async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const documentId = parseInt(req.params.documentId);
+      const { taskId } = req.body;
+      
+      if (!taskId) {
+        return res.status(400).json({ error: 'Task ID required' });
+      }
+      
+      // Get the task
+      const [task] = await db.select()
+        .from(projectLifecycleTasks)
+        .where(eq(projectLifecycleTasks.id, taskId));
+      
+      if (!task) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+      
+      // Remove document from attachedDocuments array
+      const documents = (task.attachedDocuments as any[]) || [];
+      const updatedDocuments = documents.filter((doc: any) => doc.id !== documentId);
+      
+      // Find the document to delete its file
+      const documentToDelete = documents.find((doc: any) => doc.id === documentId);
+      
+      // Delete file from disk if it exists
+      if (documentToDelete?.filePath && fs.existsSync(documentToDelete.filePath)) {
+        fs.unlinkSync(documentToDelete.filePath);
+      }
+      
+      // Update task
+      await db.update(projectLifecycleTasks)
+        .set({
+          attachedDocuments: updatedDocuments,
+          updatedAt: new Date()
+        })
+        .where(eq(projectLifecycleTasks.id, taskId));
+      
+      res.json({ success: true, message: 'Document deleted successfully' });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
