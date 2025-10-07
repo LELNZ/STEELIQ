@@ -2592,6 +2592,80 @@ export const insertAiEstimationHistorySchema = createInsertSchema(aiEstimationHi
   createdAt: true,
 });
 
+// NEW: Normalized tables to replace JSONB in estimationData
+export const estimationOverheads = pgTable("estimation_overheads", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id).notNull(),
+  overheadType: text("overhead_type").notNull(), // administration, insurance, transport, site_setup, etc.
+  category: text("category").notNull(), // fixed, variable, project_specific
+  description: text("description").notNull(),
+  calculationMethod: text("calculation_method").notNull(), // percentage, fixed_amount, per_unit
+  baseAmount: decimal("base_amount", { precision: 12, scale: 2 }), // Base amount for calculation
+  percentage: decimal("percentage", { precision: 5, scale: 2 }), // If percentage-based
+  appliedTo: text("applied_to"), // materials, labor, both, total
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const estimationMargins = pgTable("estimation_margins", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id).notNull(),
+  marginType: text("margin_type").notNull(), // profit, contingency, risk
+  category: text("category").notNull(), // standard, premium, discount
+  description: text("description").notNull(),
+  percentage: decimal("percentage", { precision: 5, scale: 2 }).notNull(),
+  appliedTo: text("applied_to").notNull(), // subtotal, materials, labor, total
+  baseAmount: decimal("base_amount", { precision: 12, scale: 2 }).notNull(), // Amount margin is applied to
+  marginAmount: decimal("margin_amount", { precision: 12, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const estimationTotals = pgTable("estimation_totals", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id).unique().notNull(),
+  materialsCost: decimal("materials_cost", { precision: 12, scale: 2 }).default("0"),
+  laborCost: decimal("labor_cost", { precision: 12, scale: 2 }).default("0"),
+  equipmentCost: decimal("equipment_cost", { precision: 12, scale: 2 }).default("0"),
+  consumablesCost: decimal("consumables_cost", { precision: 12, scale: 2 }).default("0"),
+  coatingsCost: decimal("coatings_cost", { precision: 12, scale: 2 }).default("0"),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+  overheadsAmount: decimal("overheads_amount", { precision: 12, scale: 2 }).default("0"),
+  marginAmount: decimal("margin_amount", { precision: 12, scale: 2 }).default("0"),
+  taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).default("0"),
+  taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).default("0"),
+  discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).default("0"),
+  discountPercentage: decimal("discount_percentage", { precision: 5, scale: 2 }).default("0"),
+  grandTotal: decimal("grand_total", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default("USD"),
+  lastCalculated: timestamp("last_calculated").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Insert schemas for new normalized tables
+export const insertEstimationOverheadSchema = createInsertSchema(estimationOverheads).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEstimationMarginSchema = createInsertSchema(estimationMargins).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEstimationTotalsSchema = createInsertSchema(estimationTotals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastCalculated: true,
+});
+
 export const insertOperationItemSchema = createInsertSchema(operationItems).omit({
   id: true,
   createdAt: true,
@@ -2619,6 +2693,15 @@ export type InsertEstimationCoatings = z.infer<typeof insertEstimationCoatingsSc
 
 export type EstimationOperations = typeof estimationOperations.$inferSelect;
 export type InsertEstimationOperations = z.infer<typeof insertEstimationOperationsSchema>;
+
+export type EstimationOverhead = typeof estimationOverheads.$inferSelect;
+export type InsertEstimationOverhead = z.infer<typeof insertEstimationOverheadSchema>;
+
+export type EstimationMargin = typeof estimationMargins.$inferSelect;
+export type InsertEstimationMargin = z.infer<typeof insertEstimationMarginSchema>;
+
+export type EstimationTotal = typeof estimationTotals.$inferSelect;
+export type InsertEstimationTotal = z.infer<typeof insertEstimationTotalsSchema>;
 
 export type EstimationTemplate = typeof estimationTemplates.$inferSelect;
 export type InsertEstimationTemplate = z.infer<typeof insertEstimationTemplateSchema>;
