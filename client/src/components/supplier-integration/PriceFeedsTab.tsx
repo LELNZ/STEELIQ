@@ -68,6 +68,10 @@ export function PriceFeedsTab() {
     queryKey: ["/api/suppliers"],
   });
 
+  const { data: priceAlerts } = useQuery({
+    queryKey: ["/api/supplier-integration/price-alerts"],
+  });
+
   const getPriceChangeIcon = (change: number) => {
     if (change > 0) return <TrendingUp className="h-4 w-4 text-red-500" />;
     if (change < 0) return <TrendingDown className="h-4 w-4 text-green-500" />;
@@ -267,47 +271,47 @@ export function PriceFeedsTab() {
               <h3 className="font-semibold">Recent Price Changes</h3>
             </div>
             <div className="p-4 space-y-3">
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <TrendingUp className="h-5 w-5 text-red-500" />
-                  <div>
-                    <p className="font-medium text-sm">100x100x6 SHS</p>
-                    <p className="text-xs text-muted-foreground">Price Update</p>
-                  </div>
+              {priceAlerts && priceAlerts.length > 0 ? (
+                priceAlerts.slice(0, 3).map((alert: any, index: number) => {
+                  const isIncrease = alert.change > 0;
+                  const isNeutral = alert.change === 0;
+                  return (
+                    <div
+                      key={index}
+                      className={`flex items-center justify-between p-3 rounded-lg ${
+                        isIncrease ? "bg-red-50" : isNeutral ? "bg-gray-50" : "bg-green-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {isIncrease ? (
+                          <TrendingUp className="h-5 w-5 text-red-500" />
+                        ) : isNeutral ? (
+                          <Minus className="h-5 w-5 text-gray-500" />
+                        ) : (
+                          <TrendingDown className="h-5 w-5 text-green-500" />
+                        )}
+                        <div>
+                          <p className="font-medium text-sm">{alert.material}</p>
+                          <p className="text-xs text-muted-foreground">Price Update</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-medium ${
+                          isIncrease ? "text-red-600" : isNeutral ? "text-gray-600" : "text-green-600"
+                        }`}>
+                          {isIncrease ? "+" : ""}{alert.change.toFixed(1)}%
+                        </p>
+                        <p className="text-xs text-muted-foreground">${alert.price}/{alert.unit}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No recent price alerts</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-medium text-red-600">+5.2%</p>
-                  <p className="text-xs text-muted-foreground">$145.60/m</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <TrendingDown className="h-5 w-5 text-green-500" />
-                  <div>
-                    <p className="font-medium text-sm">250UC89.5</p>
-                    <p className="text-xs text-muted-foreground">Price Update</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium text-green-600">-2.8%</p>
-                  <p className="text-xs text-muted-foreground">$89.50/m</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Minus className="h-5 w-5 text-gray-500" />
-                  <div>
-                    <p className="font-medium text-sm">16mm Plate</p>
-                    <p className="text-xs text-muted-foreground">Price Update</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium text-gray-600">0.0%</p>
-                  <p className="text-xs text-muted-foreground">$2,450/t</p>
-                </div>
-              </div>
+              )}
             </div>
           </Card>
         </div>

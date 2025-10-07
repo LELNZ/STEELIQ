@@ -51,12 +51,16 @@ export function PerformanceTab() {
   const [dateRange, setDateRange] = useState("30days");
   const [selectedSupplier, setSelectedSupplier] = useState("all");
 
-  const { data: performanceData } = useQuery({
+  const { data: performanceData = [] } = useQuery({
     queryKey: ["/api/supplier-integration/performance", dateRange, selectedSupplier],
   });
 
-  const { data: suppliers } = useQuery({
+  const { data: suppliers = [] } = useQuery({
     queryKey: ["/api/suppliers"],
+  });
+
+  const { data: metrics, isLoading: isLoadingMetrics } = useQuery({
+    queryKey: ["/api/supplier-integration/metrics", dateRange, selectedSupplier],
   });
 
   const getPerformanceColor = (score: number) => {
@@ -128,41 +132,57 @@ export function PerformanceTab() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <Award className="h-8 w-8 text-yellow-600" />
-            <span className="text-2xl font-bold text-yellow-600">85%</span>
+            <span className="text-2xl font-bold text-yellow-600">
+              {isLoadingMetrics ? "..." : metrics?.overallPerformance ? `${metrics.overallPerformance}%` : "—"}
+            </span>
           </div>
           <p className="font-medium">Overall Performance</p>
-          <Progress value={85} className="mt-2" />
-          <p className="text-xs text-muted-foreground mt-2">+3% from last month</p>
+          <Progress value={metrics?.overallPerformance || 0} className="mt-2" />
+          <p className="text-xs text-muted-foreground mt-2">
+            {metrics?.performanceTrend ? `${metrics.performanceTrend}% from last month` : "No data"}
+          </p>
         </Card>
 
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <Clock className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold">92%</span>
+            <span className="text-2xl font-bold">
+              {isLoadingMetrics ? "..." : metrics?.onTimeDelivery ? `${metrics.onTimeDelivery}%` : "—"}
+            </span>
           </div>
           <p className="font-medium">On-Time Delivery</p>
-          <Progress value={92} className="mt-2" />
-          <p className="text-xs text-muted-foreground mt-2">Target: 95%</p>
+          <Progress value={metrics?.onTimeDelivery || 0} className="mt-2" />
+          <p className="text-xs text-muted-foreground mt-2">
+            {metrics?.deliveryTarget ? `Target: ${metrics.deliveryTarget}%` : "No target set"}
+          </p>
         </Card>
 
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <ShieldCheck className="h-8 w-8 text-green-600" />
-            <span className="text-2xl font-bold">98%</span>
+            <span className="text-2xl font-bold">
+              {isLoadingMetrics ? "..." : metrics?.qualityScore ? `${metrics.qualityScore}%` : "—"}
+            </span>
           </div>
           <p className="font-medium">Quality Score</p>
-          <Progress value={98} className="mt-2" />
-          <p className="text-xs text-muted-foreground mt-2">0 defects this month</p>
+          <Progress value={metrics?.qualityScore || 0} className="mt-2" />
+          <p className="text-xs text-muted-foreground mt-2">
+            {metrics?.defects !== undefined ? `${metrics.defects} defects this month` : "No data"}
+          </p>
         </Card>
 
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <DollarSign className="h-8 w-8 text-purple-600" />
-            <span className="text-2xl font-bold">-2.3%</span>
+            <span className="text-2xl font-bold">
+              {isLoadingMetrics ? "..." : metrics?.costSavings ? `${metrics.costSavings}%` : "—"}
+            </span>
           </div>
           <p className="font-medium">Cost Savings</p>
-          <Progress value={23} className="mt-2" />
-          <p className="text-xs text-muted-foreground mt-2">$45,230 saved</p>
+          <Progress value={Math.abs(metrics?.costSavings || 0)} className="mt-2" />
+          <p className="text-xs text-muted-foreground mt-2">
+            {metrics?.savingsAmount ? `$${metrics.savingsAmount.toLocaleString()} saved` : "No data"}
+          </p>
         </Card>
       </div>
 
