@@ -82,7 +82,7 @@ export default function EstimationPipeline() {
   const { data: estimations = [], isLoading } = useQuery({
     queryKey: ['/api/estimations'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/estimations');
+      const response = await apiRequest('/api/estimations', 'GET');
       return response as EstimationProject[];
     }
   });
@@ -90,7 +90,7 @@ export default function EstimationPipeline() {
   // Convert to Job mutation
   const convertToJob = useMutation({
     mutationFn: async (estimationId: number) => {
-      return apiRequest('POST', '/api/estimations/convert-to-job', { estimationId });
+      return apiRequest('/api/estimations/convert-to-job', 'POST', { estimationId });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/estimations'] });
@@ -123,7 +123,7 @@ export default function EstimationPipeline() {
   // Update status mutation
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      return apiRequest('PATCH', `/api/estimations/${id}/status`, { status });
+      return apiRequest(`/api/estimations/${id}/status`, 'PATCH', { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/estimations'] });
@@ -149,7 +149,7 @@ export default function EstimationPipeline() {
   const { data: pipelineStats } = useQuery({
     queryKey: ['/api/estimations/stats'],
     queryFn: async () => {
-      return apiRequest('GET', '/api/estimations/stats');
+      return apiRequest('/api/estimations/stats', 'GET');
     }
   });
 
