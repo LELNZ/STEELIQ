@@ -6338,17 +6338,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const projectId = parseInt(req.params.id);
       const taskId = parseInt(req.body.taskId);
+      const userId = req.session?.userId || 1;
       
-      // TODO: Save document metadata to database
-      // For now, just return success
+      // Get the current task
+      const [task] = await db.select()
+        .from(projectLifecycleTasks)
+        .where(eq(projectLifecycleTasks.id, taskId));
+      
+      if (!task) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+      
+      // Get current user info
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId));
+      
+      // Create document object
+      const newDocument = {
+        id: Date.now(), // Simple ID generation
+        filename: req.file.originalname,
+        fileSize: req.file.size,
+        fileType: req.file.mimetype,
+        uploadedAt: new Date(),
+        uploadedBy: user?.name || 'Unknown',
+        filePath: req.file.path
+      };
+      
+      // Update task with new document
+      const currentDocuments = (task.attachedDocuments as any[]) || [];
+      const updatedDocuments = [...currentDocuments, newDocument];
+      
+      await db.update(projectLifecycleTasks)
+        .set({
+          attachedDocuments: updatedDocuments,
+          updatedAt: new Date()
+        })
+        .where(eq(projectLifecycleTasks.id, taskId));
+      
+      // Log the document upload event
+      await db.insert(projectLifecycleEvents)
+        .values({
+          projectId,
+          taskId,
+          eventType: 'document_uploaded',
+          eventDescription: `Document "${req.file.originalname}" uploaded to task`,
+          triggeredBy: userId,
+          metadata: { 
+            filename: req.file.originalname,
+            fileSize: req.file.size
+          }
+        });
+      
       res.json({ 
         success: true, 
-        document: {
-          filename: req.file.originalname,
-          size: req.file.size,
-          uploadedAt: new Date()
-        }
+        document: newDocument
       });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Download document
+  app.get('/api/projects/:projectId/lifecycle/documents/:documentId', async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const documentId = parseInt(req.params.documentId);
+      
+      // Find the task containing this document
+      const tasks = await db.select()
+        .from(projectLifecycleTasks)
+        .innerJoin(projectLifecyclePhases, eq(projectLifecycleTasks.phaseId, projectLifecyclePhases.id))
+        .where(eq(projectLifecyclePhases.projectId, projectId));
+      
+      let foundDocument: any = null;
+      for (const taskRow of tasks) {
+        const task = taskRow.project_lifecycle_tasks;
+        const documents = (task.attachedDocuments as any[]) || [];
+        foundDocument = documents.find((doc: any) => doc.id === documentId);
+        if (foundDocument) break;
+      }
+      
+      if (!foundDocument) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+      
+      // Send file
+      if (foundDocument.filePath && fs.existsSync(foundDocument.filePath)) {
+        res.download(foundDocument.filePath, foundDocument.filename);
+      } else {
+        // Fallback: create a simple text file with document info
+        res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename="${foundDocument.filename}"`);
+        res.send(`Document: ${foundDocument.filename}\nUploaded: ${foundDocument.uploadedAt}\nSize: ${foundDocument.fileSize} bytes`);
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Preview document
+  app.get('/api/projects/:projectId/lifecycle/documents/:documentId/preview', async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const documentId = parseInt(req.params.documentId);
+      
+      // Find the task containing this document
+      const tasks = await db.select()
+        .from(projectLifecycleTasks)
+        .innerJoin(projectLifecyclePhases, eq(projectLifecycleTasks.phaseId, projectLifecyclePhases.id))
+        .where(eq(projectLifecyclePhases.projectId, projectId));
+      
+      let foundDocument: any = null;
+      for (const taskRow of tasks) {
+        const task = taskRow.project_lifecycle_tasks;
+        const documents = (task.attachedDocuments as any[]) || [];
+        foundDocument = documents.find((doc: any) => doc.id === documentId);
+        if (foundDocument) break;
+      }
+      
+      if (!foundDocument) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+      
+      // Send file for preview
+      if (foundDocument.filePath && fs.existsSync(foundDocument.filePath)) {
+        res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
+        res.sendFile(path.resolve(foundDocument.filePath));
+      } else {
+        // Fallback: send a placeholder
+        res.setHeader('Content-Type', 'text/plain');
+        res.send(`Preview not available for: ${foundDocument.filename}`);
+      }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
