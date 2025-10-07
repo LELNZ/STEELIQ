@@ -162,7 +162,7 @@ export default function QualityControlTab() {
             <div>
               <p className="text-xs font-medium text-muted-foreground">Pass Rate</p>
               <p className="text-2xl font-bold">{metrics?.passRate || 0}%</p>
-              <p className="text-xs text-green-600 mt-1">↑ 2% week</p>
+              <p className="text-xs text-muted-foreground mt-1">No trend data</p>
             </div>
             <CheckCircle2 className="h-8 w-8 text-green-600" />
           </div>
@@ -173,7 +173,7 @@ export default function QualityControlTab() {
             <div>
               <p className="text-xs font-medium text-muted-foreground">First Pass Yield</p>
               <p className="text-2xl font-bold">{metrics?.firstPassYield || 0}%</p>
-              <p className="text-xs text-muted-foreground mt-1">Target: 95%</p>
+              <p className="text-xs text-muted-foreground mt-1">No target set</p>
             </div>
             <Award className="h-8 w-8 text-blue-600" />
           </div>
@@ -206,7 +206,7 @@ export default function QualityControlTab() {
             <div>
               <p className="text-xs font-medium text-muted-foreground">Rework Rate</p>
               <p className="text-2xl font-bold">{metrics?.reworkRate || 0}%</p>
-              <p className="text-xs text-yellow-600 mt-1">↓ 1% month</p>
+              <p className="text-xs text-muted-foreground mt-1">No trend data</p>
             </div>
             <TrendingDown className="h-8 w-8 text-yellow-600" />
           </div>

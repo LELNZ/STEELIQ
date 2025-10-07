@@ -414,8 +414,8 @@ export default function WorkOrderTrackingTab() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-4">
           <h4 className="text-sm font-medium text-muted-foreground">Today's Output</h4>
-          <p className="text-2xl font-bold">24.5t</p>
-          <p className="text-xs text-green-600">+12% from yesterday</p>
+          <p className="text-2xl font-bold">0t</p>
+          <p className="text-xs text-muted-foreground">No production data</p>
         </Card>
         
         <Card className="p-4">
@@ -429,13 +429,13 @@ export default function WorkOrderTrackingTab() {
         <Card className="p-4">
           <h4 className="text-sm font-medium text-muted-foreground">Quality Issues</h4>
           <p className="text-2xl font-bold">{workOrders.reduce((sum, o) => sum + o.issues, 0)}</p>
-          <p className="text-xs text-red-600">3 critical</p>
+          <p className="text-xs text-muted-foreground">No critical issues</p>
         </Card>
         
         <Card className="p-4">
           <h4 className="text-sm font-medium text-muted-foreground">On-Time Rate</h4>
-          <p className="text-2xl font-bold">92%</p>
-          <p className="text-xs text-muted-foreground">This month</p>
+          <p className="text-2xl font-bold">0%</p>
+          <p className="text-xs text-muted-foreground">No data available</p>
         </Card>
       </div>
     </div>

@@ -222,7 +222,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="mt-2 sm:mt-3 lg:mt-4 flex items-center">
-              <span className="text-accent text-xs sm:text-sm font-medium">Target: 95%</span>
+              <span className="text-accent text-xs sm:text-sm font-medium">No target set</span>
             </div>
           </CardContent>
         </Card>
@@ -243,7 +243,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="mt-2 sm:mt-3 lg:mt-4 flex items-center">
-              <span className="text-muted-foreground text-xs sm:text-sm">of 5t capacity</span>
+              <span className="text-muted-foreground text-xs sm:text-sm">capacity available</span>
             </div>
           </CardContent>
         </Card>

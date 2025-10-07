@@ -451,19 +451,19 @@ export default function CostAnalysisTab() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="border border-gray-100">
                 <CardContent className="pt-6">
-                  <div className="text-2xl font-bold">12</div>
+                  <div className="text-2xl font-bold">0</div>
                   <p className="text-sm text-muted-foreground">Pending cost reviews</p>
                 </CardContent>
               </Card>
               <Card className="border border-gray-100">
                 <CardContent className="pt-6">
-                  <div className="text-2xl font-bold text-red-600">+15.2%</div>
+                  <div className="text-2xl font-bold text-gray-600">0.0%</div>
                   <p className="text-sm text-muted-foreground">Average cost variance</p>
                 </CardContent>
               </Card>
               <Card className="border border-gray-100">
                 <CardContent className="pt-6">
-                  <div className="text-2xl font-bold">87%</div>
+                  <div className="text-2xl font-bold">0%</div>
                   <p className="text-sm text-muted-foreground">Auto-match accuracy</p>
                 </CardContent>
               </Card>
@@ -500,7 +500,7 @@ export default function CostAnalysisTab() {
               <div>
                 <p className="font-medium text-sm">High Material Cost Alert</p>
                 <p className="text-sm text-gray-600 mt-1">
-                  Steel prices increased 15% this quarter. Consider bulk purchasing agreements with Asmuss Steel for 8% discount on orders over $50,000.
+                  No material cost alerts at this time. Monitor market prices for optimization opportunities.
                 </p>
               </div>
             </div>
@@ -510,7 +510,7 @@ export default function CostAnalysisTab() {
               <div>
                 <p className="font-medium text-sm">Labor Efficiency Opportunity</p>
                 <p className="text-sm text-gray-600 mt-1">
-                  Overtime costs increased 22% last month. Hire 2 additional welders to reduce overtime by 60% and save $18,000/month.
+                  No specific recommendations available. Analysis requires more operational data.
                 </p>
               </div>
             </div>

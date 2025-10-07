@@ -52,7 +52,7 @@ export function MetricCard({
                 )}>
                   {trend.isPositive ? '+' : '-'}{Math.abs(trend.value)}%
                 </span>
-                <span className="text-muted-foreground text-xs sm:text-sm ml-1 hidden sm:inline">from last month</span>
+                <span className="text-muted-foreground text-xs sm:text-sm ml-1 hidden sm:inline">change</span>
               </div>
             ) : subtitle && (
               <p className={cardStyles.subtitle}>{subtitle}</p>

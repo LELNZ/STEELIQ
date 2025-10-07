@@ -54,14 +54,14 @@ export default function Jobs() {
         <MetricCard
           title="Material Efficiency"
           value={`${efficiency}%`}
-          subtitle="Target: 95%"
+          subtitle="Efficiency rate"
           icon={<TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />}
           trend={{ value: 5, isPositive: true }}
         />
         <MetricCard
           title="Weekly Volume"
           value={`${jobs.filter((j: any) => j.status === 'active').length} jobs`}
-          subtitle="of 51 capacity"
+          subtitle="Active this week"
           icon={<Clock className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />}
         />
         <MetricCard

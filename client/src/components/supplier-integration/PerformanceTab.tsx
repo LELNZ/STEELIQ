@@ -139,7 +139,7 @@ export function PerformanceTab() {
           <p className="font-medium">Overall Performance</p>
           <Progress value={metrics?.overallPerformance || 0} className="mt-2" />
           <p className="text-xs text-muted-foreground mt-2">
-            {metrics?.performanceTrend ? `${metrics.performanceTrend}% from last month` : "No data"}
+            {metrics?.performanceTrend ? `${metrics.performanceTrend}% change` : "No data"}
           </p>
         </Card>
 
@@ -167,7 +167,7 @@ export function PerformanceTab() {
           <p className="font-medium">Quality Score</p>
           <Progress value={metrics?.qualityScore || 0} className="mt-2" />
           <p className="text-xs text-muted-foreground mt-2">
-            {metrics?.defects !== undefined ? `${metrics.defects} defects this month` : "No data"}
+            {metrics?.defects !== undefined ? `${metrics.defects} defects` : "No data"}
           </p>
         </Card>
 

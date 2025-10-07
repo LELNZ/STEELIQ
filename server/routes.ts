@@ -10094,7 +10094,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: "Plasma Cutter #1",
             type: "Cutting",
             status: "operating",
-            currentJob: "JOB-2025-001",
+            currentJob: null,
             utilization: 85,
             efficiency: 92
           },
@@ -10112,16 +10112,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: "Welding Bay 1",
             type: "Welding",
             status: "operating",
-            currentJob: "JOB-2025-002",
+            currentJob: null,
             utilization: 92,
             efficiency: 95
           }
         ],
-        todaySchedule: [
-          { time: "08:00", equipment: "Plasma Cutter #1", job: "JOB-2025-001", duration: "4h", operator: "Manny M." },
-          { time: "08:30", equipment: "Welding Bay 1", job: "JOB-2025-002", duration: "6h", operator: "Adam G." },
-          { time: "10:00", equipment: "Press Brake #2", job: "JOB-2025-003", duration: "2h", operator: "Vili P." }
-        ]
+        todaySchedule: []
       };
 
       res.json(equipmentSchedule);

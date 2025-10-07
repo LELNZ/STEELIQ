@@ -83,68 +83,8 @@ export default function DocumentCaptureTab() {
     },
   });
 
-  // Mock data for demonstration
-  const mockDocuments: Document[] = [
-    {
-      id: "1",
-      fileName: "beam_installation_01.jpg",
-      type: "photo",
-      category: "progress",
-      projectName: "Warehouse Project",
-      siteName: "Site A - North Wing",
-      uploadedBy: "Adam Green",
-      uploadedAt: new Date().toISOString(),
-      fileSize: "2.4 MB",
-      status: "synced",
-      tags: ["beam", "installation", "structural"],
-      gpsLocation: {
-        lat: -37.8136,
-        lng: 144.9631,
-        address: "123 Industrial Dr"
-      },
-      thumbnail: "/api/placeholder/200/200",
-      linkedTo: {
-        type: "job",
-        id: "JOB-2025-001",
-        name: "Steel Frame Assembly"
-      }
-    },
-    {
-      id: "2",
-      fileName: "safety_inspection_report.pdf",
-      type: "report",
-      category: "safety",
-      projectName: "Tower Construction",
-      siteName: "Level 5",
-      uploadedBy: "Manny Magallanes",
-      uploadedAt: new Date(Date.now() - 3600000).toISOString(),
-      fileSize: "456 KB",
-      status: "pending",
-      tags: ["safety", "inspection", "compliance"],
-      ocrText: "Site Safety Inspection Report..."
-    },
-    {
-      id: "3",
-      fileName: "material_receipt_scan.pdf",
-      type: "scan",
-      category: "materials",
-      projectName: "Bridge Renovation",
-      siteName: "Storage Area",
-      uploadedBy: "Vili Pelenato",
-      uploadedAt: new Date(Date.now() - 7200000).toISOString(),
-      fileSize: "1.1 MB",
-      status: "synced",
-      tags: ["receipt", "delivery", "SHS200x200"],
-      ocrText: "Delivery Note #DN-2025-456...",
-      linkedTo: {
-        type: "material",
-        id: "MAT-001",
-        name: "SHS 200x200x6"
-      }
-    }
-  ];
-
-  const displayDocuments = mockDocuments.length > 0 ? mockDocuments : documents;
+  // Use actual documents from API
+  const displayDocuments = documents || [];
 
   const filteredDocuments = displayDocuments.filter(doc =>
     doc.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
