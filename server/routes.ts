@@ -7732,10 +7732,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Note: Reusing existing drawing projects endpoint for consistency
   app.get('/api/drawing-projects', async (req, res) => {
     try {
-      // Temporarily disable auth to test data flow
-      // TODO: Fix authentication cookie issue
+      const user = await AuthService.getAuthenticatedUser(req);
       
-      // Return all projects for testing
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const projects = await db.select()
         .from(drawingProjects)
         .orderBy(desc(drawingProjects.createdAt));
@@ -7749,8 +7751,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/drawings/:projectId', async (req, res) => {
     try {
-      // Temporarily disable auth to test data flow
-      // TODO: Fix authentication cookie issue
+      const user = await AuthService.getAuthenticatedUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
       
       const projectId = parseInt(req.params.projectId);
       if (!projectId) {
@@ -7771,8 +7776,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/material-takeoffs/:drawingId', async (req, res) => {
     try {
-      // Temporarily disable auth to test data flow
-      // TODO: Fix authentication cookie issue
+      const user = await AuthService.getAuthenticatedUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
       
       const drawingId = parseInt(req.params.drawingId);
       if (!drawingId) {
@@ -7806,8 +7814,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/material-takeoffs/drawing/:drawingId', async (req, res) => {
     try {
-      // Temporarily disable auth to test data flow
-      // TODO: Fix authentication cookie issue
+      const user = await AuthService.getAuthenticatedUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
       
       const drawingId = parseInt(req.params.drawingId);
       if (!drawingId) {
@@ -10992,20 +11003,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get pending approvals for user
   app.get("/api/procurement/approvals/pending", async (req, res) => {
     try {
-      // For testing, use default user to get pending approvals
-      let user;
-      try {
-        user = await AuthService.getAuthenticatedUser(req);
-      } catch (authError) {
-        // Use default user for testing
-        user = { id: 9, name: "Adam Green" };
-      }
-      if (!user) {
-        user = { id: 9, name: "Adam Green" };
-      }
+      const user = await AuthService.getAuthenticatedUser(req);
       
       if (!user) {
-        return res.json([]);
+        return res.status(401).json({ error: "Unauthorized" });
       }
 
       const pending = await storage.getPendingApprovals(user.id);
