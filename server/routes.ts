@@ -11,7 +11,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems, projectLifecycleEvents, projectLifecyclePhases, projectLifecycleTasks, estimationProjects, projectLifecycleTemplates } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems, projectLifecycleEvents, projectLifecyclePhases, projectLifecycleTasks, estimationProjects, projectLifecycleTemplates, invoices, payments, emailImportedCosts, timeEntries } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -8270,13 +8270,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Return inspection templates
-      const templates = [
-        { id: 1, name: "Standard Safety Checklist", items: 120, standard: "AS/NZS 4801" },
-        { id: 2, name: "Welding Quality Control", items: 35, standard: "ISO 9606" },
-        { id: 3, name: "Site Progress Report", items: 25, standard: "Custom" },
-        { id: 4, name: "AS/NZS Compliance", items: 50, standard: "AS/NZS" }
-      ];
+      // Return empty templates when no actual templates exist
+      const templates: any[] = [];
       
       res.json(templates);
     } catch (error) {
@@ -8466,16 +8461,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           gte(jobs.completedDate, today)
         ));
       
-      // Calculate efficiency from job estimates vs actual
-      const efficiencyResult = await db
-        .select({
-          avgEfficiency: sql`COALESCE(AVG(CASE WHEN estimated_hours > 0 THEN (estimated_hours / NULLIF(actual_hours, 0)) * 100 ELSE NULL END), 85)`
-        })
-        .from(jobs)
-        .where(and(
-          eq(jobs.status, 'completed'),
-          sql`actual_hours > 0`
-        ));
+      // Calculate efficiency from job estimates (actual hours not yet tracked)
+      // Default to 85% efficiency for now
+      const efficiencyResult = [{
+        avgEfficiency: 85
+      }];
       
       // Calculate on-time delivery rate
       const deliveryResult = await db
