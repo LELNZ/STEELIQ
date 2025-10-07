@@ -6392,7 +6392,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload document for task
+  // Upload document for task - Using new lifecycle_documents table
   app.post('/api/projects/:id/lifecycle/documents', upload.single('document'), async (req, res) => {
     try {
       if (!req.file) {
@@ -6417,29 +6417,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(users)
         .where(eq(users.id, userId));
       
-      // Create document object with relative file path
-      const newDocument = {
-        id: Date.now(), // Simple ID generation
-        filename: req.file.originalname,
-        fileSize: req.file.size,
-        fileType: req.file.mimetype,
-        uploadedAt: new Date(),
-        uploadedBy: user?.name || 'Unknown',
-        filePath: path.relative(process.cwd(), req.file.path) // Store relative path to avoid long path issues
-      };
+      // Calculate file hash for integrity
+      const crypto = require('crypto');
+      const fileBuffer = fs.readFileSync(req.file.path);
+      const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
       
-      // Update task with new document
-      const currentDocuments = (task.attachedDocuments as any[]) || [];
-      const updatedDocuments = [...currentDocuments, newDocument];
+      // Insert into new lifecycle_documents table using raw SQL
+      const result = await db.execute(sql`
+        INSERT INTO lifecycle_documents (
+          task_id,
+          filename,
+          original_filename,
+          file_path,
+          file_size,
+          mime_type,
+          file_hash,
+          uploaded_by,
+          uploaded_by_name,
+          uploaded_at,
+          status,
+          classification,
+          malware_scanned,
+          encrypted_at_rest
+        )
+        VALUES (
+          ${taskId},
+          ${req.file.filename},
+          ${req.file.originalname},
+          ${path.relative(process.cwd(), req.file.path)},
+          ${req.file.size},
+          ${req.file.mimetype},
+          ${fileHash},
+          ${userId},
+          ${user?.name || 'Unknown'},
+          NOW(),
+          'active',
+          'internal',
+          false,
+          false
+        )
+        RETURNING id, original_filename, file_size, mime_type, uploaded_at, uploaded_by_name
+      `);
       
-      await db.update(projectLifecycleTasks)
-        .set({
-          attachedDocuments: updatedDocuments,
-          updatedAt: new Date()
-        })
-        .where(eq(projectLifecycleTasks.id, taskId));
+      const insertedDoc = result.rows[0];
       
-      // Log the document upload event
+      // Log to audit_events table
+      await db.execute(sql`
+        INSERT INTO audit_events (
+          entity_type,
+          entity_id,
+          entity_name,
+          action,
+          action_category,
+          user_id,
+          username,
+          metadata,
+          success,
+          risk_level
+        )
+        VALUES (
+          'document',
+          ${insertedDoc.id},
+          ${req.file.originalname},
+          'upload',
+          'data',
+          ${userId},
+          ${user?.name || 'Unknown'},
+          ${JSON.stringify({ 
+            projectId,
+            taskId,
+            filename: req.file.originalname,
+            fileSize: req.file.size,
+            mimeType: req.file.mimetype,
+            fileHash: fileHash
+          })}::jsonb,
+          true,
+          'low'
+        )
+      `);
+      
+      // Log the document upload event for backward compatibility
       await db.insert(projectLifecycleEvents)
         .values({
           projectId,
@@ -6448,6 +6505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eventDescription: `Document "${req.file.originalname}" uploaded to task`,
           triggeredBy: userId,
           metadata: { 
+            documentId: insertedDoc.id,
             filename: req.file.originalname,
             fileSize: req.file.size
           }
@@ -6455,205 +6513,357 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ 
         success: true, 
-        document: newDocument
+        document: {
+          id: insertedDoc.id,
+          filename: insertedDoc.original_filename,
+          fileSize: insertedDoc.file_size,
+          fileType: insertedDoc.mime_type,
+          uploadedAt: insertedDoc.uploaded_at,
+          uploadedBy: insertedDoc.uploaded_by_name
+        }
       });
     } catch (error: any) {
+      // Log failed upload attempt
+      await db.execute(sql`
+        INSERT INTO audit_events (
+          entity_type,
+          entity_name,
+          action,
+          action_category,
+          user_id,
+          error_message,
+          metadata,
+          success,
+          risk_level
+        )
+        VALUES (
+          'document',
+          ${req.file?.originalname || 'unknown'},
+          'upload_failed',
+          'security',
+          ${req.session?.userId || null},
+          ${error.message},
+          ${JSON.stringify({ 
+            projectId: req.params.id,
+            taskId: req.body.taskId
+          })}::jsonb,
+          false,
+          'medium'
+        )
+      `);
+      
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Download document
+  // Download document - Using new lifecycle_documents table
   app.get('/api/projects/:projectId/lifecycle/documents/:documentId', async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
       const documentId = parseInt(req.params.documentId);
       
-      // Find the task containing this document
-      const tasks = await db.select()
-        .from(projectLifecycleTasks)
-        .innerJoin(projectLifecyclePhases, eq(projectLifecycleTasks.phaseId, projectLifecyclePhases.id))
-        .where(eq(projectLifecyclePhases.projectId, projectId));
+      // Try to find document in new table first
+      const result = await db.execute(sql`
+        SELECT 
+          ld.*,
+          plt.phase_id
+        FROM lifecycle_documents ld
+        INNER JOIN project_lifecycle_tasks plt ON ld.task_id = plt.id
+        WHERE ld.id = ${documentId}
+          AND ld.status = 'active'
+      `);
       
-      let foundDocument: any = null;
-      for (const taskRow of tasks) {
-        const task = taskRow.project_lifecycle_tasks;
-        const documents = (task.attachedDocuments as any[]) || [];
-        foundDocument = documents.find((doc: any) => doc.id === documentId);
-        if (foundDocument) break;
-      }
-      
-      if (!foundDocument) {
-        return res.status(404).json({ error: 'Document not found' });
-      }
-      
-      // Send file from disk with security headers
-      if (foundDocument.filePath) {
-        // Handle both old and new file paths
-        const filePath = foundDocument.filePath.startsWith('/') || foundDocument.filePath.includes(':') 
-          ? foundDocument.filePath 
-          : path.join(process.cwd(), foundDocument.filePath);
-          
+      if (result.rows.length > 0) {
+        const document = result.rows[0];
+        const filePath = document.file_path.startsWith('/') || document.file_path.includes(':')
+          ? document.file_path
+          : path.join(process.cwd(), document.file_path);
+        
         if (fs.existsSync(filePath)) {
+          // Log document access in audit
+          await db.execute(sql`
+            INSERT INTO audit_events (
+              entity_type, entity_id, entity_name,
+              action, action_category, user_id,
+              metadata, success, risk_level
+            )
+            VALUES (
+              'document', ${documentId}, ${document.original_filename},
+              'download', 'access', ${req.session?.userId || null},
+              ${JSON.stringify({ projectId: req.params.projectId })}::jsonb,
+              true, 'low'
+            )
+          `);
+          
           // Set security headers (OWASP standards)
           res.setHeader('X-Content-Type-Options', 'nosniff');
           res.setHeader('X-Frame-Options', 'DENY');
-          res.download(filePath, foundDocument.filename);
-        } else if (foundDocument.fileData) {
-          // Fallback to base64 data if file not found
-          const buffer = Buffer.from(foundDocument.fileData, 'base64');
+          res.setHeader('Content-Security-Policy', "default-src 'none'");
+          res.download(filePath, document.original_filename);
+        } else {
+          res.status(404).json({ error: 'Document file not found on disk' });
+        }
+      } else {
+        // Fallback: Check JSONB for legacy documents
+        const tasks = await db.select()
+          .from(projectLifecycleTasks)
+          .innerJoin(projectLifecyclePhases, eq(projectLifecycleTasks.phaseId, projectLifecyclePhases.id))
+          .where(eq(projectLifecyclePhases.projectId, parseInt(req.params.projectId)));
+        
+        let foundDocument: any = null;
+        for (const taskRow of tasks) {
+          const task = taskRow.project_lifecycle_tasks;
+          const documents = (task.attachedDocuments as any[]) || [];
+          foundDocument = documents.find((doc: any) => doc.id === documentId);
+          if (foundDocument) break;
+        }
+        
+        if (!foundDocument) {
+          return res.status(404).json({ error: 'Document not found' });
+        }
+        
+        // Handle legacy document
+        const filePath = foundDocument.filePath.startsWith('/') || foundDocument.filePath.includes(':')
+          ? foundDocument.filePath
+          : path.join(process.cwd(), foundDocument.filePath);
+        
+        if (fs.existsSync(filePath)) {
           res.setHeader('X-Content-Type-Options', 'nosniff');
-          res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
-          res.setHeader('Content-Disposition', `attachment; filename="${foundDocument.filename}"`);
-          res.send(buffer);
+          res.setHeader('X-Frame-Options', 'DENY');
+          res.download(filePath, foundDocument.filename);
         } else {
           res.status(404).json({ error: 'Document file not found' });
         }
-      } else if (foundDocument.fileData) {
-        // Fallback to base64 data for legacy documents
-        const buffer = Buffer.from(foundDocument.fileData, 'base64');
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-        res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
-        res.setHeader('Content-Disposition', `attachment; filename="${foundDocument.filename}"`);
-        res.send(buffer);
-      } else {
-        res.status(404).json({ error: 'Document file not found' });
       }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
   
-  // Preview document
+  // Preview document - Using new lifecycle_documents table
   app.get('/api/projects/:projectId/lifecycle/documents/:documentId/preview', async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
       const documentId = parseInt(req.params.documentId);
       
-      // Find the task containing this document
-      const tasks = await db.select()
-        .from(projectLifecycleTasks)
-        .innerJoin(projectLifecyclePhases, eq(projectLifecycleTasks.phaseId, projectLifecyclePhases.id))
-        .where(eq(projectLifecyclePhases.projectId, projectId));
+      // Try to find document in new table first
+      const result = await db.execute(sql`
+        SELECT 
+          ld.*,
+          plt.phase_id
+        FROM lifecycle_documents ld
+        INNER JOIN project_lifecycle_tasks plt ON ld.task_id = plt.id
+        WHERE ld.id = ${documentId}
+          AND ld.status = 'active'
+      `);
       
-      let foundDocument: any = null;
-      for (const taskRow of tasks) {
-        const task = taskRow.project_lifecycle_tasks;
-        const documents = (task.attachedDocuments as any[]) || [];
-        foundDocument = documents.find((doc: any) => doc.id === documentId);
-        if (foundDocument) break;
-      }
-      
-      if (!foundDocument) {
-        return res.status(404).json({ error: 'Document not found' });
-      }
-      
-      // Send file for preview with proper security headers
-      if (foundDocument.filePath) {
-        // Handle both old and new file paths
-        const filePath = foundDocument.filePath.startsWith('/') || foundDocument.filePath.includes(':') 
-          ? foundDocument.filePath 
+      if (result.rows.length > 0) {
+        const document = result.rows[0];
+        const filePath = document.file_path.startsWith('/') || document.file_path.includes(':')
+          ? document.file_path
+          : path.join(process.cwd(), document.file_path);
+        
+        if (fs.existsSync(filePath)) {
+          // Log document preview access in audit
+          await db.execute(sql`
+            INSERT INTO audit_events (
+              entity_type, entity_id, entity_name,
+              action, action_category, user_id,
+              metadata, success, risk_level
+            )
+            VALUES (
+              'document', ${documentId}, ${document.original_filename},
+              'preview', 'access', ${req.session?.userId || null},
+              ${JSON.stringify({ projectId: req.params.projectId })}::jsonb,
+              true, 'low'
+            )
+          `);
+          
+          // Set security headers (OWASP standards)
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+          res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+          res.setHeader('Content-Security-Policy', "default-src 'self'; object-src 'none'");
+          res.setHeader('Content-Type', document.mime_type || 'application/octet-stream');
+          res.setHeader('Content-Disposition', `inline; filename="${document.original_filename}"`);
+          res.sendFile(path.resolve(filePath));
+        } else {
+          res.status(404).json({ error: 'Document file not found on disk' });
+        }
+      } else {
+        // Fallback: Check JSONB for legacy documents
+        const tasks = await db.select()
+          .from(projectLifecycleTasks)
+          .innerJoin(projectLifecyclePhases, eq(projectLifecycleTasks.phaseId, projectLifecyclePhases.id))
+          .where(eq(projectLifecyclePhases.projectId, parseInt(req.params.projectId)));
+        
+        let foundDocument: any = null;
+        for (const taskRow of tasks) {
+          const task = taskRow.project_lifecycle_tasks;
+          const documents = (task.attachedDocuments as any[]) || [];
+          foundDocument = documents.find((doc: any) => doc.id === documentId);
+          if (foundDocument) break;
+        }
+        
+        if (!foundDocument) {
+          return res.status(404).json({ error: 'Document not found' });
+        }
+        
+        // Handle legacy document
+        const filePath = foundDocument.filePath.startsWith('/') || foundDocument.filePath.includes(':')
+          ? foundDocument.filePath
           : path.join(process.cwd(), foundDocument.filePath);
         
-        // Check if file exists
         if (fs.existsSync(filePath)) {
-          // Set security headers (OWASP standards)
           res.setHeader('X-Content-Type-Options', 'nosniff');
           res.setHeader('X-Frame-Options', 'SAMEORIGIN');
           res.setHeader('Content-Security-Policy', "default-src 'self'");
           res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
           res.setHeader('Content-Disposition', `inline; filename="${foundDocument.filename}"`);
           res.sendFile(path.resolve(filePath));
-        } else if (foundDocument.fileData) {
-          // Fallback to base64 data if file not found
-          const buffer = Buffer.from(foundDocument.fileData, 'base64');
-          res.setHeader('X-Content-Type-Options', 'nosniff');
-          res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
-          res.setHeader('Content-Disposition', `inline; filename="${foundDocument.filename}"`);
-          res.send(buffer);
         } else {
           res.status(404).json({ error: 'Document file not found' });
         }
-      } else if (foundDocument.fileData) {
-        // Handle base64 encoded files (legacy)
-        const buffer = Buffer.from(foundDocument.fileData, 'base64');
-        res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
-        res.setHeader('Content-Disposition', `inline; filename="${foundDocument.filename}"`);
-        res.send(buffer);
-      } else {
-        // Fallback: Show a placeholder for documents without file data
-        res.setHeader('Content-Type', 'text/html');
-        res.send(`
-          <!DOCTYPE html>
-          <html>
-          <head><title>Document Preview</title></head>
-          <body style="font-family: Arial, sans-serif; padding: 20px; text-align: center;">
-            <h2>Preview Not Available</h2>
-            <p>This document was uploaded before preview was supported.</p>
-            <p><strong>Filename:</strong> ${foundDocument.filename}</p>
-            <p><strong>Size:</strong> ${foundDocument.fileSize ? (foundDocument.fileSize / 1024).toFixed(1) + ' KB' : 'Unknown'}</p>
-            <p><strong>Uploaded:</strong> ${foundDocument.uploadedAt || 'Unknown date'}</p>
-            <p style="margin-top: 20px; color: #666;">Please re-upload the document to enable preview.</p>
-          </body>
-          </html>
-        `);
       }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
   
-  // Delete document
+  // Delete document - Using new lifecycle_documents table
   app.delete('/api/projects/:projectId/lifecycle/documents/:documentId', async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
       const documentId = parseInt(req.params.documentId);
       const { taskId } = req.body;
+      const userId = req.session?.userId || 1;
       
-      if (!taskId) {
-        return res.status(400).json({ error: 'Task ID required' });
-      }
+      // Try new table first
+      const result = await db.execute(sql`
+        SELECT 
+          ld.*,
+          u.name as deleted_by_name
+        FROM lifecycle_documents ld
+        LEFT JOIN users u ON u.id = ${userId}
+        WHERE ld.id = ${documentId}
+          AND ld.status = 'active'
+      `);
       
-      // Get the task
-      const [task] = await db.select()
-        .from(projectLifecycleTasks)
-        .where(eq(projectLifecycleTasks.id, taskId));
-      
-      if (!task) {
-        return res.status(404).json({ error: 'Task not found' });
-      }
-      
-      // Remove document from attachedDocuments array
-      const documents = (task.attachedDocuments as any[]) || [];
-      const updatedDocuments = documents.filter((doc: any) => doc.id !== documentId);
-      
-      // Find the document to delete its file
-      const documentToDelete = documents.find((doc: any) => doc.id === documentId);
-      
-      // Delete file from disk if it exists
-      if (documentToDelete?.filePath) {
-        const filePath = documentToDelete.filePath.startsWith('/') || documentToDelete.filePath.includes(':') 
-          ? documentToDelete.filePath 
-          : path.join(process.cwd(), documentToDelete.filePath);
+      if (result.rows.length > 0) {
+        const document = result.rows[0];
+        
+        // Soft delete in new table (preserving audit trail)
+        await db.execute(sql`
+          UPDATE lifecycle_documents
+          SET 
+            status = 'deleted',
+            deleted_at = NOW(),
+            deleted_by = ${userId}
+          WHERE id = ${documentId}
+        `);
+        
+        // Log deletion in audit_events
+        await db.execute(sql`
+          INSERT INTO audit_events (
+            entity_type, entity_id, entity_name,
+            action, action_category, user_id,
+            username, metadata, success, risk_level
+          )
+          VALUES (
+            'document', ${documentId}, ${document.original_filename},
+            'delete', 'data', ${userId},
+            ${document.deleted_by_name || 'Unknown'},
+            ${JSON.stringify({ 
+              projectId, 
+              taskId: document.task_id,
+              fileSize: document.file_size,
+              reason: 'user_requested'
+            })}::jsonb,
+            true, 'medium'
+          )
+        `);
+        
+        // Optional: Delete physical file (only after successful soft delete)
+        if (document.file_path && !document.keep_file_on_delete) {
+          const filePath = document.file_path.startsWith('/') || document.file_path.includes(':')
+            ? document.file_path
+            : path.join(process.cwd(), document.file_path);
           
-        if (fs.existsSync(filePath)) {
-          try {
-            fs.unlinkSync(filePath);
-          } catch (err) {
-            console.error('Failed to delete file:', err);
+          if (fs.existsSync(filePath)) {
+            try {
+              fs.unlinkSync(filePath);
+            } catch (err) {
+              console.error('Failed to delete physical file:', err);
+              // Don't fail the request if file deletion fails
+            }
           }
         }
+        
+        res.json({ success: true, message: 'Document deleted successfully' });
+      } else {
+        // Fallback: Check JSONB for legacy documents
+        if (!taskId) {
+          return res.status(400).json({ error: 'Task ID required for legacy document' });
+        }
+        
+        const [task] = await db.select()
+          .from(projectLifecycleTasks)
+          .where(eq(projectLifecycleTasks.id, taskId));
+        
+        if (!task) {
+          return res.status(404).json({ error: 'Task not found' });
+        }
+        
+        const documents = (task.attachedDocuments as any[]) || [];
+        const documentToDelete = documents.find((doc: any) => doc.id === documentId);
+        
+        if (!documentToDelete) {
+          return res.status(404).json({ error: 'Document not found' });
+        }
+        
+        // Remove from JSONB
+        const updatedDocuments = documents.filter((doc: any) => doc.id !== documentId);
+        
+        // Delete file from disk if it exists
+        if (documentToDelete?.filePath) {
+          const filePath = documentToDelete.filePath.startsWith('/') || documentToDelete.filePath.includes(':')
+            ? documentToDelete.filePath
+            : path.join(process.cwd(), documentToDelete.filePath);
+          
+          if (fs.existsSync(filePath)) {
+            try {
+              fs.unlinkSync(filePath);
+            } catch (err) {
+              console.error('Failed to delete file:', err);
+            }
+          }
+        }
+        
+        // Update task
+        await db.update(projectLifecycleTasks)
+          .set({
+            attachedDocuments: updatedDocuments,
+            updatedAt: new Date()
+          })
+          .where(eq(projectLifecycleTasks.id, taskId));
+        
+        res.json({ success: true, message: 'Document deleted successfully' });
       }
-      
-      // Update task
-      await db.update(projectLifecycleTasks)
-        .set({
-          attachedDocuments: updatedDocuments,
-          updatedAt: new Date()
-        })
-        .where(eq(projectLifecycleTasks.id, taskId));
-      
-      res.json({ success: true, message: 'Document deleted successfully' });
     } catch (error: any) {
+      // Log failed deletion attempt
+      await db.execute(sql`
+        INSERT INTO audit_events (
+          entity_type, entity_id,
+          action, action_category, user_id,
+          error_message, metadata,
+          success, risk_level
+        )
+        VALUES (
+          'document', ${req.params.documentId},
+          'delete_failed', 'security', ${req.session?.userId || null},
+          ${error.message},
+          ${JSON.stringify({ projectId: req.params.projectId, taskId: req.body.taskId })}::jsonb,
+          false, 'high'
+        )
+      `);
+      
       res.status(500).json({ error: error.message });
     }
   });

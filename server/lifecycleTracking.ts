@@ -93,10 +93,37 @@ export class LifecycleTrackingService {
         .where(eq(projectLifecycleTasks.phaseId, phase.id))
         .orderBy(asc(projectLifecycleTasks.id));
 
+      // Fetch documents for each task from new lifecycle_documents table
+      const tasksWithDocuments = await Promise.all(tasks.map(async (task) => {
+        const documents = await db.execute(sql`
+          SELECT 
+            id,
+            original_filename as filename,
+            file_size as "fileSize",
+            mime_type as "fileType",
+            uploaded_at as "uploadedAt",
+            uploaded_by_name as "uploadedBy",
+            file_path as "filePath"
+          FROM lifecycle_documents
+          WHERE task_id = ${task.id}
+            AND status = 'active'
+          ORDER BY uploaded_at DESC
+        `);
+        
+        // Merge documents from both sources temporarily (backward compatibility)
+        const jsonbDocs = (task.attachedDocuments as any[]) || [];
+        const allDocuments = [...documents.rows, ...jsonbDocs];
+        
+        return {
+          ...task,
+          attachedDocuments: allDocuments
+        };
+      }));
+
       return {
         ...phase,
-        tasks,
-        progress: this.calculatePhaseProgress(tasks),
+        tasks: tasksWithDocuments,
+        progress: this.calculatePhaseProgress(tasksWithDocuments),
       };
     }));
 
