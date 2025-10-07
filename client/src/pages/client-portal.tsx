@@ -247,11 +247,11 @@ export default function ClientPortal() {
                     </div>
                     <div className="flex justify-between py-2">
                       <span>Consumables & Welding</span>
-                      <span className="font-medium">$3,420</span>
+                      <span className="font-medium">$0</span>
                     </div>
                     <div className="flex justify-between py-2">
                       <span>Project Management & Overhead</span>
-                      <span className="font-medium">$10,220</span>
+                      <span className="font-medium">$0</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between py-2 text-lg font-bold">

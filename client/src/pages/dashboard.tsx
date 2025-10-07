@@ -201,9 +201,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="mt-2 sm:mt-3 lg:mt-4 flex items-center">
-              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-accent mr-1" />
-              <span className="text-accent text-xs sm:text-sm font-medium">+8%</span>
-              <span className="text-muted-foreground text-xs sm:text-sm ml-1 hidden sm:inline">from last week</span>
+              <span className="text-muted-foreground text-xs sm:text-sm">Weekly trend</span>
             </div>
           </CardContent>
         </Card>

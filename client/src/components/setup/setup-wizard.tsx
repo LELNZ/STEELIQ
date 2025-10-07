@@ -110,10 +110,10 @@ export default function SetupWizard({ open, onOpenChange }: SetupWizardProps) {
     }
   };
 
-  const createSampleMaterials = useMutation({
+  const createInitialMaterials = useMutation({
     mutationFn: async () => {
-      // Create sample materials based on your Steel Catalogue
-      const sampleMaterials = [
+      // Create initial materials for the system
+      const initialMaterials = [
         {
           code: "FL-100x10",
           name: "Flat Bar 100x10mm",
@@ -123,7 +123,7 @@ export default function SetupWizard({ open, onOpenChange }: SetupWizardProps) {
           weightPerMeter: 7.85,
           grade: "300W",
           pricePerKg: 2.50,
-          supplier: "Sample Supplier"
+          supplier: "Primary Supplier"
         },
         {
           code: "ANG-50x50x5",
@@ -135,7 +135,7 @@ export default function SetupWizard({ open, onOpenChange }: SetupWizardProps) {
           weightPerMeter: 3.77,
           grade: "300W",
           pricePerKg: 2.50,
-          supplier: "Sample Supplier"
+          supplier: "Primary Supplier"
         },
         {
           code: "RHS-50x25x2.5",
@@ -147,24 +147,24 @@ export default function SetupWizard({ open, onOpenChange }: SetupWizardProps) {
           weightPerMeter: 2.42,
           grade: "350W",
           pricePerKg: 2.75,
-          supplier: "Sample Supplier"
+          supplier: "Primary Supplier"
         }
       ];
 
-      for (const material of sampleMaterials) {
+      for (const material of initialMaterials) {
         await apiRequest("POST", "/api/materials", material);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });
       toast({
-        title: "Sample Materials Added",
-        description: "3 sample materials from your steel catalog have been added successfully.",
+        title: "Initial Materials Added",
+        description: "3 initial materials from your steel catalog have been added successfully.",
       });
     },
   });
 
-  const createSampleInventory = useMutation({
+  const createInitialInventory = useMutation({
     mutationFn: async () => {
       const materials = await fetch("/api/materials").then(res => res.json());
       
@@ -184,7 +184,7 @@ export default function SetupWizard({ open, onOpenChange }: SetupWizardProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       toast({
-        title: "Sample Inventory Added",
+        title: "Initial Inventory Added",
         description: "Initial stock levels have been set for your materials.",
       });
     },
@@ -241,12 +241,12 @@ export default function SetupWizard({ open, onOpenChange }: SetupWizardProps) {
               
               <Button 
                 variant="outline"
-                onClick={() => createSampleMaterials.mutate()}
-                disabled={createSampleMaterials.isPending}
+                onClick={() => createInitialMaterials.mutate()}
+                disabled={createInitialMaterials.isPending}
                 className="h-20 flex-col space-y-2"
               >
                 <Package className="w-6 h-6" />
-                <span>Add Sample Materials</span>
+                <span>Add Initial Materials</span>
               </Button>
             </div>
 
@@ -275,12 +275,12 @@ export default function SetupWizard({ open, onOpenChange }: SetupWizardProps) {
             </div>
 
             <Button 
-              onClick={() => createSampleInventory.mutate()}
-              disabled={createSampleInventory.isPending || (materials?.length || 0) === 0}
+              onClick={() => createInitialInventory.mutate()}
+              disabled={createInitialInventory.isPending || (materials?.length || 0) === 0}
               className="w-full h-16"
             >
               <Settings className="w-5 h-5 mr-2" />
-              Set Up Sample Inventory
+              Set Up Initial Inventory
             </Button>
 
             {(materials?.length || 0) === 0 && (

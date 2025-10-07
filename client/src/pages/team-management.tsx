@@ -1344,17 +1344,17 @@ export default function TeamManagement() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Total Available Hours</span>
-                      <span className="font-medium">1,680h</span>
+                      <span className="font-medium">0h</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Allocated Hours</span>
-                      <span className="font-medium">1,420h</span>
+                      <span className="font-medium">0h</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Utilization Rate</span>
-                      <span className="font-medium text-green-600">84.5%</span>
+                      <span className="font-medium text-gray-600">0%</span>
                     </div>
-                    <Progress value={84.5} className="h-2" />
+                    <Progress value={0} className="h-2" />
                   </div>
                 </CardContent>
               </Card>
@@ -1457,8 +1457,8 @@ export default function TeamManagement() {
                         <span>Allocated</span>
                         <span>264h</span>
                       </div>
-                      <Progress value={82.5} className="h-2" />
-                      <div className="text-xs text-muted-foreground">82.5% utilized</div>
+                      <Progress value={0} className="h-2" />
+                      <div className="text-xs text-muted-foreground">0% utilized</div>
                     </div>
                   </div>
                   
@@ -1473,8 +1473,8 @@ export default function TeamManagement() {
                         <span>Allocated</span>
                         <span>400h</span>
                       </div>
-                      <Progress value={83.3} className="h-2" />
-                      <div className="text-xs text-muted-foreground">83.3% utilized</div>
+                      <Progress value={0} className="h-2" />
+                      <div className="text-xs text-muted-foreground">0% utilized</div>
                     </div>
                   </div>
                 </div>
