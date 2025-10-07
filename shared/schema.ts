@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, numeric, date, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, numeric, date, index, bigint, bigserial } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -3393,6 +3393,151 @@ export type EmployeeAuditLog = typeof employeeAuditLog.$inferSelect;
 export type InsertEmployeeAuditLog = typeof employeeAuditLog.$inferInsert;
 export type ArchivedTimesheet = typeof archivedTimesheets.$inferSelect;
 export type InsertArchivedTimesheet = typeof archivedTimesheets.$inferInsert;
+
+// ==========================================
+// WAVE 1: FORTUNE 50 ANALYTICS & BI PLATFORM
+// ==========================================
+
+// Dashboard definitions for customizable BI dashboards
+export const dashboardDefinitions = pgTable("dashboard_definitions", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // executive, operational, financial, project, custom
+  category: text("category").notNull(), // management, operations, finance, hr, sales
+  layout: text("layout").notNull(), // grid, flex, masonry
+  isPublic: boolean("is_public").default(false),
+  isDefault: boolean("is_default").default(false),
+  refreshInterval: integer("refresh_interval"), // seconds
+  permissions: text("permissions"), // role-based access
+  filters: jsonb("filters"), // Default filter settings - OK as config
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Dashboard widgets for modular BI components
+export const dashboardWidgets = pgTable("dashboard_widgets", {
+  id: serial("id").primaryKey(),
+  dashboardId: integer("dashboard_id").references(() => dashboardDefinitions.id).notNull(),
+  widgetType: text("widget_type").notNull(), // chart, kpi, table, heatmap, gauge, map
+  title: text("title").notNull(),
+  dataSource: text("data_source").notNull(), // table or query name
+  visualization: text("visualization").notNull(), // bar, line, pie, scatter, etc.
+  position: integer("position").notNull(), // Grid position
+  width: integer("width").default(4), // Grid width (1-12)
+  height: integer("height").default(4), // Grid height
+  refreshRate: integer("refresh_rate"), // Override dashboard refresh
+  config: jsonb("config"), // Widget-specific configuration - OK as config
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// KPI definitions for tracking key metrics
+export const kpiDefinitions = pgTable("kpi_definitions", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").notNull(), // revenue, cost, efficiency, quality, safety
+  formula: text("formula").notNull(), // SQL or calculation formula
+  unit: text("unit"), // $, %, hours, units, etc.
+  target: decimal("target", { precision: 12, scale: 2 }),
+  warningThreshold: decimal("warning_threshold", { precision: 12, scale: 2 }),
+  criticalThreshold: decimal("critical_threshold", { precision: 12, scale: 2 }),
+  frequency: text("frequency").notNull(), // realtime, hourly, daily, weekly, monthly
+  aggregation: text("aggregation"), // sum, avg, min, max, count
+  isActive: boolean("is_active").default(true),
+  tags: text("tags").array(), // For grouping and filtering
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// KPI history for time-series tracking
+export const kpiHistory = pgTable("kpi_history", {
+  id: serial("id").primaryKey(),
+  kpiId: integer("kpi_id").references(() => kpiDefinitions.id).notNull(),
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  value: decimal("value", { precision: 12, scale: 2 }).notNull(),
+  target: decimal("target", { precision: 12, scale: 2 }),
+  variance: decimal("variance", { precision: 12, scale: 2 }), // Value - Target
+  variancePercentage: decimal("variance_percentage", { precision: 5, scale: 2 }),
+  status: text("status"), // on_target, warning, critical
+  context: jsonb("context"), // Additional context data - OK as metadata
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Report templates for scheduled reporting
+export const reportTemplates = pgTable("report_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // pdf, excel, csv, email
+  category: text("category").notNull(), // executive, financial, operational, compliance
+  query: text("query").notNull(), // SQL query or report definition
+  schedule: text("schedule"), // cron expression
+  recipients: text("recipients").array(), // Email addresses
+  format: jsonb("format"), // Report formatting options - OK as config
+  filters: jsonb("filters"), // Dynamic filters - OK as config
+  isActive: boolean("is_active").default(true),
+  lastRun: timestamp("last_run"),
+  nextRun: timestamp("next_run"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Data marts for pre-aggregated analytics
+export const dataMarts = pgTable("data_marts", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  sourceQuery: text("source_query").notNull(), // SQL to generate mart
+  refreshStrategy: text("refresh_strategy").notNull(), // incremental, full, append
+  refreshSchedule: text("refresh_schedule"), // cron expression
+  lastRefresh: timestamp("last_refresh"),
+  nextRefresh: timestamp("next_refresh"),
+  rowCount: integer("row_count"),
+  sizeBytes: bigint("size_bytes", { mode: "number" }),
+  isActive: boolean("is_active").default(true),
+  retentionDays: integer("retention_days").default(90),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Analytics events for user behavior tracking
+export const analyticsEvents = pgTable("analytics_events", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  sessionId: text("session_id"),
+  eventType: text("event_type").notNull(), // page_view, click, form_submit, etc.
+  eventCategory: text("event_category"), // navigation, interaction, transaction
+  eventAction: text("event_action"), // specific action taken
+  eventLabel: text("event_label"), // additional context
+  eventValue: decimal("event_value", { precision: 12, scale: 2 }),
+  pageUrl: text("page_url"),
+  referrer: text("referrer"),
+  deviceType: text("device_type"), // desktop, mobile, tablet
+  browser: text("browser"),
+  ipAddress: text("ip_address"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+// Benchmark metrics for industry comparisons
+export const benchmarkMetrics = pgTable("benchmark_metrics", {
+  id: serial("id").primaryKey(),
+  metricName: text("metric_name").notNull(),
+  industry: text("industry").notNull(),
+  percentile25: decimal("percentile_25", { precision: 12, scale: 2 }),
+  percentile50: decimal("percentile_50", { precision: 12, scale: 2 }),
+  percentile75: decimal("percentile_75", { precision: 12, scale: 2 }),
+  percentile90: decimal("percentile_90", { precision: 12, scale: 2 }),
+  source: text("source"), // Data source
+  year: integer("year"),
+  notes: text("notes"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 // Enterprise Settings Tables
 export const settingsCategories = pgTable("settings_categories", {
