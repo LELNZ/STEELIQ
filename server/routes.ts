@@ -392,8 +392,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Industry-standard secure file upload configuration
   const uploadStorage = multer.diskStorage({
     destination: function (req, file, cb) {
-      // Store outside web root for security
-      const uploadDir = path.join(process.cwd(), '.secure-uploads', 'lifecycle-documents');
+      // Store in persistent uploads directory
+      const uploadDir = path.join(process.cwd(), 'uploads', 'lifecycle-documents');
       // Create directory if it doesn't exist
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
@@ -6417,7 +6417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(users)
         .where(eq(users.id, userId));
       
-      // Create document object with file path
+      // Create document object with relative file path
       const newDocument = {
         id: Date.now(), // Simple ID generation
         filename: req.file.originalname,
@@ -6425,7 +6425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileType: req.file.mimetype,
         uploadedAt: new Date(),
         uploadedBy: user?.name || 'Unknown',
-        filePath: req.file.path // Store the file path
+        filePath: path.relative(process.cwd(), req.file.path) // Store relative path to avoid long path issues
       };
       
       // Update task with new document
@@ -6630,8 +6630,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const documentToDelete = documents.find((doc: any) => doc.id === documentId);
       
       // Delete file from disk if it exists
-      if (documentToDelete?.filePath && fs.existsSync(documentToDelete.filePath)) {
-        fs.unlinkSync(documentToDelete.filePath);
+      if (documentToDelete?.filePath) {
+        const filePath = documentToDelete.filePath.startsWith('/') || documentToDelete.filePath.includes(':') 
+          ? documentToDelete.filePath 
+          : path.join(process.cwd(), documentToDelete.filePath);
+          
+        if (fs.existsSync(filePath)) {
+          try {
+            fs.unlinkSync(filePath);
+          } catch (err) {
+            console.error('Failed to delete file:', err);
+          }
+        }
       }
       
       // Update task

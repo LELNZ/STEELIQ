@@ -162,8 +162,21 @@ export default function ProjectLifecycleTracker() {
       
       if (!response.ok) throw new Error('Delete failed');
       
-      // Refresh the lifecycle data to show updated documents
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectIdNum}/lifecycle`] });
+      // Refresh the lifecycle data and re-select the task to show updated documents
+      await queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectIdNum}/lifecycle`] });
+      
+      // Keep the same task selected after refresh
+      const currentTaskId = selectedTask?.id;
+      if (currentTaskId) {
+        setTimeout(() => {
+          const updatedTask = lifecycle?.phases
+            .flatMap(p => p.tasks)
+            .find(t => t.id === currentTaskId);
+          if (updatedTask) {
+            setSelectedTask(updatedTask);
+          }
+        }, 100);
+      }
       
       toast({
         title: "Success",
