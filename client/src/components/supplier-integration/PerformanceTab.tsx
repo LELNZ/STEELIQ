@@ -195,81 +195,49 @@ export function PerformanceTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      Steel & Tube Holdings
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold ${getPerformanceColor(92)}`}>
-                          92%
-                        </span>
-                        <Badge className="bg-green-100 text-green-800">
-                          Excellent
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>95%</TableCell>
-                    <TableCell>98%</TableCell>
-                    <TableCell>88%</TableCell>
-                    <TableCell>90%</TableCell>
-                    <TableCell>
-                      <div className="flex">{getStarRating(92)}</div>
-                    </TableCell>
-                    <TableCell>
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      Fletcher Steel
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold ${getPerformanceColor(85)}`}>
-                          85%
-                        </span>
-                        <Badge className="bg-green-100 text-green-800">
-                          Good
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>88%</TableCell>
-                    <TableCell>95%</TableCell>
-                    <TableCell>82%</TableCell>
-                    <TableCell>85%</TableCell>
-                    <TableCell>
-                      <div className="flex">{getStarRating(85)}</div>
-                    </TableCell>
-                    <TableCell>
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      Vulcan Steel
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold ${getPerformanceColor(72)}`}>
-                          72%
-                        </span>
-                        <Badge className="bg-yellow-100 text-yellow-800">
-                          Average
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>75%</TableCell>
-                    <TableCell>85%</TableCell>
-                    <TableCell>70%</TableCell>
-                    <TableCell>68%</TableCell>
-                    <TableCell>
-                      <div className="flex">{getStarRating(72)}</div>
-                    </TableCell>
-                    <TableCell>
-                      <TrendingDown className="h-4 w-4 text-red-600" />
-                    </TableCell>
-                  </TableRow>
+                  {performanceData && performanceData.length > 0 ? (
+                    performanceData.map((supplier: any) => (
+                      <TableRow key={supplier.id}>
+                        <TableCell className="font-medium">
+                          {supplier.name}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-bold ${getPerformanceColor(supplier.overallScore || 0)}`}>
+                              {supplier.overallScore || 0}%
+                            </span>
+                            <Badge className={supplier.overallScore >= 90 ? "bg-green-100 text-green-800" : 
+                              supplier.overallScore >= 75 ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                              {supplier.overallScore >= 90 ? "Excellent" : 
+                                supplier.overallScore >= 75 ? "Good" : "Average"}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>{supplier.deliveryScore || 0}%</TableCell>
+                        <TableCell>{supplier.qualityScore || 0}%</TableCell>
+                        <TableCell>{supplier.priceScore || 0}%</TableCell>
+                        <TableCell>{supplier.communicationScore || 0}%</TableCell>
+                        <TableCell>
+                          <div className="flex">{getStarRating(supplier.overallScore || 0)}</div>
+                        </TableCell>
+                        <TableCell>
+                          {supplier.trend === "up" ? (
+                            <TrendingUp className="h-4 w-4 text-green-600" />
+                          ) : supplier.trend === "down" ? (
+                            <TrendingDown className="h-4 w-4 text-red-600" />
+                          ) : (
+                            <span className="h-4 w-4 text-gray-400">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        No supplier performance data available
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -286,53 +254,41 @@ export function PerformanceTab() {
                 <div>
                   <h4 className="font-medium mb-4">On-Time Delivery Rate</h4>
                   <div className="space-y-3">
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm">Steel & Tube Holdings</span>
-                        <span className="text-sm font-medium">95%</span>
+                    {performanceData && performanceData.length > 0 ? (
+                      performanceData.map((supplier: any) => (
+                        <div key={supplier.id}>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm">{supplier.name}</span>
+                            <span className="text-sm font-medium">{supplier.deliveryScore || 0}%</span>
+                          </div>
+                          <Progress value={supplier.deliveryScore || 0} />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-muted-foreground">
+                        No delivery performance data available
                       </div>
-                      <Progress value={95} />
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm">Fletcher Steel</span>
-                        <span className="text-sm font-medium">88%</span>
-                      </div>
-                      <Progress value={88} />
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm">Vulcan Steel</span>
-                        <span className="text-sm font-medium">75%</span>
-                      </div>
-                      <Progress value={75} />
-                    </div>
+                    )}
                   </div>
                 </div>
                 <div>
                   <h4 className="font-medium mb-4">Average Lead Time (days)</h4>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <span>Steel & Tube Holdings</span>
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-4 w-4 text-blue-600" />
-                        <span className="font-medium">3.2</span>
+                    {performanceData && performanceData.length > 0 ? (
+                      performanceData.map((supplier: any) => (
+                        <div key={supplier.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <span>{supplier.name}</span>
+                          <div className="flex items-center gap-2">
+                            <Truck className="h-4 w-4 text-blue-600" />
+                            <span className="font-medium">{supplier.avgLeadTime || 0}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-muted-foreground">
+                        No lead time data available
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <span>Fletcher Steel</span>
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-4 w-4 text-blue-600" />
-                        <span className="font-medium">4.5</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <span>Vulcan Steel</span>
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-4 w-4 text-blue-600" />
-                        <span className="font-medium">5.8</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>

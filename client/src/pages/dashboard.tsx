@@ -235,7 +235,9 @@ export default function Dashboard() {
               <div className="flex-1">
                 <p className="text-muted-foreground text-xs sm:text-sm font-medium">Weekly Volume</p>
                 <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">
-                  {stats?.weeklyVolume ?? 0} <span className="text-base sm:text-lg lg:text-xl">jobs</span>
+                  {stats?.weeklyVolume && stats.weeklyVolume > 0 
+                    ? <>{stats.weeklyVolume} <span className="text-base sm:text-lg lg:text-xl">jobs</span></>
+                    : <span className="text-lg sm:text-xl lg:text-2xl text-muted-foreground">No data</span>}
                 </p>
               </div>
               <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-warning/10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">

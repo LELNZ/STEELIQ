@@ -160,7 +160,7 @@ export function ApiConnectionsTab() {
                   </div>
                   <div>
                     <Label>Connection Name</Label>
-                    <Input placeholder="e.g., Steel & Tube Price API" />
+                    <Input placeholder="e.g., Supplier Price API" />
                   </div>
                   <div>
                     <Label>API Type</Label>
