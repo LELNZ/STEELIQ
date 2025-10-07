@@ -36,7 +36,6 @@ import {
   TrendingUp,
   TrendingDown,
   Calendar,
-  Tool,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -321,7 +320,7 @@ export default function MachineMonitoringTab() {
             View Live Feed
           </Button>
           <Button variant="outline" size="sm">
-            <Tool className="h-4 w-4 mr-2" />
+            <Wrench className="h-4 w-4 mr-2" />
             Request Technician
           </Button>
           <Button variant="outline" size="sm">
