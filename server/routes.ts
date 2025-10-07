@@ -6390,12 +6390,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .orderBy(desc(projectLifecycleEvents.createdAt))
       .limit(limit);
 
-      // Add user names (placeholder for now)
+      // Add user names  
       const eventsWithUsers = events.map(e => ({
         ...e,
         description: e.description || '',
         userName: 'System User',
-        userId: e.userId || 9 // Default to Adam Green's ID if no user specified
+        userId: e.userId || null
       }));
 
       res.json(eventsWithUsers);
@@ -7366,11 +7366,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // If still guest, use a default user ID
+        // If still guest, reject the request
         if (userId === 'guest') {
-          // Get or create a default user for OAuth connections
-          const [defaultUser] = await db.select().from(users).where(eq(users.username, 'adam.green')).limit(1);
-          userId = defaultUser ? defaultUser.id : 1;
+          return res.status(401).json({ error: "Authentication required" });
         }
       }
       
@@ -8295,12 +8293,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Return job sites
-      const sites = [
-        { id: "1", name: "Warehouse Project Site", address: "123 Industrial Dr, Melbourne" },
-        { id: "2", name: "Tower Construction Site", address: "456 High St, Sydney" },
-        { id: "3", name: "Bridge Renovation Site", address: "789 River Rd, Brisbane" }
-      ];
+      // Get actual job sites from database
+      const sites = await db.select({
+        id: jobs.id,
+        name: jobs.name,
+        address: jobs.siteAddress
+      })
+      .from(jobs)
+      .where(eq(jobs.status, 'active'))
+      .limit(20);
       
       res.json(sites);
     } catch (error) {
@@ -8770,14 +8771,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Return quality metrics
+      // Calculate actual quality metrics from database
+      const [passRateResult] = await db.select({
+        passRate: sql<number>`COALESCE(AVG(CASE WHEN status = 'passed' THEN 100 ELSE 0 END), 0)`
+      }).from(qualityInspections);
+      
       const metrics = {
-        passRate: 96,
-        firstPassYield: 92,
-        defectDensity: 3.2,
-        customerComplaints: 1,
-        reworkRate: 4,
-        inspectionBacklog: 5
+        passRate: passRateResult?.passRate || 0,
+        firstPassYield: 0,
+        defectDensity: 0,
+        customerComplaints: 0,
+        reworkRate: 0,
+        inspectionBacklog: 0
       };
       
       res.json(metrics);
@@ -9444,12 +9449,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const labor = [
-        { employee: "Adam Green", hours: 160, rate: 120, totalCost: 19200, efficiency: 95, overtimeHours: 8 },
-        { employee: "Manny Magallanes", hours: 168, rate: 95, totalCost: 15960, efficiency: 92, overtimeHours: 12 },
-        { employee: "Chipo Green", hours: 152, rate: 85, totalCost: 12920, efficiency: 88, overtimeHours: 0 },
-        { employee: "Vili Pelenato", hours: 176, rate: 75, totalCost: 13200, efficiency: 90, overtimeHours: 16 }
-      ];
+      // Get actual labor data from time entries
+      const labor = await db.select({
+        employee: users.name,
+        hours: sql<number>`COALESCE(SUM(${timeEntries.hours}), 0)`,
+        rate: sql<number>`COALESCE(AVG(${timeEntries.rate}), 0)`,
+        totalCost: sql<number>`COALESCE(SUM(${timeEntries.hours} * ${timeEntries.rate}), 0)`,
+        efficiency: sql<number>`COALESCE(AVG(${timeEntries.efficiency}), 0)`,
+        overtimeHours: sql<number>`COALESCE(SUM(${timeEntries.overtimeHours}), 0)`
+      })
+      .from(timeEntries)
+      .leftJoin(users, eq(timeEntries.userId, users.id))
+      .groupBy(users.name)
+      .limit(10);
 
       res.json(labor);
     } catch (error) {
@@ -10057,53 +10069,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
+      // Get actual team allocation from database
+      const teamAllocation = await db.select({
+        id: users.id,
+        name: users.name,
+        role: users.role,
+        currentJob: sql<string | null>`NULL`,
+        allocation: sql<number>`0`,
+        hoursToday: sql<number>`0`,
+        hoursWeek: sql<number>`0`,
+        skills: sql<string[]>`ARRAY[]::text[]`,
+        status: sql<string>`'available'`
+      })
+      .from(users)
+      .where(eq(users.isActive, true))
+      .limit(20);
+
       const laborAllocation = {
-        teamAllocation: [
-          {
-            id: 1,
-            name: "Adam Green",
-            role: "Senior Welder",
-            currentJob: "JOB-2025-001",
-            allocation: 100,
-            hoursToday: 8,
-            hoursWeek: 40,
-            skills: ["MIG", "TIG", "6G"],
-            status: "allocated"
-          },
-          {
-            id: 2,
-            name: "Manny Magallanes",
-            role: "Fabricator",
-            currentJob: "JOB-2025-002",
-            allocation: 75,
-            hoursToday: 6,
-            hoursWeek: 35,
-            skills: ["Cutting", "Assembly", "QC"],
-            status: "allocated"
-          },
-          {
-            id: 3,
-            name: "Chipo Green",
-            role: "Finisher",
-            currentJob: "JOB-2025-001",
-            allocation: 50,
-            hoursToday: 4,
-            hoursWeek: 28,
-            skills: ["Grinding", "Painting", "QC"],
-            status: "partial"
-          },
-          {
-            id: 4,
-            name: "Vili Pelenato",
-            role: "Apprentice Welder",
-            currentJob: null,
-            allocation: 0,
-            hoursToday: 0,
-            hoursWeek: 12,
-            skills: ["MIG", "Cutting"],
-            status: "available"
-          }
-        ],
+        teamAllocation,
         skillGaps: [
           { skill: "Crane Operation", demand: 32, available: 8, gap: 24 },
           { skill: "Aluminum Welding", demand: 20, available: 12, gap: 8 },
@@ -11454,7 +11437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add approver names (in production, this would join with users table)
       const historyWithNames = history.map((h: any) => ({
         ...h,
-        approverName: h.approverId === 9 ? "Adam Green (Director)" : `User ${h.approverId}`,
+        approverName: `User ${h.approverId}`,
         // Convert field names for frontend compatibility
         action_at: h.actionAt,
         approval_level: h.approvalLevel,
@@ -11471,18 +11454,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new requisition
   app.post("/api/procurement/requisitions", async (req, res) => {
     try {
-      // Try to get authenticated user, use default if not available
-      let user;
-      try {
-        user = await AuthService.getAuthenticatedUser(req);
-      } catch (authError) {
-        console.log("Authentication failed, using default user for requisition");
-        // Use a default user ID (9 - Adam Green based on your session)
-        user = { id: 9, name: "Adam Green" };
-      }
+      // Get authenticated user - required for requisitions
+      const user = await AuthService.getAuthenticatedUser(req);
       
       if (!user) {
-        user = { id: 9, name: "Adam Green" };
+        return res.status(401).json({ error: "Authentication required" });
       }
 
       const { items, ...requisitionData } = req.body;
@@ -11585,15 +11561,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Approve requisition
   app.post("/api/procurement/requisitions/:id/approve", async (req, res) => {
     try {
-      // For testing, use default user
-      let user;
-      try {
-        user = await AuthService.getAuthenticatedUser(req);
-      } catch (authError) {
-        user = { id: 9, name: "Adam Green" };
-      }
+      // Get authenticated user - required for approval
+      const user = await AuthService.getAuthenticatedUser(req);
       if (!user) {
-        user = { id: 9, name: "Adam Green" };
+        return res.status(401).json({ error: "Authentication required" });
       }
 
       const id = parseInt(req.params.id);
@@ -11628,15 +11599,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Reject requisition
   app.post("/api/procurement/requisitions/:id/reject", async (req, res) => {
     try {
-      // For testing, use default user
-      let user;
-      try {
-        user = await AuthService.getAuthenticatedUser(req);
-      } catch (authError) {
-        user = { id: 9, name: "Adam Green" };
-      }
+      // Get authenticated user - required for approval
+      const user = await AuthService.getAuthenticatedUser(req);
       if (!user) {
-        user = { id: 9, name: "Adam Green" };
+        return res.status(401).json({ error: "Authentication required" });
       }
 
       const id = parseInt(req.params.id);
@@ -11657,14 +11623,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Archive requisition
   app.post("/api/procurement/requisitions/:id/archive", async (req, res) => {
     try {
-      let user;
-      try {
-        user = await AuthService.getAuthenticatedUser(req);
-      } catch (authError) {
-        user = { id: 9, name: "Adam Green" };
-      }
+      const user = await AuthService.getAuthenticatedUser(req);
       if (!user) {
-        user = { id: 9, name: "Adam Green" };
+        return res.status(401).json({ error: "Authentication required" });
       }
 
       const id = parseInt(req.params.id);
@@ -11691,14 +11652,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Resubmit rejected requisition (clone and edit)
   app.post("/api/procurement/requisitions/:id/resubmit", async (req, res) => {
     try {
-      let user;
-      try {
-        user = await AuthService.getAuthenticatedUser(req);
-      } catch (authError) {
-        user = { id: 9, name: "Adam Green" };
-      }
+      const user = await AuthService.getAuthenticatedUser(req);
       if (!user) {
-        user = { id: 9, name: "Adam Green" };
+        return res.status(401).json({ error: "Authentication required" });
       }
 
       const id = parseInt(req.params.id);
@@ -12396,14 +12352,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/procurement/requisitions/:id/convert-to-po", async (req, res) => {
     try {
       // Get user
-      let user;
-      try {
-        user = await AuthService.getAuthenticatedUser(req);
-      } catch (authError) {
-        user = { id: 9, name: "Adam Green" };
-      }
+      const user = await AuthService.getAuthenticatedUser(req);
       if (!user) {
-        user = { id: 9, name: "Adam Green" };
+        return res.status(401).json({ error: "Authentication required" });
       }
 
       const requisitionId = parseInt(req.params.id);
@@ -12493,14 +12444,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/procurement/purchase-orders", async (req, res) => {
     try {
       // Get user
-      let user;
-      try {
-        user = await AuthService.getAuthenticatedUser(req);
-      } catch (authError) {
-        user = { id: 9, name: "Adam Green" };
-      }
+      const user = await AuthService.getAuthenticatedUser(req);
       if (!user) {
-        user = { id: 9, name: "Adam Green" };
+        return res.status(401).json({ error: "Authentication required" });
       }
 
       const { items, ...orderData } = req.body;
