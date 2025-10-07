@@ -61,6 +61,32 @@ export const emailAccounts = pgTable("email_accounts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Email imported costs - costs extracted from emails
+export const emailImportedCosts = pgTable("email_imported_costs", {
+  id: serial("id").primaryKey(),
+  emailAccountId: integer("email_account_id").references(() => emailAccounts.id),
+  emailId: text("email_id"), // Unique email identifier
+  subject: text("subject"),
+  sender: text("sender"),
+  attachmentName: text("attachment_name"),
+  supplierName: text("supplier_name"),
+  invoiceNumber: text("invoice_number"),
+  amount: decimal("amount", { precision: 12, scale: 2 }),
+  currency: text("currency").default("NZD"),
+  invoiceDate: timestamp("invoice_date"),
+  dueDate: timestamp("due_date"),
+  status: text("status").default("pending"), // pending, matched, ignored, error
+  jobId: integer("job_id").references(() => jobs.id),
+  purchaseOrderId: integer("purchase_order_id"),
+  confidenceScore: decimal("confidence_score", { precision: 5, scale: 2 }),
+  extractedData: jsonb("extracted_data"), // Full extracted data from OCR/parsing
+  notes: text("notes"),
+  importedAt: timestamp("imported_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+  processedBy: integer("processed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Drawing Intelligence tables
 export const drawingProjects = pgTable("drawing_projects", {
   id: serial("id").primaryKey(),
@@ -805,6 +831,7 @@ export const jobs = pgTable("jobs", {
   wastePercentage: decimal("waste_percentage", { precision: 5, scale: 2 }),
   isRushOrder: boolean("is_rush_order").default(false),
   rushPremium: decimal("rush_premium", { precision: 5, scale: 2 }),
+  estimatedHours: decimal("estimated_hours", { precision: 10, scale: 2 }), // Added for production tracking
   notes: text("notes"),
   internalNotes: text("internal_notes"),
   deliveryInstructions: text("delivery_instructions"),
@@ -2905,6 +2932,28 @@ export const auditLog = pgTable("audit_log", {
 });
 
 // Time Management Schema
+// Time Entries - simpler time tracking for mobile operations
+export const timeEntries = pgTable("time_entries", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  jobId: integer("job_id").references(() => jobs.id),
+  clockIn: timestamp("clock_in").notNull(),
+  clockOut: timestamp("clock_out"),
+  breakMinutes: integer("break_minutes").default(0),
+  totalMinutes: integer("total_minutes"),
+  location: text("location"),
+  gpsLatitude: decimal("gps_latitude", { precision: 10, scale: 6 }),
+  gpsLongitude: decimal("gps_longitude", { precision: 10, scale: 6 }),
+  notes: text("notes"),
+  status: text("status").default("active"), // active, completed, cancelled
+  deviceId: text("device_id"),
+  photoUrl: text("photo_url"),
+  verifiedBy: integer("verified_by").references(() => users.id),
+  verifiedAt: timestamp("verified_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const timesheets = pgTable("timesheets", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
