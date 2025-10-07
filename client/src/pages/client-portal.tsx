@@ -67,61 +67,42 @@ export default function ClientPortal() {
   const [clientFeedback, setClientFeedback] = useState('');
   const [approvalStatus, setApprovalStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
-  // Mock data for demonstration - replace with real API calls
-  const mockProject: ClientProject = {
-    id: 1,
-    projectNumber: "PROJ-2025-001",
-    projectDescription: "Industrial Warehouse Steel Framework - Building A",
-    currentPhase: "professional_estimate",
+  // Fetch project data from API
+  const { data: projects, isLoading: projectsLoading } = useQuery({
+    queryKey: ['/api/client-portal/projects'],
+    enabled: true
+  });
+  
+  const projectId = projects?.[0]?.id || 1;
+  
+  // Fetch quote items from API
+  const { data: quoteItems = [], isLoading: itemsLoading } = useQuery({
+    queryKey: ['/api/client-portal/quote-items', projectId],
+    enabled: !!projectId
+  });
+  
+  // Use first project as selected or create default structure
+  const currentProject: ClientProject = projects?.[0] || {
+    id: projectId,
+    projectNumber: "Loading...",
+    projectDescription: "Loading project details...",
+    currentPhase: "initial_simulation",
     phaseStatus: "pending_review",
-    estimatedValue: 96050,
-    materialCost: 45260,
-    laborCost: 28400,
-    equipmentCost: 8750,
-    totalCost: 96050,
-    dueDate: "2025-07-15",
-    createdAt: "2025-06-10",
-    estimatorName: "John Smith",
+    estimatedValue: 0,
+    materialCost: 0,
+    laborCost: 0,
+    equipmentCost: 0,
+    totalCost: 0,
+    dueDate: new Date().toISOString().split('T')[0],
+    createdAt: new Date().toISOString().split('T')[0],
+    estimatorName: "Your Estimator",
     estimatorContact: "estimator@lateralengineering.co.nz"
   };
-
-  const mockQuoteItems: QuoteItem[] = [
-    {
-      partMark: "B1",
-      description: "Main Beam - Universal Beam",
-      materialCode: "310UB40.4",
-      quantity: 8,
-      length: 12000,
-      weight: 40.4,
-      unitPrice: 285,
-      totalPrice: 2280
-    },
-    {
-      partMark: "C1",
-      description: "Column - Universal Column",
-      materialCode: "200UC52.2",
-      quantity: 12,
-      length: 4200,
-      weight: 52.2,
-      unitPrice: 320,
-      totalPrice: 3840
-    },
-    {
-      partMark: "P1",
-      description: "Purlin - C Section",
-      materialCode: "150PFC",
-      quantity: 24,
-      length: 6000,
-      weight: 23.4,
-      unitPrice: 145,
-      totalPrice: 3480
-    }
-  ];
 
   // Client approval mutation
   const submitApproval = useMutation({
     mutationFn: async (approvalData: { status: string; feedback: string }) => {
-      return apiRequest(`/api/projects/${mockProject.id}/client-approval`, {
+      return apiRequest(`/api/projects/${currentProject.id}/client-approval`, {
         method: 'POST',
         body: JSON.stringify(approvalData)
       });
@@ -170,20 +151,20 @@ export default function ClientPortal() {
           <CardHeader>
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle className="text-2xl">{mockProject.projectDescription}</CardTitle>
+                <CardTitle className="text-2xl">{currentProject.projectDescription}</CardTitle>
                 <CardDescription className="text-lg mt-2">
-                  Project #{mockProject.projectNumber}
+                  Project #{currentProject.projectNumber}
                 </CardDescription>
               </div>
               <div className="text-right">
                 <Badge 
-                  variant={mockProject.phaseStatus === 'pending_review' ? 'default' : 'secondary'}
+                  variant={currentProject.phaseStatus === 'pending_review' ? 'default' : 'secondary'}
                   className="mb-2"
                 >
-                  {mockProject.phaseStatus.replace('_', ' ').toUpperCase()}
+                  {currentProject.phaseStatus.replace('_', ' ').toUpperCase()}
                 </Badge>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Due: {new Date(mockProject.dueDate).toLocaleDateString()}
+                  Due: {new Date(currentProject.dueDate).toLocaleDateString()}
                 </p>
               </div>
             </div>
@@ -194,11 +175,11 @@ export default function ClientPortal() {
                 <p className="text-sm text-gray-600 dark:text-gray-300">Project Estimator</p>
                 <div className="flex items-center space-x-2">
                   <User className="h-4 w-4" />
-                  <span className="font-medium">{mockProject.estimatorName}</span>
+                  <span className="font-medium">{currentProject.estimatorName}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Mail className="h-4 w-4" />
-                  <span className="text-sm">{mockProject.estimatorContact}</span>
+                  <span className="text-sm">{currentProject.estimatorContact}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Phone className="h-4 w-4" />
@@ -210,7 +191,7 @@ export default function ClientPortal() {
                 <p className="text-sm text-gray-600 dark:text-gray-300">Project Timeline</p>
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-4 w-4" />
-                  <span>Quote Submitted: {new Date(mockProject.createdAt).toLocaleDateString()}</span>
+                  <span>Quote Submitted: {new Date(currentProject.createdAt).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Clock className="h-4 w-4" />
@@ -221,7 +202,7 @@ export default function ClientPortal() {
               <div className="space-y-2">
                 <p className="text-sm text-gray-600 dark:text-gray-300">Estimated Value</p>
                 <div className="text-3xl font-bold text-green-600">
-                  ${mockProject.totalCost.toLocaleString()}
+                  ${currentProject.totalCost.toLocaleString()}
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   GST Inclusive
@@ -254,15 +235,15 @@ export default function ClientPortal() {
                   <div className="space-y-4">
                     <div className="flex justify-between py-2">
                       <span>Materials</span>
-                      <span className="font-medium">${mockProject.materialCost.toLocaleString()}</span>
+                      <span className="font-medium">${currentProject.materialCost.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between py-2">
                       <span>Labor</span>
-                      <span className="font-medium">${mockProject.laborCost.toLocaleString()}</span>
+                      <span className="font-medium">${currentProject.laborCost.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between py-2">
                       <span>Equipment & Machinery</span>
-                      <span className="font-medium">${mockProject.equipmentCost.toLocaleString()}</span>
+                      <span className="font-medium">${currentProject.equipmentCost.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between py-2">
                       <span>Consumables & Welding</span>
@@ -275,7 +256,7 @@ export default function ClientPortal() {
                     <Separator />
                     <div className="flex justify-between py-2 text-lg font-bold">
                       <span>Total (GST Inclusive)</span>
-                      <span>${mockProject.totalCost.toLocaleString()}</span>
+                      <span>${currentProject.totalCost.toLocaleString()}</span>
                     </div>
                   </div>
                   
@@ -340,7 +321,7 @@ export default function ClientPortal() {
                       </tr>
                     </thead>
                     <tbody>
-                      {mockQuoteItems.map((item, index) => (
+                      {quoteItems.map((item, index) => (
                         <tr key={index} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                           <td className="p-3 font-medium">{item.partMark}</td>
                           <td className="p-3">{item.description}</td>

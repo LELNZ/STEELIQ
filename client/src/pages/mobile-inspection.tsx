@@ -74,12 +74,11 @@ export default function MobileInspection() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Mock drawings data
-  const mockDrawings: Drawing[] = [
-    { id: 1, name: "Structural Plan - Ground Level", type: "plan", url: "/api/drawings/1", scale: 1000 },
-    { id: 2, name: "Section A-A", type: "section", url: "/api/drawings/2", scale: 500 },
-    { id: 3, name: "North Elevation", type: "elevation", url: "/api/drawings/3", scale: 200 }
-  ];
+  // Fetch drawings data from API
+  const { data: drawings = [], isLoading: drawingsLoading } = useQuery({
+    queryKey: ['/api/mobile/drawings'],
+    enabled: true
+  });
 
   // Get current GPS location
   const getCurrentLocation = useCallback(() => {
@@ -308,7 +307,7 @@ export default function MobileInspection() {
               <CardTitle className="text-lg">Select Drawing</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {mockDrawings.map((drawing) => (
+              {drawings.map((drawing) => (
                 <Button
                   key={drawing.id}
                   variant={selectedDrawing?.id === drawing.id ? "default" : "outline"}
@@ -419,7 +418,7 @@ export default function MobileInspection() {
                         <div>
                           <p className="font-medium">Element: {measurement.elementId}</p>
                           <p className="text-sm text-gray-600 dark:text-gray-300">
-                            Drawing: {mockDrawings.find(d => d.id === measurement.drawingId)?.name}
+                            Drawing: {drawings.find(d => d.id === measurement.drawingId)?.name}
                           </p>
                         </div>
                         <Badge variant={
