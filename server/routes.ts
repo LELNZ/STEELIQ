@@ -13092,7 +13092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get single RFQ with details
+  // Get single RFQ with details - Using normalized junction tables
   app.get("/api/procurement/rfqs/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -13102,11 +13102,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "RFQ not found" });
       }
       
+      // Get invited suppliers from junction table
+      const invitedSuppliersResult = await db.execute(sql`
+        SELECT 
+          ris.*,
+          s.name as supplier_name,
+          s.email as supplier_email
+        FROM rfq_invited_suppliers ris
+        JOIN suppliers s ON ris.supplier_id = s.id
+        WHERE ris.rfq_request_id = ${id}
+        ORDER BY ris.invited_at
+      `);
+      
       // Get responses for this RFQ
       const responses = await storage.getRfqResponses(id);
       
+      // Get attachments from normalized table
+      const attachmentsResult = await db.execute(sql`
+        SELECT 
+          id,
+          filename,
+          original_filename,
+          file_path,
+          file_size,
+          mime_type,
+          attachment_type,
+          uploaded_at
+        FROM rfq_request_attachments
+        WHERE rfq_request_id = ${id}
+          AND status = 'active'
+        ORDER BY uploaded_at DESC
+      `);
+      
+      // Log RFQ view to audit
+      await db.execute(sql`
+        INSERT INTO audit_events (
+          entity_type, entity_id, entity_name,
+          action, action_category, user_id,
+          metadata, success, risk_level
+        )
+        VALUES (
+          'rfq', ${id}, ${rfq.rfqNumber},
+          'view', 'access', ${req.session?.userId || null},
+          ${JSON.stringify({ endpoint: 'GET /api/procurement/rfqs/:id' })}::jsonb,
+          true, 'low'
+        )
+      `);
+      
       res.json({
         ...rfq,
+        // Keep legacy format for backward compatibility
+        invitedSuppliers: invitedSuppliersResult.rows.map(row => row.supplier_id),
+        // Add new detailed field for enhanced data
+        invitedSuppliersDetails: invitedSuppliersResult.rows,
+        attachments: attachmentsResult.rows,
         responses
       });
     } catch (error) {
@@ -13115,7 +13164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create RFQ from approved requisition
+  // Create RFQ from approved requisition - Using normalized junction tables
   app.post("/api/procurement/rfqs", async (req, res) => {
     try {
       const { requisitionId } = req.body;
@@ -13146,13 +13195,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate RFQ number
       const rfqNumber = await storage.generateRfqNumber();
       
-      // Automatically include preferred supplier if present in requisition
-      let invitedSuppliers = req.body.invitedSuppliers || [];
-      if (requisition.preferredSupplierId && !invitedSuppliers.includes(requisition.preferredSupplierId)) {
-        invitedSuppliers = [requisition.preferredSupplierId, ...invitedSuppliers];
+      // Prepare invited suppliers list
+      let invitedSupplierIds = req.body.invitedSuppliers || [];
+      if (requisition.preferredSupplierId && !invitedSupplierIds.includes(requisition.preferredSupplierId)) {
+        invitedSupplierIds = [requisition.preferredSupplierId, ...invitedSupplierIds];
       }
       
-      // Create RFQ
+      // Create RFQ with invited_suppliers JSONB for backward compatibility
       const rfq = await storage.createRfqRequest({
         rfqNumber,
         requisitionId: requisition.id,
@@ -13172,12 +13221,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
           delivery_weight: 30
         },
         specialRequirements: req.body.specialRequirements,
-        invitedSuppliers,
+        invitedSuppliers: invitedSupplierIds, // Maintain backward compatibility
         publicRfq: req.body.publicRfq || false,
         createdBy: user.id
       });
       
-      res.json(rfq);
+      // Add invited suppliers to junction table
+      if (invitedSupplierIds.length > 0) {
+        for (const supplierId of invitedSupplierIds) {
+          await db.execute(sql`
+            INSERT INTO rfq_invited_suppliers (
+              rfq_request_id,
+              supplier_id,
+              invited_at,
+              invited_by,
+              invitation_sent,
+              invitation_method
+            )
+            VALUES (
+              ${rfq.id},
+              ${supplierId},
+              NOW(),
+              ${user.id},
+              FALSE,
+              'pending'
+            )
+            ON CONFLICT (rfq_request_id, supplier_id) DO NOTHING
+          `);
+        }
+      }
+      
+      // Log RFQ creation to audit
+      await db.execute(sql`
+        INSERT INTO audit_events (
+          entity_type, entity_id, entity_name,
+          action, action_category, user_id, username,
+          metadata, success, risk_level
+        )
+        VALUES (
+          'rfq', ${rfq.id}, ${rfq.rfqNumber},
+          'create', 'procurement', ${user.id}, ${user.name},
+          ${JSON.stringify({ 
+            requisitionId, 
+            supplierCount: invitedSupplierIds.length,
+            jobId: requisition.jobId
+          })}::jsonb,
+          true, 'low'
+        )
+      `);
+      
+      // Return RFQ with invited suppliers from junction table
+      const rfqWithSuppliers = await db.execute(sql`
+        SELECT 
+          r.*,
+          COALESCE(
+            jsonb_agg(
+              DISTINCT ris.supplier_id
+            ) FILTER (WHERE ris.supplier_id IS NOT NULL),
+            '[]'::jsonb
+          ) as invited_supplier_ids
+        FROM rfq_requests r
+        LEFT JOIN rfq_invited_suppliers ris ON r.id = ris.rfq_request_id
+        WHERE r.id = ${rfq.id}
+        GROUP BY r.id
+      `);
+      
+      res.json(rfqWithSuppliers.rows[0] || rfq);
     } catch (error) {
       console.error("Error creating RFQ:", error);
       res.status(500).json({ error: "Failed to create RFQ" });
