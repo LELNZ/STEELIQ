@@ -60,6 +60,10 @@ export function PriceFeedsTab() {
     queryKey: ["/api/supplier-integration/price-feeds", selectedSupplier, selectedCategory],
   });
 
+  const { data: priceComparisons } = useQuery({
+    queryKey: ["/api/supplier-integration/price-comparisons"],
+  });
+
   const { data: suppliers } = useQuery({
     queryKey: ["/api/suppliers"],
   });
@@ -222,60 +226,34 @@ export function PriceFeedsTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      Steel & Tube Holdings
-                    </TableCell>
-                    <TableCell>1,245</TableCell>
-                    <TableCell>2 mins ago</TableCell>
-                    <TableCell>{getStatusBadge("active")}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm">
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Settings className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      Fletcher Steel
-                    </TableCell>
-                    <TableCell>892</TableCell>
-                    <TableCell>15 mins ago</TableCell>
-                    <TableCell>{getStatusBadge("active")}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm">
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Settings className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      Vulcan Steel
-                    </TableCell>
-                    <TableCell>567</TableCell>
-                    <TableCell>1 hour ago</TableCell>
-                    <TableCell>{getStatusBadge("error")}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm">
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Settings className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  {priceFeeds && priceFeeds.length > 0 ? (
+                    priceFeeds.map((feed: any) => (
+                      <TableRow key={feed.id}>
+                        <TableCell className="font-medium">
+                          {feed.supplierName}
+                        </TableCell>
+                        <TableCell>{feed.itemCount || 0}</TableCell>
+                        <TableCell>{feed.lastUpdate || "Never"}</TableCell>
+                        <TableCell>{getStatusBadge(feed.status || "inactive")}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm">
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No price feeds configured
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -294,7 +272,7 @@ export function PriceFeedsTab() {
                   <TrendingUp className="h-5 w-5 text-red-500" />
                   <div>
                     <p className="font-medium text-sm">100x100x6 SHS</p>
-                    <p className="text-xs text-muted-foreground">Steel & Tube</p>
+                    <p className="text-xs text-muted-foreground">Price Update</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -308,7 +286,7 @@ export function PriceFeedsTab() {
                   <TrendingDown className="h-5 w-5 text-green-500" />
                   <div>
                     <p className="font-medium text-sm">250UC89.5</p>
-                    <p className="text-xs text-muted-foreground">Fletcher</p>
+                    <p className="text-xs text-muted-foreground">Price Update</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -322,7 +300,7 @@ export function PriceFeedsTab() {
                   <Minus className="h-5 w-5 text-gray-500" />
                   <div>
                     <p className="font-medium text-sm">16mm Plate</p>
-                    <p className="text-xs text-muted-foreground">Vulcan</p>
+                    <p className="text-xs text-muted-foreground">Price Update</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -360,38 +338,35 @@ export function PriceFeedsTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">100x100x6 SHS</TableCell>
-                <TableCell>Steel & Tube Holdings</TableCell>
-                <TableCell>$145.60/m</TableCell>
-                <TableCell className="text-muted-foreground">$138.40/m</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {getPriceChangeIcon(5.2)}
-                    <span className="text-red-600">+5.2%</span>
+              {priceComparisons && priceComparisons.length > 0 ? (
+                priceComparisons.map((item: any) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.itemName}</TableCell>
+                    <TableCell>{item.supplier}</TableCell>
+                    <TableCell>{item.currentPrice}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.previousPrice}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getPriceChangeIcon(item.priceChange || 0)}
+                        <span className={item.priceChange > 0 ? "text-red-600" : item.priceChange < 0 ? "text-green-600" : "text-gray-600"}>
+                          {item.priceChange > 0 ? "+" : ""}{item.priceChange || 0}%</span>
                   </div>
-                </TableCell>
-                <TableCell>2 mins ago</TableCell>
-                <TableCell>
-                  <div className="h-8 w-16 bg-red-100 rounded" />
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">250UC89.5</TableCell>
-                <TableCell>Fletcher Steel</TableCell>
-                <TableCell>$89.50/m</TableCell>
-                <TableCell className="text-muted-foreground">$92.08/m</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {getPriceChangeIcon(-2.8)}
-                    <span className="text-green-600">-2.8%</span>
-                  </div>
-                </TableCell>
-                <TableCell>15 mins ago</TableCell>
-                <TableCell>
-                  <div className="h-8 w-16 bg-green-100 rounded" />
-                </TableCell>
-              </TableRow>
+                    </TableCell>
+                    <TableCell>{item.lastUpdated || "Never"}</TableCell>
+                    <TableCell>
+                      <div className={`h-8 w-16 rounded ${
+                        item.priceChange > 0 ? "bg-red-100" : item.priceChange < 0 ? "bg-green-100" : "bg-gray-100"
+                      }`} />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No price comparison data available
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
