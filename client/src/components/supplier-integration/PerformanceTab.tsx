@@ -314,66 +314,53 @@ export function PerformanceTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      Steel & Tube Holdings
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-green-600 font-medium">0.2%</span>
-                    </TableCell>
-                    <TableCell>1</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Badge variant="outline">ISO 9001</Badge>
-                        <Badge variant="outline">AS/NZS</Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>Jan 15, 2025</TableCell>
-                    <TableCell>
-                      <Badge className="bg-green-100 text-green-800">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Compliant
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Fletcher Steel</TableCell>
-                    <TableCell>
-                      <span className="text-green-600 font-medium">0.5%</span>
-                    </TableCell>
-                    <TableCell>2</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Badge variant="outline">ISO 9001</Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>Dec 10, 2024</TableCell>
-                    <TableCell>
-                      <Badge className="bg-green-100 text-green-800">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Compliant
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Vulcan Steel</TableCell>
-                    <TableCell>
-                      <span className="text-yellow-600 font-medium">1.5%</span>
-                    </TableCell>
-                    <TableCell>5</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Badge variant="outline">ISO 9001</Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>Nov 5, 2024</TableCell>
-                    <TableCell>
-                      <Badge className="bg-yellow-100 text-yellow-800">
-                        <AlertCircle className="h-3 w-3 mr-1" />
-                        Review
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
+                  {performanceData && performanceData.length > 0 ? (
+                    performanceData.map((supplier: any) => (
+                      <TableRow key={supplier.id}>
+                        <TableCell className="font-medium">
+                          {supplier.name}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`font-medium ${
+                            (supplier.defectRate || 0) < 0.5 ? "text-green-600" : 
+                            (supplier.defectRate || 0) < 1.0 ? "text-yellow-600" : "text-red-600"
+                          }`}>
+                            {supplier.defectRate || 0}%
+                          </span>
+                        </TableCell>
+                        <TableCell>{supplier.returns || 0}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            {supplier.certifications && supplier.certifications.length > 0 ? (
+                              supplier.certifications.map((cert: string, idx: number) => (
+                                <Badge key={idx} variant="outline">{cert}</Badge>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground">None</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{supplier.lastAudit || "N/A"}</TableCell>
+                        <TableCell>
+                          <Badge className={
+                            supplier.complianceStatus === "Compliant" ? "bg-green-100 text-green-800" :
+                            supplier.complianceStatus === "Review" ? "bg-yellow-100 text-yellow-800" :
+                            "bg-gray-100 text-gray-800"
+                          }>
+                            {supplier.complianceStatus === "Compliant" && <CheckCircle className="h-3 w-3 mr-1" />}
+                            {supplier.complianceStatus === "Review" && <AlertCircle className="h-3 w-3 mr-1" />}
+                            {supplier.complianceStatus || "Unknown"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No quality metrics data available
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -398,33 +385,34 @@ export function PerformanceTab() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <TableRow>
-                        <TableCell>Steel & Tube</TableCell>
-                        <TableCell>
-                          <span className="text-green-600">-2.5%</span>
+                      {performanceData && performanceData.length > 0 ? (
+                        performanceData.map((supplier: any) => (
+                          <TableRow key={supplier.id}>
+                            <TableCell>{supplier.name}</TableCell>
+                            <TableCell>
+                              <span className={
+                                (supplier.priceVsMarket || 0) < 0 ? "text-green-600" : "text-red-600"
+                              }>
+                                {(supplier.priceVsMarket || 0) > 0 ? "+" : ""}{supplier.priceVsMarket || 0}%</span>
                         </TableCell>
-                        <TableCell>
-                          <TrendingDown className="h-4 w-4 text-green-600" />
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Fletcher</TableCell>
-                        <TableCell>
-                          <span className="text-yellow-600">+0.8%</span>
-                        </TableCell>
-                        <TableCell>
-                          <TrendingUp className="h-4 w-4 text-red-600" />
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Vulcan</TableCell>
-                        <TableCell>
-                          <span className="text-red-600">+4.2%</span>
-                        </TableCell>
-                        <TableCell>
-                          <TrendingUp className="h-4 w-4 text-red-600" />
-                        </TableCell>
-                      </TableRow>
+                            <TableCell>
+                              {supplier.priceTrend === "up" ? (
+                                <TrendingUp className="h-4 w-4 text-red-600" />
+                              ) : supplier.priceTrend === "down" ? (
+                                <TrendingDown className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <span className="h-4 w-4 text-gray-400">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                            No pricing data available
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </div>
