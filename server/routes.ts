@@ -8512,13 +8512,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate real financial statistics from database
-      // Get revenue from paid invoices (sales invoices to clients)
+      // Get current year and last year dates
+      const currentYear = new Date().getFullYear();
+      const yearStart = new Date(currentYear, 0, 1);
+      const lastYearStart = new Date(currentYear - 1, 0, 1);
+      const lastYearEnd = new Date(currentYear - 1, 11, 31);
+      
+      // Get revenue from paid invoices (sales invoices to clients) - current year
       const revenueResult = await db
         .select({ total: sql`COALESCE(SUM(paid_amount), 0)` })
         .from(invoices)
         .where(and(
           eq(invoices.type, 'sales'),
-          eq(invoices.status, 'paid')
+          eq(invoices.status, 'paid'),
+          gte(invoices.invoiceDate, yearStart)
+        ));
+      
+      // Get last year's revenue for YoY comparison
+      const lastYearRevenueResult = await db
+        .select({ total: sql`COALESCE(SUM(paid_amount), 0)` })
+        .from(invoices)
+        .where(and(
+          eq(invoices.type, 'sales'),
+          eq(invoices.status, 'paid'),
+          gte(invoices.invoiceDate, lastYearStart),
+          lte(invoices.invoiceDate, lastYearEnd)
         ));
       
       // Get expenses from paid purchase invoices
@@ -8527,8 +8545,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(invoices)
         .where(and(
           eq(invoices.type, 'purchase'),
-          eq(invoices.status, 'paid')
+          eq(invoices.status, 'paid'),
+          gte(invoices.invoiceDate, yearStart)
         ));
+      
+      // Get average daily expenses for cash runway calculation
+      const daysThisYear = Math.floor((new Date().getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
+      const dailyExpenses = Number(expensesResult[0]?.total || 0) / Math.max(daysThisYear, 1);
       
       // Get accounts receivable (unpaid sales invoices)
       const receivableResult = await db
@@ -8548,9 +8571,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ne(invoices.status, 'paid')
         ));
       
-      // Get overdue invoices amount
+      // Get overdue invoices amount and count
       const overdueResult = await db
-        .select({ total: sql`COALESCE(SUM(total_amount - paid_amount), 0)` })
+        .select({ 
+          total: sql`COALESCE(SUM(total_amount - paid_amount), 0)`,
+          count: sql`COUNT(*)`
+        })
         .from(invoices)
         .where(and(
           eq(invoices.type, 'sales'),
@@ -8567,21 +8593,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(payments)
         .leftJoin(invoices, eq(payments.invoiceId, invoices.id));
       
+      // Get company's target profit margin from settings (or use industry standard)
+      const targetMarginResult = await db
+        .select({ value: operations_settings.value })
+        .from(operations_settings)
+        .where(eq(operations_settings.key, 'target_profit_margin'))
+        .limit(1);
+      
       const revenue = Number(revenueResult[0]?.total || 0);
+      const lastYearRevenue = Number(lastYearRevenueResult[0]?.total || 0);
       const expenses = Number(expensesResult[0]?.total || 0);
       const profit = revenue - expenses;
       const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
       const cashOnHand = Number(cashResult[0]?.inflow || 0) - Number(cashResult[0]?.outflow || 0);
+      
+      // Calculate YoY growth
+      const yearOverYearGrowth = lastYearRevenue > 0 
+        ? ((revenue - lastYearRevenue) / lastYearRevenue) * 100 
+        : 0;
+      
+      // Calculate days of expenses covered by cash on hand
+      const daysOfExpenses = dailyExpenses > 0 
+        ? Math.floor(cashOnHand / dailyExpenses) 
+        : 999; // If no expenses, show max value
       
       const stats = {
         revenue: revenue,
         expenses: expenses,
         profit: profit,
         profitMargin: profitMargin,
+        profitMarginTarget: Number(targetMarginResult[0]?.value || 20), // Default 20% if not set
         cashOnHand: cashOnHand,
+        daysOfExpenses: daysOfExpenses,
         accountsReceivable: Number(receivableResult[0]?.total || 0),
         accountsPayable: Number(payableResult[0]?.total || 0),
-        overduedInvoices: Number(overdueResult[0]?.total || 0)
+        overduedInvoices: Number(overdueResult[0]?.total || 0),
+        overdueInvoiceCount: Number(overdueResult[0]?.count || 0),
+        yearOverYearGrowth: yearOverYearGrowth,
+        lastYearRevenue: lastYearRevenue
       };
       
       res.json(stats);

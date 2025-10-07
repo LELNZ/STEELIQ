@@ -458,7 +458,7 @@ export default function CashFlowManagementTab() {
                   <div>
                     <p className="font-medium text-sm">Critical: Low Cash Warning</p>
                     <p className="text-sm text-gray-600 mt-1">
-                      Projected cash shortage in 45 days. Accelerate invoice collections and consider delaying non-critical expenses.
+                      Projected cash shortage soon. Accelerate invoice collections and consider delaying non-critical expenses.
                     </p>
                   </div>
                 </div>
@@ -468,7 +468,7 @@ export default function CashFlowManagementTab() {
                   <div>
                     <p className="font-medium text-sm">Collection Efficiency</p>
                     <p className="text-sm text-gray-600 mt-1">
-                      Average collection period is 52 days vs 30-day terms. Implement automated payment reminders to improve by 15 days.
+                      Review collection periods vs payment terms. Implement automated payment reminders to improve cash flow.
                     </p>
                   </div>
                 </div>
@@ -478,7 +478,7 @@ export default function CashFlowManagementTab() {
                   <div>
                     <p className="font-medium text-sm">Payment Optimization</p>
                     <p className="text-sm text-gray-600 mt-1">
-                      Schedule supplier payments to maximize early payment discounts while maintaining minimum cash reserves of $50,000.
+                      Schedule supplier payments to maximize early payment discounts while maintaining adequate cash reserves.
                     </p>
                   </div>
                 </div>
@@ -488,7 +488,7 @@ export default function CashFlowManagementTab() {
                   <div>
                     <p className="font-medium text-sm">Revenue Acceleration</p>
                     <p className="text-sm text-gray-600 mt-1">
-                      Offer 2% early payment discount to improve cash flow by estimated $125,000 over next quarter.
+                      Consider offering early payment discounts to improve cash flow over the next quarter.
                     </p>
                   </div>
                 </div>

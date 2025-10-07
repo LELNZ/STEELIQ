@@ -242,7 +242,7 @@ export default function CostAnalysisTab() {
               {averageMargin.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Target: 22.5%
+              Industry target margin
             </p>
           </CardContent>
         </Card>

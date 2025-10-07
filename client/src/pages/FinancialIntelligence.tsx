@@ -24,10 +24,15 @@ interface FinancialStats {
   expenses: number;
   profit: number;
   profitMargin: number;
+  profitMarginTarget: number;
   cashOnHand: number;
+  daysOfExpenses: number;
   accountsReceivable: number;
   accountsPayable: number;
   overduedInvoices: number;
+  overdueInvoiceCount: number;
+  yearOverYearGrowth: number;
+  lastYearRevenue: number;
 }
 
 export default function FinancialIntelligence() {
@@ -71,9 +76,21 @@ export default function FinancialIntelligence() {
                       {formatCurrency(stats?.revenue || 0)}
                     </p>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-2 flex items-center">
-                      <ArrowUpRight className="h-3 w-3 text-accent mr-1" />
-                      <span className="text-accent font-medium">+12.5%</span>
-                      <span className="ml-1 hidden sm:inline">from last year</span>
+                      {stats?.yearOverYearGrowth !== undefined && stats.yearOverYearGrowth !== 0 ? (
+                        <>
+                          {stats.yearOverYearGrowth > 0 ? (
+                            <ArrowUpRight className="h-3 w-3 text-accent mr-1" />
+                          ) : (
+                            <ArrowDownRight className="h-3 w-3 text-red-500 mr-1" />
+                          )}
+                          <span className={stats.yearOverYearGrowth > 0 ? "text-accent font-medium" : "text-red-500 font-medium"}>
+                            {stats.yearOverYearGrowth > 0 ? '+' : ''}{stats.yearOverYearGrowth.toFixed(1)}%
+                          </span>
+                          <span className="ml-1 hidden sm:inline">from last year</span>
+                        </>
+                      ) : (
+                        <span className="text-xs">No prior year data</span>
+                      )}
                     </p>
                   </>
                 )}
@@ -95,10 +112,10 @@ export default function FinancialIntelligence() {
                 ) : (
                   <>
                     <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 sm:mt-1">
-                      {stats?.profitMargin || 0}%
+                      {(stats?.profitMargin || 0).toFixed(1)}%
                     </p>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-2">
-                      Target: 22.5%
+                      Target: {stats?.profitMarginTarget || 20}%
                     </p>
                   </>
                 )}
@@ -123,7 +140,9 @@ export default function FinancialIntelligence() {
                       {formatCurrency(stats?.cashOnHand || 0)}
                     </p>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-2">
-                      45 days of expenses
+                      {stats?.daysOfExpenses !== undefined && stats.daysOfExpenses < 999 
+                        ? `${stats.daysOfExpenses} days of expenses`
+                        : 'Sufficient cash reserves'}
                     </p>
                   </>
                 )}
@@ -149,7 +168,7 @@ export default function FinancialIntelligence() {
                     </p>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-2 flex items-center">
                       <Calendar className="h-3 w-3 mr-1" />
-                      8 invoices past due
+                      {stats?.overdueInvoiceCount || 0} invoice{(stats?.overdueInvoiceCount || 0) !== 1 ? 's' : ''} past due
                     </p>
                   </>
                 )}
