@@ -146,6 +146,13 @@ export default function EstimationPipeline() {
     return estimations.filter(est => est.status === status);
   };
 
+  const { data: pipelineStats } = useQuery({
+    queryKey: ['/api/estimations/stats'],
+    queryFn: async () => {
+      return apiRequest('GET', '/api/estimations/stats');
+    }
+  });
+
   const calculateMetrics = () => {
     const totalValue = estimations.reduce((sum, est) => sum + parseFloat(est.totalCost || '0'), 0);
     const acceptedValue = estimations
@@ -154,7 +161,7 @@ export default function EstimationPipeline() {
     const conversionRate = estimations.length > 0 
       ? (estimations.filter(est => est.status === 'accepted').length / estimations.length * 100).toFixed(1)
       : 0;
-    const avgDaysToClose = 14; // Calculate from actual data
+    const avgDaysToClose = pipelineStats?.avgDaysToClose || 0;
 
     return { totalValue, acceptedValue, conversionRate, avgDaysToClose };
   };
