@@ -389,8 +389,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Configure multer for file uploads
+  // Configure multer for disk storage
+  const uploadStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      const uploadDir = 'uploads/lifecycle-documents';
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+      // Generate unique filename with timestamp
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + '-' + file.originalname);
+    }
+  });
+
   const upload = multer({ 
-    storage: multer.memoryStorage(),
+    storage: uploadStorage,
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
   });
 
@@ -6356,7 +6373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(users)
         .where(eq(users.id, userId));
       
-      // Create document object with file data
+      // Create document object with file path
       const newDocument = {
         id: Date.now(), // Simple ID generation
         filename: req.file.originalname,
@@ -6364,8 +6381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileType: req.file.mimetype,
         uploadedAt: new Date(),
         uploadedBy: user?.name || 'Unknown',
-        fileData: req.file.buffer.toString('base64'), // Store file as base64
-        filePath: null // Not used with memory storage
+        filePath: req.file.path // Store the file path
       };
       
       // Update task with new document
@@ -6426,17 +6442,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Document not found' });
       }
       
-      // Send file from base64 data
-      if (foundDocument.fileData) {
-        const buffer = Buffer.from(foundDocument.fileData, 'base64');
-        res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
-        res.setHeader('Content-Disposition', `attachment; filename="${foundDocument.filename}"`);
-        res.send(buffer);
-      } else if (foundDocument.filePath && fs.existsSync(foundDocument.filePath)) {
-        // Fallback: try file path if it exists (for legacy documents)
+      // Send file from disk
+      if (foundDocument.filePath && fs.existsSync(foundDocument.filePath)) {
         res.download(foundDocument.filePath, foundDocument.filename);
       } else {
-        res.status(404).json({ error: 'Document data not found' });
+        res.status(404).json({ error: 'Document file not found' });
       }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -6467,18 +6477,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Document not found' });
       }
       
-      // Send file for preview from base64 data
-      if (foundDocument.fileData) {
-        const buffer = Buffer.from(foundDocument.fileData, 'base64');
+      // Send file for preview
+      if (foundDocument.filePath && fs.existsSync(foundDocument.filePath)) {
         res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
         res.setHeader('Content-Disposition', `inline; filename="${foundDocument.filename}"`);
-        res.send(buffer);
-      } else if (foundDocument.filePath && fs.existsSync(foundDocument.filePath)) {
-        // Fallback: try file path if it exists (for legacy documents)
-        res.setHeader('Content-Type', foundDocument.fileType || 'application/octet-stream');
         res.sendFile(path.resolve(foundDocument.filePath));
       } else {
-        res.status(404).json({ error: 'Document data not found for preview' });
+        res.status(404).json({ error: 'Document file not found for preview' });
       }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
