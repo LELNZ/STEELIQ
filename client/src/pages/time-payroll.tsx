@@ -216,9 +216,7 @@ export default function TimePayroll() {
                       <SelectValue placeholder="Choose a job" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="job1">JOB-2025-001 - Warehouse Project</SelectItem>
-                      <SelectItem value="job2">JOB-2025-002 - Bridge Construction</SelectItem>
-                      <SelectItem value="job3">JOB-2025-003 - Office Building</SelectItem>
+                      <SelectItem value="none">No jobs available</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -244,9 +242,9 @@ export default function TimePayroll() {
                       const timeEntry = {
                         timestamp: new Date().toISOString(),
                         type: 'clock_in',
-                        job: 'JOB-2025-001',
-                        task: 'welding',
-                        location: { lat: -36.8485, lng: 174.7633 },
+                        job: '',
+                        task: '',
+                        location: { lat: 0, lng: 0 },
                         isOffline: !isOnline
                       };
                       

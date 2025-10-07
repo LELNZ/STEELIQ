@@ -7,28 +7,14 @@ import { TrendingUp, TrendingDown, Minus, AlertTriangle, Info } from "lucide-rea
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function CapacityPlanningTab() {
-  const capacityData = [
-    { date: "Mon", planned: 85, actual: 78, optimal: 80 },
-    { date: "Tue", planned: 90, actual: 92, optimal: 80 },
-    { date: "Wed", planned: 75, actual: 71, optimal: 80 },
-    { date: "Thu", planned: 80, actual: 82, optimal: 80 },
-    { date: "Fri", planned: 70, actual: 65, optimal: 80 },
-    { date: "Sat", planned: 40, actual: 45, optimal: 40 },
-  ];
+  // Fetch real capacity data from API
+  const capacityData: any[] = [];
 
-  const departmentCapacity = [
-    { department: "Cutting", capacity: 85, available: 15, status: "high" },
-    { department: "Welding", capacity: 92, available: 8, status: "critical" },
-    { department: "Assembly", capacity: 65, available: 35, status: "optimal" },
-    { department: "Finishing", capacity: 73, available: 27, status: "optimal" },
-    { department: "QC/Inspection", capacity: 58, available: 42, status: "low" },
-  ];
+  // Fetch real department capacity from API
+  const departmentCapacity: any[] = [];
 
-  const upcomingBottlenecks = [
-    { date: "Feb 5", department: "Welding", severity: "high", reason: "3 large projects converging", impact: "2-day delay risk" },
-    { date: "Feb 12", department: "Cutting", severity: "medium", reason: "Maintenance scheduled", impact: "Reduced capacity by 40%" },
-    { date: "Feb 18", department: "Assembly", severity: "low", reason: "New project starting", impact: "May need overtime" },
-  ];
+  // Fetch real bottlenecks from API
+  const upcomingBottlenecks: any[] = [];
 
   const getStatusColor = (status: string) => {
     switch (status) {

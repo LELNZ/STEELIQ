@@ -139,26 +139,9 @@ export default function EquipmentSchedulingTab() {
               <CardTitle>Schedule Optimization</CardTitle>
               <CardDescription>AI-powered suggestions to improve equipment utilization</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-blue-500 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Combine cutting operations</p>
-                  <p className="text-xs text-muted-foreground">
-                    JOB-2025-003 and JOB-2025-004 use similar materials - combine to save 45 minutes setup time
-                  </p>
-                </div>
-                <Button size="sm">Apply</Button>
-              </div>
-              <div className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <Zap className="h-5 w-5 text-green-500 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Move Press Brake job earlier</p>
-                  <p className="text-xs text-muted-foreground">
-                    Equipment idle from 08:00-10:00, moving job saves 2 hours idle time
-                  </p>
-                </div>
-                <Button size="sm">Apply</Button>
+            <CardContent>
+              <div className="text-center text-muted-foreground py-8">
+                No optimization suggestions available
               </div>
             </CardContent>
           </Card>
