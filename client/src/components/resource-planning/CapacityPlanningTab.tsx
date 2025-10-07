@@ -108,33 +108,9 @@ export default function CapacityPlanningTab() {
             <CardTitle>Capacity Optimization Suggestions</CardTitle>
             <CardDescription>AI-powered recommendations</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div className="flex items-start gap-2">
-                <TrendingUp className="h-4 w-4 text-blue-500 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Shift welding jobs to Tuesday/Thursday</p>
-                  <p className="text-xs text-muted-foreground">Could reduce bottleneck by 15%</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <div className="flex items-start gap-2">
-                <TrendingDown className="h-4 w-4 text-green-500 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Schedule maintenance during low periods</p>
-                  <p className="text-xs text-muted-foreground">Fridays show 35% lower utilization</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Consider outsourcing overflow cutting</p>
-                  <p className="text-xs text-muted-foreground">Next week shows 110% demand</p>
-                </div>
-              </div>
+          <CardContent>
+            <div className="text-center text-muted-foreground py-8">
+              No optimization suggestions available
             </div>
           </CardContent>
         </Card>
@@ -176,8 +152,8 @@ export default function CapacityPlanningTab() {
             <CardTitle className="text-base">Average Utilization</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">78.3%</div>
-            <p className="text-xs text-muted-foreground mt-1">Within optimal range</p>
+            <div className="text-2xl font-bold">0%</div>
+            <p className="text-xs text-muted-foreground mt-1">No data available</p>
           </CardContent>
         </Card>
 
@@ -186,8 +162,8 @@ export default function CapacityPlanningTab() {
             <CardTitle className="text-base">Peak Hours</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Tue 10-12</div>
-            <p className="text-xs text-muted-foreground mt-1">Highest demand period</p>
+            <div className="text-2xl font-bold">--</div>
+            <p className="text-xs text-muted-foreground mt-1">No data available</p>
           </CardContent>
         </Card>
 
@@ -196,8 +172,8 @@ export default function CapacityPlanningTab() {
             <CardTitle className="text-base">Idle Time</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12.5%</div>
-            <p className="text-xs text-muted-foreground mt-1">Acceptable buffer</p>
+            <div className="text-2xl font-bold">0%</div>
+            <p className="text-xs text-muted-foreground mt-1">No data available</p>
           </CardContent>
         </Card>
       </div>

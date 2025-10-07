@@ -225,15 +225,6 @@ export default function EquipmentSchedulingTab() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-3 border rounded-lg">
-                <Clock className="h-5 w-5 text-orange-500 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Plasma Cutter #1 - High Usage Alert</p>
-                  <p className="text-xs text-muted-foreground">
-                    Running at 85% capacity - consider load balancing
-                  </p>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
