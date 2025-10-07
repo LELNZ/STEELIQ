@@ -1109,7 +1109,7 @@ export class DatabaseStorage implements IStorage {
         totalCost: p.total_cost,
         margin: p.margin,
         deliveryDate: p.delivery_date,
-        estimatedHours: p.estimated_hours,
+        estimatedHours: p.estimated_hours || 0,
         createdAt: p.created_at,
         updatedAt: p.updated_at,
         lifecycleProgress: p.lifecycle_progress || 0,
