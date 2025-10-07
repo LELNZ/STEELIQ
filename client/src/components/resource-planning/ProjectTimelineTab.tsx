@@ -203,25 +203,10 @@ export default function ProjectTimelineTab() {
           <CardDescription>AI-powered recommendations to improve project delivery</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <TrendingUp className="h-5 w-5 text-blue-500 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium">Fast-track JOB-2025-003 cutting phase</p>
-              <p className="text-xs text-muted-foreground">
-                Starting cutting 3 days early would avoid resource conflict on Feb 12 and improve delivery by 5 days
-              </p>
-            </div>
-            <Button size="sm">Apply</Button>
-          </div>
-          <div className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-            <Users className="h-5 w-5 text-green-500 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium">Reallocate team from JOB-2025-001</p>
-              <p className="text-xs text-muted-foreground">
-                Project is ahead of schedule - move 2 welders to JOB-2025-002 to prevent delay
-              </p>
-            </div>
-            <Button size="sm">Apply</Button>
+          {/* Timeline optimization suggestions will appear here when project data is available */}
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No optimization suggestions available</p>
+            <p className="text-xs mt-2">Suggestions will appear when project data is loaded</p>
           </div>
         </CardContent>
       </Card>
