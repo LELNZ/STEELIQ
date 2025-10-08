@@ -229,9 +229,9 @@ export default function TeamManagement() {
   const userMutation = useMutation({
     mutationFn: async (data: any) => {
       if (data.id) {
-        return apiRequest("PATCH", `/api/users/${data.id}`, data);
+        return apiRequest(`/api/users/${data.id}`, "PATCH", data);
       } else {
-        return apiRequest("POST", "/api/users", data);
+        return apiRequest("/api/users", "POST", data);
       }
     },
     onSuccess: () => {
@@ -255,7 +255,7 @@ export default function TeamManagement() {
   // Delete mutations
   const deleteMemberMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest("DELETE", `/api/team/members/${id}`);
+      return apiRequest(`/api/team/members/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/members"] });
@@ -268,7 +268,7 @@ export default function TeamManagement() {
 
   const deleteRoleMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest("DELETE", `/api/team/roles/${id}`);
+      return apiRequest(`/api/team/roles/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/roles"] });
@@ -281,7 +281,7 @@ export default function TeamManagement() {
 
   const deleteDepartmentMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest("DELETE", `/api/team/departments/${id}`);
+      return apiRequest(`/api/team/departments/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/departments"] });
@@ -292,10 +292,30 @@ export default function TeamManagement() {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      return apiRequest(`/api/users/${userId}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Success",
+        description: "User account deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user account",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Auto-sync data mutation
   const syncDataMutation = useMutation({
     mutationFn: async ({ teamMemberId, syncDirection }: { teamMemberId: number, syncDirection: string }) => {
-      return apiRequest("POST", `/api/team/sync-user-data/${teamMemberId}`, { syncDirection });
+      return apiRequest(`/api/team/sync-user-data/${teamMemberId}`, "POST", { syncDirection });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/members"] });
@@ -2398,7 +2418,7 @@ function UserCard({ user }: { user: any }) {
     mutationFn: async (userData: any) => {
       console.log("Making API request with data:", userData);
       console.log("User ID:", user.id);
-      return await apiRequest("PATCH", `/api/users/${user.id}`, userData);
+      return await apiRequest(`/api/users/${user.id}`, "PATCH", userData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
