@@ -194,17 +194,31 @@ export default function RealTimeProduction() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-4 gap-4">
-                  {['Cutting', 'Welding', 'Assembly', 'Drilling', 'Painting', 'QC Station', 'Packing', 'Shipping'].map((station) => (
-                    <div key={station} className="border rounded-lg p-4 text-center">
-                      <div className={`w-3 h-3 rounded-full mx-auto mb-2 ${
-                        Math.random() > 0.3 ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'
-                      }`}></div>
-                      <p className="text-sm font-medium">{station}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {Math.random() > 0.3 ? 'Active' : 'Idle'}
-                      </p>
-                    </div>
-                  ))}
+                  {['cutting', 'welding', 'assembly', 'drilling', 'painting', 'qc', 'packing', 'finishing'].map((dept) => {
+                    // Use real machine data to determine department status
+                    const deptMachines = machineStatus?.filter((m: any) => m.department === dept) || [];
+                    const activeMachines = deptMachines.filter((m: any) => m.status === 'running').length;
+                    const totalMachines = deptMachines.length;
+                    const isActive = activeMachines > 0;
+                    const displayName = dept === 'qc' ? 'QC Station' : 
+                                      dept === 'packing' ? 'Packing' :
+                                      dept.charAt(0).toUpperCase() + dept.slice(1);
+                    
+                    return (
+                      <div key={dept} className="border rounded-lg p-4 text-center">
+                        <div className={`w-3 h-3 rounded-full mx-auto mb-2 ${
+                          isActive ? 'bg-green-500 animate-pulse' : 
+                          totalMachines > 0 ? 'bg-yellow-500' : 'bg-gray-300'
+                        }`}></div>
+                        <p className="text-sm font-medium">{displayName}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {totalMachines > 0 
+                            ? isActive ? `Active (${activeMachines}/${totalMachines})` : `Idle (0/${totalMachines})`
+                            : 'No machines'}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Department Filter */}
@@ -424,7 +438,11 @@ export default function RealTimeProduction() {
                 <div className="space-y-2">
                   {[...Array(8)].map((_, i) => {
                     const hour = i + 8; // Starting from 8 AM
-                    const value = Math.floor(Math.random() * 100);
+                    // Use real production data if available, otherwise show 0
+                    const hourlyData = productionMetrics?.hourlyProduction?.[hour] || 0;
+                    const maxOutput = productionMetrics?.maxHourlyOutput || 1000; // Default max 1000 kg
+                    const value = maxOutput > 0 ? Math.min(100, (hourlyData / maxOutput) * 100) : 0;
+                    
                     return (
                       <div key={hour} className="flex items-center gap-2">
                         <span className="text-sm w-16">{hour}:00</span>
@@ -433,9 +451,11 @@ export default function RealTimeProduction() {
                             className="bg-primary h-full rounded-full flex items-center justify-end pr-2"
                             style={{ width: `${value}%` }}
                           >
-                            <span className="text-xs text-primary-foreground font-medium">
-                              {value * 10} kg
-                            </span>
+                            {value > 0 && (
+                              <span className="text-xs text-primary-foreground font-medium">
+                                {hourlyData} kg
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -453,15 +473,21 @@ export default function RealTimeProduction() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {['Cutting', 'Welding', 'Assembly', 'Finishing'].map((dept) => {
-                    const efficiency = Math.floor(Math.random() * 30) + 70;
+                  {['cutting', 'welding', 'assembly', 'finishing'].map((dept) => {
+                    // Calculate real department efficiency from machine data
+                    const deptMachines = machineStatus?.filter((m: any) => m.department === dept) || [];
+                    const avgEfficiency = deptMachines.length > 0
+                      ? Math.round(deptMachines.reduce((acc: number, m: any) => acc + (m.efficiency || 0), 0) / deptMachines.length)
+                      : 0;
+                    const displayName = dept.charAt(0).toUpperCase() + dept.slice(1);
+                    
                     return (
                       <div key={dept}>
                         <div className="flex justify-between text-sm mb-1">
-                          <span>{dept}</span>
-                          <span className="font-medium">{efficiency}%</span>
+                          <span>{displayName}</span>
+                          <span className="font-medium">{avgEfficiency}%</span>
                         </div>
-                        <Progress value={efficiency} />
+                        <Progress value={avgEfficiency} />
                       </div>
                     );
                   })}
@@ -505,9 +531,11 @@ export default function RealTimeProduction() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {['Steel Plate', 'Steel Beam', 'Steel Pipe', 'Welding Wire', 'Paint'].map((material) => {
-                  const used = Math.floor(Math.random() * 800) + 200;
-                  const stock = Math.floor(Math.random() * 2000) + 1000;
-                  const percentage = (used / stock) * 100;
+                  // Use real material consumption data if available from production metrics
+                  const materialData = productionMetrics?.materialConsumption?.[material] || {};
+                  const used = materialData.used || 0;
+                  const stock = materialData.stock || 0;
+                  const percentage = stock > 0 ? (used / stock) * 100 : 0;
                   
                   return (
                     <div key={material} className="text-center">
@@ -529,8 +557,8 @@ export default function RealTimeProduction() {
                             stroke="currentColor"
                             strokeWidth="8"
                             fill="none"
-                            strokeDasharray={`${percentage * 2.26} 226`}
-                            className="text-primary"
+                            strokeDasharray={`${Math.min(percentage, 100) * 2.26} 226`}
+                            className={percentage > 80 ? "text-orange-500" : "text-primary"}
                           />
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -538,7 +566,9 @@ export default function RealTimeProduction() {
                         </div>
                       </div>
                       <p className="text-sm font-medium mt-2">{material}</p>
-                      <p className="text-xs text-muted-foreground">{used}kg used</p>
+                      <p className="text-xs text-muted-foreground">
+                        {used > 0 ? `${used}kg used` : 'No data'}
+                      </p>
                     </div>
                   );
                 })}
