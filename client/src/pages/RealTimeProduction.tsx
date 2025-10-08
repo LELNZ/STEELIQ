@@ -47,12 +47,18 @@ export default function RealTimeProduction() {
 
   // Calculate OEE (Overall Equipment Effectiveness)
   const calculateOEE = () => {
-    if (!machineStatus) return 0;
-    const totalMachines = machineStatus.length || 1;
-    const runningMachines = machineStatus?.filter((m: any) => m.status === 'running').length || 0;
+    // Return 0 if any data is missing - no fake values allowed
+    if (!machineStatus || machineStatus.length === 0) return 0;
+    if (!productionMetrics?.performanceRate || !qualityMetrics?.passRate) return 0;
+    
+    const totalMachines = machineStatus.length;
+    const runningMachines = machineStatus.filter((m: any) => m.status === 'running').length;
     const availability = (runningMachines / totalMachines) * 100;
-    const performance = productionMetrics?.performanceRate || 85;
-    const quality = qualityMetrics?.passRate || 95;
+    
+    // Use only real data - no fallbacks
+    const performance = productionMetrics.performanceRate;
+    const quality = qualityMetrics.passRate;
+    
     return Math.round((availability * performance * quality) / 10000);
   };
 
@@ -438,10 +444,11 @@ export default function RealTimeProduction() {
                 <div className="space-y-2">
                   {[...Array(8)].map((_, i) => {
                     const hour = i + 8; // Starting from 8 AM
-                    // Use real production data if available, otherwise show 0
+                    // Use real production data only - no fake values
                     const hourlyData = productionMetrics?.hourlyProduction?.[hour] || 0;
-                    const maxOutput = productionMetrics?.maxHourlyOutput || 1000; // Default max 1000 kg
-                    const value = maxOutput > 0 ? Math.min(100, (hourlyData / maxOutput) * 100) : 0;
+                    const maxOutput = productionMetrics?.maxHourlyOutput;
+                    // Don't show percentage if we don't have real max output data
+                    const value = maxOutput && maxOutput > 0 ? Math.min(100, (hourlyData / maxOutput) * 100) : 0;
                     
                     return (
                       <div key={hour} className="flex items-center gap-2">
