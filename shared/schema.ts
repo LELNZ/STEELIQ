@@ -4898,7 +4898,8 @@ export type InsertOperationTemplate = z.infer<typeof insertOperationTemplatesSch
 export const qualityInspections = pgTable("quality_inspections", {
   id: serial("id").primaryKey(),
   jobId: integer("job_id").references(() => jobs.id),
-  workOrderId: integer("work_order_id"),
+  workOrderId: integer("work_order_id").references(() => workOrders.id),
+  productionEventId: integer("production_event_id").references(() => productionEvents.id),
   inspectionNumber: text("inspection_number").notNull().unique(),
   inspectionType: text("inspection_type").notNull(), // 'material_receipt', 'in_process', 'final', 'pre_delivery'
   

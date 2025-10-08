@@ -34,6 +34,7 @@ import {
   type MachineStatusLog, type InsertMachineStatusLog, type ProductionEvent, type InsertProductionEvent,
   type ProductionShift, type InsertProductionShift, type ProductionMetric, type InsertProductionMetric,
   type MachineJobAssignment, type InsertMachineJobAssignment,
+  qualityInspections, type QualityInspection, type InsertQualityInspection,
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView,
   documentHistory, documentAttachments, documentAccessLogs
@@ -366,6 +367,27 @@ export interface IStorage {
   createMachineJobAssignment(assignment: InsertMachineJobAssignment): Promise<MachineJobAssignment>;
   updateMachineJobAssignment(id: number, assignment: Partial<InsertMachineJobAssignment>): Promise<MachineJobAssignment>;
   getCurrentAssignmentForMachine(machineId: number): Promise<MachineJobAssignment | undefined>;
+
+  // Quality Inspections
+  getQualityInspections(): Promise<QualityInspection[]>;
+  getQualityInspection(id: number): Promise<QualityInspection | undefined>;
+  getQualityInspectionsByJob(jobId: number): Promise<QualityInspection[]>;
+  getQualityInspectionsByWorkOrder(workOrderId: number): Promise<QualityInspection[]>;
+  getQualityInspectionsByProductionEvent(eventId: number): Promise<QualityInspection[]>;
+  getQualityInspectionsByDateRange(startDate: Date, endDate: Date): Promise<QualityInspection[]>;
+  getPendingInspections(): Promise<QualityInspection[]>;
+  getFailedInspections(): Promise<QualityInspection[]>;
+  createQualityInspection(inspection: InsertQualityInspection): Promise<QualityInspection>;
+  updateQualityInspection(id: number, inspection: Partial<InsertQualityInspection>): Promise<QualityInspection>;
+  generateInspectionNumber(): Promise<string>;
+  getInspectionMetrics(startDate: Date, endDate: Date): Promise<{
+    total: number;
+    passed: number;
+    failed: number;
+    conditional: number;
+    passRate: number;
+    avgDefects: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3557,6 +3579,123 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(machineJobAssignments.assignedAt))
       .limit(1);
     return assignment || undefined;
+  }
+
+  // Quality Inspections
+  async getQualityInspections(): Promise<QualityInspection[]> {
+    return await db.select().from(qualityInspections)
+      .orderBy(desc(qualityInspections.inspectionDate));
+  }
+
+  async getQualityInspection(id: number): Promise<QualityInspection | undefined> {
+    const [inspection] = await db.select().from(qualityInspections).where(eq(qualityInspections.id, id));
+    return inspection || undefined;
+  }
+
+  async getQualityInspectionsByJob(jobId: number): Promise<QualityInspection[]> {
+    return await db.select().from(qualityInspections)
+      .where(eq(qualityInspections.jobId, jobId))
+      .orderBy(desc(qualityInspections.inspectionDate));
+  }
+
+  async getQualityInspectionsByWorkOrder(workOrderId: number): Promise<QualityInspection[]> {
+    return await db.select().from(qualityInspections)
+      .where(eq(qualityInspections.workOrderId, workOrderId))
+      .orderBy(desc(qualityInspections.inspectionDate));
+  }
+
+  async getQualityInspectionsByProductionEvent(eventId: number): Promise<QualityInspection[]> {
+    return await db.select().from(qualityInspections)
+      .where(eq(qualityInspections.productionEventId, eventId))
+      .orderBy(desc(qualityInspections.inspectionDate));
+  }
+
+  async getQualityInspectionsByDateRange(startDate: Date, endDate: Date): Promise<QualityInspection[]> {
+    return await db.select().from(qualityInspections)
+      .where(and(
+        sql`${qualityInspections.inspectionDate} >= ${startDate}`,
+        sql`${qualityInspections.inspectionDate} <= ${endDate}`
+      ))
+      .orderBy(asc(qualityInspections.inspectionDate));
+  }
+
+  async getPendingInspections(): Promise<QualityInspection[]> {
+    return await db.select().from(qualityInspections)
+      .where(eq(qualityInspections.status, 'pending'))
+      .orderBy(asc(qualityInspections.dueDate));
+  }
+
+  async getFailedInspections(): Promise<QualityInspection[]> {
+    return await db.select().from(qualityInspections)
+      .where(eq(qualityInspections.status, 'failed'))
+      .orderBy(desc(qualityInspections.inspectionDate));
+  }
+
+  async createQualityInspection(inspection: InsertQualityInspection): Promise<QualityInspection> {
+    const [newInspection] = await db.insert(qualityInspections).values(inspection).returning();
+    return newInspection;
+  }
+
+  async updateQualityInspection(id: number, inspection: Partial<InsertQualityInspection>): Promise<QualityInspection> {
+    const [updatedInspection] = await db.update(qualityInspections).set(inspection).where(eq(qualityInspections.id, id)).returning();
+    return updatedInspection;
+  }
+
+  async generateInspectionNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+    
+    // Get the last inspection number for this month
+    const lastInspection = await db.select()
+      .from(qualityInspections)
+      .where(like(qualityInspections.inspectionNumber, `QI${year}${month}%`))
+      .orderBy(desc(qualityInspections.inspectionNumber))
+      .limit(1);
+    
+    let sequence = 1;
+    if (lastInspection.length > 0) {
+      const lastNum = lastInspection[0].inspectionNumber;
+      const lastSequence = parseInt(lastNum.slice(-4), 10);
+      sequence = lastSequence + 1;
+    }
+    
+    return `QI${year}${month}${String(sequence).padStart(4, '0')}`;
+  }
+
+  async getInspectionMetrics(startDate: Date, endDate: Date): Promise<{
+    total: number;
+    passed: number;
+    failed: number;
+    conditional: number;
+    passRate: number;
+    avgDefects: number;
+  }> {
+    const inspections = await this.getQualityInspectionsByDateRange(startDate, endDate);
+    
+    const total = inspections.length;
+    const passed = inspections.filter(i => i.status === 'passed').length;
+    const failed = inspections.filter(i => i.status === 'failed').length;
+    const conditional = inspections.filter(i => i.status === 'conditional').length;
+    const passRate = total > 0 ? (passed / total) * 100 : 0;
+    
+    // Calculate average defects
+    const defectCounts = inspections
+      .map(i => {
+        const defects = i.defectsFound as Array<any> || [];
+        return defects.length;
+      });
+    const avgDefects = defectCounts.length > 0 
+      ? defectCounts.reduce((sum, count) => sum + count, 0) / defectCounts.length 
+      : 0;
+    
+    return {
+      total,
+      passed,
+      failed,
+      conditional,
+      passRate: Math.round(passRate * 100) / 100,
+      avgDefects: Math.round(avgDefects * 100) / 100
+    };
   }
 }
 
