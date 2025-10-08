@@ -8,6 +8,7 @@ import {
   purchaseRequisitions, requisitionItems, approvalRules, approvalHistory, rfqRequests, rfqResponses, goodsReceipts, goodsReceiptItems,
   purchaseOrders, purchaseOrderItems, poDocumentConfig, poTemplates,
   backupMetadata, backupData, numberingSequences, operationItems,
+  workOrders, machines, machineStatusLogs, productionEvents, productionShifts, productionMetrics, machineJobAssignments,
   type User, type InsertUser, type Material, type InsertMaterial,
   type MaterialCategory, type InsertMaterialCategory, type Inventory, type InsertInventory,
   type Job, type InsertJob, type JobMaterial, type InsertJobMaterial,
@@ -29,6 +30,10 @@ import {
   type BackupMetadata, type InsertBackupMetadata, type BackupData, type InsertBackupData,
   type NumberingSequence, type InsertNumberingSequence,
   type OperationItem, type InsertOperationItem,
+  type WorkOrder, type InsertWorkOrder, type Machine, type InsertMachine,
+  type MachineStatusLog, type InsertMachineStatusLog, type ProductionEvent, type InsertProductionEvent,
+  type ProductionShift, type InsertProductionShift, type ProductionMetric, type InsertProductionMetric,
+  type MachineJobAssignment, type InsertMachineJobAssignment,
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView,
   documentHistory, documentAttachments, documentAccessLogs
@@ -306,6 +311,61 @@ export interface IStorage {
   updateNumberingSequence(sequenceType: string, updates: Partial<InsertNumberingSequence>): Promise<NumberingSequence>;
   resetNumberingSequence(sequenceType: string, startingNumber: number, userId: number): Promise<void>;
   initializeNumberingSequences(): Promise<void>;
+  
+  // Work Orders
+  getWorkOrders(): Promise<WorkOrder[]>;
+  getWorkOrder(id: number): Promise<WorkOrder | undefined>;
+  getWorkOrderByNumber(orderNumber: string): Promise<WorkOrder | undefined>;
+  createWorkOrder(order: InsertWorkOrder): Promise<WorkOrder>;
+  updateWorkOrder(id: number, order: Partial<InsertWorkOrder>): Promise<WorkOrder>;
+  getActiveWorkOrders(): Promise<WorkOrder[]>;
+  getWorkOrdersByJob(jobId: number): Promise<WorkOrder[]>;
+  
+  // Machines
+  getMachines(): Promise<Machine[]>;
+  getMachine(id: number): Promise<Machine | undefined>;
+  getMachineByCode(machineCode: string): Promise<Machine | undefined>;
+  createMachine(machine: InsertMachine): Promise<Machine>;
+  updateMachine(id: number, machine: Partial<InsertMachine>): Promise<Machine>;
+  getMachinesByDepartment(department: string): Promise<Machine[]>;
+  getMachinesByStatus(status: string): Promise<Machine[]>;
+  
+  // Machine Status Logs
+  getMachineStatusLogs(machineId: number): Promise<MachineStatusLog[]>;
+  createMachineStatusLog(log: InsertMachineStatusLog): Promise<MachineStatusLog>;
+  getCurrentMachineStatus(machineId: number): Promise<MachineStatusLog | undefined>;
+  getMachineStatusHistory(machineId: number, startDate: Date, endDate: Date): Promise<MachineStatusLog[]>;
+  
+  // Production Events
+  getProductionEvents(): Promise<ProductionEvent[]>;
+  getProductionEventsByMachine(machineId: number): Promise<ProductionEvent[]>;
+  getProductionEventsByJob(jobId: number): Promise<ProductionEvent[]>;
+  createProductionEvent(event: InsertProductionEvent): Promise<ProductionEvent>;
+  getProductionEventsByDateRange(startDate: Date, endDate: Date): Promise<ProductionEvent[]>;
+  
+  // Production Shifts
+  getProductionShifts(): Promise<ProductionShift[]>;
+  getProductionShift(id: number): Promise<ProductionShift | undefined>;
+  getActiveProductionShift(): Promise<ProductionShift | undefined>;
+  createProductionShift(shift: InsertProductionShift): Promise<ProductionShift>;
+  updateProductionShift(id: number, shift: Partial<InsertProductionShift>): Promise<ProductionShift>;
+  getShiftsByDate(date: Date): Promise<ProductionShift[]>;
+  
+  // Production Metrics
+  getProductionMetrics(startDate: Date, endDate: Date): Promise<ProductionMetric[]>;
+  getLatestProductionMetrics(): Promise<ProductionMetric | undefined>;
+  createProductionMetric(metric: InsertProductionMetric): Promise<ProductionMetric>;
+  getProductionMetricsByShift(shiftId: number): Promise<ProductionMetric[]>;
+  calculateOEE(startDate: Date, endDate: Date): Promise<{ availability: number; performance: number; quality: number; oee: number }>;
+  
+  // Machine Job Assignments
+  getMachineJobAssignments(): Promise<MachineJobAssignment[]>;
+  getMachineJobAssignment(id: number): Promise<MachineJobAssignment | undefined>;
+  getAssignmentsByMachine(machineId: number): Promise<MachineJobAssignment[]>;
+  getAssignmentsByJob(jobId: number): Promise<MachineJobAssignment[]>;
+  createMachineJobAssignment(assignment: InsertMachineJobAssignment): Promise<MachineJobAssignment>;
+  updateMachineJobAssignment(id: number, assignment: Partial<InsertMachineJobAssignment>): Promise<MachineJobAssignment>;
+  getCurrentAssignmentForMachine(machineId: number): Promise<MachineJobAssignment | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3209,7 +3269,8 @@ export class DatabaseStorage implements IStorage {
       { sequenceType: 'INV', prefix: 'INV-', padLength: 5 },
       { sequenceType: 'QUOTE', prefix: 'Q-', padLength: 5 },
       { sequenceType: 'JOB', prefix: 'JOB-', padLength: 5 },
-      { sequenceType: 'GRN', prefix: 'GRN-', padLength: 5 }
+      { sequenceType: 'GRN', prefix: 'GRN-', padLength: 5 },
+      { sequenceType: 'WO', prefix: 'WO-', padLength: 5 }
     ];
 
     for (const seq of sequences) {
@@ -3227,6 +3288,275 @@ export class DatabaseStorage implements IStorage {
         });
       }
     }
+  }
+
+  // Work Orders
+  async getWorkOrders(): Promise<WorkOrder[]> {
+    return await db.select().from(workOrders).orderBy(desc(workOrders.createdAt));
+  }
+
+  async getWorkOrder(id: number): Promise<WorkOrder | undefined> {
+    const [workOrder] = await db.select().from(workOrders).where(eq(workOrders.id, id));
+    return workOrder || undefined;
+  }
+
+  async getWorkOrderByNumber(orderNumber: string): Promise<WorkOrder | undefined> {
+    const [workOrder] = await db.select().from(workOrders).where(eq(workOrders.orderNumber, orderNumber));
+    return workOrder || undefined;
+  }
+
+  async createWorkOrder(order: InsertWorkOrder): Promise<WorkOrder> {
+    const [workOrder] = await db.insert(workOrders).values(order).returning();
+    return workOrder;
+  }
+
+  async updateWorkOrder(id: number, order: Partial<InsertWorkOrder>): Promise<WorkOrder> {
+    const [workOrder] = await db.update(workOrders).set(order).where(eq(workOrders.id, id)).returning();
+    return workOrder;
+  }
+
+  async getActiveWorkOrders(): Promise<WorkOrder[]> {
+    return await db.select().from(workOrders)
+      .where(inArray(workOrders.status, ['pending', 'scheduled', 'in_progress']))
+      .orderBy(asc(workOrders.priority), asc(workOrders.dueDate));
+  }
+
+  async getWorkOrdersByJob(jobId: number): Promise<WorkOrder[]> {
+    return await db.select().from(workOrders)
+      .where(eq(workOrders.jobId, jobId))
+      .orderBy(asc(workOrders.createdAt));
+  }
+
+  // Machines
+  async getMachines(): Promise<Machine[]> {
+    return await db.select().from(machines).orderBy(asc(machines.name));
+  }
+
+  async getMachine(id: number): Promise<Machine | undefined> {
+    const [machine] = await db.select().from(machines).where(eq(machines.id, id));
+    return machine || undefined;
+  }
+
+  async getMachineByCode(machineCode: string): Promise<Machine | undefined> {
+    const [machine] = await db.select().from(machines).where(eq(machines.machineCode, machineCode));
+    return machine || undefined;
+  }
+
+  async createMachine(machine: InsertMachine): Promise<Machine> {
+    const [newMachine] = await db.insert(machines).values(machine).returning();
+    return newMachine;
+  }
+
+  async updateMachine(id: number, machine: Partial<InsertMachine>): Promise<Machine> {
+    const [updatedMachine] = await db.update(machines).set(machine).where(eq(machines.id, id)).returning();
+    return updatedMachine;
+  }
+
+  async getMachinesByDepartment(department: string): Promise<Machine[]> {
+    return await db.select().from(machines)
+      .where(eq(machines.department, department))
+      .orderBy(asc(machines.name));
+  }
+
+  async getMachinesByStatus(status: string): Promise<Machine[]> {
+    return await db.select().from(machines)
+      .where(eq(machines.status, status))
+      .orderBy(asc(machines.name));
+  }
+
+  // Machine Status Logs
+  async getMachineStatusLogs(machineId: number): Promise<MachineStatusLog[]> {
+    return await db.select().from(machineStatusLogs)
+      .where(eq(machineStatusLogs.machineId, machineId))
+      .orderBy(desc(machineStatusLogs.startTime));
+  }
+
+  async createMachineStatusLog(log: InsertMachineStatusLog): Promise<MachineStatusLog> {
+    const [newLog] = await db.insert(machineStatusLogs).values(log).returning();
+    return newLog;
+  }
+
+  async getCurrentMachineStatus(machineId: number): Promise<MachineStatusLog | undefined> {
+    const [currentStatus] = await db.select().from(machineStatusLogs)
+      .where(and(
+        eq(machineStatusLogs.machineId, machineId),
+        sql`${machineStatusLogs.endTime} IS NULL`
+      ))
+      .orderBy(desc(machineStatusLogs.startTime))
+      .limit(1);
+    return currentStatus || undefined;
+  }
+
+  async getMachineStatusHistory(machineId: number, startDate: Date, endDate: Date): Promise<MachineStatusLog[]> {
+    return await db.select().from(machineStatusLogs)
+      .where(and(
+        eq(machineStatusLogs.machineId, machineId),
+        sql`${machineStatusLogs.startTime} >= ${startDate}`,
+        sql`${machineStatusLogs.startTime} <= ${endDate}`
+      ))
+      .orderBy(asc(machineStatusLogs.startTime));
+  }
+
+  // Production Events
+  async getProductionEvents(): Promise<ProductionEvent[]> {
+    return await db.select().from(productionEvents)
+      .orderBy(desc(productionEvents.eventTime));
+  }
+
+  async getProductionEventsByMachine(machineId: number): Promise<ProductionEvent[]> {
+    return await db.select().from(productionEvents)
+      .where(eq(productionEvents.machineId, machineId))
+      .orderBy(desc(productionEvents.eventTime));
+  }
+
+  async getProductionEventsByJob(jobId: number): Promise<ProductionEvent[]> {
+    return await db.select().from(productionEvents)
+      .where(eq(productionEvents.jobId, jobId))
+      .orderBy(desc(productionEvents.eventTime));
+  }
+
+  async createProductionEvent(event: InsertProductionEvent): Promise<ProductionEvent> {
+    const [newEvent] = await db.insert(productionEvents).values(event).returning();
+    return newEvent;
+  }
+
+  async getProductionEventsByDateRange(startDate: Date, endDate: Date): Promise<ProductionEvent[]> {
+    return await db.select().from(productionEvents)
+      .where(and(
+        sql`${productionEvents.eventTime} >= ${startDate}`,
+        sql`${productionEvents.eventTime} <= ${endDate}`
+      ))
+      .orderBy(asc(productionEvents.eventTime));
+  }
+
+  // Production Shifts
+  async getProductionShifts(): Promise<ProductionShift[]> {
+    return await db.select().from(productionShifts)
+      .orderBy(desc(productionShifts.shiftDate));
+  }
+
+  async getProductionShift(id: number): Promise<ProductionShift | undefined> {
+    const [shift] = await db.select().from(productionShifts).where(eq(productionShifts.id, id));
+    return shift || undefined;
+  }
+
+  async getActiveProductionShift(): Promise<ProductionShift | undefined> {
+    const [shift] = await db.select().from(productionShifts)
+      .where(eq(productionShifts.status, 'active'))
+      .orderBy(desc(productionShifts.startTime))
+      .limit(1);
+    return shift || undefined;
+  }
+
+  async createProductionShift(shift: InsertProductionShift): Promise<ProductionShift> {
+    const [newShift] = await db.insert(productionShifts).values(shift).returning();
+    return newShift;
+  }
+
+  async updateProductionShift(id: number, shift: Partial<InsertProductionShift>): Promise<ProductionShift> {
+    const [updatedShift] = await db.update(productionShifts).set(shift).where(eq(productionShifts.id, id)).returning();
+    return updatedShift;
+  }
+
+  async getShiftsByDate(date: Date): Promise<ProductionShift[]> {
+    return await db.select().from(productionShifts)
+      .where(eq(productionShifts.shiftDate, date.toISOString().split('T')[0]))
+      .orderBy(asc(productionShifts.startTime));
+  }
+
+  // Production Metrics
+  async getProductionMetrics(startDate: Date, endDate: Date): Promise<ProductionMetric[]> {
+    return await db.select().from(productionMetrics)
+      .where(and(
+        sql`${productionMetrics.metricDate} >= ${startDate.toISOString().split('T')[0]}`,
+        sql`${productionMetrics.metricDate} <= ${endDate.toISOString().split('T')[0]}`
+      ))
+      .orderBy(asc(productionMetrics.metricDate));
+  }
+
+  async getLatestProductionMetrics(): Promise<ProductionMetric | undefined> {
+    const [metric] = await db.select().from(productionMetrics)
+      .orderBy(desc(productionMetrics.metricDate))
+      .limit(1);
+    return metric || undefined;
+  }
+
+  async createProductionMetric(metric: InsertProductionMetric): Promise<ProductionMetric> {
+    const [newMetric] = await db.insert(productionMetrics).values(metric).returning();
+    return newMetric;
+  }
+
+  async getProductionMetricsByShift(shiftId: number): Promise<ProductionMetric[]> {
+    return await db.select().from(productionMetrics)
+      .where(eq(productionMetrics.shiftId, shiftId))
+      .orderBy(asc(productionMetrics.metricDate));
+  }
+
+  async calculateOEE(startDate: Date, endDate: Date): Promise<{ availability: number; performance: number; quality: number; oee: number }> {
+    const metrics = await this.getProductionMetrics(startDate, endDate);
+    
+    if (metrics.length === 0) {
+      return { availability: 0, performance: 0, quality: 0, oee: 0 };
+    }
+    
+    const totals = metrics.reduce((acc, metric) => ({
+      availability: acc.availability + (Number(metric.availability) || 0),
+      performance: acc.performance + (Number(metric.performance) || 0),
+      quality: acc.quality + (Number(metric.quality) || 0),
+      oee: acc.oee + (Number(metric.oeeScore) || 0)
+    }), { availability: 0, performance: 0, quality: 0, oee: 0 });
+    
+    const count = metrics.length;
+    return {
+      availability: totals.availability / count,
+      performance: totals.performance / count,
+      quality: totals.quality / count,
+      oee: totals.oee / count
+    };
+  }
+
+  // Machine Job Assignments
+  async getMachineJobAssignments(): Promise<MachineJobAssignment[]> {
+    return await db.select().from(machineJobAssignments)
+      .orderBy(desc(machineJobAssignments.assignedAt));
+  }
+
+  async getMachineJobAssignment(id: number): Promise<MachineJobAssignment | undefined> {
+    const [assignment] = await db.select().from(machineJobAssignments).where(eq(machineJobAssignments.id, id));
+    return assignment || undefined;
+  }
+
+  async getAssignmentsByMachine(machineId: number): Promise<MachineJobAssignment[]> {
+    return await db.select().from(machineJobAssignments)
+      .where(eq(machineJobAssignments.machineId, machineId))
+      .orderBy(desc(machineJobAssignments.assignedAt));
+  }
+
+  async getAssignmentsByJob(jobId: number): Promise<MachineJobAssignment[]> {
+    return await db.select().from(machineJobAssignments)
+      .where(eq(machineJobAssignments.jobId, jobId))
+      .orderBy(desc(machineJobAssignments.assignedAt));
+  }
+
+  async createMachineJobAssignment(assignment: InsertMachineJobAssignment): Promise<MachineJobAssignment> {
+    const [newAssignment] = await db.insert(machineJobAssignments).values(assignment).returning();
+    return newAssignment;
+  }
+
+  async updateMachineJobAssignment(id: number, assignment: Partial<InsertMachineJobAssignment>): Promise<MachineJobAssignment> {
+    const [updatedAssignment] = await db.update(machineJobAssignments).set(assignment).where(eq(machineJobAssignments.id, id)).returning();
+    return updatedAssignment;
+  }
+
+  async getCurrentAssignmentForMachine(machineId: number): Promise<MachineJobAssignment | undefined> {
+    const [assignment] = await db.select().from(machineJobAssignments)
+      .where(and(
+        eq(machineJobAssignments.machineId, machineId),
+        eq(machineJobAssignments.status, 'in_progress')
+      ))
+      .orderBy(desc(machineJobAssignments.assignedAt))
+      .limit(1);
+    return assignment || undefined;
   }
 }
 
