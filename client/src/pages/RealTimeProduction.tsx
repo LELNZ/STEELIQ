@@ -29,7 +29,7 @@ export default function RealTimeProduction() {
 
   // Machine status
   const { data: machineStatus } = useQuery({
-    queryKey: ['/api/production/real-time/machines'],
+    queryKey: ['/api/production-floor/machines'],
     refetchInterval: refreshInterval * 2, // Update less frequently
   });
 
