@@ -5098,6 +5098,42 @@ export const documents = pgTable("documents", {
   archivedAt: timestamp("archived_at")
 });
 
+// Work Orders table - Track production work orders
+export const workOrders = pgTable("work_orders", {
+  id: serial("id").primaryKey(),
+  orderNumber: text("order_number").notNull().unique(),
+  jobId: integer("job_id").references(() => jobs.id).notNull(),
+  
+  // Order Details
+  title: text("title").notNull(),
+  description: text("description"),
+  priority: text("priority").default('normal'), // 'urgent', 'high', 'normal', 'low'
+  type: text("type").notNull(), // 'production', 'rework', 'maintenance', 'prototype'
+  
+  // Quantities
+  targetQuantity: integer("target_quantity").notNull(),
+  completedQuantity: integer("completed_quantity").default(0),
+  scrapQuantity: integer("scrap_quantity").default(0),
+  
+  // Scheduling
+  startDate: timestamp("start_date"),
+  dueDate: timestamp("due_date").notNull(),
+  completedDate: timestamp("completed_date"),
+  
+  // Status
+  status: text("status").default('pending'), // 'pending', 'scheduled', 'in_progress', 'completed', 'cancelled', 'on_hold'
+  
+  // Reference
+  departmentId: integer("department_id"),
+  assignedTo: integer("assigned_to").references(() => users.id),
+  
+  // Metadata
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
 // Machines table - Track all factory machines and equipment
 export const machines = pgTable("machines", {
   id: serial("id").primaryKey(),
@@ -5162,6 +5198,7 @@ export const machineStatusLogs = pgTable("machine_status_logs", {
   
   // Reference
   jobId: integer("job_id").references(() => jobs.id),
+  workOrderId: integer("work_order_id").references(() => workOrders.id),
   operatorId: integer("operator_id").references(() => users.id),
   shiftId: integer("shift_id"),
   
@@ -5184,6 +5221,7 @@ export const productionEvents = pgTable("production_events", {
   quantity: integer("quantity").default(0),
   unitType: text("unit_type"), // 'pieces', 'meters', 'kg', etc.
   materialUsed: decimal("material_used", { precision: 10, scale: 2 }),
+  materialWeight: decimal("material_weight", { precision: 10, scale: 2 }), // Weight in kg
   
   // Quality
   passedQC: boolean("passed_qc"),
@@ -5198,6 +5236,7 @@ export const productionEvents = pgTable("production_events", {
   // Reference
   operatorId: integer("operator_id").references(() => users.id),
   shiftId: integer("shift_id"),
+  workOrderId: integer("work_order_id").references(() => workOrders.id),
   workOrderNumber: text("work_order_number"),
   
   // Metadata
@@ -5276,6 +5315,40 @@ export const productionMetrics = pgTable("production_metrics", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
+// Machine Job Assignments - Junction table for tracking which machines are working on which jobs
+export const machineJobAssignments = pgTable("machine_job_assignments", {
+  id: serial("id").primaryKey(),
+  machineId: integer("machine_id").references(() => machines.id).notNull(),
+  jobId: integer("job_id").references(() => jobs.id).notNull(),
+  workOrderId: integer("work_order_id").references(() => workOrders.id),
+  
+  // Assignment Details
+  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  status: text("status").notNull().default('assigned'), // 'assigned', 'in_progress', 'completed', 'cancelled'
+  
+  // Production Tracking
+  targetQuantity: integer("target_quantity"),
+  completedQuantity: integer("completed_quantity").default(0),
+  materialWeight: decimal("material_weight", { precision: 10, scale: 2 }), // Expected weight
+  actualMaterialWeight: decimal("actual_material_weight", { precision: 10, scale: 2 }), // Actual weight used
+  
+  // Performance
+  estimatedHours: decimal("estimated_hours", { precision: 8, scale: 2 }),
+  actualHours: decimal("actual_hours", { precision: 8, scale: 2 }),
+  
+  // Reference
+  operatorId: integer("operator_id").references(() => users.id),
+  priority: integer("priority").default(0),
+  
+  // Metadata
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
 // Create insert schemas
 export const insertQualityInspectionSchema = createInsertSchema(qualityInspections).omit({
   id: true,
@@ -5344,6 +5417,23 @@ export const insertProductionMetricSchema = createInsertSchema(productionMetrics
   createdAt: true
 });
 
+export const insertWorkOrderSchema = createInsertSchema(workOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertMachineJobAssignmentSchema = createInsertSchema(machineJobAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  assignedAt: true
+});
+
+// Work Order type exports
+export type WorkOrder = typeof workOrders.$inferSelect;
+export type InsertWorkOrder = z.infer<typeof insertWorkOrderSchema>;
+
 // Machine type exports
 export type Machine = typeof machines.$inferSelect;
 export type InsertMachine = z.infer<typeof insertMachineSchema>;
@@ -5359,3 +5449,6 @@ export type InsertProductionShift = z.infer<typeof insertProductionShiftSchema>;
 
 export type ProductionMetric = typeof productionMetrics.$inferSelect;
 export type InsertProductionMetric = z.infer<typeof insertProductionMetricSchema>;
+
+export type MachineJobAssignment = typeof machineJobAssignments.$inferSelect;
+export type InsertMachineJobAssignment = z.infer<typeof insertMachineJobAssignmentSchema>;
