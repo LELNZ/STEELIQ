@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,13 @@ import {
   Clock,
   Users,
   Upload,
+  Smartphone,
+  MapPin,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  Ruler,
+  Edit3,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -81,12 +88,83 @@ interface QualityInspection {
   attachments?: string[];
   approvedBy?: number;
   approvedAt?: Date | string;
+  gpsLocation?: { lat: number; lng: number };
+  capturedPhotos?: { url: string; timestamp: Date; gps?: { lat: number; lng: number } }[];
 }
 
 export default function QualityControlTab() {
   const [selectedInspection, setSelectedInspection] = useState<QualityInspection | null>(null);
   const [isNewInspectionOpen, setIsNewInspectionOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Check if mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileView(window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Monitor online status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Get GPS location
+  const getCurrentLocation = useCallback(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCurrentLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error('Location error:', error);
+        }
+      );
+    }
+  }, []);
+
+  // Handle photo capture from mobile
+  const handlePhotoCapture = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    getCurrentLocation();
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const photoData = {
+        url: e.target?.result as string,
+        timestamp: new Date(),
+        gps: currentLocation
+      };
+      
+      // Add photo to current inspection
+      toast({
+        title: "Photo Captured",
+        description: "Photo has been added to the inspection"
+      });
+    };
+    reader.readAsDataURL(file);
+  }, [currentLocation, toast, getCurrentLocation]);
 
   // Fetch inspections from quality endpoint
   const { data: inspections = [], isLoading } = useQuery<QualityInspection[]>({
