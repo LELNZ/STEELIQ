@@ -4893,3 +4893,246 @@ export type InsertConsumptionRateSetting = z.infer<typeof insertConsumptionRateS
 
 export type OperationTemplate = typeof operationTemplates.$inferSelect;
 export type InsertOperationTemplate = z.infer<typeof insertOperationTemplatesSchema>;
+
+// Quality Inspections table - Comprehensive quality control tracking
+export const qualityInspections = pgTable("quality_inspections", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => jobs.id),
+  workOrderId: integer("work_order_id"),
+  inspectionNumber: text("inspection_number").notNull().unique(),
+  inspectionType: text("inspection_type").notNull(), // 'material_receipt', 'in_process', 'final', 'pre_delivery'
+  
+  // What's being inspected
+  materialId: integer("material_id").references(() => materials.id),
+  partNumber: text("part_number"),
+  quantity: integer("quantity"),
+  batchNumber: text("batch_number"),
+  
+  // Inspection Details
+  inspectorId: integer("inspector_id").references(() => users.id).notNull(),
+  inspectionDate: timestamp("inspection_date").notNull(),
+  dueDate: timestamp("due_date"),
+  location: text("location"),
+  department: text("department"),
+  
+  // Standards and Specifications
+  specification: text("specification"),
+  toleranceMin: decimal("tolerance_min", { precision: 10, scale: 4 }),
+  toleranceMax: decimal("tolerance_max", { precision: 10, scale: 4 }),
+  actualMeasurement: decimal("actual_measurement", { precision: 10, scale: 4 }),
+  measurementUnit: text("measurement_unit"),
+  
+  // Results
+  status: text("status").notNull().default('pending'), // 'pending', 'passed', 'failed', 'conditional'
+  defectsFound: jsonb("defects_found"), // Array of defect details
+  correctiveAction: text("corrective_action"),
+  
+  // Documentation
+  certificateNumber: text("certificate_number"),
+  reportPath: text("report_path"),
+  photos: jsonb("photos"), // Array of photo paths
+  attachments: jsonb("attachments"), // Array of document paths
+  
+  // Metadata
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at")
+});
+
+// Inventory Movements table - Track all inventory transactions
+export const inventoryMovements = pgTable("inventory_movements", {
+  id: serial("id").primaryKey(),
+  movementNumber: text("movement_number").notNull().unique(),
+  movementType: text("movement_type").notNull(), // 'receipt', 'issue', 'transfer', 'adjustment', 'return'
+  movementDate: timestamp("movement_date").notNull(),
+  
+  // Source and Destination
+  sourceLocation: text("source_location"),
+  destinationLocation: text("destination_location"),
+  sourceJobId: integer("source_job_id").references(() => jobs.id),
+  destinationJobId: integer("destination_job_id").references(() => jobs.id),
+  
+  // Material Details
+  materialId: integer("material_id").references(() => materials.id).notNull(),
+  inventoryId: integer("inventory_id").references(() => inventory.id),
+  quantity: decimal("quantity", { precision: 12, scale: 3 }).notNull(),
+  unit: text("unit").notNull(),
+  
+  // Financial Impact
+  unitCost: decimal("unit_cost", { precision: 10, scale: 2 }),
+  totalValue: decimal("total_value", { precision: 12, scale: 2 }),
+  
+  // References
+  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id),
+  goodsReceiptId: integer("goods_receipt_id").references(() => goodsReceipts.id),
+  workOrderId: integer("work_order_id"),
+  
+  // Tracking
+  batchNumber: text("batch_number"),
+  serialNumber: text("serial_number"),
+  certificateNumber: text("certificate_number"),
+  
+  // Status and Approval
+  status: text("status").notNull().default('pending'), // 'pending', 'approved', 'completed', 'cancelled'
+  reason: text("reason"),
+  notes: text("notes"),
+  
+  // Metadata
+  performedBy: integer("performed_by").references(() => users.id).notNull(),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Safety Inspections table - Safety and compliance tracking
+export const safetyInspections = pgTable("safety_inspections", {
+  id: serial("id").primaryKey(),
+  inspectionNumber: text("inspection_number").notNull().unique(),
+  inspectionType: text("inspection_type").notNull(), // 'workplace', 'equipment', 'ppe', 'environmental', 'incident'
+  
+  // Location and Context
+  location: text("location").notNull(),
+  department: text("department"),
+  jobId: integer("job_id").references(() => jobs.id),
+  equipmentId: integer("equipment_id"),
+  
+  // Inspection Details
+  inspectorId: integer("inspector_id").references(() => users.id).notNull(),
+  inspectionDate: timestamp("inspection_date").notNull(),
+  scheduledDate: timestamp("scheduled_date"),
+  nextInspectionDue: timestamp("next_inspection_due"),
+  
+  // Checklist and Results
+  checklistTemplate: text("checklist_template"),
+  checklistResults: jsonb("checklist_results"), // Array of checklist items with pass/fail
+  overallResult: text("overall_result").notNull(), // 'pass', 'fail', 'conditional'
+  riskLevel: text("risk_level"), // 'low', 'medium', 'high', 'critical'
+  
+  // Issues Found
+  hazardsIdentified: jsonb("hazards_identified"), // Array of hazard details
+  nonConformities: jsonb("non_conformities"), // Array of non-conformity details
+  correctiveActions: jsonb("corrective_actions"), // Array of required actions
+  
+  // Follow-up
+  followUpRequired: boolean("follow_up_required").default(false),
+  followUpDate: timestamp("follow_up_date"),
+  followUpCompleted: boolean("follow_up_completed").default(false),
+  
+  // Documentation
+  reportPath: text("report_path"),
+  photos: jsonb("photos"), // Array of photo paths
+  attachments: jsonb("attachments"), // Array of document paths
+  
+  // Compliance
+  regulatoryStandard: text("regulatory_standard"), // e.g., 'AS/NZS 4801', 'ISO 45001'
+  permitNumber: text("permit_number"),
+  
+  // Metadata
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at")
+});
+
+// Documents table - Unified document management system
+export const documents = pgTable("documents", {
+  id: serial("id").primaryKey(),
+  documentNumber: text("document_number").notNull().unique(),
+  documentType: text("document_type").notNull(), // 'certificate', 'report', 'drawing', 'specification', 'manual', 'permit'
+  category: text("category").notNull(), // 'quality', 'safety', 'procurement', 'technical', 'compliance'
+  
+  // Document Details
+  title: text("title").notNull(),
+  description: text("description"),
+  version: text("version").default('1.0'),
+  status: text("status").notNull().default('active'), // 'draft', 'active', 'review', 'archived', 'obsolete'
+  
+  // File Information
+  filePath: text("file_path").notNull(),
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size"), // in bytes
+  mimeType: text("mime_type"),
+  checksum: text("checksum"), // for integrity verification
+  
+  // References (polymorphic associations)
+  entityType: text("entity_type"), // 'job', 'material', 'supplier', 'client', 'equipment', 'user'
+  entityId: integer("entity_id"),
+  jobId: integer("job_id").references(() => jobs.id),
+  materialId: integer("material_id").references(() => materials.id),
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  clientId: integer("client_id").references(() => clients.id),
+  
+  // Document Metadata
+  issuer: text("issuer"), // Organization that issued the document
+  issueDate: timestamp("issue_date"),
+  expiryDate: timestamp("expiry_date"),
+  reviewDate: timestamp("review_date"),
+  
+  // Access Control
+  confidentialityLevel: text("confidentiality_level").default('internal'), // 'public', 'internal', 'confidential', 'restricted'
+  accessGroups: jsonb("access_groups"), // Array of role IDs that can access
+  
+  // Tracking
+  keywords: text("keywords").array(),
+  tags: jsonb("tags"), // Array of tags for searching
+  customFields: jsonb("custom_fields"), // Flexible metadata storage
+  
+  // Audit
+  uploadedBy: integer("uploaded_by").references(() => users.id).notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+  lastAccessedBy: integer("last_accessed_by").references(() => users.id),
+  lastAccessedAt: timestamp("last_accessed_at"),
+  downloadCount: integer("download_count").default(0),
+  
+  // Metadata
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  archivedBy: integer("archived_by").references(() => users.id),
+  archivedAt: timestamp("archived_at")
+});
+
+// Create insert schemas
+export const insertQualityInspectionSchema = createInsertSchema(qualityInspections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertInventoryMovementSchema = createInsertSchema(inventoryMovements).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertSafetyInspectionSchema = createInsertSchema(safetyInspections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertDocumentSchema = createInsertSchema(documents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  uploadedAt: true
+});
+
+// Type exports
+export type QualityInspection = typeof qualityInspections.$inferSelect;
+export type InsertQualityInspection = z.infer<typeof insertQualityInspectionSchema>;
+
+export type InventoryMovement = typeof inventoryMovements.$inferSelect;
+export type InsertInventoryMovement = z.infer<typeof insertInventoryMovementSchema>;
+
+export type SafetyInspection = typeof safetyInspections.$inferSelect;
+export type InsertSafetyInspection = z.infer<typeof insertSafetyInspectionSchema>;
+
+export type Document = typeof documents.$inferSelect;
+export type InsertDocument = z.infer<typeof insertDocumentSchema>;
