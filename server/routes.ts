@@ -11,7 +11,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems, projectLifecycleEvents, projectLifecyclePhases, projectLifecycleTasks, estimationProjects, projectLifecycleTemplates, invoices, payments, emailImportedCosts, timeEntries, jobEstimates, qualityControl, complianceDocuments, inventory, qualityInspections, inventoryMovements, safetyInspections, documents } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems, projectLifecycleEvents, projectLifecyclePhases, projectLifecycleTasks, estimationProjects, projectLifecycleTemplates, invoices, payments, emailImportedCosts, timeEntries, jobEstimates, qualityControl, complianceDocuments, inventory, qualityInspections, inventoryMovements, safetyInspections, documents, machines, machineStatusLogs, productionEvents, productionShifts, productionMetrics } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -8440,6 +8440,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get real production stats from database
+      // Get machine status from the machines table
+      const machineStatsResult = await db
+        .select({
+          totalMachines: sql`COUNT(*)`,
+          activeMachines: sql`COUNT(*) FILTER (WHERE current_state = 'running')`,
+          idleMachines: sql`COUNT(*) FILTER (WHERE current_state = 'idle')`,
+          stoppedMachines: sql`COUNT(*) FILTER (WHERE current_state = 'stopped')`,
+          maintenanceMachines: sql`COUNT(*) FILTER (WHERE status = 'maintenance')`
+        })
+        .from(machines)
+        .where(eq(machines.isActive, true))
+        .catch(() => [{ totalMachines: 0, activeMachines: 0, idleMachines: 0, stoppedMachines: 0, maintenanceMachines: 0 }]);
+      
       // Count active work orders
       const activeWorkOrdersResult = await db
         .select({ count: sql`COUNT(*)` })
@@ -8450,23 +8463,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      // Get today's completed jobs
-      const dailyOutputResult = await db
-        .select({ 
-          count: sql`COUNT(*)`,
-          totalValue: sql`COALESCE(SUM(estimated_value), 0)`
+      // Get today's production events from production_events table
+      const todaysProductionResult = await db
+        .select({
+          totalQuantity: sql`COALESCE(SUM(quantity), 0)`,
+          totalDefects: sql`COALESCE(SUM(defect_count), 0)`,
+          completedEvents: sql`COUNT(*) FILTER (WHERE event_type = 'complete')`,
+          passedQC: sql`COUNT(*) FILTER (WHERE passed_qc = true)`,
+          failedQC: sql`COUNT(*) FILTER (WHERE passed_qc = false)`
         })
-        .from(jobs)
-        .where(and(
-          eq(jobs.status, 'completed'),
-          gte(jobs.completedDate, today)
-        ));
+        .from(productionEvents)
+        .where(gte(productionEvents.eventTime, today))
+        .catch(() => [{ totalQuantity: 0, totalDefects: 0, completedEvents: 0, passedQC: 0, failedQC: 0 }]);
       
-      // Calculate efficiency from job estimates (actual hours not yet tracked)
-      // Default to 85% efficiency for now
-      const efficiencyResult = [{
-        avgEfficiency: 85
-      }];
+      // Calculate real efficiency from production events
+      const efficiencyResult = await db
+        .select({
+          avgEfficiency: sql`
+            COALESCE(
+              AVG(
+                CASE 
+                  WHEN actual_vs_target IS NOT NULL THEN actual_vs_target
+                  ELSE NULL
+                END
+              ), 
+              0
+            )`
+        })
+        .from(productionEvents)
+        .where(and(
+          gte(productionEvents.eventTime, today),
+          sql`actual_vs_target IS NOT NULL`
+        ))
+        .catch(() => [{ avgEfficiency: 0 }]);
       
       // Calculate on-time delivery rate
       const deliveryResult = await db
@@ -8479,7 +8508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const totalJobs = Number(deliveryResult[0]?.totalJobs || 0);
       const onTimeJobs = Number(deliveryResult[0]?.onTimeJobs || 0);
-      const onTimeDelivery = totalJobs > 0 ? Math.round((onTimeJobs / totalJobs) * 100) : 100;
+      const onTimeDelivery = totalJobs > 0 ? Math.round((onTimeJobs / totalJobs) * 100) : 0;
       
       // Get active staff count from time entries today
       const activeStaffResult = await db
@@ -8521,28 +8550,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const completedJobs = Number(progressResult[0]?.completedJobs || 0);
       const overallProgress = totalJobs2 > 0 ? Math.round((completedJobs / totalJobs2) * 100) : 0;
       
-      // Calculate quality score from inspection data if available
-      const qualityResult = await db
-        .select({
-          avgScore: sql`COALESCE(AVG(overall_score), 95)`
-        })
-        .from(qualityControl)
-        .where(gte(qualityControl.createdAt, today))
-        .catch(() => [{ avgScore: 95 }]);
+      // Calculate quality score from production events and quality inspection data
+      const totalProduction = Number(todaysProductionResult[0]?.totalQuantity || 0);
+      const totalDefects = Number(todaysProductionResult[0]?.totalDefects || 0);
+      const passedQC = Number(todaysProductionResult[0]?.passedQC || 0);
+      const failedQC = Number(todaysProductionResult[0]?.failedQC || 0);
+      const totalQC = passedQC + failedQC;
       
-      // Return calculated stats
+      // Calculate real quality score based on actual QC data
+      const qualityScore = totalQC > 0 
+        ? Math.round((passedQC / totalQC) * 100)
+        : totalProduction > 0 && totalDefects > 0
+        ? Math.round(((totalProduction - totalDefects) / totalProduction) * 100)
+        : 0; // Return 0 when no data instead of fake 95%
+      
+      const defectRate = totalProduction > 0 
+        ? Math.round((totalDefects / totalProduction) * 100) 
+        : 0;
+      
+      // Calculate real efficiency
+      const calculatedEfficiency = Number(efficiencyResult[0]?.avgEfficiency || 0);
+      
+      // Get machine stats
+      const totalMachines = Number(machineStatsResult[0]?.totalMachines || 0);
+      const activeMachines = Number(machineStatsResult[0]?.activeMachines || 0);
+      const idleMachines = Number(machineStatsResult[0]?.idleMachines || 0);
+      const maintenanceMachines = Number(machineStatsResult[0]?.maintenanceMachines || 0);
+      
+      // Calculate utilization rate based on actual machine data
+      const utilizationRate = totalMachines > 0 
+        ? Math.round((activeMachines / totalMachines) * 100)
+        : 0;
+      
+      // Return calculated stats with real data
       const stats = {
         activeWorkOrders: Number(activeWorkOrdersResult[0]?.count || 0),
-        machinesOperating: Math.min(8, Number(activeWorkOrdersResult[0]?.count || 0)), // Simplified: one machine per active order
-        dailyOutput: Number(dailyOutputResult[0]?.count || 0),
-        qualityScore: Math.round(Number(qualityResult[0]?.avgScore || 95)),
-        efficiency: Math.min(100, Math.round(Number(efficiencyResult[0]?.avgEfficiency || 85))),
-        defectRate: Math.max(0, 100 - Math.round(Number(qualityResult[0]?.avgScore || 95))),
+        machinesOperating: activeMachines, // Real count from machines table
+        totalMachines: totalMachines, // Add total machines for context
+        idleMachines: idleMachines,
+        maintenanceMachines: maintenanceMachines,
+        dailyOutput: Number(todaysProductionResult[0]?.completedEvents || 0), // Real production events
+        totalQuantityProduced: totalProduction, // Add actual quantity produced
+        qualityScore: qualityScore, // Real quality score from QC data
+        efficiency: Math.round(calculatedEfficiency), // Real efficiency from production data
+        defectRate: defectRate, // Real defect rate from production data
         onTimeDelivery: onTimeDelivery,
-        utilizationRate: Math.min(100, Math.round((Number(activeWorkOrdersResult[0]?.count || 0) / 15) * 100)), // Assuming capacity of 15
+        utilizationRate: utilizationRate, // Real utilization from machine data
         activeStaff: activeStaffResult.length,
         currentShift: currentShift,
-        wipTonnage: Math.round(Number(wipResult[0]?.totalTonnage || 0) * 10) / 10, // Round to 1 decimal
+        wipTonnage: Math.round(Number(wipResult[0]?.totalTonnage || 0) * 10) / 10,
         overallProgress: overallProgress
       };
       
@@ -8670,35 +8726,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Fetch real machine data from database
-      // Note: Machine monitoring table not yet implemented in schema
-      // Will return empty array until IoT/machine integration is complete
-      const machines = await db
+      // Fetch real machine data from machines table
+      const machinesData = await db
         .select()
-        .from(machines_monitoring)
-        .leftJoin(jobs, eq(machines_monitoring.currentJobId, jobs.id))
-        .leftJoin(users, eq(machines_monitoring.operatorId, users.id))
+        .from(machines)
+        .where(eq(machines.isActive, true))
         .catch(() => []);
       
-      // Transform data to expected format
-      const machineData = machines.map(m => ({
-        id: m.machines_monitoring?.id,
-        name: m.machines_monitoring?.name,
-        type: m.machines_monitoring?.type,
-        model: m.machines_monitoring?.model,
-        status: m.machines_monitoring?.status || 'idle',
-        currentJob: m.jobs?.jobNumber || null,
-        operator: m.users?.name || null,
-        efficiency: m.machines_monitoring?.efficiency || 0,
-        utilizationRate: m.machines_monitoring?.utilizationRate || 0,
-        temperature: m.machines_monitoring?.temperature || 0,
-        powerConsumption: m.machines_monitoring?.powerConsumption || 0,
-        runTime: m.machines_monitoring?.runTime || 0,
-        idleTime: m.machines_monitoring?.idleTime || 0,
-        maintenanceSchedule: m.machines_monitoring?.maintenanceSchedule || {},
-        production: m.machines_monitoring?.productionMetrics || {},
-        alerts: m.machines_monitoring?.alerts || []
-      }));
+      // Get recent production events for each machine to calculate real metrics
+      const machineIds = machinesData.map(m => m.id);
+      const recentEvents = machineIds.length > 0
+        ? await db
+            .select({
+              machineId: productionEvents.machineId,
+              totalQuantity: sql`SUM(quantity)`,
+              totalDefects: sql`SUM(defect_count)`,
+              avgCycleTime: sql`AVG(cycle_time)`,
+              lastEventTime: sql`MAX(event_time)`
+            })
+            .from(productionEvents)
+            .where(and(
+              sql`${productionEvents.machineId} = ANY(${machineIds})`,
+              gte(productionEvents.eventTime, sql`NOW() - INTERVAL '24 hours'`)
+            ))
+            .groupBy(productionEvents.machineId)
+            .catch(() => [])
+        : [];
+      
+      const eventsMap = new Map(recentEvents.map(e => [e.machineId, e]));
+      
+      // Get current machine status logs
+      const statusLogs = machineIds.length > 0
+        ? await db
+            .select({
+              machineId: machineStatusLogs.machineId,
+              currentState: machineStatusLogs.newState,
+              operatorId: machineStatusLogs.operatorId,
+              jobId: machineStatusLogs.jobId,
+              startTime: machineStatusLogs.startTime
+            })
+            .from(machineStatusLogs)
+            .where(and(
+              sql`${machineStatusLogs.machineId} = ANY(${machineIds})`,
+              isNull(machineStatusLogs.endTime)
+            ))
+            .catch(() => [])
+        : [];
+      
+      const statusMap = new Map(statusLogs.map(s => [s.machineId, s]));
+      
+      // Transform data to expected format with real metrics
+      const machineData = machinesData.map(m => {
+        const events = eventsMap.get(m.id);
+        const status = statusMap.get(m.id);
+        const totalQuantity = Number(events?.totalQuantity || 0);
+        const totalDefects = Number(events?.totalDefects || 0);
+        
+        // Calculate real efficiency based on production data
+        const efficiency = totalQuantity > 0 
+          ? Math.round(((totalQuantity - totalDefects) / totalQuantity) * 100)
+          : 0;
+        
+        // Calculate utilization based on status
+        const isRunning = m.currentState === 'running';
+        const utilizationRate = isRunning ? 100 : 0;
+        
+        return {
+          id: m.id,
+          machineCode: m.machineCode,
+          name: m.name,
+          type: m.type,
+          model: m.model || '',
+          department: m.department,
+          status: m.currentState || 'stopped',
+          currentJob: status?.jobId || null,
+          operator: status?.operatorId || null,
+          efficiency: efficiency,
+          utilizationRate: utilizationRate,
+          targetEfficiency: Number(m.targetEfficiency || 85),
+          targetUptime: Number(m.targetUptime || 90),
+          lastMaintenance: m.lastMaintenanceDate,
+          nextMaintenance: m.nextMaintenanceDate,
+          runtime: status?.startTime 
+            ? Math.round((Date.now() - new Date(status.startTime).getTime()) / (1000 * 60 * 60))
+            : 0,
+          producedToday: totalQuantity,
+          defectsToday: totalDefects
+        };
+      });
       
       // Return empty array if no machines configured yet
       res.json(machineData.length > 0 ? machineData : []);
