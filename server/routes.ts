@@ -9223,16 +9223,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Check for low inventory levels
+      // Check for low inventory levels (using quantityInStock field)
       const lowInventory = await db
         .select({
           materialName: materials.name,
-          currentStock: inventory.quantityOnHand,
-          reorderLevel: inventory.reorderLevel
+          currentStock: inventory.quantityInStock
         })
         .from(inventory)
         .innerJoin(materials, eq(inventory.materialId, materials.id))
-        .where(sql`${inventory.quantityOnHand} < ${inventory.reorderLevel}`)
+        .where(sql`${inventory.quantityInStock} < 10`) // Default low stock threshold of 10
         .limit(5);
 
       const alerts = lowInventory.map(item => ({
@@ -9469,6 +9468,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error updating safety inspection:', error);
       res.status(500).json({ message: 'Failed to update safety inspection' });
+    }
+  });
+
+  // Document Management Routes for Wave 2
+  app.get('/api/documents', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const filters: any = {};
+      if (req.query.category) filters.category = req.query.category;
+      if (req.query.entityType) filters.entityType = req.query.entityType;
+      if (req.query.entityId) filters.entityId = parseInt(req.query.entityId as string);
+      if (req.query.status) filters.status = req.query.status;
+
+      const docs = await storage.getDocuments(filters);
+      res.json(docs);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      res.status(500).json({ message: 'Failed to fetch documents' });
+    }
+  });
+
+  app.get('/api/documents/stats', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const stats = await storage.getDocumentStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching document stats:', error);
+      res.status(500).json({ message: 'Failed to fetch document stats' });
+    }
+  });
+
+  app.get('/api/documents/:id', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const doc = await storage.getDocument(parseInt(req.params.id));
+      if (!doc) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+
+      res.json(doc);
+    } catch (error) {
+      console.error('Error fetching document:', error);
+      res.status(500).json({ message: 'Failed to fetch document' });
+    }
+  });
+
+  app.post('/api/documents', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Convert date strings to Date objects
+      const { issueDate, expiryDate, reviewDate, ...otherFields } = req.body;
+      const newDoc = await storage.createDocument({
+        ...otherFields,
+        issueDate: issueDate ? new Date(issueDate) : null,
+        expiryDate: expiryDate ? new Date(expiryDate) : null,
+        reviewDate: reviewDate ? new Date(reviewDate) : null,
+        uploadedBy: user.id,
+        uploadedAt: new Date()
+      });
+      
+      res.json(newDoc);
+    } catch (error) {
+      console.error('Error creating document:', error);
+      res.status(500).json({ message: 'Failed to create document' });
+    }
+  });
+
+  app.put('/api/documents/:id', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const updated = await storage.updateDocument(
+        parseInt(req.params.id),
+        req.body
+      );
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating document:', error);
+      res.status(500).json({ message: 'Failed to update document' });
+    }
+  });
+
+  app.delete('/api/documents/:id', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      await storage.deleteDocument(parseInt(req.params.id));
+      res.json({ message: 'Document archived successfully' });
+    } catch (error) {
+      console.error('Error archiving document:', error);
+      res.status(500).json({ message: 'Failed to archive document' });
+    }
+  });
+
+  app.post('/api/documents/:id/download', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      await storage.incrementDocumentDownloadCount(parseInt(req.params.id));
+      const doc = await storage.getDocument(parseInt(req.params.id));
+      
+      if (!doc) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+
+      res.json({ 
+        message: 'Download tracked',
+        filePath: doc.filePath,
+        fileName: doc.fileName 
+      });
+    } catch (error) {
+      console.error('Error tracking download:', error);
+      res.status(500).json({ message: 'Failed to track download' });
     }
   });
 

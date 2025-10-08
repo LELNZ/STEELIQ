@@ -55,7 +55,6 @@ const navigation = [
   {
     name: "Field Operations",
     items: [
-      { name: "Mobile Operations", href: "/mobile-operations", icon: Smartphone },
       { name: "Production Floor", href: "/production-floor", icon: Factory },
       { name: "Resource Planning", href: "/resource-planning", icon: Calendar },
     ],

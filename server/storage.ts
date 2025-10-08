@@ -37,6 +37,7 @@ import {
   type MachineJobAssignment, type InsertMachineJobAssignment,
   qualityInspections, type QualityInspection, type InsertQualityInspection,
   safetyInspections, type SafetyInspection, type InsertSafetyInspection,
+  documents, type Document, type InsertDocument,
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView,
   documentHistory, documentAttachments, documentAccessLogs
@@ -119,6 +120,31 @@ export interface IStorage {
     overdue: number;
     highRisk: number;
     incidents: number;
+  }>;
+
+  // Document Management
+  getDocuments(filters?: { 
+    category?: string; 
+    entityType?: string; 
+    entityId?: number;
+    status?: string;
+  }): Promise<Document[]>;
+  getDocument(id: number): Promise<Document | undefined>;
+  getDocumentByNumber(documentNumber: string): Promise<Document | undefined>;
+  getDocumentsByEntity(entityType: string, entityId: number): Promise<Document[]>;
+  getDocumentsByCategory(category: string): Promise<Document[]>;
+  createDocument(document: InsertDocument): Promise<Document>;
+  updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document>;
+  deleteDocument(id: number): Promise<void>;
+  incrementDocumentDownloadCount(id: number): Promise<void>;
+  generateDocumentNumber(prefix?: string): Promise<string>;
+  getDocumentStats(): Promise<{
+    totalDocuments: number;
+    activeDocuments: number;
+    expiringDocuments: number;
+    byCategory: Record<string, number>;
+    byType: Record<string, number>;
+    recentlyUploaded: number;
   }>;
 
   // Jobs
@@ -4049,6 +4075,174 @@ export class DatabaseStorage implements IStorage {
       overdue,
       highRisk,
       incidents
+    };
+  }
+
+  // Document Management Implementation
+  async getDocuments(filters?: {
+    category?: string;
+    entityType?: string;
+    entityId?: number;
+    status?: string;
+  }): Promise<Document[]> {
+    let query = db.select().from(documents);
+    const conditions = [];
+
+    if (filters?.category) {
+      conditions.push(eq(documents.category, filters.category));
+    }
+    if (filters?.entityType) {
+      conditions.push(eq(documents.entityType, filters.entityType));
+    }
+    if (filters?.entityId) {
+      conditions.push(eq(documents.entityId, filters.entityId));
+    }
+    if (filters?.status) {
+      conditions.push(eq(documents.status, filters.status));
+    }
+
+    if (conditions.length > 0) {
+      return await query.where(and(...conditions)).orderBy(desc(documents.uploadedAt));
+    }
+
+    return await query.orderBy(desc(documents.uploadedAt));
+  }
+
+  async getDocument(id: number): Promise<Document | undefined> {
+    const [doc] = await db.select().from(documents).where(eq(documents.id, id));
+    return doc;
+  }
+
+  async getDocumentByNumber(documentNumber: string): Promise<Document | undefined> {
+    const [doc] = await db.select().from(documents)
+      .where(eq(documents.documentNumber, documentNumber));
+    return doc;
+  }
+
+  async getDocumentsByEntity(entityType: string, entityId: number): Promise<Document[]> {
+    return await db.select().from(documents)
+      .where(and(
+        eq(documents.entityType, entityType),
+        eq(documents.entityId, entityId)
+      ))
+      .orderBy(desc(documents.uploadedAt));
+  }
+
+  async getDocumentsByCategory(category: string): Promise<Document[]> {
+    return await db.select().from(documents)
+      .where(eq(documents.category, category))
+      .orderBy(desc(documents.uploadedAt));
+  }
+
+  async createDocument(document: InsertDocument): Promise<Document> {
+    const documentNumber = await this.generateDocumentNumber(document.documentType);
+    const [newDoc] = await db.insert(documents)
+      .values({
+        ...document,
+        documentNumber
+      })
+      .returning();
+    return newDoc;
+  }
+
+  async updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document> {
+    const [updated] = await db.update(documents)
+      .set({
+        ...document,
+        updatedAt: new Date()
+      })
+      .where(eq(documents.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteDocument(id: number): Promise<void> {
+    // Soft delete - set status to 'archived' and record archival info
+    await db.update(documents)
+      .set({
+        status: 'archived',
+        archivedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(documents.id, id));
+  }
+
+  async incrementDocumentDownloadCount(id: number): Promise<void> {
+    const [doc] = await db.select().from(documents).where(eq(documents.id, id));
+    if (doc) {
+      await db.update(documents)
+        .set({
+          downloadCount: (doc.downloadCount || 0) + 1,
+          lastAccessedAt: new Date()
+        })
+        .where(eq(documents.id, id));
+    }
+  }
+
+  async generateDocumentNumber(prefix?: string): Promise<string> {
+    const year = new Date().getFullYear();
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+    const docPrefix = prefix ? prefix.substring(0, 3).toUpperCase() : 'DOC';
+    
+    // Get the last document number for this month
+    const lastDoc = await db.select()
+      .from(documents)
+      .where(like(documents.documentNumber, `${docPrefix}${year}${month}%`))
+      .orderBy(desc(documents.documentNumber))
+      .limit(1);
+    
+    let nextNumber = 1;
+    if (lastDoc.length > 0) {
+      const lastNum = lastDoc[0].documentNumber;
+      const match = lastNum.match(new RegExp(`${docPrefix}\\d{6}(\\d{4})`));
+      if (match) {
+        nextNumber = parseInt(match[1]) + 1;
+      }
+    }
+    
+    return `${docPrefix}${year}${month}${String(nextNumber).padStart(4, '0')}`;
+  }
+
+  async getDocumentStats(): Promise<{
+    totalDocuments: number;
+    activeDocuments: number;
+    expiringDocuments: number;
+    byCategory: Record<string, number>;
+    byType: Record<string, number>;
+    recentlyUploaded: number;
+  }> {
+    const allDocs = await db.select().from(documents);
+    const today = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const totalDocuments = allDocs.length;
+    const activeDocuments = allDocs.filter(d => d.status === 'active').length;
+    const expiringDocuments = allDocs.filter(d => 
+      d.expiryDate && new Date(d.expiryDate) > today && new Date(d.expiryDate) <= thirtyDaysFromNow
+    ).length;
+
+    const byCategory: Record<string, number> = {};
+    const byType: Record<string, number> = {};
+    
+    allDocs.forEach(doc => {
+      byCategory[doc.category] = (byCategory[doc.category] || 0) + 1;
+      byType[doc.documentType] = (byType[doc.documentType] || 0) + 1;
+    });
+
+    const recentlyUploaded = allDocs.filter(d => 
+      new Date(d.uploadedAt) >= sevenDaysAgo
+    ).length;
+
+    return {
+      totalDocuments,
+      activeDocuments,
+      expiringDocuments,
+      byCategory,
+      byType,
+      recentlyUploaded
     };
   }
 }
