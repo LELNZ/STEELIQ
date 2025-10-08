@@ -8726,101 +8726,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Fetch real machine data from machines table
-      const machinesData = await db
-        .select()
-        .from(machines)
-        .where(eq(machines.isActive, true))
-        .catch(() => []);
+      // Fetch real machine data using storage layer
+      const machinesData = await storage.getMachines();
       
-      // Get recent production events for each machine to calculate real metrics
-      const machineIds = machinesData.map(m => m.id);
-      const recentEvents = machineIds.length > 0
-        ? await db
-            .select({
-              machineId: productionEvents.machineId,
-              totalQuantity: sql`SUM(quantity)`,
-              totalDefects: sql`SUM(defect_count)`,
-              avgCycleTime: sql`AVG(cycle_time)`,
-              lastEventTime: sql`MAX(event_time)`
-            })
-            .from(productionEvents)
-            .where(and(
-              sql`${productionEvents.machineId} = ANY(${machineIds})`,
-              gte(productionEvents.eventTime, sql`NOW() - INTERVAL '24 hours'`)
-            ))
-            .groupBy(productionEvents.machineId)
-            .catch(() => [])
-        : [];
+      // Get production metrics for each machine
+      const machineMetrics = await Promise.all(
+        machinesData.map(async (machine) => {
+          // Get current status
+          const currentStatus = await storage.getCurrentMachineStatus(machine.id);
+          
+          // Get recent production events (last 24 hours)
+          const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          const events = await storage.getProductionEventsByMachine(machine.id);
+          const recentEvents = events.filter(e => new Date(e.eventTime) > dayAgo);
+          
+          // Get current assignment
+          const currentAssignment = await storage.getCurrentAssignmentForMachine(machine.id);
+          
+          // Calculate metrics
+          const totalQuantity = recentEvents.reduce((sum, e) => sum + (e.quantity || 0), 0);
+          const totalDefects = recentEvents.reduce((sum, e) => sum + (e.defectCount || 0), 0);
+          const efficiency = totalQuantity > 0 
+            ? Math.round(((totalQuantity - totalDefects) / totalQuantity) * 100)
+            : Number(machine.targetEfficiency || 85);
+          
+          // Calculate runtime
+          const runtime = currentStatus?.startTime 
+            ? Math.round((Date.now() - new Date(currentStatus.startTime).getTime()) / (1000 * 60 * 60))
+            : 0;
+          
+          // Calculate utilization based on actual runtime vs available time
+          const availableHours = 24; // Last 24 hours
+          const actualRuntime = currentStatus?.newState === 'running' ? runtime : 0;
+          const utilizationRate = Math.min(100, Math.round((actualRuntime / availableHours) * 100));
+          
+          return {
+            id: machine.id,
+            machineCode: machine.machineCode,
+            name: machine.name,
+            type: machine.type,
+            model: machine.model || '',
+            department: machine.department,
+            status: machine.currentState || machine.status || 'idle',
+            currentJob: currentAssignment ? `Job #${currentAssignment.jobId}` : null,
+            operator: currentStatus?.operatorId ? `Operator ${currentStatus.operatorId}` : null,
+            efficiency: efficiency,
+            utilizationRate: utilizationRate,
+            temperature: 72, // Standard operating temperature
+            powerConsumption: Number(machine.powerRating || 50) * utilizationRate / 100,
+            runTime: runtime,
+            production: {
+              currentOutput: totalQuantity,
+              targetOutput: currentAssignment?.targetQuantity || 100,
+              scrapRate: totalQuantity > 0 ? (totalDefects / totalQuantity * 100).toFixed(1) : '0'
+            },
+            maintenanceSchedule: {
+              lastMaintenance: machine.lastMaintenanceDate,
+              nextMaintenance: machine.nextMaintenanceDate,
+              hoursUntilMaintenance: machine.nextMaintenanceDate 
+                ? Math.max(0, Math.round((new Date(machine.nextMaintenanceDate).getTime() - Date.now()) / (1000 * 60 * 60)))
+                : 168
+            },
+            alerts: [] // TODO: Implement alerts based on thresholds
+          };
+        })
+      );
       
-      const eventsMap = new Map(recentEvents.map(e => [e.machineId, e]));
-      
-      // Get current machine status logs
-      const statusLogs = machineIds.length > 0
-        ? await db
-            .select({
-              machineId: machineStatusLogs.machineId,
-              currentState: machineStatusLogs.newState,
-              operatorId: machineStatusLogs.operatorId,
-              jobId: machineStatusLogs.jobId,
-              startTime: machineStatusLogs.startTime
-            })
-            .from(machineStatusLogs)
-            .where(and(
-              sql`${machineStatusLogs.machineId} = ANY(${machineIds})`,
-              isNull(machineStatusLogs.endTime)
-            ))
-            .catch(() => [])
-        : [];
-      
-      const statusMap = new Map(statusLogs.map(s => [s.machineId, s]));
-      
-      // Transform data to expected format with real metrics
-      const machineData = machinesData.map(m => {
-        const events = eventsMap.get(m.id);
-        const status = statusMap.get(m.id);
-        const totalQuantity = Number(events?.totalQuantity || 0);
-        const totalDefects = Number(events?.totalDefects || 0);
-        
-        // Calculate real efficiency based on production data
-        const efficiency = totalQuantity > 0 
-          ? Math.round(((totalQuantity - totalDefects) / totalQuantity) * 100)
-          : 0;
-        
-        // Calculate utilization based on status
-        const isRunning = m.currentState === 'running';
-        const utilizationRate = isRunning ? 100 : 0;
-        
-        return {
-          id: m.id,
-          machineCode: m.machineCode,
-          name: m.name,
-          type: m.type,
-          model: m.model || '',
-          department: m.department,
-          status: m.currentState || 'stopped',
-          currentJob: status?.jobId || null,
-          operator: status?.operatorId || null,
-          efficiency: efficiency,
-          utilizationRate: utilizationRate,
-          targetEfficiency: Number(m.targetEfficiency || 85),
-          targetUptime: Number(m.targetUptime || 90),
-          lastMaintenance: m.lastMaintenanceDate,
-          nextMaintenance: m.nextMaintenanceDate,
-          runtime: status?.startTime 
-            ? Math.round((Date.now() - new Date(status.startTime).getTime()) / (1000 * 60 * 60))
-            : 0,
-          producedToday: totalQuantity,
-          defectsToday: totalDefects
-        };
-      });
-      
-      // Return empty array if no machines configured yet
-      res.json(machineData.length > 0 ? machineData : []);
+      res.json(machineMetrics);
     } catch (error) {
       console.error('Error fetching machines:', error);
-      // Return empty array on error - machine monitoring not yet implemented
-      res.json([]);
+      res.status(500).json({ error: 'Failed to fetch machine data' });
     }
   });
 
@@ -8938,80 +8913,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Calculate real metrics from database
+      // Get OEE metrics from storage layer
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
       
-      // Get today's production output
-      const outputResult = await db
-        .select({ 
-          totalWeight: sql`COALESCE(SUM(CASE WHEN material_weight IS NOT NULL THEN material_weight ELSE estimated_value / 5000 END), 0)`,
-          count: sql`COUNT(*)`
-        })
-        .from(jobs)
-        .where(and(
-          eq(jobs.status, 'completed'),
-          gte(jobs.completedDate, today)
-        ));
-
-      // Calculate growth vs yesterday
+      // Get today's OEE metrics
+      const oeeData = await storage.calculateOEE(today, tomorrow);
+      
+      // Get production events for today
+      const todayEvents = await storage.getProductionEventsByDateRange(today, tomorrow);
+      const totalOutput = todayEvents.reduce((sum, e) => sum + (e.quantity || 0), 0);
+      const totalMaterialWeight = todayEvents.reduce((sum, e) => sum + Number(e.materialWeight || 0), 0);
+      
+      // Get yesterday's data for comparison
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayResult = await db
-        .select({ totalWeight: sql`COALESCE(SUM(CASE WHEN material_weight IS NOT NULL THEN material_weight ELSE estimated_value / 5000 END), 0)` })
-        .from(jobs)
-        .where(and(
-          eq(jobs.status, 'completed'),
-          gte(jobs.completedDate, yesterday),
-          sql`${jobs.completedDate} < ${today}`
-        ));
-
-      const todayOutput = Number(outputResult[0]?.totalWeight || 0);
-      const yesterdayOutput = Number(yesterdayResult[0]?.totalWeight || 0);
-      const outputGrowth = yesterdayOutput > 0 ? Math.round(((todayOutput - yesterdayOutput) / yesterdayOutput) * 100) : 0;
-
-      // Calculate efficiency based on actual vs estimated hours
-      const efficiencyResult = await db
-        .select({
-          avgEfficiency: sql`COALESCE(AVG(CASE WHEN estimated_hours > 0 THEN (estimated_hours / GREATEST(actual_hours, 1)) * 100 ELSE NULL END), 85)`
-        })
-        .from(jobs)
-        .where(and(
-          eq(jobs.status, 'completed'),
-          gte(jobs.completedDate, today)
-        ));
-
-      // Generate hourly timeline
+      const yesterdayEvents = await storage.getProductionEventsByDateRange(yesterday, today);
+      const yesterdayOutput = yesterdayEvents.reduce((sum, e) => sum + (e.quantity || 0), 0);
+      
+      const outputGrowth = yesterdayOutput > 0 
+        ? Math.round(((totalOutput - yesterdayOutput) / yesterdayOutput) * 100) 
+        : 0;
+      
+      // Generate hourly timeline from production events
       const currentHour = new Date().getHours();
       const timeline = [];
-      for (let hour = 8; hour <= Math.min(currentHour, 17); hour++) {
+      
+      for (let hour = 6; hour <= Math.min(currentHour, 22); hour++) {
         const hourStart = new Date(today);
         hourStart.setHours(hour, 0, 0, 0);
         const hourEnd = new Date(today);
         hourEnd.setHours(hour + 1, 0, 0, 0);
         
-        const hourResult = await db
-          .select({ count: sql`COUNT(*)` })
-          .from(jobs)
-          .where(and(
-            eq(jobs.status, 'completed'),
-            gte(jobs.completedDate, hourStart),
-            sql`${jobs.completedDate} < ${hourEnd}`
-          ));
+        const hourEvents = todayEvents.filter(e => {
+          const eventTime = new Date(e.eventTime);
+          return eventTime >= hourStart && eventTime < hourEnd;
+        });
+        
+        const hourOutput = hourEvents.reduce((sum, e) => sum + (e.quantity || 0), 0);
         
         timeline.push({
           time: `${hour}:00`,
-          output: Number(hourResult[0]?.count || 0) * 50,
+          output: hourOutput,
           description: `Production output for ${hour}:00-${hour + 1}:00`
         });
       }
 
+      // Calculate performance rate from actual production metrics
+      const activeShift = await storage.getActiveProductionShift();
+      const performanceRate = oeeData.performance || 85;
+
       const metrics = {
-        dailyOutput: todayOutput,
+        dailyOutput: totalOutput,
         outputGrowth: outputGrowth,
-        efficiency: Number(efficiencyResult[0]?.avgEfficiency || 85),
-        performanceRate: 90 + Math.floor(Math.random() * 10),
-        timeline: timeline
+        efficiency: Math.round(oeeData.oee || 85),
+        performanceRate: Math.round(performanceRate),
+        timeline: timeline,
+        oee: {
+          availability: Math.round(oeeData.availability || 90),
+          performance: Math.round(oeeData.performance || 85),
+          quality: Math.round(oeeData.quality || 95),
+          overall: Math.round(oeeData.oee || 73)
+        },
+        materialWeight: totalMaterialWeight,
+        activeShift: activeShift ? {
+          type: activeShift.shiftType,
+          startTime: activeShift.startTime,
+          efficiency: Number(activeShift.efficiency || 85)
+        } : null
       };
       
       res.json(metrics);
@@ -9028,53 +8999,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Get active work orders
-      const workOrdersData = await db
-        .select({
-          id: jobs.id,
-          orderNumber: jobs.jobNumber,
-          jobCode: jobs.jobNumber,
-          description: jobs.projectDescription,
-          priority: jobs.priority,
-          status: jobs.status,
-          quantity: sql`COALESCE(${jobs.estimatedValue} / 1000, 10)`,
-          dueDate: jobs.dueDate,
-          createdAt: jobs.createdAt,
-          estimatedHours: jobs.estimatedHours,
-          assignedTo: jobs.assignedTo
+      // Get active work orders using storage layer
+      const activeWorkOrders = await storage.getActiveWorkOrders();
+      
+      // Get machine assignments for each work order
+      const workOrdersWithDetails = await Promise.all(
+        activeWorkOrders.map(async (wo) => {
+          // Get assignments for this work order's job
+          const assignments = await storage.getAssignmentsByJob(wo.jobId);
+          
+          // Calculate progress based on completed vs target quantity
+          const progress = wo.targetQuantity > 0 
+            ? Math.round((wo.completedQuantity / wo.targetQuantity) * 100)
+            : 0;
+          
+          // Get assigned user details
+          const assignedUser = wo.assignedTo ? await storage.getUser(wo.assignedTo) : null;
+          
+          // Determine current operation based on progress
+          let currentOperation = 'Pending';
+          if (wo.status === 'in_progress') {
+            if (progress > 80) currentOperation = 'Finishing';
+            else if (progress > 60) currentOperation = 'Quality Check';
+            else if (progress > 40) currentOperation = 'Assembly';
+            else if (progress > 20) currentOperation = 'Welding';
+            else currentOperation = 'Cutting';
+          }
+          
+          return {
+            id: wo.id,
+            orderNumber: wo.orderNumber,
+            jobCode: wo.orderNumber,
+            description: wo.description || wo.title,
+            priority: wo.priority || 'normal',
+            quantity: wo.targetQuantity,
+            completedQty: wo.completedQuantity,
+            progress: progress,
+            dueDate: wo.dueDate,
+            currentOperation: currentOperation,
+            operator: assignedUser?.name || 'Unassigned',
+            status: wo.status,
+            machineCount: assignments.filter(a => a.status === 'in_progress').length
+          };
         })
-        .from(jobs)
-        .where(sql`${jobs.status} IN ('in_progress', 'pending')`)
-        .orderBy(desc(jobs.priority), asc(jobs.dueDate))
-        .limit(10);
+      );
 
-      // Get assigned user names
-      const userIds = workOrdersData.map(wo => wo.assignedTo).filter(id => id != null);
-      const usersData = userIds.length > 0
-        ? await db.select().from(users).where(sql`${users.id} = ANY(${userIds})`)
-        : [];
-      const usersMap = new Map(usersData.map(u => [u.id, u.name]));
-
-      const activeWorkOrders = workOrdersData.map(wo => {
-        const progress = wo.status === 'in_progress' ? Math.floor(Math.random() * 60) + 20 : 0;
-        const qty = Number(wo.quantity);
-        
-        return {
-          id: wo.id,
-          orderNumber: wo.orderNumber,
-          jobCode: wo.jobCode,
-          description: wo.description,
-          priority: wo.priority || 'normal',
-          quantity: qty,
-          completedQty: Math.floor((qty * progress) / 100),
-          progress: progress,
-          dueDate: wo.dueDate,
-          currentOperation: progress > 60 ? 'Finishing' : progress > 30 ? 'Assembly' : 'Cutting',
-          operator: usersMap.get(wo.assignedTo) || 'Unassigned'
-        };
-      });
-
-      res.json(activeWorkOrders);
+      res.json(workOrdersWithDetails);
     } catch (error) {
       console.error('Error fetching real-time work orders:', error);
       res.status(500).json({ message: 'Failed to fetch work orders' });
