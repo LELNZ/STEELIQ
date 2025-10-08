@@ -9161,36 +9161,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const inspections = await db
-        .select({
-          id: qualityInspections.id,
-          inspectionNumber: qualityInspections.inspectionNumber,
-          inspectionType: qualityInspections.inspectionType,
-          jobId: qualityInspections.jobId,
-          materialId: qualityInspections.materialId,
-          partNumber: qualityInspections.partNumber,
-          quantity: qualityInspections.quantity,
-          batchNumber: qualityInspections.batchNumber,
-          inspectorId: qualityInspections.inspectorId,
-          inspectionDate: qualityInspections.inspectionDate,
-          status: qualityInspections.status,
-          specification: qualityInspections.specification,
-          toleranceMin: qualityInspections.toleranceMin,
-          toleranceMax: qualityInspections.toleranceMax,
-          actualMeasurement: qualityInspections.actualMeasurement,
-          measurementUnit: qualityInspections.measurementUnit,
-          defectsFound: qualityInspections.defectsFound,
-          correctiveAction: qualityInspections.correctiveAction,
-          certificateNumber: qualityInspections.certificateNumber,
-          notes: qualityInspections.notes,
-          photos: qualityInspections.photos,
-          attachments: qualityInspections.attachments,
-          approvedBy: qualityInspections.approvedBy,
-          approvedAt: qualityInspections.approvedAt
-        })
-        .from(qualityInspections)
-        .orderBy(desc(qualityInspections.inspectionDate))
-        .limit(50);
+      // Use storage layer to fetch inspections
+      const inspections = await storage.getQualityInspections();
       
       res.json(inspections);
     } catch (error) {
@@ -9208,28 +9180,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const today = new Date();
 
-      const [statsResult] = await db
-        .select({
-          total: sql`COUNT(*)`,
-          passed: sql`COUNT(*) FILTER (WHERE status = 'passed')`,
-          failed: sql`COUNT(*) FILTER (WHERE status = 'failed')`,
-          pending: sql`COUNT(*) FILTER (WHERE status = 'pending')`
-        })
-        .from(qualityInspections)
-        .where(gte(qualityInspections.inspectionDate, thirtyDaysAgo));
-
-      const total = Number(statsResult?.total || 0);
-      const passed = Number(statsResult?.passed || 0);
-      const failed = Number(statsResult?.failed || 0);
-      const pending = Number(statsResult?.pending || 0);
-
+      // Use storage layer to get inspection metrics
+      const metrics = await storage.getInspectionMetrics(thirtyDaysAgo, today);
+      
       const stats = {
-        passRate: total > 0 ? Math.round((passed / total) * 100) : 0,
-        totalInspections: total,
-        defectRate: total > 0 ? Math.round((failed / total) * 100) : 0,
-        pendingInspections: pending,
-        nonConformances: failed
+        passRate: metrics.passRate,
+        totalInspections: metrics.total,
+        defectRate: metrics.failed > 0 ? Math.round((metrics.failed / metrics.total) * 100) : 0,
+        pendingInspections: await storage.getPendingInspections().then(i => i.length),
+        nonConformances: metrics.failed
       };
       
       res.json(stats);
@@ -9246,15 +9207,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const inspectionNumber = `QI-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+      // Generate inspection number using storage layer
+      const inspectionNumber = await storage.generateInspectionNumber();
       
-      const [newInspection] = await db.insert(qualityInspections).values({
+      // Create inspection using storage layer
+      const newInspection = await storage.createQualityInspection({
         ...req.body,
         inspectionNumber,
         inspectorId: user.id,
         createdBy: user.id,
-        status: 'pending'
-      }).returning();
+        status: req.body.status || 'pending',
+        inspectionDate: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
       
       res.json(newInspection);
     } catch (error) {
@@ -9281,11 +9247,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.approvedAt = new Date();
       }
 
-      const [updated] = await db
-        .update(qualityInspections)
-        .set(updateData)
-        .where(eq(qualityInspections.id, parseInt(req.params.id)))
-        .returning();
+      // Update inspection using storage layer
+      const updated = await storage.updateQualityInspection(parseInt(req.params.id), updateData);
       
       res.json(updated);
     } catch (error) {
