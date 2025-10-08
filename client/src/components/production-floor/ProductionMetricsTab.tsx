@@ -95,7 +95,7 @@ export default function ProductionMetricsTab() {
     return <div className="text-center py-8 text-muted-foreground">No data available</div>;
   }
 
-  const oeeScore = productionData.oeeBreakdown.oee;
+  const oeeScore = productionData.oeeBreakdown?.oee || 0;
   const oeeColor = oeeScore >= 85 ? "text-green-600" : oeeScore >= 65 ? "text-yellow-600" : "text-red-600";
 
   return (
@@ -128,7 +128,7 @@ export default function ProductionMetricsTab() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        {productionData.kpis.map((kpi) => (
+        {(productionData.kpis || []).map((kpi) => (
           <Card key={kpi.name} className="p-4">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-medium text-muted-foreground">{kpi.name}</p>
@@ -173,36 +173,36 @@ export default function ProductionMetricsTab() {
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Availability</span>
-                <span className="font-medium">{productionData.oeeBreakdown.availability}%</span>
+                <span className="font-medium">{productionData.oeeBreakdown?.availability || 0}%</span>
               </div>
               <div className="h-2 bg-gray-200 rounded">
                 <div 
                   className="h-full bg-blue-600 rounded"
-                  style={{ width: `${productionData.oeeBreakdown.availability}%` }}
+                  style={{ width: `${productionData.oeeBreakdown?.availability || 0}%` }}
                 />
               </div>
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Performance</span>
-                <span className="font-medium">{productionData.oeeBreakdown.performance}%</span>
+                <span className="font-medium">{productionData.oeeBreakdown?.performance || 0}%</span>
               </div>
               <div className="h-2 bg-gray-200 rounded">
                 <div 
                   className="h-full bg-green-600 rounded"
-                  style={{ width: `${productionData.oeeBreakdown.performance}%` }}
+                  style={{ width: `${productionData.oeeBreakdown?.performance || 0}%` }}
                 />
               </div>
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Quality</span>
-                <span className="font-medium">{productionData.oeeBreakdown.quality}%</span>
+                <span className="font-medium">{productionData.oeeBreakdown?.quality || 0}%</span>
               </div>
               <div className="h-2 bg-gray-200 rounded">
                 <div 
                   className="h-full bg-purple-600 rounded"
-                  style={{ width: `${productionData.oeeBreakdown.quality}%` }}
+                  style={{ width: `${productionData.oeeBreakdown?.quality || 0}%` }}
                 />
               </div>
             </div>
@@ -221,7 +221,7 @@ export default function ProductionMetricsTab() {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {productionData.productionByType.map((entry, index) => (
+                  {(productionData.productionByType || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -229,7 +229,7 @@ export default function ProductionMetricsTab() {
               </PieChart>
             </ResponsiveContainer>
             <div className="grid grid-cols-2 gap-2 mt-2">
-              {productionData.productionByType.map((type, index) => (
+              {(productionData.productionByType || []).map((type, index) => (
                 <div key={type.type} className="flex items-center gap-2 text-xs">
                   <div 
                     className="w-3 h-3 rounded"
@@ -255,7 +255,7 @@ export default function ProductionMetricsTab() {
           <Card className="p-6">
             <h3 className="font-semibold mb-4">Daily Production Output</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={productionData.dailyOutput}>
+              <LineChart data={productionData.dailyOutput || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="date" 
@@ -297,7 +297,7 @@ export default function ProductionMetricsTab() {
           <Card className="p-6">
             <h3 className="font-semibold mb-4">Machine Utilization</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={productionData.machineUtilization} layout="horizontal">
+              <BarChart data={productionData.machineUtilization || []} layout="horizontal">
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" domain={[0, 100]} />
                 <YAxis dataKey="machine" type="category" />
@@ -314,7 +314,7 @@ export default function ProductionMetricsTab() {
           <Card className="p-6">
             <h3 className="font-semibold mb-4">Quality Metrics Trends</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {productionData.qualityMetrics.map((metric) => (
+              {(productionData.qualityMetrics || []).map((metric) => (
                 <div key={metric.metric} className="bg-muted rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium text-sm">{metric.metric}</h4>
