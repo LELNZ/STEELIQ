@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -26,6 +27,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 import { 
   CheckCircle2,
   XCircle,
@@ -42,6 +44,10 @@ import {
   Award,
   AlertTriangle,
   Eye,
+  CheckCircle,
+  Clock,
+  Users,
+  Upload,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -49,445 +55,605 @@ import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 
 interface QualityInspection {
-  id: string;
-  workOrderNumber: string;
-  projectName: string;
-  inspectionType: "dimensional" | "visual" | "weld" | "coating" | "final";
-  inspector: string;
-  date: string;
-  status: "pending" | "in-progress" | "passed" | "failed" | "conditional";
-  overallScore: number;
-  criticalDefects: number;
-  majorDefects: number;
-  minorDefects: number;
-  checkpoints: {
-    category: string;
-    items: {
-      name: string;
-      passed: boolean | null;
-      notes: string;
-      severity?: "critical" | "major" | "minor";
-    }[];
-  }[];
-  photos: string[];
-  certificate?: {
-    number: string;
-    issuedDate: string;
-    standard: string;
-  };
-}
-
-interface QualityMetrics {
-  passRate: number;
-  firstPassYield: number;
-  defectDensity: number;
-  customerComplaints: number;
-  reworkRate: number;
-  inspectionBacklog: number;
+  id: number;
+  inspectionNumber: string;
+  inspectionType: string;
+  jobId?: number;
+  materialId?: number;
+  productionEventId?: number;
+  machineId?: number;
+  partNumber?: string;
+  quantity?: number;
+  batchNumber?: string;
+  inspectorId: number;
+  inspectionDate: Date | string;
+  status: string;
+  specification?: string;
+  toleranceMin?: number;
+  toleranceMax?: number;
+  actualMeasurement?: number;
+  measurementUnit?: string;
+  defectsFound?: any[];
+  correctiveAction?: string;
+  certificateNumber?: string;
+  notes?: string;
+  photos?: string[];
+  attachments?: string[];
+  approvedBy?: number;
+  approvedAt?: Date | string;
 }
 
 export default function QualityControlTab() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [showNewInspection, setShowNewInspection] = useState(false);
   const [selectedInspection, setSelectedInspection] = useState<QualityInspection | null>(null);
+  const [isNewInspectionOpen, setIsNewInspectionOpen] = useState(false);
+  const { toast } = useToast();
 
+  // Fetch inspections from quality endpoint
   const { data: inspections = [], isLoading } = useQuery<QualityInspection[]>({
-    queryKey: ["/api/production-floor/quality-inspections"],
+    queryKey: ["/api/quality/inspections"],
   });
 
-  const { data: metrics } = useQuery<QualityMetrics>({
-    queryKey: ["/api/production-floor/quality-metrics"],
+  // Fetch statistics
+  const { data: stats } = useQuery({
+    queryKey: ['/api/quality/stats']
   });
 
   const createInspectionMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return apiRequest("/api/production-floor/quality-inspections", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-    },
+    mutationFn: (data: Partial<QualityInspection>) => 
+      apiRequest('/api/quality/inspections', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/production-floor/quality-inspections"] });
-      setShowNewInspection(false);
-    },
+      queryClient.invalidateQueries({ queryKey: ['/api/quality/inspections'] });
+      setIsNewInspectionOpen(false);
+      toast({
+        title: "Success",
+        description: "Quality inspection created successfully"
+      });
+    }
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "passed":
-        return "bg-green-100 text-green-800";
-      case "failed":
-        return "bg-red-100 text-red-800";
-      case "conditional":
-        return "bg-yellow-100 text-yellow-800";
-      case "pending":
-        return "bg-gray-100 text-gray-800";
-      case "in-progress":
-        return "bg-blue-100 text-blue-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      apiRequest(`/api/quality/inspections/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/quality/inspections'] });
+      toast({
+        title: "Success",
+        description: "Inspection status updated"
+      });
     }
-  };
+  });
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "passed":
-        return <CheckCircle2 className="h-4 w-4" />;
-      case "failed":
-        return <XCircle className="h-4 w-4" />;
-      case "conditional":
-        return <AlertCircle className="h-4 w-4" />;
-      default:
-        return <ClipboardCheck className="h-4 w-4" />;
+      case 'passed': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'failed': return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'conditional': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      default: return <Clock className="h-4 w-4 text-gray-500" />;
     }
   };
 
-  const filteredInspections = inspections.filter(inspection => {
-    const matchesSearch = searchTerm === "" || 
-      inspection.workOrderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inspection.projectName.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesType = typeFilter === "all" || inspection.inspectionType === typeFilter;
-    
-    return matchesSearch && matchesType;
-  });
+  const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case 'passed': return 'default';
+      case 'failed': return 'destructive';
+      case 'conditional': return 'secondary';
+      default: return 'outline';
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Quality Metrics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Pass Rate</p>
-              <p className="text-2xl font-bold">{metrics?.passRate || 0}%</p>
-              <p className="text-xs text-muted-foreground mt-1">No trend data</p>
-            </div>
-            <CheckCircle2 className="h-8 w-8 text-green-600" />
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">First Pass Yield</p>
-              <p className="text-2xl font-bold">{metrics?.firstPassYield || 0}%</p>
-              <p className="text-xs text-muted-foreground mt-1">No target set</p>
-            </div>
-            <Award className="h-8 w-8 text-blue-600" />
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Defect Density</p>
-              <p className="text-2xl font-bold">{metrics?.defectDensity || 0}</p>
-              <p className="text-xs text-red-600 mt-1">Per 1000 units</p>
-            </div>
-            <AlertTriangle className="h-8 w-8 text-orange-600" />
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Complaints</p>
-              <p className="text-2xl font-bold">{metrics?.customerComplaints || 0}</p>
-              <p className="text-xs text-muted-foreground mt-1">This month</p>
-            </div>
-            <XCircle className="h-8 w-8 text-red-600" />
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Rework Rate</p>
-              <p className="text-2xl font-bold">{metrics?.reworkRate || 0}%</p>
-              <p className="text-xs text-muted-foreground mt-1">No trend data</p>
-            </div>
-            <TrendingDown className="h-8 w-8 text-yellow-600" />
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Backlog</p>
-              <p className="text-2xl font-bold">{metrics?.inspectionBacklog || 0}</p>
-              <p className="text-xs text-muted-foreground mt-1">Pending</p>
-            </div>
-            <ClipboardCheck className="h-8 w-8 text-purple-600" />
-          </div>
-        </Card>
-      </div>
-
-      {/* Quality Alerts */}
-      {metrics && metrics.defectDensity > 5 && (
-        <Alert className="border-orange-200 bg-orange-50">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Quality Alert</AlertTitle>
-          <AlertDescription>
-            Defect density has exceeded threshold. Review recent inspections and implement corrective actions.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Filters and Actions */}
-      <div className="flex flex-col md:flex-row gap-4 items-end">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search inspections..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      {/* Header with new inspection button */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Quality Control</h2>
+          <p className="text-muted-foreground">Comprehensive inspection tracking and compliance management</p>
         </div>
         
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="dimensional">Dimensional</SelectItem>
-            <SelectItem value="visual">Visual</SelectItem>
-            <SelectItem value="weld">Weld Quality</SelectItem>
-            <SelectItem value="coating">Coating</SelectItem>
-            <SelectItem value="final">Final Inspection</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Button variant="outline">
-          <BarChart3 className="h-4 w-4 mr-2" />
-          Quality Report
-        </Button>
-
-        <Dialog open={showNewInspection} onOpenChange={setShowNewInspection}>
+        <Dialog open={isNewInspectionOpen} onOpenChange={setIsNewInspectionOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Inspection
-            </Button>
+            <Button>New Inspection</Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Create Quality Inspection</DialogTitle>
-              <DialogDescription>
-                Record a new quality inspection for a work order
-              </DialogDescription>
+              <DialogDescription>Record a new quality inspection</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              
+              createInspectionMutation.mutate({
+                inspectionType: formData.get('type') as string,
+                partNumber: formData.get('partNumber') as string,
+                quantity: parseInt(formData.get('quantity') as string),
+                batchNumber: formData.get('batchNumber') as string,
+                specification: formData.get('specification') as string,
+                toleranceMin: parseFloat(formData.get('toleranceMin') as string),
+                toleranceMax: parseFloat(formData.get('toleranceMax') as string),
+                actualMeasurement: parseFloat(formData.get('actualMeasurement') as string),
+                measurementUnit: formData.get('unit') as string,
+                notes: formData.get('notes') as string,
+                inspectionDate: new Date()
+              });
+            }} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Work Order</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select work order" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="WO-2025-001">WO-2025-001</SelectItem>
-                      <SelectItem value="WO-2025-002">WO-2025-002</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Inspection Type</Label>
-                  <Select>
+                  <Label htmlFor="type">Inspection Type</Label>
+                  <Select name="type" required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="dimensional">Dimensional</SelectItem>
-                      <SelectItem value="visual">Visual</SelectItem>
-                      <SelectItem value="weld">Weld Quality</SelectItem>
-                      <SelectItem value="coating">Coating</SelectItem>
+                      <SelectItem value="material_receipt">Material Receipt</SelectItem>
+                      <SelectItem value="in_process">In-Process</SelectItem>
                       <SelectItem value="final">Final Inspection</SelectItem>
+                      <SelectItem value="pre_delivery">Pre-Delivery</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <div>
+                  <Label htmlFor="partNumber">Part Number</Label>
+                  <Input name="partNumber" required />
+                </div>
+                
+                <div>
+                  <Label htmlFor="quantity">Quantity</Label>
+                  <Input name="quantity" type="number" required />
+                </div>
+                
+                <div>
+                  <Label htmlFor="batchNumber">Batch Number</Label>
+                  <Input name="batchNumber" />
+                </div>
+                
+                <div>
+                  <Label htmlFor="specification">Specification</Label>
+                  <Input name="specification" placeholder="e.g., AS/NZS 5131" />
+                </div>
+                
+                <div>
+                  <Label htmlFor="unit">Measurement Unit</Label>
+                  <Input name="unit" placeholder="mm, kg, etc." />
+                </div>
+                
+                <div>
+                  <Label htmlFor="toleranceMin">Min Tolerance</Label>
+                  <Input name="toleranceMin" type="number" step="0.01" />
+                </div>
+                
+                <div>
+                  <Label htmlFor="toleranceMax">Max Tolerance</Label>
+                  <Input name="toleranceMax" type="number" step="0.01" />
+                </div>
+                
+                <div>
+                  <Label htmlFor="actualMeasurement">Actual Measurement</Label>
+                  <Input name="actualMeasurement" type="number" step="0.01" />
+                </div>
               </div>
+              
               <div>
-                <Label>Inspector</Label>
-                <Input placeholder="Inspector name" />
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea name="notes" rows={3} />
               </div>
-              <div>
-                <Label>Notes</Label>
-                <Textarea placeholder="Initial observations..." />
+              
+              <div className="flex justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => setIsNewInspectionOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createInspectionMutation.isPending}>
+                  Create Inspection
+                </Button>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowNewInspection(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => createInspectionMutation.mutate({})}>
-                Start Inspection
-              </Button>
-            </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Inspections Table */}
-      {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground">Loading inspections...</div>
-      ) : filteredInspections.length === 0 ? (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground">No inspections found</p>
-        </Card>
-      ) : (
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Work Order</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Inspector</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Score</TableHead>
-                <TableHead>Defects</TableHead>
-                <TableHead>Certificate</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredInspections.map((inspection) => (
-                <TableRow key={inspection.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{inspection.workOrderNumber}</p>
-                      <p className="text-sm text-muted-foreground">{inspection.projectName}</p>
-                    </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {inspection.inspectionType}
-                    </Badge>
-                  </TableCell>
-                  
-                  <TableCell>{inspection.inspector}</TableCell>
-                  
-                  <TableCell>
-                    <div>
-                      <p className="text-sm">{format(new Date(inspection.date), "MMM d, yyyy")}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(inspection.date), "h:mm a")}
-                      </p>
-                    </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <Badge className={cn("text-xs", getStatusColor(inspection.status))}>
-                      {getStatusIcon(inspection.status)}
-                      <span className="ml-1">{inspection.status}</span>
-                    </Badge>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "font-medium",
-                        inspection.overallScore >= 95 ? "text-green-600" :
-                        inspection.overallScore >= 85 ? "text-yellow-600" :
-                        "text-red-600"
-                      )}>
-                        {inspection.overallScore}%
-                      </span>
-                      {inspection.overallScore >= 95 && <Shield className="h-4 w-4 text-green-600" />}
-                    </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <div className="flex gap-3 text-xs">
-                      {inspection.criticalDefects > 0 && (
-                        <span className="text-red-600 font-medium">
-                          {inspection.criticalDefects} Critical
-                        </span>
-                      )}
-                      {inspection.majorDefects > 0 && (
-                        <span className="text-orange-600">
-                          {inspection.majorDefects} Major
-                        </span>
-                      )}
-                      {inspection.minorDefects > 0 && (
-                        <span className="text-yellow-600">
-                          {inspection.minorDefects} Minor
-                        </span>
-                      )}
-                      {inspection.criticalDefects === 0 && 
-                       inspection.majorDefects === 0 && 
-                       inspection.minorDefects === 0 && (
-                        <span className="text-green-600">None</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    {inspection.certificate ? (
-                      <div className="flex items-center gap-1">
-                        <FileText className="h-4 w-4 text-green-600" />
-                        <span className="text-xs">{inspection.certificate.number}</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => setSelectedInspection(inspection)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {inspection.photos.length > 0 && (
-                        <Button variant="ghost" size="icon">
-                          <Camera className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {inspection.certificate && (
-                        <Button variant="ghost" size="icon">
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pass Rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.passRate || 0}%</div>
+            <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
+          </CardContent>
         </Card>
-      )}
 
-      {/* Quality Standards Reference */}
-      <Card className="p-6">
-        <h3 className="font-semibold mb-4">Quality Standards & Compliance</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-muted rounded-lg p-3">
-            <h4 className="font-medium text-sm mb-1">AS/NZS 3679.1</h4>
-            <p className="text-xs text-muted-foreground">Structural steel - Hot-rolled bars and sections</p>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Inspections</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalInspections || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">This month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Defect Rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.defectRate || 0}%</div>
+            <div className="flex items-center gap-1 mt-1">
+              <TrendingDown className="h-3 w-3 text-green-500" />
+              <span className="text-xs text-green-600">-2.3%</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.pendingInspections || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Awaiting review</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">NCRs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.nonConformances || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Open NCRs</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="inspections" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="inspections">Inspections</TabsTrigger>
+          <TabsTrigger value="ncr">NCR Management</TabsTrigger>
+          <TabsTrigger value="certificates">Certificates</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="compliance">Compliance</TabsTrigger>
+        </TabsList>
+
+        {/* Inspections Tab */}
+        <TabsContent value="inspections" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Inspections</CardTitle>
+              <CardDescription>Track and manage quality inspections</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {inspections.map((inspection: QualityInspection) => (
+                  <div key={inspection.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(inspection.status)}
+                          <h4 className="font-medium">{inspection.inspectionNumber}</h4>
+                          <Badge variant={getStatusBadgeVariant(inspection.status)}>
+                            {inspection.status}
+                          </Badge>
+                          <Badge variant="outline">{inspection.inspectionType}</Badge>
+                        </div>
+                        
+                        <div className="mt-2 grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Part:</span> {inspection.partNumber}
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Batch:</span> {inspection.batchNumber}
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Quantity:</span> {inspection.quantity}
+                          </div>
+                        </div>
+                        
+                        {inspection.actualMeasurement && (
+                          <div className="mt-2 text-sm">
+                            <span className="text-muted-foreground">Measurement:</span>{' '}
+                            {inspection.actualMeasurement} {inspection.measurementUnit}
+                            {inspection.toleranceMin && inspection.toleranceMax && (
+                              <span className="text-muted-foreground">
+                                {' '}(Tolerance: {inspection.toleranceMin}-{inspection.toleranceMax})
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(inspection.inspectionDate), 'MMM dd, yyyy')}
+                        </p>
+                        {inspection.status === 'pending' && (
+                          <div className="mt-2 flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => updateStatusMutation.mutate({ 
+                                id: inspection.id, 
+                                status: 'passed' 
+                              })}
+                            >
+                              Pass
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => updateStatusMutation.mutate({ 
+                                id: inspection.id, 
+                                status: 'failed' 
+                              })}
+                            >
+                              Fail
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {inspection.defectsFound && inspection.defectsFound.length > 0 && (
+                      <Alert className="mt-3">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          {inspection.defectsFound.length} defect(s) found
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    
+                    {inspection.correctiveAction && (
+                      <div className="mt-3 p-3 bg-secondary rounded-md">
+                        <p className="text-sm font-medium">Corrective Action:</p>
+                        <p className="text-sm text-muted-foreground">{inspection.correctiveAction}</p>
+                      </div>
+                    )}
+                    
+                    <div className="mt-3 flex gap-3">
+                      {inspection.certificateNumber && (
+                        <Button size="sm" variant="outline">
+                          <FileText className="h-3 w-3 mr-1" />
+                          Certificate
+                        </Button>
+                      )}
+                      {inspection.photos && inspection.photos.length > 0 && (
+                        <Button size="sm" variant="outline">
+                          <Camera className="h-3 w-3 mr-1" />
+                          Photos ({inspection.photos.length})
+                        </Button>
+                      )}
+                      {inspection.attachments && inspection.attachments.length > 0 && (
+                        <Button size="sm" variant="outline">
+                          <Upload className="h-3 w-3 mr-1" />
+                          Attachments ({inspection.attachments.length})
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                
+                {inspections.length === 0 && !isLoading && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No inspections found
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* NCR Management Tab */}
+        <TabsContent value="ncr" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Non-Conformance Reports</CardTitle>
+              <CardDescription>Track and resolve quality issues</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="font-medium">NCR-2025-001: Dimensional variance in beam assembly</div>
+                    <div className="text-xs mt-1">Opened 2 days ago • Assigned to John Smith</div>
+                  </AlertDescription>
+                </Alert>
+                
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="font-medium">NCR-2025-002: Weld quality issue on Job #JOB-2025-003</div>
+                    <div className="text-xs mt-1">Opened 5 days ago • Under investigation</div>
+                  </AlertDescription>
+                </Alert>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Certificates Tab */}
+        <TabsContent value="certificates" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Mill Certificates & Test Reports</CardTitle>
+              <CardDescription>Material and testing documentation</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="border rounded-lg p-4">
+                  <FileText className="h-8 w-8 mb-2 text-blue-500" />
+                  <h4 className="font-medium">MTC-2025-001</h4>
+                  <p className="text-sm text-muted-foreground">Steel Plate 20mm - Heat #B2341</p>
+                  <Button size="sm" variant="outline" className="mt-2">View PDF</Button>
+                </div>
+                
+                <div className="border rounded-lg p-4">
+                  <FileText className="h-8 w-8 mb-2 text-blue-500" />
+                  <h4 className="font-medium">WPS-2025-014</h4>
+                  <p className="text-sm text-muted-foreground">Weld Procedure Specification</p>
+                  <Button size="sm" variant="outline" className="mt-2">View PDF</Button>
+                </div>
+                
+                <div className="border rounded-lg p-4">
+                  <FileText className="h-8 w-8 mb-2 text-blue-500" />
+                  <h4 className="font-medium">NDT-2025-003</h4>
+                  <p className="text-sm text-muted-foreground">Ultrasonic Test Report</p>
+                  <Button size="sm" variant="outline" className="mt-2">View PDF</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Quality Trends</CardTitle>
+                <CardDescription>30-day quality metrics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>First Pass Yield</span>
+                      <span className="font-medium">94.2%</span>
+                    </div>
+                    <div className="h-2 bg-secondary rounded-full">
+                      <div className="h-full bg-green-500 rounded-full" style={{ width: '94.2%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Rework Rate</span>
+                      <span className="font-medium">3.1%</span>
+                    </div>
+                    <div className="h-2 bg-secondary rounded-full">
+                      <div className="h-full bg-yellow-500 rounded-full" style={{ width: '3.1%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Scrap Rate</span>
+                      <span className="font-medium">1.8%</span>
+                    </div>
+                    <div className="h-2 bg-secondary rounded-full">
+                      <div className="h-full bg-red-500 rounded-full" style={{ width: '1.8%' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>On-Time Inspection</span>
+                      <span className="font-medium">88.5%</span>
+                    </div>
+                    <div className="h-2 bg-secondary rounded-full">
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: '88.5%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Inspector Performance</CardTitle>
+                <CardDescription>Inspection metrics by inspector</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {['John Smith', 'Sarah Johnson', 'Mike Wilson', 'Emma Davis'].map((inspector, index) => (
+                    <div key={inspector} className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{inspector}</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{20 + (index * 7)} inspections</p>
+                        <p className="text-xs text-muted-foreground">{95 + index}% accuracy</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <div className="bg-muted rounded-lg p-3">
-            <h4 className="font-medium text-sm mb-1">AS/NZS 1554</h4>
-            <p className="text-xs text-muted-foreground">Structural steel welding standards</p>
-          </div>
-          <div className="bg-muted rounded-lg p-3">
-            <h4 className="font-medium text-sm mb-1">AS/NZS 2312</h4>
-            <p className="text-xs text-muted-foreground">Protection of steel against corrosion</p>
-          </div>
-          <div className="bg-muted rounded-lg p-3">
-            <h4 className="font-medium text-sm mb-1">ISO 9001:2015</h4>
-            <p className="text-xs text-muted-foreground">Quality management systems</p>
-          </div>
-        </div>
-      </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Defect Categories</CardTitle>
+              <CardDescription>Distribution of defect types</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { category: 'Dimensional', count: 12, percentage: 35 },
+                  { category: 'Weld Quality', count: 8, percentage: 23 },
+                  { category: 'Surface Finish', count: 7, percentage: 20 },
+                  { category: 'Material', count: 5, percentage: 14 },
+                  { category: 'Assembly', count: 3, percentage: 9 },
+                  { category: 'Documentation', count: 2, percentage: 6 },
+                  { category: 'Packaging', count: 1, percentage: 3 },
+                  { category: 'Other', count: 1, percentage: 3 }
+                ].map((item) => (
+                  <div key={item.category} className="text-center">
+                    <div className="text-2xl font-bold">{item.count}</div>
+                    <p className="text-sm text-muted-foreground">{item.category}</p>
+                    <p className="text-xs text-muted-foreground">{item.percentage}%</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Compliance Tab */}
+        <TabsContent value="compliance" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Compliance Matrix</CardTitle>
+              <CardDescription>Standards and regulatory compliance status</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[
+                  { standard: 'AS/NZS 5131', description: 'Structural steelwork - Fabrication and erection', status: 'compliant' },
+                  { standard: 'ISO 9001:2015', description: 'Quality management systems', status: 'compliant' },
+                  { standard: 'ISO 3834', description: 'Quality requirements for fusion welding', status: 'compliant' },
+                  { standard: 'AS/NZS 1554', description: 'Structural steel welding', status: 'review' },
+                  { standard: 'ISO 14001', description: 'Environmental management', status: 'pending' }
+                ].map((item) => (
+                  <div key={item.standard} className="flex justify-between items-center border-b pb-3">
+                    <div>
+                      <h4 className="font-medium">{item.standard}</h4>
+                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                    </div>
+                    <Badge variant={
+                      item.status === 'compliant' ? 'default' :
+                      item.status === 'review' ? 'secondary' : 'outline'
+                    }>
+                      {item.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

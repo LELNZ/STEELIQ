@@ -36,7 +36,6 @@ import SupplierIntegrationHub from "@/pages/SupplierIntegrationHub";
 import SupplierPortal from "@/pages/SupplierPortal";
 import MobileOperations from "@/pages/mobile-operations";
 import ProductionFloor from "@/pages/ProductionFloor";
-import QualityControl from "@/pages/QualityControl";
 import InventoryMovements from "@/pages/InventoryMovements";
 import FinancialIntelligence from "@/pages/FinancialIntelligence";
 import ResourcePlanning from "@/pages/ResourcePlanning";
@@ -107,7 +106,6 @@ function Router() {
       <Route path="/supplier-integration" component={SupplierIntegrationHub} />
       <Route path="/mobile-operations" component={MobileOperations} />
       <Route path="/production-floor" component={ProductionFloor} />
-      <Route path="/quality-control" component={QualityControl} />
       <Route path="/inventory-movements" component={InventoryMovements} />
       <Route path="/financial-intelligence" component={FinancialIntelligence} />
       <Route path="/resource-planning" component={ResourcePlanning} />
