@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,9 +16,14 @@ import {
   Wrench,
   Users,
   TrendingUp,
+  AlertTriangle,
+  Zap,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { format } from "date-fns";
 import WorkOrderTrackingTab from "@/components/production-floor/WorkOrderTrackingTab";
 import MachineMonitoringTab from "@/components/production-floor/MachineMonitoringTab";
 import QualityControlTab from "@/components/production-floor/QualityControlTab";
@@ -40,24 +45,111 @@ interface ProductionStats {
 }
 
 export default function ProductionFloor() {
-  const [activeTab, setActiveTab] = useState("work-orders");
+  const [activeTab, setActiveTab] = useState("floor-view");
+  const [selectedDepartment, setSelectedDepartment] = useState("all");
+  const [refreshInterval, setRefreshInterval] = useState(5000); // 5 seconds
 
+  // Main production stats
   const { data: stats } = useQuery<ProductionStats>({
     queryKey: ["/api/production-floor/stats"],
-    refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
+    refetchInterval: refreshInterval,
+    staleTime: 0
   });
+
+  // Machine status for OEE calculation and department view
+  const { data: allMachines } = useQuery({
+    queryKey: ['/api/production-floor/machines'],
+    refetchInterval: refreshInterval * 2, // Update less frequently
+  });
+
+  // Filter machines based on selected department
+  const machineStatus = allMachines?.filter((m: any) => {
+    if (selectedDepartment === 'all') return true;
+    const dept = m.department?.toLowerCase() || m.machineType?.toLowerCase() || '';
+    if (selectedDepartment === 'fabrication') {
+      return dept.includes('cut') || dept.includes('drill') || dept.includes('saw');
+    }
+    if (selectedDepartment === 'assembly') {
+      return dept.includes('weld') || dept.includes('assembly');
+    }
+    if (selectedDepartment === 'finishing') {
+      return dept.includes('paint') || dept.includes('finish') || dept.includes('qc');
+    }
+    return false;
+  }) || allMachines;
+
+  // Active work orders for department filtering
+  const { data: activeWorkOrders } = useQuery({
+    queryKey: ['/api/production/real-time/work-orders'],
+    refetchInterval: refreshInterval,
+    staleTime: 0
+  });
+
+  // Real-time production metrics
+  const { data: productionMetrics } = useQuery({
+    queryKey: ['/api/production/real-time/metrics'],
+    refetchInterval: refreshInterval,
+    staleTime: 0
+  });
+
+  // Quality metrics for OEE calculation
+  const { data: qualityMetrics } = useQuery({
+    queryKey: ['/api/production/real-time/quality'],
+    refetchInterval: refreshInterval * 3,
+  });
+
+  // Inventory alerts
+  const { data: inventoryAlerts } = useQuery({
+    queryKey: ['/api/production/real-time/inventory-alerts'],
+    refetchInterval: refreshInterval * 6,
+  });
+
+  // Calculate OEE (Overall Equipment Effectiveness) - Wave 2 Feature
+  const calculateOEE = () => {
+    // Return 0 if any data is missing - no fake values allowed
+    if (!machineStatus || machineStatus.length === 0) return 0;
+    if (!productionMetrics?.performanceRate || !qualityMetrics?.passRate) return 0;
+    
+    const totalMachines = machineStatus.length;
+    const runningMachines = machineStatus.filter((m: any) => m.current_state === 'running').length;
+    const availability = (runningMachines / totalMachines) * 100;
+    
+    // Use only real data - no fallbacks
+    const performance = productionMetrics.performanceRate || 0;
+    const quality = qualityMetrics.passRate || 0;
+    
+    return Math.round((availability * performance * quality) / 10000);
+  };
 
   return (
     <div className="container mx-auto p-4 space-y-4">
-      {/* Header */}
+      {/* Header with Wave 2 Controls */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Production Floor Tracking</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Production Floor Intelligence</h1>
           <p className="text-sm text-gray-600 mt-1">
             Real-time monitoring and control of steel fabrication operations
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-4">
+          {/* Refresh Interval Control - Wave 2 Feature */}
+          <select 
+            className="px-3 py-2 border rounded-md text-sm"
+            value={refreshInterval}
+            onChange={(e) => setRefreshInterval(Number(e.target.value))}
+          >
+            <option value="5000">5 sec refresh</option>
+            <option value="10000">10 sec refresh</option>
+            <option value="30000">30 sec refresh</option>
+            <option value="60000">1 min refresh</option>
+          </select>
+          
+          {/* Live Status Indicator - Wave 2 Feature */}
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm text-muted-foreground">Live</span>
+          </div>
+
           <Button variant="outline" size="sm" className="hidden sm:flex">
             <BarChart3 className="h-4 w-4 mr-2" />
             Production Report
@@ -70,8 +162,24 @@ export default function ProductionFloor() {
         </div>
       </div>
 
-      {/* Real-time Production Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
+      {/* Real-time Production Metrics - Enhanced with Wave 2 Features */}
+      <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-9 gap-3 sm:gap-4">
+        {/* OEE Score - Wave 2 Feature */}
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground">OEE Score</p>
+                <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">{calculateOEE()}%</p>
+                <Progress value={calculateOEE()} className="mt-1 h-1" />
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                <Gauge className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
@@ -224,26 +332,159 @@ export default function ProductionFloor() {
         </div>
       </Card>
 
-      {/* Main Content Tabs */}
+      {/* Main Content Tabs - Enhanced with Wave 2 Floor View */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="floor-view" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Floor View
+          </TabsTrigger>
           <TabsTrigger value="work-orders" className="flex items-center gap-2">
             <ClipboardList className="h-4 w-4" />
             Work Orders
           </TabsTrigger>
           <TabsTrigger value="machine-monitoring" className="flex items-center gap-2">
             <Wrench className="h-4 w-4" />
-            Machine Monitoring
+            Machines
           </TabsTrigger>
           <TabsTrigger value="quality-control" className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4" />
-            Quality Control
+            Quality
           </TabsTrigger>
           <TabsTrigger value="production-metrics" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Production Metrics
+            Analytics
           </TabsTrigger>
         </TabsList>
+
+        {/* Floor View Tab - Wave 2 Feature */}
+        <TabsContent value="floor-view" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Production Status Grid */}
+            <Card className="col-span-2">
+              <CardHeader>
+                <CardTitle>Production Floor Status</CardTitle>
+                <CardDescription>Real-time machine and workstation status</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-4 gap-4">
+                  {['cutting', 'welding', 'assembly', 'drilling', 'painting', 'qc', 'packing', 'finishing'].map((dept) => {
+                    // Use real machine data to determine department status
+                    const deptMachines = machineStatus?.filter((m: any) => 
+                      m.department?.toLowerCase() === dept || 
+                      m.machineType?.toLowerCase()?.includes(dept)
+                    ) || [];
+                    const activeMachines = deptMachines.filter((m: any) => m.current_state === 'running').length;
+                    const totalMachines = deptMachines.length;
+                    const isActive = activeMachines > 0;
+                    const displayName = dept === 'qc' ? 'QC Station' : 
+                                      dept === 'packing' ? 'Packing' :
+                                      dept.charAt(0).toUpperCase() + dept.slice(1);
+                    
+                    return (
+                      <div key={dept} className="border rounded-lg p-4 text-center">
+                        <div className={`w-3 h-3 rounded-full mx-auto mb-2 ${
+                          isActive ? 'bg-green-500 animate-pulse' : 
+                          totalMachines > 0 ? 'bg-yellow-500' : 'bg-gray-300'
+                        }`}></div>
+                        <p className="text-sm font-medium">{displayName}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {totalMachines > 0 
+                            ? isActive ? `Active (${activeMachines}/${totalMachines})` : `Idle (0/${totalMachines})`
+                            : 'No machines'}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Department Filter - Wave 2 Feature */}
+                <div className="mt-6 flex gap-2">
+                  <Button
+                    variant={selectedDepartment === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedDepartment('all')}
+                  >
+                    All Departments
+                  </Button>
+                  <Button
+                    variant={selectedDepartment === 'fabrication' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedDepartment('fabrication')}
+                  >
+                    Fabrication
+                  </Button>
+                  <Button
+                    variant={selectedDepartment === 'assembly' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedDepartment('assembly')}
+                  >
+                    Assembly
+                  </Button>
+                  <Button
+                    variant={selectedDepartment === 'finishing' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedDepartment('finishing')}
+                  >
+                    Finishing
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Live Alerts - Wave 2 Feature */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Live Alerts</CardTitle>
+                <CardDescription>Critical notifications</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {inventoryAlerts?.map((alert: any, idx: number) => (
+                  <Alert key={idx} variant={alert.level === 'critical' ? 'destructive' : 'default'}>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      <div className="font-medium">{alert.message}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {format(new Date(alert.timestamp || new Date()), 'HH:mm:ss')}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )) || (
+                  <p className="text-sm text-muted-foreground">No active alerts</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Production Timeline - Wave 2 Feature */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Today's Production Timeline</CardTitle>
+              <CardDescription>Hourly production output and events</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="relative">
+                <div className="absolute left-0 top-0 bottom-0 w-px bg-border"></div>
+                <div className="space-y-4 ml-4">
+                  {productionMetrics?.timeline?.map((event: any, idx: number) => (
+                    <div key={idx} className="flex items-start gap-4">
+                      <div className="absolute -left-2 w-4 h-4 rounded-full bg-primary border-2 border-background"></div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{event.time}</span>
+                          <Badge variant="secondary">{event.output} kg</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
+                      </div>
+                    </div>
+                  )) || (
+                    <p className="text-sm text-muted-foreground">No timeline data available</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="work-orders">
           <WorkOrderTrackingTab />
