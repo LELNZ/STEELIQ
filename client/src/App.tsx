@@ -38,6 +38,7 @@ import MobileOperations from "@/pages/mobile-operations";
 import ProductionFloor from "@/pages/ProductionFloor";
 import RealTimeProduction from "@/pages/RealTimeProduction";
 import QualityControl from "@/pages/QualityControl";
+import InventoryMovements from "@/pages/InventoryMovements";
 import FinancialIntelligence from "@/pages/FinancialIntelligence";
 import ResourcePlanning from "@/pages/ResourcePlanning";
 import RemnantManagement from "@/pages/remnant-management";
@@ -109,6 +110,7 @@ function Router() {
       <Route path="/production-floor" component={ProductionFloor} />
       <Route path="/real-time-production" component={RealTimeProduction} />
       <Route path="/quality-control" component={QualityControl} />
+      <Route path="/inventory-movements" component={InventoryMovements} />
       <Route path="/financial-intelligence" component={FinancialIntelligence} />
       <Route path="/resource-planning" component={ResourcePlanning} />
       <Route path="/remnant-management" component={RemnantManagement} />
