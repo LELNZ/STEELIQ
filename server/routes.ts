@@ -12155,6 +12155,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch labor cost analytics" });
     }
   });
+
+  // Job Costing Analytics
+  app.get("/api/analytics/job-costing", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { period, jobId } = req.query;
+      const analytics = await storage.getJobCostingAnalytics(
+        period as string | undefined,
+        jobId ? parseInt(jobId as string, 10) : undefined
+      );
+      
+      res.json(analytics);
+    } catch (error) {
+      console.error('Error fetching job costing analytics:', error);
+      res.status(500).json({ error: 'Failed to fetch job costing analytics' });
+    }
+  });
   
   // ============================================
   // PROCUREMENT ROUTES

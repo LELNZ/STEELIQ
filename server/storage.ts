@@ -7,6 +7,7 @@ import {
   teamMembers, archivedEmployees, employeeAuditLog, auditLog, systemAuditLog,
   purchaseRequisitions, requisitionItems, approvalRules, approvalHistory, rfqRequests, rfqResponses, goodsReceipts, goodsReceiptItems,
   purchaseOrders, purchaseOrderItems, poDocumentConfig, poTemplates,
+  jobEstimates, invoices,
   backupMetadata, backupData, numberingSequences, operationItems,
   workOrders, machines, machineStatusLogs, productionEvents, productionShifts, productionMetrics, machineJobAssignments,
   type User, type InsertUser, type Material, type InsertMaterial,
@@ -453,6 +454,9 @@ export interface IStorage {
     passRate: number;
     avgDefects: number;
   }>;
+  
+  // Job Costing Analytics
+  getJobCostingAnalytics(period?: string, jobId?: number): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -4244,6 +4248,210 @@ export class DatabaseStorage implements IStorage {
       byType,
       recentlyUploaded
     };
+  }
+
+  // Job Costing Analytics
+  async getJobCostingAnalytics(period?: string, jobId?: number): Promise<any> {
+    try {
+      const now = new Date();
+      let startDate = new Date();
+      
+      // Set date range based on period
+      switch (period) {
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'quarter':
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        case 'year':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+        case 'all':
+        default:
+          startDate = new Date('2020-01-01');
+          break;
+      }
+
+      // Build job query with date filter
+      const jobQuery = db.select().from(jobs);
+      const conditions = [];
+      if (jobId) {
+        conditions.push(eq(jobs.id, jobId));
+      }
+      if (period !== 'all') {
+        conditions.push(gte(jobs.createdAt, startDate));
+      }
+      if (conditions.length > 0) {
+        jobQuery.where(and(...conditions));
+      }
+      const jobsData = await jobQuery;
+
+      // Get purchase orders for actual costs
+      const purchaseOrdersData = await db.select()
+        .from(purchaseOrders)
+        .leftJoin(purchaseOrderItems, eq(purchaseOrders.id, purchaseOrderItems.purchaseOrderId));
+
+      // Calculate overview metrics
+      let totalEstimatedCost = 0;
+      let totalActualCost = 0;
+      let overBudgetJobs = 0;
+      let underBudgetJobs = 0;
+
+      const jobCostBreakdown = jobsData.map(job => {
+        // Use job's built-in estimated and actual values
+        const estimatedCost = parseFloat(job.estimatedValue || '0');
+        const actualCost = parseFloat(job.actualCost || job.materialCost || '0');
+        const variance = actualCost - estimatedCost;
+        const variancePercentage = estimatedCost > 0 ? (variance / estimatedCost) * 100 : 0;
+        
+        totalEstimatedCost += estimatedCost;
+        totalActualCost += actualCost;
+        
+        if (variance > 0) overBudgetJobs++;
+        else if (variance < 0) underBudgetJobs++;
+        
+        const profitMargin = parseFloat(job.profitMargin || '15');
+        
+        return {
+          jobId: job.id,
+          jobNumber: job.jobNumber,
+          clientName: job.clientName,
+          estimatedCost,
+          actualCost,
+          variance,
+          variancePercentage,
+          status: job.status,
+          profitMargin,
+          completionPercentage: job.status === 'completed' ? 100 : 
+                               job.status === 'in_progress' ? 50 : 
+                               job.status === 'pending' ? 25 : 0
+        };
+      });
+
+      // Calculate cost by category using job data and PO data
+      const materialCosts = jobsData.reduce((sum, job) => sum + parseFloat(job.materialCost || '0'), 0);
+      const laborCosts = jobsData.reduce((sum, job) => sum + parseFloat(job.laborCost || '0'), 0);
+      const overheadCosts = jobsData.reduce((sum, job) => sum + parseFloat(job.overheadCost || '0'), 0);
+      
+      // Get actual costs from purchase orders if available
+      let poCosts = 0;
+      if (purchaseOrdersData.length > 0) {
+        poCosts = purchaseOrdersData.reduce((sum, po) => 
+          sum + (po.purchase_order_items ? parseFloat(po.purchase_order_items.totalPrice || '0') : 0), 0);
+      }
+      
+      const costByCategory = {
+        materials: materialCosts || poCosts * 0.6, // Estimate 60% of PO costs are materials
+        labor: laborCosts || poCosts * 0.25, // Estimate 25% labor
+        subcontractors: poCosts * 0.1, // Estimate 10% subcontractor
+        overhead: overheadCosts || poCosts * 0.05, // Estimate 5% overhead
+        other: 0
+      };
+
+      // Calculate monthly trends
+      const monthlyTrend = [];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const currentMonth = now.getMonth();
+      
+      for (let i = 5; i >= 0; i--) {
+        const monthIndex = (currentMonth - i + 12) % 12;
+        const monthJobs = jobsData.filter(job => {
+          const jobDate = new Date(job.createdAt);
+          return jobDate.getMonth() === monthIndex;
+        });
+        
+        const estimated = monthJobs.reduce((sum, job) => sum + parseFloat(job.estimatedValue || '0'), 0);
+        const actual = monthJobs.reduce((sum, job) => sum + parseFloat(job.actualValue || '0'), 0);
+        const profit = estimated - actual;
+        
+        monthlyTrend.push({
+          month: months[monthIndex],
+          estimated,
+          actual,
+          profit: profit > 0 ? profit : 0
+        });
+      }
+
+      // Get top variances
+      const topVariances = jobCostBreakdown
+        .filter(job => job.variance !== 0)
+        .sort((a, b) => Math.abs(b.variance) - Math.abs(a.variance))
+        .slice(0, 5)
+        .map(job => ({
+          jobNumber: job.jobNumber,
+          description: `${job.clientName} - ${job.status}`,
+          variance: job.variance,
+          reason: job.variance > 0 ? 'Cost overrun' : 'Cost savings'
+        }));
+
+      // Calculate labor analytics using job data
+      const totalEstimatedHours = jobsData.reduce((sum, job) => sum + (job.estimatedHours || 0), 0);
+      const laborAnalytics = {
+        totalHours: totalEstimatedHours,
+        totalCost: costByCategory.labor,
+        avgRatePerHour: totalEstimatedHours > 0 ? costByCategory.labor / totalEstimatedHours : 50,
+        overtimeHours: Math.floor(totalEstimatedHours * 0.1),
+        efficiencyRate: 85 // Default efficiency rate
+      };
+
+      const totalVariance = totalActualCost - totalEstimatedCost;
+      const variancePercentage = totalEstimatedCost > 0 ? (totalVariance / totalEstimatedCost) * 100 : 0;
+      const profitMargin = totalEstimatedCost > 0 ? ((totalEstimatedCost - totalActualCost) / totalEstimatedCost) * 100 : 15;
+
+      return {
+        overview: {
+          totalJobs: jobsData.length,
+          totalEstimatedCost,
+          totalActualCost,
+          totalVariance,
+          variancePercentage,
+          profitMargin: Math.max(0, profitMargin),
+          overBudgetJobs,
+          underBudgetJobs
+        },
+        jobCostBreakdown,
+        costByCategory,
+        monthlyTrend,
+        topVariances,
+        laborAnalytics
+      };
+    } catch (error) {
+      console.error('Error getting job costing analytics:', error);
+      // Return default analytics structure
+      return {
+        overview: {
+          totalJobs: 0,
+          totalEstimatedCost: 0,
+          totalActualCost: 0,
+          totalVariance: 0,
+          variancePercentage: 0,
+          profitMargin: 0,
+          overBudgetJobs: 0,
+          underBudgetJobs: 0
+        },
+        jobCostBreakdown: [],
+        costByCategory: {
+          materials: 0,
+          labor: 0,
+          subcontractors: 0,
+          overhead: 0,
+          other: 0
+        },
+        monthlyTrend: [],
+        topVariances: [],
+        laborAnalytics: {
+          totalHours: 0,
+          totalCost: 0,
+          avgRatePerHour: 0,
+          overtimeHours: 0,
+          efficiencyRate: 0
+        }
+      };
+    }
   }
 }
 
