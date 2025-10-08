@@ -841,6 +841,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Inventory Movements routes
+  app.get("/api/inventory/movements", async (req, res) => {
+    try {
+      const movements = await storage.getInventoryMovements();
+      // Add material and job names for display
+      const enrichedMovements = await Promise.all(movements.map(async (movement) => {
+        let materialName = '';
+        let jobNumber = '';
+        let performedByName = '';
+        
+        if (movement.materialId) {
+          const material = await storage.getMaterial(movement.materialId);
+          materialName = material?.name || '';
+        }
+        
+        if (movement.sourceJobId) {
+          const job = await storage.getJob(movement.sourceJobId);
+          jobNumber = job?.jobNumber || '';
+        } else if (movement.destinationJobId) {
+          const job = await storage.getJob(movement.destinationJobId);
+          jobNumber = job?.jobNumber || '';
+        }
+        
+        if (movement.performedBy) {
+          const user = await storage.getUser(movement.performedBy);
+          performedByName = user?.name || user?.username || '';
+        }
+        
+        return {
+          ...movement,
+          materialName,
+          jobNumber,
+          performedByName
+        };
+      }));
+      
+      res.json(enrichedMovements);
+    } catch (error) {
+      console.error("Error fetching inventory movements:", error);
+      res.status(500).json({ error: "Failed to fetch inventory movements" });
+    }
+  });
+
+  app.get("/api/inventory/movement-stats", async (req, res) => {
+    try {
+      const stats = await storage.getMovementStatistics();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching movement statistics:", error);
+      res.status(500).json({ error: "Failed to fetch movement statistics" });
+    }
+  });
+
+  app.get("/api/inventory/low-stock-alerts", async (req, res) => {
+    try {
+      const lowStockItems = await storage.getLowStockItems(10);
+      const alerts = await Promise.all(lowStockItems.map(async (item) => {
+        const material = await storage.getMaterial(item.materialId);
+        return {
+          id: item.id,
+          materialId: item.materialId,
+          materialName: material?.name || 'Unknown',
+          currentStock: item.quantityInStock,
+          unit: material?.unit || 'units',
+          reorderLevel: material?.reorderPoint || 10
+        };
+      }));
+      res.json(alerts);
+    } catch (error) {
+      console.error("Error fetching low stock alerts:", error);
+      res.status(500).json({ error: "Failed to fetch low stock alerts" });
+    }
+  });
+
+  app.post("/api/inventory/movements", async (req, res) => {
+    try {
+      const movementData = {
+        ...req.body,
+        performedBy: req.session?.user?.id || 1, // Use current user
+        movementDate: new Date()
+      };
+      
+      const movement = await storage.createInventoryMovement(movementData);
+      res.status(201).json(movement);
+    } catch (error) {
+      console.error("Error creating inventory movement:", error);
+      res.status(500).json({ error: "Failed to create inventory movement" });
+    }
+  });
+
+  app.patch("/api/inventory/movements/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const movement = await storage.updateInventoryMovement(id, req.body);
+      if (!movement) {
+        return res.status(404).json({ error: "Movement not found" });
+      }
+      res.json(movement);
+    } catch (error) {
+      console.error("Error updating inventory movement:", error);
+      res.status(500).json({ error: "Failed to update inventory movement" });
+    }
+  });
+
   // Job materials routes
   app.get("/api/jobs/:jobId/materials", async (req, res) => {
     try {
