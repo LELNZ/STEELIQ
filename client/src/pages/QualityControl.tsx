@@ -42,7 +42,7 @@ interface QualityInspection {
   approvedAt?: Date;
 }
 
-export function QualityControl() {
+export default function QualityControl() {
   const [selectedInspection, setSelectedInspection] = useState<QualityInspection | null>(null);
   const [isNewInspectionOpen, setIsNewInspectionOpen] = useState(false);
   const { toast } = useToast();

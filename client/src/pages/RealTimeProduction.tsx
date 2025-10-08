@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Activity, AlertTriangle, CheckCircle, Clock, Package, TrendingUp, Users, Zap, BarChart3, Gauge } from "lucide-react";
 import { format } from "date-fns";
 
-export function RealTimeProduction() {
+export default function RealTimeProduction() {
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [refreshInterval, setRefreshInterval] = useState(5000); // 5 seconds
 

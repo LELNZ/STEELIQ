@@ -40,7 +40,7 @@ interface InventoryMovement {
   status: string;
 }
 
-export function InventoryMovements() {
+export default function InventoryMovements() {
   const [selectedMovement, setSelectedMovement] = useState<InventoryMovement | null>(null);
   const [isNewMovementOpen, setIsNewMovementOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
