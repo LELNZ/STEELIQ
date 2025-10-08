@@ -5098,6 +5098,184 @@ export const documents = pgTable("documents", {
   archivedAt: timestamp("archived_at")
 });
 
+// Machines table - Track all factory machines and equipment
+export const machines = pgTable("machines", {
+  id: serial("id").primaryKey(),
+  machineCode: text("machine_code").notNull().unique(),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // 'laser_cutter', 'plasma_cutter', 'press_brake', 'welding_station', 'drill', 'saw', 'grinder', 'paint_booth'
+  manufacturer: text("manufacturer"),
+  model: text("model"),
+  serialNumber: text("serial_number"),
+  
+  // Location
+  department: text("department").notNull(), // 'cutting', 'welding', 'assembly', 'finishing', 'drilling', 'painting', 'qc', 'packing'
+  workStation: text("work_station"),
+  floor: text("floor"),
+  
+  // Specifications
+  capacity: jsonb("capacity"), // Machine-specific capacity metrics
+  powerRating: decimal("power_rating", { precision: 10, scale: 2 }), // kW
+  yearManufactured: integer("year_manufactured"),
+  
+  // Status
+  status: text("status").notNull().default('operational'), // 'operational', 'maintenance', 'breakdown', 'idle', 'decommissioned'
+  currentState: text("current_state").default('stopped'), // 'running', 'idle', 'stopped', 'error', 'maintenance'
+  lastMaintenanceDate: timestamp("last_maintenance_date"),
+  nextMaintenanceDate: timestamp("next_maintenance_date"),
+  
+  // Performance Metrics
+  targetEfficiency: decimal("target_efficiency", { precision: 5, scale: 2 }).default('85'), // Target efficiency percentage
+  targetUptime: decimal("target_uptime", { precision: 5, scale: 2 }).default('90'), // Target uptime percentage
+  
+  // Tracking
+  purchaseDate: timestamp("purchase_date"),
+  purchaseCost: decimal("purchase_cost", { precision: 12, scale: 2 }),
+  warrantyExpiry: timestamp("warranty_expiry"),
+  
+  // Metadata
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Machine Status Logs - Track machine state changes over time
+export const machineStatusLogs = pgTable("machine_status_logs", {
+  id: serial("id").primaryKey(),
+  machineId: integer("machine_id").references(() => machines.id).notNull(),
+  
+  // Status Change
+  previousState: text("previous_state"),
+  newState: text("new_state").notNull(), // 'running', 'idle', 'stopped', 'error', 'maintenance'
+  reason: text("reason"), // Reason for state change
+  
+  // Duration Tracking
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time"),
+  durationMinutes: integer("duration_minutes"),
+  
+  // Production Metrics during this period
+  unitsProduced: integer("units_produced").default(0),
+  scrapCount: integer("scrap_count").default(0),
+  
+  // Reference
+  jobId: integer("job_id").references(() => jobs.id),
+  operatorId: integer("operator_id").references(() => users.id),
+  shiftId: integer("shift_id"),
+  
+  // Metadata
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+// Production Events - Track actual production output
+export const productionEvents = pgTable("production_events", {
+  id: serial("id").primaryKey(),
+  machineId: integer("machine_id").references(() => machines.id).notNull(),
+  jobId: integer("job_id").references(() => jobs.id),
+  
+  // Event Details
+  eventType: text("event_type").notNull(), // 'start', 'complete', 'pause', 'resume', 'scrap', 'rework'
+  eventTime: timestamp("event_time").notNull(),
+  
+  // Production Data
+  quantity: integer("quantity").default(0),
+  unitType: text("unit_type"), // 'pieces', 'meters', 'kg', etc.
+  materialUsed: decimal("material_used", { precision: 10, scale: 2 }),
+  
+  // Quality
+  passedQC: boolean("passed_qc"),
+  defectCount: integer("defect_count").default(0),
+  defectTypes: jsonb("defect_types"), // Array of defect categories
+  
+  // Performance
+  cycleTime: integer("cycle_time"), // seconds
+  setupTime: integer("setup_time"), // seconds
+  actualVsTarget: decimal("actual_vs_target", { precision: 5, scale: 2 }), // percentage
+  
+  // Reference
+  operatorId: integer("operator_id").references(() => users.id),
+  shiftId: integer("shift_id"),
+  workOrderNumber: text("work_order_number"),
+  
+  // Metadata
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+// Production Shifts - Track shift data
+export const productionShifts = pgTable("production_shifts", {
+  id: serial("id").primaryKey(),
+  shiftDate: date("shift_date").notNull(),
+  shiftType: text("shift_type").notNull(), // 'morning', 'afternoon', 'night'
+  
+  // Timing
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time"),
+  breakMinutes: integer("break_minutes").default(0),
+  
+  // Staffing
+  supervisorId: integer("supervisor_id").references(() => users.id),
+  operatorCount: integer("operator_count").default(0),
+  
+  // Production Summary
+  totalOutput: integer("total_output").default(0),
+  totalScrap: integer("total_scrap").default(0),
+  totalRework: integer("total_rework").default(0),
+  
+  // Performance Metrics
+  efficiency: decimal("efficiency", { precision: 5, scale: 2 }),
+  qualityRate: decimal("quality_rate", { precision: 5, scale: 2 }),
+  
+  // Status
+  status: text("status").default('active'), // 'planned', 'active', 'completed', 'cancelled'
+  
+  // Metadata
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Production Metrics - Calculated metrics snapshot
+export const productionMetrics = pgTable("production_metrics", {
+  id: serial("id").primaryKey(),
+  metricDate: date("metric_date").notNull(),
+  metricHour: integer("metric_hour"), // 0-23 for hourly metrics
+  
+  // OEE Components
+  availability: decimal("availability", { precision: 5, scale: 2 }),
+  performance: decimal("performance", { precision: 5, scale: 2 }),
+  quality: decimal("quality", { precision: 5, scale: 2 }),
+  oeeScore: decimal("oee_score", { precision: 5, scale: 2 }),
+  
+  // Production Metrics
+  totalOutput: integer("total_output").default(0),
+  totalScrap: integer("total_scrap").default(0),
+  totalRework: integer("total_rework").default(0),
+  firstPassYield: decimal("first_pass_yield", { precision: 5, scale: 2 }),
+  
+  // Machine Metrics
+  totalMachines: integer("total_machines").default(0),
+  activeMachines: integer("active_machines").default(0),
+  idleMachines: integer("idle_machines").default(0),
+  maintenanceMachines: integer("maintenance_machines").default(0),
+  
+  // Department Breakdown
+  departmentMetrics: jsonb("department_metrics"), // Metrics by department
+  
+  // Material Usage
+  materialConsumption: jsonb("material_consumption"), // Material usage by type
+  
+  // Shift Data
+  shiftId: integer("shift_id").references(() => productionShifts.id),
+  
+  // Metadata
+  calculatedAt: timestamp("calculated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
 // Create insert schemas
 export const insertQualityInspectionSchema = createInsertSchema(qualityInspections).omit({
   id: true,
@@ -5136,3 +5314,48 @@ export type InsertSafetyInspection = z.infer<typeof insertSafetyInspectionSchema
 
 export type Document = typeof documents.$inferSelect;
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+
+// Machine schemas
+export const insertMachineSchema = createInsertSchema(machines).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertMachineStatusLogSchema = createInsertSchema(machineStatusLogs).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertProductionEventSchema = createInsertSchema(productionEvents).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertProductionShiftSchema = createInsertSchema(productionShifts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertProductionMetricSchema = createInsertSchema(productionMetrics).omit({
+  id: true,
+  calculatedAt: true,
+  createdAt: true
+});
+
+// Machine type exports
+export type Machine = typeof machines.$inferSelect;
+export type InsertMachine = z.infer<typeof insertMachineSchema>;
+
+export type MachineStatusLog = typeof machineStatusLogs.$inferSelect;
+export type InsertMachineStatusLog = z.infer<typeof insertMachineStatusLogSchema>;
+
+export type ProductionEvent = typeof productionEvents.$inferSelect;
+export type InsertProductionEvent = z.infer<typeof insertProductionEventSchema>;
+
+export type ProductionShift = typeof productionShifts.$inferSelect;
+export type InsertProductionShift = z.infer<typeof insertProductionShiftSchema>;
+
+export type ProductionMetric = typeof productionMetrics.$inferSelect;
+export type InsertProductionMetric = z.infer<typeof insertProductionMetricSchema>;
