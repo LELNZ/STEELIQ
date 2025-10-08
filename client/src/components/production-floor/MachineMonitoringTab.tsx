@@ -114,9 +114,9 @@ export default function MachineMonitoringTab() {
     }
   };
 
-  const operatingMachines = machines.filter(m => m.status === "operating").length;
-  const criticalAlerts = machines.reduce((sum, m) => 
-    sum + m.alerts.filter(a => a.type === "critical").length, 0
+  const operatingMachines = (machines || []).filter(m => m.status === "operating").length;
+  const criticalAlerts = (machines || []).reduce((sum, m) => 
+    sum + (m.alerts || []).filter(a => a.type === "critical").length, 0
   );
 
   return (
@@ -127,7 +127,7 @@ export default function MachineMonitoringTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Machines Operating</p>
-              <p className="text-2xl font-bold">{operatingMachines}/{machines.length}</p>
+              <p className="text-2xl font-bold">{operatingMachines}/{(machines || []).length}</p>
             </div>
             <Activity className="h-8 w-8 text-green-600" />
           </div>
@@ -138,8 +138,8 @@ export default function MachineMonitoringTab() {
             <div>
               <p className="text-sm text-muted-foreground">Avg Efficiency</p>
               <p className="text-2xl font-bold">
-                {machines.length > 0 
-                  ? Math.round(machines.reduce((sum, m) => sum + m.efficiency, 0) / machines.length)
+                {(machines || []).length > 0 
+                  ? Math.round((machines || []).reduce((sum, m) => sum + m.efficiency, 0) / (machines || []).length)
                   : 0}%
               </p>
             </div>
@@ -162,7 +162,7 @@ export default function MachineMonitoringTab() {
             <div>
               <p className="text-sm text-muted-foreground">Power Usage</p>
               <p className="text-2xl font-bold">
-                {machines.reduce((sum, m) => sum + m.powerConsumption, 0)} kW
+                {(machines || []).reduce((sum, m) => sum + m.powerConsumption, 0)} kW
               </p>
             </div>
             <Zap className="h-8 w-8 text-yellow-600" />
@@ -188,7 +188,7 @@ export default function MachineMonitoringTab() {
             Loading machines...
           </div>
         ) : (
-          machines.map((machine) => (
+          (machines || []).map((machine) => (
             <Card 
               key={machine.id} 
               className={cn(
@@ -286,9 +286,9 @@ export default function MachineMonitoringTab() {
                 </div>
 
                 {/* Alerts */}
-                {machine.alerts.length > 0 && (
+                {(machine.alerts || []).length > 0 && (
                   <div className="border-t pt-2">
-                    {machine.alerts.slice(0, 2).map((alert, index) => (
+                    {(machine.alerts || []).slice(0, 2).map((alert, index) => (
                       <div key={index} className="flex items-start gap-2 text-xs mb-1">
                         <AlertTriangle className={cn(
                           "h-3 w-3 mt-0.5",
