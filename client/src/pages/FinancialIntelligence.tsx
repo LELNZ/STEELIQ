@@ -6,6 +6,7 @@ import CashFlowManagementTab from "@/components/financial-intelligence/CashFlowM
 import CostAnalysisTab from "@/components/financial-intelligence/CostAnalysisTab";
 import BudgetTrackingTab from "@/components/financial-intelligence/BudgetTrackingTab";
 import { JobCostingAnalytics } from "@/components/analytics/JobCostingAnalytics";
+import { ExecutiveReportingDashboard } from "@/components/executive/ExecutiveReportingDashboard";
 import { 
   TrendingUp, 
   DollarSign, 
@@ -15,7 +16,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Calendar,
-  Calculator
+  Calculator,
+  BarChart3
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
@@ -185,7 +187,7 @@ export default function FinancialIntelligence() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="analytics" className="flex items-center space-x-2">
             <TrendingUp className="h-4 w-4" />
             <span>Financial Analytics</span>
@@ -205,6 +207,10 @@ export default function FinancialIntelligence() {
           <TabsTrigger value="jobcosting" className="flex items-center space-x-2">
             <Calculator className="h-4 w-4" />
             <span>Job Costing</span>
+          </TabsTrigger>
+          <TabsTrigger value="executive" className="flex items-center space-x-2">
+            <BarChart3 className="h-4 w-4" />
+            <span>Executive</span>
           </TabsTrigger>
         </TabsList>
 
@@ -226,6 +232,10 @@ export default function FinancialIntelligence() {
 
         <TabsContent value="jobcosting" className="space-y-4">
           <JobCostingAnalytics />
+        </TabsContent>
+
+        <TabsContent value="executive" className="space-y-4">
+          <ExecutiveReportingDashboard />
         </TabsContent>
       </Tabs>
     </div>
