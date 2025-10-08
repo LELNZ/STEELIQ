@@ -138,7 +138,7 @@ export default function ProductionFloor() {
               <div className="flex-1">
                 <p className="text-xs font-medium text-muted-foreground">Efficiency</p>
                 <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">{stats?.efficiency || 0}%</p>
-                <p className="text-xs text-green-600 mt-0.5">↑ 5% today</p>
+                <p className="text-xs text-muted-foreground mt-0.5">No data</p>
               </div>
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
                 <Gauge className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
@@ -153,7 +153,7 @@ export default function ProductionFloor() {
               <div className="flex-1">
                 <p className="text-xs font-medium text-muted-foreground">Defect Rate</p>
                 <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">{stats?.defectRate || 0}%</p>
-                <p className="text-xs text-red-600 mt-0.5">↓ 2% week</p>
+                <p className="text-xs text-muted-foreground mt-0.5">No data</p>
               </div>
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
                 <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
@@ -270,15 +270,8 @@ export default function ProductionFloor() {
               <AlertCircle className="h-5 w-5 text-orange-600" />
               Production Alerts
             </h3>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <Badge variant="outline" className="bg-orange-100 text-orange-800">Urgent</Badge>
-                <span>Plasma cutter #2 requires maintenance in 48 hours</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Warning</Badge>
-                <span>Material shortage alert: 100x100x6 SHS running low (12 lengths remaining)</span>
-              </div>
+            <div className="text-sm text-muted-foreground">
+              No active production alerts
             </div>
           </div>
           <Button variant="outline" size="sm">
