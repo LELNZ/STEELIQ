@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InventoryAlerts from "@/components/inventory/inventory-alerts";
+import MovementsTab from "@/components/inventory/MovementsTab";
 import { 
   Plus, 
   Search, 
@@ -15,7 +16,8 @@ import {
   Camera,
   MapPin,
   Calendar,
-  Truck
+  Truck,
+  ArrowLeftRight
 } from "lucide-react";
 import { Inventory } from "@shared/schema";
 
@@ -82,6 +84,10 @@ export default function InventoryPage() {
           </TabsTrigger>
           <TabsTrigger value="remnants">Remnants</TabsTrigger>
           <TabsTrigger value="received">Recently Received</TabsTrigger>
+          <TabsTrigger value="movements">
+            <ArrowLeftRight className="w-4 h-4 mr-1" />
+            Movements
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-6">
@@ -192,6 +198,10 @@ export default function InventoryPage() {
               </p>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="movements">
+          <MovementsTab />
         </TabsContent>
       </Tabs>
     </div>
