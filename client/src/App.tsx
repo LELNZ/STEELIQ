@@ -13,11 +13,9 @@ import Dashboard from "@/pages/dashboard";
 import Jobs from "@/pages/jobs";
 import Materials from "@/pages/materials";
 import Inventory from "@/pages/inventory";
-import CuttingOptimizationFixed from "@/pages/cutting-optimization-fixed";
 import EstimationPage from "@/pages/estimation-clean";
 
 import ClientPortal from "@/pages/client-portal";
-import MobileInspection from "@/pages/mobile-inspection";
 import Contacts from "@/pages/contacts";
 
 import UserPreferences from "@/pages/user-preferences";
@@ -34,7 +32,6 @@ import EmailCostImport from "@/pages/EmailCostImport";
 import DrawingIntelligence from "@/pages/DrawingIntelligence";
 import SupplierIntegrationHub from "@/pages/SupplierIntegrationHub";
 import SupplierPortal from "@/pages/SupplierPortal";
-import MobileOperations from "@/pages/mobile-operations";
 import ProductionFloor from "@/pages/ProductionFloor";
 import FinancialIntelligence from "@/pages/FinancialIntelligence";
 import ResourcePlanning from "@/pages/ResourcePlanning";
@@ -83,7 +80,6 @@ function Router() {
       <Route path="/estimation/:id" component={EstimationPage} />
 
       <Route path="/client-portal" component={ClientPortal} />
-      <Route path="/mobile-inspection" component={MobileInspection} />
       <Route path="/materials" component={Materials} />
       <Route path="/inventory" component={Inventory} />
       <Route path="/contacts" component={Contacts} />
@@ -103,13 +99,11 @@ function Router() {
       <Route path="/email-cost-import" component={EmailCostImport} />
       <Route path="/drawing-intelligence" component={DrawingIntelligence} />
       <Route path="/supplier-integration" component={SupplierIntegrationHub} />
-      <Route path="/mobile-operations" component={MobileOperations} />
       <Route path="/production-floor" component={ProductionFloor} />
       <Route path="/financial-intelligence" component={FinancialIntelligence} />
       <Route path="/resource-planning" component={ResourcePlanning} />
       <Route path="/remnant-management" component={RemnantManagement} />
       <Route path="/pdf-markup" component={PDFMarkup} />
-      <Route path="/optimization" component={CuttingOptimizationFixed} />
       <Route component={NotFound} />
     </Switch>
   );
