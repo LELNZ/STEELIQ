@@ -28,6 +28,7 @@ import WorkOrderTrackingTab from "@/components/production-floor/WorkOrderTrackin
 import MachineMonitoringTab from "@/components/production-floor/MachineMonitoringTab";
 import QualityControlTab from "@/components/production-floor/QualityControlTab";
 import ProductionMetricsTab from "@/components/production-floor/ProductionMetricsTab";
+import SafetyInspectionTab from "@/components/production-floor/SafetyInspectionTab";
 
 interface ProductionStats {
   activeWorkOrders: number;
@@ -334,24 +335,28 @@ export default function ProductionFloor() {
 
       {/* Main Content Tabs - Enhanced with Wave 2 Floor View */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="floor-view" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="floor-view" className="flex items-center gap-1 text-xs">
             <Eye className="h-4 w-4" />
             Floor View
           </TabsTrigger>
-          <TabsTrigger value="work-orders" className="flex items-center gap-2">
+          <TabsTrigger value="work-orders" className="flex items-center gap-1 text-xs">
             <ClipboardList className="h-4 w-4" />
             Work Orders
           </TabsTrigger>
-          <TabsTrigger value="machine-monitoring" className="flex items-center gap-2">
+          <TabsTrigger value="machine-monitoring" className="flex items-center gap-1 text-xs">
             <Wrench className="h-4 w-4" />
             Machines
           </TabsTrigger>
-          <TabsTrigger value="quality-control" className="flex items-center gap-2">
+          <TabsTrigger value="quality-control" className="flex items-center gap-1 text-xs">
             <CheckCircle2 className="h-4 w-4" />
             Quality
           </TabsTrigger>
-          <TabsTrigger value="production-metrics" className="flex items-center gap-2">
+          <TabsTrigger value="safety" className="flex items-center gap-1 text-xs">
+            <AlertTriangle className="h-4 w-4" />
+            Safety
+          </TabsTrigger>
+          <TabsTrigger value="production-metrics" className="flex items-center gap-1 text-xs">
             <BarChart3 className="h-4 w-4" />
             Analytics
           </TabsTrigger>
@@ -500,6 +505,10 @@ export default function ProductionFloor() {
 
         <TabsContent value="production-metrics">
           <ProductionMetricsTab />
+        </TabsContent>
+
+        <TabsContent value="safety">
+          <SafetyInspectionTab />
         </TabsContent>
       </Tabs>
 

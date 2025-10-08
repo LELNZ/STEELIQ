@@ -36,11 +36,12 @@ import {
   type ProductionShift, type InsertProductionShift, type ProductionMetric, type InsertProductionMetric,
   type MachineJobAssignment, type InsertMachineJobAssignment,
   qualityInspections, type QualityInspection, type InsertQualityInspection,
+  safetyInspections, type SafetyInspection, type InsertSafetyInspection,
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView,
   documentHistory, documentAttachments, documentAccessLogs
 } from "@shared/schema";
-import { desc, eq, lt, asc, like, and, or, sql, inArray, not, ne } from "drizzle-orm";
+import { desc, eq, lt, gte, lte, asc, like, and, or, sql, inArray, not, ne } from "drizzle-orm";
 import { db } from "./db";
 
 export interface IStorage {
@@ -97,6 +98,27 @@ export interface IStorage {
     adjustments: number;
     turnoverRate: number;
     accuracy: number;
+  }>;
+
+  // Safety Inspections
+  getSafetyInspections(): Promise<SafetyInspection[]>;
+  getSafetyInspection(id: number): Promise<SafetyInspection | undefined>;
+  getSafetyInspectionsByLocation(location: string): Promise<SafetyInspection[]>;
+  getSafetyInspectionsByDateRange(startDate: Date, endDate: Date): Promise<SafetyInspection[]>;
+  getSafetyInspectionsByType(type: string): Promise<SafetyInspection[]>;
+  getPendingSafetyInspections(): Promise<SafetyInspection[]>;
+  getOverdueSafetyInspections(): Promise<SafetyInspection[]>;
+  getSafetyInspectionsByInspector(inspectorId: number): Promise<SafetyInspection[]>;
+  createSafetyInspection(inspection: InsertSafetyInspection): Promise<SafetyInspection>;
+  updateSafetyInspection(id: number, inspection: Partial<InsertSafetyInspection>): Promise<SafetyInspection>;
+  generateSafetyInspectionNumber(): Promise<string>;
+  getSafetyMetrics(startDate: Date, endDate: Date): Promise<{
+    total: number;
+    passed: number;
+    failed: number;
+    overdue: number;
+    highRisk: number;
+    incidents: number;
   }>;
 
   // Jobs
@@ -3884,6 +3906,149 @@ export class DatabaseStorage implements IStorage {
       conditional,
       passRate: Math.round(passRate * 100) / 100,
       avgDefects: Math.round(avgDefects * 100) / 100
+    };
+  }
+
+  // Safety Inspections Implementation
+  async getSafetyInspections(): Promise<SafetyInspection[]> {
+    return await db.select().from(safetyInspections)
+      .orderBy(desc(safetyInspections.inspectionDate));
+  }
+
+  async getSafetyInspection(id: number): Promise<SafetyInspection | undefined> {
+    const [inspection] = await db.select().from(safetyInspections)
+      .where(eq(safetyInspections.id, id));
+    return inspection || undefined;
+  }
+
+  async getSafetyInspectionsByLocation(location: string): Promise<SafetyInspection[]> {
+    return await db.select().from(safetyInspections)
+      .where(eq(safetyInspections.location, location))
+      .orderBy(desc(safetyInspections.inspectionDate));
+  }
+
+  async getSafetyInspectionsByDateRange(startDate: Date, endDate: Date): Promise<SafetyInspection[]> {
+    return await db.select().from(safetyInspections)
+      .where(
+        and(
+          gte(safetyInspections.inspectionDate, startDate),
+          lte(safetyInspections.inspectionDate, endDate)
+        )
+      )
+      .orderBy(desc(safetyInspections.inspectionDate));
+  }
+
+  async getSafetyInspectionsByType(type: string): Promise<SafetyInspection[]> {
+    return await db.select().from(safetyInspections)
+      .where(eq(safetyInspections.inspectionType, type))
+      .orderBy(desc(safetyInspections.inspectionDate));
+  }
+
+  async getPendingSafetyInspections(): Promise<SafetyInspection[]> {
+    return await db.select().from(safetyInspections)
+      .where(eq(safetyInspections.followUpRequired, true))
+      .where(eq(safetyInspections.followUpCompleted, false))
+      .orderBy(asc(safetyInspections.followUpDate));
+  }
+
+  async getOverdueSafetyInspections(): Promise<SafetyInspection[]> {
+    const today = new Date();
+    return await db.select().from(safetyInspections)
+      .where(
+        and(
+          lt(safetyInspections.nextInspectionDue, today),
+          or(
+            eq(safetyInspections.overallResult, 'fail'),
+            eq(safetyInspections.followUpRequired, true)
+          )
+        )
+      )
+      .orderBy(asc(safetyInspections.nextInspectionDue));
+  }
+
+  async getSafetyInspectionsByInspector(inspectorId: number): Promise<SafetyInspection[]> {
+    return await db.select().from(safetyInspections)
+      .where(eq(safetyInspections.inspectorId, inspectorId))
+      .orderBy(desc(safetyInspections.inspectionDate));
+  }
+
+  async createSafetyInspection(inspection: InsertSafetyInspection): Promise<SafetyInspection> {
+    const inspectionNumber = await this.generateSafetyInspectionNumber();
+    const [newInspection] = await db.insert(safetyInspections)
+      .values({
+        ...inspection,
+        inspectionNumber
+      })
+      .returning();
+    return newInspection;
+  }
+
+  async updateSafetyInspection(id: number, inspection: Partial<InsertSafetyInspection>): Promise<SafetyInspection> {
+    const [updated] = await db.update(safetyInspections)
+      .set({
+        ...inspection,
+        updatedAt: new Date()
+      })
+      .where(eq(safetyInspections.id, id))
+      .returning();
+    return updated;
+  }
+
+  async generateSafetyInspectionNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+    
+    // Get the last safety inspection number for this month
+    const lastInspection = await db.select()
+      .from(safetyInspections)
+      .where(like(safetyInspections.inspectionNumber, `SI${year}${month}%`))
+      .orderBy(desc(safetyInspections.inspectionNumber))
+      .limit(1);
+    
+    let nextNumber = 1;
+    if (lastInspection.length > 0) {
+      const lastNum = lastInspection[0].inspectionNumber;
+      const match = lastNum.match(/SI\d{6}(\d{4})/);
+      if (match) {
+        nextNumber = parseInt(match[1]) + 1;
+      }
+    }
+    
+    return `SI${year}${month}${String(nextNumber).padStart(4, '0')}`;
+  }
+
+  async getSafetyMetrics(startDate: Date, endDate: Date): Promise<{
+    total: number;
+    passed: number;
+    failed: number;
+    overdue: number;
+    highRisk: number;
+    incidents: number;
+  }> {
+    const inspections = await this.getSafetyInspectionsByDateRange(startDate, endDate);
+    const today = new Date();
+    
+    const total = inspections.length;
+    const passed = inspections.filter(i => i.overallResult === 'pass').length;
+    const failed = inspections.filter(i => i.overallResult === 'fail').length;
+    const overdue = inspections.filter(i => 
+      i.nextInspectionDue && new Date(i.nextInspectionDue) < today
+    ).length;
+    const highRisk = inspections.filter(i => i.riskLevel === 'high' || i.riskLevel === 'critical').length;
+    
+    // Count incidents from inspections
+    const incidents = inspections.filter(i => 
+      i.inspectionType === 'incident' || 
+      (i.hazardsIdentified && (i.hazardsIdentified as Array<any>).length > 0)
+    ).length;
+    
+    return {
+      total,
+      passed,
+      failed,
+      overdue,
+      highRisk,
+      incidents
     };
   }
 }

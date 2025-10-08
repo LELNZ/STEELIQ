@@ -9361,6 +9361,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Safety Inspection Routes
+  app.get('/api/safety/inspections', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const inspections = await storage.getSafetyInspections();
+      res.json(inspections);
+    } catch (error) {
+      console.error('Error fetching safety inspections:', error);
+      res.status(500).json({ message: 'Failed to fetch safety inspections' });
+    }
+  });
+
+  app.get('/api/safety/inspections/:id', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const inspection = await storage.getSafetyInspection(parseInt(req.params.id));
+      if (!inspection) {
+        return res.status(404).json({ error: "Safety inspection not found" });
+      }
+      
+      res.json(inspection);
+    } catch (error) {
+      console.error('Error fetching safety inspection:', error);
+      res.status(500).json({ message: 'Failed to fetch safety inspection' });
+    }
+  });
+
+  app.get('/api/safety/stats', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const today = new Date();
+
+      const metrics = await storage.getSafetyMetrics(thirtyDaysAgo, today);
+      const pendingInspections = await storage.getPendingSafetyInspections();
+      const overdueInspections = await storage.getOverdueSafetyInspections();
+      
+      const stats = {
+        complianceRate: metrics.total > 0 ? Math.round((metrics.passed / metrics.total) * 100) : 100,
+        totalInspections: metrics.total,
+        incidents: metrics.incidents,
+        overdueInspections: overdueInspections.length,
+        pendingActions: pendingInspections.length,
+        highRiskItems: metrics.highRisk
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching safety stats:', error);
+      res.status(500).json({ message: 'Failed to fetch safety stats' });
+    }
+  });
+
+  app.post('/api/safety/inspections', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Map status to overallResult for the database and convert date strings
+      const { status, inspectionDate, followUpDate, signoffDate, ...otherFields } = req.body;
+      const inspection = await storage.createSafetyInspection({
+        ...otherFields,
+        overallResult: status || 'pass', // Map status to overallResult, default to 'pass'
+        inspectorId: user.id,
+        inspectionDate: new Date(inspectionDate || Date.now()),
+        followUpDate: followUpDate ? new Date(followUpDate) : null,
+        signoffDate: signoffDate ? new Date(signoffDate) : null,
+        createdBy: user.id
+      });
+      
+      res.json(inspection);
+    } catch (error) {
+      console.error('Error creating safety inspection:', error);
+      res.status(500).json({ message: 'Failed to create safety inspection' });
+    }
+  });
+
+  app.put('/api/safety/inspections/:id', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const inspection = await storage.updateSafetyInspection(
+        parseInt(req.params.id),
+        req.body
+      );
+      
+      res.json(inspection);
+    } catch (error) {
+      console.error('Error updating safety inspection:', error);
+      res.status(500).json({ message: 'Failed to update safety inspection' });
+    }
+  });
+
   // Inventory Movement Routes for Wave 2
   app.get('/api/inventory/movements', async (req, res) => {
     try {
