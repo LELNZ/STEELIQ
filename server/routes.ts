@@ -9068,6 +9068,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Quality Control Routes for Wave 2
+  app.get('/api/quality/inspections', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const inspections = await db
+        .select({
+          id: qualityInspections.id,
+          inspectionNumber: qualityInspections.inspectionNumber,
+          inspectionType: qualityInspections.inspectionType,
+          jobId: qualityInspections.jobId,
+          materialId: qualityInspections.materialId,
+          partNumber: qualityInspections.partNumber,
+          quantity: qualityInspections.quantity,
+          batchNumber: qualityInspections.batchNumber,
+          inspectorId: qualityInspections.inspectorId,
+          inspectionDate: qualityInspections.inspectionDate,
+          status: qualityInspections.status,
+          specification: qualityInspections.specification,
+          toleranceMin: qualityInspections.toleranceMin,
+          toleranceMax: qualityInspections.toleranceMax,
+          actualMeasurement: qualityInspections.actualMeasurement,
+          measurementUnit: qualityInspections.measurementUnit,
+          defectsFound: qualityInspections.defectsFound,
+          correctiveAction: qualityInspections.correctiveAction,
+          certificateNumber: qualityInspections.certificateNumber,
+          notes: qualityInspections.notes,
+          photos: qualityInspections.photos,
+          attachments: qualityInspections.attachments,
+          approvedBy: qualityInspections.approvedBy,
+          approvedAt: qualityInspections.approvedAt
+        })
+        .from(qualityInspections)
+        .orderBy(desc(qualityInspections.inspectionDate))
+        .limit(50);
+      
+      res.json(inspections);
+    } catch (error) {
+      console.error('Error fetching quality inspections:', error);
+      res.status(500).json({ message: 'Failed to fetch inspections' });
+    }
+  });
+
+  app.get('/api/quality/stats', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const [statsResult] = await db
+        .select({
+          total: sql`COUNT(*)`,
+          passed: sql`COUNT(*) FILTER (WHERE status = 'passed')`,
+          failed: sql`COUNT(*) FILTER (WHERE status = 'failed')`,
+          pending: sql`COUNT(*) FILTER (WHERE status = 'pending')`
+        })
+        .from(qualityInspections)
+        .where(gte(qualityInspections.inspectionDate, thirtyDaysAgo));
+
+      const total = Number(statsResult?.total || 0);
+      const passed = Number(statsResult?.passed || 0);
+      const failed = Number(statsResult?.failed || 0);
+      const pending = Number(statsResult?.pending || 0);
+
+      const stats = {
+        passRate: total > 0 ? Math.round((passed / total) * 100) : 0,
+        totalInspections: total,
+        defectRate: total > 0 ? Math.round((failed / total) * 100) : 0,
+        pendingInspections: pending,
+        nonConformances: failed
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching quality stats:', error);
+      res.status(500).json({ message: 'Failed to fetch stats' });
+    }
+  });
+
+  app.post('/api/quality/inspections', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const inspectionNumber = `QI-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+      
+      const [newInspection] = await db.insert(qualityInspections).values({
+        ...req.body,
+        inspectionNumber,
+        inspectorId: user.id,
+        createdBy: user.id,
+        status: 'pending'
+      }).returning();
+      
+      res.json(newInspection);
+    } catch (error) {
+      console.error('Error creating inspection:', error);
+      res.status(500).json({ message: 'Failed to create inspection' });
+    }
+  });
+
+  app.patch('/api/quality/inspections/:id/status', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { status } = req.body;
+      const updateData: any = { 
+        status,
+        updatedAt: new Date()
+      };
+      
+      if (status === 'passed' || status === 'failed') {
+        updateData.approvedBy = user.id;
+        updateData.approvedAt = new Date();
+      }
+
+      const [updated] = await db
+        .update(qualityInspections)
+        .set(updateData)
+        .where(eq(qualityInspections.id, parseInt(req.params.id)))
+        .returning();
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating inspection status:', error);
+      res.status(500).json({ message: 'Failed to update status' });
+    }
+  });
+
   // Financial Intelligence Routes
   app.get('/api/financial-intelligence/stats', async (req, res) => {
     try {
