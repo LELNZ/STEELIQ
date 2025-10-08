@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -39,10 +40,40 @@ interface InventoryMovement {
   status: string;
 }
 
+interface MovementFormData {
+  movementType: string;
+  materialId: string;
+  quantity: number;
+  unit: string;
+  sourceLocation?: string;
+  destinationLocation?: string;
+  sourceJobId?: string;
+  destinationJobId?: string;
+  reason?: string;
+  batchNumber?: string;
+  notes?: string;
+}
+
 export default function MovementsTab() {
   const [isNewMovementOpen, setIsNewMovementOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
+  
+  const form = useForm<MovementFormData>({
+    defaultValues: {
+      movementType: "",
+      materialId: "",
+      quantity: 0,
+      unit: "kg",
+      sourceLocation: "",
+      destinationLocation: "",
+      sourceJobId: "",
+      destinationJobId: "",
+      reason: "",
+      batchNumber: "",
+      notes: ""
+    }
+  });
 
   // Fetch movements
   const { data: movements = [], isLoading } = useQuery({
@@ -82,12 +113,30 @@ export default function MovementsTab() {
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       queryClient.invalidateQueries({ queryKey: ['/api/inventory/movement-stats'] });
       setIsNewMovementOpen(false);
+      form.reset();
       toast({
         title: "Success",
         description: "Inventory movement recorded successfully"
       });
     }
   });
+
+  const onSubmit = (data: MovementFormData) => {
+    createMovementMutation.mutate({
+      movementType: data.movementType,
+      materialId: parseInt(data.materialId),
+      quantity: data.quantity,
+      unit: data.unit,
+      sourceLocation: data.sourceLocation || undefined,
+      destinationLocation: data.destinationLocation || undefined,
+      sourceJobId: data.sourceJobId ? parseInt(data.sourceJobId) : undefined,
+      destinationJobId: data.destinationJobId ? parseInt(data.destinationJobId) : undefined,
+      reason: data.reason || undefined,
+      batchNumber: data.batchNumber || undefined,
+      notes: data.notes || undefined,
+      status: 'completed'
+    });
+  };
 
   const getMovementIcon = (type: string) => {
     switch (type) {
@@ -144,159 +193,231 @@ export default function MovementsTab() {
               <DialogDescription>Log material receipt, issue, transfer, or adjustment</DialogDescription>
             </DialogHeader>
             
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              
-              createMovementMutation.mutate({
-                movementType: formData.get('movementType') as string,
-                materialId: parseInt(formData.get('materialId') as string),
-                quantity: parseFloat(formData.get('quantity') as string),
-                unit: formData.get('unit') as string,
-                sourceLocation: formData.get('sourceLocation') as string || undefined,
-                destinationLocation: formData.get('destinationLocation') as string || undefined,
-                sourceJobId: formData.get('sourceJobId') ? parseInt(formData.get('sourceJobId') as string) : undefined,
-                destinationJobId: formData.get('destinationJobId') ? parseInt(formData.get('destinationJobId') as string) : undefined,
-                reason: formData.get('reason') as string || undefined,
-                batchNumber: formData.get('batchNumber') as string || undefined,
-                notes: formData.get('notes') as string || undefined,
-                status: 'completed'
-              });
-            }} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="movementType">Movement Type</Label>
-                  <Select name="movementType" required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="receipt">Receipt (Inbound)</SelectItem>
-                      <SelectItem value="issue">Issue (Outbound)</SelectItem>
-                      <SelectItem value="transfer">Transfer</SelectItem>
-                      <SelectItem value="adjustment">Adjustment</SelectItem>
-                      <SelectItem value="return">Return</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="movementType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Movement Type</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="receipt">Receipt (Inbound)</SelectItem>
+                              <SelectItem value="issue">Issue (Outbound)</SelectItem>
+                              <SelectItem value="transfer">Transfer</SelectItem>
+                              <SelectItem value="adjustment">Adjustment</SelectItem>
+                              <SelectItem value="return">Return</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="materialId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Material</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select material" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {materials.map((material: any) => (
+                                <SelectItem key={material.id} value={material.id.toString()}>
+                                  {material.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="quantity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Quantity</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="number" step="0.01" onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="unit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unit</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select unit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="kg">Kilograms</SelectItem>
+                              <SelectItem value="m">Meters</SelectItem>
+                              <SelectItem value="pcs">Pieces</SelectItem>
+                              <SelectItem value="sqm">Square Meters</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="sourceLocation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>From Location</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., Warehouse A" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="destinationLocation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>To Location</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., Production Floor" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="sourceJobId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>From Job (optional)</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select job" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">None</SelectItem>
+                              {jobs.map((job: any) => (
+                                <SelectItem key={job.id} value={job.id.toString()}>
+                                  {job.jobNumber} - {job.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="destinationJobId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>To Job (optional)</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select job" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">None</SelectItem>
+                              {jobs.map((job: any) => (
+                                <SelectItem key={job.id} value={job.id.toString()}>
+                                  {job.jobNumber} - {job.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="batchNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Batch Number</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., BATCH-2025-001" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="reason"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Reason</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select reason" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="production">Production Use</SelectItem>
+                              <SelectItem value="purchase_receipt">Purchase Receipt</SelectItem>
+                              <SelectItem value="customer_return">Customer Return</SelectItem>
+                              <SelectItem value="stock_count">Stock Count Adjustment</SelectItem>
+                              <SelectItem value="damage">Damaged Goods</SelectItem>
+                              <SelectItem value="scrap">Scrap/Waste</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel>Notes</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Additional information" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 
-                <div>
-                  <Label htmlFor="materialId">Material</Label>
-                  <Select name="materialId" required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select material" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {materials.map((material: any) => (
-                        <SelectItem key={material.id} value={material.id.toString()}>
-                          {material.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex justify-end gap-3">
+                  <Button type="button" variant="outline" onClick={() => setIsNewMovementOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={createMovementMutation.isPending}>
+                    Record Movement
+                  </Button>
                 </div>
-                
-                <div>
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input name="quantity" type="number" step="0.01" required />
-                </div>
-                
-                <div>
-                  <Label htmlFor="unit">Unit</Label>
-                  <Select name="unit" required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select unit" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="kg">Kilograms</SelectItem>
-                      <SelectItem value="m">Meters</SelectItem>
-                      <SelectItem value="pcs">Pieces</SelectItem>
-                      <SelectItem value="sqm">Square Meters</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="sourceLocation">From Location</Label>
-                  <Input name="sourceLocation" placeholder="e.g., Warehouse A" />
-                </div>
-                
-                <div>
-                  <Label htmlFor="destinationLocation">To Location</Label>
-                  <Input name="destinationLocation" placeholder="e.g., Production Floor" />
-                </div>
-                
-                <div>
-                  <Label htmlFor="sourceJobId">From Job (optional)</Label>
-                  <Select name="sourceJobId">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select job" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {jobs.map((job: any) => (
-                        <SelectItem key={job.id} value={job.id.toString()}>
-                          {job.jobNumber} - {job.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="destinationJobId">To Job (optional)</Label>
-                  <Select name="destinationJobId">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select job" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {jobs.map((job: any) => (
-                        <SelectItem key={job.id} value={job.id.toString()}>
-                          {job.jobNumber} - {job.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="batchNumber">Batch Number</Label>
-                  <Input name="batchNumber" placeholder="e.g., BATCH-2025-001" />
-                </div>
-                
-                <div>
-                  <Label htmlFor="reason">Reason</Label>
-                  <Select name="reason">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select reason" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="production">Production Use</SelectItem>
-                      <SelectItem value="purchase_receipt">Purchase Receipt</SelectItem>
-                      <SelectItem value="customer_return">Customer Return</SelectItem>
-                      <SelectItem value="stock_count">Stock Count Adjustment</SelectItem>
-                      <SelectItem value="damage">Damaged Goods</SelectItem>
-                      <SelectItem value="scrap">Scrap/Waste</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="col-span-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Input name="notes" placeholder="Additional information" />
-                </div>
-              </div>
-              
-              <div className="flex justify-end gap-3">
-                <Button type="button" variant="outline" onClick={() => setIsNewMovementOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createMovementMutation.isPending}>
-                  Record Movement
-                </Button>
-              </div>
-            </form>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>
