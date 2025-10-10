@@ -12209,38 +12209,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profitMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
       
       // Get real-time metrics from database sources
-      // Safety incidents count - simplified for now
-      const safetyIncidentsResult = [{ count: 0 }]; // Will enhance once base API works
+      // Safety incidents count from real database
+      const safetyIncidentsResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(safetyInspections)
+        .where(and(
+          sql`(risk_level = 'high' OR risk_level = 'critical' OR overall_result = 'fail')`,
+          sql`inspection_date >= ${startDate}`
+        ));
 
-      // Quality issues count - simplified for now
-      const qualityIssuesResult = [{ count: 0 }]; // Will enhance once base API works
+      // Quality issues count from real database  
+      const qualityIssuesResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(qualityInspections)
+        .where(and(
+          eq(qualityInspections.status, 'failed'),
+          sql`inspection_date >= ${startDate}`
+        ));
 
-      // Production metrics - simplified
-      const productionMetricsResult = [{ 
-        totalEvents: 0, 
-        avgEfficiency: 85, 
-        avgUtilization: 78 
-      }]; // Will enhance once base API works
+      // Production metrics from real production events table
+      const productionMetricsResult = await db
+        .select({
+          totalEvents: sql<number>`count(*)::int`,
+          avgEfficiency: sql<number>`coalesce(avg(efficiency), 85)::float`,
+          avgUtilization: sql<number>`coalesce(avg(utilization_rate), 78)::float`
+        })
+        .from(productionEvents)
+        .leftJoin(productionMetrics, eq(productionEvents.id, productionMetrics.eventId))
+        .where(sql`start_time >= ${startDate}`);
 
-      // Time tracking for labor analytics - simplified
-      const timeEntriesResult = [{ 
-        totalHours: 0, 
-        totalEntries: 0 
-      }]; // Will enhance once base API works
+      // Time tracking for labor analytics from real time entries
+      const timeEntriesResult = await db
+        .select({
+          totalHours: sql<number>`coalesce(sum(total_hours), 0)::float`,
+          totalEntries: sql<number>`count(*)::int`
+        })
+        .from(timeEntries)
+        .where(and(
+          sql`clock_in >= ${startDate}`,
+          isNotNull(timeEntries.clockOut)
+        ));
 
-      // Purchase order metrics for procurement - simplified
-      const purchaseOrdersResult = [{ 
-        totalValue: 0, 
-        avgLeadTime: 28 
-      }]; // Will enhance once base API works
+      // Purchase order metrics for procurement from real purchase orders
+      const purchaseOrdersResult = await db
+        .select({
+          totalValue: sql<number>`coalesce(sum(total_amount), 0)::float`,
+          avgLeadTime: sql<number>`coalesce(avg(EXTRACT(EPOCH FROM (actual_delivery_date - order_date)) / 86400), 28)::float`
+        })
+        .from(purchaseOrders)
+        .where(sql`order_date >= ${startDate}`);
 
       // Calculate real executive metrics
       const activeJobs = jobAnalytics.jobCostBreakdown.filter((j: any) => j.status === 'in_progress').length;
       const completedJobs = jobAnalytics.jobCostBreakdown.filter((j: any) => j.status === 'completed').length;
       const totalJobs = activeJobs + completedJobs;
       
-      // Calculate on-time delivery - simplified for now
-      const onTimeDelivery = 92.3; // Will enhance once base API works
+      // Calculate on-time delivery from jobs with actual vs estimated completion
+      const jobsWithDatesResult = await db
+        .select({
+          onTime: sql<number>`count(case when actual_completion_date <= estimated_completion_date then 1 end)::int`,
+          total: sql<number>`count(*)::int`
+        })
+        .from(jobs)
+        .where(and(
+          isNotNull(jobs.actualCompletionDate),
+          sql`created_at >= ${startDate}`
+        ));
+      
+      const onTimeDelivery = jobsWithDatesResult[0]?.total > 0 
+        ? (jobsWithDatesResult[0].onTime / jobsWithDatesResult[0].total) * 100 
+        : 95; // Default if no data
 
       // Department performance from actual labor costs and budgets
       const departments = ['Production', 'Engineering', 'Quality', 'Admin', 'Sales'];
@@ -12283,7 +12321,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         businessIntelligence: {
           marketShare: 18.5, // This would require external market data
           customerRetention: 91.2, // Calculate from repeat customers
-          newCustomers: totalJobs, // Simplified for now
+          newCustomers: await db
+            .select({ count: sql<number>`count(distinct client_name)::int` })
+            .from(jobs)
+            .where(sql`created_at >= ${startDate}`)
+            .then(r => r[0]?.count || 0),
           averageDealSize: totalJobs > 0 ? revenue / totalJobs : 0,
           salesPipeline: revenue * 2.5, // Calculate from quotes table
           winRate: totalJobs > 0 ? (completedJobs / totalJobs) * 100 : 0,
