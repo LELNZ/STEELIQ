@@ -1446,6 +1446,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get associated team member data if exists
       const teamMember = await storage.getTeamMemberByUserId(userId);
       
+      // Get role and department names if applicable
+      let roleName = null;
+      let departmentName = null;
+      
+      if (teamMember?.roleId) {
+        const role = await teamStorage.getRoleById(teamMember.roleId);
+        roleName = role?.name || null;
+      }
+      
+      if (teamMember?.departmentId) {
+        const department = await teamStorage.getDepartmentById(teamMember.departmentId);
+        departmentName = department?.name || null;
+      }
+      
       // Archive the user data
       await storage.archiveUser({
         originalUserId: userId,
@@ -1455,9 +1469,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: user.email,
         phone: user.phone,
         roleId: teamMember?.roleId || null,
-        roleName: null, // TODO: Get role name via separate query
+        roleName: roleName,
         departmentId: teamMember?.departmentId || null,
-        departmentName: null, // TODO: Get department name via separate query
+        departmentName: departmentName,
         employeeNumber: null,
         employmentType: teamMember?.employmentType || null,
         isActive: teamMember?.isActive || false,
