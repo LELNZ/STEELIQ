@@ -1405,24 +1405,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get user password (for authorized team management roles only)
+  // Get user password status (for authorized team management roles only)
   app.get("/api/users/:id/password", async (req, res) => {
     try {
+      const authUser = await AuthService.getAuthenticatedUser(req);
+      if (!authUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const userId = parseInt(req.params.id);
       
-      // For now, allowing all authenticated users to view passwords
-      // In production, this should check for specific permissions
+      // Check if authenticated user is an admin or the same user
+      // In production, this should check for specific admin permissions
+      if (authUser.id !== userId && authUser.username !== 'admin') {
+        return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
+      }
+      
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
       
-      // Return only the password (plain text for authorized viewing)
-      // Note: This is for team management purposes only
-      res.json({ password: user.password });
+      // Never return the actual password hash
+      // Only indicate if password is set and encrypted
+      const isPasswordSet = !!user.password;
+      const isEncrypted = user.password && user.password.startsWith('$2b$');
+      
+      res.json({ 
+        password: isEncrypted 
+          ? "Password is encrypted (bcrypt) - secure" 
+          : isPasswordSet 
+            ? "Warning: Password may not be properly encrypted" 
+            : "No password set" 
+      });
     } catch (error) {
-      console.error("Error fetching user password:", error);
-      res.status(500).json({ error: "Failed to fetch user password" });
+      console.error("Error fetching user password status:", error);
+      res.status(500).json({ error: "Failed to fetch user password status" });
     }
   });
 
