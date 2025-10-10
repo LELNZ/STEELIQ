@@ -41,9 +41,10 @@ import {
   documents, type Document, type InsertDocument,
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView,
-  documentHistory, documentAttachments, documentAccessLogs
+  documentHistory, documentAttachments, documentAccessLogs,
+  timeEntries, type TimeEntry, type InsertTimeEntry
 } from "@shared/schema";
-import { desc, eq, lt, gte, lte, asc, like, and, or, sql, inArray, not, ne } from "drizzle-orm";
+import { desc, eq, lt, gte, lte, asc, like, and, or, sql, inArray, not, ne, isNotNull } from "drizzle-orm";
 import { db } from "./db";
 
 export interface IStorage {
@@ -4290,10 +4291,51 @@ export class DatabaseStorage implements IStorage {
       }
       const jobsData = await jobQuery;
 
-      // Get purchase orders for actual costs
+      // Get purchase orders for actual material costs
       const purchaseOrdersData = await db.select()
         .from(purchaseOrders)
         .leftJoin(purchaseOrderItems, eq(purchaseOrders.id, purchaseOrderItems.purchaseOrderId));
+
+      // Get time entries for actual labor costs - simplified query
+      const whereConditions = [isNotNull(timeEntries.clockOut)];
+      if (jobId) {
+        whereConditions.push(eq(timeEntries.jobId, jobId));
+      }
+      
+      const timeEntriesRaw = await db
+        .select()
+        .from(timeEntries)
+        .where(and(...whereConditions));
+      
+      // Process time entries data
+      const timeEntriesData = timeEntriesRaw.map(entry => ({
+        jobId: entry.jobId,
+        totalHours: entry.totalHours || 0,
+        employeeId: entry.userId,
+        hourlyRate: entry.hourlyRate || 50
+      }));
+
+      // Calculate actual labor costs by job
+      const laborCostByJob = new Map<number, number>();
+      timeEntriesData.forEach(entry => {
+        if (entry.jobId) {
+          const currentCost = laborCostByJob.get(entry.jobId) || 0;
+          const hourlyRate = entry.hourlyRate || 50; // Default $50/hour if no rate set
+          const laborCost = (entry.totalHours || 0) * hourlyRate;
+          laborCostByJob.set(entry.jobId, currentCost + laborCost);
+        }
+      });
+
+      // Calculate actual material costs by job from purchase orders
+      const materialCostByJob = new Map<number, number>();
+      purchaseOrdersData.forEach(po => {
+        if (po.purchase_orders?.jobId && po.purchase_order_items) {
+          const jobId = po.purchase_orders.jobId;
+          const currentCost = materialCostByJob.get(jobId) || 0;
+          const itemCost = parseFloat(po.purchase_order_items.totalPrice || '0');
+          materialCostByJob.set(jobId, currentCost + itemCost);
+        }
+      });
 
       // Calculate overview metrics
       let totalEstimatedCost = 0;
@@ -4302,9 +4344,13 @@ export class DatabaseStorage implements IStorage {
       let underBudgetJobs = 0;
 
       const jobCostBreakdown = jobsData.map(job => {
-        // Use job's built-in estimated and actual values
+        // Use job's built-in estimated values
         const estimatedCost = parseFloat(job.estimatedValue || '0');
-        const actualCost = parseFloat(job.actualCost || job.materialCost || '0');
+        
+        // Calculate actual cost from real sources
+        const actualLaborCost = laborCostByJob.get(job.id) || 0;
+        const actualMaterialCost = materialCostByJob.get(job.id) || parseFloat(job.materialCost || '0');
+        const actualCost = actualLaborCost + actualMaterialCost;
         const variance = actualCost - estimatedCost;
         const variancePercentage = estimatedCost > 0 ? (variance / estimatedCost) * 100 : 0;
         
@@ -4332,23 +4378,21 @@ export class DatabaseStorage implements IStorage {
         };
       });
 
-      // Calculate cost by category using job data and PO data
-      const materialCosts = jobsData.reduce((sum, job) => sum + parseFloat(job.materialCost || '0'), 0);
-      const laborCosts = jobsData.reduce((sum, job) => sum + parseFloat(job.laborCost || '0'), 0);
-      const overheadCosts = jobsData.reduce((sum, job) => sum + parseFloat(job.overheadCost || '0'), 0);
+      // Calculate cost by category using real data from time entries and purchase orders
+      const totalLaborCosts = Array.from(laborCostByJob.values()).reduce((sum, cost) => sum + cost, 0);
+      const totalMaterialCosts = Array.from(materialCostByJob.values()).reduce((sum, cost) => sum + cost, 0);
+      const estimatedOverheadCosts = jobsData.reduce((sum, job) => sum + parseFloat(job.overheadCost || '0'), 0);
       
-      // Get actual costs from purchase orders if available
-      let poCosts = 0;
-      if (purchaseOrdersData.length > 0) {
-        poCosts = purchaseOrdersData.reduce((sum, po) => 
-          sum + (po.purchase_order_items ? parseFloat(po.purchase_order_items.totalPrice || '0') : 0), 0);
-      }
+      // Calculate subcontractor costs from purchase orders with specific category
+      const subcontractorCosts = purchaseOrdersData
+        .filter(po => po.purchase_orders?.description?.toLowerCase().includes('subcontract'))
+        .reduce((sum, po) => sum + (po.purchase_order_items ? parseFloat(po.purchase_order_items.totalPrice || '0') : 0), 0);
       
       const costByCategory = {
-        materials: materialCosts || poCosts * 0.6, // Estimate 60% of PO costs are materials
-        labor: laborCosts || poCosts * 0.25, // Estimate 25% labor
-        subcontractors: poCosts * 0.1, // Estimate 10% subcontractor
-        overhead: overheadCosts || poCosts * 0.05, // Estimate 5% overhead
+        materials: totalMaterialCosts || jobsData.reduce((sum, job) => sum + parseFloat(job.materialCost || '0'), 0),
+        labor: totalLaborCosts || jobsData.reduce((sum, job) => sum + parseFloat(job.laborCost || '0'), 0),
+        subcontractors: subcontractorCosts,
+        overhead: estimatedOverheadCosts || totalActualCost * 0.15, // 15% overhead if not specified
         other: 0
       };
 
@@ -4388,14 +4432,26 @@ export class DatabaseStorage implements IStorage {
           reason: job.variance > 0 ? 'Cost overrun' : 'Cost savings'
         }));
 
-      // Calculate labor analytics using job data
+      // Calculate labor analytics using real time tracking data
+      const totalActualHours = timeEntriesData.reduce((sum, entry) => sum + (entry.totalHours || 0), 0);
       const totalEstimatedHours = jobsData.reduce((sum, job) => sum + (job.estimatedHours || 0), 0);
+      
+      // Calculate overtime hours (hours over 40 per week per employee)
+      const overtimeHours = timeEntriesData
+        .filter(entry => entry.totalHours && entry.totalHours > 40)
+        .reduce((sum, entry) => sum + (entry.totalHours! - 40), 0);
+      
+      // Calculate efficiency rate (actual hours vs estimated hours)
+      const efficiencyRate = totalEstimatedHours > 0 && totalActualHours > 0 
+        ? Math.min(100, (totalEstimatedHours / totalActualHours) * 100) 
+        : 85;
+      
       const laborAnalytics = {
-        totalHours: totalEstimatedHours,
+        totalHours: totalActualHours || totalEstimatedHours,
         totalCost: costByCategory.labor,
-        avgRatePerHour: totalEstimatedHours > 0 ? costByCategory.labor / totalEstimatedHours : 50,
-        overtimeHours: Math.floor(totalEstimatedHours * 0.1),
-        efficiencyRate: 85 // Default efficiency rate
+        avgRatePerHour: totalActualHours > 0 ? costByCategory.labor / totalActualHours : 50,
+        overtimeHours: overtimeHours,
+        efficiencyRate: efficiencyRate
       };
 
       const totalVariance = totalActualCost - totalEstimatedCost;
