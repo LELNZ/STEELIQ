@@ -1350,6 +1350,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete user endpoint
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Check if user has associated team member - if so, delete that first
+      const teamMember = await storage.getTeamMemberByUserId(userId);
+      if (teamMember) {
+        await storage.deleteTeamMember(teamMember.id);
+      }
+      
+      // Delete related records in the correct order to handle cascading dependencies
+      // First, get drawing_project IDs for this user
+      const drawingProjects = await db.execute(sql`SELECT id FROM drawing_projects WHERE user_id = ${userId}`);
+      
+      // For each drawing_project, handle the complete dependency chain
+      for (const project of drawingProjects.rows as any[]) {
+        // Get drawings for this project
+        const drawings = await db.execute(sql`SELECT id FROM drawings WHERE project_id = ${project.id}`);
+        
+        // Delete material_takeoffs that reference these drawings
+        for (const drawing of drawings.rows as any[]) {
+          await db.execute(sql`DELETE FROM material_takeoffs WHERE drawing_id = ${drawing.id}`);
+        }
+        
+        // Now delete the drawings
+        await db.execute(sql`DELETE FROM drawings WHERE project_id = ${project.id}`);
+      }
+      
+      // Now we can delete drawing_projects
+      await db.execute(sql`DELETE FROM drawing_projects WHERE user_id = ${userId}`);
+      
+      // Delete other directly related records
+      await db.execute(sql`DELETE FROM time_entries WHERE user_id = ${userId}`);
+      await db.execute(sql`DELETE FROM auth_sessions WHERE user_id = ${userId}`);
+      
+      // For tables that allow NULL values, update to NULL
+      await db.execute(sql`UPDATE audit_events SET user_id = NULL WHERE user_id = ${userId}`);
+      
+      // Now we can safely delete the user
+      await storage.deleteUser(userId);
+      
+      res.json({ success: true, message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
   // Get user password (for authorized team management roles only)
   app.get("/api/users/:id/password", async (req, res) => {
     try {
