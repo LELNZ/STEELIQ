@@ -39,9 +39,19 @@ export default function TimePayroll() {
     if (urlParams.get('sync') === 'mobile') {
       const mobileData = sessionStorage.getItem('mobileTimeEntries');
       if (mobileData) {
-        setMobileTimeData(JSON.parse(mobileData));
-        setShowMobileSyncDialog(true);
-        sessionStorage.removeItem('mobileTimeEntries');
+        try {
+          setMobileTimeData(JSON.parse(mobileData));
+          setShowMobileSyncDialog(true);
+          sessionStorage.removeItem('mobileTimeEntries');
+        } catch (error) {
+          console.error('Failed to parse mobile time entries:', error);
+          toast({
+            title: "Sync Error",
+            description: "Failed to parse mobile data. Please try again.",
+            variant: "destructive"
+          });
+          sessionStorage.removeItem('mobileTimeEntries');
+        }
       }
     }
   }, []);

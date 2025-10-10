@@ -104,12 +104,21 @@ export default function EstimationPipeline() {
       console.error('Convert to job error:', error);
       // Check if it's a duplicate job error
       if (error.message?.includes('already exists')) {
-        const errorData = JSON.parse(error.message.split('400: ')[1] || '{}');
-        toast({
-          title: "Job Already Exists",
-          description: `This estimation has already been converted to job ${errorData.jobNumber}. Each estimation can only create one job.`,
-          variant: "destructive"
-        });
+        try {
+          const errorData = JSON.parse(error.message.split('400: ')[1] || '{}');
+          toast({
+            title: "Job Already Exists",
+            description: `This estimation has already been converted to job ${errorData.jobNumber}. Each estimation can only create one job.`,
+            variant: "destructive"
+          });
+        } catch (parseError) {
+          console.error('Failed to parse error message:', parseError);
+          toast({
+            title: "Job Already Exists",
+            description: "This estimation has already been converted to a job.",
+            variant: "destructive"
+          });
+        }
       } else {
         toast({
           title: "Error",

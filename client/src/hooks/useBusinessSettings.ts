@@ -67,10 +67,20 @@ export const useBusinessSettings = () => {
     const savedMargins = localStorage.getItem('lateralEngineering_marginTargets');
     
     if (savedOverhead) {
-      setOverheadSettings(JSON.parse(savedOverhead));
+      try {
+        setOverheadSettings(JSON.parse(savedOverhead));
+      } catch (error) {
+        console.error('Failed to parse overhead settings from localStorage:', error);
+        localStorage.removeItem('lateralEngineering_overheadSettings');
+      }
     }
     if (savedMargins) {
-      setMarginTargets(JSON.parse(savedMargins));
+      try {
+        setMarginTargets(JSON.parse(savedMargins));
+      } catch (error) {
+        console.error('Failed to parse margin targets from localStorage:', error);
+        localStorage.removeItem('lateralEngineering_marginTargets');
+      }
     }
   }, []);
 
