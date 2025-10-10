@@ -917,9 +917,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/inventory/movements", async (req, res) => {
     try {
+      const authUser = await AuthService.getAuthenticatedUser(req);
+      if (!authUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const movementData = {
         ...req.body,
-        performedBy: req.session?.user?.id || 1, // Use current user
+        performedBy: authUser.id,
         movementDate: new Date()
       };
       
@@ -6642,9 +6647,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
+      const authUser = await AuthService.getAuthenticatedUser(req);
+      if (!authUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const projectId = parseInt(req.params.id);
       const taskId = parseInt(req.body.taskId);
-      const userId = req.session?.userId || 1;
+      const userId = authUser.id;
       
       // Get the current task
       const [task] = await db.select()
@@ -6973,10 +6983,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete document - Using new lifecycle_documents table
   app.delete('/api/projects/:projectId/lifecycle/documents/:documentId', async (req, res) => {
     try {
+      const authUser = await AuthService.getAuthenticatedUser(req);
+      if (!authUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const projectId = parseInt(req.params.projectId);
       const documentId = parseInt(req.params.documentId);
       const { taskId } = req.body;
-      const userId = req.session?.userId || 1;
+      const userId = authUser.id;
       
       // Try new table first
       const result = await db.execute(sql`
