@@ -30,9 +30,8 @@ import {
 } from "lucide-react";
 import { optimizeCutting } from "@/lib/simple-cutting-optimizer";
 import StandardCuttingPlan from "@/components/optimization/standard-cutting-plan";
-import SimulationHistory from "@/components/optimization/simulation-history";
+import { SimulationHistory } from "@/components/optimization/simulation-history";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { SelectJob, SelectMaterial, SelectInventory } from "@shared/schema";
 
 interface CutRequirement {
   id: string;
@@ -82,17 +81,17 @@ export default function OptimizationPage() {
   });
 
   // Fetch jobs for selection
-  const { data: jobs = [] } = useQuery<SelectJob[]>({
+  const { data: jobs = [] } = useQuery<any[]>({
     queryKey: ["/api/jobs"]
   });
 
   // Fetch materials
-  const { data: materials = [] } = useQuery<SelectMaterial[]>({
+  const { data: materials = [] } = useQuery<any[]>({
     queryKey: ["/api/materials"]
   });
 
   // Fetch inventory for stock availability
-  const { data: inventory = [] } = useQuery<SelectInventory[]>({
+  const { data: inventory = [] } = useQuery<any[]>({
     queryKey: ["/api/inventory"]
   });
 
