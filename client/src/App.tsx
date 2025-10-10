@@ -40,6 +40,7 @@ import PDFMarkup from "@/pages/pdf-markup";
 import Procurement from "@/pages/procurement";
 import AuditCenter from "@/pages/AuditCenter";
 import Optimization from "@/pages/optimization";
+import MobileOperations from "@/pages/mobile-operations";
 
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
@@ -106,6 +107,7 @@ function Router() {
       <Route path="/remnant-management" component={RemnantManagement} />
       <Route path="/optimization" component={Optimization} />
       <Route path="/pdf-markup" component={PDFMarkup} />
+      <Route path="/mobile-operations" component={MobileOperations} />
       <Route component={NotFound} />
     </Switch>
   );
