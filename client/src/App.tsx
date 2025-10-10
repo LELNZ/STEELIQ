@@ -39,6 +39,7 @@ import RemnantManagement from "@/pages/remnant-management";
 import PDFMarkup from "@/pages/pdf-markup";
 import Procurement from "@/pages/procurement";
 import AuditCenter from "@/pages/AuditCenter";
+import Optimization from "@/pages/optimization";
 
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
@@ -103,6 +104,7 @@ function Router() {
       <Route path="/financial-intelligence" component={FinancialIntelligence} />
       <Route path="/resource-planning" component={ResourcePlanning} />
       <Route path="/remnant-management" component={RemnantManagement} />
+      <Route path="/optimization" component={Optimization} />
       <Route path="/pdf-markup" component={PDFMarkup} />
       <Route component={NotFound} />
     </Switch>
