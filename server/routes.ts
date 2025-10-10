@@ -1429,6 +1429,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Archive user with comprehensive data retention
   app.post("/api/users/:id/archive", async (req, res) => {
     try {
+      const authUser = await AuthService.getAuthenticatedUser(req);
+      if (!authUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const userId = parseInt(req.params.id);
       const { archiveReason } = req.body;
       
@@ -1501,7 +1506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sickLeaveEntitlement: teamMember?.sickLeaveEntitlement || null,
         currentLeaveBalance: teamMember?.currentLeaveBalance || null,
         archiveReason: archiveReason,
-        archivedBy: 1, // TODO: Get from authenticated user
+        archivedBy: authUser?.id || req.session?.userId || null,
         legalRetentionUntil: new Date(Date.now() + (7 * 365 * 24 * 60 * 60 * 1000)).toISOString(), // 7 years
         canBeDeleted: false,
         notes: teamMember?.notes || null,
@@ -1514,7 +1519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: userId,
         teamMemberId: teamMember?.id || null,
         action: "ARCHIVE",
-        actionBy: 1, // TODO: Get from authenticated user
+        actionBy: authUser?.id || req.session?.userId || null,
         entityType: "USER",
         entityId: userId.toString(),
         oldValues: { user, teamMember },
@@ -2080,6 +2085,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/materials/:materialId/suppliers", async (req, res) => {
     try {
+      const authUser = await AuthService.getAuthenticatedUser(req);
+      if (!authUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const materialId = parseInt(req.params.materialId);
       const materialSupplierData = insertMaterialSupplierSchema.parse({
         ...req.body,
@@ -2107,7 +2117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currency: materialSupplierData.currency || "AUD",
         effectiveDate: new Date(),
         priceChangeReason: "initial_entry",
-        enteredBy: 1, // TODO: Get from session
+        enteredBy: authUser?.id || req.session?.userId || null
       });
       
       res.status(201).json(materialSupplier);
@@ -2122,6 +2132,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/material-suppliers/:id", async (req, res) => {
     try {
+      const authUser = await AuthService.getAuthenticatedUser(req);
+      if (!authUser) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
       const id = parseInt(req.params.id);
       const materialSupplierData = insertMaterialSupplierSchema.partial().parse(req.body);
       
@@ -2152,7 +2167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currency: materialSupplierData.currency || existing.currency || "AUD",
           effectiveDate: new Date(),
           priceChangeReason: "price_update",
-          enteredBy: 1, // TODO: Get from session
+          enteredBy: authUser?.id || req.session?.userId || null
         });
       }
       
@@ -4373,7 +4388,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/time/clocks/today", async (req, res) => {
     try {
-      const userId = parseInt(req.query.userId as string) || 1; // TODO: Get from auth
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const userId = parseInt(req.query.userId as string) || user.id;
       const clocks = await timeManagementStorage.getTodayTimeClocks(userId);
       res.json(clocks);
     } catch (error) {
@@ -4385,7 +4404,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Timesheets
   app.get("/api/time/timesheets/week", async (req, res) => {
     try {
-      const userId = parseInt(req.query.userId as string) || 1; // TODO: Get from auth
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const userId = parseInt(req.query.userId as string) || user.id;
       const weekStart = req.query.weekStart as string;
       
       if (!weekStart) {
@@ -4426,7 +4449,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/time/timesheets/:id/submit", async (req, res) => {
     try {
-      const userId = req.body.userId || 1; // TODO: Get from auth
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const userId = req.body.userId || user.id;
       const timesheet = await timeManagementStorage.submitTimesheet(parseInt(req.params.id), userId);
       res.json(timesheet);
     } catch (error) {
@@ -4437,7 +4464,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/time/timesheets/:id/approve", async (req, res) => {
     try {
-      const approvedBy = req.body.approvedBy || 1; // TODO: Get from auth
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const approvedBy = req.body.approvedBy || user.id;
       const timesheet = await timeManagementStorage.approveTimesheet(parseInt(req.params.id), approvedBy);
       res.json(timesheet);
     } catch (error) {
@@ -4449,7 +4480,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Job Tasks
   app.get("/api/time/tasks/assigned", async (req, res) => {
     try {
-      const userId = parseInt(req.query.userId as string) || 1; // TODO: Get from auth
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const userId = parseInt(req.query.userId as string) || user.id;
       const tasks = await timeManagementStorage.getJobTasks(userId);
       res.json(tasks);
     } catch (error) {
@@ -4539,7 +4574,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analytics
   app.get("/api/time/analytics/user-summary", async (req, res) => {
     try {
-      const userId = parseInt(req.query.userId as string) || 1;
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const userId = parseInt(req.query.userId as string) || user.id;
       const startDate = new Date(req.query.startDate as string);
       const endDate = new Date(req.query.endDate as string);
       
