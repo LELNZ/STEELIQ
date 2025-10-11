@@ -23,31 +23,51 @@ import { apiRequest } from '@/lib/queryClient';
 const projectFormSchema = z.object({
   // Basic Information
   name: z.string().min(1, 'Project name is required').max(200),
-  description: z.string().optional(),
-  clientId: z.string().optional(),
+  description: z.string().optional().nullable(),
+  clientId: z.string().optional().nullable(),
   
-  // Contract & Project Type (Phase 1 Enhancement)
-  contractType: z.enum(['fixed_price', 'time_materials', 'cost_plus', 'unit_price', 'gmp']).optional(),
-  projectType: z.enum(['new_construction', 'renovation', 'maintenance', 'emergency', 'design_build']).optional(),
-  wbsCode: z.string().optional(),
+  // Contract & Project Type (Phase 1 Enhancement) - Allow both enum values and undefined
+  contractType: z.union([
+    z.enum(['fixed_price', 'time_materials', 'cost_plus', 'unit_price', 'gmp']),
+    z.string(),
+    z.undefined()
+  ]).optional(),
+  projectType: z.union([
+    z.enum(['new_construction', 'renovation', 'maintenance', 'emergency', 'design_build']),
+    z.string(),
+    z.undefined()
+  ]).optional(),
+  wbsCode: z.string().optional().nullable(),
   
   // Timeline & Commercial
-  bidDate: z.string().optional(),
-  deliveryDate: z.string().optional(),
-  targetValue: z.string().optional(),
-  quoteValidity: z.string().optional(),
+  bidDate: z.string().optional().nullable(),
+  deliveryDate: z.string().optional().nullable(),
+  targetValue: z.string().optional().nullable(),
+  quoteValidity: z.string().optional().nullable(),
   
   // Risk & Complexity
-  riskLevel: z.enum(['low', 'medium', 'high', 'critical']).optional(),
-  complexityScore: z.string().optional(),
+  riskLevel: z.union([
+    z.enum(['low', 'medium', 'high', 'critical']),
+    z.string(),
+    z.undefined()
+  ]).optional(),
+  complexityScore: z.string().optional().nullable(),
   
   // Payment Terms (Phase 1 Enhancement)
-  paymentTerms: z.enum(['net_30', 'net_60', 'net_90', 'progress_billing', 'milestone_based']).optional(),
-  retentionPercentage: z.string().optional(),
+  paymentTerms: z.union([
+    z.enum(['net_30', 'net_60', 'net_90', 'progress_billing', 'milestone_based']),
+    z.string(),
+    z.undefined()
+  ]).optional(),
+  retentionPercentage: z.string().optional().nullable(),
   
   // Resource Planning
-  estimatedHours: z.string().optional(),
-  priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  estimatedHours: z.string().optional().nullable(),
+  priority: z.union([
+    z.enum(['low', 'medium', 'high', 'critical']),
+    z.string(),
+    z.undefined()
+  ]).optional(),
   
   // Key Milestones (Phase 1 Enhancement)
   keyMilestones: z.array(z.object({
@@ -349,7 +369,28 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
       
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            console.log('Form submitted!');
+            console.log('Form errors:', form.formState.errors);
+            console.log('Form values:', form.getValues());
+            
+            // Manually validate and submit
+            form.handleSubmit(
+              (data) => {
+                console.log('Form is valid, calling onSubmit with:', data);
+                onSubmit(data);
+              },
+              (errors) => {
+                console.error('Form validation failed:', errors);
+                toast({
+                  title: "Validation Error",
+                  description: Object.keys(errors).map(key => `${key}: ${errors[key]?.message}`).join(', '),
+                  variant: "destructive",
+                });
+              }
+            )(e);
+          }} className="space-y-6">
             <Tabs defaultValue="basic" className="w-full">
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
@@ -912,23 +953,19 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
                   type="button" 
                   variant="outline" 
                   onClick={() => {
+                    console.log('Save as Draft clicked');
                     // Save as draft functionality - submit with draft status
                     const formData = form.getValues();
+                    console.log('Draft form data:', formData);
                     onSubmit({ ...formData, status: 'draft' });
                   }}
+                  disabled={isLoading}
                 >
                   Save as Draft
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={isLoading}
-                  onClick={() => {
-                    // Log form errors for debugging
-                    const errors = form.formState.errors;
-                    if (Object.keys(errors).length > 0) {
-                      console.error('Form validation errors:', errors);
-                    }
-                  }}
                 >
                   {isLoading ? 'Creating...' : 'Create Project'}
                 </Button>
