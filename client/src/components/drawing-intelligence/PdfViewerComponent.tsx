@@ -85,16 +85,29 @@ export function PdfViewerComponent({
           window.pdfjsLib.GlobalWorkerOptions.workerSrc = 
             'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         };
+        script.onerror = () => {
+          setError('Failed to load PDF viewer library. Please refresh the page.');
+          setIsLoading(false);
+        };
         document.head.appendChild(script);
         
-        // Wait for library to load
-        await new Promise(resolve => {
+        // Wait for library to load with timeout
+        await new Promise((resolve, reject) => {
+          let attempts = 0;
+          const maxAttempts = 50; // 5 seconds total
           const checkInterval = setInterval(() => {
+            attempts++;
             if (window.pdfjsLib) {
               clearInterval(checkInterval);
               resolve(true);
+            } else if (attempts >= maxAttempts) {
+              clearInterval(checkInterval);
+              reject(new Error('PDF.js library failed to load'));
             }
           }, 100);
+        }).catch(err => {
+          setError('Failed to load PDF viewer library. Please refresh the page.');
+          setIsLoading(false);
         });
       }
     };
@@ -111,20 +124,48 @@ export function PdfViewerComponent({
         setIsLoading(true);
         setError(null);
 
-        const loadingTask = window.pdfjsLib.getDocument(fileUrl);
+        // First fetch the PDF file with authentication
+        const response = await fetch(fileUrl, {
+          method: 'GET',
+          credentials: 'include', // Include cookies for authentication
+          headers: {
+            'Accept': 'application/pdf'
+          }
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error('Authentication required. Please log in again.');
+          }
+          throw new Error(`Failed to fetch PDF: ${response.statusText}`);
+        }
+
+        // Convert response to blob
+        const blob = await response.blob();
+        
+        // Create a blob URL
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Load PDF from blob URL
+        const loadingTask = window.pdfjsLib.getDocument(blobUrl);
         const pdf = await loadingTask.promise;
         
         setPdfDoc(pdf);
         setPageCount(pdf.numPages);
         setPageNum(1);
         setIsLoading(false);
+        
+        // Clean up blob URL when component unmounts
+        return () => {
+          URL.revokeObjectURL(blobUrl);
+        };
       } catch (err) {
         console.error('Error loading PDF:', err);
-        setError('Failed to load PDF document');
+        setError(err.message || 'Failed to load PDF document');
         setIsLoading(false);
         toast({
           title: "Error",
-          description: "Failed to load PDF document",
+          description: err.message || "Failed to load PDF document",
           variant: "destructive"
         });
       }
