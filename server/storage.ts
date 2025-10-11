@@ -1496,8 +1496,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEstimationProject(project: InsertEstimationProject): Promise<EstimationProject> {
-    // Remove projectData field as it doesn't exist in the database yet
-    const { projectData, ...projectToInsert } = project;
+    // Keep projectData as it's a valid JSONB field in the database
+    const projectToInsert = { ...project };
     
     // Convert deliveryDate string to Date object if it exists
     if (projectToInsert.deliveryDate && typeof projectToInsert.deliveryDate === 'string') {

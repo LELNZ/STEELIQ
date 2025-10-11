@@ -634,13 +634,15 @@ export default function EstimationPage() {
   // Create new estimation project
   const createProjectMutation = useMutation({
     mutationFn: async (formData: any) => {
+      console.log('Form Data Received:', formData); // Debug log
+      
       // Transform enhanced form data to match backend expectations
       const projectData = {
         name: formData.name,
-        description: formData.description,
+        description: formData.description || '',
         clientId: formData.clientId ? parseInt(formData.clientId) : undefined,
         clientName: formData.clientName,
-        status: 'draft' as const,
+        status: formData.status || 'draft' as const,
         totalCost: 0,
         margin: 20, // Default margin, will be updated from risk assessment
         estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : undefined,
@@ -649,7 +651,7 @@ export default function EstimationPage() {
         projectData: {
           contractType: formData.contractType,
           projectType: formData.projectType,
-          wbsCode: formData.wbsCode,
+          wbsCode: formData.wbsCode || '',
           bidDate: formData.bidDate,
           targetValue: formData.targetValue ? parseFloat(formData.targetValue) : undefined,
           quoteValidity: parseInt(formData.quoteValidity || '30'),
