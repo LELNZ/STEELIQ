@@ -128,8 +128,36 @@ export class DrawingStorageService {
         await fs.promises.writeFile(fullPath, file.buffer);
       }
 
-      // Create database record
+      // Extract metadata for PDF files
+      let pageCount: number | null = null;
+      let drawingTitle: string | null = null;
+      let aiProcessingData: any = null;
+
       const ext = path.extname(file.originalname).toLowerCase().substring(1);
+      
+      if (ext === 'pdf') {
+        try {
+          const { PdfMetadataService } = await import('./pdfMetadataService');
+          const metadataService = PdfMetadataService.getInstance();
+          const metadata = await metadataService.extractMetadata(fullPath);
+          
+          pageCount = metadata.pageCount;
+          drawingTitle = metadata.title || null;
+          aiProcessingData = {
+            pageSize: metadata.pageSize,
+            hasText: metadata.hasText,
+            hasImages: metadata.hasImages,
+            author: metadata.author,
+            creationDate: metadata.creationDate,
+            modificationDate: metadata.modificationDate
+          };
+        } catch (error) {
+          console.error('Error extracting PDF metadata:', error);
+          // Continue even if metadata extraction fails
+        }
+      }
+
+      // Create database record
       const documentData: Omit<InsertDrawingDocument, 'id' | 'createdAt' | 'updatedAt'> = {
         projectId,
         fileName: secureFilename,
@@ -142,13 +170,13 @@ export class DrawingStorageService {
         processingStartedAt: null,
         processingCompletedAt: null,
         processingError: null,
-        pageCount: null,
+        pageCount,
         drawingNumber: null,
-        drawingTitle: null,
+        drawingTitle,
         drawingScale: null,
         drawingDate: null,
         revision: null,
-        aiProcessingData: null,
+        aiProcessingData,
         extractedElements: null,
         confidence: null
       };
