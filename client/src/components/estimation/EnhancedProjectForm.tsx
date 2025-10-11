@@ -23,37 +23,37 @@ import { apiRequest } from '@/lib/queryClient';
 const projectFormSchema = z.object({
   // Basic Information
   name: z.string().min(1, 'Project name is required').max(200),
-  description: z.string().min(1, 'Description is required'),
-  clientId: z.string().min(1, 'Client is required'),
+  description: z.string().optional(),
+  clientId: z.string().optional(),
   
   // Contract & Project Type (Phase 1 Enhancement)
-  contractType: z.enum(['fixed_price', 'time_materials', 'cost_plus', 'unit_price', 'gmp']),
-  projectType: z.enum(['new_construction', 'renovation', 'maintenance', 'emergency', 'design_build']),
+  contractType: z.enum(['fixed_price', 'time_materials', 'cost_plus', 'unit_price', 'gmp']).optional(),
+  projectType: z.enum(['new_construction', 'renovation', 'maintenance', 'emergency', 'design_build']).optional(),
   wbsCode: z.string().optional(),
   
   // Timeline & Commercial
   bidDate: z.string().optional(),
   deliveryDate: z.string().optional(),
   targetValue: z.string().optional(),
-  quoteValidity: z.string().default('30'),
+  quoteValidity: z.string().optional(),
   
   // Risk & Complexity
-  riskLevel: z.enum(['low', 'medium', 'high', 'critical']),
-  complexityScore: z.string().min(1).max(5),
+  riskLevel: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  complexityScore: z.string().optional(),
   
   // Payment Terms (Phase 1 Enhancement)
-  paymentTerms: z.enum(['net_30', 'net_60', 'net_90', 'progress_billing', 'milestone_based']),
+  paymentTerms: z.enum(['net_30', 'net_60', 'net_90', 'progress_billing', 'milestone_based']).optional(),
   retentionPercentage: z.string().optional(),
   
   // Resource Planning
   estimatedHours: z.string().optional(),
-  priority: z.enum(['low', 'medium', 'high', 'critical']),
+  priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
   
   // Key Milestones (Phase 1 Enhancement)
   keyMilestones: z.array(z.object({
-    name: z.string(),
-    date: z.string(),
-    percentage: z.string()
+    name: z.string().optional(),
+    date: z.string().optional(),
+    percentage: z.string().optional()
   })).optional()
 });
 
@@ -908,10 +908,28 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
                 All fields marked with red asterisk are required
               </div>
               <div className="flex gap-2">
-                <Button type="button" variant="outline">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    // Save as draft functionality - submit with draft status
+                    const formData = form.getValues();
+                    onSubmit({ ...formData, status: 'draft' });
+                  }}
+                >
                   Save as Draft
                 </Button>
-                <Button type="submit" disabled={isLoading}>
+                <Button 
+                  type="submit" 
+                  disabled={isLoading}
+                  onClick={() => {
+                    // Log form errors for debugging
+                    const errors = form.formState.errors;
+                    if (Object.keys(errors).length > 0) {
+                      console.error('Form validation errors:', errors);
+                    }
+                  }}
+                >
                   {isLoading ? 'Creating...' : 'Create Project'}
                 </Button>
               </div>
