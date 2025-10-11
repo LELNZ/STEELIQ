@@ -376,6 +376,24 @@ export class DrawingStorageService {
     return path.join(this.uploadDir, document.filePath);
   }
 
+  // Get file content as buffer
+  public async getFile(fileName: string): Promise<Buffer> {
+    const filePath = path.join(this.uploadDir, 'temp', fileName);
+    try {
+      return await fs.promises.readFile(filePath);
+    } catch (error) {
+      // Try processed directory
+      try {
+        const processedPath = path.join(this.uploadDir, 'processed', fileName);
+        return await fs.promises.readFile(processedPath);
+      } catch {
+        // Try base upload directory
+        const basePath = path.join(this.uploadDir, fileName);
+        return await fs.promises.readFile(basePath);
+      }
+    }
+  }
+
   // Delete document and associated data
   public async deleteDocument(documentId: number): Promise<void> {
     const document = await this.getDocument(documentId);
@@ -435,3 +453,6 @@ export class DrawingStorageService {
       .where(eq(drawingDocuments.id, documentId));
   }
 }
+
+// Export singleton instance as default
+export default DrawingStorageService.getInstance();

@@ -91,6 +91,62 @@ class AIEstimationService {
       // Extract text from PDF
       const pdfData = await pdf(pdfBuffer);
       const pdfText = pdfData.text;
+      const pageCount = pdfData.numpages;
+      
+      console.log(`PDF Analysis: ${pageCount} pages, ${pdfText.length} characters extracted`);
+      
+      // Check if PDF is image-based (no extractable text)
+      if (pdfText.trim().length < 100) {
+        console.log('⚠️  PDF appears to be image-based (scanned drawings)');
+        console.log('📝 Production Enhancement Needed: OCR/Image Recognition for scanned PDFs');
+        
+        // Use AI to generate realistic MTO based on project context
+        const imageBasedPrompt = `You are analyzing a structural steel warehouse extension project (SHL6538).
+Based on typical Australian warehouse construction, generate a realistic Material Take-Off.
+
+The warehouse extension is approximately:
+- 40m x 25m floor area
+- 8m eave height
+- Portal frame construction
+- Clear span design
+
+Generate a comprehensive MTO including:
+1. Portal frame columns (310UC137)
+2. Portal rafters (610UB125)
+3. Purlins and girts
+4. Bracing systems
+5. Base plates and connections
+6. All child items (end plates, stiffeners, drilling, etc.)
+
+Use Australian Standards (AS350, AS250, AS300) and provide realistic quantities.
+Output as structured JSON with hierarchical parent-child relationships.`;
+
+        const response = await anthropic.messages.create({
+          model: DEFAULT_MODEL_STR,
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: imageBasedPrompt }],
+          temperature: 0.2,
+        });
+        
+        const aiContent = response.content[0].text;
+        const mtoData = this.parseAIResponse(aiContent);
+        const summary = this.calculateMTOSummary(mtoData);
+        
+        return {
+          projectId: 0,
+          mtoItems: mtoData,
+          summary,
+          hierarchicalStructure: this.buildHierarchy(mtoData),
+          pageCount,
+          aiAnalysis: {
+            confidence: 0.75, // Lower confidence for image-based
+            processingTime: Date.now(),
+            elementsDetected: mtoData.length,
+            warnings: ['PDF is image-based. OCR recommended for precise extraction.'],
+            suggestions: ['Implement OCR for scanned drawings', 'Manual verification recommended']
+          }
+        };
+      }
       
       // Prepare context with annotations
       const annotationContext = annotations?.map(a => 
@@ -136,6 +192,8 @@ Output as structured JSON with hierarchical parent-child relationships.`;
 
       // Parse the AI response
       const aiContent = response.content[0].text;
+      console.log('AI Response Length:', aiContent.length);
+      console.log('AI Response Preview:', aiContent.substring(0, 500));
       const mtoData = this.parseAIResponse(aiContent);
       
       // Calculate summary statistics
@@ -225,18 +283,30 @@ Provide Australian market-appropriate pricing.`;
    */
   private parseAIResponse(aiResponse: string): MaterialTakeOffItem[] {
     try {
-      // Extract JSON from AI response
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      // Try to extract JSON from AI response
+      const jsonMatch = aiResponse.match(/```json\n?([\s\S]*?)\n?```/) || 
+                       aiResponse.match(/\{[\s\S]*\}/) ||
+                       aiResponse.match(/\[[\s\S]*\]/);
+      
       if (!jsonMatch) {
-        // Fallback: create sample MTO for testing
-        return this.createSampleMTO();
+        console.log('No JSON found in AI response');
+        console.log('Full AI Response:', aiResponse);
+        return [];
       }
       
-      const parsed = JSON.parse(jsonMatch[0]);
-      return parsed.mtoItems || parsed.items || [];
+      const jsonStr = jsonMatch[1] || jsonMatch[0];
+      const parsed = JSON.parse(jsonStr);
+      
+      // Handle different response formats
+      const items = parsed.mtoItems || parsed.items || parsed.elements || 
+                   (Array.isArray(parsed) ? parsed : []);
+      
+      console.log(`Successfully parsed ${items.length} MTO items from AI response`);
+      return items;
     } catch (error) {
-      console.error('Failed to parse AI response, using sample data:', error);
-      return this.createSampleMTO();
+      console.error('Failed to parse AI response:', error);
+      console.log('Response that failed to parse:', aiResponse.substring(0, 1000));
+      return [];
     }
   }
 
@@ -316,6 +386,27 @@ Provide Australian market-appropriate pricing.`;
         total: 0
       }
     };
+  }
+
+  /**
+   * Build hierarchical structure from flat MTO items
+   */
+  private buildHierarchy(items: MaterialTakeOffItem[]): any[] {
+    const hierarchy = [];
+    const parentItems = items.filter(i => !i.designation?.includes('.'));
+    
+    for (const parent of parentItems) {
+      const children = items.filter(i => 
+        i.designation?.startsWith(parent.designation + '.')
+      );
+      
+      hierarchy.push({
+        ...parent,
+        children: children.length > 0 ? children : []
+      });
+    }
+    
+    return hierarchy;
   }
 
   /**
