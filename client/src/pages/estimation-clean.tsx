@@ -669,7 +669,7 @@ export default function EstimationPage() {
       console.log('3. Making API Request to /api/estimations...');
       
       try {
-        const result = await apiRequest("POST", "/api/estimations", projectData);
+        const result = await apiRequest("/api/estimations", "POST", projectData);
         console.log('4. API Request Successful:', result);
         return result;
       } catch (error) {
