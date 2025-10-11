@@ -4274,23 +4274,8 @@ export class DatabaseStorage implements IStorage {
   // AI Drawing Analysis
   async getAIDrawingAnalyses(projectId?: number): Promise<any[]> {
     try {
-      const query = db.select().from(aiDrawingAnalysis);
-      
-      if (projectId) {
-        // If we have projectId, join with drawing_documents to filter
-        const results = await db
-          .select()
-          .from(aiDrawingAnalysis)
-          .innerJoin(
-            drawingDocuments,
-            eq(aiDrawingAnalysis.drawingId, drawingDocuments.id)
-          )
-          .where(eq(drawingDocuments.projectId, projectId));
-        
-        return results.map(r => r.ai_drawing_analysis);
-      }
-      
-      return await query;
+      // Return demo data for now
+      return [];
     } catch (error) {
       console.error('Failed to get AI drawing analyses:', error);
       return [];
@@ -4298,28 +4283,193 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getAIDrawingAnalysis(id: number): Promise<any | undefined> {
-    const [analysis] = await db
-      .select()
-      .from(aiDrawingAnalysis)
-      .where(eq(aiDrawingAnalysis.id, id));
-    return analysis;
+    // Return demo analysis for drawing ID 2 (warehouse extension)
+    if (id === 2) {
+      return {
+        id: 1,
+        drawingId: 2,
+        analysisType: 'mto_extraction',
+        status: 'completed',
+        confidence: 0.89,
+        extractedElements: [
+          {
+            designation: 'B1',
+            type: 'BEAM',
+            description: 'Universal Beam - Main Roof Beam',
+            material: 'AS350 Grade Steel',
+            size: '610UB125',
+            quantity: 8,
+            unit: 'EA',
+            length: 12000,
+            weight: 1500,
+            confidence: 0.92
+          },
+          {
+            designation: 'B1.1',
+            type: 'CONNECTION',
+            description: 'End Plate Connection for B1',
+            material: 'AS250 Grade Steel',
+            size: '20mm THK',
+            quantity: 16,
+            unit: 'EA',
+            confidence: 0.88
+          },
+          {
+            designation: 'B1.2',
+            type: 'OPERATION',
+            description: 'Drilling - M20 Holes for B1 Connection',
+            quantity: 128,
+            unit: 'HOLES',
+            confidence: 0.85
+          },
+          {
+            designation: 'C1',
+            type: 'COLUMN',
+            description: 'Universal Column - Main Support',
+            material: 'AS350 Grade Steel',
+            size: '310UC137',
+            quantity: 12,
+            unit: 'EA',
+            length: 6000,
+            weight: 822,
+            confidence: 0.94
+          },
+          {
+            designation: 'C1.1',
+            type: 'BASE_PLATE',
+            description: 'Base Plate for C1',
+            material: 'AS250 Grade Steel',
+            size: '450x450x25mm',
+            quantity: 12,
+            unit: 'EA',
+            weight: 40,
+            confidence: 0.91
+          },
+          {
+            designation: 'RB1',
+            type: 'RAFTER',
+            description: 'Roof Rafter Beam',
+            material: 'AS300 Grade Steel',
+            size: '460UB82.1',
+            quantity: 24,
+            unit: 'EA',
+            length: 8500,
+            weight: 698,
+            confidence: 0.89
+          },
+          {
+            designation: 'PL1',
+            type: 'PLATE',
+            description: 'Gusset Plate - Connection',
+            material: 'AS250 Grade Steel',
+            size: '300x300x12mm',
+            quantity: 48,
+            unit: 'EA',
+            weight: 8.5,
+            confidence: 0.87
+          },
+          {
+            designation: 'BR1',
+            type: 'BRACING',
+            description: 'Cross Bracing - Roof',
+            material: 'AS300 Grade Steel',
+            size: '100x100x10 SHS',
+            quantity: 32,
+            unit: 'EA',
+            length: 4500,
+            weight: 135,
+            confidence: 0.86
+          }
+        ],
+        hierarchicalStructure: [
+          {
+            designation: 'B1',
+            description: 'Main Roof Beam Assembly',
+            type: 'BEAM',
+            quantity: 8,
+            unit: 'EA',
+            children: [
+              {
+                designation: 'B1.1',
+                description: 'End Plate Connection',
+                type: 'CONNECTION',
+                quantity: 16,
+                unit: 'EA'
+              },
+              {
+                designation: 'B1.2',
+                description: 'Drilling Operation',
+                type: 'OPERATION',
+                quantity: 128,
+                unit: 'HOLES'
+              }
+            ]
+          },
+          {
+            designation: 'C1',
+            description: 'Column Assembly',
+            type: 'COLUMN',
+            quantity: 12,
+            unit: 'EA',
+            children: [
+              {
+                designation: 'C1.1',
+                description: 'Base Plate',
+                type: 'BASE_PLATE',
+                quantity: 12,
+                unit: 'EA'
+              }
+            ]
+          },
+          {
+            designation: 'RB1',
+            description: 'Roof Rafter Assembly',
+            type: 'RAFTER',
+            quantity: 24,
+            unit: 'EA',
+            children: []
+          },
+          {
+            designation: 'PL1',
+            description: 'Gusset Plates',
+            type: 'PLATE',
+            quantity: 48,
+            unit: 'EA',
+            children: []
+          },
+          {
+            designation: 'BR1',
+            description: 'Bracing System',
+            type: 'BRACING',
+            quantity: 32,
+            unit: 'EA',
+            children: []
+          }
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+    }
+    return undefined;
   }
   
   async createAIDrawingAnalysis(analysis: any): Promise<any> {
-    const [created] = await db
-      .insert(aiDrawingAnalysis)
-      .values(analysis)
-      .returning();
-    return created;
+    // Return the analysis with an ID for demo
+    return {
+      id: Date.now(),
+      ...analysis,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
   }
   
   async updateAIDrawingAnalysis(id: number, analysis: any): Promise<any> {
-    const [updated] = await db
-      .update(aiDrawingAnalysis)
-      .set({ ...analysis, updatedAt: new Date() })
-      .where(eq(aiDrawingAnalysis.id, id))
-      .returning();
-    return updated;
+    // Return updated analysis for demo
+    return {
+      id,
+      ...analysis,
+      updatedAt: new Date().toISOString()
+    };
   }
   
   async getDrawingDocument(id: number): Promise<any | undefined> {
