@@ -48,6 +48,9 @@ import { desc, eq, lt, gte, lte, asc, like, and, or, sql, inArray, not, ne, isNo
 import { db } from "./db";
 
 export interface IStorage {
+  // Generate unique sequential numbers
+  generateNumber(prefix: string, userId?: number): Promise<string>;
+  
   // Users
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -461,6 +464,13 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Generate unique sequential numbers
+  async generateNumber(prefix: string, userId?: number): Promise<string> {
+    const year = new Date().getFullYear();
+    const timestamp = Date.now().toString().slice(-6);
+    return `${prefix}-${year}-${timestamp}`;
+  }
+  
   // Users
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
