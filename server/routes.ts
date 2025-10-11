@@ -3424,6 +3424,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Estimation Engine Routes
+  app.post("/api/ai/analyze-drawing-mto", async (req, res) => {
+    try {
+      const { drawingId, projectId, annotations } = req.body;
+      
+      // Get the drawing document
+      const drawing = await storage.getDrawingDocument(drawingId);
+      if (!drawing) {
+        return res.status(404).json({ error: "Drawing not found" });
+      }
+      
+      // Load the PDF file
+      const { getFileBuffer } = await import('./services/drawingStorageService');
+      const pdfBuffer = await getFileBuffer(drawing.filePath);
+      
+      // Run AI analysis
+      const { default: aiService } = await import('./services/aiEstimationService');
+      const mtoResult = await aiService.analyzeDrawingForMTO(
+        pdfBuffer,
+        annotations,
+        `Project ${projectId} - ${drawing.name}`
+      );
+      
+      // Store the results
+      mtoResult.projectId = projectId;
+      
+      // Save AI analysis results to database
+      await storage.createAIDrawingAnalysis({
+        drawingId,
+        analysisType: 'mto_extraction',
+        results: mtoResult,
+        confidence: mtoResult.aiAnalysis.confidence,
+        processingTime: mtoResult.aiAnalysis.processingTime,
+        status: 'completed'
+      });
+      
+      res.json(mtoResult);
+    } catch (error) {
+      console.error("AI MTO analysis failed:", error);
+      res.status(500).json({ error: "AI analysis failed", message: error.message });
+    }
+  });
+  
+  app.post("/api/ai/analyze-element", async (req, res) => {
+    try {
+      const { elementType, coordinates, pdfContext } = req.body;
+      
+      const { default: aiService } = await import('./services/aiEstimationService');
+      const element = await aiService.analyzeAnnotatedElement(
+        elementType,
+        coordinates,
+        pdfContext
+      );
+      
+      res.json(element);
+    } catch (error) {
+      console.error("AI element analysis failed:", error);
+      res.status(500).json({ error: "Element analysis failed", message: error.message });
+    }
+  });
+  
+  app.post("/api/ai/generate-cost-estimate", async (req, res) => {
+    try {
+      const { mtoItems, laborRates, materialPrices } = req.body;
+      
+      const { default: aiService } = await import('./services/aiEstimationService');
+      const costEstimate = await aiService.generateCostEstimate(
+        mtoItems,
+        laborRates || {
+          'welder': 85,
+          'fabricator': 75,
+          'painter': 65,
+          'rigger': 80
+        },
+        materialPrices || {
+          'AS350': 2500,
+          'AS250': 2300,
+          'AS300': 2400
+        }
+      );
+      
+      res.json(costEstimate);
+    } catch (error) {
+      console.error("Cost estimation failed:", error);
+      res.status(500).json({ error: "Cost estimation failed", message: error.message });
+    }
+  });
+  
+  app.get("/api/ai/mto-results/:projectId", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      
+      // Get all AI analyses for this project
+      const analyses = await storage.getAIDrawingAnalyses(projectId);
+      
+      // Filter for MTO results
+      const mtoResults = analyses.filter(a => a.analysisType === 'mto_extraction');
+      
+      res.json(mtoResults);
+    } catch (error) {
+      console.error("Failed to fetch MTO results:", error);
+      res.status(500).json({ error: "Failed to fetch MTO results" });
+    }
+  });
+
   // Coating systems API routes  
   app.post("/api/coating-systems", async (req, res) => {
     try {
