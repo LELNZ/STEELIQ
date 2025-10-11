@@ -42,7 +42,8 @@ import {
   quotes, quoteHistory, quoteViews,
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView,
   documentHistory, documentAttachments, documentAccessLogs,
-  timeEntries, type TimeEntry, type InsertTimeEntry
+  timeEntries, type TimeEntry, type InsertTimeEntry,
+  drawingDocuments, aiDrawingAnalysis
 } from "@shared/schema";
 import { desc, eq, lt, gte, lte, asc, like, and, or, sql, inArray, not, ne, isNotNull } from "drizzle-orm";
 import { db } from "./db";
