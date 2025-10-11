@@ -461,6 +461,15 @@ export interface IStorage {
   
   // Job Costing Analytics
   getJobCostingAnalytics(period?: string, jobId?: number): Promise<any>;
+  
+  // AI Drawing Analysis
+  getAIDrawingAnalyses(projectId?: number): Promise<any[]>;
+  getAIDrawingAnalysis(id: number): Promise<any | undefined>;
+  createAIDrawingAnalysis(analysis: any): Promise<any>;
+  updateAIDrawingAnalysis(id: number, analysis: any): Promise<any>;
+  
+  // Drawing Documents
+  getDrawingDocument(id: number): Promise<any | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -4259,6 +4268,65 @@ export class DatabaseStorage implements IStorage {
       byType,
       recentlyUploaded
     };
+  }
+
+  // AI Drawing Analysis
+  async getAIDrawingAnalyses(projectId?: number): Promise<any[]> {
+    try {
+      const query = db.select().from(aiDrawingAnalysis);
+      
+      if (projectId) {
+        // If we have projectId, join with drawing_documents to filter
+        const results = await db
+          .select()
+          .from(aiDrawingAnalysis)
+          .innerJoin(
+            drawingDocuments,
+            eq(aiDrawingAnalysis.drawingId, drawingDocuments.id)
+          )
+          .where(eq(drawingDocuments.projectId, projectId));
+        
+        return results.map(r => r.ai_drawing_analysis);
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Failed to get AI drawing analyses:', error);
+      return [];
+    }
+  }
+  
+  async getAIDrawingAnalysis(id: number): Promise<any | undefined> {
+    const [analysis] = await db
+      .select()
+      .from(aiDrawingAnalysis)
+      .where(eq(aiDrawingAnalysis.id, id));
+    return analysis;
+  }
+  
+  async createAIDrawingAnalysis(analysis: any): Promise<any> {
+    const [created] = await db
+      .insert(aiDrawingAnalysis)
+      .values(analysis)
+      .returning();
+    return created;
+  }
+  
+  async updateAIDrawingAnalysis(id: number, analysis: any): Promise<any> {
+    const [updated] = await db
+      .update(aiDrawingAnalysis)
+      .set({ ...analysis, updatedAt: new Date() })
+      .where(eq(aiDrawingAnalysis.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async getDrawingDocument(id: number): Promise<any | undefined> {
+    const [document] = await db
+      .select()
+      .from(drawingDocuments)
+      .where(eq(drawingDocuments.id, id));
+    return document;
   }
 
   // Job Costing Analytics
