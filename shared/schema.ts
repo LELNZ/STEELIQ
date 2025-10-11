@@ -2037,6 +2037,98 @@ export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type SavedFilter = typeof savedFilters.$inferSelect;
 export type InsertSavedFilter = z.infer<typeof insertSavedFilterSchema>;
 
+// Drawing management types
+export type DrawingDocument = typeof drawingDocuments.$inferSelect;
+export type InsertDrawingDocument = typeof drawingDocuments.$inferInsert;
+export type DrawingAnnotation = typeof drawingAnnotations.$inferSelect;
+export type InsertDrawingAnnotation = typeof drawingAnnotations.$inferInsert;
+export type DrawingProcessingQueue = typeof drawingProcessingQueue.$inferSelect;
+export type InsertDrawingProcessingQueue = typeof drawingProcessingQueue.$inferInsert;
+
+// Drawing document management for AI processing
+export const drawingDocuments = pgTable("drawing_documents", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id).notNull(),
+  fileName: text("file_name").notNull(),
+  originalFileName: text("original_file_name").notNull(),
+  fileType: text("file_type").notNull(), // pdf, dxf, dwg, ifc
+  fileSize: integer("file_size").notNull(),
+  filePath: text("file_path").notNull(), // server storage path
+  uploadedBy: integer("uploaded_by").references(() => users.id).notNull(),
+  
+  // Processing status
+  status: text("status").notNull().default('uploaded'), // uploaded, processing, completed, failed
+  processingStartedAt: timestamp("processing_started_at"),
+  processingCompletedAt: timestamp("processing_completed_at"),
+  processingError: text("processing_error"),
+  
+  // Extracted metadata
+  pageCount: integer("page_count"),
+  drawingNumber: text("drawing_number"),
+  drawingTitle: text("drawing_title"),
+  drawingScale: text("drawing_scale"),
+  drawingDate: timestamp("drawing_date"),
+  revision: text("revision"),
+  
+  // AI processing results
+  aiProcessingData: jsonb("ai_processing_data"), // Raw AI extraction results
+  extractedElements: jsonb("extracted_elements"), // Structured element data
+  confidence: decimal("confidence", { precision: 5, scale: 2 }), // Overall confidence score
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Drawing annotations for marking up elements
+export const drawingAnnotations = pgTable("drawing_annotations", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").references(() => drawingDocuments.id).notNull(),
+  pageNumber: integer("page_number").notNull(),
+  
+  // Annotation details
+  annotationType: text("annotation_type").notNull(), // element, dimension, note, markup
+  elementId: text("element_id"), // B1, C2, PL1, etc.
+  elementType: text("element_type"), // beam, column, plate, connection
+  
+  // Coordinates (for PDF/image overlays)
+  x: decimal("x", { precision: 10, scale: 2 }).notNull(),
+  y: decimal("y", { precision: 10, scale: 2 }).notNull(),
+  width: decimal("width", { precision: 10, scale: 2 }),
+  height: decimal("height", { precision: 10, scale: 2 }),
+  
+  // Annotation data
+  text: text("text"),
+  color: text("color").default('#FF0000'),
+  metadata: jsonb("metadata"), // Additional properties
+  
+  // User tracking
+  createdBy: integer("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Queue for AI processing tasks
+export const drawingProcessingQueue = pgTable("drawing_processing_queue", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").references(() => drawingDocuments.id).notNull(),
+  taskType: text("task_type").notNull(), // ocr, element_detection, dimension_extraction, mto_generation
+  priority: integer("priority").default(5), // 1-10, lower is higher priority
+  status: text("status").default('pending'), // pending, processing, completed, failed
+  
+  // Processing details
+  attemptCount: integer("attempt_count").default(0),
+  maxAttempts: integer("max_attempts").default(3),
+  lastAttemptAt: timestamp("last_attempt_at"),
+  nextRetryAt: timestamp("next_retry_at"),
+  
+  // Results
+  result: jsonb("result"),
+  error: text("error"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at")
+});
+
 // AI Drawing Analysis for Three-Phase Workflow
 export const aiDrawingAnalysis = pgTable("ai_drawing_analysis", {
   id: serial("id").primaryKey(),

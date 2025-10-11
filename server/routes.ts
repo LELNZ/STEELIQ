@@ -5176,6 +5176,244 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Drawing Management Routes
+  // Configure multer for drawing uploads
+  const drawingUploadStorage = multer.diskStorage({
+    destination: async function (req, file, cb) {
+      const uploadDir = path.join(process.cwd(), 'uploads', 'drawings', 'temp');
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+      // Generate unique filename with timestamp
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    }
+  });
+
+  const drawingUpload = multer({ 
+    storage: drawingUploadStorage,
+    limits: { 
+      fileSize: 50 * 1024 * 1024 // 50MB limit for drawings
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedExt = ['.pdf', '.dxf', '.dwg', '.ifc'];
+      const ext = path.extname(file.originalname).toLowerCase();
+      
+      if (allowedExt.includes(ext)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`Invalid file type. Allowed types: ${allowedExt.join(', ')}`));
+      }
+    }
+  });
+
+  // Upload drawing endpoint
+  app.post("/api/drawings/upload", drawingUpload.single('drawing'), async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { projectId } = req.body;
+      if (!projectId) {
+        // Delete uploaded file if no project specified
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ error: "Project ID is required" });
+      }
+
+      // Import and use DrawingStorageService
+      const { DrawingStorageService } = await import('./services/drawingStorageService');
+      const storageService = DrawingStorageService.getInstance();
+
+      // Store file and create database record
+      const document = await storageService.storeFile(
+        req.file,
+        parseInt(projectId),
+        user.id
+      );
+
+      res.json({
+        success: true,
+        message: "Drawing uploaded successfully",
+        document
+      });
+    } catch (error) {
+      console.error("Drawing upload error:", error);
+      res.status(500).json({ error: error.message || "Failed to upload drawing" });
+    }
+  });
+
+  // Get drawings for project
+  app.get("/api/drawings/project/:projectId", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const projectId = parseInt(req.params.projectId);
+      
+      const { DrawingStorageService } = await import('./services/drawingStorageService');
+      const storageService = DrawingStorageService.getInstance();
+
+      const documents = await storageService.getProjectDocuments(projectId);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching drawings:", error);
+      res.status(500).json({ error: "Failed to fetch drawings" });
+    }
+  });
+
+  // Get single drawing
+  app.get("/api/drawings/:documentId", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const documentId = parseInt(req.params.documentId);
+      
+      const { DrawingStorageService } = await import('./services/drawingStorageService');
+      const storageService = DrawingStorageService.getInstance();
+
+      const document = await storageService.getDocument(documentId);
+      if (!document) {
+        return res.status(404).json({ error: "Drawing not found" });
+      }
+
+      res.json(document);
+    } catch (error) {
+      console.error("Error fetching drawing:", error);
+      res.status(500).json({ error: "Failed to fetch drawing" });
+    }
+  });
+
+  // Serve drawing file
+  app.get("/api/drawings/:documentId/file", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const documentId = parseInt(req.params.documentId);
+      
+      const { DrawingStorageService } = await import('./services/drawingStorageService');
+      const storageService = DrawingStorageService.getInstance();
+
+      const document = await storageService.getDocument(documentId);
+      if (!document) {
+        return res.status(404).json({ error: "Drawing not found" });
+      }
+
+      const filePath = storageService.getFilePath(document);
+      
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: "File not found on disk" });
+      }
+
+      // Set appropriate headers
+      res.setHeader('Content-Type', document.fileType === 'pdf' ? 'application/pdf' : 'application/octet-stream');
+      res.setHeader('Content-Disposition', `inline; filename="${document.originalFileName}"`);
+      
+      // Stream the file
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error("Error serving drawing file:", error);
+      res.status(500).json({ error: "Failed to serve drawing file" });
+    }
+  });
+
+  // Create annotation
+  app.post("/api/drawings/:documentId/annotations", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const documentId = parseInt(req.params.documentId);
+      const annotationData = req.body;
+
+      const { DrawingStorageService } = await import('./services/drawingStorageService');
+      const storageService = DrawingStorageService.getInstance();
+
+      const annotation = await storageService.createAnnotation({
+        ...annotationData,
+        documentId,
+        createdBy: user.id
+      });
+
+      res.json({
+        success: true,
+        annotation
+      });
+    } catch (error) {
+      console.error("Error creating annotation:", error);
+      res.status(500).json({ error: "Failed to create annotation" });
+    }
+  });
+
+  // Get annotations for document
+  app.get("/api/drawings/:documentId/annotations", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const documentId = parseInt(req.params.documentId);
+      const pageNumber = req.query.page ? parseInt(req.query.page as string) : undefined;
+
+      const { DrawingStorageService } = await import('./services/drawingStorageService');
+      const storageService = DrawingStorageService.getInstance();
+
+      const annotations = await storageService.getDocumentAnnotations(documentId, pageNumber);
+      res.json(annotations);
+    } catch (error) {
+      console.error("Error fetching annotations:", error);
+      res.status(500).json({ error: "Failed to fetch annotations" });
+    }
+  });
+
+  // Delete drawing
+  app.delete("/api/drawings/:documentId", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const documentId = parseInt(req.params.documentId);
+
+      const { DrawingStorageService } = await import('./services/drawingStorageService');
+      const storageService = DrawingStorageService.getInstance();
+
+      await storageService.deleteDocument(documentId);
+
+      res.json({
+        success: true,
+        message: "Drawing deleted successfully"
+      });
+    } catch (error) {
+      console.error("Error deleting drawing:", error);
+      res.status(500).json({ error: "Failed to delete drawing" });
+    }
+  });
+
   // Performance Review Routes
   app.get("/api/performance-reviews/:teamMemberId", async (req, res) => {
     try {
