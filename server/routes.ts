@@ -3529,6 +3529,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Drawing Analysis endpoints for Drawing Intelligence page
+  app.post("/api/ai-analysis/analyze/:drawingId", async (req, res) => {
+    try {
+      const drawingId = parseInt(req.params.drawingId);
+      const userId = req.session?.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Get the drawing document
+      const drawing = await storage.getDrawingDocument(drawingId);
+      if (!drawing) {
+        return res.status(404).json({ error: "Drawing not found" });
+      }
+
+      // Get drawing file
+      const { default: storageService } = await import('./services/drawingStorageService');
+      const pdfBuffer = await storageService.getFile(drawing.fileName);
+      
+      if (!pdfBuffer) {
+        return res.status(404).json({ error: "Drawing file not found" });
+      }
+
+      // Run AI analysis
+      const { default: aiService } = await import('./services/aiEstimationService');
+      const analysisResult = await aiService.analyzeDrawingForMTO(
+        pdfBuffer,
+        [],
+        drawing.originalFileName || drawing.fileName
+      );
+
+      // Save analysis to database
+      const savedAnalysis = await storage.createAIDrawingAnalysis({
+        drawingId,
+        analysisType: 'mto_extraction',
+        results: analysisResult,
+        confidence: analysisResult.aiAnalysis?.confidence || 0.85,
+        status: 'completed',
+        extractedElements: analysisResult.mtoItems || [],
+        hierarchicalStructure: analysisResult.hierarchicalStructure || [],
+        metadata: {
+          fileName: drawing.originalFileName,
+          pageCount: analysisResult.pageCount,
+          analysisVersion: '1.0'
+        }
+      });
+
+      res.json(savedAnalysis);
+    } catch (error) {
+      console.error("AI drawing analysis failed:", error);
+      res.status(500).json({ 
+        error: "AI analysis failed", 
+        message: error.message 
+      });
+    }
+  });
+
+  // Get AI analysis for a drawing
+  app.get("/api/ai-analysis/drawing/:drawingId", async (req, res) => {
+    try {
+      const drawingId = parseInt(req.params.drawingId);
+      const analyses = await storage.getAIDrawingAnalyses();
+      
+      const drawingAnalysis = analyses.find(a => a.drawingId === drawingId);
+      
+      if (drawingAnalysis) {
+        res.json(drawingAnalysis);
+      } else {
+        res.status(404).json({ error: "No analysis found for this drawing" });
+      }
+    } catch (error) {
+      console.error("Failed to get AI analysis:", error);
+      res.status(500).json({ error: "Failed to retrieve analysis" });
+    }
+  });
+
   // Coating systems API routes  
   app.post("/api/coating-systems", async (req, res) => {
     try {
