@@ -634,7 +634,8 @@ export default function EstimationPage() {
   // Create new estimation project
   const createProjectMutation = useMutation({
     mutationFn: async (formData: any) => {
-      console.log('Form Data Received:', formData); // Debug log
+      console.log('========== MUTATION TRIGGERED ==========');
+      console.log('1. Form Data Received:', formData);
       
       // Transform enhanced form data to match backend expectations
       const projectData = {
@@ -664,7 +665,17 @@ export default function EstimationPage() {
         }
       };
       
-      return await apiRequest("POST", "/api/estimations", projectData);
+      console.log('2. Project Data to Send:', projectData);
+      console.log('3. Making API Request to /api/estimations...');
+      
+      try {
+        const result = await apiRequest("POST", "/api/estimations", projectData);
+        console.log('4. API Request Successful:', result);
+        return result;
+      } catch (error) {
+        console.error('4. API Request Failed:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       setCurrentProject(data);
@@ -820,20 +831,43 @@ export default function EstimationPage() {
             
             {/* Show New Project button only when not viewing a project */}
             {!currentProject && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Project
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
-                  <EnhancedProjectForm 
-                    onSubmit={(data) => createProjectMutation.mutate(data)} 
-                    isLoading={createProjectMutation.isPending}
-                  />
-                </DialogContent>
-              </Dialog>
+              <>
+                {/* Test Button for Debugging */}
+                <Button 
+                  onClick={() => {
+                    console.log('TEST: Direct mutation call');
+                    const testData = {
+                      name: 'Test Project ' + Date.now(),
+                      description: 'Test description',
+                      status: 'draft'
+                    };
+                    console.log('TEST: Calling mutate with:', testData);
+                    createProjectMutation.mutate(testData);
+                  }}
+                  variant="outline"
+                  size="sm"
+                >
+                  TEST
+                </Button>
+                
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Project
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+                    <EnhancedProjectForm 
+                      onSubmit={(data) => {
+                        console.log('Dialog onSubmit called with:', data);
+                        createProjectMutation.mutate(data);
+                      }} 
+                      isLoading={createProjectMutation.isPending}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </>
             )}
           </div>
         </div>
