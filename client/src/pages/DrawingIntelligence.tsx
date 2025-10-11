@@ -78,6 +78,17 @@ interface EstimationProject {
   client?: string;
 }
 
+interface AIAnalysis {
+  id: number;
+  drawingId: number;
+  status: string;
+  confidence: number;
+  extractedElements: any;
+  hierarchicalStructure: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function DrawingIntelligence() {
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<DrawingDocument | null>(null);
@@ -85,6 +96,8 @@ export default function DrawingIntelligence() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [annotations, setAnnotations] = useState<any[]>([]);
   const [showMtoPanel, setShowMtoPanel] = useState(true);
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   const { toast } = useToast();
 
@@ -206,6 +219,54 @@ export default function DrawingIntelligence() {
     }
   });
 
+  // AI Analysis mutation
+  const analyzeDrawingMutation = useMutation({
+    mutationFn: async (drawingId: number) => {
+      const response = await fetch(`/api/ai-analysis/analyze/${drawingId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "AI analysis failed");
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setAiAnalysis(data);
+      toast({
+        title: "AI Analysis Complete",
+        description: `Extracted ${data.extractedElements?.length || 0} elements with ${Math.round(data.confidence * 100)}% confidence`
+      });
+      setIsAnalyzing(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "AI Analysis Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+      setIsAnalyzing(false);
+    }
+  });
+
+  // Fetch AI Analysis for selected document
+  const { data: existingAnalysis } = useQuery({
+    queryKey: [`/api/ai-analysis/drawing/${selectedDocument?.id}`],
+    enabled: !!selectedDocument
+  });
+
+  useEffect(() => {
+    if (existingAnalysis) {
+      setAiAnalysis(existingAnalysis);
+    }
+  }, [existingAnalysis]);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setUploadFile(e.target.files[0]);
@@ -229,6 +290,55 @@ export default function DrawingIntelligence() {
   const handleElementSelect = (element: any) => {
     console.log("Element selected:", element);
     // This will be used for MTO generation
+  };
+
+  const handleAIAnalysis = () => {
+    if (selectedDocument) {
+      setIsAnalyzing(true);
+      analyzeDrawingMutation.mutate(selectedDocument.id);
+    }
+  };
+
+  const renderHierarchicalElement = (element: any, level: number = 0) => {
+    return (
+      <div key={element.id} className={`${level > 0 ? 'ml-4' : ''}`}>
+        <Card className="p-3 mb-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {element.children && element.children.length > 0 && (
+                <ChevronRight className="h-4 w-4" />
+              )}
+              <div>
+                <p className="font-medium">
+                  {element.designation} - {element.description}
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="outline" className="text-xs">
+                    {element.type}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {element.quantity} {element.unit}
+                  </span>
+                  {element.material && (
+                    <span className="text-xs text-muted-foreground">
+                      {element.material}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            {element.confidence && (
+              <Badge className="bg-green-100 text-green-800">
+                {Math.round(element.confidence * 100)}%
+              </Badge>
+            )}
+          </div>
+        </Card>
+        {element.children && element.children.map((child: any) => 
+          renderHierarchicalElement(child, level + 1)
+        )}
+      </div>
+    );
   };
 
   const formatFileSize = (bytes: number) => {
@@ -404,58 +514,149 @@ export default function DrawingIntelligence() {
                     </TabsList>
 
                     <TabsContent value="elements" className="mt-4">
-                      {annotations.filter(a => a.elementId).length === 0 ? (
+                      {!aiAnalysis || !aiAnalysis.extractedElements ? (
                         <div className="text-center py-8 text-muted-foreground">
                           <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">No elements marked yet</p>
-                          <p className="text-xs mt-2">
-                            Use the rectangle tool to mark elements
-                          </p>
+                          <p className="text-sm">No AI analysis yet</p>
+                          <Button 
+                            className="mt-4" 
+                            onClick={handleAIAnalysis}
+                            disabled={isAnalyzing}
+                          >
+                            {isAnalyzing ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                Analyzing...
+                              </>
+                            ) : (
+                              <>
+                                <Brain className="h-4 w-4 mr-2" />
+                                Run AI Analysis
+                              </>
+                            )}
+                          </Button>
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          {annotations
-                            .filter(a => a.elementId)
-                            .map((annotation) => (
-                              <Card key={annotation.id} className="p-3">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="font-medium">
-                                      {annotation.elementId}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      Page {annotation.pageNumber}
-                                    </p>
+                          <div className="flex items-center justify-between mb-4">
+                            <Badge className="bg-blue-100 text-blue-800">
+                              {aiAnalysis.extractedElements.length} Elements
+                            </Badge>
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              onClick={handleAIAnalysis}
+                              disabled={isAnalyzing}
+                            >
+                              <RefreshCw className="h-3 w-3 mr-1" />
+                              Re-analyze
+                            </Button>
+                          </div>
+                          {aiAnalysis.extractedElements.map((element: any, index: number) => (
+                            <Card key={index} className="p-3">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-medium">
+                                    {element.designation || element.id}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Badge variant="outline" className="text-xs">
+                                      {element.type}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      {element.quantity} {element.unit}
+                                    </span>
                                   </div>
-                                  <Badge variant="outline">
-                                    {annotation.elementType || "Pending"}
-                                  </Badge>
                                 </div>
-                              </Card>
-                            ))}
+                                {element.confidence && (
+                                  <Badge className="bg-green-100 text-green-800">
+                                    {Math.round(element.confidence * 100)}%
+                                  </Badge>
+                                )}
+                              </div>
+                            </Card>
+                          ))}
                         </div>
                       )}
                     </TabsContent>
 
                     <TabsContent value="hierarchy" className="mt-4">
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Layers className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">Hierarchical view coming soon</p>
-                        <p className="text-xs mt-2">
-                          Will show parent-child relationships
-                        </p>
-                      </div>
+                      {!aiAnalysis || !aiAnalysis.hierarchicalStructure ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Layers className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">Run AI analysis first</p>
+                          <p className="text-xs mt-2">
+                            To see parent-child relationships
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="mb-4">
+                            <Badge className="bg-purple-100 text-purple-800">
+                              Hierarchical Structure
+                            </Badge>
+                          </div>
+                          {aiAnalysis.hierarchicalStructure.map((element: any) => 
+                            renderHierarchicalElement(element)
+                          )}
+                        </div>
+                      )}
                     </TabsContent>
 
                     <TabsContent value="summary" className="mt-4">
-                      <div className="text-center py-8 text-muted-foreground">
-                        <AlertCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">Generate MTO after marking</p>
-                        <Button className="mt-4" disabled>
-                          <Brain className="h-4 w-4 mr-2" />
-                          AI Generate MTO
-                        </Button>
-                      </div>
+                      {!aiAnalysis ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <AlertCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No analysis available</p>
+                          <Button 
+                            className="mt-4"
+                            onClick={handleAIAnalysis}
+                            disabled={isAnalyzing}
+                          >
+                            <Brain className="h-4 w-4 mr-2" />
+                            Generate AI MTO
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <Card className="p-4">
+                            <h4 className="font-semibold mb-2">Analysis Summary</h4>
+                            <div className="space-y-2">
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Confidence Level</span>
+                                <Badge className="bg-green-100 text-green-800">
+                                  {Math.round(aiAnalysis.confidence * 100)}%
+                                </Badge>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Total Elements</span>
+                                <span className="font-medium">{aiAnalysis.extractedElements?.length || 0}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Analysis Status</span>
+                                <Badge variant="outline">{aiAnalysis.status}</Badge>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-muted-foreground">Last Updated</span>
+                                <span className="text-sm">{new Date(aiAnalysis.updatedAt).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </Card>
+                          
+                          <Button 
+                            className="w-full"
+                            onClick={() => {
+                              toast({
+                                title: "MTO Export",
+                                description: "Exporting Material Take-Off to estimation..."
+                              });
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export to Estimation
+                          </Button>
+                        </div>
+                      )}
                     </TabsContent>
                   </Tabs>
                 </div>
