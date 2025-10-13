@@ -1,0 +1,110 @@
+Excellent detailed feedback! Let me ask additional clarifying questions to ensure we create a comprehensive prompt that handles all scenarios:
+
+Additional Questions for Complete Prompt Design
+1. Connection Detail Specifics
+For end plates, should the AI extract:
+Plate thickness, width, height?
+Bolt hole diameter and spacing?
+Edge distances?
+For stiffeners, what details are critical:
+Size, thickness, welding on both sides?
+Position relative to flanges?
+For cleats/gussets:
+Angle cleats vs flat plates?
+Number of bolts to beam and column?
+2. Welding Specifications
+How are weld symbols typically shown on your drawings:
+AWS standard symbols?
+Written specifications (e.g., "6CFW" for 6mm continuous fillet weld)?
+Should the AI differentiate between:
+Shop welds vs site welds?
+Fillet welds vs butt welds?
+Continuous vs intermittent welds?
+3. Designation Logic When Creating IDs
+When AI creates missing designations, preferred format:
+Sequential numbering (B1, B2, B3)?
+Grid-based (B-A1, B-A2)?
+Level-based (B-L1-1, B-L2-1)?
+For connection components without IDs:
+Use parent designation + decimal (B1.1, B1.2)?
+Descriptive suffix (B1-EP1, B1-STIFF1)?
+4. Scale and Measurement Handling
+Common drawing scales in your SEDs:
+1:50, 1:100, 1:200 for general arrangements?
+1:5, 1:10 for details?
+When dimensions conflict between views:
+Trust detailed view over general arrangement?
+Flag all conflicts for review?
+5. Hole and Drilling Information
+Standard hole sizes in your operations:
+M16 = 18mm hole, M20 = 22mm hole?
+Slotted holes: how to identify and dimension?
+Should AI extract:
+Total number of holes per member?
+Hole patterns (pitch, gauge)?
+Edge distances?
+6. Material Library Matching
+When matching to your library:
+Exact match required or closest section?
+How to handle superseded sections (e.g., old designation "410UB54" now "410UB53.7")?
+For welded/built-up sections:
+Break down into plate components?
+Calculate equivalent weight?
+7. Surface Treatment Recognition
+Common treatments in your drawings:
+HDG (Hot Dip Galvanized)?
+Primer only?
+Painted (with color/spec)?
+How are these typically indicated:
+In general notes?
+Member-specific callouts?
+Standard abbreviations?
+8. Quantity Extraction
+For repeated members:
+"TYP" means how many typically?
+"SIM OPP" (similar opposite) counts as 2?
+Grid line references:
+"GRIDS A-D" means 4 beams?
+How to count when "@ 3000 CRS" spacing given?
+9. PDF Annotation Requirements
+Color coding for annotated elements:
+Beams = Blue?
+Columns = Red?
+Plates = Green?
+Unconfident items = Orange?
+Annotation style:
+Bounding boxes around identified members?
+Leader lines to designation labels?
+Highlight extracted dimensions?
+10. Operations Settings Integration
+You mentioned Operations Settings page - what default values should the AI reference:
+
+Standard drill sizes?
+Welding rates (mm/min)?
+Cutting speeds?
+Standard edge preparations?
+11. Non-Standard Section Details
+For tapered/cranked beams:
+
+Extract start and end depths?
+Taper angle or rise/run?
+Flange/web thicknesses if variable?
+12. Assembly Grouping
+Should the AI identify and group:
+
+Portal frames as single assemblies?
+Truss assemblies with all internal members?
+Bracing bays as systems?
+13. Temporary Works
+What temporary items to identify:
+
+Erection cleats (include in MTO or separate)?
+Lifting lugs/points?
+Temporary bracing?
+Would you also like the AI to:
+
+Identify splice locations and types?
+Extract camber/pre-set requirements?
+Note special fabrication instructions?
+Identify areas requiring NDT/inspection?
+Please clarify these points so I can create the most accurate and comprehensive prompt for your production AI system.

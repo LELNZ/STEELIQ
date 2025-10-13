@@ -1,0 +1,111 @@
+Excellent detailed feedback! Let me ask additional clarifying questions to ensure we create a comprehensive prompt that handles all scenarios:
+
+Additional Questions for Complete Prompt Design
+1. Connection Detail Specifics
+For end plates, should the AI extract:
+Plate thickness, width, height? yes
+Bolt hole diameter and spacing? yes
+Edge distances? yes
+For stiffeners, what details are critical:
+Size, thickness, welding on both sides? yes
+Position relative to flanges? yes
+For cleats/gussets:
+Angle cleats vs flat plates? yes both it depends on what the engineer has named them on the drawing if no name then the AI needs to identify the item mark it on the pdf in a lgocial manner and flag for user review
+Number of bolts to beam and column? yes
+2. Welding Specifications
+How are weld symbols typically shown on your drawings:
+AWS standard symbols? some maybe AWS other ISO other written as a description
+Written specifications (e.g., "6CFW" for 6mm continuous fillet weld)? can also be 6FWAR or 6CFW or 6mm fillet weld all around or the AWS or ISO symbloy
+Should the AI differentiate between:
+Shop welds vs site welds? - assume all welds are shop welds and flag any identified weld for site as user review but the user will always review and then in the child line item allocate the weld to shop or site if needed to be changed.
+Fillet welds vs butt welds? YES
+Continuous vs intermittent welds? YES
+3. Designation Logic When Creating IDs
+When AI creates missing designations, preferred format:
+Sequential numbering (B1, B2, B3)? 
+Grid-based (B-A1, B-A2)? Grid-Based if there is a conflict then go to level based but flag for user review 
+Level-based (B-L1-1, B-L2-1)?
+For connection components without IDs:
+Use parent designation + decimal (B1.1, B1.2)?
+
+Descriptive suffix (B1-EP1, B1-STIFF1)? yes
+4. Scale and Measurement Handling
+Common drawing scales in your SEDs:
+1:50, 1:100, 1:200 for general arrangements? this is need to be identified by the AI on a case by case and page by page
+1:5, 1:10 for details? same as above,case by case and page by page
+When dimensions conflict between views:
+Trust detailed view over general arrangement? yes and then flag for user review 
+Flag all conflicts for review? yes
+5. Hole and Drilling Information
+Standard hole sizes in your operations:
+M16 = 18mm hole, M20 = 22mm hole? yes this is common but the AI needs to identify the hole size per element and if it cant then flag for review
+Slotted holes: how to identify and dimension? the AI needs to identify the slotted hole and the dimensions showen, if none showen then scale and flag for review, if it has no scale then flag for user review
+Should AI extract: 
+Total number of holes per member? yes
+Hole patterns (pitch, gauge)? hole patterns yes - suggest best practice for additional information perhaps add to the child line items description?
+Edge distances? yes same as above suggest best practice
+6. Material Library Matching
+When matching to your library:
+Exact match required or closest section? first use exact, then closest, then flag for user review if not exact or unable to find.
+How to handle superseded sections (e.g., old designation "410UB54" now "410UB53.7")? use the closest material approach and flag for review.
+For welded/built-up sections:
+Break down into plate components? no
+Calculate equivalent weight? yes
+7. Surface Treatment Recognition
+Common treatments in your drawings:
+HDG (Hot Dip Galvanized)? yes
+Primer only? yes
+Painted (with color/spec)? yes
+How are these typically indicated:
+In general notes? yes
+Member-specific callouts? yes
+Standard abbreviations? yes
+8. Quantity Extraction
+For repeated members:
+"TYP" means how many typically? refer to general notes: abbreviations and AS/NZS standards only
+"SIM OPP" (similar opposite) counts as 2? refer to general notes: abbreviations and AS/NZS standards only
+Grid line references:
+"GRIDS A-D" means 4 beams? this means there are 4 grids and the AI will need to evaluate if each grid has the same beam or not then flag for review
+How to count when "@ 3000 CRS" spacing given? look for the member / connection / hole / notch / slot etc and from there the AI will need to determine the appropriate approach for example if it is looking from a plan view and perlins and there is evenly space @ 1200 crs then count each perlin that is drawn and calculate the length of the perline and its connections etc. if for example the main beam has offset holes spaced at 600 crs then that parent line item needs a child item for that hole allocated to it with a qty and all releveant designation and descxription details. ask anymore clarifiying questions.
+9. PDF Annotation Requirements
+Color coding for annotated elements:- we already discussed this in the AI estimation system plan to have a theamed approach and those annotations are linked to a database in the opearoins settings page ( review if this has been created if not then create it) with a theam and the ability for the user to change the colors - review our previous disuusion on this topic and ensure it is implemented.
+Beams = Blue?
+Columns = Red?
+Plates = Green?
+Unconfident items = Orange?
+Annotation style:
+Bounding boxes around identified members? yes - these may need to be heavy highlighted lines instead of boxes and the also need to be able to be freely rotated to follow the path of the member
+Leader lines to designation labels? yes
+Highlight extracted dimensions? yes
+10. Operations Settings Integration
+You mentioned Operations Settings page - what default values should the AI reference:
+
+Standard drill sizes? yes and time and types i.e assume all holes are mag drilled and allow for user editing
+Welding rates (mm/min)? yes and sizes and types
+Cutting speeds? and types i.e bandsaw / hand held grinder / hand held plasma  / cnc laser etc
+Standard edge preparations? yes
+11. Non-Standard Section Details
+For tapered/cranked beams: make best practice for showing this information to the user perhaps in the description.
+
+Extract start and end depths? yes
+Taper angle or rise/run? yes
+Flange/web thicknesses if variable? yes
+12. Assembly Grouping
+Should the AI identify and group:
+
+Portal frames as single assemblies? review my answer and make best practice suggestion, 1. identify the portal and allocate a designation and description for the user to understand these members / connections / coatings etc etc belong to this assembly. - for example it may have 2 columns and 2 arched rafters creating the one portal with holes and brackets plus stiffeners and base plates. if there are multiple portals i.e multiple residential dwellings and the portals are exactly the same then increase the qty of each item but they have to be exactly. 2.add into our estimation materials tab the ability to create an assembly and have all of the assembly elements within that assembly i.e Portal frame 1.1 with main members and their specific dimensions and angles of cut if any and their applicaple comonnents. then if that assembly is found to be in multiple units within that drawing then increasing the qty of the assembly would increase all componets within the assembly as applicable i.e if 1x assembly has 2xcolumn and 1x beam and 2x base plates and 4x concrete anchors then if the AI identifies that same exact portal with all the same dimensions elsewhere in the drawing then it would increase the qty of the assembly to "2" and then the lines items below would multiple as applicable so 2xcolumns would become 4x column and 1x beam would become 2xbeams etc.
+Truss assemblies with all internal members? same as above
+Bracing bays as systems? yes
+13. Temporary Works
+What temporary items to identify:
+
+Erection cleats (include in MTO or separate)? include as they would need to be added to the costs
+Lifting lugs/points? yes if identified
+Temporary bracing? yes if identified otherwise the user will add these manaully
+Would you also like the AI to:
+
+Identify splice locations and types? yes
+Extract camber/pre-set requirements? yes
+Note special fabrication instructions? yes
+Identify areas requiring NDT/inspection? yes
+Please clarify these points so I can create the most accurate and comprehensive prompt for your production AI system.

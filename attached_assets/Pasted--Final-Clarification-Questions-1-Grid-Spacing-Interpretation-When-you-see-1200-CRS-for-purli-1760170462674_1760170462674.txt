@@ -1,0 +1,54 @@
+
+Final Clarification Questions:
+1. Grid Spacing Interpretation
+When you see "@1200 CRS" for purlins:
+
+Should AI count visible purlins only, or calculate based on total length? count the visable perlins and then calculate the perlins lengths
+For "GRIDS A-D" with different members per grid, how to present? specific designations for each member and their respective grid location and description
+
+
+2. Operations Settings Database -- review our current system architecture and the how the applicaiotn interacts with the opearoints settings database and all the content of that database. create the below into that database and ensure that all datapoints go to the correct endpoints.
+Should I create the operations settings table now with:
+
+Annotation color themes - yes
+Standard drilling times/sizes - we already have this
+Welding rates by type we already have this
+Cutting speeds by method we already have this
+Edge prep standards - yes
+
+
+3. Plate Schedule Output
+For the separate plate requirement schedule, format preference:
+
+Group by thickness (all 10mm plates together)?
+Group by type (all end plates, all stiffeners)? group by type
+Nesting-ready format with dimensions? yes
+
+
+4. Assembly Quantity Handling
+For identical assemblies (e.g., 5 identical portals):
+
+List once with quantity=5? yes but ensure that each portals unique designation is noted
+List each with unique designation (PF1, PF2...)? for identical assemblies make sure that in the description each designation is listed for users reference.
+User preference setting? not at this stage.
+
+5. Non-Standard Material Handling
+For welded/tapered beams not in library:
+
+Create custom material entry? yes
+Break into plate components with welding? no this will always be outsourced as a complete assembly.
+Special designation format (WB1 for welded beam)? if it is not identified on the SED drawing then the AI should allocate a logical name yes WB1 etc would be suitable.
+6. Error Recovery
+If AI fails on certain pages/elements:
+
+Continue processing remainder? yes
+Stop and request different view? no
+Process what's possible and list failures? yes
+Is this prompt comprehensive enough? Any critical steel fabrication elements I've missed that are common in your SEDs?
+
+surface treamemnts - we have a material library with coatings systems - look for all of these potneial coatings systems.
+evey item identified needs to be color coded and annotated to ensure that the elements are visually tracked for the user to see.
+every item if click on by the user will automatically highlight the line item in the MTO side by side view
+evey item in the side by side view that is clicked on will automatically quick snap to the elements location in the drawing
+
+Review all of our discussions, and review all of our planned features from todays chats and architecture and compare it with the prompt and identify andy gaps we may have missed and specific databases or items that we need to create 

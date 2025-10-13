@@ -1,0 +1,41 @@
+Key Questions for Accurate Prompt Creation:
+1. Drawing Recognition Specifics
+What visual markers/symbols indicate beams vs columns in your drawings?
+Do you use specific line weights or styles for different member types?
+Are member designations always shown as text labels on drawings (B1, C1)?
+2. Material Schedule Variations
+When a legend exists, what format does it typically follow?
+Are there standard abbreviations we should recognize (UB, UC, SHS, RHS)?
+How are connection details typically shown (detail bubbles, separate views)?
+3. Measurement Extraction
+Should the AI extract dimensions directly from drawing measurements?
+How are lengths typically indicated (dimension lines, grid spacing)?
+For plates, how are thicknesses shown (e.g., "12THK", "PL12")?
+4. Steel Specifications
+Default material grades if not specified (Grade 300, 350)?
+Standard section libraries to reference (AS/NZS sections)?
+How to handle non-standard or fabricated sections?
+5. Hierarchy Rules
+How deep should parent-child relationships go (main member → connection → bolt)?
+Standard numbering for connection components (4.1, 4.2 or other system)?
+How to handle assemblies vs individual components?
+6. Drawing Types
+Should it recognize different drawing types (plans, elevations, sections, details)?
+Priority when conflicts exist between different views?
+How to correlate members across multiple drawings?
+7. Special Requirements
+Specific New Zealand steel standards to follow?
+Integration with Bodor laser cutting specs (max plate thickness, sheet sizes)?
+Any project-specific designation systems your company uses?
+8. Error Handling
+When AI confidence is low, should it flag items for manual review?
+Preferred behavior for ambiguous or partially visible members?
+How to handle revised drawings with clouded areas?
+Would you also like the prompt to:
+
+Calculate center of gravity for lifting?
+Identify weld specifications and sizes?
+Extract bolt patterns and quantities?
+Recognize surface treatment requirements?
+Identify temporary works or erection aids?
+Please provide answers to help me create the most accurate prompt for your specific needs. Also, should the AI provide confidence scores for each extracted element?
