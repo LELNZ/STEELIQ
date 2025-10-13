@@ -607,6 +607,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Initialize Non-standard Connections category if it doesn't exist
+  const initializeMaterialCategories = async () => {
+    try {
+      const existingCategory = await db
+        .select()
+        .from(materialCategories)
+        .where(eq(materialCategories.name, "Non-standard Connections"))
+        .limit(1);
+      
+      if (existingCategory.length === 0) {
+        await db.insert(materialCategories).values({
+          name: "Non-standard Connections",
+          description: "Custom or non-standard connection components including irregular shapes, site-specific fabrications, and special connection details"
+        });
+        console.log("Created Non-standard Connections category");
+      }
+    } catch (error) {
+      console.error("Error initializing material categories:", error);
+    }
+  };
+  
+  // Initialize categories on server startup
+  initializeMaterialCategories();
+
+  // Material Categories routes
+  app.get("/api/material-categories", async (req, res) => {
+    try {
+      const categories = await db.select().from(materialCategories).orderBy(materialCategories.name);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching material categories:", error);
+      res.status(500).json({ error: "Failed to fetch material categories" });
+    }
+  });
+
+  app.post("/api/material-categories", async (req, res) => {
+    try {
+      const { name, description } = req.body;
+      const [newCategory] = await db.insert(materialCategories).values({
+        name,
+        description
+      }).returning();
+      res.status(201).json(newCategory);
+    } catch (error) {
+      console.error("Error creating material category:", error);
+      res.status(500).json({ error: "Failed to create material category" });
+    }
+  });
+
   // Materials routes
   app.get("/api/materials", async (req, res) => {
     try {
