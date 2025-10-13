@@ -11,7 +11,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, materials, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, edgePreparations, annotationThemes, plateSchedule, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems, projectLifecycleEvents, projectLifecyclePhases, projectLifecycleTasks, estimationProjects, projectLifecycleTemplates, invoices, payments, emailImportedCosts, timeEntries, jobEstimates, qualityControl, complianceDocuments, inventory, qualityInspections, inventoryMovements, safetyInspections, documents, machines, machineStatusLogs, productionEvents, productionShifts, productionMetrics, workOrders } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, materials, materialCategories, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, edgePreparations, annotationThemes, plateSchedule, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems, projectLifecycleEvents, projectLifecyclePhases, projectLifecycleTasks, estimationProjects, projectLifecycleTemplates, invoices, payments, emailImportedCosts, timeEntries, jobEstimates, qualityControl, complianceDocuments, inventory, qualityInspections, inventoryMovements, safetyInspections, documents, machines, machineStatusLogs, productionEvents, productionShifts, productionMetrics, workOrders, aiDrawingAnalysis, steelElements } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -8815,6 +8815,273 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching material takeoffs:', error);
       res.status(500).json({ message: 'Failed to fetch material takeoffs' });
+    }
+  });
+
+  // Export AI Drawing Analysis to Material Takeoffs for Estimation
+  app.post('/api/ai/export-to-estimation', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { analysisId, projectId, drawingId } = req.body;
+      
+      // Get the AI analysis result
+      const [analysis] = await db.select()
+        .from(aiDrawingAnalysis)
+        .where(eq(aiDrawingAnalysis.id, analysisId))
+        .limit(1);
+      
+      if (!analysis) {
+        return res.status(404).json({ error: "AI analysis not found" });
+      }
+
+      // Extract MTO items from the analysis
+      const extractedElements = analysis.extractedElements as any;
+      if (!extractedElements || !extractedElements.mtoItems) {
+        return res.status(400).json({ error: "No MTO items found in analysis" });
+      }
+
+      // Transform AI-extracted items to materialTakeoffs format
+      const mtoItems = extractedElements.mtoItems.map((item: any) => ({
+        drawingId,
+        projectId,
+        mark: item.designation || item.id,
+        section: item.profile || item.type,
+        grade: item.material || 'AS350',
+        length: item.dimensions?.length || 0,
+        quantity: item.quantity || 1,
+        weight: item.dimensions?.weight || 0,
+        drawingRef: item.location || item.drawingReference,
+        phase: item.phase || 'Main Structure',
+        wastage: 5 // Default 5% wastage
+        // Note: Store metadata in steelElements table instead
+      }));
+
+      // Insert into materialTakeoffs table
+      const insertedTakeoffs = await db.insert(materialTakeoffs)
+        .values(mtoItems)
+        .returning();
+      
+      // Also create steel elements records for detailed tracking
+      if (insertedTakeoffs.length > 0) {
+        const steelElementsData = extractedElements.mtoItems.map((item: any) => ({
+          drawingId: analysisId, // This references aiDrawingAnalysis.id, not drawings.id
+          partMark: item.designation || item.id,
+          elementType: item.type || 'beam',
+          materialCode: item.profile,
+          length: item.dimensions?.length,
+          quantity: item.quantity || 1,
+          pageNumber: item.pageNumber || 1,
+          coordinates: item.coordinates,
+          dimensions: item.dimensions,
+          connections: item.connections || item.childItems?.filter((c: any) => c.type === 'connection'),
+          weldDetails: item.weldDetails || item.childItems?.filter((c: any) => c.type === 'welding'),
+          status: 'detected',
+          notes: `Confidence: ${item.confidence_score || item.confidence || 'N/A'}`
+        }));
+
+        await db.insert(steelElements).values(steelElementsData);
+      }
+
+      // Update the AI analysis status to indicate it's been exported
+      await db.update(aiDrawingAnalysis)
+        .set({ 
+          analysisStatus: 'exported',
+          analyzedAt: new Date()
+        })
+        .where(eq(aiDrawingAnalysis.id, analysisId));
+
+      res.json({
+        success: true,
+        message: `Successfully exported ${insertedTakeoffs.length} items to material takeoffs`,
+        takeoffIds: insertedTakeoffs.map(t => t.id)
+      });
+    } catch (error) {
+      console.error('Error exporting to estimation:', error);
+      res.status(500).json({ 
+        error: 'Failed to export to estimation',
+        message: (error as Error).message 
+      });
+    }
+  });
+
+  // Import Material Takeoffs to Estimation Materials
+  app.post('/api/estimation/import-materials-from-mto', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { projectId, takeoffIds } = req.body;
+      
+      if (!projectId || !takeoffIds || !Array.isArray(takeoffIds)) {
+        return res.status(400).json({ error: "Invalid request parameters" });
+      }
+
+      // Get the material takeoffs
+      const takeoffs = await db.select()
+        .from(materialTakeoffs)
+        .where(inArray(materialTakeoffs.id, takeoffIds));
+      
+      if (takeoffs.length === 0) {
+        return res.status(404).json({ error: "No takeoffs found" });
+      }
+
+      // Transform takeoffs to estimation materials
+      const estimationMaterialsData = takeoffs.map(takeoff => ({
+        projectId,
+        materialCode: takeoff.section || 'UNKNOWN',
+        materialName: `${takeoff.section} - ${takeoff.mark}`,
+        designation: takeoff.mark,
+        length: takeoff.length ? takeoff.length / 1000 : 6, // Convert mm to meters
+        lengthUnit: 'm',
+        totalLength: takeoff.length ? (takeoff.length * (takeoff.quantity || 1)) / 1000 : 0,
+        quantity: takeoff.quantity || 1,
+        unitCost: takeoff.unitPrice || 0,
+        totalCost: takeoff.totalPrice || 0,
+        wasteFactor: takeoff.wastage || 5,
+        handlingTime: 0,
+        handlingCost: 0,
+        supplier: null,
+        leadTime: 14, // Default 14 days
+        notes: `Imported from drawing ref: ${takeoff.drawingRef || 'N/A'}`
+      }));
+
+      // Insert into estimation materials
+      const insertedMaterials = await db.insert(estimationMaterials)
+        .values(estimationMaterialsData)
+        .returning();
+
+      res.json({
+        success: true,
+        message: `Successfully imported ${insertedMaterials.length} materials to estimation`,
+        materialIds: insertedMaterials.map(m => m.id)
+      });
+    } catch (error) {
+      console.error('Error importing materials from MTO:', error);
+      res.status(500).json({ 
+        error: 'Failed to import materials',
+        message: (error as Error).message 
+      });
+    }
+  });
+
+  // Import Operations from Material Takeoffs
+  app.post('/api/estimation/import-operations-from-mto', async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { projectId, analysisId } = req.body;
+      
+      if (!projectId || !analysisId) {
+        return res.status(400).json({ error: "Invalid request parameters" });
+      }
+
+      // Get the AI analysis with extracted child operations
+      const [analysis] = await db.select()
+        .from(aiDrawingAnalysis)
+        .where(eq(aiDrawingAnalysis.id, analysisId))
+        .limit(1);
+      
+      if (!analysis) {
+        return res.status(404).json({ error: "AI analysis not found" });
+      }
+
+      const extractedElements = analysis.extractedElements as any;
+      if (!extractedElements || !extractedElements.mtoItems) {
+        return res.status(400).json({ error: "No MTO items found in analysis" });
+      }
+
+      // Extract all operations from child items
+      const operations: any[] = [];
+      let sequenceOrder = 1;
+      
+      extractedElements.mtoItems.forEach((item: any) => {
+        const parentDesignation = item.designation || item.id;
+        
+        // Process child items (operations)
+        if (item.childItems && Array.isArray(item.childItems)) {
+          item.childItems.forEach((child: any) => {
+            const operationData: any = {
+              projectId,
+              materialId: parentDesignation,
+              materialDesignation: parentDesignation,
+              operationType: child.type || 'unknown',
+              operationDesignation: child.id || `${parentDesignation}-${child.type}`,
+              description: child.description || `${child.type} for ${parentDesignation}`,
+              sequenceOrder: sequenceOrder++,
+              operationData: {
+                specifications: child.specifications || {},
+                quantity: child.quantity || 1,
+                laborHours: child.laborHours,
+                materialCost: child.materialCost
+              },
+              method: child.method || null,
+              position: child.position || 'flat'
+            };
+
+            // Set routing flags based on operation type
+            switch (child.type) {
+              case 'cutting':
+              case 'drilling':
+              case 'welding':
+              case 'grinding':
+                operationData.includeInLabor = true;
+                operationData.includeInEquipment = true;
+                break;
+              case 'painting':
+              case 'coating':
+                operationData.includeInCoatings = true;
+                break;
+              case 'endplate':
+              case 'stiffener':
+              case 'cleat':
+              case 'baseplate':
+                operationData.includeInLabor = true;
+                operationData.includeInConsumables = true;
+                break;
+              default:
+                operationData.includeInLabor = true;
+            }
+
+            operations.push(operationData);
+          });
+        }
+      });
+
+      // Insert operations into database
+      if (operations.length > 0) {
+        const insertedOperations = await db.insert(estimationOperations)
+          .values(operations)
+          .returning();
+
+        res.json({
+          success: true,
+          message: `Successfully imported ${insertedOperations.length} operations to estimation`,
+          operationIds: insertedOperations.map(o => o.id)
+        });
+      } else {
+        res.json({
+          success: false,
+          message: 'No operations found to import'
+        });
+      }
+    } catch (error) {
+      console.error('Error importing operations from MTO:', error);
+      res.status(500).json({ 
+        error: 'Failed to import operations',
+        message: (error as Error).message 
+      });
     }
   });
 

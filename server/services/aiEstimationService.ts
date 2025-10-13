@@ -3,8 +3,8 @@ import { PDFDocument } from 'pdf-lib';
 import pdf from 'pdf-parse';
 import { DrawingDocument, DrawingAnnotation } from '@shared/schema';
 
-// Important: Using the latest Anthropic model
-const DEFAULT_MODEL_STR = "claude-sonnet-4-20250514";
+// Important: Using the latest Anthropic model with vision capabilities
+const DEFAULT_MODEL_STR = "claude-3-5-sonnet-20241022"; // Latest model with vision for PDF analysis
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -35,7 +35,7 @@ export interface MaterialTakeOffOperation {
   id: string;
   parentDesignation: string; // e.g., B1
   operationId: string; // e.g., 4.1, 4.2
-  type: 'cutting' | 'drilling' | 'welding' | 'painting' | 'endplate' | 'stiffener' | 'cleat';
+  type: 'cutting' | 'drilling' | 'welding' | 'painting' | 'endplate' | 'stiffener' | 'cleat' | 'baseplate';
   description: string;
   specifications?: {
     holes?: { diameter: number; count: number; pattern?: string };
@@ -128,7 +128,7 @@ Output as structured JSON with hierarchical parent-child relationships.`;
           temperature: 0.2,
         });
         
-        const aiContent = response.content[0].text;
+        const aiContent = (response.content[0] as any).text || '';
         const mtoData = this.parseAIResponse(aiContent);
         const summary = this.calculateMTOSummary(mtoData);
         
@@ -136,8 +136,6 @@ Output as structured JSON with hierarchical parent-child relationships.`;
           projectId: 0,
           mtoItems: mtoData,
           summary,
-          hierarchicalStructure: this.buildHierarchy(mtoData),
-          pageCount,
           aiAnalysis: {
             confidence: 0.75, // Lower confidence for image-based
             processingTime: Date.now(),
@@ -150,11 +148,16 @@ Output as structured JSON with hierarchical parent-child relationships.`;
       
       // Prepare context with annotations
       const annotationContext = annotations?.map(a => 
-        `Annotation at page ${a.pageNumber}: ${a.elementType} - ${a.notes || ''}`
+        `Annotation at page ${a.pageNumber}: ${a.elementType} - ${(a as any).notes || ''}`
       ).join('\n') || 'No annotations provided';
       
-      // Build comprehensive prompt for Anthropic
-      const prompt = `You are an expert structural steel estimator analyzing construction drawings. Extract a detailed Material Take-Off (MTO) from the following drawing information.
+      // Build comprehensive enhanced prompt with cross-validation requirements
+      const prompt = `You are an expert structural steel estimator analyzing construction drawings. You MUST extract a highly detailed and accurate Material Take-Off (MTO) from the provided drawing information using a THREE-PHASE VALIDATION PROTOCOL.
+
+**CRITICAL EXTRACTION REQUIREMENTS:**
+1. **Cross-Validation is MANDATORY** - Every element must be verified through multiple sources (another view, schedule, or note) or explicitly marked as UNVERIFIED
+2. **Profile Hierarchy** - Always prioritize: Text designation → Legend → Schedule → Visual (lowest confidence)
+3. **Never assume** - If unsure, mark confidence as LOW and flag for review
 
 Project Context: ${projectContext || 'Steel fabrication project'}
 
@@ -164,24 +167,74 @@ ${pdfText.substring(0, 10000)} // Limit for initial analysis
 User Annotations:
 ${annotationContext}
 
-Please analyze and provide a DETAILED Material Take-Off with the following structure:
-1. Main structural members (beams, columns, plates) with unique designations (B1, B2, C1, C2, PL1, etc.)
-2. For each member, identify:
-   - Steel grade/material (AS350, AS250, etc.)
-   - Dimensions (length, width, height, thickness)
-   - Weight per meter if applicable
-   - Quantity required
-   - Location/grid reference
-3. Child operations for each member (use numbering like 4.1, 4.2):
-   - End plates with dimensions
-   - Stiffeners
-   - Drilling patterns
-   - Welding requirements
-   - Surface treatment/coating
+**PHASE 1: ELEMENT EXTRACTION**
+Extract EVERY structural element with these details:
+- Unique designation (B1, B2, C1, etc.)
+- Profile type with EXACT designation (e.g., "310UB40.4" not just "UB")
+- Exact dimensions in mm (length, width, depth, thickness)
+- Material grade (AS350, AS250, AS300)
+- Quantity with unit
+- Grid location reference
+- Drawing/page reference
 
-Focus on Australian Standards (AS) steel specifications. Provide measurements in metric (mm).
+**PHASE 2: CONNECTION DETAIL EXTRACTION**
+For EACH primary element, extract ALL connections:
+- End plates: thickness, dimensions (width x height), bolt pattern
+- Stiffeners: quantity, thickness, dimensions
+- Cleats: type (angle/plate), dimensions, bolt configuration
+- Base plates: dimensions, thickness, anchor bolt pattern
+- Splice plates: location, dimensions, bolt configuration
+- Welds: type, size, length, location
 
-Output as structured JSON with hierarchical parent-child relationships.`;
+**PHASE 3: VERIFICATION & CONFIDENCE SCORING**
+Apply confidence scores:
+- HIGH (>85%): Element verified in multiple views/schedules
+- MEDIUM (50-85%): Element clearly visible but single source
+- LOW (<50%): Partial visibility, assumptions made
+- UNVERIFIED: No cross-reference found
+
+**COMMON PITFALLS TO AVOID:**
+1. Scale conflicts - Always verify dimensions against known references
+2. Camber/pre-camber - Check notes for deflection specifications  
+3. Profile ambiguity - Never guess between similar profiles (150UC vs 150PFC)
+4. Faint elements - Mark as LOW confidence if lines are unclear
+5. Connection shapes - Don't assume standard when custom is shown
+
+**OUTPUT FORMAT:**
+{
+  "mtoItems": [
+    {
+      "id": "B1",
+      "designation": "B1",
+      "type": "beam",
+      "profile": "610UB125",
+      "material": "AS300",
+      "dimensions": {
+        "length": 12000,
+        "weight": 125
+      },
+      "quantity": 1,
+      "location": "Grid A1-A4",
+      "confidence_score": 0.95,
+      "verification_source": "Verified in elevation view and framing plan",
+      "childItems": [
+        {
+          "id": "B1.1",
+          "type": "endplate",
+          "thickness": 20,
+          "dimensions": {"width": 250, "height": 600},
+          "quantity": 2,
+          "holes": {"diameter": 24, "count": 8}
+        }
+      ]
+    }
+  ],
+  "unverified_elements": [],
+  "assumptions_made": [],
+  "review_required": []
+}
+
+Focus on Australian Standards. ALL measurements in metric (mm).`;
 
       const response = await anthropic.messages.create({
         model: DEFAULT_MODEL_STR,
@@ -191,7 +244,7 @@ Output as structured JSON with hierarchical parent-child relationships.`;
       });
 
       // Parse the AI response
-      const aiContent = response.content[0].text;
+      const aiContent = (response.content[0] as any).text || '';
       console.log('AI Response Length:', aiContent.length);
       console.log('AI Response Preview:', aiContent.substring(0, 500));
       const mtoData = this.parseAIResponse(aiContent);
@@ -216,7 +269,7 @@ Output as structured JSON with hierarchical parent-child relationships.`;
       };
     } catch (error) {
       console.error('AI estimation failed:', error);
-      throw new Error(`AI estimation analysis failed: ${error.message}`);
+      throw new Error(`AI estimation analysis failed: ${(error as Error).message || 'Unknown error'}`);
     }
   }
 
@@ -242,7 +295,7 @@ Provide detailed specifications including material grade, dimensions, and requir
       temperature: 0.1,
     });
 
-    return this.parseElementResponse(response.content[0].text);
+    return this.parseElementResponse((response.content[0] as any).text || '');
   }
 
   /**
@@ -275,7 +328,7 @@ Provide Australian market-appropriate pricing.`;
       temperature: 0.3,
     });
 
-    return JSON.parse(response.content[0].text);
+    return JSON.parse((response.content[0] as any).text || '{}');
   }
 
   /**
