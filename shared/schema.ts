@@ -524,6 +524,25 @@ export const cuttingStandards = pgTable("cutting_standards", {
   updated_at: timestamp("updated_at").defaultNow().notNull()
 });
 
+// Edge Preparations Standards
+export const edgePreparations = pgTable("edge_preparations", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  preparation_type: varchar("preparation_type", { length: 50 }).notNull(), // bevel, chamfer, square, j_groove, v_groove, u_groove
+  angle_degrees: decimal("angle_degrees", { precision: 5, scale: 2 }), // e.g., 30, 45, 60
+  root_gap_mm: decimal("root_gap_mm", { precision: 10, scale: 2 }), // gap at root of weld prep
+  land_thickness_mm: decimal("land_thickness_mm", { precision: 10, scale: 2 }), // flat part at root
+  radius_mm: decimal("radius_mm", { precision: 10, scale: 2 }), // for u_groove
+  applicable_thickness_min: decimal("applicable_thickness_min", { precision: 10, scale: 2 }), // mm
+  applicable_thickness_max: decimal("applicable_thickness_max", { precision: 10, scale: 2 }), // mm
+  time_per_meter: decimal("time_per_meter", { precision: 10, scale: 2 }).notNull(), // minutes
+  equipment: varchar("equipment", { length: 100 }), // flame_cut, plasma_bevel, machining, grinding
+  description: text("description"),
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull()
+});
+
 // Position Factors
 export const positionFactors = pgTable("position_factors", {
   id: serial("id").primaryKey(),
@@ -2107,6 +2126,78 @@ export const drawingAnnotations = pgTable("drawing_annotations", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+// Annotation Color Themes for PDF markup consistency
+export const annotationThemes = pgTable("annotation_themes", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  
+  // Color definitions for different element types
+  beamColor: varchar("beam_color", { length: 7 }).default('#0000FF'), // Blue
+  columnColor: varchar("column_color", { length: 7 }).default('#FF0000'), // Red
+  plateColor: varchar("plate_color", { length: 7 }).default('#00FF00'), // Green
+  connectionColor: varchar("connection_color", { length: 7 }).default('#FF00FF'), // Magenta
+  weldColor: varchar("weld_color", { length: 7 }).default('#FFA500'), // Orange
+  boltColor: varchar("bolt_color", { length: 7 }).default('#800080'), // Purple
+  dimensionColor: varchar("dimension_color", { length: 7 }).default('#000000'), // Black
+  noteColor: varchar("note_color", { length: 7 }).default('#808080'), // Gray
+  
+  // Line styles
+  lineWidth: integer("line_width").default(2),
+  lineStyle: varchar("line_style", { length: 20 }).default('solid'), // solid, dashed, dotted
+  opacity: decimal("opacity", { precision: 3, scale: 2 }).default("0.7"),
+  
+  // Font settings
+  fontSize: integer("font_size").default(12),
+  fontFamily: varchar("font_family", { length: 50 }).default('Arial'),
+  
+  isDefault: boolean("is_default").default(false),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Plate Schedule for nesting optimization
+export const plateSchedule = pgTable("plate_schedule", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  
+  // Plate identification
+  plateId: varchar("plate_id", { length: 50 }).notNull(), // PL001, PL002
+  parentPlateSize: varchar("parent_plate_size", { length: 100 }).notNull(), // 6000x2400x12
+  parentPlateGrade: varchar("parent_plate_grade", { length: 50 }).notNull(), // 350L0, 250L0
+  
+  // Nesting details
+  nestedParts: jsonb("nested_parts"), // Array of parts cut from this plate
+  utilizationPercentage: decimal("utilization_percentage", { precision: 5, scale: 2 }), // 85.5%
+  wasteArea: decimal("waste_area", { precision: 10, scale: 2 }), // mm²
+  
+  // Cut list
+  cutSequence: jsonb("cut_sequence"), // Ordered list of cuts
+  totalCutLength: decimal("total_cut_length", { precision: 10, scale: 2 }), // mm
+  pierceCount: integer("pierce_count"), // Number of pierce points
+  
+  // Optimization data
+  nestingPatternId: varchar("nesting_pattern_id", { length: 100 }), // Reference to pattern
+  optimizationMethod: varchar("optimization_method", { length: 50 }), // manual, auto_2d, ai_optimized
+  rotationAllowed: boolean("rotation_allowed").default(true),
+  grainDirection: varchar("grain_direction", { length: 20 }), // none, horizontal, vertical
+  
+  // Cost tracking
+  materialCost: decimal("material_cost", { precision: 10, scale: 2 }),
+  cuttingCost: decimal("cutting_cost", { precision: 10, scale: 2 }),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }),
+  
+  // Status
+  status: varchar("status", { length: 50 }).default('planned'), // planned, nested, cut, complete
+  nestingDate: timestamp("nesting_date"),
+  cuttingDate: timestamp("cutting_date"),
+  
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
 // Queue for AI processing tasks
 export const drawingProcessingQueue = pgTable("drawing_processing_queue", {
   id: serial("id").primaryKey(),
@@ -2139,6 +2230,7 @@ export const aiDrawingAnalysis = pgTable("ai_drawing_analysis", {
   drawingType: text("drawing_type").notNull(), // structural_plan, elevation, section, shop_drawing
   analysisStatus: text("analysis_status").notNull().default("pending"), // pending, processing, completed, failed
   confidence: numeric("confidence"), // AI confidence score 0-1
+  confidence_score: decimal("confidence_score", { precision: 5, scale: 2 }), // More detailed confidence percentage (0-100)
   extractedElements: jsonb("extracted_elements"), // JSON array of detected elements
   reviewNotes: text("review_notes"),
   uploadedBy: text("uploaded_by"),

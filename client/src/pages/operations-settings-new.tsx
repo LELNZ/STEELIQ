@@ -64,6 +64,11 @@ const tabs = [
     tooltip: 'Configure cutting time standards for different materials, thicknesses, and machine types'
   },
   {
+    value: 'edge-preparations',
+    label: 'Edge Prep',
+    tooltip: 'Define edge preparation standards for welding including bevels, grooves, and chamfers'
+  },
+  {
     value: 'position-factors',
     label: 'Positions',
     tooltip: 'Define difficulty multipliers for operations in challenging positions (overhead, vertical, confined spaces)'
@@ -106,7 +111,7 @@ export default function OperationsSettings() {
 
         <Tabs defaultValue="fabrication" className="w-full">
           {/* Tabs on single line with proper spacing */}
-          <TabsList className="grid grid-cols-9 h-10 p-1 bg-muted w-full gap-0">
+          <TabsList className="grid grid-cols-10 h-10 p-1 bg-muted w-full gap-0">
             {tabs.map((tab) => (
               <TabsTrigger 
                 key={tab.value} 
@@ -132,6 +137,10 @@ export default function OperationsSettings() {
 
           <TabsContent value="cutting" className="mt-4">
             <CuttingStandardsTab />
+          </TabsContent>
+
+          <TabsContent value="edge-preparations" className="mt-4">
+            <EdgePreparationsTab />
           </TabsContent>
 
           <TabsContent value="position-factors" className="mt-4">
@@ -758,6 +767,107 @@ function WeldingStandardsTab() {
           onEdit={handleEdit}
           onDelete={(id) => deleteMutation.mutate(id)}
           emptyMessage="No welding standards configured"
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+// Edge Preparations Tab
+function EdgePreparationsTab() {
+  const { data: preparations = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/operations/edge-preparations']
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [editingPreparation, setEditingPreparation] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest('DELETE', `/api/operations/edge-preparations/${id}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Edge preparation deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/edge-preparations'] });
+    }
+  });
+
+  const handleEdit = (preparation: any) => {
+    setEditingPreparation(preparation);
+    setIsDialogOpen(true);
+  };
+
+  const handleCreate = () => {
+    setEditingPreparation(null);
+    setIsDialogOpen(true);
+  };
+
+  const columns = [
+    { key: 'name', header: 'Name' },
+    { key: 'preparation_type', header: 'Type', render: (value: string) => value?.replace(/_/g, ' ') },
+    { 
+      key: 'angle_degrees', 
+      header: 'Angle',
+      render: (value: any) => value ? `${value}°` : '-'
+    },
+    { 
+      key: 'applicable_thickness_min', 
+      header: 'Thickness Range',
+      render: (_: any, row: any) => {
+        if (row.applicable_thickness_min || row.applicable_thickness_max) {
+          return `${row.applicable_thickness_min || 0}-${row.applicable_thickness_max || '∞'}mm`;
+        }
+        return '-';
+      }
+    },
+    { key: 'time_per_meter', header: 'Time/Meter', render: (value: number) => `${value} min` },
+    { key: 'equipment', header: 'Equipment', render: (value: string) => value || '-' },
+    { 
+      key: 'is_active', 
+      header: 'Status',
+      render: (value: boolean) => (
+        <span className={`text-xs px-2 py-1 rounded ${value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+          {value ? 'Active' : 'Inactive'}
+        </span>
+      )
+    }
+  ];
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Edge Preparations</CardTitle>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingPreparation ? 'Edit Edge Preparation' : 'Create Edge Preparation'}
+              </DialogTitle>
+            </DialogHeader>
+            <EdgePreparationForm 
+              preparation={editingPreparation}
+              onClose={() => setIsDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        <StandardsTable
+          data={preparations}
+          columns={columns}
+          onEdit={handleEdit}
+          onDelete={(id) => deleteMutation.mutate(id)}
+          emptyMessage="No edge preparations configured"
         />
       </CardContent>
     </Card>
@@ -2500,6 +2610,192 @@ function CuttingStandardForm({ standard, onClose }: { standard: any; onClose: ()
         <Button variant="outline" onClick={onClose}>Cancel</Button>
         <Button onClick={() => saveMutation.mutate(form)}>
           {standard ? 'Update' : 'Create'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function EdgePreparationForm({ preparation, onClose }: { preparation: any; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  const [form, setForm] = useState({
+    name: preparation?.name || '',
+    preparation_type: preparation?.preparation_type || 'bevel',
+    angle_degrees: preparation?.angle_degrees || '',
+    root_gap_mm: preparation?.root_gap_mm || '',
+    land_thickness_mm: preparation?.land_thickness_mm || '',
+    radius_mm: preparation?.radius_mm || '',
+    applicable_thickness_min: preparation?.applicable_thickness_min || '',
+    applicable_thickness_max: preparation?.applicable_thickness_max || '',
+    time_per_meter: preparation?.time_per_meter || 5,
+    equipment: preparation?.equipment || '',
+    description: preparation?.description || '',
+    is_active: preparation?.is_active ?? true
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: typeof form) => {
+      const url = preparation 
+        ? `/api/operations/edge-preparations/${preparation.id}`
+        : '/api/operations/edge-preparations';
+      return apiRequest(preparation ? 'PUT' : 'POST', url, data);
+    },
+    onSuccess: () => {
+      toast({ title: `Edge preparation ${preparation ? 'updated' : 'created'} successfully` });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/edge-preparations'] });
+      onClose();
+    }
+  });
+
+  return (
+    <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="e.g., Single V-Bevel 45°"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="preparation_type">Preparation Type</Label>
+          <Select value={form.preparation_type} onValueChange={(value) => setForm({ ...form, preparation_type: value })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bevel">Bevel</SelectItem>
+              <SelectItem value="chamfer">Chamfer</SelectItem>
+              <SelectItem value="square">Square</SelectItem>
+              <SelectItem value="j_groove">J-Groove</SelectItem>
+              <SelectItem value="v_groove">V-Groove</SelectItem>
+              <SelectItem value="u_groove">U-Groove</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <Label htmlFor="angle_degrees">Angle (degrees)</Label>
+          <Input
+            id="angle_degrees"
+            type="number"
+            value={form.angle_degrees}
+            onChange={(e) => setForm({ ...form, angle_degrees: e.target.value })}
+            placeholder="e.g., 45"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="root_gap_mm">Root Gap (mm)</Label>
+          <Input
+            id="root_gap_mm"
+            type="number"
+            value={form.root_gap_mm}
+            onChange={(e) => setForm({ ...form, root_gap_mm: e.target.value })}
+            placeholder="e.g., 3"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="land_thickness_mm">Land Thickness (mm)</Label>
+          <Input
+            id="land_thickness_mm"
+            type="number"
+            value={form.land_thickness_mm}
+            onChange={(e) => setForm({ ...form, land_thickness_mm: e.target.value })}
+            placeholder="e.g., 2"
+          />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <Label htmlFor="radius_mm">Radius (mm) - U-Groove</Label>
+          <Input
+            id="radius_mm"
+            type="number"
+            value={form.radius_mm}
+            onChange={(e) => setForm({ ...form, radius_mm: e.target.value })}
+            placeholder="For U-Groove"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="applicable_thickness_min">Min Thickness (mm)</Label>
+          <Input
+            id="applicable_thickness_min"
+            type="number"
+            value={form.applicable_thickness_min}
+            onChange={(e) => setForm({ ...form, applicable_thickness_min: e.target.value })}
+            placeholder="e.g., 6"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="applicable_thickness_max">Max Thickness (mm)</Label>
+          <Input
+            id="applicable_thickness_max"
+            type="number"
+            value={form.applicable_thickness_max}
+            onChange={(e) => setForm({ ...form, applicable_thickness_max: e.target.value })}
+            placeholder="e.g., 25"
+          />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="time_per_meter">Time per Meter (minutes)</Label>
+          <Input
+            id="time_per_meter"
+            type="number"
+            value={form.time_per_meter}
+            onChange={(e) => setForm({ ...form, time_per_meter: parseFloat(e.target.value) || 0 })}
+            placeholder="e.g., 5"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="equipment">Equipment</Label>
+          <Input
+            id="equipment"
+            value={form.equipment}
+            onChange={(e) => setForm({ ...form, equipment: e.target.value })}
+            placeholder="e.g., Plasma Bevel, Machining"
+          />
+        </div>
+      </div>
+      
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Input
+          id="description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          placeholder="Additional details about this edge preparation"
+        />
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="is_active"
+          checked={form.is_active}
+          onCheckedChange={(checked) => setForm({ ...form, is_active: checked === true })}
+        />
+        <Label htmlFor="is_active">Active</Label>
+      </div>
+      
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={() => saveMutation.mutate(form)}>
+          {preparation ? 'Update' : 'Create'}
         </Button>
       </div>
     </div>

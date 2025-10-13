@@ -11,7 +11,7 @@ import { teamStorage, DEFAULT_SYSTEM_ROLES } from "./team";
 import { timeManagementStorage } from "./timeManagement";
 import { AuthService } from "./auth";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, materials, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems, projectLifecycleEvents, projectLifecyclePhases, projectLifecycleTasks, estimationProjects, projectLifecycleTemplates, invoices, payments, emailImportedCosts, timeEntries, jobEstimates, qualityControl, complianceDocuments, inventory, qualityInspections, inventoryMovements, safetyInspections, documents, machines, machineStatusLogs, productionEvents, productionShifts, productionMetrics, workOrders } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, materials, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, edgePreparations, annotationThemes, plateSchedule, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems, projectLifecycleEvents, projectLifecyclePhases, projectLifecycleTasks, estimationProjects, projectLifecycleTemplates, invoices, payments, emailImportedCosts, timeEntries, jobEstimates, qualityControl, complianceDocuments, inventory, qualityInspections, inventoryMovements, safetyInspections, documents, machines, machineStatusLogs, productionEvents, productionShifts, productionMetrics, workOrders } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from 'bcrypt';
 import multer from 'multer';
@@ -2401,6 +2401,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting cutting standard:", error);
       res.status(500).json({ error: "Failed to delete cutting standard" });
+    }
+  });
+
+  // Edge Preparations
+  app.get("/api/operations/edge-preparations", async (req, res) => {
+    try {
+      const preparations = await db.select().from(edgePreparations).orderBy(edgePreparations.name);
+      res.json(preparations);
+    } catch (error) {
+      console.error("Error fetching edge preparations:", error);
+      res.status(500).json({ error: "Failed to fetch edge preparations" });
+    }
+  });
+
+  app.post("/api/operations/edge-preparations", async (req, res) => {
+    try {
+      const data = req.body;
+      const [preparation] = await db.insert(edgePreparations).values(data).returning();
+      res.status(201).json(preparation);
+    } catch (error) {
+      console.error("Error creating edge preparation:", error);
+      res.status(500).json({ error: "Failed to create edge preparation" });
+    }
+  });
+
+  app.put("/api/operations/edge-preparations/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = req.body;
+      const [preparation] = await db.update(edgePreparations)
+        .set({ ...data, updated_at: new Date() })
+        .where(eq(edgePreparations.id, id))
+        .returning();
+      res.json(preparation);
+    } catch (error) {
+      console.error("Error updating edge preparation:", error);
+      res.status(500).json({ error: "Failed to update edge preparation" });
+    }
+  });
+
+  app.delete("/api/operations/edge-preparations/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(edgePreparations).where(eq(edgePreparations.id, id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting edge preparation:", error);
+      res.status(500).json({ error: "Failed to delete edge preparation" });
     }
   });
 
