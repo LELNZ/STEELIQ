@@ -2214,6 +2214,14 @@ export const plateSchedule = pgTable("plate_schedule", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+export const insertPlateScheduleSchema = createInsertSchema(plateSchedule).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+export type InsertPlateSchedule = z.infer<typeof insertPlateScheduleSchema>;
+export type PlateSchedule = typeof plateSchedule.$inferSelect;
+
 // Queue for AI processing tasks
 export const drawingProcessingQueue = pgTable("drawing_processing_queue", {
   id: serial("id").primaryKey(),

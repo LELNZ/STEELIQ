@@ -74,6 +74,11 @@ const tabs = [
     tooltip: 'Configure color themes and styles for PDF markup and annotations'
   },
   {
+    value: 'plate-schedule',
+    label: 'Plate Schedule',
+    tooltip: 'Manage plate nesting optimization and cutting schedules'
+  },
+  {
     value: 'position-factors',
     label: 'Positions',
     tooltip: 'Define difficulty multipliers for operations in challenging positions (overhead, vertical, confined spaces)'
@@ -116,7 +121,7 @@ export default function OperationsSettings() {
 
         <Tabs defaultValue="fabrication" className="w-full">
           {/* Tabs on single line with proper spacing */}
-          <TabsList className="grid grid-cols-11 h-10 p-1 bg-muted w-full gap-0">
+          <TabsList className="grid grid-cols-12 h-10 p-1 bg-muted w-full gap-0">
             {tabs.map((tab) => (
               <TabsTrigger 
                 key={tab.value} 
@@ -150,6 +155,10 @@ export default function OperationsSettings() {
 
           <TabsContent value="annotation-themes" className="mt-4">
             <AnnotationThemesTab />
+          </TabsContent>
+
+          <TabsContent value="plate-schedule" className="mt-4">
+            <PlateScheduleTab />
           </TabsContent>
 
           <TabsContent value="position-factors" className="mt-4">
@@ -776,6 +785,92 @@ function WeldingStandardsTab() {
           onEdit={handleEdit}
           onDelete={(id) => deleteMutation.mutate(id)}
           emptyMessage="No welding standards configured"
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+// Plate Schedule Tab
+function PlateScheduleTab() {
+  const { data: schedules = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/operations/plate-schedule']
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [editingSchedule, setEditingSchedule] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest('DELETE', `/api/operations/plate-schedule/${id}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Plate schedule deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/plate-schedule'] });
+    }
+  });
+
+  const handleEdit = (schedule: any) => {
+    setEditingSchedule(schedule);
+    setIsDialogOpen(true);
+  };
+
+  const handleCreate = () => {
+    setEditingSchedule(null);
+    setIsDialogOpen(true);
+  };
+
+  const columns = [
+    { key: 'plateId', header: 'Plate ID' },
+    { key: 'parentPlateSize', header: 'Plate Size' },
+    { key: 'parentPlateGrade', header: 'Grade' },
+    { 
+      key: 'utilizationPercentage', 
+      header: 'Utilization',
+      render: (value: any) => value ? `${parseFloat(value).toFixed(1)}%` : '-'
+    },
+    { 
+      key: 'totalCutLength', 
+      header: 'Cut Length',
+      render: (value: any) => value ? `${parseFloat(value).toFixed(0)}mm` : '-'
+    },
+    { key: 'pierceCount', header: 'Pierce Count', render: (value: any) => value || '-' },
+    { 
+      key: 'status', 
+      header: 'Status',
+      render: (value: string) => (
+        <span className={`text-xs px-2 py-1 rounded ${
+          value === 'complete' ? 'bg-green-100 text-green-800' : 
+          value === 'cut' ? 'bg-blue-100 text-blue-800' :
+          value === 'nested' ? 'bg-yellow-100 text-yellow-800' :
+          'bg-gray-100 text-gray-800'
+        }`}>
+          {value || 'planned'}
+        </span>
+      )
+    }
+  ];
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Plate Schedule</CardTitle>
+        <Button size="sm" onClick={handleCreate}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <StandardsTable
+          data={schedules}
+          columns={columns}
+          onEdit={handleEdit}
+          onDelete={(id) => deleteMutation.mutate(id)}
+          emptyMessage="No plate schedules configured"
         />
       </CardContent>
     </Card>

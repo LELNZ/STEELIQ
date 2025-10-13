@@ -2529,6 +2529,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Plate Schedule
+  app.get('/api/operations/plate-schedule', async (req, res) => {
+    try {
+      const schedules = await db.select().from(plateSchedule).orderBy(plateSchedule.plateId);
+      res.json(schedules);
+    } catch (error) {
+      console.error("Error fetching plate schedules:", error);
+      res.status(500).json({ error: "Failed to fetch plate schedules" });
+    }
+  });
+
+  app.get('/api/operations/plate-schedule/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const [schedule] = await db.select().from(plateSchedule).where(eq(plateSchedule.id, id));
+      
+      if (!schedule) {
+        return res.status(404).json({ error: 'Plate schedule not found' });
+      }
+      
+      res.json(schedule);
+    } catch (error) {
+      console.error("Error fetching plate schedule:", error);
+      res.status(500).json({ error: "Failed to fetch plate schedule" });
+    }
+  });
+
+  app.post('/api/operations/plate-schedule', async (req, res) => {
+    try {
+      const data = req.body;
+      const [newSchedule] = await db.insert(plateSchedule).values({
+        ...data,
+        createdBy: (req as any).user?.id
+      }).returning();
+      
+      res.status(201).json(newSchedule);
+    } catch (error) {
+      console.error("Error creating plate schedule:", error);
+      res.status(500).json({ error: "Failed to create plate schedule" });
+    }
+  });
+
+  app.put('/api/operations/plate-schedule/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = req.body;
+      
+      const [updatedSchedule] = await db.update(plateSchedule)
+        .set({
+          ...data,
+          updatedAt: new Date()
+        })
+        .where(eq(plateSchedule.id, id))
+        .returning();
+      
+      if (!updatedSchedule) {
+        return res.status(404).json({ error: 'Plate schedule not found' });
+      }
+      
+      res.json(updatedSchedule);
+    } catch (error) {
+      console.error("Error updating plate schedule:", error);
+      res.status(500).json({ error: "Failed to update plate schedule" });
+    }
+  });
+
+  app.delete('/api/operations/plate-schedule/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(plateSchedule).where(eq(plateSchedule.id, id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting plate schedule:", error);
+      res.status(500).json({ error: "Failed to delete plate schedule" });
+    }
+  });
+
   // Position Factors
   app.get("/api/operations/position-factors", async (req, res) => {
     try {
