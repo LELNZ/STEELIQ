@@ -69,6 +69,11 @@ const tabs = [
     tooltip: 'Define edge preparation standards for welding including bevels, grooves, and chamfers'
   },
   {
+    value: 'annotation-themes',
+    label: 'PDF Themes',
+    tooltip: 'Configure color themes and styles for PDF markup and annotations'
+  },
+  {
     value: 'position-factors',
     label: 'Positions',
     tooltip: 'Define difficulty multipliers for operations in challenging positions (overhead, vertical, confined spaces)'
@@ -111,7 +116,7 @@ export default function OperationsSettings() {
 
         <Tabs defaultValue="fabrication" className="w-full">
           {/* Tabs on single line with proper spacing */}
-          <TabsList className="grid grid-cols-10 h-10 p-1 bg-muted w-full gap-0">
+          <TabsList className="grid grid-cols-11 h-10 p-1 bg-muted w-full gap-0">
             {tabs.map((tab) => (
               <TabsTrigger 
                 key={tab.value} 
@@ -141,6 +146,10 @@ export default function OperationsSettings() {
 
           <TabsContent value="edge-preparations" className="mt-4">
             <EdgePreparationsTab />
+          </TabsContent>
+
+          <TabsContent value="annotation-themes" className="mt-4">
+            <AnnotationThemesTab />
           </TabsContent>
 
           <TabsContent value="position-factors" className="mt-4">
@@ -767,6 +776,122 @@ function WeldingStandardsTab() {
           onEdit={handleEdit}
           onDelete={(id) => deleteMutation.mutate(id)}
           emptyMessage="No welding standards configured"
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+// Annotation Themes Tab
+function AnnotationThemesTab() {
+  const { data: themes = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/operations/annotation-themes']
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [editingTheme, setEditingTheme] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest('DELETE', `/api/operations/annotation-themes/${id}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Annotation theme deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/annotation-themes'] });
+    }
+  });
+
+  const handleEdit = (theme: any) => {
+    setEditingTheme(theme);
+    setIsDialogOpen(true);
+  };
+
+  const handleCreate = () => {
+    setEditingTheme(null);
+    setIsDialogOpen(true);
+  };
+
+  const columns = [
+    { key: 'name', header: 'Name' },
+    { key: 'description', header: 'Description', render: (value: string) => value || '-' },
+    { 
+      key: 'beamColor', 
+      header: 'Beam',
+      render: (value: string) => (
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded border" style={{ backgroundColor: value }} />
+          <span className="text-xs">{value}</span>
+        </div>
+      )
+    },
+    { 
+      key: 'columnColor', 
+      header: 'Column',
+      render: (value: string) => (
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded border" style={{ backgroundColor: value }} />
+          <span className="text-xs">{value}</span>
+        </div>
+      )
+    },
+    { 
+      key: 'plateColor', 
+      header: 'Plate',
+      render: (value: string) => (
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded border" style={{ backgroundColor: value }} />
+          <span className="text-xs">{value}</span>
+        </div>
+      )
+    },
+    { key: 'lineWidth', header: 'Line Width', render: (value: number) => `${value}px` },
+    { key: 'lineStyle', header: 'Line Style' },
+    { 
+      key: 'isDefault', 
+      header: 'Default',
+      render: (value: boolean) => (
+        <span className={`text-xs px-2 py-1 rounded ${value ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+          {value ? 'Default' : 'Custom'}
+        </span>
+      )
+    }
+  ];
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Annotation Themes</CardTitle>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingTheme ? 'Edit Annotation Theme' : 'Create Annotation Theme'}
+              </DialogTitle>
+            </DialogHeader>
+            <AnnotationThemeForm 
+              theme={editingTheme}
+              onClose={() => setIsDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        <StandardsTable
+          data={themes}
+          columns={columns}
+          onEdit={handleEdit}
+          onDelete={(id) => deleteMutation.mutate(id)}
+          emptyMessage="No annotation themes configured"
         />
       </CardContent>
     </Card>
@@ -2610,6 +2735,318 @@ function CuttingStandardForm({ standard, onClose }: { standard: any; onClose: ()
         <Button variant="outline" onClick={onClose}>Cancel</Button>
         <Button onClick={() => saveMutation.mutate(form)}>
           {standard ? 'Update' : 'Create'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AnnotationThemeForm({ theme, onClose }: { theme: any; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  const [form, setForm] = useState({
+    name: theme?.name || '',
+    description: theme?.description || '',
+    beamColor: theme?.beamColor || '#0000FF',
+    columnColor: theme?.columnColor || '#FF0000',
+    plateColor: theme?.plateColor || '#00FF00',
+    connectionColor: theme?.connectionColor || '#FF00FF',
+    weldColor: theme?.weldColor || '#FFA500',
+    boltColor: theme?.boltColor || '#800080',
+    dimensionColor: theme?.dimensionColor || '#000000',
+    noteColor: theme?.noteColor || '#808080',
+    lineWidth: theme?.lineWidth || 2,
+    lineStyle: theme?.lineStyle || 'solid',
+    opacity: theme?.opacity || 0.7,
+    fontSize: theme?.fontSize || 12,
+    fontFamily: theme?.fontFamily || 'Arial',
+    isDefault: theme?.isDefault ?? false
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: typeof form) => {
+      const url = theme 
+        ? `/api/operations/annotation-themes/${theme.id}`
+        : '/api/operations/annotation-themes';
+      return apiRequest(theme ? 'PUT' : 'POST', url, data);
+    },
+    onSuccess: () => {
+      toast({ title: `Annotation theme ${theme ? 'updated' : 'created'} successfully` });
+      queryClient.invalidateQueries({ queryKey: ['/api/operations/annotation-themes'] });
+      onClose();
+    }
+  });
+
+  return (
+    <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="name">Theme Name</Label>
+          <Input
+            id="name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="e.g., Default Theme, High Contrast"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="description">Description</Label>
+          <Input
+            id="description"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder="Theme description"
+          />
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Element Colors</Label>
+        <div className="grid grid-cols-4 gap-4">
+          <div>
+            <Label htmlFor="beamColor" className="text-xs">Beam</Label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                id="beamColor"
+                value={form.beamColor}
+                onChange={(e) => setForm({ ...form, beamColor: e.target.value })}
+                className="w-10 h-10 rounded border"
+              />
+              <Input
+                value={form.beamColor}
+                onChange={(e) => setForm({ ...form, beamColor: e.target.value })}
+                placeholder="#0000FF"
+                className="font-mono text-xs"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="columnColor" className="text-xs">Column</Label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                id="columnColor"
+                value={form.columnColor}
+                onChange={(e) => setForm({ ...form, columnColor: e.target.value })}
+                className="w-10 h-10 rounded border"
+              />
+              <Input
+                value={form.columnColor}
+                onChange={(e) => setForm({ ...form, columnColor: e.target.value })}
+                placeholder="#FF0000"
+                className="font-mono text-xs"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="plateColor" className="text-xs">Plate</Label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                id="plateColor"
+                value={form.plateColor}
+                onChange={(e) => setForm({ ...form, plateColor: e.target.value })}
+                className="w-10 h-10 rounded border"
+              />
+              <Input
+                value={form.plateColor}
+                onChange={(e) => setForm({ ...form, plateColor: e.target.value })}
+                placeholder="#00FF00"
+                className="font-mono text-xs"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="connectionColor" className="text-xs">Connection</Label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                id="connectionColor"
+                value={form.connectionColor}
+                onChange={(e) => setForm({ ...form, connectionColor: e.target.value })}
+                className="w-10 h-10 rounded border"
+              />
+              <Input
+                value={form.connectionColor}
+                onChange={(e) => setForm({ ...form, connectionColor: e.target.value })}
+                placeholder="#FF00FF"
+                className="font-mono text-xs"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-4 gap-4">
+          <div>
+            <Label htmlFor="weldColor" className="text-xs">Weld</Label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                id="weldColor"
+                value={form.weldColor}
+                onChange={(e) => setForm({ ...form, weldColor: e.target.value })}
+                className="w-10 h-10 rounded border"
+              />
+              <Input
+                value={form.weldColor}
+                onChange={(e) => setForm({ ...form, weldColor: e.target.value })}
+                placeholder="#FFA500"
+                className="font-mono text-xs"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="boltColor" className="text-xs">Bolt</Label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                id="boltColor"
+                value={form.boltColor}
+                onChange={(e) => setForm({ ...form, boltColor: e.target.value })}
+                className="w-10 h-10 rounded border"
+              />
+              <Input
+                value={form.boltColor}
+                onChange={(e) => setForm({ ...form, boltColor: e.target.value })}
+                placeholder="#800080"
+                className="font-mono text-xs"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="dimensionColor" className="text-xs">Dimension</Label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                id="dimensionColor"
+                value={form.dimensionColor}
+                onChange={(e) => setForm({ ...form, dimensionColor: e.target.value })}
+                className="w-10 h-10 rounded border"
+              />
+              <Input
+                value={form.dimensionColor}
+                onChange={(e) => setForm({ ...form, dimensionColor: e.target.value })}
+                placeholder="#000000"
+                className="font-mono text-xs"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="noteColor" className="text-xs">Note</Label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                id="noteColor"
+                value={form.noteColor}
+                onChange={(e) => setForm({ ...form, noteColor: e.target.value })}
+                className="w-10 h-10 rounded border"
+              />
+              <Input
+                value={form.noteColor}
+                onChange={(e) => setForm({ ...form, noteColor: e.target.value })}
+                placeholder="#808080"
+                className="font-mono text-xs"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Line & Font Settings</Label>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="lineWidth">Line Width (px)</Label>
+            <Input
+              id="lineWidth"
+              type="number"
+              value={form.lineWidth}
+              onChange={(e) => setForm({ ...form, lineWidth: parseInt(e.target.value) || 0 })}
+              placeholder="2"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="lineStyle">Line Style</Label>
+            <Select value={form.lineStyle} onValueChange={(value) => setForm({ ...form, lineStyle: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select style" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="solid">Solid</SelectItem>
+                <SelectItem value="dashed">Dashed</SelectItem>
+                <SelectItem value="dotted">Dotted</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="opacity">Opacity</Label>
+            <Input
+              id="opacity"
+              type="number"
+              step="0.1"
+              min="0"
+              max="1"
+              value={form.opacity}
+              onChange={(e) => setForm({ ...form, opacity: parseFloat(e.target.value) || 0 })}
+              placeholder="0.7"
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="fontSize">Font Size (px)</Label>
+            <Input
+              id="fontSize"
+              type="number"
+              value={form.fontSize}
+              onChange={(e) => setForm({ ...form, fontSize: parseInt(e.target.value) || 0 })}
+              placeholder="12"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="fontFamily">Font Family</Label>
+            <Select value={form.fontFamily} onValueChange={(value) => setForm({ ...form, fontFamily: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select font" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Arial">Arial</SelectItem>
+                <SelectItem value="Helvetica">Helvetica</SelectItem>
+                <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                <SelectItem value="Courier New">Courier New</SelectItem>
+                <SelectItem value="Verdana">Verdana</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="isDefault"
+          checked={form.isDefault}
+          onCheckedChange={(checked) => setForm({ ...form, isDefault: checked === true })}
+        />
+        <Label htmlFor="isDefault">Set as Default Theme</Label>
+      </div>
+      
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={() => saveMutation.mutate(form)}>
+          {theme ? 'Update' : 'Create'}
         </Button>
       </div>
     </div>

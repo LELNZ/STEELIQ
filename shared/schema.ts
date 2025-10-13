@@ -543,6 +543,14 @@ export const edgePreparations = pgTable("edge_preparations", {
   updated_at: timestamp("updated_at").defaultNow().notNull()
 });
 
+export const insertEdgePreparationSchema = createInsertSchema(edgePreparations).omit({
+  id: true,
+  created_at: true,
+  updated_at: true
+});
+export type InsertEdgePreparation = z.infer<typeof insertEdgePreparationSchema>;
+export type EdgePreparation = typeof edgePreparations.$inferSelect;
+
 // Position Factors
 export const positionFactors = pgTable("position_factors", {
   id: serial("id").primaryKey(),
@@ -2156,6 +2164,14 @@ export const annotationThemes = pgTable("annotation_themes", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
+
+export const insertAnnotationThemeSchema = createInsertSchema(annotationThemes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+export type InsertAnnotationTheme = z.infer<typeof insertAnnotationThemeSchema>;
+export type AnnotationTheme = typeof annotationThemes.$inferSelect;
 
 // Plate Schedule for nesting optimization
 export const plateSchedule = pgTable("plate_schedule", {

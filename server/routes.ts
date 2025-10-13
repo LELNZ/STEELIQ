@@ -2452,6 +2452,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Annotation Themes
+  app.get('/api/operations/annotation-themes', async (req, res) => {
+    try {
+      const themes = await db.select().from(annotationThemes).orderBy(annotationThemes.name);
+      res.json(themes);
+    } catch (error) {
+      console.error("Error fetching annotation themes:", error);
+      res.status(500).json({ error: "Failed to fetch annotation themes" });
+    }
+  });
+
+  app.get('/api/operations/annotation-themes/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const [theme] = await db.select().from(annotationThemes).where(eq(annotationThemes.id, id));
+      
+      if (!theme) {
+        return res.status(404).json({ error: 'Annotation theme not found' });
+      }
+      
+      res.json(theme);
+    } catch (error) {
+      console.error("Error fetching annotation theme:", error);
+      res.status(500).json({ error: "Failed to fetch annotation theme" });
+    }
+  });
+
+  app.post('/api/operations/annotation-themes', async (req, res) => {
+    try {
+      const data = req.body;
+      const [newTheme] = await db.insert(annotationThemes).values({
+        ...data,
+        createdBy: (req as any).user?.id
+      }).returning();
+      
+      res.status(201).json(newTheme);
+    } catch (error) {
+      console.error("Error creating annotation theme:", error);
+      res.status(500).json({ error: "Failed to create annotation theme" });
+    }
+  });
+
+  app.put('/api/operations/annotation-themes/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = req.body;
+      
+      const [updatedTheme] = await db.update(annotationThemes)
+        .set({
+          ...data,
+          updatedAt: new Date()
+        })
+        .where(eq(annotationThemes.id, id))
+        .returning();
+      
+      if (!updatedTheme) {
+        return res.status(404).json({ error: 'Annotation theme not found' });
+      }
+      
+      res.json(updatedTheme);
+    } catch (error) {
+      console.error("Error updating annotation theme:", error);
+      res.status(500).json({ error: "Failed to update annotation theme" });
+    }
+  });
+
+  app.delete('/api/operations/annotation-themes/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(annotationThemes).where(eq(annotationThemes.id, id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting annotation theme:", error);
+      res.status(500).json({ error: "Failed to delete annotation theme" });
+    }
+  });
+
   // Position Factors
   app.get("/api/operations/position-factors", async (req, res) => {
     try {
