@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, numeric, date, index, bigint, bigserial } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, numeric, date, index, bigint, bigserial, uuid } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -2292,6 +2292,121 @@ export const connectionDetails = pgTable("connection_details", {
   workshopRate: decimal("workshop_rate").default("80"), // $/hour
   siteRate: decimal("site_rate").default("120"), // $/hour
   location: text("location").default("workshop"), // workshop, site
+});
+
+// Pattern Pack Learning System Tables for Self-Learning AI
+export const patternPacks = pgTable("pattern_packs", {
+  id: serial("id").primaryKey(),
+  organizationKey: varchar("organization_key", { length: 100 }), // Link to organization or use 'default'
+  projectType: varchar("project_type", { length: 100 }), // warehouse, industrial, commercial
+  patternData: jsonb("pattern_data").notNull(), // Complete pattern pack
+  version: varchar("version", { length: 20 }),
+  checksum: varchar("checksum", { length: 64 }),
+  confidenceScore: decimal("confidence_score", { precision: 5, scale: 2 }),
+  usageCount: integer("usage_count").default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  // Pattern components for querying
+  titleBlockLayout: jsonb("title_block_layout"),
+  legendAliases: jsonb("legend_aliases"), // {"SP1": "530UB93", "RB2": "300PFC"}
+  holePolicyExtracted: jsonb("hole_policy_extracted"),
+  boltGradePolicy: jsonb("bolt_grade_policy"),
+  weldSymbolFamily: varchar("weld_symbol_family", { length: 50 }),
+  excludedPhrases: text("excluded_phrases").array(),
+  handrailDetectionTerms: text("handrail_detection_terms").array(),
+  measurementGuardrails: jsonb("measurement_guardrails"),
+  styleFeatures: jsonb("style_features")
+});
+
+export const patternLearningEvents = pgTable("pattern_learning_events", {
+  id: serial("id").primaryKey(),
+  patternPackId: integer("pattern_pack_id").references(() => patternPacks.id),
+  aiAnalysisId: integer("ai_analysis_id").references(() => aiDrawingAnalysis.id),
+  eventType: varchar("event_type", { length: 50 }), // conflict, override, enhancement, validation
+  originalValue: jsonb("original_value"),
+  correctedValue: jsonb("corrected_value"),
+  confidenceDelta: decimal("confidence_delta", { precision: 5, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const autoConfigurations = pgTable("auto_configurations", {
+  id: serial("id").primaryKey(),
+  aiAnalysisId: integer("ai_analysis_id").references(() => aiDrawingAnalysis.id),
+  regionCodeSet: varchar("region_code_set", { length: 50 }), // AS_NZS, AISC_AWS, EN_ISO
+  unitsDefault: varchar("units_default", { length: 10 }),
+  ntsDoNotScale: boolean("nts_do_not_scale"),
+  weldStandard: varchar("weld_standard", { length: 100 }),
+  boltStandard: varchar("bolt_standard", { length: 100 }),
+  boltGradePolicy: jsonb("bolt_grade_policy"),
+  holeOversizeTable: jsonb("hole_oversize_table"),
+  coatingsMacroclimate: varchar("coatings_macroclimate", { length: 100 }),
+  excludedByNotesPhrases: text("excluded_by_notes_phrases").array(),
+  includeHandrails: boolean("include_handrails"),
+  legendMap: jsonb("legend_map"), // Detected mappings
+  detectionConfidence: decimal("detection_confidence", { precision: 5, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const complianceLints = pgTable("compliance_lints", {
+  id: serial("id").primaryKey(),
+  aiAnalysisId: integer("ai_analysis_id").references(() => aiDrawingAnalysis.id),
+  elementId: integer("element_id").references(() => steelElements.id),
+  lintCode: varchar("lint_code", { length: 100 }), // LINT_NTS_SCALING, LINT_HOLE_TABLE_MISMATCH
+  severity: varchar("severity", { length: 10 }), // INFO, WARN, ERROR
+  message: text("message"),
+  details: jsonb("details"), // Specific values that triggered the lint
+  autoCorrectable: boolean("auto_correctable").default(false),
+  correctionApplied: boolean("correction_applied").default(false),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const lintRules = pgTable("lint_rules", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 100 }).unique(),
+  severity: varchar("severity", { length: 10 }), // INFO, WARN, ERROR
+  description: text("description"),
+  ruleLogic: jsonb("rule_logic"), // Configurable thresholds and conditions
+  enabled: boolean("enabled").default(true),
+  appliesToStandards: text("applies_to_standards").array(), // ['AS_NZS', 'AISC_AWS', etc.]
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const aiRunTelemetry = pgTable("ai_run_telemetry", {
+  id: serial("id").primaryKey(),
+  runId: uuid("run_id").defaultRandom(),
+  aiAnalysisId: integer("ai_analysis_id").references(() => aiDrawingAnalysis.id),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  modelName: varchar("model_name", { length: 100 }),
+  promptVersion: varchar("prompt_version", { length: 50 }), // STEELIQ-V4.2-AUTO
+  detectorVersions: jsonb("detector_versions"),
+  patternPackInHash: varchar("pattern_pack_in_hash", { length: 64 }),
+  patternPackUsed: jsonb("pattern_pack_used"), // Merged configuration actually used
+  // Statistics
+  pagesScanned: integer("pages_scanned"),
+  elementsFound: integer("elements_found"),
+  elementsFlagged: integer("elements_flagged"),
+  conflictsCount: integer("conflicts_count"),
+  scaleMissingViews: integer("scale_missing_views"),
+  lintsGenerated: integer("lints_generated"),
+  // Performance metrics
+  processingTimeMs: integer("processing_time_ms"),
+  visionApiCalls: integer("vision_api_calls"),
+  totalTokensUsed: integer("total_tokens_used"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const userCorrections = pgTable("user_corrections", {
+  id: serial("id").primaryKey(),
+  elementId: integer("element_id").references(() => steelElements.id),
+  fieldCorrected: varchar("field_corrected", { length: 100 }),
+  originalValue: text("original_value"),
+  correctedValue: text("corrected_value"),
+  correctionReason: text("correction_reason"),
+  appliedToPattern: boolean("applied_to_pattern").default(false),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow()
 });
 
 export const aiCuttingOptimization = pgTable("ai_cutting_optimization", {
