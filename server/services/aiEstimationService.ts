@@ -6,6 +6,7 @@ import { db } from '../db/index.js';
 import { aiDrawingAnalysis, aiRunTelemetry } from '@shared/schema.js';
 import { eq } from 'drizzle-orm';
 import PatternPackService from './patternPackService.js';
+import complianceLintService from './complianceLintService.js';
 
 // V4.2 AUTO - Self-Learning AI Architecture Version  
 const AI_VERSION = 'V4.2 AUTO';
@@ -308,8 +309,18 @@ Focus on Australian Standards. ALL measurements in metric (mm).`;
       // Calculate summary statistics
       const summary = this.calculateMTOSummary(mtoData);
       
-      // Calculate confidence based on pattern matching
-      const confidence = patternPackData ? 0.85 : 0.75; // Higher confidence with learned patterns
+      // Run compliance linting on extracted MTO
+      const lintResults = await complianceLintService.lintMTO(mtoData);
+      const lintWarnings = lintResults.filter(r => r.severity === 'warning').map(r => r.message);
+      const lintErrors = lintResults.filter(r => r.severity === 'error').map(r => r.message);
+      const lintInfo = lintResults.filter(r => r.severity === 'info').map(r => r.message);
+      
+      console.log(`Compliance linting: ${lintErrors.length} errors, ${lintWarnings.length} warnings, ${lintInfo.length} info`);
+      
+      // Calculate confidence based on pattern matching and compliance
+      const baseConfidence = patternPackData ? 0.85 : 0.75;
+      const compliancePenalty = lintErrors.length * 0.05 + lintWarnings.length * 0.02;
+      const confidence = Math.max(0.5, baseConfidence - compliancePenalty);
       const processingTime = Date.now() - startTime;
       
       // Save telemetry data
@@ -356,11 +367,16 @@ Focus on Australian Standards. ALL measurements in metric (mm).`;
           confidence,
           processingTime: Date.now(),
           elementsDetected: mtoData.length,
-          warnings: patternPackData ? [] : ['First run for this project type - patterns being learned'],
+          warnings: [
+            ...(patternPackData ? [] : ['First run for this project type - patterns being learned']),
+            ...lintErrors,
+            ...lintWarnings
+          ],
           suggestions: [
             'Review beam connections for completeness',
             'Verify coating specifications with project requirements',
-            ...(patternPackData ? [`Applied learned patterns from ${patternPackData.usage_count} previous runs`] : [])
+            ...(patternPackData ? [`Applied learned patterns from ${patternPackData.usage_count} previous runs`] : []),
+            ...lintInfo
         }
       };
     } catch (error) {
