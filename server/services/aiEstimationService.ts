@@ -10,6 +10,7 @@ import complianceLintService from './complianceLintService.js';
 import { validateRealData, auditDataSource, NoMockDataViolationError } from '../utils/noMockDataPolicy.js';
 import { getV42AutoPrompt, V42AutoResponse } from '../prompts/v42AutoPrompt.js';
 import { V42ResponseTransformer } from './v42ResponseTransformer.js';
+import ocrService from './ocrService.js';
 
 // V4.2 AUTO - Self-Learning AI Architecture Version  
 const AI_VERSION = 'V4.2 AUTO';
@@ -129,46 +130,102 @@ class AIEstimationService {
       const patternPackData = await patternPackService.loadPatternPack(organizationKey, projectType);
       
       // Check if PDF is image-based (no extractable text)
+      let ocrResult = null;
+      let extractionMethod: 'TEXT' | 'OCR' | 'HYBRID' = 'TEXT';
+      
       if (pdfText.trim().length < 100) {
-        console.error('[CRITICAL] PDF is image-based/scanned - cannot extract text');
-        console.error('⛔ NO MOCK DATA POLICY: Refusing to generate fake data');
-        console.log('📝 Required: OCR/Vision API integration for scanned PDFs');
+        console.log('[CRITICAL] PDF appears to be image-based/scanned - initiating OCR...');
         
-        // STRICT NO MOCK DATA POLICY - Return error, never generate fake data
-        const processingTime = Date.now() - startTime;
-        
-        return {
-          projectId: 0,
-          mtoItems: [], // Empty array - NO FAKE DATA
-          summary: {
-            totalWeight: 0,
-            totalLength: 0,
-            steelGrade: {},
-            itemCounts: {},
-            estimatedFabricationHours: 0,
-            estimatedCost: {
-              materials: 0,
-              labor: 0,
-              coating: 0,
-              total: 0
+        // Attempt OCR extraction
+        try {
+          ocrResult = await ocrService.processPDF(pdfBuffer, true);
+          
+          if (ocrResult.success && ocrResult.text.length > 100) {
+            console.log(`[OCR SUCCESS] Extracted ${ocrResult.text.length} characters with ${Math.round(ocrResult.confidence * 100)}% confidence`);
+            pdfText = ocrResult.text; // Use OCR text
+            extractionMethod = ocrResult.method as 'OCR' | 'HYBRID';
+            
+            // Add OCR warnings if confidence is low
+            if (ocrResult.confidence < 0.7) {
+              console.warn(`[OCR WARNING] Low confidence (${Math.round(ocrResult.confidence * 100)}%) - results may be incomplete`);
             }
-          },
-          aiAnalysis: {
-            confidence: 0, // Zero confidence - no real data extracted
-            processingTime,
-            elementsDetected: 0,
-            warnings: [
-              '⛔ CRITICAL: PDF is image-based/scanned - text extraction failed',
-              '⚠️ OCR or Vision API required to process scanned drawings',
-              '❌ NO DATA EXTRACTED - Upload a text-based PDF or implement OCR'
-            ],
-            suggestions: [
-              'Upload a vector/text-based PDF (not scanned)',
-              'Ensure PDF was created digitally, not scanned from paper',
-              'Contact support if this is a digitally-created PDF'
-            ]
+          } else {
+            console.error('[OCR FAILED] Unable to extract meaningful text from scanned PDF');
+            
+            // STRICT NO MOCK DATA POLICY - Return error with OCR attempt info
+            const processingTime = Date.now() - startTime;
+            
+            return {
+              projectId: 0,
+              mtoItems: [], // Empty array - NO FAKE DATA
+              summary: {
+                totalWeight: 0,
+                totalLength: 0,
+                steelGrade: {},
+                itemCounts: {},
+                estimatedFabricationHours: 0,
+                estimatedCost: {
+                  materials: 0,
+                  labor: 0,
+                  coating: 0,
+                  total: 0
+                }
+              },
+              aiAnalysis: {
+                confidence: 0,
+                processingTime,
+                elementsDetected: 0,
+                warnings: [
+                  '⛔ PDF is scanned/image-based',
+                  `❌ OCR attempted but failed (confidence: ${Math.round((ocrResult?.confidence || 0) * 100)}%)`,
+                  '⚠️ Unable to extract meaningful text for analysis',
+                  ...(ocrResult?.warnings || [])
+                ],
+                suggestions: [
+                  'Upload a higher quality scan (300+ DPI recommended)',
+                  'Ensure drawings are clearly visible and not rotated',
+                  'Consider uploading vector/CAD files (DXF, DWG) instead',
+                  'Use digitally-created PDFs when possible'
+                ]
+              }
+            };
           }
-        };
+        } catch (ocrError) {
+          console.error('[OCR ERROR]', ocrError);
+          
+          const processingTime = Date.now() - startTime;
+          
+          return {
+            projectId: 0,
+            mtoItems: [],
+            summary: {
+              totalWeight: 0,
+              totalLength: 0,
+              steelGrade: {},
+              itemCounts: {},
+              estimatedFabricationHours: 0,
+              estimatedCost: {
+                materials: 0,
+                labor: 0,
+                coating: 0,
+                total: 0
+              }
+            },
+            aiAnalysis: {
+              confidence: 0,
+              processingTime,
+              elementsDetected: 0,
+              warnings: [
+                '⛔ OCR service error: ' + (ocrError as Error).message,
+                '❌ Unable to process scanned PDF'
+              ],
+              suggestions: [
+                'Check server resources and try again',
+                'Upload a text-based PDF instead'
+              ]
+            }
+          };
+        }
       }
       
       // Prepare context with annotations
@@ -283,7 +340,7 @@ class AIEstimationService {
             bbox_y1: item.evidence?.bbox?.[1] || null,
             bbox_x2: item.evidence?.bbox?.[2] || null,
             bbox_y2: item.evidence?.bbox?.[3] || null,
-            extraction_method: item.evidence?.extractionMethod || 'UNSPECIFIED',
+            extraction_method: item.evidence?.extractionMethod || extractionMethod || 'UNSPECIFIED',
             confidence_score: item.confidence
           }));
           
