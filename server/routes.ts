@@ -18,6 +18,8 @@ import multer from 'multer';
 import csv from 'csv-parser';
 import { Readable } from 'stream';
 import { analyzeConstructionDrawing, validateSteelSpecifications } from "./pdf-analysis";
+import { dxfParserService } from "./services/dxfParserService";
+import { mtoExportService } from "./services/mtoExportService";
 import { googleAuth } from "./googleAuth";
 import { integratedEmailService } from "./services/integratedEmailService";
 import { poTrackingService } from "./poTracking";
@@ -3777,6 +3779,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to fetch MTO results:", error);
       res.status(500).json({ error: "Failed to fetch MTO results" });
+    }
+  });
+
+  // DXF Upload and Processing Route
+  app.post("/api/ai/dxf/upload", multer({ storage: multer.memoryStorage() }).single('file'), async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const { projectId, organizationKey } = req.body;
+      
+      // Validate file type
+      if (!req.file.originalname.toLowerCase().endsWith('.dxf')) {
+        return res.status(400).json({ error: 'Only DXF files are supported' });
+      }
+
+      // Process DXF file
+      const dxfContent = req.file.buffer.toString('utf-8');
+      const dxfResult = await dxfParserService.parseDXF(dxfContent);
+      
+      if (!dxfResult.success) {
+        return res.status(400).json({ 
+          error: 'Failed to parse DXF file',
+          details: dxfResult.error 
+        });
+      }
+
+      // Extract steel elements
+      const steelElements = await dxfParserService.extractSteelElements(dxfResult.data);
+      
+      // Store in database using the new AI estimation result table
+      const result = await storage.createAiEstimationResult({
+        projectId: parseInt(projectId) || null,
+        mtoVersion: 'V4.2-DXF',
+        extractionMethod: 'DXF',
+        processingTimeSeconds: 0,
+        itemCount: steelElements.length,
+        organizationKey: organizationKey || 'default',
+        metadata: {
+          fileType: 'DXF',
+          fileName: req.file.originalname,
+          layers: dxfResult.layers?.length || 0,
+          entities: dxfResult.entities?.length || 0,
+          steelElements: steelElements.length
+        }
+      });
+
+      // Convert DXF elements to MTO items
+      const mtoItems = steelElements.map((element, index) => ({
+        estimationResultId: result.id,
+        itemNumber: index + 1,
+        designation: element.designation || element.text || `ITEM-${index + 1}`,
+        description: element.type || 'Steel Element',
+        category: element.layer || 'STRUCTURAL',
+        quantity: 1,
+        unit: 'EA',
+        confidence: element.confidence || 0.8,
+        metadata: element
+      }));
+
+      // Store MTO items
+      for (const item of mtoItems) {
+        await storage.createMtoItem(item);
+      }
+
+      res.json({
+        success: true,
+        resultId: result.id,
+        itemCount: mtoItems.length,
+        summary: {
+          layers: dxfResult.layers?.length || 0,
+          entities: dxfResult.entities?.length || 0,
+          steelElements: steelElements.length
+        }
+      });
+    } catch (error) {
+      console.error('[DXF Upload Error]:', error);
+      res.status(500).json({ 
+        error: 'Failed to process DXF file',
+        details: error.message 
+      });
+    }
+  });
+
+  // Export MTO Results to Excel/CSV
+  app.post("/api/ai/export/:resultId", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { resultId } = req.params;
+      const { format = 'excel', includeEvidence = true, includeMetadata = true, groupByCategory = true } = req.body;
+      
+      // Get estimation result
+      const estimationResult = await storage.getAiEstimationResult(parseInt(resultId));
+      if (!estimationResult) {
+        return res.status(404).json({ error: 'Estimation result not found' });
+      }
+
+      // Get MTO items
+      const mtoItems = await storage.getMtoItemsByResultId(parseInt(resultId));
+      
+      // Export to file
+      const exportResult = await mtoExportService.exportMTO(
+        estimationResult,
+        mtoItems,
+        {
+          format,
+          includeEvidence,
+          includeMetadata,
+          groupByCategory
+        }
+      );
+
+      if (exportResult.success) {
+        // Send file as download
+        const filePath = exportResult.filePath!;
+        const fileName = path.basename(filePath);
+        
+        res.download(filePath, fileName, (err) => {
+          if (err) {
+            console.error('[Export Download Error]:', err);
+            res.status(500).json({ error: 'Failed to download export file' });
+          }
+          // Optionally clean up file after download
+          // fs.unlink(filePath).catch(console.error);
+        });
+      } else {
+        res.status(500).json({ 
+          error: 'Export failed',
+          details: exportResult.error 
+        });
+      }
+    } catch (error) {
+      console.error('[Export Error]:', error);
+      res.status(500).json({ 
+        error: 'Failed to export MTO',
+        details: error.message 
+      });
     }
   });
 
