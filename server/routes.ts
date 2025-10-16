@@ -20,6 +20,7 @@ import { Readable } from 'stream';
 import { analyzeConstructionDrawing, validateSteelSpecifications } from "./pdf-analysis";
 import dxfParserService from "./services/dxfParserService";
 import { mtoExportService } from "./services/mtoExportService";
+import { aiMonitoringService } from "./services/aiMonitoringService";
 import { googleAuth } from "./googleAuth";
 import { integratedEmailService } from "./services/integratedEmailService";
 import { poTrackingService } from "./poTracking";
@@ -3782,13 +3783,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // DXF Upload and Processing Route
-  app.post("/api/ai/dxf/upload", multer({ storage: multer.memoryStorage() }).single('file'), async (req, res) => {
+  // DXF Upload and Processing Route with Fortune 50 Security
+  app.post("/api/ai/dxf/upload", multer({ 
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 25 * 1024 * 1024, // 25MB max for DXF files
+      files: 1
+    },
+    fileFilter: (req, file, cb) => {
+      // Validate file type
+      const allowedExtensions = ['.dxf'];
+      const extension = path.extname(file.originalname).toLowerCase();
+      
+      if (!allowedExtensions.includes(extension)) {
+        return cb(new Error('Invalid file type. Only DXF files are allowed.'));
+      }
+      
+      // Validate MIME type (DXF files may have various MIME types)
+      const allowedMimeTypes = [
+        'application/dxf',
+        'application/x-dxf',
+        'image/vnd.dxf',
+        'image/x-dxf',
+        'text/plain' // Some DXF files are sent as plain text
+      ];
+      
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        console.warn(`[DXF Upload] Unusual MIME type: ${file.mimetype} for file: ${file.originalname}`);
+      }
+      
+      // Sanitize filename
+      const sanitizedName = file.originalname
+        .replace(/[^a-zA-Z0-9.-]/g, '_')
+        .replace(/\.{2,}/g, '_')
+        .substring(0, 200);
+      
+      file.originalname = sanitizedName;
+      
+      cb(null, true);
+    }
+  }).single('file'), async (req, res) => {
     try {
+      // Authentication check
       const user = await AuthService.getAuthenticatedUser(req);
       if (!user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
+
+      // Rate limiting check (simple in-memory for now)
+      const userKey = `dxf_upload_${user.id}`;
+      const uploadCount = global.rateLimitStore?.get(userKey) || 0;
+      
+      if (uploadCount >= 10) { // Max 10 uploads per minute per user
+        return res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
+      }
+      
+      // Update rate limit counter
+      if (!global.rateLimitStore) {
+        global.rateLimitStore = new Map();
+      }
+      global.rateLimitStore.set(userKey, uploadCount + 1);
+      setTimeout(() => {
+        const count = global.rateLimitStore.get(userKey) || 0;
+        if (count > 0) {
+          global.rateLimitStore.set(userKey, count - 1);
+        }
+      }, 60000); // Reset after 1 minute
 
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
@@ -3796,13 +3856,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { projectId, organizationKey } = req.body;
       
+      // Validate project access
+      if (projectId) {
+        const hasAccess = await storage.userHasProjectAccess(user.id, parseInt(projectId));
+        if (!hasAccess) {
+          return res.status(403).json({ error: 'Access denied to this project' });
+        }
+      }
+      
       // Validate file type
       if (!req.file.originalname.toLowerCase().endsWith('.dxf')) {
         return res.status(400).json({ error: 'Only DXF files are supported' });
       }
 
-      // Process DXF file
+      // Log upload attempt for audit
+      aiMonitoringService.log({
+        level: 'INFO',
+        service: 'DXF_UPLOAD',
+        operation: 'upload_attempt',
+        message: `User ${user.id} uploading DXF file`,
+        metadata: {
+          fileName: req.file.originalname,
+          fileSize: req.file.size,
+          projectId
+        },
+        userId: user.id,
+        organizationKey: organizationKey || 'default'
+      });
+      
+      // Scan file content for potential security issues
       const dxfContent = req.file.buffer.toString('utf-8');
+      
+      // Basic security check for malicious patterns
+      const suspiciousPatterns = [
+        /<script/i,
+        /javascript:/i,
+        /onclick/i,
+        /onerror/i,
+        /eval\(/i,
+        /exec\(/i
+      ];
+      
+      for (const pattern of suspiciousPatterns) {
+        if (pattern.test(dxfContent)) {
+          aiMonitoringService.log({
+            level: 'WARN',
+            service: 'DXF_UPLOAD',
+            operation: 'security_alert',
+            message: 'Suspicious pattern detected in DXF file',
+            metadata: { pattern: pattern.toString(), fileName: req.file.originalname },
+            userId: user.id
+          });
+          
+          return res.status(400).json({ error: 'File contains suspicious content' });
+        }
+      }
+      
+      // Process DXF file
       const dxfResult = await dxfParserService.parseDXF(dxfContent);
       
       if (!dxfResult.success) {
