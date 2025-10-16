@@ -2,7 +2,11 @@ import * as XLSX from 'xlsx';
 import { createObjectCsvWriter } from 'csv-writer';
 import fs from 'fs/promises';
 import path from 'path';
-import { SelectAiEstimationResult, SelectMtoItem } from '@shared/schema';
+import { aiDrawingAnalysis, materialTakeoff } from '@shared/schema';
+
+// Type definitions for the export service
+type SelectAiEstimationResult = typeof aiDrawingAnalysis.$inferSelect;
+type SelectMtoItem = typeof materialTakeoff.$inferSelect;
 
 interface ExportOptions {
   format: 'excel' | 'csv';
@@ -232,7 +236,7 @@ class MTOExportService {
    */
   private generateSummaryData(data: MTOExportRow[], result: SelectAiEstimationResult): any[] {
     const totalItems = data.length;
-    const categories = [...new Set(data.map(d => d.category))];
+    const categories = Array.from(new Set(data.map(d => d.category)));
     const totalWeight = data.reduce((sum, item) => sum + (item.weight || 0), 0);
     const avgConfidence = data.reduce((sum, item) => sum + (item.confidence || 0), 0) / totalItems;
 
