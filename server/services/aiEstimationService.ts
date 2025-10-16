@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm';
 import PatternPackService from './patternPackService.js';
 import complianceLintService from './complianceLintService.js';
 import { validateRealData, auditDataSource, NoMockDataViolationError } from '../utils/noMockDataPolicy.js';
+import { getV42AutoPrompt, V42AutoResponse } from '../prompts/v42AutoPrompt.js';
 
 // V4.2 AUTO - Self-Learning AI Architecture Version  
 const AI_VERSION = 'V4.2 AUTO';
@@ -164,24 +165,8 @@ class AIEstimationService {
         `Annotation at page ${a.pageNumber}: ${a.elementType} - ${(a as any).notes || ''}`
       ).join('\n') || 'No annotations provided';
       
-      // Build V4.2 AUTO self-learning prompt
-      const prompt = `You are STEELIQ V4.2 AUTO - a self-learning structural steel estimator with pattern recognition capabilities. 
-      
-**SYSTEM VERSION:** ${AI_VERSION}
-**ORGANIZATION:** ${organizationKey}
-**PROJECT TYPE:** ${projectType}
-
-${patternPackInPrompt ? `
-**LEARNED PATTERNS FROM PREVIOUS RUNS:**
-The following patterns have been learned from ${patternPackData?.usage_count || 0} previous similar projects.
-Apply these patterns to improve accuracy (+15-20% typical improvement):
-
-${patternPackInPrompt}
-
-IMPORTANT: Use learned patterns as guidance but ALWAYS verify against actual drawing data.
-` : '**FIRST RUN MODE:** Learning new patterns from this project for future improvements.'}
-
-You MUST extract a highly detailed and accurate Material Take-Off (MTO) from the provided drawing information using the FOUR-PHASE AUTO PROTOCOL.
+      // Use the complete V4.2 AUTO prompt specification
+      const prompt = getV42AutoPrompt(patternPackData, pdfText, annotationContext);
 
 **CRITICAL EXTRACTION REQUIREMENTS:**
 1. **Cross-Validation is MANDATORY** - Every element must be verified through multiple sources (another view, schedule, or note) or explicitly marked as UNVERIFIED
