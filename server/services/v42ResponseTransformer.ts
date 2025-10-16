@@ -33,7 +33,7 @@ export class V42ResponseTransformer {
           length: element.geometry?.length_mm || 0,
           weight: element.takeoff?.mass_kg || 0,
         },
-        quantity: 1, // V4.2 doesn't directly provide quantity in element
+        quantity: element.quantity || element.takeoff?.quantity || 1, // Extract quantity from V4.2 response
         childItems: this.extractChildOperations(element),
         location: this.buildLocation(element),
         drawingReference: this.buildDrawingReference(element),

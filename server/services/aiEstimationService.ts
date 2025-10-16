@@ -4,7 +4,7 @@ import pdf from 'pdf-parse';
 import { DrawingDocument, DrawingAnnotation } from '@shared/schema';
 import { db } from '../db/index.js';
 import { aiDrawingAnalysis, aiRunTelemetry } from '@shared/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import PatternPackService from './patternPackService.js';
 import complianceLintService from './complianceLintService.js';
 import { validateRealData, auditDataSource, NoMockDataViolationError } from '../utils/noMockDataPolicy.js';
@@ -239,34 +239,74 @@ class AIEstimationService {
       const processingTime = Date.now() - startTime;
       
       // Save telemetry and pattern learning
-      if (proposedPatternPack) {
-        try {
-          const [telemetryRecord] = await db.insert(aiRunTelemetry).values({
-            projectType,
-            patternPackUsedId: patternPackData?.id || null,
-            patternPackProposed: proposedPatternPack,
+      let telemetryId: number | null = null;
+      
+      try {
+        const [telemetryRecord] = await db.insert(aiRunTelemetry).values({
+          projectType,
+          patternPackUsedId: patternPackData?.id || null,
+          patternPackProposed: proposedPatternPack,
+          confidenceScore: confidence,
+          processingTimeMs: processingTime,
+          tokensUsed: response.usage?.total_tokens || 0,
+          accuracyMetrics: {
+            elementsDetected: mtoData.length,
             confidenceScore: confidence,
-            processingTimeMs: processingTime,
-            tokensUsed: response.usage?.total_tokens || 0,
-            accuracyMetrics: {
-              elementsDetected: mtoData.length,
-              confidenceScore: confidence,
-              patternMatchRate: patternPackData ? 0.75 : 0
-            }
-          }).returning({ id: aiRunTelemetry.id });
-          
-          // Save pattern pack
-          if (proposedPatternPack) {
-            await patternPackService.savePatternPack(
-              organizationKey,
-              projectType,
-              proposedPatternPack,
-              telemetryRecord.id
-            );
+            patternMatchRate: patternPackData ? 0.75 : 0
           }
-        } catch (error) {
-          console.error('Failed to save telemetry/patterns:', error);
+        }).returning({ id: aiRunTelemetry.id });
+        
+        telemetryId = telemetryRecord.id;
+        
+        // Save pattern pack
+        if (proposedPatternPack) {
+          await patternPackService.savePatternPack(
+            organizationKey,
+            projectType,
+            proposedPatternPack,
+            telemetryRecord.id
+          );
         }
+        
+        // CRITICAL: Save evidence tracking for Fortune 50 audit trail
+        if (telemetryId && mtoData.length > 0) {
+          console.log(`[${AI_VERSION}] Persisting ${mtoData.length} evidence records for audit trail...`);
+          
+          const evidenceRecords = mtoData.map(item => ({
+            run_telemetry_id: telemetryId,
+            element_id: item.id,
+            element_designation: item.designation,
+            element_type: item.type,
+            file_id: item.evidence?.fileId || 'current.pdf',
+            page_number: item.evidence?.page || 1,
+            bbox_x1: item.evidence?.bbox?.[0] || null,
+            bbox_y1: item.evidence?.bbox?.[1] || null,
+            bbox_x2: item.evidence?.bbox?.[2] || null,
+            bbox_y2: item.evidence?.bbox?.[3] || null,
+            extraction_method: item.evidence?.extractionMethod || 'UNSPECIFIED',
+            confidence_score: item.confidence
+          }));
+          
+          // Insert evidence records using raw SQL since table isn't in schema.ts yet
+          for (const evidence of evidenceRecords) {
+            await db.execute(sql`
+              INSERT INTO ai_mto_evidence (
+                run_telemetry_id, element_id, element_designation, element_type,
+                file_id, page_number, bbox_x1, bbox_y1, bbox_x2, bbox_y2,
+                extraction_method, confidence_score
+              ) VALUES (
+                ${evidence.run_telemetry_id}, ${evidence.element_id}, ${evidence.element_designation},
+                ${evidence.element_type}, ${evidence.file_id}, ${evidence.page_number},
+                ${evidence.bbox_x1}, ${evidence.bbox_y1}, ${evidence.bbox_x2}, ${evidence.bbox_y2},
+                ${evidence.extraction_method}, ${evidence.confidence_score}
+              )
+            `);
+          }
+          
+          console.log(`[${AI_VERSION}] ✅ Saved ${evidenceRecords.length} evidence records to audit trail`);
+        }
+      } catch (error) {
+        console.error('Failed to save telemetry/patterns/evidence:', error);
       }
       
       console.log(`[${AI_VERSION}] Analysis complete: ${mtoData.length} MTO items extracted in ${processingTime}ms`);
