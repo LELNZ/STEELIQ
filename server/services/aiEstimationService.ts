@@ -8,6 +8,8 @@ import { eq } from 'drizzle-orm';
 import PatternPackService from './patternPackService.js';
 import complianceLintService from './complianceLintService.js';
 import { validateRealData, auditDataSource, NoMockDataViolationError } from '../utils/noMockDataPolicy.js';
+import { getV42AutoPrompt, V42AutoResponse } from '../prompts/v42AutoPrompt.js';
+import { V42ResponseTransformer } from './v42ResponseTransformer.js';
 
 // V4.2 AUTO - Self-Learning AI Architecture Version  
 const AI_VERSION = 'V4.2 AUTO';
@@ -169,22 +171,13 @@ class AIEstimationService {
         };
       }
       
-      // Detect auto-config from PDF (lightweight for Phase 1)
-      const autoConfig = this.detectAutoConfig(pdfText);
-      
       // Prepare context with annotations
       const annotationContext = annotations?.map(a => 
         `Annotation at page ${a.pageNumber}: ${a.elementType} - ${(a as any).notes || ''}`
       ).join('\n') || 'No annotations provided';
       
-      // Build pragmatic prompt for Phase 1
-      const prompt = this.buildPragmaticPrompt(
-        pdfText, 
-        annotationContext, 
-        projectContext,
-        patternPackData,
-        autoConfig
-      );
+      // Use V4.2 AUTO prompt
+      const prompt = getV42AutoPrompt(patternPackData, pdfText, annotationContext);
 
       // Call Anthropic API
       const response = await anthropic.messages.create({
@@ -198,14 +191,41 @@ class AIEstimationService {
       const aiContent = (response.content[0] as any).text || '';
       console.log('AI Response Length:', aiContent.length);
       
-      // Transform response to our MTO format
-      const mtoData = this.parseAIResponse(aiContent);
+      // Parse V4.2 response format
+      let v42Response: V42AutoResponse;
+      try {
+        const jsonMatch = aiContent.match(/```json\n?([\s\S]*?)\n?```/) || 
+                         aiContent.match(/\{[\s\S]*\}/) ||
+                         aiContent.match(/\[[\s\S]*\]/);
+        
+        if (jsonMatch) {
+          const jsonStr = jsonMatch[1] || jsonMatch[0];
+          v42Response = JSON.parse(jsonStr);
+        } else {
+          // Fallback: try parsing the entire response
+          v42Response = JSON.parse(aiContent);
+        }
+      } catch (error) {
+        console.error('Failed to parse V4.2 response:', error);
+        // Create minimal response structure
+        v42Response = {
+          auto_config: this.detectAutoConfig(pdfText),
+          elements: [],
+          stats: { pages_scanned: pageCount, elements_found: 0, elements_flagged: 0, conflicts_count: 0, scale_missing_views: 0 }
+        } as any;
+      }
       
-      // Extract proposed pattern pack from AI response
-      const proposedPatternPack = this.extractPatternPack(aiContent);
+      // Transform V4.2 response to our MTO format
+      const mtoData = V42ResponseTransformer.transformToMTO(v42Response);
       
-      // Calculate summary statistics
-      const summary = this.calculateMTOSummary(mtoData);
+      // Extract proposed pattern pack from V4.2 response
+      const proposedPatternPack = V42ResponseTransformer.extractPatternPack(v42Response);
+      
+      // Extract auto-config from V4.2 response
+      const autoConfig = V42ResponseTransformer.extractAutoConfig(v42Response);
+      
+      // Calculate summary statistics - use V4.2 response if available
+      const summary = v42Response.stats ? V42ResponseTransformer.calculateSummary(v42Response) : this.calculateMTOSummary(mtoData);
       
       // Run compliance linting
       const lintResults = await complianceLintService.lintMTO(mtoData);
