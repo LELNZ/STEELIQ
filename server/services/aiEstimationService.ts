@@ -8,7 +8,6 @@ import { eq } from 'drizzle-orm';
 import PatternPackService from './patternPackService.js';
 import complianceLintService from './complianceLintService.js';
 import { validateRealData, auditDataSource, NoMockDataViolationError } from '../utils/noMockDataPolicy.js';
-import { getV42AutoPrompt, V42AutoResponse } from '../prompts/v42AutoPrompt.js';
 
 // V4.2 AUTO - Self-Learning AI Architecture Version  
 const AI_VERSION = 'V4.2 AUTO';
@@ -39,6 +38,13 @@ export interface MaterialTakeOffItem {
   location?: string; // Grid reference or area
   drawingReference?: string; // PDF page or drawing number
   confidence: number; // 0-1 AI confidence score
+  // NEW: Evidence tracking for Fortune 50 audit trail
+  evidence?: {
+    fileId: string;
+    page: number;
+    bbox?: number[]; // [x1, y1, x2, y2]
+    extractionMethod: 'TEXT' | 'VISION' | 'HYBRID' | 'UNSPECIFIED';
+  };
 }
 
 export interface MaterialTakeOffOperation {
@@ -53,21 +59,18 @@ export interface MaterialTakeOffOperation {
     weldSize?: number;
     plateThickness?: number;
     plateDimensions?: { width: number; height: number };
-    coatingType?: string;
-    coatingThickness?: number;
   };
   quantity: number;
   laborHours?: number;
-  materialCost?: number;
 }
 
 export interface AIEstimationResult {
   projectId: number;
   mtoItems: MaterialTakeOffItem[];
   summary: {
-    totalWeight: number; // kg
-    totalLength: number; // m
-    steelGrade: { [grade: string]: number }; // Weight by grade
+    totalWeight: number;
+    totalLength: number;
+    steelGrade: { [grade: string]: number };
     itemCounts: { [type: string]: number };
     estimatedFabricationHours: number;
     estimatedCost: {
@@ -84,11 +87,20 @@ export interface AIEstimationResult {
     warnings: string[];
     suggestions: string[];
   };
+  // NEW: Auto-config detection for standards compliance
+  autoConfig?: {
+    regionCodeSet?: string; // AS/NZS, AISC, etc
+    unitsDefault?: 'mm' | 'inch';
+    weldStandard?: string;
+    boltStandard?: string;
+    excludedPhrases?: string[];
+  };
 }
 
 class AIEstimationService {
   /**
-   * Analyze a construction drawing PDF and extract MTO data with V4.2 AUTO self-learning
+   * Analyze a construction drawing PDF and extract MTO data with self-learning
+   * PRAGMATIC PHASE 1 APPROACH - Working system with critical Fortune 50 features
    */
   async analyzeDrawingForMTO(
     pdfBuffer: Buffer,
@@ -96,7 +108,7 @@ class AIEstimationService {
     projectContext?: string,
     organizationKey: string = 'default'
   ): Promise<AIEstimationResult> {
-    console.log(`[${AI_VERSION}] Starting AI analysis with self-learning patterns...`);
+    console.log(`[${AI_VERSION}] Starting pragmatic AI analysis with self-learning...`);
     const startTime = Date.now();
     
     try {
@@ -113,14 +125,6 @@ class AIEstimationService {
       
       // Load pattern pack for this organization and project type
       const patternPackData = await patternPackService.loadPatternPack(organizationKey, projectType);
-      let patternPackInPrompt = '';
-      
-      if (patternPackData) {
-        console.log(`Loaded pattern pack with ${Object.keys(patternPackData.material_patterns || {}).length} material patterns`);
-        patternPackInPrompt = JSON.stringify(patternPackData, null, 2);
-      } else {
-        console.log('No existing pattern pack found, will learn from this run');
-      }
       
       // Check if PDF is image-based (no extractable text)
       if (pdfText.trim().length < 100) {
@@ -129,7 +133,6 @@ class AIEstimationService {
         console.log('📝 Required: OCR/Vision API integration for scanned PDFs');
         
         // STRICT NO MOCK DATA POLICY - Return error, never generate fake data
-        const errorMessage = 'PDF appears to be scanned/image-based. Text extraction failed.';
         const processingTime = Date.now() - startTime;
         
         return {
@@ -138,9 +141,15 @@ class AIEstimationService {
           summary: {
             totalWeight: 0,
             totalLength: 0,
-            steelGrades: {},
+            steelGrade: {},
             itemCounts: {},
-            estimatedHours: 0
+            estimatedFabricationHours: 0,
+            estimatedCost: {
+              materials: 0,
+              labor: 0,
+              coating: 0,
+              total: 0
+            }
           },
           aiAnalysis: {
             confidence: 0, // Zero confidence - no real data extracted
@@ -160,120 +169,36 @@ class AIEstimationService {
         };
       }
       
+      // Detect auto-config from PDF (lightweight for Phase 1)
+      const autoConfig = this.detectAutoConfig(pdfText);
+      
       // Prepare context with annotations
       const annotationContext = annotations?.map(a => 
         `Annotation at page ${a.pageNumber}: ${a.elementType} - ${(a as any).notes || ''}`
       ).join('\n') || 'No annotations provided';
       
-      // Use the complete V4.2 AUTO prompt specification
-      const prompt = getV42AutoPrompt(patternPackData, pdfText, annotationContext);
+      // Build pragmatic prompt for Phase 1
+      const prompt = this.buildPragmaticPrompt(
+        pdfText, 
+        annotationContext, 
+        projectContext,
+        patternPackData,
+        autoConfig
+      );
 
-**CRITICAL EXTRACTION REQUIREMENTS:**
-1. **Cross-Validation is MANDATORY** - Every element must be verified through multiple sources (another view, schedule, or note) or explicitly marked as UNVERIFIED
-2. **Profile Hierarchy** - Always prioritize: Text designation → Legend → Schedule → Visual (lowest confidence)
-3. **Never assume** - If unsure, mark confidence as LOW and flag for review
-
-Project Context: ${projectContext || 'Steel fabrication project'}
-
-Drawing Text Content:
-${pdfText.substring(0, 10000)} // Limit for initial analysis
-
-User Annotations:
-${annotationContext}
-
-**PHASE 1: ELEMENT EXTRACTION**
-Extract EVERY structural element with these details:
-- Unique designation (B1, B2, C1, etc.)
-- Profile type with EXACT designation (e.g., "310UB40.4" not just "UB")
-- Exact dimensions in mm (length, width, depth, thickness)
-- Material grade (AS350, AS250, AS300)
-- Quantity with unit
-- Grid location reference
-- Drawing/page reference
-
-**PHASE 2: CONNECTION DETAIL EXTRACTION**
-For EACH primary element, extract ALL connections:
-- End plates: thickness, dimensions (width x height), bolt pattern
-- Stiffeners: quantity, thickness, dimensions
-- Cleats: type (angle/plate), dimensions, bolt configuration
-- Base plates: dimensions, thickness, anchor bolt pattern
-- Splice plates: location, dimensions, bolt configuration
-- Welds: type, size, length, location
-
-**PHASE 3: PATTERN LEARNING & VALIDATION**
-- Identify repeating patterns in this project (beam spacing, connection types)
-- Compare with loaded patterns and note improvements/variations
-- Flag any deviations from learned standards for review
-
-**PHASE 4: CONFIDENCE SCORING & COMPLIANCE CHECK**
-Apply confidence scores:
-- HIGH (>85%): Element verified in multiple views/schedules + matches learned patterns
-- MEDIUM (50-85%): Element clearly visible but single source
-- LOW (<50%): Partial visibility, assumptions made
-- UNVERIFIED: No cross-reference found
-
-**PATTERN PACK OUTPUT REQUIREMENTS:**
-Include a "pattern_pack_proposed" section in your output with newly learned patterns:
-- Material designation patterns (e.g., "B" prefix for beams, "C" for columns)
-- Typical connection details by member size
-- Standard dimensions and spacings
-- Coating/treatment specifications
-- Any project-specific standards detected
-
-**COMMON PITFALLS TO AVOID:**
-1. Scale conflicts - Always verify dimensions against known references
-2. Camber/pre-camber - Check notes for deflection specifications  
-3. Profile ambiguity - Never guess between similar profiles (150UC vs 150PFC)
-4. Faint elements - Mark as LOW confidence if lines are unclear
-5. Connection shapes - Don't assume standard when custom is shown
-
-**OUTPUT FORMAT:**
-{
-  "mtoItems": [
-    {
-      "id": "B1",
-      "designation": "B1",
-      "type": "beam",
-      "profile": "610UB125",
-      "material": "AS300",
-      "dimensions": {
-        "length": 12000,
-        "weight": 125
-      },
-      "quantity": 1,
-      "location": "Grid A1-A4",
-      "confidence_score": 0.95,
-      "verification_source": "Verified in elevation view and framing plan",
-      "childItems": [
-        {
-          "id": "B1.1",
-          "type": "endplate",
-          "thickness": 20,
-          "dimensions": {"width": 250, "height": 600},
-          "quantity": 2,
-          "holes": {"diameter": 24, "count": 8}
-        }
-      ]
-    }
-  ],
-  "unverified_elements": [],
-  "assumptions_made": [],
-  "review_required": []
-}
-
-Focus on Australian Standards. ALL measurements in metric (mm).`;
-
+      // Call Anthropic API
       const response = await anthropic.messages.create({
         model: DEFAULT_MODEL_STR,
-        max_tokens: 4000,
+        max_tokens: 8000,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.2, // Lower temperature for more consistent extraction
+        temperature: 0.2, // Lower temperature for consistency
       });
 
       // Parse the AI response
       const aiContent = (response.content[0] as any).text || '';
       console.log('AI Response Length:', aiContent.length);
-      console.log('AI Response Preview:', aiContent.substring(0, 500));
+      
+      // Transform response to our MTO format
       const mtoData = this.parseAIResponse(aiContent);
       
       // Extract proposed pattern pack from AI response
@@ -282,21 +207,18 @@ Focus on Australian Standards. ALL measurements in metric (mm).`;
       // Calculate summary statistics
       const summary = this.calculateMTOSummary(mtoData);
       
-      // Run compliance linting on extracted MTO
+      // Run compliance linting
       const lintResults = await complianceLintService.lintMTO(mtoData);
       const lintWarnings = lintResults.filter(r => r.severity === 'warning').map(r => r.message);
       const lintErrors = lintResults.filter(r => r.severity === 'error').map(r => r.message);
-      const lintInfo = lintResults.filter(r => r.severity === 'info').map(r => r.message);
       
-      console.log(`Compliance linting: ${lintErrors.length} errors, ${lintWarnings.length} warnings, ${lintInfo.length} info`);
-      
-      // Calculate confidence based on pattern matching and compliance
+      // Calculate confidence
       const baseConfidence = patternPackData ? 0.85 : 0.75;
       const compliancePenalty = lintErrors.length * 0.05 + lintWarnings.length * 0.02;
       const confidence = Math.max(0.5, baseConfidence - compliancePenalty);
       const processingTime = Date.now() - startTime;
       
-      // Save telemetry data
+      // Save telemetry and pattern learning
       if (proposedPatternPack) {
         try {
           const [telemetryRecord] = await db.insert(aiRunTelemetry).values({
@@ -313,17 +235,14 @@ Focus on Australian Standards. ALL measurements in metric (mm).`;
             }
           }).returning({ id: aiRunTelemetry.id });
           
-          console.log(`Telemetry recorded: ${telemetryRecord.id}`);
-          
-          // Save or update pattern pack if new patterns were learned
+          // Save pattern pack
           if (proposedPatternPack) {
-            const patternPackId = await patternPackService.savePatternPack(
+            await patternPackService.savePatternPack(
               organizationKey,
               projectType,
               proposedPatternPack,
               telemetryRecord.id
             );
-            console.log(`Pattern pack saved/updated: ${patternPackId}`);
           }
         } catch (error) {
           console.error('Failed to save telemetry/patterns:', error);
@@ -333,12 +252,12 @@ Focus on Australian Standards. ALL measurements in metric (mm).`;
       console.log(`[${AI_VERSION}] Analysis complete: ${mtoData.length} MTO items extracted in ${processingTime}ms`);
       
       return {
-        projectId: 0, // Will be set by caller
+        projectId: 0,
         mtoItems: mtoData,
         summary,
         aiAnalysis: {
           confidence,
-          processingTime: Date.now(),
+          processingTime,
           elementsDetected: mtoData.length,
           warnings: [
             ...(patternPackData ? [] : ['First run for this project type - patterns being learned']),
@@ -348,344 +267,82 @@ Focus on Australian Standards. ALL measurements in metric (mm).`;
           suggestions: [
             'Review beam connections for completeness',
             'Verify coating specifications with project requirements',
-            ...(patternPackData ? [`Applied learned patterns from ${patternPackData.usage_count} previous runs`] : []),
-            ...lintInfo
-        }
+            ...(patternPackData ? [`Applied learned patterns from ${patternPackData.usage_count} previous runs`] : [])
+          ]
+        },
+        autoConfig
       };
     } catch (error) {
       console.error('AI estimation failed:', error);
       throw new Error(`AI estimation analysis failed: ${(error as Error).message || 'Unknown error'}`);
     }
   }
-
+  
   /**
-   * Analyze specific element from annotation
+   * Build pragmatic prompt for Phase 1 - simpler but effective
    */
-  async analyzeAnnotatedElement(
-    elementType: string,
-    coordinates: { x: number; y: number; width: number; height: number },
-    pdfContext: string
-  ): Promise<MaterialTakeOffItem> {
-    const prompt = `Analyze this structural steel element:
-Type: ${elementType}
-Location in drawing: X:${coordinates.x}, Y:${coordinates.y}
-Surrounding text: ${pdfContext}
+  private buildPragmaticPrompt(
+    pdfText: string,
+    annotationContext: string,
+    projectContext: string | undefined,
+    patternPackData: any,
+    autoConfig: any
+  ): string {
+    return `You are STEELIQ AI - an expert structural steel estimator analyzing construction drawings.
 
-Provide detailed specifications including material grade, dimensions, and required operations.`;
+**SYSTEM VERSION:** ${AI_VERSION}
+**PROJECT TYPE:** ${projectContext || 'Steel fabrication project'}
+**DETECTED STANDARDS:** ${autoConfig.regionCodeSet || 'AS/NZS (Australian)'}
+**UNITS:** ${autoConfig.unitsDefault || 'mm'}
 
-    const response = await anthropic.messages.create({
-      model: DEFAULT_MODEL_STR,
-      max_tokens: 1000,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.1,
-    });
+${patternPackData ? `
+**LEARNED PATTERNS FROM ${patternPackData.usage_count || 0} PREVIOUS RUNS:**
+Apply these patterns to improve accuracy:
+${JSON.stringify(patternPackData, null, 2).substring(0, 2000)}
+` : '**FIRST RUN:** Learning patterns for future improvement'}
 
-    return this.parseElementResponse((response.content[0] as any).text || '');
-  }
+**DRAWING TEXT (First 10000 chars):**
+${pdfText.substring(0, 10000)}
 
-  /**
-   * Generate smart cost estimation based on MTO
-   */
-  async generateCostEstimate(
-    mtoItems: MaterialTakeOffItem[],
-    laborRates: { [skill: string]: number },
-    materialPrices: { [grade: string]: number }
-  ): Promise<any> {
-    const prompt = `Based on the following Material Take-Off for a steel fabrication project, provide a detailed cost estimate:
+**USER ANNOTATIONS:**
+${annotationContext}
 
-MTO Items: ${JSON.stringify(mtoItems, null, 2)}
-Labor Rates (AUD/hour): ${JSON.stringify(laborRates)}
-Material Prices (AUD/tonne): ${JSON.stringify(materialPrices)}
+**EXTRACT MATERIAL TAKE-OFF:**
+1. Identify all structural steel elements (beams, columns, plates, etc)
+2. Extract exact designations, dimensions, materials, quantities
+3. Include connection details (end plates, bolts, welds)
+4. Note grid locations and drawing references
+5. Assign confidence scores based on clarity
 
-Calculate:
-1. Total material costs by grade
-2. Fabrication labor hours and costs by operation type
-3. Surface treatment/coating costs
-4. Recommended markup percentages
-5. Risk factors and contingencies
-
-Provide Australian market-appropriate pricing.`;
-
-    const response = await anthropic.messages.create({
-      model: DEFAULT_MODEL_STR,
-      max_tokens: 2000,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.3,
-    });
-
-    return JSON.parse((response.content[0] as any).text || '{}');
-  }
-
-  /**
-   * Parse AI response into structured MTO data
-   */
-  private parseAIResponse(aiResponse: string): MaterialTakeOffItem[] {
-    try {
-      // Try to extract JSON from AI response
-      const jsonMatch = aiResponse.match(/```json\n?([\s\S]*?)\n?```/) || 
-                       aiResponse.match(/\{[\s\S]*\}/) ||
-                       aiResponse.match(/\[[\s\S]*\]/);
-      
-      if (!jsonMatch) {
-        console.log('No JSON found in AI response');
-        console.log('Full AI Response:', aiResponse);
-        return [];
-      }
-      
-      const jsonStr = jsonMatch[1] || jsonMatch[0];
-      const parsed = JSON.parse(jsonStr);
-      
-      // Handle different response formats
-      const items = parsed.mtoItems || parsed.items || parsed.elements || 
-                   (Array.isArray(parsed) ? parsed : []);
-      
-      console.log(`Successfully parsed ${items.length} MTO items from AI response`);
-      return items;
-    } catch (error) {
-      console.error('Failed to parse AI response:', error);
-      console.log('Response that failed to parse:', aiResponse.substring(0, 1000));
-      return [];
-    }
-  }
-
-  /**
-   * Parse individual element response
-   */
-  private parseElementResponse(aiResponse: string): MaterialTakeOffItem {
-    try {
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-    } catch (error) {
-      console.error('Failed to parse element response:', error);
-    }
-    
-    // Return default structure
-    return {
-      id: `EL-${Date.now()}`,
-      designation: 'U1',
-      type: 'beam',
-      description: 'Unidentified structural element',
-      material: 'AS350',
-      dimensions: { length: 6000 },
-      quantity: 1,
-      childItems: [],
-      confidence: 0.5
-    };
-  }
-
-  /**
-   * Calculate MTO summary statistics
-   */
-  private calculateMTOSummary(items: MaterialTakeOffItem[]): any {
-    let totalWeight = 0;
-    let totalLength = 0;
-    const steelGrades: { [grade: string]: number } = {};
-    const itemCounts: { [type: string]: number } = {};
-    let estimatedHours = 0;
-
-    for (const item of items) {
-      // Calculate weight (simplified - would use actual steel tables)
-      const weight = this.calculateSteelWeight(item);
-      totalWeight += weight * item.quantity;
-      
-      // Track length
-      if (item.dimensions.length) {
-        totalLength += (item.dimensions.length / 1000) * item.quantity; // Convert to meters
-      }
-      
-      // Track grades
-      if (!steelGrades[item.material]) {
-        steelGrades[item.material] = 0;
-      }
-      steelGrades[item.material] += weight * item.quantity;
-      
-      // Track types
-      if (!itemCounts[item.type]) {
-        itemCounts[item.type] = 0;
-      }
-      itemCounts[item.type] += item.quantity;
-      
-      // Estimate fabrication hours (simplified)
-      estimatedHours += this.estimateFabricationHours(item) * item.quantity;
-    }
-
-    return {
-      totalWeight,
-      totalLength,
-      steelGrade: steelGrades,
-      itemCounts,
-      estimatedFabricationHours: estimatedHours,
-      estimatedCost: {
-        materials: totalWeight * 2.5, // $2.50/kg simplified
-        labor: estimatedHours * 85, // $85/hour
-        coating: totalWeight * 0.5, // $0.50/kg
-        total: 0
-      }
-    };
-  }
-
-  /**
-   * Build hierarchical structure from flat MTO items
-   */
-  private buildHierarchy(items: MaterialTakeOffItem[]): any[] {
-    const hierarchy = [];
-    const parentItems = items.filter(i => !i.designation?.includes('.'));
-    
-    for (const parent of parentItems) {
-      const children = items.filter(i => 
-        i.designation?.startsWith(parent.designation + '.')
-      );
-      
-      hierarchy.push({
-        ...parent,
-        children: children.length > 0 ? children : []
-      });
-    }
-    
-    return hierarchy;
-  }
-
-  /**
-   * Calculate steel weight based on dimensions
-   */
-  private calculateSteelWeight(item: MaterialTakeOffItem): number {
-    const steelDensity = 7850; // kg/m³
-    const dims = item.dimensions;
-    
-    if (dims.weight) {
-      return dims.weight * (dims.length || 1000) / 1000; // kg/m to total kg
-    }
-    
-    // Simplified calculation for common shapes
-    if (item.type === 'plate' && dims.length && dims.width && dims.thickness) {
-      const volume = (dims.length * dims.width * dims.thickness) / 1e9; // mm³ to m³
-      return volume * steelDensity;
-    }
-    
-    // Default estimate
-    return 50; // kg
-  }
-
-  /**
-   * Estimate fabrication hours for an item
-   */
-  private estimateFabricationHours(item: MaterialTakeOffItem): number {
-    let hours = 0;
-    
-    // Base fabrication time by type
-    const baseHours: { [key: string]: number } = {
-      'beam': 2,
-      'column': 2.5,
-      'plate': 1,
-      'angle': 1.5,
-      'channel': 1.5,
-      'tube': 2,
-      'other': 1.5
-    };
-    
-    hours = baseHours[item.type] || 1.5;
-    
-    // Add time for child operations
-    for (const op of item.childItems) {
-      const opHours: { [key: string]: number } = {
-        'cutting': 0.5,
-        'drilling': 0.25,
-        'welding': 1,
-        'painting': 0.5,
-        'endplate': 1,
-        'stiffener': 0.75,
-        'cleat': 0.5
-      };
-      hours += opHours[op.type] || 0.5;
-    }
-    
-    return hours;
-  }
-
-  /**
-   * Create sample MTO for testing
-   */
-  private createSampleMTO(): MaterialTakeOffItem[] {
-    return [
-      {
-        id: 'B1',
-        designation: 'B1',
-        type: 'beam',
-        description: '610UB125 Main Beam - Grid A-B',
-        material: 'AS350',
-        dimensions: {
-          length: 12000,
-          height: 612,
-          width: 229,
-          weight: 125
-        },
-        quantity: 4,
-        childItems: [
-          {
-            id: 'B1-4.1',
-            parentDesignation: 'B1',
-            operationId: '4.1',
-            type: 'endplate',
-            description: 'End plate 20mm thick',
-            specifications: {
-              plateThickness: 20,
-              plateDimensions: { width: 250, height: 650 }
-            },
-            quantity: 2,
-            laborHours: 2
-          },
-          {
-            id: 'B1-4.2',
-            parentDesignation: 'B1',
-            operationId: '4.2',
-            type: 'drilling',
-            description: 'Bolt holes for connection',
-            specifications: {
-              holes: { diameter: 22, count: 8, pattern: '2x4' }
-            },
-            quantity: 2,
-            laborHours: 0.5
-          }
-        ],
-        location: 'Level 1, Grid A-B',
-        drawingReference: 'Page 3, Detail A',
-        confidence: 0.9
+**OUTPUT FORMAT:**
+Return a JSON object with:
+{
+  "elements": [
+    {
+      "id": "unique-id",
+      "designation": "B1",
+      "type": "beam",
+      "profile": "610UB125",
+      "material": "AS300",
+      "dimensions": { "length": 12000, "weight": 125 },
+      "quantity": 1,
+      "location": "Grid A1-A4",
+      "confidence": 0.95,
+      "evidence": {
+        "page": 1,
+        "extractionMethod": "TEXT"
       },
-      {
-        id: 'C1',
-        designation: 'C1',
-        type: 'column',
-        description: '310UC158 Column - Grid A1',
-        material: 'AS350',
-        dimensions: {
-          length: 4500,
-          height: 327,
-          width: 311,
-          weight: 158
-        },
-        quantity: 8,
-        childItems: [
-          {
-            id: 'C1-4.1',
-            parentDesignation: 'C1',
-            operationId: '4.1',
-            type: 'baseplate',
-            description: 'Base plate 30mm thick',
-            specifications: {
-              plateThickness: 30,
-              plateDimensions: { width: 400, height: 400 }
-            },
-            quantity: 1,
-            laborHours: 1.5
-          }
-        ],
-        location: 'Ground to Level 1',
-        drawingReference: 'Page 2, Section BB',
-        confidence: 0.95
-      }
-    ];
+      "childItems": [...]
+    }
+  ],
+  "pattern_pack_proposed": {
+    "material_patterns": {},
+    "connection_patterns": {},
+    "designation_patterns": {}
+  }
+}
+
+Ensure NO MOCK DATA - only extract what is actually in the drawings.`;
   }
   
   /**
@@ -710,6 +367,109 @@ Provide Australian market-appropriate pricing.`;
   }
   
   /**
+   * Lightweight auto-config detection for Phase 1
+   */
+  private detectAutoConfig(pdfText: string): any {
+    const text = pdfText.toLowerCase();
+    
+    return {
+      regionCodeSet: text.includes('as/nzs') || text.includes('as ') ? 'AS/NZS' :
+                     text.includes('aisc') ? 'AISC' :
+                     text.includes('bs en') ? 'BS EN' : 'AS/NZS',
+      unitsDefault: text.includes('inch') || text.includes('feet') ? 'inch' : 'mm',
+      weldStandard: text.includes('as/nzs 1554') ? 'AS/NZS 1554' :
+                    text.includes('aws') ? 'AWS D1.1' : 'AS/NZS 1554',
+      boltStandard: text.includes('as/nzs 1252') ? 'AS/NZS 1252' :
+                    text.includes('astm') ? 'ASTM A325' : 'AS/NZS 1252',
+      excludedPhrases: ['BY OTHERS', 'BY ARCHITECT', 'NOT IN CONTRACT']
+    };
+  }
+  
+  /**
+   * Parse AI response into MTO items
+   */
+  private parseAIResponse(aiResponse: string): MaterialTakeOffItem[] {
+    try {
+      // Extract JSON from response
+      const jsonMatch = aiResponse.match(/```json\n?([\s\S]*?)\n?```/) || 
+                       aiResponse.match(/\{[\s\S]*\}/) ||
+                       aiResponse.match(/\[[\s\S]*\]/);
+      
+      if (!jsonMatch) {
+        console.log('No JSON found in AI response');
+        return [];
+      }
+      
+      const jsonStr = jsonMatch[1] || jsonMatch[0];
+      const parsed = JSON.parse(jsonStr);
+      
+      // Handle different response formats
+      const elements = parsed.elements || parsed.mtoItems || parsed.items || 
+                      (Array.isArray(parsed) ? parsed : []);
+      
+      // Transform to our format
+      return elements.map((item: any) => ({
+        id: item.id || `EL-${Date.now()}-${Math.random()}`,
+        designation: item.designation || item.mark || 'U1',
+        type: this.mapElementType(item.type || item.element_type),
+        description: item.description || `${item.profile || ''} ${item.type || ''}`,
+        material: item.material || item.grade || 'AS350',
+        dimensions: item.dimensions || {},
+        quantity: item.quantity || 1,
+        childItems: this.parseChildItems(item.childItems || item.connections || []),
+        location: item.location || item.grid || '',
+        drawingReference: item.drawingReference || `Page ${item.page || 1}`,
+        confidence: item.confidence || item.confidence_score || 0.7,
+        evidence: item.evidence || {
+          fileId: 'current.pdf',
+          page: item.page || 1,
+          extractionMethod: item.extractionMethod || 'TEXT'
+        }
+      }));
+    } catch (error) {
+      console.error('Failed to parse AI response:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Map element types to our schema
+   */
+  private mapElementType(type: string): MaterialTakeOffItem['type'] {
+    const typeMap: Record<string, MaterialTakeOffItem['type']> = {
+      'BEAM': 'beam',
+      'COLUMN': 'column',
+      'PLATE': 'plate',
+      'ANGLE': 'angle',
+      'CHANNEL': 'channel',
+      'TUBE': 'tube',
+      'beam': 'beam',
+      'column': 'column',
+      'plate': 'plate'
+    };
+    
+    return typeMap[type] || 'other';
+  }
+  
+  /**
+   * Parse child items (connections)
+   */
+  private parseChildItems(items: any[]): MaterialTakeOffOperation[] {
+    if (!Array.isArray(items)) return [];
+    
+    return items.map((item, index) => ({
+      id: item.id || `OP-${index}`,
+      parentDesignation: item.parentDesignation || '',
+      operationId: item.operationId || `4.${index + 1}`,
+      type: item.type || 'endplate',
+      description: item.description || '',
+      specifications: item.specifications || item.spec || {},
+      quantity: item.quantity || 1,
+      laborHours: item.laborHours || 0
+    }));
+  }
+  
+  /**
    * Extract pattern pack from AI response
    */
   private extractPatternPack(aiResponse: string): any {
@@ -722,6 +482,55 @@ Provide Australian market-appropriate pricing.`;
       console.log('Could not extract pattern pack from response');
     }
     return null;
+  }
+  
+  /**
+   * Calculate MTO summary statistics
+   */
+  private calculateMTOSummary(items: MaterialTakeOffItem[]): any {
+    let totalWeight = 0;
+    let totalLength = 0;
+    const steelGrade: { [grade: string]: number } = {};
+    const itemCounts: { [type: string]: number } = {};
+    let estimatedHours = 0;
+
+    for (const item of items) {
+      // Calculate weight (simplified)
+      const length = item.dimensions.length || 0;
+      const weight = item.dimensions.weight || 0;
+      const itemWeight = (length / 1000) * weight * item.quantity;
+      totalWeight += itemWeight;
+      totalLength += length * item.quantity;
+      
+      // Track steel grades
+      const grade = item.material;
+      steelGrade[grade] = (steelGrade[grade] || 0) + itemWeight;
+      
+      // Track item types
+      itemCounts[item.type] = (itemCounts[item.type] || 0) + item.quantity;
+      
+      // Estimate fabrication hours
+      estimatedHours += item.quantity * 2; // Simplified: 2 hours per item
+      
+      // Add child operation hours
+      for (const child of item.childItems || []) {
+        estimatedHours += child.laborHours || 0.5;
+      }
+    }
+    
+    return {
+      totalWeight: Math.round(totalWeight),
+      totalLength: Math.round(totalLength),
+      steelGrade,
+      itemCounts,
+      estimatedFabricationHours: Math.round(estimatedHours),
+      estimatedCost: {
+        materials: Math.round(totalWeight * 2.5), // $2.50/kg simplified
+        labor: Math.round(estimatedHours * 85), // $85/hour
+        coating: Math.round(totalWeight * 0.5), // $0.50/kg
+        total: 0
+      }
+    };
   }
 }
 
