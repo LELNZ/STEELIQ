@@ -46,13 +46,22 @@ export function ConfidenceVisualization({
   
   const sizes = sizeConfig[size];
   
-  // Color configurations for progress bar
+  // Color configurations for progress bar - using explicit classes for Tailwind compilation
   const progressColors = {
     green: 'bg-green-500',
     blue: 'bg-blue-500',
     yellow: 'bg-yellow-500',
     orange: 'bg-orange-500',
     red: 'bg-red-500'
+  };
+  
+  // Icon color classes - explicitly defined for Tailwind
+  const iconColors = {
+    green: 'text-green-500',
+    blue: 'text-blue-500',
+    yellow: 'text-yellow-500',
+    orange: 'text-orange-500',
+    red: 'text-red-500'
   };
   
   // Badge variants
@@ -72,7 +81,7 @@ export function ConfidenceVisualization({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-1">
-                <Icon className={cn(sizes.icon, `text-${color}-500`)} />
+                <Icon className={cn(sizes.icon, iconColors[color])} />
                 <span className={cn(sizes.text, "font-medium")}>
                   {normalizedConfidence.toFixed(0)}%
                 </span>

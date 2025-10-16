@@ -18,7 +18,7 @@ import multer from 'multer';
 import csv from 'csv-parser';
 import { Readable } from 'stream';
 import { analyzeConstructionDrawing, validateSteelSpecifications } from "./pdf-analysis";
-import { dxfParserService } from "./services/dxfParserService";
+import dxfParserService from "./services/dxfParserService";
 import { mtoExportService } from "./services/mtoExportService";
 import { googleAuth } from "./googleAuth";
 import { integratedEmailService } from "./services/integratedEmailService";
