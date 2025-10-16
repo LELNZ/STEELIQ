@@ -21,9 +21,10 @@ export interface LintResult {
 
 class ComplianceLintService {
   private standardRules: LintRule[] = [];
+  private rulesInitialized: Promise<void>;
   
   constructor() {
-    this.initializeDefaultRules();
+    this.rulesInitialized = this.initializeDefaultRules();
   }
   
   /**
@@ -136,6 +137,9 @@ class ComplianceLintService {
    * Run compliance linting on MTO data
    */
   async lintMTO(mtoItems: any[], aiAnalysisId?: number): Promise<LintResult[]> {
+    // Ensure rules are initialized before linting
+    await this.rulesInitialized;
+    
     const results: LintResult[] = [];
     
     for (const item of mtoItems) {

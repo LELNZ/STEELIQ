@@ -7,6 +7,7 @@ import { aiDrawingAnalysis, aiRunTelemetry } from '@shared/schema.js';
 import { eq } from 'drizzle-orm';
 import PatternPackService from './patternPackService.js';
 import complianceLintService from './complianceLintService.js';
+import { validateRealData, auditDataSource, NoMockDataViolationError } from '../utils/noMockDataPolicy.js';
 
 // V4.2 AUTO - Self-Learning AI Architecture Version  
 const AI_VERSION = 'V4.2 AUTO';
@@ -122,51 +123,38 @@ class AIEstimationService {
       
       // Check if PDF is image-based (no extractable text)
       if (pdfText.trim().length < 100) {
-        console.log('⚠️  PDF appears to be image-based (scanned drawings)');
-        console.log('📝 Production Enhancement Needed: OCR/Image Recognition for scanned PDFs');
+        console.error('[CRITICAL] PDF is image-based/scanned - cannot extract text');
+        console.error('⛔ NO MOCK DATA POLICY: Refusing to generate fake data');
+        console.log('📝 Required: OCR/Vision API integration for scanned PDFs');
         
-        // Use AI to generate realistic MTO based on project context
-        const imageBasedPrompt = `You are analyzing a structural steel warehouse extension project (SHL6538).
-Based on typical Australian warehouse construction, generate a realistic Material Take-Off.
-
-The warehouse extension is approximately:
-- 40m x 25m floor area
-- 8m eave height
-- Portal frame construction
-- Clear span design
-
-Generate a comprehensive MTO including:
-1. Portal frame columns (310UC137)
-2. Portal rafters (610UB125)
-3. Purlins and girts
-4. Bracing systems
-5. Base plates and connections
-6. All child items (end plates, stiffeners, drilling, etc.)
-
-Use Australian Standards (AS350, AS250, AS300) and provide realistic quantities.
-Output as structured JSON with hierarchical parent-child relationships.`;
-
-        const response = await anthropic.messages.create({
-          model: DEFAULT_MODEL_STR,
-          max_tokens: 4000,
-          messages: [{ role: 'user', content: imageBasedPrompt }],
-          temperature: 0.2,
-        });
-        
-        const aiContent = (response.content[0] as any).text || '';
-        const mtoData = this.parseAIResponse(aiContent);
-        const summary = this.calculateMTOSummary(mtoData);
+        // STRICT NO MOCK DATA POLICY - Return error, never generate fake data
+        const errorMessage = 'PDF appears to be scanned/image-based. Text extraction failed.';
+        const processingTime = Date.now() - startTime;
         
         return {
           projectId: 0,
-          mtoItems: mtoData,
-          summary,
+          mtoItems: [], // Empty array - NO FAKE DATA
+          summary: {
+            totalWeight: 0,
+            totalLength: 0,
+            steelGrades: {},
+            itemCounts: {},
+            estimatedHours: 0
+          },
           aiAnalysis: {
-            confidence: 0.75, // Lower confidence for image-based
-            processingTime: Date.now(),
-            elementsDetected: mtoData.length,
-            warnings: ['PDF is image-based. OCR recommended for precise extraction.'],
-            suggestions: ['Implement OCR for scanned drawings', 'Manual verification recommended']
+            confidence: 0, // Zero confidence - no real data extracted
+            processingTime,
+            elementsDetected: 0,
+            warnings: [
+              '⛔ CRITICAL: PDF is image-based/scanned - text extraction failed',
+              '⚠️ OCR or Vision API required to process scanned drawings',
+              '❌ NO DATA EXTRACTED - Upload a text-based PDF or implement OCR'
+            ],
+            suggestions: [
+              'Upload a vector/text-based PDF (not scanned)',
+              'Ensure PDF was created digitally, not scanned from paper',
+              'Contact support if this is a digitally-created PDF'
+            ]
           }
         };
       }
