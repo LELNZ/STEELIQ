@@ -130,8 +130,9 @@ class AIEstimationService {
       const patternPackData = await patternPackService.loadPatternPack(organizationKey, projectType);
       
       // Check if PDF is image-based (no extractable text)
-      let ocrResult = null;
+      let ocrResult: any = null;
       let extractionMethod: 'TEXT' | 'OCR' | 'HYBRID' = 'TEXT';
+      let finalPdfText = pdfText; // Use this for processing
       
       if (pdfText.trim().length < 100) {
         console.log('[CRITICAL] PDF appears to be image-based/scanned - initiating OCR...');
@@ -140,9 +141,9 @@ class AIEstimationService {
         try {
           ocrResult = await ocrService.processPDF(pdfBuffer, true);
           
-          if (ocrResult.success && ocrResult.text.length > 100) {
+          if (ocrResult && ocrResult.success && ocrResult.text.length > 100) {
             console.log(`[OCR SUCCESS] Extracted ${ocrResult.text.length} characters with ${Math.round(ocrResult.confidence * 100)}% confidence`);
-            pdfText = ocrResult.text; // Use OCR text
+            finalPdfText = ocrResult.text; // Use OCR text for processing
             extractionMethod = ocrResult.method as 'OCR' | 'HYBRID';
             
             // Add OCR warnings if confidence is low
@@ -233,8 +234,8 @@ class AIEstimationService {
         `Annotation at page ${a.pageNumber}: ${a.elementType} - ${(a as any).notes || ''}`
       ).join('\n') || 'No annotations provided';
       
-      // Use V4.2 AUTO prompt
-      const prompt = getV42AutoPrompt(patternPackData, pdfText, annotationContext);
+      // Use V4.2 AUTO prompt with the final processed text (could be OCR text)
+      const prompt = getV42AutoPrompt(patternPackData, finalPdfText, annotationContext);
 
       // Call Anthropic API
       const response = await anthropic.messages.create({
