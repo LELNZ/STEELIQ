@@ -9,8 +9,7 @@ import { SelectAiEstimationResult, SelectMtoItem } from '@shared/schema';
 import { storage } from '../storage';
 import { db } from '../db';
 import { eq, and, gte } from 'drizzle-orm';
-// import { aiEstimationResults, mtoItems } from '@shared/schema';
-import { aiEstimationHistory } from '@shared/schema';
+import { aiEstimationResults, mtoItems } from '@shared/schema';
 
 interface CacheEntry {
   key: string;
@@ -196,8 +195,16 @@ class AICacheService {
     
     // Then check database
     try {
-      // TODO: Implement database persistence with aiEstimationHistory
-      const recentResults: any[] = [];
+      const recentResults = await db
+        .select()
+        .from(aiEstimationResults)
+        .where(
+          and(
+            eq(aiEstimationResults.organizationKey, input.organizationKey || 'default'),
+            gte(aiEstimationResults.createdAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) // Last 7 days
+          )
+        )
+        .limit(50);
       
       for (const result of recentResults) {
         if (result.metadata?.cacheKey) {
@@ -235,8 +242,18 @@ class AICacheService {
   private async getPatternBasedCache(input: any): Promise<CacheEntry | null> {
     try {
       // Look for recent successful extractions of the same project type
-      // TODO: Implement pattern matching with aiEstimationHistory
-      const patternResults: any[] = [];
+      const patternResults = await db
+        .select()
+        .from(aiEstimationResults)
+        .where(
+          and(
+            eq(aiEstimationResults.organizationKey, input.organizationKey || 'default'),
+            eq(aiEstimationResults.metadata?.projectType, input.projectType),
+            gte(aiEstimationResults.createdAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) // Last 30 days
+          )
+        )
+        .orderBy(aiEstimationResults.createdAt)
+        .limit(1);
       
       if (patternResults.length > 0) {
         const result = patternResults[0];
@@ -317,21 +334,20 @@ class AICacheService {
   private async saveToDatabase(entry: CacheEntry, input: any): Promise<void> {
     try {
       // Store cache metadata in the AI estimation result
-      // TODO: Implement database persistence
-      // if (entry.value?.id) {
-      //   await db
-      //     .update(aiEstimationHistory)
-      //     .set({
-      //       metadata: {
-      //         ...entry.value.metadata,
-      //         cacheKey: entry.key,
-      //         cacheTTL: entry.metadata.ttl,
-      //         inputText: input.text?.substring(0, 5000), // Store first 5000 chars
-      //         projectType: input.projectType
-      //       }
-      //     })
-      //     .where(eq(aiEstimationHistory.id, entry.value.id));
-      // }
+      if (entry.value?.id) {
+        await db
+          .update(aiEstimationResults)
+          .set({
+            metadata: {
+              ...entry.value.metadata,
+              cacheKey: entry.key,
+              cacheTTL: entry.metadata.ttl,
+              inputText: input.text?.substring(0, 5000), // Store first 5000 chars
+              projectType: input.projectType
+            }
+          })
+          .where(eq(aiEstimationResults.id, entry.value.id));
+      }
     } catch (error) {
       console.error('[Cache] Error saving to database:', error);
     }
@@ -342,15 +358,20 @@ class AICacheService {
    */
   private async getFromDatabase(key: string): Promise<CacheEntry | null> {
     try {
-      // TODO: Implement database persistence
-      const results: any[] = [];
+      const results = await db
+        .select()
+        .from(aiEstimationResults)
+        .where(eq(aiEstimationResults.metadata?.cacheKey, key))
+        .limit(1);
       
       if (results.length > 0) {
         const result = results[0];
         
         // Get associated MTO items
-        // TODO: Implement MTO items retrieval
-        const items: any[] = [];
+        const items = await db
+          .select()
+          .from(mtoItems)
+          .where(eq(mtoItems.estimationResultId, result.id));
         
         return {
           key,
@@ -475,8 +496,17 @@ class AICacheService {
       console.log(`[Cache] Warming up cache for organization: ${organizationKey}`);
       
       // Load recent successful extractions
-      // TODO: Implement database cache warmup
-      const recentResults: any[] = [];
+      const recentResults = await db
+        .select()
+        .from(aiEstimationResults)
+        .where(
+          and(
+            eq(aiEstimationResults.organizationKey, organizationKey),
+            gte(aiEstimationResults.createdAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+          )
+        )
+        .orderBy(aiEstimationResults.createdAt)
+        .limit(20);
       
       for (const result of recentResults) {
         if (result.metadata?.cacheKey) {
@@ -500,42 +530,6 @@ class AICacheService {
     } catch (error) {
       console.error('[Cache] Warmup failed:', error);
     }
-  }
-
-  /**
-   * Get cache statistics for monitoring
-   */
-  getCacheStats() {
-    const stats = {
-      entries: this.memoryCache.size,
-      hits: this.stats.hits,
-      misses: this.stats.misses,
-      hitRate: this.stats.hitRate,
-      avgCost: 0,
-      avgTime: 0
-    };
-
-    // Calculate averages from cache entries
-    let totalCost = 0;
-    let totalTime = 0;
-    let validEntries = 0;
-
-    for (const entry of this.memoryCache.values()) {
-      if (entry.metadata?.cost) {
-        totalCost += entry.metadata.cost;
-        validEntries++;
-      }
-      if (entry.metadata?.processingTime) {
-        totalTime += entry.metadata.processingTime;
-      }
-    }
-
-    if (validEntries > 0) {
-      stats.avgCost = totalCost / validEntries;
-      stats.avgTime = totalTime / validEntries;
-    }
-
-    return stats;
   }
 }
 

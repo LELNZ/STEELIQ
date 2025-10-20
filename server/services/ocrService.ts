@@ -4,16 +4,16 @@
  */
 
 import { createWorker, Worker, RecognizeResult } from 'tesseract.js';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import * as pdfjsLib from 'pdfjs-dist';
 import { createCanvas } from 'canvas';
 import * as fs from 'fs';
 import * as path from 'path';
 import { validateRealData, auditDataSource } from '../utils/noMockDataPolicy.js';
 
-// Configure PDF.js worker for legacy build
+// Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = path.join(
   process.cwd(),
-  'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'
+  'node_modules/pdfjs-dist/build/pdf.worker.js'
 );
 
 export interface OCRResult {

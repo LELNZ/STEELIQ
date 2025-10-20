@@ -2,16 +2,15 @@ import Anthropic from '@anthropic-ai/sdk';
 import { PDFDocument } from 'pdf-lib';
 import pdf from 'pdf-parse';
 import { DrawingDocument, DrawingAnnotation } from '@shared/schema';
-import { db } from '../db';
+import { db } from '../db/index.js';
 import { aiDrawingAnalysis, aiRunTelemetry } from '@shared/schema.js';
 import { eq, sql } from 'drizzle-orm';
-import { PatternPackService } from './patternPackService.js';
+import PatternPackService from './patternPackService.js';
 import complianceLintService from './complianceLintService.js';
 import { validateRealData, auditDataSource, NoMockDataViolationError } from '../utils/noMockDataPolicy.js';
 import { getV42AutoPrompt, V42AutoResponse } from '../prompts/v42AutoPrompt.js';
 import { V42ResponseTransformer } from './v42ResponseTransformer.js';
 import ocrService from './ocrService.js';
-import { feedbackLearningService } from './feedbackLearningService.js';
 
 // V4.2 AUTO - Self-Learning AI Architecture Version  
 const AI_VERSION = 'V4.2 AUTO';

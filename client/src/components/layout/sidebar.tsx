@@ -26,8 +26,7 @@ import {
   Calendar,
   ShoppingCart,
   Shield,
-  Brain,
-  Activity
+  Brain
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -49,8 +48,7 @@ const navigation = [
   {
     name: "Intelligence Systems",
     items: [
-      { name: "AI Control Center", href: "/ai-control-center", icon: Brain, badge: "HUB", badgeVariant: "success" },
-      { name: "AI Operations Monitor", href: "/ai-dashboard", icon: Activity },
+      { name: "AI Operations Dashboard", href: "/ai-dashboard", icon: Brain, badge: "NEW", badgeVariant: "success" },
       { name: "Financial Intelligence", href: "/financial-intelligence", icon: TrendingUp },
       { name: "Drawing Intelligence", href: "/drawing-intelligence", icon: FileText },
       { name: "Email Cost Import", href: "/email-cost-import", icon: Mail },

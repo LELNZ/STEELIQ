@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (important for Replit environment)
 app.use(express.json({ limit: '500mb' }));
