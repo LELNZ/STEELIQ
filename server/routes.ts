@@ -18028,7 +18028,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             AVG(confidence_score) as avg_confidence,
             AVG(total_items) as avg_items_per_mto,
             SUM(cost) as total_cost
-          FROM ai_estimation_results
+          FROM ai_run_telemetry
           WHERE created_at BETWEEN ${startTime} AND ${endTime}
         `),
         db.execute(sql`
@@ -18110,7 +18110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           created_at as time,
           COUNT(*) as total,
           SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as successful
-        FROM ai_estimation_results
+        FROM ai_run_telemetry
         WHERE created_at BETWEEN ${startTime} AND ${endTime}
         GROUP BY created_at
         ORDER BY created_at ASC
