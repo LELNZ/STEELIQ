@@ -107,10 +107,15 @@ class FeedbackLearningService {
    */
   private async applyCorrection(jobId: string, correction: UserCorrection): Promise<void> {
     // Find the pattern pack associated with this job
+    // Job IDs may be strings like 'JOB-2024-001' or numeric telemetry IDs
+    const isNumeric = /^\d+$/.test(jobId);
+    
     const telemetry = await db
       .select()
       .from(aiRunTelemetry)
-      .where(eq(aiRunTelemetry.id, parseInt(jobId)))
+      .where(isNumeric 
+        ? eq(aiRunTelemetry.id, parseInt(jobId))
+        : eq(aiRunTelemetry.jobId, jobId))
       .limit(1);
     
     if (!telemetry.length) {
@@ -137,13 +142,13 @@ class FeedbackLearningService {
       organizationKey,
       projectType,
       updatedPattern,
-      parseInt(jobId)
+      telemetry[0].id // Use the telemetry ID for pattern pack tracking
     );
     
     // Record learning event
     await db.insert(patternLearningEvents).values({
       patternPackId: patternPack.id || 0,
-      aiAnalysisId: parseInt(jobId),
+      aiAnalysisId: isNumeric ? parseInt(jobId) : 0, // Use numeric ID if available, otherwise 0
       eventType: 'user_correction',
       originalValue: { [correction.field]: correction.originalValue },
       correctedValue: { [correction.field]: correction.correctedValue },
@@ -255,10 +260,13 @@ class FeedbackLearningService {
     );
     
     // Get associated pattern pack
+    const isNumeric = /^\d+$/.test(jobId);
     const telemetry = await db
       .select()
       .from(aiRunTelemetry)
-      .where(eq(aiRunTelemetry.id, parseInt(jobId)))
+      .where(isNumeric 
+        ? eq(aiRunTelemetry.id, parseInt(jobId))
+        : eq(aiRunTelemetry.jobId, jobId))
       .limit(1);
     
     if (telemetry.length && telemetry[0].patternPackId) {
@@ -277,10 +285,13 @@ class FeedbackLearningService {
    */
   async calculateLearningMetrics(jobId: string): Promise<LearningMetrics> {
     // Get telemetry for this job
+    const isNumeric = /^\d+$/.test(jobId);
     const telemetry = await db
       .select()
       .from(aiRunTelemetry)
-      .where(eq(aiRunTelemetry.id, parseInt(jobId)))
+      .where(isNumeric 
+        ? eq(aiRunTelemetry.id, parseInt(jobId))
+        : eq(aiRunTelemetry.jobId, jobId))
       .limit(1);
     
     if (!telemetry.length) {
@@ -453,10 +464,26 @@ class FeedbackLearningService {
     console.log(`[FeedbackLearning] Triggering pattern revalidation for job ${jobId}`);
     
     // Get all evidence for this job
+    const isNumeric = /^\d+$/.test(jobId);
+    
+    // First get the telemetry record to get the numeric ID
+    const telemetryRecord = await db
+      .select()
+      .from(aiRunTelemetry)
+      .where(isNumeric 
+        ? eq(aiRunTelemetry.id, parseInt(jobId))
+        : eq(aiRunTelemetry.jobId, jobId))
+      .limit(1);
+    
+    if (!telemetryRecord.length) {
+      console.warn(`[FeedbackLearning] No telemetry found for job ${jobId}`);
+      return;
+    }
+    
     const evidence = await db
       .select()
       .from(ai_mto_evidence)
-      .where(eq(ai_mto_evidence.runTelemetryId, parseInt(jobId)));
+      .where(eq(ai_mto_evidence.runTelemetryId, telemetryRecord[0].id));
     
     // Group evidence by confidence level
     const lowConfidence = evidence.filter(e => (e.confidenceScore || 0) < 0.5);
