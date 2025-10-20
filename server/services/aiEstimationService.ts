@@ -11,6 +11,7 @@ import { validateRealData, auditDataSource, NoMockDataViolationError } from '../
 import { getV42AutoPrompt, V42AutoResponse } from '../prompts/v42AutoPrompt.js';
 import { V42ResponseTransformer } from './v42ResponseTransformer.js';
 import ocrService from './ocrService.js';
+import { feedbackLearningService } from './feedbackLearningService.js';
 
 // V4.2 AUTO - Self-Learning AI Architecture Version  
 const AI_VERSION = 'V4.2 AUTO';
