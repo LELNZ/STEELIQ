@@ -20,7 +20,8 @@ import {
   Shield, Package, AlertTriangle, BarChart3, Play, Pause,
   FileSearch, Calculator, Workflow, DollarSign, Target,
   Sparkles, ChevronRight, RefreshCw, Settings, HelpCircle,
-  Layers, Bot, Gauge, CheckSquare, XCircle
+  Layers, Bot, Gauge, CheckSquare, XCircle, RefreshCcw,
+  MessageSquare, GitBranch, Lightbulb
 } from 'lucide-react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
