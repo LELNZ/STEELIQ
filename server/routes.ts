@@ -26,7 +26,7 @@ import { integratedEmailService } from "./services/integratedEmailService";
 import { poTrackingService } from "./poTracking";
 import { OperationService } from "./services/operation-service";
 import { ConsumptionRatesService } from "./services/consumption-rates-service";
-import { estimationMaterials, estimationOperations } from "@shared/schema";
+import { estimationMaterials, estimationOperations, aiRunTelemetry } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const operationService = new OperationService();
@@ -18217,11 +18217,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { aiCacheService } = await import('./services/aiCacheService');
       const cacheStats = await aiCacheService.getCacheStats();
       
-      // Calculate comprehensive metrics
-      const totalProcessed = performanceMetrics.reduce((sum: number, m: any) => sum + m.successfulExtractions + m.failedExtractions, 0);
-      const totalSuccessful = performanceMetrics.reduce((sum: number, m: any) => sum + m.successfulExtractions, 0);
-      const avgProcessingTime = performanceMetrics.reduce((sum: number, m: any, idx: number, arr: any[]) => 
-        sum + m.avgResponseTime / arr.length, 0);
+      // Calculate comprehensive metrics from telemetry data
+      // Get actual telemetry data from database
+      const telemetryData = await db.select().from(aiRunTelemetry)
+        .where(gte(aiRunTelemetry.createdAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)))
+        .orderBy(desc(aiRunTelemetry.createdAt))
+        .limit(100);
+      
+      const totalProcessed = telemetryData.length;
+      const totalSuccessful = telemetryData.filter(t => t.success).length;
+      const avgProcessingTime = performanceMetrics.avgResponseTime || 45;
       
       // Calculate cost savings (based on cache hits and automation)
       const costPerApiCall = 0.02; // Estimated cost per API call
