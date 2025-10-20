@@ -638,6 +638,48 @@ class WorkerQueueService extends EventEmitter {
   }
 
   /**
+   * Get active jobs for monitoring
+   */
+  async getActiveJobs(): Promise<Job[]> {
+    try {
+      // Get active jobs from database
+      const result = await db.execute<{
+        id: number;
+        type: string;
+        status: string;
+        payload: any;
+        priority: number;
+        created_at: Date;
+        started_at: Date | null;
+        retry_count: number;
+      }>(sql`
+        SELECT id, type, status, payload, priority, created_at, started_at, retry_count
+        FROM worker_queue_jobs
+        WHERE status IN ('pending', 'processing')
+        ORDER BY priority ASC, created_at DESC
+        LIMIT 50
+      `);
+      
+      const activeJobs: Job[] = result.rows.map((row: any) => ({
+        id: Number(row.id),
+        type: row.type,
+        status: row.status,
+        payload: typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload,
+        priority: row.priority || 0,
+        createdAt: row.created_at,
+        startedAt: row.started_at || undefined,
+        retryCount: row.retry_count || 0,
+        data: typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload
+      }));
+      
+      return activeJobs;
+    } catch (error) {
+      console.error('[WorkerQueue] Error getting active jobs:', error);
+      return [];
+    }
+  }
+
+  /**
    * Start monitoring
    */
   private startMonitoring(): void {

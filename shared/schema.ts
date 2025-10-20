@@ -5673,6 +5673,132 @@ export const machineJobAssignments = pgTable("machine_job_assignments", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+// AI Orchestration Tables - Fortune 50 Level Pipeline
+export const ai_processing_jobs = pgTable("ai_processing_jobs", {
+  id: varchar("id").primaryKey(), // job_timestamp_random format
+  type: text("type").notNull(), // 'drawing-analysis', 'mto-generation', etc.
+  priority: integer("priority").notNull().default(3), // 1=urgent, 5=batch
+  status: text("status").notNull().default('pending'), // pending, processing, completed, failed
+  
+  // Workflow tracking
+  steps: jsonb("steps"), // Array of step objects with status
+  currentStep: integer("current_step").default(0),
+  totalSteps: integer("total_steps").default(0),
+  progress: integer("progress").default(0), // 0-100
+  
+  // Data and results
+  data: jsonb("data"), // Input data and context
+  result: jsonb("result"), // Processing results
+  error: text("error"),
+  
+  // Timing
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  processingTime: integer("processing_time"), // milliseconds
+  
+  // Retry handling
+  retryCount: integer("retry_count").default(0),
+  lastRetryAt: timestamp("last_retry_at"),
+  
+  // User context
+  userId: integer("user_id").references(() => users.id).notNull(),
+  
+  // Metadata
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const ai_workflow_templates = pgTable("ai_workflow_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // workflow category
+  
+  // Workflow definition
+  steps: jsonb("steps").notNull(), // Array of step configurations
+  triggers: jsonb("triggers"), // Event triggers, schedules, conditions
+  metadata: jsonb("metadata"),
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  version: integer("version").default(1),
+  
+  // Ownership
+  createdBy: integer("created_by").references(() => users.id),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const ai_feedback_entries = pgTable("ai_feedback_entries", {
+  id: serial("id").primaryKey(),
+  jobId: varchar("job_id").references(() => ai_processing_jobs.id).notNull(),
+  
+  // Feedback data
+  rating: integer("rating"), // 1-5 star rating
+  corrections: jsonb("corrections"), // Array of field corrections
+  comments: text("comments"),
+  approved: boolean("approved").notNull().default(false),
+  
+  // Context
+  userId: integer("user_id").references(() => users.id),
+  projectId: integer("project_id").references(() => projects.id),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const ai_orchestration_events = pgTable("ai_orchestration_events", {
+  id: serial("id").primaryKey(),
+  jobId: varchar("job_id").references(() => ai_processing_jobs.id).notNull(),
+  
+  // Event data
+  eventType: text("event_type").notNull(), // job.created, job.progress, etc.
+  eventData: jsonb("event_data"),
+  
+  // Timestamp
+  timestamp: timestamp("timestamp").defaultNow().notNull()
+}, (table) => ({
+  // Index for querying events by job
+  jobIdIdx: index("ai_orchestration_events_job_id_idx").on(table.jobId),
+  timestampIdx: index("ai_orchestration_events_timestamp_idx").on(table.timestamp)
+}));
+
+export const ai_learning_metrics = pgTable("ai_learning_metrics", {
+  id: serial("id").primaryKey(),
+  jobId: varchar("job_id"), // Can be null for system-wide metrics
+  
+  // Metric data
+  metricType: text("metric_type").notNull(), // feedback, correction_pattern, improvement
+  value: decimal("value", { precision: 10, scale: 4 }),
+  metadata: jsonb("metadata"),
+  
+  // Timestamp
+  timestamp: timestamp("timestamp").defaultNow().notNull()
+}, (table) => ({
+  // Index for time series queries
+  timestampIdx: index("ai_learning_metrics_timestamp_idx").on(table.timestamp),
+  metricTypeIdx: index("ai_learning_metrics_type_idx").on(table.metricType)
+}));
+
+export const ai_monitoring_logs = pgTable("ai_monitoring_logs", {
+  id: serial("id").primaryKey(),
+  service: text("service").notNull(),
+  operation: text("operation").notNull(),
+  level: text("level").notNull(), // 'INFO', 'WARN', 'ERROR'
+  message: text("message"),
+  duration: integer("duration"), // milliseconds
+  error: jsonb("error"),
+  metadata: jsonb("metadata"),
+  timestamp: timestamp("timestamp").defaultNow().notNull()
+}, (table) => ({
+  // Index for log queries
+  timestampIdx: index("ai_monitoring_logs_timestamp_idx").on(table.timestamp),
+  serviceIdx: index("ai_monitoring_logs_service_idx").on(table.service),
+  levelIdx: index("ai_monitoring_logs_level_idx").on(table.level)
+}));
+
 // Create insert schemas
 export const insertQualityInspectionSchema = createInsertSchema(qualityInspections).omit({
   id: true,
