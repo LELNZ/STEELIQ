@@ -8,8 +8,7 @@ import {
   ai_feedback_entries,
   patternPacks,
   patternLearningEvents,
-  aiRunTelemetry,
-  ai_mto_evidence
+  aiRunTelemetry
 } from '@shared/schema';
 import { eq, and, gte, sql, desc } from 'drizzle-orm';
 import { patternPackService } from './patternPackService';
@@ -480,10 +479,13 @@ class FeedbackLearningService {
       return;
     }
     
-    const evidence = await db
-      .select()
-      .from(ai_mto_evidence)
-      .where(eq(ai_mto_evidence.runTelemetryId, telemetryRecord[0].id));
+    // TODO: Implement evidence retrieval when ai_mto_evidence table is created
+    // For now, return empty evidence array
+    const evidence: any[] = [];
+    // const evidence = await db
+    //   .select()
+    //   .from(ai_mto_evidence)
+    //   .where(eq(ai_mto_evidence.runTelemetryId, telemetryRecord[0].id));
     
     // Group evidence by confidence level
     const lowConfidence = evidence.filter(e => (e.confidenceScore || 0) < 0.5);

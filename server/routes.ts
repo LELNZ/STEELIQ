@@ -43,6 +43,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Drawing Parser Routes - Fortune 50 Level Drawing Analysis
+  const drawingRoutes = await import('./routes/drawingRoutes');
+  app.use('/api/drawings', drawingRoutes.default);
+
   // Initialize default templates
   app.get("/api/templates/init-defaults", async (req, res) => {
     try {

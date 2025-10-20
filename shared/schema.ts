@@ -2362,12 +2362,12 @@ export const complianceLints = pgTable("compliance_lints", {
 
 export const lintRules = pgTable("lint_rules", {
   id: serial("id").primaryKey(),
-  code: varchar("code", { length: 100 }).unique(),
-  severity: varchar("severity", { length: 10 }), // INFO, WARN, ERROR
+  name: varchar("name", { length: 255 }),
+  category: varchar("category", { length: 100 }),
   description: text("description"),
   ruleLogic: jsonb("rule_logic"), // Configurable thresholds and conditions
-  enabled: boolean("enabled").default(true),
-  appliesToStandards: text("applies_to_standards").array(), // ['AS_NZS', 'AISC_AWS', etc.]
+  severityDefault: varchar("severity_default", { length: 10 }), // info, warning, error
+  isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });

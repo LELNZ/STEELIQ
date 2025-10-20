@@ -1,15 +1,15 @@
-import { db } from '../db/index.js';
+import { db } from '../db';
 import { complianceLints, lintRules } from '@shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 export interface LintRule {
   id: number;
-  name: string;
-  category: string;
-  description: string;
+  name: string | null;
+  category: string | null;
+  description: string | null;
   ruleLogic: any;
-  severityDefault: 'info' | 'warning' | 'error';
-  isActive: boolean;
+  severityDefault: string | null;
+  isActive: boolean | null;
 }
 
 export interface LintResult {
@@ -117,7 +117,11 @@ class ComplianceLintService {
         
         if (existing.length === 0) {
           await db.insert(lintRules).values({
-            ...rule,
+            name: rule.name,
+            category: rule.category,
+            description: rule.description,
+            ruleLogic: rule.ruleLogic,
+            severityDefault: rule.severityDefault,
             isActive: true
           });
           console.log(`Created lint rule: ${rule.name}`);
