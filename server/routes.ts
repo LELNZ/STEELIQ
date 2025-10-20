@@ -18225,7 +18225,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(100);
       
       const totalProcessed = telemetryData.length;
-      const totalSuccessful = telemetryData.filter(t => t.success).length;
+      // Consider successful if no error_data and confidence_score > 0.7
+      const totalSuccessful = telemetryData.filter(t => 
+        !t.errorData && (t.confidenceScore || 0) > 0.7
+      ).length;
       const avgProcessingTime = performanceMetrics.avgResponseTime || 45;
       
       // Calculate cost savings (based on cache hits and automation)
