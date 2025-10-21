@@ -18122,24 +18122,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
       
-      const { projectId } = req.body;
-      // File will be handled by multer middleware
+      const { projectId, fileId, projectName } = req.body;
       
-      // Create a new workflow job
-      const jobId = `WF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      if (!projectId || !fileId || !projectName) {
+        return res.status(400).json({ error: "Missing required fields: projectId, fileId, projectName" });
+      }
       
-      const newJob = await db.insert(aiWorkerJobs).values({
-        jobId,
-        type: 'AI_EXTRACTION',
-        payload: { projectId, userId: user.id },
-        priority: 1,
-        status: 'pending',
-        organizationKey: 'default',
+      const { default: workflowService } = await import('./services/aiWorkflowService');
+      
+      const jobId = await workflowService.startWorkflow({
+        projectId: parseInt(projectId),
+        fileId,
         userId: user.id,
-        metadata: { source: 'ai-control-center' }
-      }).returning();
+        projectName,
+        priority: req.body.priority || 'normal'
+      });
       
-      // Return workflow structure
+      // Return workflow structure for UI
       const workflow = {
         id: jobId,
         name: 'Drawing Analysis',
@@ -18159,6 +18158,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("[Start Workflow] Error:", error);
       res.status(500).json({ error: "Failed to start workflow" });
+    }
+  });
+  
+  // Get AI workflow status
+  app.get("/api/ai/workflow/status/:id", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const { default: workflowService } = await import('./services/aiWorkflowService');
+      const status = await workflowService.getWorkflowStatus(parseInt(req.params.id));
+      
+      if (!status) {
+        return res.status(404).json({ error: "Workflow not found" });
+      }
+      
+      res.json(status);
+    } catch (error) {
+      console.error("[AI Workflow Status] Error:", error);
+      res.status(500).json({ error: "Failed to fetch workflow status" });
+    }
+  });
+  
+  // Get AI workflow history
+  app.get("/api/ai/workflow/history", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const projectId = req.query.projectId;
+      if (!projectId) {
+        return res.status(400).json({ error: "Project ID required" });
+      }
+      
+      const { default: workflowService } = await import('./services/aiWorkflowService');
+      const history = await workflowService.getWorkflowHistory(parseInt(projectId as string));
+      
+      res.json(history);
+    } catch (error) {
+      console.error("[AI Workflow History] Error:", error);
+      res.status(500).json({ error: "Failed to fetch workflow history" });
     }
   });
   
