@@ -5865,6 +5865,47 @@ export const machineJobAssignments = pgTable("machine_job_assignments", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+// Geometry tables for DXF/DWG parsing with 0.01mm precision
+export const aiMtoGeometries = pgTable("ai_mto_geometries", {
+  id: serial("id").primaryKey(),
+  elementId: integer("element_id").references(() => aiMtoElements.id, { onDelete: "cascade" }),
+  geometryType: text("geometry_type").notNull(), // 'polyline', 'arc', 'circle', 'spline', '3dface', etc
+  sourceFileId: integer("source_file_id").references(() => drawingDocuments.id),
+  layer: text("layer"),
+  placement: text("placement"), // 'parent', 'nested', 'child'
+  bboxMinX: decimal("bbox_min_x", { precision: 18, scale: 4 }), // millimeters with 0.01mm precision
+  bboxMinY: decimal("bbox_min_y", { precision: 18, scale: 4 }),
+  bboxMinZ: decimal("bbox_min_z", { precision: 18, scale: 4 }),
+  bboxMaxX: decimal("bbox_max_x", { precision: 18, scale: 4 }),
+  bboxMaxY: decimal("bbox_max_y", { precision: 18, scale: 4 }),
+  bboxMaxZ: decimal("bbox_max_z", { precision: 18, scale: 4 }),
+  centroidX: decimal("centroid_x", { precision: 18, scale: 4 }),
+  centroidY: decimal("centroid_y", { precision: 18, scale: 4 }),
+  centroidZ: decimal("centroid_z", { precision: 18, scale: 4 }),
+  areaMm2: decimal("area_mm2", { precision: 18, scale: 4 }),
+  perimeterMm: decimal("perimeter_mm", { precision: 18, scale: 4 }),
+  thicknessMm: decimal("thickness_mm", { precision: 18, scale: 4 }),
+  angleDeg: decimal("angle_deg", { precision: 10, scale: 4 }),
+  metadata: jsonb("metadata"), // raw DXF/DWG attributes
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: integer("created_by").references(() => users.id)
+});
+
+export const aiMtoFeatures = pgTable("ai_mto_features", {
+  id: serial("id").primaryKey(),
+  geometryId: integer("geometry_id").references(() => aiMtoGeometries.id, { onDelete: "cascade" }).notNull(),
+  featureType: text("feature_type").notNull(), // 'hole', 'fold_line', 'notch', 'cutout', 'angle', 'bend'
+  profileData: jsonb("profile_data"), // ordered points in mm with 0.01mm precision
+  diameterMm: decimal("diameter_mm", { precision: 18, scale: 4 }),
+  lengthMm: decimal("length_mm", { precision: 18, scale: 4 }),
+  widthMm: decimal("width_mm", { precision: 18, scale: 4 }),
+  heightMm: decimal("height_mm", { precision: 18, scale: 4 }),
+  orientationDeg: decimal("orientation_deg", { precision: 10, scale: 4 }),
+  parentFeatureId: integer("parent_feature_id").references(() => aiMtoFeatures.id),
+  toleranceMm: decimal("tolerance_mm", { precision: 8, scale: 4 }).default('0.005'), // ±0.005mm tolerance
+  createdAt: timestamp("created_at").defaultNow()
+});
+
 // Create insert schemas
 export const insertQualityInspectionSchema = createInsertSchema(qualityInspections).omit({
   id: true,
