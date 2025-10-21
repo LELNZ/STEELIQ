@@ -8997,6 +8997,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           projectId,
           fileId,
           projectName: settings.name,
+          fileName: uploadResult.originalname,
           userId: user.id,
           priority: 'normal'
         });
@@ -18209,10 +18210,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
       
-      const { projectId, fileId, projectName } = req.body;
+      const { projectId, fileId, projectName, fileName } = req.body;
       
       if (!projectId || !fileId || !projectName) {
         return res.status(400).json({ error: "Missing required fields: projectId, fileId, projectName" });
+      }
+      
+      // Get file info from secure storage if fileName not provided
+      let actualFileName = fileName;
+      if (!actualFileName) {
+        try {
+          const { secureFiles } = await import('@shared/schema');
+          const fileRecord = await db.select().from(secureFiles).where(eq(secureFiles.fileId, fileId)).limit(1);
+          if (fileRecord.length > 0) {
+            actualFileName = fileRecord[0].fileName;
+          }
+        } catch (err) {
+          console.warn(`Could not retrieve fileName for fileId ${fileId}:`, err);
+        }
       }
       
       const { default: workflowService } = await import('./services/aiWorkflowService');
@@ -18222,6 +18237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileId,
         userId: user.id,
         projectName,
+        fileName: actualFileName || '', // Pass fileName if available
         priority: req.body.priority || 'normal'
       });
       

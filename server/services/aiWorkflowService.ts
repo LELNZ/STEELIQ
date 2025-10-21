@@ -20,12 +20,16 @@ import aiEstimationService from './aiEstimationService';
 import patternPackService from './patternPackService';
 import pdfAnalysisService from './pdfAnalysisService';
 import secureStorageService from './secureStorageService';
+import dxfParserService from './dxfParserService';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface WorkflowStartRequest {
   projectId: number;
   fileId: string;
   userId: number;
   projectName: string;
+  fileName?: string; // Add fileName to detect file type
   priority?: 'low' | 'normal' | 'high';
 }
 
@@ -104,15 +108,77 @@ class AIWorkflowService {
         throw new Error('File not found');
       }
       
-      // Update progress
-      await this.updateJobProgress(jobId, 20, 'pdf_analysis');
+      // Determine file type based on extension
+      // CRITICAL: Only DXF files are supported, not DWG (binary format)
+      const fileExtension = request.fileName ? path.extname(request.fileName).toLowerCase() : '';
+      const isDXF = fileExtension === '.dxf';
       
-      // Step 2: Analyze PDF structure
-      console.log(`🔍 [Job ${jobId}] Analyzing PDF structure`);
-      const analysisResult = await pdfAnalysisService.analyzePDF(
-        Buffer.from(fileContent),
-        request.fileId
-      );
+      // Reject DWG files explicitly as they are binary and not supported
+      if (fileExtension === '.dwg') {
+        throw new Error('DWG files are not currently supported. Please convert to DXF format.');
+      }
+      
+      // If no fileName provided, try to detect from content
+      if (!request.fileName) {
+        // Check if content looks like DXF (text-based format starting with specific headers)
+        const contentStart = fileContent.toString('utf8', 0, Math.min(100, fileContent.length));
+        if (contentStart.includes('SECTION') || contentStart.includes('ENDSEC') || contentStart.includes('$ACADVER')) {
+          console.warn(`[Job ${jobId}] DXF content detected but no fileName provided, treating as DXF`);
+        } else {
+          console.log(`[Job ${jobId}] No fileName provided, defaulting to PDF processing`);
+        }
+      }
+      
+      // Update progress
+      await this.updateJobProgress(jobId, 20, isDXF ? 'dxf_analysis' : 'pdf_analysis');
+      
+      let analysisResult: any;
+      let extractedSteelElements: any[] = [];
+      
+      if (isDXF) {
+        // Step 2a: Process DXF/DWG file
+        console.log(`🔍 [Job ${jobId}] Analyzing DXF/DWG structure`);
+        
+        // Save file temporarily for DXF parser
+        const tempFilePath = `/tmp/ai_workflow_${jobId}${fileExtension}`;
+        fs.writeFileSync(tempFilePath, fileContent);
+        
+        try {
+          // Parse DXF file
+          const dxfResult = await dxfParserService.parseDXF(tempFilePath);
+          
+          // Convert DXF result to format compatible with AI processing
+          analysisResult = {
+            textContent: this.convertDXFToText(dxfResult),
+            metadata: {
+              type: 'DXF',
+              units: dxfResult.metadata.units,
+              acadVersion: dxfResult.metadata.acadVersion,
+              entityCount: dxfResult.entities.length,
+              layerCount: dxfResult.layers.length,
+              steelElementCount: dxfResult.steelElements.length,
+              extMin: dxfResult.metadata.extMin,
+              extMax: dxfResult.metadata.extMax
+            }
+          };
+          
+          // Store extracted steel elements for later processing
+          extractedSteelElements = dxfResult.steelElements || [];
+          
+        } finally {
+          // Clean up temp file
+          if (fs.existsSync(tempFilePath)) {
+            fs.unlinkSync(tempFilePath);
+          }
+        }
+      } else {
+        // Step 2b: Analyze PDF structure
+        console.log(`🔍 [Job ${jobId}] Analyzing PDF structure`);
+        analysisResult = await pdfAnalysisService.analyzePDF(
+          Buffer.from(fileContent),
+          request.fileId
+        );
+      }
       
       await this.updateJobProgress(jobId, 40, 'pattern_matching');
       
@@ -122,14 +188,20 @@ class AIWorkflowService {
       
       await this.updateJobProgress(jobId, 60, 'ai_extraction');
       
-      // Step 4: Process with AI
+      // Step 4: Process with AI - enhanced for DXF data
       console.log(`🤖 [Job ${jobId}] Processing with Claude AI`);
       const aiResult = await aiEstimationService.processDocument({
         fileId: request.fileId,
         projectId: request.projectId,
         content: analysisResult.textContent,
-        metadata: analysisResult.metadata,
-        patterns: patterns
+        metadata: {
+          ...analysisResult.metadata,
+          isDXF: isDXF,
+          hasSteelElements: extractedSteelElements.length > 0
+        },
+        patterns: patterns,
+        // Pass pre-extracted steel elements from DXF parser to AI
+        extractedElements: isDXF ? extractedSteelElements : undefined
       });
       
       await this.updateJobProgress(jobId, 80, 'storing_results');
@@ -378,6 +450,85 @@ class AIWorkflowService {
         error: job.errorMessage
       };
     });
+  }
+  
+  /**
+   * Convert DXF parsing result to text format for AI processing
+   */
+  private convertDXFToText(dxfResult: any): string {
+    const lines: string[] = [];
+    
+    // Add header information
+    lines.push('=== DXF DRAWING ANALYSIS ===');
+    lines.push(`Units: ${dxfResult.metadata.units}`);
+    lines.push(`AutoCAD Version: ${dxfResult.metadata.acadVersion}`);
+    lines.push(`Total Entities: ${dxfResult.entities.length}`);
+    lines.push(`Total Layers: ${dxfResult.layers.length}`);
+    
+    // Add steel elements information
+    if (dxfResult.steelElements && dxfResult.steelElements.length > 0) {
+      lines.push('\n=== EXTRACTED STEEL ELEMENTS ===');
+      dxfResult.steelElements.forEach((element: any) => {
+        lines.push(`\nElement: ${element.designation || element.id}`);
+        lines.push(`  Type: ${element.type}`);
+        lines.push(`  Layer: ${element.layer}`);
+        if (element.profile) lines.push(`  Profile: ${element.profile}`);
+        if (element.material) lines.push(`  Material: ${element.material}`);
+        
+        // Add dimensions if available
+        if (element.dimensions) {
+          if (element.dimensions.length) lines.push(`  Length: ${element.dimensions.length}mm`);
+          if (element.dimensions.width) lines.push(`  Width: ${element.dimensions.width}mm`);
+          if (element.dimensions.height) lines.push(`  Height: ${element.dimensions.height}mm`);
+          if (element.dimensions.thickness) lines.push(`  Thickness: ${element.dimensions.thickness}mm`);
+        }
+        
+        // Add position information
+        if (element.position) {
+          lines.push(`  Position: X=${element.position.x}, Y=${element.position.y}`);
+        }
+        
+        // Add confidence score
+        lines.push(`  Confidence: ${element.confidence || 'N/A'}`);
+      });
+    }
+    
+    // Add layer information
+    lines.push('\n=== LAYERS ===');
+    dxfResult.layers.forEach((layer: any) => {
+      lines.push(`Layer: ${layer.name}`);
+      if (layer.entityCount) lines.push(`  Entities: ${layer.entityCount}`);
+    });
+    
+    // Add blocks information if available
+    if (dxfResult.blocks && dxfResult.blocks.length > 0) {
+      lines.push('\n=== BLOCKS ===');
+      dxfResult.blocks.forEach((block: any) => {
+        lines.push(`Block: ${block.name}`);
+        if (block.entityCount) lines.push(`  Entities: ${block.entityCount}`);
+      });
+    }
+    
+    // Add entity statistics
+    const entityTypes: { [key: string]: number } = {};
+    dxfResult.entities.forEach((entity: any) => {
+      entityTypes[entity.type] = (entityTypes[entity.type] || 0) + 1;
+    });
+    
+    lines.push('\n=== ENTITY STATISTICS ===');
+    Object.entries(entityTypes).forEach(([type, count]) => {
+      lines.push(`${type}: ${count}`);
+    });
+    
+    // Add processing warnings if any
+    if (dxfResult.warnings && dxfResult.warnings.length > 0) {
+      lines.push('\n=== WARNINGS ===');
+      dxfResult.warnings.forEach((warning: string) => {
+        lines.push(`- ${warning}`);
+      });
+    }
+    
+    return lines.join('\n');
   }
 }
 
