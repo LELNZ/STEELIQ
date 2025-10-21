@@ -42,6 +42,7 @@ import AuditCenter from "@/pages/AuditCenter";
 import Optimization from "@/pages/optimization";
 import MobileOperations from "@/pages/mobile-operations";
 import AIDashboard from "@/pages/AIDashboard";
+import AIControlCenter from "@/pages/AIControlCenter";
 
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
@@ -110,6 +111,7 @@ function Router() {
       <Route path="/pdf-markup" component={PDFMarkup} />
       <Route path="/mobile-operations" component={MobileOperations} />
       <Route path="/ai-dashboard" component={AIDashboard} />
+      <Route path="/ai-control-center" component={AIControlCenter} />
       <Route component={NotFound} />
     </Switch>
   );

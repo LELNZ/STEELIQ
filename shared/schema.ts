@@ -4145,6 +4145,198 @@ export type InsertCostCenter = typeof costCenters.$inferInsert;
 export type BusinessUnit = typeof businessUnits.$inferSelect;
 export type InsertBusinessUnit = typeof businessUnits.$inferInsert;
 
+// AI System tables for Fortune 50-level ML infrastructure
+export const aiWorkerJobs = pgTable("ai_worker_jobs", {
+  id: serial("id").primaryKey(),
+  jobId: varchar("job_id", { length: 255 }).unique().notNull(),
+  type: text("type").notNull(), // 'AI_EXTRACTION' | 'DXF_PROCESSING' | 'EXPORT' | 'BATCH_ANALYSIS'
+  payload: jsonb("payload").notNull(),
+  priority: integer("priority").default(0),
+  status: text("status").notNull(), // 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+  retryCount: integer("retry_count").default(0),
+  maxRetries: integer("max_retries").default(3),
+  organizationKey: text("organization_key").notNull(),
+  userId: integer("user_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  error: text("error"),
+  result: jsonb("result"),
+  metadata: jsonb("metadata")
+});
+
+export const aiMonitoringLogs = pgTable("ai_monitoring_logs", {
+  id: serial("id").primaryKey(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  level: text("level").notNull(), // 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL'
+  service: text("service").notNull(),
+  operation: text("operation").notNull(),
+  message: text("message").notNull(),
+  metadata: jsonb("metadata"),
+  correlationId: varchar("correlation_id", { length: 255 }),
+  userId: integer("user_id").references(() => users.id),
+  organizationKey: text("organization_key"),
+  duration: integer("duration"), // in ms
+  error: jsonb("error")
+});
+
+export const aiProcessingQueue = pgTable("ai_processing_queue", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => drawingProjects.id),
+  jobId: varchar("job_id", { length: 255 }).unique().notNull(),
+  priority: integer("priority").default(0),
+  status: text("status").notNull(), // 'pending' | 'processing' | 'completed' | 'failed'
+  retryCount: integer("retry_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  processedAt: timestamp("processed_at"),
+  error: text("error"),
+  metadata: jsonb("metadata")
+});
+
+export const aiBatchJobs = pgTable("ai_batch_jobs", {
+  id: serial("id").primaryKey(),
+  batchId: varchar("batch_id", { length: 255 }).unique().notNull(),
+  projectId: integer("project_id").references(() => drawingProjects.id),
+  totalItems: integer("total_items").notNull(),
+  processedItems: integer("processed_items").default(0),
+  failedItems: integer("failed_items").default(0),
+  status: text("status").notNull(), // 'pending' | 'processing' | 'completed' | 'failed'
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  metadata: jsonb("metadata")
+});
+
+export const aiBatchJobItems = pgTable("ai_batch_job_items", {
+  id: serial("id").primaryKey(),
+  batchId: integer("batch_id").references(() => aiBatchJobs.id),
+  itemId: varchar("item_id", { length: 255 }).notNull(),
+  status: text("status").notNull(), // 'pending' | 'processing' | 'completed' | 'failed'
+  result: jsonb("result"),
+  error: text("error"),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const aiMtoEvidence = pgTable("ai_mto_evidence", {
+  id: serial("id").primaryKey(),
+  runTelemetryId: integer("run_telemetry_id").references(() => aiRunTelemetry.id),
+  elementId: varchar("element_id", { length: 255 }).notNull(),
+  fileId: varchar("file_id", { length: 255 }).notNull(),
+  page: integer("page").notNull(),
+  bbox: jsonb("bbox"), // [x1, y1, x2, y2]
+  extractionMethod: text("extraction_method").notNull(), // 'TEXT' | 'VISION' | 'HYBRID' | 'UNSPECIFIED'
+  confidence: decimal("confidence", { precision: 3, scale: 2 }),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Hierarchical MTO structure for parent-child relationships
+export const aiMtoElements = pgTable("ai_mto_elements", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  elementId: varchar("element_id", { length: 255 }).unique().notNull(), // e.g., B1, C1, PL1
+  designation: varchar("designation", { length: 255 }).notNull(),
+  type: text("type").notNull(), // 'beam' | 'column' | 'plate' | 'angle' | 'channel' | 'tube' | 'other'
+  description: text("description"),
+  material: text("material"), // e.g., AS350, AS250
+  dimensions: jsonb("dimensions"), // { length, width, height, thickness, weight }
+  quantity: integer("quantity").default(1),
+  location: text("location"), // Grid reference or area
+  drawingReference: text("drawing_reference"), // PDF page or drawing number
+  confidence: decimal("confidence", { precision: 3, scale: 2 }),
+  evidence: jsonb("evidence"), // { fileId, page, bbox, extractionMethod }
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const aiMtoOperations = pgTable("ai_mto_operations", {
+  id: serial("id").primaryKey(),
+  parentElementId: integer("parent_element_id").references(() => aiMtoElements.id),
+  operationId: varchar("operation_id", { length: 255 }).notNull(), // e.g., 4.1, 4.2
+  type: text("type").notNull(), // 'cutting' | 'drilling' | 'welding' | 'painting' | 'endplate' | 'stiffener' | 'cleat' | 'baseplate'
+  description: text("description"),
+  specifications: jsonb("specifications"), // holes, weldType, weldSize, plateThickness, etc.
+  quantity: integer("quantity").default(1),
+  laborHours: decimal("labor_hours", { precision: 10, scale: 2 }),
+  sequence: integer("sequence").default(0), // Order of operations
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Pattern learning for self-improvement
+export const aiPatternLibrary = pgTable("ai_pattern_library", {
+  id: serial("id").primaryKey(),
+  patternType: text("pattern_type").notNull(), // 'element_detection' | 'dimension_extraction' | 'designation_mapping'
+  patternKey: varchar("pattern_key", { length: 255 }).unique().notNull(),
+  patternValue: jsonb("pattern_value").notNull(), // The learned pattern
+  successCount: integer("success_count").default(0),
+  failureCount: integer("failure_count").default(0),
+  lastUsed: timestamp("last_used"),
+  confidence: decimal("confidence", { precision: 3, scale: 2 }),
+  version: integer("version").default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Feedback collection for learning
+export const aiFeedback = pgTable("ai_feedback", {
+  id: serial("id").primaryKey(),
+  elementId: integer("element_id").references(() => aiMtoElements.id),
+  operationId: integer("operation_id").references(() => aiMtoOperations.id),
+  feedbackType: text("feedback_type").notNull(), // 'correction' | 'confirmation' | 'rejection'
+  originalValue: jsonb("original_value"),
+  correctedValue: jsonb("corrected_value"),
+  userId: integer("user_id").references(() => users.id),
+  applied: boolean("applied").default(false),
+  patternUpdated: boolean("pattern_updated").default(false),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Learning metrics for ROI tracking
+export const aiLearningMetrics = pgTable("ai_learning_metrics", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull(),
+  projectsProcessed: integer("projects_processed").default(0),
+  elementsExtracted: integer("elements_extracted").default(0),
+  correctionsReceived: integer("corrections_received").default(0),
+  patternsLearned: integer("patterns_learned").default(0),
+  accuracyRate: decimal("accuracy_rate", { precision: 5, scale: 2 }),
+  timeToProcess: decimal("time_to_process", { precision: 10, scale: 2 }), // average in seconds
+  costSaved: decimal("cost_saved", { precision: 10, scale: 2 }),
+  apiCostIncurred: decimal("api_cost_incurred", { precision: 10, scale: 2 }),
+  modelVersion: text("model_version"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const secureFiles = pgTable("secure_files", {
+  id: serial("id").primaryKey(),
+  fileId: varchar("file_id", { length: 255 }).unique().notNull(),
+  fileName: text("file_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  fileSize: integer("file_size").notNull(),
+  storagePath: text("storage_path").notNull(),
+  uploadedBy: integer("uploaded_by").references(() => users.id),
+  organizationKey: text("organization_key"),
+  checksum: text("checksum").notNull(),
+  encryptionKey: text("encryption_key"),
+  metadata: jsonb("metadata"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const secureFileTokens = pgTable("secure_file_tokens", {
+  id: serial("id").primaryKey(),
+  token: varchar("token", { length: 255 }).unique().notNull(),
+  fileId: integer("file_id").references(() => secureFiles.id),
+  expiresAt: timestamp("expires_at").notNull(),
+  usageCount: integer("usage_count").default(0),
+  maxUsage: integer("max_usage"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
 // Archive tables for Fortune 500 compliance and data retention
 export const jobsArchive = pgTable("jobs_archive", {
   id: serial("id").primaryKey(),
