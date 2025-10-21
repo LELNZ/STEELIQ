@@ -3726,6 +3726,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Production Data Collection - Collect real-time production data from machines
+  app.post("/api/production/collect-data", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const { default: productionMonitoringService } = await import('./services/productionMonitoringService');
+      
+      await productionMonitoringService.collectProductionData();
+      
+      res.json({
+        success: true,
+        message: "Production data collected successfully",
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error("Error collecting production data:", error);
+      res.status(500).json({ error: "Failed to collect production data" });
+    }
+  });
+  
+  // Get real-time machine statuses - NO mock data
+  app.get("/api/production/machine-statuses", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const { default: productionMonitoringService } = await import('./services/productionMonitoringService');
+      
+      const statuses = await productionMonitoringService.getMachineStatuses();
+      
+      res.json({
+        machines: statuses,
+        lastUpdated: new Date()
+      });
+    } catch (error) {
+      console.error("Error fetching machine statuses:", error);
+      res.status(500).json({ error: "Failed to fetch machine statuses" });
+    }
+  });
+  
+  // Get department efficiency metrics - Real data from production events
+  app.get("/api/production/department-efficiency", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const { default: productionMonitoringService } = await import('./services/productionMonitoringService');
+      
+      const efficiency = await productionMonitoringService.getDepartmentEfficiency();
+      
+      res.json({
+        departments: efficiency,
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error("Error fetching department efficiency:", error);
+      res.status(500).json({ error: "Failed to fetch department efficiency" });
+    }
+  });
+  
+  // Get production KPIs - OEE, availability, performance, quality from real metrics
+  app.get("/api/production/kpis", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const { default: productionMonitoringService } = await import('./services/productionMonitoringService');
+      
+      const kpis = await productionMonitoringService.getProductionKPIs();
+      
+      res.json({
+        kpis,
+        source: 'database',
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error("Error fetching production KPIs:", error);
+      res.status(500).json({ error: "Failed to fetch production KPIs" });
+    }
+  });
+  
   // Lifecycle Template Management Routes - Import the service
   const { lifecycleTemplateService } = await import('./lifecycleTemplates');
 
