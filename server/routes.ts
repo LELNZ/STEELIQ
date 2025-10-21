@@ -3551,7 +3551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Convert estimation to job
+  // Convert estimation to job with full lifecycle integration
   app.post("/api/estimations/convert-to-job", async (req, res) => {
     try {
       // Validate authentication
@@ -3560,14 +3560,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
       
-      const { estimationId } = req.body;
+      const { estimationId, autoCreateRequisition, assignedTo, priority, rushOrder, notes } = req.body;
       const userId = user.id;
-      
-      // Get estimation details
-      const estimation = await storage.getEstimationProject(estimationId);
-      if (!estimation) {
-        return res.status(404).json({ error: "Estimation not found" });
-      }
       
       // Check if a job already exists for this estimation
       const existingJob = await storage.getJobByEstimationId(estimationId);
@@ -3579,36 +3573,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Create job from estimation
-      const jobData = {
-        number: `JOB-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
-        estimationId: estimationId,
-        clientId: estimation.clientId,
-        description: estimation.description || estimation.name,
-        status: 'active' as const,
-        startDate: new Date(),
-        endDate: estimation.deliveryDate || undefined,
-        totalCost: parseFloat(estimation.totalCost),
-        margin: parseFloat(estimation.margin),
-        projectData: estimation.projectData,
-        createdBy: userId,
-      };
+      // Import job lifecycle service for Fortune 50 compliant job creation
+      const { default: jobLifecycleService } = await import('./services/jobLifecycleService');
       
-      const job = await storage.createJobFromEstimation(jobData);
-      
-      // Update estimation status to accepted
-      await storage.updateEstimationStatus(estimationId, 'accepted');
-      
-      // Create initial resource allocations
-      if (estimation.projectData?.labor) {
-        await storage.createResourceAllocations(job.id, estimation.projectData.labor);
-      }
+      // Create job with full MTO integration and optional procurement
+      const result = await jobLifecycleService.createJobFromEstimation(
+        estimationId,
+        userId,
+        {
+          autoCreateRequisition: autoCreateRequisition || false,
+          assignedTo,
+          priority,
+          rushOrder,
+          notes
+        }
+      );
       
       res.json({ 
         success: true, 
-        message: "Estimation converted to job successfully",
-        jobId: job.id,
-        jobNumber: job.number
+        message: "Estimation converted to job with full lifecycle integration",
+        jobId: result.job.id,
+        jobNumber: result.job.jobNumber,
+        materialsCreated: result.materialsCreated,
+        requisitionId: result.requisitionId,
+        lifecycle: {
+          mtoIntegration: result.materialsCreated > 0 ? 'completed' : 'no_materials',
+          procurementStarted: result.requisitionId ? true : false
+        }
       });
     } catch (error) {
       console.error("Error converting estimation to job:", error);
@@ -3616,6 +3607,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get job lifecycle status
+  app.get("/api/jobs/:id/lifecycle-status", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const jobId = parseInt(req.params.id);
+      const { default: jobLifecycleService } = await import('./services/jobLifecycleService');
+      
+      const status = await jobLifecycleService.getJobLifecycleStatus(jobId);
+      
+      if (!status) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+      
+      res.json(status);
+    } catch (error) {
+      console.error("Error fetching job lifecycle status:", error);
+      res.status(500).json({ error: "Failed to fetch job lifecycle status" });
+    }
+  });
+  
   // Lifecycle Template Management Routes - Import the service
   const { lifecycleTemplateService } = await import('./lifecycleTemplates');
 
