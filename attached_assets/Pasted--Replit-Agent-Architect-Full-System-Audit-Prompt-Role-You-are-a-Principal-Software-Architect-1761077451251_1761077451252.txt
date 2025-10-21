@@ -1,0 +1,188 @@
+🔍 Replit Agent + Architect — Full-System Audit Prompt
+
+Role: You are a Principal Software Architect and SRE conducting a Fortune-50-grade production readiness audit.
+Objective: Find every discrepancy that can cause correctness, reliability, security, performance, or cost issues. Eliminate demo/mock/hardcoded data. Verify end-to-end job lifecycle flows for the AI Estimation system.
+
+Scope
+
+Repos: [LENZ/STEELIQ] (plus any others in the workspace).
+
+Environments: local → dev → staging → prod (if present).
+
+Components: frontend, backend, workers/cron, serverless, infra/IaC, data pipelines, AI/ML (LLMs, embeddings/rerankers), queues/webhooks, file handling.
+
+Data: all databases (SQL/NoSQL), caches, search, vector stores, blob/file storage, config/secrets.
+
+Deliverables (write to repo and summary in this chat)
+
+AUDIT_REPORT.md — executive summary, scores, sev-ranked findings (sev1–sev4), evidence links, screenshots/log excerpts.
+
+READINESS_SCORECARD.md — Fortune-50 parity waves and production-phase gating with pass/fail per gate.
+
+TEST_MATRIX.md — scenario table for the full lifecycle (Enquiry → MTO → Procurement → RFI → Quote → …), including expected inputs/outputs and data lineage.
+
+fix/ folder with:
+
+Auto-generated PRs (or branches) for safe refactors and config fixes.
+
+Failing tests that reproduce bugs (red tests first).
+
+RUNBOOK_*.md for risky areas and rollback steps.
+
+GitHub issues for each gap with severity, repro, owner (CODEOWNERS), ETA, and acceptance tests.
+
+Part A — Repository & Dependency Integrity
+
+Inventory all packages, images, tools. Record versions and known CVEs; propose LTS targets.
+
+Lockfile sanity: verify determinism, check duplicate/abandoned deps, and transitive risks.
+
+Build reproducibility: ensure clean checkout builds; no missing .nvmrc, .python-version, toolchain pins.
+
+Binary/secret bloat: search for large binaries in history, leaked tokens, .env files, or secret-like strings.
+
+CI/CD: ensure pipelines run lint, type-check, unit, integration, e2e, SAST, SCA, container scan, and license checks; add missing jobs.
+
+Produce: deps/INVENTORY.md, ci/PIPELINE_GAPS.md, PRs to fix critical items.
+
+Part B — Code Quality, Logic & Error Handling
+
+Static analysis: run ESLint/mypy/ruff/semgrep/bandit/etc. Output full reports and autofix where safe.
+
+Hot paths: map critical functions (estimation, pricing, quoting, auth). Add guard clauses, timeouts, retries with backoff, idempotency keys.
+
+Input validation: define schemas (JSON Schema/Pydantic/Zod) for every external/user input.
+
+Exceptions: ensure structured error classes; no blanket catches; no silent fails; add dead-letter or retry queues.
+
+Feature flags: enumerate flags and default states per environment; remove dead flags.
+
+Produce: CODE_HEALTH.md and PRs with lint/type/test fixes.
+
+Part C — Data Model, Migrations & Lineage
+
+Source of truth for schemas (ORM/migrations/dbt/OpenAPI/Protobuf). Align docs ↔ code ↔ DB.
+
+Migrations: detect pending/partial migrations; ensure forward+backward compatibility, zero-downtime strategy.
+
+Constraints: primary keys, FKs, unique, check constraints; cascade rules; NOT NULLs; soft-delete policy.
+
+Lineage mapping: for each entity (jobs, enquiries, MTO items, procurement lines, RFIs, quotes, labour rates, materials), map create→read→update→archive pathways.
+
+Data quality: nulls, outliers, orphan rows, enum drift, timezone handling, currency precision.
+
+Produce: data/SCHEMA_SOT.md, data/LINEAGE_DIAGRAM.svg, migrations/FIXES/*, plus red/green data integrity tests.
+
+Part D — Demo/Mock/Hardcoded Data Eradication
+
+Scan entire codebase and config for:
+
+Strings like mock, demo, fixture, sample, example, seed, storybook, testdata, playground, hello world, lorem, hardcoded IDs/emails/keys, static rates/prices.
+
+Unit test artifacts creeping into runtime.
+
+UI story/demo flags enabled in non-dev.
+
+Notebook data baked into code.
+
+Output: demo/REMOVALS.md with file paths, diffs, and PRs that replace with real sources or environment-gated fixtures.
+
+Part E — AI Estimation Engine (Correctness & Traceability)
+
+Prompts & tools: locate system prompts, tool defs, routing, guardrails. Version them and store in ai/prompts/.
+
+Data sources: verify labour rates, material rates, catalogues, and MTO inputs come from the correct canonical stores. No hardcoded fallbacks.
+
+Determinism: set temperatures/seeds appropriate for estimation; define acceptance thresholds and golden test cases.
+
+Eval suite: create ai/evals/ with realistic scenarios; measure accuracy vs. truth (labour/material), and cost/latency.
+
+Drift & updates: define update cadence for rates and embeddings with audit logs.
+
+Produce: ai/ESTIMATION_VALIDATION.md, golden tests, and PRs wiring correct data paths end-to-end.
+
+Part F — Workflow: Full Job Lifecycle
+
+Cover Enquiry → MTO → Procurement → RFI → Quote → Handover (extend if others exist):
+
+For each step, verify required inputs/outputs, status transitions, permissions, notifications, documents, and external integrations.
+
+Ensure datapoints land in the right tables/fields and downstream functions consume them correctly.
+
+Add missing idempotency for webhooks, retries with jitter, and poison queues.
+
+Validate import/export formats (DXF, CSV, PDF, STEP); strict validators and round-trip tests.
+
+Produce: WORKFLOW_VALIDATION.md and failing e2e tests that reproduce any breakage.
+
+Part G — Security, Privacy, Compliance
+
+AuthN/AuthZ model (JWT/OIDC), RBAC/ABAC correctness; privilege escalation attempts blocked.
+
+Secrets: all via vault/ENV; no secrets in code, logs, or builds; short-lived tokens; key rotation plan.
+
+PII handling, masking, audit logs; data retention/deletion; backups tested; RPO/RTO documented.
+
+Supply chain: pin registries, signed containers, provenance (SLSA/attestations).
+
+Dependencies: CVE gates with severity thresholds; automatic PRs (Dependabot/Snyk).
+
+Produce: SECURITY_REPORT.md, POLICIES.md, and PRs to fix high/critical items.
+
+Part H — Reliability, Performance, Observability, and Cost
+
+Timeouts, circuit breakers, rate limits, bulkheads; backpressure and queue sizing.
+
+p50/p95/p99 latency budgets; load/regression tests; flamegraphs for hot paths.
+
+Logging/metrics/traces: ensure trace IDs across services; dashboards and alerts exist and are actionable.
+
+Cost analysis: top drivers by service/endpoint/job; propose budgets and autoscaling rules.
+
+Produce: SLOs.md, k6/JMeter/Gatling scripts, dashboards/alerts links, and PRs for tuning.
+
+Part I — Docs, Runbooks, Ownership
+
+Ensure README quickstart, architecture diagram, ADR index, API contracts, and CODEOWNERS are present and accurate.
+
+Create runbooks for deploy/rollback, incident response, on-call, and data restores.
+
+Map ownership per directory/service to teams/people.
+
+Produce: docs/ARCHITECTURE.md, RUNBOOK_*.md, and CODEOWNERS updates.
+
+Part J — Scoring, Gaps, and Next Steps
+
+Score each domain (0–5) and compute a composite Production Readiness Index.
+
+Fortune-50 Parity Waves: define waves (e.g., Security Baseline, Reliability, Data Integrity, Compliance, Cost Control) and mark current status.
+
+Phases to Production for AI Estimation: Alpha → Beta → Pilot → GA with exit criteria and blocking issues.
+
+Provide a 7-/14-/30-day remediation plan with PRs/issues linked.
+
+Give the earliest date a fully testable end-to-end Estimation system can be deployed, assuming blockers resolved.
+
+Operating Rules
+
+Never run destructive commands in prod.
+
+Default to PRs; request review from owners via CODEOWNERS.
+
+For risky changes, add feature flags and staged rollout (canary/blue-green).
+
+For every bug found, add a failing test first; then fix.
+
+Keep changes small and atomic.
+
+Output Format (in this chat + files above)
+SUMMARY:
+- Overall readiness score: X/5
+- Fortune-50 parity wave: Wave N (status)
+- Top 10 risks (sev1–sev4) with evidence
+- Earliest deploy date for full Estimation lifecycle
+LINKS:
+- PRs
+- Issues
+- Dashboards
+- Reports in repo
