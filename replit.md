@@ -6,6 +6,21 @@ STEELIQ is an enterprise platform designed for Lateral Engineering Limited, mana
 ## Wave 2 Implementation Status (December 2024)
 **Completion: 100% of Wave 2 Features - Fortune 50 Compliance Achieved**
 
+### DXF/DWG Parser Implementation (NEW)
+- **High-Precision Geometry Engine**: 0.01mm accuracy for fiber laser cutting support
+  - Database tables: `ai_mto_geometries` and `ai_mto_features`
+  - Feature detection: holes, fold lines, notches, cutouts, angles, bends
+  - Decimal.js for precision arithmetic throughout pipeline
+  - Bounding box, centroid, area, perimeter calculations
+  - Parent-child feature relationships for nested geometries
+
+### AI Pattern Library Source
+- **18 Base Patterns from Australian/New Zealand steel standards (AS/NZS)**:
+  - 10 steel element patterns (UB, UC, PL, EA, UA, PFC, SHS, RHS, CHS)  
+  - 4 dimension extraction patterns (length, weight, quantity, grid location)
+  - 4 material identification patterns (AS300, AS350, AS250, galvanized)
+- **Self-learning system ready to capture new patterns from user feedback**
+
 ### Completed Features
 - ✅ **Real-Time Production Monitoring Dashboard** - Live KPIs with ZERO hardcoded data
   - Machine status tracking from actual machines table

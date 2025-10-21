@@ -109,23 +109,32 @@ export class DxfGeometryService {
       rawData: entity
     };
 
+    // Get drawing units from DXF header (default to mm if not specified)
+    const units = dxf.header?.$INSUNITS || 'mm';
+
     switch (entity.type.toUpperCase()) {
       case 'CIRCLE':
-        geometry.area = Math.PI * Math.pow(entity.radius, 2);
-        geometry.perimeter = 2 * Math.PI * entity.radius;
+        const radiusMm = this.toMillimeters(entity.radius, units).toNumber();
+        geometry.area = Math.PI * Math.pow(radiusMm, 2);
+        geometry.perimeter = 2 * Math.PI * radiusMm;
         
         // A circle could be a hole
         if (this.isHole(entity, dxf)) {
           geometry.features.push({
             type: 'hole',
-            diameter: entity.radius * 2,
-            profile: [{ x: entity.center.x, y: entity.center.y, z: entity.center.z || 0 }]
+            diameter: radiusMm * 2,
+            profile: [{ 
+              x: this.toMillimeters(entity.center.x, units).toNumber(), 
+              y: this.toMillimeters(entity.center.y, units).toNumber(), 
+              z: this.toMillimeters(entity.center.z || 0, units).toNumber() 
+            }]
           });
         }
         break;
 
       case 'ARC':
-        const arcLength = entity.radius * Math.abs(entity.endAngle - entity.startAngle);
+        const arcRadiusMm = this.toMillimeters(entity.radius, units).toNumber();
+        const arcLength = arcRadiusMm * Math.abs(entity.endAngle - entity.startAngle);
         geometry.perimeter = arcLength;
         geometry.angle = Math.abs(entity.endAngle - entity.startAngle) * (180 / Math.PI);
         
@@ -140,13 +149,14 @@ export class DxfGeometryService {
         break;
 
       case 'LINE':
-        geometry.perimeter = this.calculateLineLength(entity.vertices[0], entity.vertices[1]);
+        const lineLengthMm = this.calculateLineLengthMm(entity.vertices[0], entity.vertices[1], units);
+        geometry.perimeter = lineLengthMm;
         
         // Check if line represents a fold
         if (this.isFoldLine(entity, dxf)) {
           geometry.features.push({
             type: 'fold_line',
-            length: geometry.perimeter,
+            length: lineLengthMm,
             orientation: this.calculateLineAngle(entity.vertices[0], entity.vertices[1])
           });
         }
@@ -154,7 +164,7 @@ export class DxfGeometryService {
 
       case 'LWPOLYLINE':
       case 'POLYLINE':
-        const { area, perimeter } = this.calculatePolylineMetrics(entity);
+        const { area, perimeter } = this.calculatePolylineMetricsMm(entity, units);
         geometry.area = area;
         geometry.perimeter = perimeter;
         
@@ -346,6 +356,21 @@ export class DxfGeometryService {
     );
   }
 
+  private calculateLineLengthMm(p1: any, p2: any, units: string): number {
+    const x1 = this.toMillimeters(p1.x, units).toNumber();
+    const y1 = this.toMillimeters(p1.y, units).toNumber();
+    const z1 = this.toMillimeters(p1.z || 0, units).toNumber();
+    const x2 = this.toMillimeters(p2.x, units).toNumber();
+    const y2 = this.toMillimeters(p2.y, units).toNumber();
+    const z2 = this.toMillimeters(p2.z || 0, units).toNumber();
+    
+    return Math.sqrt(
+      Math.pow(x2 - x1, 2) +
+      Math.pow(y2 - y1, 2) +
+      Math.pow(z2 - z1, 2)
+    );
+  }
+
   private calculateLineAngle(p1: any, p2: any): number {
     return Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
   }
@@ -370,6 +395,44 @@ export class DxfGeometryService {
         const next = (i + 1) % entity.vertices.length;
         area += entity.vertices[i].x * entity.vertices[next].y;
         area -= entity.vertices[next].x * entity.vertices[i].y;
+      }
+      area = Math.abs(area) / 2;
+    }
+
+    return { area, perimeter };
+  }
+
+  private calculatePolylineMetricsMm(entity: any, units: string): { area: number; perimeter: number } {
+    if (!entity.vertices || entity.vertices.length < 3) {
+      return { area: 0, perimeter: 0 };
+    }
+
+    let area = 0;
+    let perimeter = 0;
+    
+    // Convert vertices to mm
+    const verticesMm = entity.vertices.map((v: any) => ({
+      x: this.toMillimeters(v.x, units).toNumber(),
+      y: this.toMillimeters(v.y, units).toNumber(),
+      z: this.toMillimeters(v.z || 0, units).toNumber()
+    }));
+    
+    // Calculate perimeter in mm
+    for (let i = 0; i < verticesMm.length; i++) {
+      const next = (i + 1) % verticesMm.length;
+      perimeter += Math.sqrt(
+        Math.pow(verticesMm[next].x - verticesMm[i].x, 2) +
+        Math.pow(verticesMm[next].y - verticesMm[i].y, 2) +
+        Math.pow(verticesMm[next].z - verticesMm[i].z, 2)
+      );
+    }
+
+    // Calculate area using shoelace formula (for closed polylines) in mm²
+    if (entity.closed) {
+      for (let i = 0; i < verticesMm.length; i++) {
+        const next = (i + 1) % verticesMm.length;
+        area += verticesMm[i].x * verticesMm[next].y;
+        area -= verticesMm[next].x * verticesMm[i].y;
       }
       area = Math.abs(area) / 2;
     }
