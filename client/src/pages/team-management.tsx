@@ -1255,7 +1255,7 @@ export default function TeamManagement() {
                       <TableCell>{department.managerName || "-"}</TableCell>
                       <TableCell className="text-center">
                         <Badge variant="outline">
-                          {Math.floor(Math.random() * 15) + 5} members
+                          {department.memberCount || 0} members
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
