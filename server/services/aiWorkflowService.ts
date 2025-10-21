@@ -86,14 +86,15 @@ class AIWorkflowService {
    */
   private async processWorkflow(jobId: number, request: WorkflowStartRequest) {
     try {
-      // Update job status to processing
-      await db.update(aiWorkerJobs)
+      // Update job status to processing and get the job record
+      const [job] = await db.update(aiWorkerJobs)
         .set({
           status: 'processing',
           startedAt: new Date(),
           jobData: sql`jsonb_set(job_data, '{currentStep}', '"file_retrieval"')`
         })
-        .where(eq(aiWorkerJobs.id, jobId));
+        .where(eq(aiWorkerJobs.id, jobId))
+        .returning();
       
       // Step 1: Retrieve file
       console.log(`📄 [Job ${jobId}] Retrieving file ${request.fileId}`);

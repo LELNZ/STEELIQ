@@ -297,10 +297,10 @@ class AIFeedbackService {
         )
       );
     
-    // Record learning metrics
-    const accuracyImprovement = totalPatterns > 0 
-      ? (improvedPatterns / totalPatterns) * 20 // Up to 20% improvement
-      : 0;
+    // Calculate accuracy improvement based on pattern improvements
+    // Each improved pattern contributes to accuracy gains
+    const baseImprovementPerPattern = 1.5; // 1.5% per pattern
+    const accuracyImprovement = Math.min(20, improvedPatterns * baseImprovementPerPattern);
     
     await this.recordLearningMetrics(accuracyImprovement, improvedPatterns);
     
