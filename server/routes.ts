@@ -3816,6 +3816,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get comprehensive job cost breakdown - Real aggregation from all sources
+  app.get("/api/jobs/:id/cost-breakdown", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const jobId = parseInt(req.params.id);
+      const { default: costAggregationService } = await import('./services/costAggregationService');
+      
+      const breakdown = await costAggregationService.getJobCostBreakdown(jobId);
+      
+      if (!breakdown) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+      
+      res.json({
+        ...breakdown,
+        source: 'aggregated_from_database',
+        components: [
+          'purchase_orders',
+          'invoices', 
+          'time_entries',
+          'requisitions',
+          'ai_mto_elements'
+        ]
+      });
+    } catch (error) {
+      console.error("Error fetching job cost breakdown:", error);
+      res.status(500).json({ error: "Failed to fetch job cost breakdown" });
+    }
+  });
+  
+  // Get cost summary for multiple jobs
+  app.post("/api/jobs/cost-summary", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const { jobIds } = req.body;
+      
+      if (!jobIds || !Array.isArray(jobIds) || jobIds.length === 0) {
+        return res.status(400).json({ error: "Job IDs are required" });
+      }
+      
+      const { default: costAggregationService } = await import('./services/costAggregationService');
+      
+      const summary = await costAggregationService.getMultiJobCostSummary(jobIds);
+      
+      res.json({
+        ...summary,
+        source: 'aggregated_from_database',
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error("Error fetching multi-job cost summary:", error);
+      res.status(500).json({ error: "Failed to fetch cost summary" });
+    }
+  });
+  
+  // Update job cost - Recalculate and sync to database
+  app.post("/api/jobs/:id/recalculate-cost", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const jobId = parseInt(req.params.id);
+      const { default: costAggregationService } = await import('./services/costAggregationService');
+      
+      // Recalculate and update job cost
+      await costAggregationService.updateJobCost(jobId);
+      
+      // Get updated breakdown
+      const breakdown = await costAggregationService.getJobCostBreakdown(jobId);
+      
+      res.json({
+        success: true,
+        message: `Job ${jobId} cost recalculated and updated`,
+        breakdown,
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error("Error recalculating job cost:", error);
+      res.status(500).json({ error: "Failed to recalculate job cost" });
+    }
+  });
+  
   // Lifecycle Template Management Routes - Import the service
   const { lifecycleTemplateService } = await import('./lifecycleTemplates');
 
