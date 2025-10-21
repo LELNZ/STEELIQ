@@ -1,7 +1,7 @@
 # STEELIQ - Enterprise Steel Fabrication & Procurement Platform
 
 ## Overview
-STEELIQ is an enterprise platform for Lateral Engineering Limited, designed to manage the entire steel fabrication lifecycle from procurement to job execution. It aims to achieve Fortune 50 standards in data integrity, operational efficiency, and enterprise control by integrating AI-powered optimization, self-learning AI estimation, automated procurement, real-time production monitoring, and comprehensive cost aggregation. The platform ensures complete traceability from drawing to delivery, targeting a 50% reduction in estimation time, 15-20% accuracy improvement, and $892K in annual savings.
+STEELIQ is an enterprise platform designed to manage and streamline the entire steel fabrication lifecycle, from procurement to job execution. Its core purpose is to achieve Fortune 50 standards in data integrity, operational efficiency, and enterprise control. Key capabilities include AI-powered optimization, self-learning AI estimation, automated procurement, real-time production monitoring, and comprehensive cost aggregation. The platform aims to transition from manual to automatic processes, improve accuracy through AI, and significantly reduce estimation time, ensuring complete traceability from drawing to delivery.
 
 ## User Preferences
 I prefer simple language and clear explanations.
@@ -13,46 +13,37 @@ Do not make changes to the `server/services` directory without explicit approval
 Ensure strict type checking and comprehensive error handling.
 
 ## System Architecture
-
-### Complete Job Lifecycle Flow
-The platform manages a comprehensive job lifecycle:
-1.  **AI Estimation**: Processes PDF/DXF input using Claude AI for pattern matching.
-2.  **Job Creation**: Validates and transfers MTOs to create job numbers.
-3.  **Procurement**: Generates RFQs and matches suppliers.
-4.  **Production**: Manages work orders and assignments.
-5.  **Monitoring**: Tracks machine data, OEE metrics, and department efficiency.
-6.  **Cost Tracking**: Aggregates costs and performs variance analysis.
+STEELIQ's architecture supports a complete job lifecycle, integrating AI estimation, job creation, procurement, production, monitoring, and cost tracking.
 
 ### Core Service Architecture
-The `server/services` directory contains key microservices:
--   `aiEstimationService.ts`: AI MTO extraction with Claude.
--   `aiWorkflowService.ts`: PDF/DXF processing pipeline.
--   `dxfParserService.ts`: Precision CAD geometry parsing (0.01mm).
--   `jobLifecycleService.ts`: Job creation & validation.
--   `rfqAutomationService.ts`: Automated supplier matching.
--   `productionMonitoringService.ts`: Real-time OEE tracking.
--   `costAggregationService.ts`: Multi-source cost analysis.
+The system is built around 7 key microservices:
+-   **aiEstimationService.ts**: AI-powered MTO extraction using Claude Sonnet 4.0.
+-   **aiWorkflowService.ts**: PDF/DXF processing pipeline.
+-   **dxfParserService.ts**: Precision CAD geometry parsing (0.01mm accuracy).
+-   **jobLifecycleService.ts**: Job creation, validation, and MTO transfer.
+-   **rfqAutomationService.ts**: Automated supplier matching and RFQ generation.
+-   **productionMonitoringService.ts**: Real-time OEE tracking and metrics.
+-   **costAggregationService.ts**: Multi-source cost analysis and variance tracking.
+
+### Database Architecture
+The system utilizes PostgreSQL with Drizzle ORM, featuring 95+ tables categorized into Core Business (Jobs, Estimation, Procurement, Production, Financial, Team), AI & Learning (ai_mto_elements, ai_pattern_library, ai_feedback), and System (numbering_sequences, audit_events).
 
 ### UI/UX Decisions
-The frontend utilizes React 18 with TypeScript, styled with Tailwind CSS and Radix UI components. State management is handled by TanStack Query v5, forms by React Hook Form with Zod validation, and charts by Chart.js/Recharts. The design prioritizes responsive layouts for role-based workflows and mobile accessibility, including field access, GPS-verified time clocks, and photo uploads.
+The frontend is developed using React 18 with TypeScript, Tailwind CSS, and Radix UI components. It leverages TanStack Query v5 for state management, React Hook Form with Zod for validation, and Chart.js/Recharts for data visualization. The design emphasizes responsive layouts, role-based workflows, and mobile accessibility for field operations.
 
 ### Technical Implementations
-The backend is built with Node.js and TypeScript, using Express.js for RESTful APIs. PostgreSQL (Neon) with Drizzle ORM serves as the database. Authentication uses bcrypt with session management. Vite with ESBuild is used for the build process, and Drizzle Kit for database migrations.
+The backend is built with Node.js and TypeScript, using Express.js for RESTful APIs. Authentication uses bcrypt with session management. Vite with ESBuild handles the build process, and Drizzle Kit manages database migrations. The system enforces strict type checking, comprehensive error handling, and immutable audit trails.
 
 ### Feature Specifications
--   **AI Estimation Engine**: Processes PDF/DXF/DWG using Claude Sonnet 4.0, applies 18 AS/NZS steel pattern templates, generates hierarchical MTOs, and includes a self-learning feedback loop.
--   **Procurement Automation**: Generates purchase requisitions, auto-generates RFQs with supplier matching, enables quote comparison, one-click PO generation, and invoice OCR.
--   **Production Intelligence**: Provides real-time machine status monitoring, OEE calculation, department efficiency tracking, and quality control with NCR tracking.
--   **Cost Management**: Aggregates costs from multiple sources, performs real-time variance analysis, allocates department-level overhead, and tracks indirect costs.
--   **Job Lifecycle Integration**: Ensures seamless flow from AI Estimation to Job Creation, MTO Transfer, and Procurement with validation, sequence-based numbering, and complete audit trails.
-
-### System Design Choices
-The architecture follows a layered approach with distinct services. The database design is highly normalized with 95+ tables, including specific tables for AI learning, pattern recognition, and feedback. Security features encompass session-based authentication, granular Role-Based Access Control (RBAC), encryption at rest, immutable audit trails, and strict input validation to meet Fortune 50 standards (AS/NZS, ISO 45001, GDPR, SOC 2 Type II).
+-   **AI Estimation Engine**: Processes PDF/DXF/DWG drawings, uses 18 AS/NZS steel pattern templates for hierarchical MTO generation, and self-improves through user feedback.
+-   **Procurement Automation**: Automates requisition generation, multi-supplier RFQ distribution, quote comparison, one-click PO generation, and OCR-based invoice processing.
+-   **Production Intelligence**: Provides real-time machine monitoring, OEE metrics, department efficiency analysis, shift management, and NCR tracking.
+-   **Cost Management**: Aggregates costs from multiple sources, performs real-time variance analysis, allocates overhead, tracks indirect costs, and alerts for cost overruns.
 
 ## External Dependencies
 -   **Database**: PostgreSQL (Neon)
 -   **AI Service**: Anthropic Claude Sonnet 4.0 API
 -   **Email Services**: SendGrid, Gmail API
--   **File Processing Libraries**: PDFKit, pdf-parse, dxf-parser
--   **Authentication Libraries**: bcrypt
+-   **File Processing**: PDFKit, pdf-parse, dxf-parser
+-   **Authentication**: bcrypt
 -   **Frontend Libraries**: React, Tailwind CSS, Radix UI, TanStack Query, React Hook Form, Zod, Chart.js, Recharts, Wouter
