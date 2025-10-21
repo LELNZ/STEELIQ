@@ -3631,6 +3631,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Create RFQs from job materials - MTO to RFQ automation
+  app.post("/api/jobs/:id/create-rfqs", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const jobId = parseInt(req.params.id);
+      const { requisitionId, supplierIds, deadline, notes, autoSelectSuppliers } = req.body;
+      
+      const { default: rfqAutomationService } = await import('./services/rfqAutomationService');
+      
+      const result = await rfqAutomationService.createRFQFromJob({
+        jobId,
+        requisitionId,
+        supplierIds,
+        deadline: deadline ? new Date(deadline) : undefined,
+        notes,
+        userId: user.id,
+        autoSelectSuppliers: autoSelectSuppliers || false
+      });
+      
+      res.json({
+        success: true,
+        message: `Created ${result.rfqIds.length} RFQs for ${result.suppliersNotified} suppliers`,
+        rfqIds: result.rfqIds,
+        suppliersNotified: result.suppliersNotified,
+        materialGroups: result.materialGroups
+      });
+    } catch (error) {
+      console.error("Error creating RFQs from job:", error);
+      res.status(500).json({ error: "Failed to create RFQs from job" });
+    }
+  });
+  
+  // Create RFQ directly from MTO elements
+  app.post("/api/estimations/:id/create-rfq", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const estimationId = parseInt(req.params.id);
+      const { supplierIds } = req.body;
+      
+      if (!supplierIds || !Array.isArray(supplierIds) || supplierIds.length === 0) {
+        return res.status(400).json({ error: "Supplier IDs are required" });
+      }
+      
+      const { default: rfqAutomationService } = await import('./services/rfqAutomationService');
+      
+      const result = await rfqAutomationService.createRFQFromMTO(
+        estimationId,
+        supplierIds,
+        user.id
+      );
+      
+      res.json({
+        success: true,
+        message: `Created ${result.rfqIds.length} RFQs from ${result.totalElements} MTO elements`,
+        rfqIds: result.rfqIds,
+        totalElements: result.totalElements
+      });
+    } catch (error) {
+      console.error("Error creating RFQ from MTO:", error);
+      res.status(500).json({ error: "Failed to create RFQ from MTO" });
+    }
+  });
+  
+  // Get RFQ automation status for a job
+  app.get("/api/jobs/:id/rfq-status", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const jobId = parseInt(req.params.id);
+      const { default: rfqAutomationService } = await import('./services/rfqAutomationService');
+      
+      const status = await rfqAutomationService.getRFQAutomationStatus(jobId);
+      
+      if (!status) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+      
+      res.json(status);
+    } catch (error) {
+      console.error("Error fetching RFQ automation status:", error);
+      res.status(500).json({ error: "Failed to fetch RFQ automation status" });
+    }
+  });
+  
   // Lifecycle Template Management Routes - Import the service
   const { lifecycleTemplateService } = await import('./lifecycleTemplates');
 
