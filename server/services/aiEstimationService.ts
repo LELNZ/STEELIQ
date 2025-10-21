@@ -11,6 +11,7 @@ import { validateRealData, auditDataSource, NoMockDataViolationError } from '../
 import { getV42AutoPrompt, V42AutoResponse } from '../prompts/v42AutoPrompt.js';
 import { V42ResponseTransformer } from './v42ResponseTransformer.js';
 import ocrService from './ocrService.js';
+import * as crypto from 'crypto';
 
 // V4.2 AUTO - Self-Learning AI Architecture Version  
 const AI_VERSION = 'V4.2 AUTO';
@@ -527,7 +528,7 @@ Ensure NO MOCK DATA - only extract what is actually in the drawings.`;
       
       // Transform to our format
       return elements.map((item: any) => ({
-        id: item.id || `EL-${Date.now()}-${Math.random()}`,
+        id: item.id || `EL-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
         designation: item.designation || item.mark || 'U1',
         type: this.mapElementType(item.type || item.element_type),
         description: item.description || `${item.profile || ''} ${item.type || ''}`,

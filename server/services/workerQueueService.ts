@@ -4,6 +4,7 @@
  * Implements job prioritization and resource management
  */
 
+import * as crypto from 'crypto';
 import { EventEmitter } from 'events';
 import { db } from '../db';
 import { eq, and, or, lte, isNull, sql } from 'drizzle-orm';
@@ -674,7 +675,7 @@ class WorkerQueueService extends EventEmitter {
    * Helper methods
    */
   private generateJobId(): string {
-    return `job_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    return `job_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
   }
 
   private async getEstimationResult(resultId: number): Promise<any> {

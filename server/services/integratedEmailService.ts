@@ -3,6 +3,7 @@ import { pdfGenerationService } from './pdfGenerationService';
 import { templateHierarchyService } from './templateHierarchyService';
 import { db } from '../db';
 import { sql, inArray } from 'drizzle-orm';
+import * as crypto from 'crypto';
 import { 
   purchaseOrders, 
   suppliers, 
@@ -429,7 +430,7 @@ export class IntegratedEmailService {
       console.log('Subject:', params.subject);
       return { 
         success: true, 
-        messageId: `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        messageId: `test-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`
       };
     }
 

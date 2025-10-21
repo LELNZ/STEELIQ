@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import sgMail from '@sendgrid/mail';
 import { db } from '../db';
 import { rfqRequests, rfqResponses, suppliers, purchaseRequisitions, requisitionItems } from '@shared/schema';
@@ -480,7 +481,7 @@ export class RFQEmailService {
     return Buffer.from(
       JSON.stringify({
         timestamp: Date.now(),
-        random: Math.random().toString(36).substring(7),
+        random: crypto.randomBytes(4).toString('hex'),
       })
     ).toString('base64');
   }

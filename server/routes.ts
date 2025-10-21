@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { db } from "./db";
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 import { eq, desc, and, gte, lte, sql, like, inArray, isNull, isNotNull, ne, or, not, asc } from "drizzle-orm";
 import { businessSettingsStorage } from "./businessSettings";
 import { laborRatesStorage } from "./laborRates";
@@ -27,6 +28,16 @@ import { poTrackingService } from "./poTracking";
 import { OperationService } from "./services/operation-service";
 import { ConsumptionRatesService } from "./services/consumption-rates-service";
 import { estimationMaterials, estimationOperations } from "@shared/schema";
+
+// Utility function for generating unique IDs without Math.random()
+function generateUniqueId(prefix: string = ""): string {
+  const timestamp = Date.now();
+  const randomBytes = crypto.randomBytes(4).toString('hex');
+  return prefix ? `${prefix}-${timestamp}-${randomBytes}` : `${timestamp}-${randomBytes}`;
+}
+
+// NOTE: Document sequence numbering is now handled by storage.generateNumber()
+// which uses database-backed numberingSequences table for persistence across restarts
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const operationService = new OperationService();
@@ -411,9 +422,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .replace(/\.{2,}/g, '_') // Remove double dots
         .substring(0, 100); // Limit length
       
-      // Generate unique filename with timestamp and random ID
+      // Generate unique filename with timestamp and secure random ID
       const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(2, 8);
+      const randomId = crypto.randomBytes(4).toString('hex');
       const extension = path.extname(sanitizedName);
       const baseName = path.basename(sanitizedName, extension);
       
@@ -4356,8 +4367,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
-      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-      const quoteNumber = `Q-${year}-${month}${day}-${random}-V${version}`;
+      // Use database-backed sequential numbering for quotes (Fortune 50 compliance)
+      const baseQuoteNumber = await storage.generateNumber('Q', user.id);
+      const quoteNumber = `${baseQuoteNumber}-V${version}`;
       
       // Get estimation data for accurate calculations
       const estimationData = await storage.getEstimationData(id);
@@ -5931,8 +5943,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
-      // Generate unique filename with timestamp
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      // Generate unique filename with timestamp and secure random
+      const uniqueSuffix = Date.now() + '-' + crypto.randomBytes(4).toString('hex');
       const ext = path.extname(file.originalname).toLowerCase();
       cb(null, file.fieldname + '-' + uniqueSuffix + ext);
     }
@@ -8965,28 +8977,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'analyzing',
       }).returning();
 
-      // Simulate AI analysis (in production, this would call actual AI service)
-      setTimeout(async () => {
-        const analysisResult = {
-          steelMembers: Math.floor(Math.random() * 50) + 10,
-          connections: Math.floor(Math.random() * 100) + 20,
-          totalWeight: Math.random() * 10000 + 1000,
-          members: [
-            { mark: "B1", section: "310UB40.4", length: 9000 },
-            { mark: "C1", section: "250UC89.5", length: 6000 },
-          ],
-        };
-
+      // Call the actual AI workflow service for real analysis
+      // Import the service at the top of the file if not already imported
+      const { aiWorkflowService } = await import('./services/aiWorkflowService');
+      const { secureStorageService } = await import('./services/secureStorageService');
+      
+      try {
+        // Store the file securely for AI processing
+        const fileContent = await fs.promises.readFile(uploadResult.path);
+        const fileId = await secureStorageService.storeFile(
+          fileContent,
+          uploadResult.originalname,
+          uploadResult.mimetype,
+          user.id
+        );
+        
+        // Start AI workflow for MTO extraction
+        const jobId = await aiWorkflowService.startWorkflow({
+          projectId,
+          fileId,
+          projectName: settings.name,
+          userId: user.id,
+          priority: 'normal'
+        });
+        
+        // Update drawing with job ID for tracking
         await db.update(drawings)
           .set({
-            status: 'analyzed',
-            analysisResult,
-            steelMembers: analysisResult.steelMembers,
-            connections: analysisResult.connections,
-            totalWeight: analysisResult.totalWeight.toFixed(2),
+            status: 'processing',
+            analysisResult: { jobId },
           })
           .where(eq(drawings.id, drawing.id));
-      }, 5000);
+          
+        // Clean up uploaded file
+        await fs.promises.unlink(uploadResult.path).catch(() => {});
+        
+      } catch (aiError) {
+        console.error('AI workflow failed:', aiError);
+        // Update drawing status to failed
+        await db.update(drawings)
+          .set({
+            status: 'failed',
+            analysisResult: { error: 'AI analysis failed' },
+          })
+          .where(eq(drawings.id, drawing.id));
+          
+        throw aiError;
+      }
 
       res.json({ 
         id: drawing.id, 
@@ -9736,9 +9773,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           deviceName: device.deviceInfo || 'Unknown Device',
           userName: device.userName || 'Unknown User',
           lastSync: lastSync,
-          pendingItems: 0, // Would need sync queue table
-          storageUsed: Math.floor(Math.random() * 500) + 100, // Would need actual storage tracking
-          batteryLevel: Math.floor(Math.random() * 60) + 40, // Would need actual battery tracking
+          pendingItems: 0, // TODO: Implement sync queue table for real pending items tracking
+          storageUsed: 0, // TODO: Implement actual storage usage tracking from database
+          batteryLevel: 100, // TODO: Implement real device battery level tracking via client API
           connectionStatus: minutesAgo < 15 ? "online" : "offline"
         };
       });
@@ -11940,10 +11977,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Generate unique QR and barcode
+      // Generate unique QR and barcode using secure random
       const timestamp = Date.now();
-      const qrCode = `REM-${timestamp}-${Math.random().toString(36).substr(2, 9)}`;
-      const barcode = `${timestamp}${Math.floor(Math.random() * 1000)}`;
+      const qrCode = `REM-${timestamp}-${crypto.randomBytes(6).toString('hex')}`;
+      const barcode = `${timestamp}${crypto.randomBytes(2).readUInt16BE(0)}`;
 
       // Create remnant record
       const [remnant] = await db.insert(remnants)
@@ -14133,9 +14170,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Generate new requisition number
-      const timestamp = Date.now();
-      const random = Math.floor(Math.random() * 1000);
-      const newReqNumber = `REQ-${timestamp}-${random}`;
+      // Use database-backed sequential numbering for requisitions (Fortune 50 compliance)
+      const newReqNumber = await storage.generateNumber('REQ', user.id);
       
       // Create new requisition based on original with updates
       const newRequisition = {

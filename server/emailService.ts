@@ -2,6 +2,7 @@ import sgMail from '@sendgrid/mail';
 import PDFDocument from 'pdfkit';
 import { Readable } from 'stream';
 import * as XLSX from 'xlsx';
+import * as crypto from 'crypto';
 import { templateService } from './templateService';
 
 // Initialize SendGrid with API key
@@ -50,7 +51,7 @@ export class EmailService {
       console.log('Subject:', params.subject);
       return { 
         success: true, 
-        messageId: `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        messageId: `test-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`
       };
     }
 

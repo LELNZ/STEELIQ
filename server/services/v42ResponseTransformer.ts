@@ -3,6 +3,7 @@
  * Converts V4.2 AUTO format to our simplified MTO format for Phase 1
  */
 
+import * as crypto from 'crypto';
 import { MaterialTakeOffItem, MaterialTakeOffOperation } from './aiEstimationService';
 import { V42AutoResponse } from '../prompts/v42AutoPrompt';
 
@@ -24,7 +25,7 @@ export class V42ResponseTransformer {
       
       // Build MTO item
       const mtoItem: MaterialTakeOffItem = {
-        id: element.global_id || `EL-${Date.now()}-${Math.random()}`,
+        id: element.global_id || `EL-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
         designation: element.designation || 'UNDESIGNATED',
         type,
         description: this.buildDescription(element),

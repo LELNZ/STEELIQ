@@ -47,6 +47,7 @@ import {
 } from "@shared/schema";
 import { desc, eq, lt, gte, lte, asc, like, and, or, sql, inArray, not, ne, isNotNull } from "drizzle-orm";
 import { db } from "./db";
+import * as crypto from 'crypto';
 
 export interface IStorage {
   // Generate unique sequential numbers
@@ -476,9 +477,49 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Generate unique sequential numbers
   async generateNumber(prefix: string, userId?: number): Promise<string> {
+    // Use database-backed numbering sequences for Fortune 50 compliance
+    // This ensures unique numbers survive restarts and work across multiple instances
+    const sequenceType = prefix.toUpperCase();
     const year = new Date().getFullYear();
-    const timestamp = Date.now().toString().slice(-6);
-    return `${prefix}-${year}-${timestamp}`;
+    
+    // Get or create the sequence
+    let sequence = await db.select()
+      .from(numberingSequences)
+      .where(eq(numberingSequences.sequenceType, sequenceType))
+      .limit(1);
+    
+    if (sequence.length === 0) {
+      // Create new sequence if it doesn't exist
+      const [newSeq] = await db.insert(numberingSequences).values({
+        sequenceType,
+        prefix: `${prefix}-`,
+        includeYear: true,
+        padLength: 4,
+        startingNumber: 1,
+        currentNumber: 0
+      }).returning();
+      sequence = [newSeq];
+    }
+    
+    // Increment and get next number atomically
+    const [updated] = await db.update(numberingSequences)
+      .set({ 
+        currentNumber: sql`${numberingSequences.currentNumber} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(numberingSequences.sequenceType, sequenceType))
+      .returning();
+    
+    const seq = updated || sequence[0];
+    const paddedNumber = String(seq.currentNumber).padStart(seq.padLength || 4, '0');
+    
+    if (seq.includeYear) {
+      const month = String(new Date().getMonth() + 1).padStart(2, '0');
+      const day = String(new Date().getDate()).padStart(2, '0');
+      return `${seq.prefix}${year}-${month}-${day}-${paddedNumber}`;
+    } else {
+      return `${seq.prefix}${paddedNumber}`;
+    }
   }
   
   // Users
@@ -2941,7 +2982,7 @@ export class DatabaseStorage implements IStorage {
 
   // Data Management - Backup & Restore
   async createBackup(categories: string[], userId: number, description?: string): Promise<{ backupId: string; metadata: BackupMetadata }> {
-    const backupId = `backup_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const backupId = `backup_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
     let totalRecords = 0;
     let tableCount = 0;
     const tableStats: any[] = [];
