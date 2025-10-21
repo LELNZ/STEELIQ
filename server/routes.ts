@@ -878,6 +878,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch low stock items" });
     }
   });
+  
+  // Get stock levels for consumables
+  app.get("/api/inventory/stock-levels", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Get all inventory with stock quantities and movements
+      const result = await db.execute(sql`
+        SELECT 
+          i.material_id,
+          i.quantity_in_stock,
+          i.location,
+          COUNT(im.id) FILTER (WHERE im.movement_date > NOW() - INTERVAL '30 days') as movements_this_month,
+          COUNT(im.id) FILTER (WHERE im.movement_date > NOW() - INTERVAL '365 days') as movements_this_year,
+          CASE 
+            WHEN COUNT(im.id) FILTER (WHERE im.movement_date > NOW() - INTERVAL '30 days') > 
+                 COUNT(im.id) FILTER (WHERE im.movement_date > NOW() - INTERVAL '60 days' AND im.movement_date <= NOW() - INTERVAL '30 days')
+            THEN 'up'
+            WHEN COUNT(im.id) FILTER (WHERE im.movement_date > NOW() - INTERVAL '30 days') < 
+                 COUNT(im.id) FILTER (WHERE im.movement_date > NOW() - INTERVAL '60 days' AND im.movement_date <= NOW() - INTERVAL '30 days')
+            THEN 'down'
+            ELSE 'stable'
+          END as trend
+        FROM inventory i
+        LEFT JOIN inventory_movements im ON i.id = im.inventory_id
+        GROUP BY i.id, i.material_id, i.quantity_in_stock, i.location
+      `);
+      
+      // Transform into lookup objects
+      const stockLevels: Record<number, number> = {};
+      const movements: Record<number, any> = {};
+      
+      for (const row of result.rows) {
+        const materialId = row.material_id as number;
+        stockLevels[materialId] = (stockLevels[materialId] || 0) + (row.quantity_in_stock as number || 0);
+        movements[materialId] = {
+          thisMonth: parseInt(row.movements_this_month as string || '0'),
+          thisYear: parseInt(row.movements_this_year as string || '0'),
+          trend: row.trend as string
+        };
+      }
+      
+      res.json({ stockLevels, movements });
+    } catch (error) {
+      console.error("Error fetching stock levels:", error);
+      res.status(500).json({ error: "Failed to fetch stock levels" });
+    }
+  });
 
   app.post("/api/inventory", async (req, res) => {
     try {

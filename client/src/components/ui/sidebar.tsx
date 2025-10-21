@@ -658,9 +658,11 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  // Random width between 50 to 90%.
+  // Consistent skeleton width for production
   const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
+    // Use a consistent width for skeleton loading state
+    // This provides better UX than random widths
+    return `70%`
   }, [])
 
   return (

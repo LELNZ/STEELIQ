@@ -229,7 +229,7 @@ export function ConsumablesCleanFixed({ materials, suppliers }: ConsumablesClean
                             </TableCell>
                             <TableCell>
                               <div className="text-sm text-gray-700 dark:text-gray-300">
-                                {Math.floor(Math.random() * 100)} units
+                                — {/* Stock tracking to be implemented */}
                               </div>
                             </TableCell>
                             <TableCell>

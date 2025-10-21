@@ -60,6 +60,12 @@ export function EnhancedConsumablesTab({ materials, suppliers, onAddToJob }: Enh
   const [quickFilters, setQuickFilters] = useState<string[]>([]);
   const [visibleItems, setVisibleItems] = useState(20);
   const { toast } = useToast();
+  
+  // Fetch real inventory data
+  const { data: inventoryData } = useQuery({
+    queryKey: ['/api/inventory/stock-levels'],
+    refetchInterval: 30000 // Refresh every 30 seconds
+  });
 
   // Categorize consumable materials
   const categorizeConsumable = (material: Material): ConsumableCategory[] => {
@@ -124,10 +130,10 @@ export function EnhancedConsumablesTab({ materials, suppliers, onAddToJob }: Enh
         if (!hasQuickFilter) return false;
       }
 
-      // Stock filter (using mock data for now)
-      const stockLevel = Math.floor(Math.random() * 100); // Replace with real stock data
+      // Stock filter using real inventory data
+      const stockLevel = inventoryData?.stockLevels?.[material.id] || 0;
       if (stockFilter === "in-stock" && stockLevel <= 0) return false;
-      if (stockFilter === "low-stock" && stockLevel > 10) return false;
+      if (stockFilter === "low-stock" && (stockLevel <= 0 || stockLevel > 10)) return false;
       if (stockFilter === "out-of-stock" && stockLevel > 0) return false;
 
       // Price filter
@@ -161,20 +167,21 @@ export function EnhancedConsumablesTab({ materials, suppliers, onAddToJob }: Enh
     return counts;
   }, [materials]);
 
-  // Mock stock status (replace with real data)
+  // Get real stock status from inventory data
   const getStockStatus = (material: Material) => {
-    const stock = Math.floor(Math.random() * 100); // Mock data - replace with real stock tracking
+    const stock = inventoryData?.stockLevels?.[material.id] || 0;
     if (stock === 0) return { status: "out-of-stock", color: "bg-red-500", text: "Out of Stock" };
     if (stock < 10) return { status: "low-stock", color: "bg-yellow-500", text: "Low Stock" };
     return { status: "in-stock", color: "bg-green-500", text: "In Stock" };
   };
 
-  // Mock consumption data (replace with real tracking)
+  // Get consumption data from inventory movements
   const getConsumptionData = (material: Material) => {
+    const movements = inventoryData?.movements?.[material.id] || {};
     return {
-      thisMonth: Math.floor(Math.random() * 50),
-      thisYear: Math.floor(Math.random() * 500),
-      trend: Math.random() > 0.5 ? "up" : "down"
+      thisMonth: movements.thisMonth || 0,
+      thisYear: movements.thisYear || 0,
+      trend: movements.trend || "stable"
     };
   };
 
@@ -353,7 +360,7 @@ export function EnhancedConsumablesTab({ materials, suppliers, onAddToJob }: Enh
                         </div>
                         <div>
                           <span className="text-muted-foreground">Stock:</span>
-                          <p className="font-medium">{stockInfo.status === "out-of-stock" ? 0 : Math.floor(Math.random() * 100)} units</p>
+                          <p className="font-medium">{inventoryData?.stockLevels?.[material.id] || 0} units</p>
                         </div>
                       </div>
 
@@ -458,7 +465,7 @@ export function EnhancedConsumablesTab({ materials, suppliers, onAddToJob }: Enh
                         <td className="p-3">
                           <Badge variant={stockInfo.status === "in-stock" ? "default" : 
                                         stockInfo.status === "low-stock" ? "secondary" : "destructive"}>
-                            {stockInfo.status === "out-of-stock" ? 0 : Math.floor(Math.random() * 100)}
+                            {inventoryData?.stockLevels?.[material.id] || 0}
                           </Badge>
                         </td>
                         <td className="p-3 text-sm">{supplier}</td>
