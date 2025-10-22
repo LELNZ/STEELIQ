@@ -713,6 +713,7 @@ export default function TeamManagement() {
                   <TableRow>
                     <TableHead className="w-[250px]">User</TableHead>
                     <TableHead>Username</TableHead>
+                    <TableHead>Role</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead className="text-center">Status</TableHead>
@@ -735,6 +736,18 @@ export default function TeamManagement() {
                         </div>
                       </TableCell>
                       <TableCell>{user.username}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {user.role === 'owner' ? 'Business Owner' : 
+                           user.role === 'admin' ? 'System Administrator' :
+                           user.role === 'planning' ? 'Senior Estimator' :
+                           user.role === 'operator' ? 'Machine Operator' :
+                           user.role === 'supervisor' ? 'Supervisor' :
+                           user.role === 'accounting' ? 'Accounting' :
+                           user.role === 'basic' ? 'Basic User' :
+                           user.role === 'full' ? 'Full Access' : user.role}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{user.email || "-"}</TableCell>
                       <TableCell>{user.phone || "-"}</TableCell>
                       <TableCell className="text-center">
@@ -2609,6 +2622,7 @@ function UserForm({ user, onSubmit, isLoading }: any) {
     name: user?.name || "",
     email: user?.email || "",
     phone: user?.phone || "",
+    role: user?.role || "basic",
     password: "",
     confirmPassword: "",
     isActive: user?.isActive ?? true,
@@ -2696,6 +2710,28 @@ function UserForm({ user, onSubmit, isLoading }: any) {
             onChange={(e) => setFormData({...formData, phone: e.target.value})}
             placeholder="+64 21 123 4567"
           />
+        </div>
+
+        <div>
+          <Label htmlFor="role">Role *</Label>
+          <Select 
+            value={formData.role}
+            onValueChange={(value) => setFormData({...formData, role: value})}
+          >
+            <SelectTrigger id="role">
+              <SelectValue placeholder="Select a role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="owner">Business Owner</SelectItem>
+              <SelectItem value="admin">System Administrator</SelectItem>
+              <SelectItem value="supervisor">Supervisor</SelectItem>
+              <SelectItem value="planning">Senior Estimator</SelectItem>
+              <SelectItem value="accounting">Accounting</SelectItem>
+              <SelectItem value="operator">Machine Operator</SelectItem>
+              <SelectItem value="basic">Basic User</SelectItem>
+              <SelectItem value="full">Full Access</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
