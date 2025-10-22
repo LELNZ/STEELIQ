@@ -22,27 +22,39 @@ envValidator.validate();
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (important for Replit environment)
 
-// ===== SECURITY MIDDLEWARE (Applied first) =====
-// TEMPORARILY DISABLED FOR DEBUGGING
-// app.use(helmetConfig);
-// app.use(corsConfig);
-// app.use(apiLimiter);
-// app.use(securityLogger);
-// app.use(requestSizeLimiter);
-// app.use(xssProtection);
+// ===== VITE PATH DETECTION =====
+const isVitePath = (path: string): boolean => {
+  return path.startsWith('/@vite') ||
+         path.startsWith('/@fs') || 
+         path.startsWith('/@id') ||
+         path.includes('/.vite/') ||
+         path.includes('/node_modules/.vite/') ||
+         path.includes('/__vite_ping') ||
+         path.startsWith('/src/') ||
+         path.endsWith('.tsx') ||
+         path.endsWith('.ts') ||
+         path.endsWith('.jsx') ||
+         path.endsWith('.js');
+};
 
-// Minimal CORS for development
-app.use((req, res, next) => {
-  const origin = req.headers.origin || '*';
-  res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Access-Control-Allow-Methods', '*');
-  res.setHeader('Access-Control-Allow-Headers', '*');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
+// ===== SECURITY MIDDLEWARE WITH VITE BYPASS =====
+const applySecurityMiddleware = (middleware: any) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    // Skip all security middleware for Vite development paths
+    if (config.NODE_ENV === 'development' && isVitePath(req.path)) {
+      return next();
+    }
+    return middleware(req, res, next);
+  };
+};
+
+// Apply security middleware with Vite bypass
+app.use(applySecurityMiddleware(helmetConfig));
+app.use(applySecurityMiddleware(corsConfig));
+app.use(applySecurityMiddleware(apiLimiter));
+app.use(applySecurityMiddleware(securityLogger));
+app.use(applySecurityMiddleware(requestSizeLimiter));
+app.use(applySecurityMiddleware(xssProtection));
 
 // ===== BODY PARSING =====
 app.use(express.json({ limit: '50mb' })); // Reduced from 500mb for security
@@ -50,8 +62,7 @@ app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 app.use(cookieParser());
 
 // ===== SESSION SECURITY =====
-// TEMPORARILY DISABLED FOR DEBUGGING
-// app.use(sessionSecurity);
+app.use(applySecurityMiddleware(sessionSecurity));
 
 // ===== HEALTH CHECK ENDPOINTS =====
 app.get('/health', (req: Request, res: Response) => {
