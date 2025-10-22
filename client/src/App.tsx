@@ -7,9 +7,19 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { RoleRouter } from "@/components/auth/RoleRouter";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
+
+// Role-specific dashboards
+import FloorDashboard from "@/pages/dashboards/FloorDashboard";
+import PlanningDashboard from "@/pages/dashboards/PlanningDashboard";
+import AccountingDashboard from "@/pages/dashboards/AccountingDashboard";
+import SupervisorDashboard from "@/pages/dashboards/SupervisorDashboard";
+import AdminDashboard from "@/pages/dashboards/AdminDashboard";
+import ExecutiveDashboard from "@/pages/dashboards/ExecutiveDashboard";
 import Jobs from "@/pages/jobs";
 import Materials from "@/pages/materials";
 import Inventory from "@/pages/inventory";
@@ -74,46 +84,153 @@ function Router() {
   }
 
   return (
-    <Switch>
-      <Route path="/login" component={Dashboard} />
-      <Route path="/" component={Dashboard} />
-      <Route path="/jobs" component={Jobs} />
-      <Route path="/procurement" component={Procurement} />
-      <Route path="/supplier/po/:distributionId" component={SupplierPortal} />
-      <Route path="/estimation" component={EstimationPage} />
-      <Route path="/estimation/:id" component={EstimationPage} />
+    <RoleRouter>
+      <Switch>
+        <Route path="/login" component={Dashboard} />
+        <Route path="/" component={Dashboard} />
+        
+        {/* Role-specific dashboards */}
+        <Route path="/dashboards/floor" component={FloorDashboard} />
+        <Route path="/dashboards/planning" component={PlanningDashboard} />
+        <Route path="/dashboards/accounting">
+          <ProtectedRoute requiredPermissions={['viewCosts', 'viewPricing']}>
+            <AccountingDashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/dashboards/supervisor">
+          <ProtectedRoute requiredRole={['supervisor', 'admin', 'full']}>
+            <SupervisorDashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/dashboards/admin">
+          <ProtectedRoute requiredRole={['admin', 'full']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/dashboards/executive">
+          <ProtectedRoute requiredRole={['full']}>
+            <ExecutiveDashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/dashboard">
+          <ProtectedRoute requiredRole={['supervisor', 'admin', 'full']}>
+            <Dashboard />
+          </ProtectedRoute>
+        </Route>
+        
+        {/* Protected routes with permission checks */}
+        <Route path="/jobs" component={Jobs} />
+        <Route path="/procurement">
+          <ProtectedRoute requiredPermissions={['viewSuppliers']}>
+            <Procurement />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/supplier/po/:distributionId" component={SupplierPortal} />
+        <Route path="/estimation">
+          <ProtectedRoute requiredPermissions={['viewJobs', 'createJobs']}>
+            <EstimationPage />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/estimation/:id">
+          <ProtectedRoute requiredPermissions={['viewJobs', 'editJobs']}>
+            <EstimationPage />
+          </ProtectedRoute>
+        </Route>
 
-      <Route path="/client-portal" component={ClientPortal} />
-      <Route path="/materials" component={Materials} />
-      <Route path="/inventory" component={Inventory} />
-      <Route path="/contacts" component={Contacts} />
-      <Route path="/settings" component={FinancialSettings} />
-      <Route path="/settings/financial" component={FinancialSettings} />
-      <Route path="/settings/operations" component={OperationsSettingsNew} />
-      <Route path="/settings/lifecycle-templates" component={LifecycleTemplates} />
-      <Route path="/settings/audit-center" component={AuditCenter} />
-      <Route path="/organization-settings" component={OrganizationSettingsPage} />
-      <Route path="/team-management" component={TeamManagement} />
-      <Route path="/team-management/employee/new" component={EmployeeProfile} />
-      <Route path="/team-management/employee/:id" component={EmployeeProfile} />
-      <Route path="/time-payroll" component={TimePayroll} />
-      <Route path="/projects/:projectId/lifecycle" component={ProjectLifecycleTracker} />
-      <Route path="/estimation-pipeline" component={EstimationPipeline} />
-      <Route path="/preferences" component={UserPreferences} />
-      <Route path="/email-cost-import" component={EmailCostImport} />
-      <Route path="/drawing-intelligence" component={DrawingIntelligence} />
-      <Route path="/supplier-integration" component={SupplierIntegrationHub} />
-      <Route path="/production-floor" component={ProductionFloor} />
-      <Route path="/financial-intelligence" component={FinancialIntelligence} />
-      <Route path="/resource-planning" component={ResourcePlanning} />
-      <Route path="/remnant-management" component={RemnantManagement} />
-      <Route path="/optimization" component={Optimization} />
-      <Route path="/pdf-markup" component={PDFMarkup} />
-      <Route path="/mobile-operations" component={MobileOperations} />
-      <Route path="/ai-dashboard" component={AIDashboard} />
-      <Route path="/ai-control-center" component={AIControlCenter} />
-      <Route component={NotFound} />
-    </Switch>
+        <Route path="/client-portal" component={ClientPortal} />
+        <Route path="/materials" component={Materials} />
+        <Route path="/inventory" component={Inventory} />
+        <Route path="/contacts" component={Contacts} />
+        
+        {/* Settings - Admin Only */}
+        <Route path="/settings">
+          <ProtectedRoute requiredRole={['admin', 'full']}>
+            <FinancialSettings />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/settings/financial">
+          <ProtectedRoute requiredPermissions={['viewCosts', 'manageRates']}>
+            <FinancialSettings />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/settings/operations">
+          <ProtectedRoute requiredRole={['admin', 'full']}>
+            <OperationsSettingsNew />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/settings/lifecycle-templates">
+          <ProtectedRoute requiredRole={['admin', 'full']}>
+            <LifecycleTemplates />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/settings/audit-center">
+          <ProtectedRoute requiredPermissions={['auditLogs']}>
+            <AuditCenter />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/organization-settings">
+          <ProtectedRoute requiredRole={['admin', 'full']}>
+            <OrganizationSettingsPage />
+          </ProtectedRoute>
+        </Route>
+        
+        {/* Team Management - Supervisors and above */}
+        <Route path="/team-management">
+          <ProtectedRoute requiredPermissions={['manageUsers']}>
+            <TeamManagement />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/team-management/employee/new">
+          <ProtectedRoute requiredPermissions={['manageUsers']}>
+            <EmployeeProfile />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/team-management/employee/:id">
+          <ProtectedRoute requiredPermissions={['manageUsers']}>
+            <EmployeeProfile />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/time-payroll">
+          <ProtectedRoute requiredPermissions={['viewCosts', 'manageRates']}>
+            <TimePayroll />
+          </ProtectedRoute>
+        </Route>
+        
+        {/* Project and Planning Routes */}
+        <Route path="/projects/:projectId/lifecycle" component={ProjectLifecycleTracker} />
+        <Route path="/estimation-pipeline" component={EstimationPipeline} />
+        <Route path="/preferences" component={UserPreferences} />
+        <Route path="/email-cost-import">
+          <ProtectedRoute requiredPermissions={['viewCosts', 'editPricing']}>
+            <EmailCostImport />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/drawing-intelligence" component={DrawingIntelligence} />
+        <Route path="/supplier-integration" component={SupplierIntegrationHub} />
+        <Route path="/production-floor" component={ProductionFloor} />
+        
+        {/* Financial - Accounting and above */}
+        <Route path="/financial-intelligence">
+          <ProtectedRoute requiredPermissions={['viewCosts', 'viewPricing']}>
+            <FinancialIntelligence />
+          </ProtectedRoute>
+        </Route>
+        
+        <Route path="/resource-planning" component={ResourcePlanning} />
+        <Route path="/remnant-management" component={RemnantManagement} />
+        <Route path="/optimization" component={Optimization} />
+        <Route path="/pdf-markup" component={PDFMarkup} />
+        <Route path="/mobile-operations" component={MobileOperations} />
+        <Route path="/ai-dashboard" component={AIDashboard} />
+        <Route path="/ai-control-center">
+          <ProtectedRoute requiredRole={['admin', 'full']}>
+            <AIControlCenter />
+          </ProtectedRoute>
+        </Route>
+        
+        <Route component={NotFound} />
+      </Switch>
+    </RoleRouter>
   );
 }
 
