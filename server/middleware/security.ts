@@ -44,6 +44,17 @@ export const corsConfig = cors({
     // Allow requests with no origin (like mobile apps, Postman, or same-origin)
     if (!origin) return callback(null, true);
     
+    // Check if running on Replit and allow Replit domains
+    if (process.env.REPLIT_DEV_DOMAIN || process.env.REPL_ID) {
+      // Allow all Replit domains in development
+      if (origin.includes('.replit.dev') || 
+          origin.includes('.replit.app') || 
+          origin.includes('.repl.co') ||
+          origin.includes('.replit.com')) {
+        return callback(null, true);
+      }
+    }
+    
     // In development, be more permissive
     if (config.NODE_ENV === 'development') {
       // Allow localhost and 127.0.0.1 with any port
