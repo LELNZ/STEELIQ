@@ -19,8 +19,10 @@ export interface User {
 }
 
 export type UserRole = 
+  | 'owner'        // Owner - full system control (legacy role)
+  | 'operator'     // Machine operator - production floor access (legacy role)
   | 'basic'        // View-only access, basic reporting
-  | 'planning'     // Job planning, cutting optimization
+  | 'planning'     // Job planning, cutting optimization  
   | 'accounting'   // Financial data, pricing, supplier management
   | 'supervisor'   // Department supervision, user management
   | 'admin'        // System administration, full access
@@ -112,6 +114,26 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
   };
 
   switch (role) {
+    case 'owner':
+      // Owner role - full Super Admin access
+      return Object.keys(basePermissions).reduce((acc, key) => {
+        acc[key as keyof UserPermissions] = true;
+        return acc;
+      }, {} as UserPermissions);
+
+    case 'operator':
+      // Operator role - production floor access
+      return {
+        ...basePermissions,
+        viewMaterials: true,
+        viewJobs: true,
+        viewCuttingPlans: true,
+        viewInventory: true,
+        viewReports: true,
+        editJobs: true,
+        stockMovements: true,
+      };
+
     case 'basic':
       return {
         ...basePermissions,
@@ -253,7 +275,7 @@ export function hasPermission(user: User | null, permission: keyof UserPermissio
  */
 export function canEditHistoricalData(user: User | null): boolean {
   if (!user) return false;
-  return user.role === 'admin' || user.role === 'full';
+  return user.role === 'admin' || user.role === 'full' || user.role === 'owner';
 }
 
 /**
@@ -261,6 +283,8 @@ export function canEditHistoricalData(user: User | null): boolean {
  */
 export function getRoleDisplayName(role: UserRole): string {
   const roleNames: Record<UserRole, string> = {
+    owner: 'Owner',
+    operator: 'Machine Operator',
     basic: 'Basic User',
     planning: 'Planning Operator',
     accounting: 'Accounting/Finance',

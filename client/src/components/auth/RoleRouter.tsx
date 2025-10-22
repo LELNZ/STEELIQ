@@ -5,6 +5,8 @@ import { UserRole } from "@/lib/auth";
 
 // Map each role to their default dashboard
 const ROLE_DASHBOARD_MAP: Record<UserRole, string> = {
+  owner: "/dashboards/executive",     // Owner gets executive dashboard
+  operator: "/dashboards/floor",      // Operator gets floor dashboard
   basic: "/dashboards/floor",
   planning: "/dashboards/planning",
   accounting: "/dashboards/accounting",
@@ -14,7 +16,7 @@ const ROLE_DASHBOARD_MAP: Record<UserRole, string> = {
 };
 
 // Roles that should see the main dashboard in addition to their specific dashboard
-const MAIN_DASHBOARD_ROLES: UserRole[] = ['supervisor', 'admin', 'full'];
+const MAIN_DASHBOARD_ROLES: UserRole[] = ['owner', 'supervisor', 'admin', 'full'];
 
 interface RoleRouterProps {
   children?: React.ReactNode;

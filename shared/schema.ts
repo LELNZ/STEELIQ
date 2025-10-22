@@ -11,7 +11,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email"),
   phone: text("phone"),
-  role: text("role").notNull().default("basic"), // basic, planning, accounting, supervisor, admin, full
+  role: text("role").notNull().default("basic"), // owner, operator, basic, planning, accounting, supervisor, admin, full
   permissions: jsonb("permissions"), // Detailed permissions object
   department: text("department"), // fabrication, office, management, etc.
   employeeId: text("employee_id"),

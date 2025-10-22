@@ -66,6 +66,39 @@ export interface EnhancedSession {
 
 // Permission rules mapping - defines what each role can do
 const PERMISSION_RULES: Record<string, Permission[]> = {
+  // Owner - full system control
+  owner: [
+    // All resources, all actions, organization scope - same as 'full'
+    { resource: 'financial', action: 'manage', scope: 'organization' },
+    { resource: 'jobs', action: 'manage', scope: 'organization' },
+    { resource: 'materials', action: 'manage', scope: 'organization' },
+    { resource: 'suppliers', action: 'manage', scope: 'organization' },
+    { resource: 'procurement', action: 'manage', scope: 'organization' },
+    { resource: 'production', action: 'manage', scope: 'organization' },
+    { resource: 'ai_estimation', action: 'manage', scope: 'organization' },
+    { resource: 'users', action: 'manage', scope: 'organization' },
+    { resource: 'system', action: 'manage', scope: 'organization' },
+    { resource: 'audit', action: 'manage', scope: 'organization' },
+    { resource: 'inventory', action: 'manage', scope: 'organization' },
+    { resource: 'documents', action: 'manage', scope: 'organization' },
+    { resource: 'reports', action: 'manage', scope: 'organization' },
+    { resource: 'quality', action: 'manage', scope: 'organization' },
+    { resource: 'safety', action: 'manage', scope: 'organization' },
+  ],
+
+  // Operator - production floor access
+  operator: [
+    { resource: 'jobs', action: 'view', scope: 'department' },
+    { resource: 'jobs', action: 'edit', scope: 'own' },
+    { resource: 'production', action: 'view', scope: 'department' },
+    { resource: 'production', action: 'edit', scope: 'own' },
+    { resource: 'safety', action: 'view', scope: 'organization' },
+    { resource: 'quality', action: 'view', scope: 'department' },
+    { resource: 'materials', action: 'view' },
+    { resource: 'inventory', action: 'view' },
+    { resource: 'documents', action: 'view', scope: 'department' },
+  ],
+
   // Floor workers - minimal access
   basic: [
     { resource: 'jobs', action: 'view', scope: 'own' },
