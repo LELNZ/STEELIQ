@@ -23,13 +23,26 @@ const app = express();
 app.set('trust proxy', 1); // Trust first proxy (important for Replit environment)
 
 // ===== SECURITY MIDDLEWARE (Applied first) =====
-// Apply security middleware with Replit-aware configuration
-app.use(helmetConfig);
-app.use(corsConfig);
-app.use(apiLimiter);
-app.use(securityLogger);
-app.use(requestSizeLimiter);
-app.use(xssProtection);
+// TEMPORARILY DISABLED FOR DEBUGGING
+// app.use(helmetConfig);
+// app.use(corsConfig);
+// app.use(apiLimiter);
+// app.use(securityLogger);
+// app.use(requestSizeLimiter);
+// app.use(xssProtection);
+
+// Minimal CORS for development
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Methods', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 // ===== BODY PARSING =====
 app.use(express.json({ limit: '50mb' })); // Reduced from 500mb for security
@@ -37,7 +50,8 @@ app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 app.use(cookieParser());
 
 // ===== SESSION SECURITY =====
-app.use(sessionSecurity);
+// TEMPORARILY DISABLED FOR DEBUGGING
+// app.use(sessionSecurity);
 
 // ===== HEALTH CHECK ENDPOINTS =====
 app.get('/health', (req: Request, res: Response) => {

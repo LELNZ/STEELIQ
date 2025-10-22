@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test</title>
+</head>
+<body>
+    <h1>JavaScript Test Page</h1>
+    <div id="test-output"></div>
+    <script>
+        document.getElementById('test-output').innerHTML = 'JavaScript is working!';
+        console.log('Test script executed');
+        
+        // Test if ES modules work
+        import('/src/test-app.tsx').then(() => {
+            console.log('ES module import succeeded');
+        }).catch(err => {
+            console.error('ES module import failed:', err);
+        });
+    </script>
+</body>
+</html>

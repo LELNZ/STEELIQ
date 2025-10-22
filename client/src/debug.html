@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug JavaScript</title>
+</head>
+<body>
+    <h1>Debug Test</h1>
+    <div id="status">JavaScript not running</div>
+    
+    <script>
+        console.log('Inline script starting...');
+        document.getElementById('status').innerHTML = 'JavaScript is working!';
+        document.body.style.backgroundColor = '#e0ffe0';
+    </script>
+    
+    <h2>Tests:</h2>
+    <ol>
+        <li id="test1">Inline script: <span style="color: red">Failed</span></li>
+        <li id="test2">Module script: <span style="color: red">Failed</span></li>
+        <li id="test3">Console logs: <span style="color: red">Failed</span></li>
+    </ol>
+    
+    <script>
+        // Test 1: Inline script
+        document.querySelector('#test1 span').innerHTML = '<span style="color: green">Success</span>';
+        
+        // Test 3: Console
+        console.log('Console log test');
+        console.error('Console error test');
+        document.querySelector('#test3 span').innerHTML = '<span style="color: green">Check console</span>';
+    </script>
+    
+    <script type="module">
+        // Test 2: Module script
+        console.log('Module script running');
+        document.querySelector('#test2 span').innerHTML = '<span style="color: green">Success</span>';
+        
+        // Try importing something
+        import('/src/main.tsx').then(() => {
+            console.log('main.tsx imported successfully');
+        }).catch(err => {
+            console.error('Failed to import main.tsx:', err);
+        });
+    </script>
+</body>
+</html>
