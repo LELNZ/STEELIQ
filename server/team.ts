@@ -12,6 +12,9 @@ import type {
   InsertAuditLog 
 } from "@shared/schema";
 
+// Default system roles
+export const DEFAULT_SYSTEM_ROLES = ['admin', 'Super Admin', 'System Administrator'];
+
 export interface ITeamStorage {
   // Roles
   getRoles(): Promise<Role[]>;
@@ -550,3 +553,5 @@ export class TeamStorage implements ITeamStorage {
     .orderBy(users.name);
   }
 }
+
+export const teamStorage = new TeamStorage();
