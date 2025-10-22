@@ -1,0 +1,156 @@
+Replit Agent + Architect — Full-System Review & Fortune-50 Readiness Audit
+
+Role: You are a Principal Software Architect + SRE performing a Fortune-50-grade audit.
+Goal: Find every issue that could impact correctness, security, reliability, performance, cost, or compliance. Remove any demo/mock/hardcoded data. Verify that the AI Estimation pipeline, DB schema, and all workflows are correct and production-ready.
+
+Scope
+
+All code: frontend, backend, workers/cron/serverless, CLI scripts.
+
+Data: Postgres (or relevant DB), caches, object storage, search/vector stores.
+
+Infrastructure: Docker, IaC, CI/CD, build/runtime configs.
+
+AI: prompts, tools, models, routing, evals.
+
+Environments: dev / staging / prod (and Replit if used).
+
+What to Produce (commit these at /audit-output/)
+
+AUDIT_REPORT.md – executive summary, sev-ranked findings with evidence (file:line), root cause, fix plan.
+
+READINESS_SCORECARD.md – 0–5 scores for: Security, Reliability/Ops, Data Integrity, Performance/Cost, Compliance/Privacy, Deployability, Maintainability, AI Maturity.
+
+TEST_MATRIX.md – unit/integration/e2e/golden tests for all critical paths.
+
+ARCHITECTURE_DIAGRAM.svg – current vs recommended (boxes/arrows).
+
+PRs/Issues – open atomic PRs where safe; otherwise create Issues with owner, ETA, acceptance tests.
+
+FORTUNE50_DEPLOYMENT_PLAN.md – 7-/14-/30-day remediation plan, with a proposed earliest deploy date for a fully working Estimation system.
+
+Part A — Repository & Dependency Integrity
+
+Inventory all dependencies and versions; flag deprecated or vulnerable packages (CVE threshold: fail build on high/critical).
+
+Ensure deterministic builds: lockfiles present, engines pinned, Node/TS/ESM configuration consistent.
+
+Remove binaries, secrets, and cookie jars from VCS history.
+
+Output: deps/INVENTORY.md, ci/PIPELINE_GAPS.md, PRs to pin/upgrade.
+
+Part B — Code Quality & Logic
+
+Run static analysis (ESLint/mypy/ruff/semgrep/bandit as applicable). Autofix where safe.
+
+Detect mixed module systems (CJS vs ESM) and standardize.
+
+Identify duplicated schemas, dead code, and god objects; propose refactors with clear boundaries.
+
+Output: CODE_HEALTH.md and PRs.
+
+Part C — Database Schema, Migrations, Data Lineage
+
+Establish a single source of truth for schemas (ORM/migrations).
+
+Move any ad-hoc DDL in scripts into versioned migrations; make migrations idempotent and reversible where feasible.
+
+Add/verify constraints: PKs, FKs, uniques, checks, NOT NULLs; set cascade rules intentionally.
+
+Map lineage for entities: enquiries, MTO items, materials, labour rates, quotes, jobs, remnants, resources.
+
+Output: data/SCHEMA_SOT.md, data/LINEAGE_DIAGRAM.svg, migration PRs, and integrity tests.
+
+Part D — Mock/Demo/Hardcoded Data Eradication
+
+Search the entire repo for: mock, demo, fixture, example, seed, storybook, hello world, lorem, hardcoded IDs, static prices/rates.
+
+Replace with env-gated fixtures or proper sources.
+
+Output: demo/REMOVALS.md with diffs + replacement plan.
+
+Part E — AI Estimation Engine (Correctness & Traceability)
+
+Locate prompts, tools, routing, model versions; version them under ai/prompts/.
+
+Verify data sources (labour rates, materials, coatings) are canonical; no hardcoded fallbacks.
+
+Create golden tests for totals: direct costs, overheads, margin, GST/VAT, and coatings calculations.
+
+Add evals: accuracy vs known truths, latency, and cost.
+
+Output: ai/ESTIMATION_VALIDATION.md, golden/eval suites, and wiring PRs.
+
+Part F — End-to-End Workflows
+
+Cover the full lifecycle: Enquiry → MTO → Procurement/RFQs → Estimation → Quote → Job → Production → Costing/Financials.
+For each transition: inputs/outputs, permissions, notifications, documents, imports/exports (DXF/CSV/PDF/STEP), error handling, idempotency, retries, DLQs, and rollback paths.
+
+Output: WORKFLOW_VALIDATION.md and failing e2e tests for any gaps.
+
+Part G — Security, Privacy, Compliance
+
+Secrets policy: .env.example completeness, no secrets in code/logs, rotation and scopes.
+
+AuthN/AuthZ: implement or verify RBAC/ABAC; least-privilege roles; tenant isolation if multi-tenant.
+
+PII handling: encryption at rest/field-level where needed; masking; audit logs; retention (RPO/RTO).
+
+Supply chain: signed images, provenance (SLSA/attestations).
+
+Output: SECURITY_REPORT.md, POLICIES.md, and PRs for high/critical items.
+
+Part H — Reliability, Performance, Observability, Cost
+
+Timeouts, circuit breakers, rate limits, backoff; idempotency on external calls.
+
+Confirm DB pool lifecycle is closed in every script; no process.exit() before teardown.
+
+Define SLOs (p50/p95/p99 latency, error budget); add load tests and flamegraphs for hot paths.
+
+Observability: structured logs, metrics, traces; dashboards + actionable alerts.
+
+Cost: top drivers; autoscaling rules; budgets.
+
+Output: SLOs.md, load-test scripts, and dashboard links.
+
+Part I — Docs, Ownership, Runbooks
+
+Ensure README, ADRs, API contracts, and CODEOWNERS exist and are current.
+
+Author runbooks: deploy/rollback, incident response, data restore.
+
+Output: docs/ARCHITECTURE.md, RUNBOOK_*.md, ownership map.
+
+Part J — Scoring & Roadmap
+
+Score each domain (0–5); compute composite Production Readiness Index.
+
+Map to Fortune-50 Parity Waves (Security Baseline → Reliability → Data Integrity → Compliance → Cost Control).
+
+Produce a 7-/14-/30-day remediation plan with PR/Issue links and a target date for a fully testable end-to-end Estimation system.
+
+Operating Rules
+
+Never run destructive ops in prod.
+
+Default to PRs; small, atomic changes; request review via CODEOWNERS.
+
+For risky fixes: add feature flags; canary/blue-green rollout.
+
+For each bug: write a failing test first, then fix.
+
+All scripts must be idempotent and close DB pools gracefully.
+
+Output Format (post in this chat + commit under /audit-output/)
+SUMMARY
+- Overall readiness score: X/5
+- Fortune-50 parity wave: Wave N (status)
+- Top 10 risks (sev1–sev4) with evidence
+- Earliest deploy date for full Estimation lifecycle
+
+LINKS
+- PRs
+- Issues
+- Dashboards
+- Reports in repo
