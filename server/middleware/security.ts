@@ -15,20 +15,20 @@ import { log } from '../utils/logger.js';
  * Configure Helmet for security headers
  */
 export const helmetConfig = helmet({
-  contentSecurityPolicy: {
+  contentSecurityPolicy: config.NODE_ENV === 'production' ? {
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Note: Remove unsafe-eval in production
+      scriptSrc: ["'self'", "'unsafe-inline'"], 
       imgSrc: ["'self'", "data:", "https:", "blob:"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       connectSrc: ["'self'", "https://api.anthropic.com", "wss:", "ws:"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
-      upgradeInsecureRequests: config.NODE_ENV === 'production' ? [] : null,
+      upgradeInsecureRequests: [],
     },
-  },
-  crossOriginEmbedderPolicy: config.NODE_ENV === 'production',
+  } : false, // Disable CSP in development for Vite compatibility
+  crossOriginEmbedderPolicy: false, // Disable to allow Vite HMR
   hsts: config.NODE_ENV === 'production' ? {
     maxAge: 31536000,
     includeSubDomains: true,
@@ -44,15 +44,16 @@ export const corsConfig = cors({
     // Allow requests with no origin (like mobile apps, Postman, or same-origin)
     if (!origin) return callback(null, true);
     
-    // Check if running on Replit and allow Replit domains
-    if (process.env.REPLIT_DOMAINS || process.env.REPL_OWNER || process.env.REPLIT_DEV_DOMAIN) {
-      // Allow all Replit domains
-      if (origin.includes('.replit.dev') || 
+    // Check if running on Replit - use REPLIT_DOMAINS which contains the actual domain
+    const replitDomain = process.env.REPLIT_DOMAINS;
+    if (replitDomain) {
+      // Allow the specific Replit domain and any subdomains
+      if (origin.includes(replitDomain) || 
+          origin.includes('.replit.dev') || 
           origin.includes('.replit.app') || 
           origin.includes('.repl.co') ||
           origin.includes('.replit.com') ||
           origin.includes('replit.')) {
-        log.info(`CORS: Allowing Replit origin: ${origin}`);
         return callback(null, true);
       }
     }
@@ -61,6 +62,13 @@ export const corsConfig = cors({
     if (config.NODE_ENV === 'development') {
       // Allow localhost and 127.0.0.1 with any port
       if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        return callback(null, true);
+      }
+      
+      // Allow Replit domains in development mode
+      if (origin.includes('.replit.dev') || 
+          origin.includes('.replit.app') || 
+          origin.includes('.repl.co')) {
         return callback(null, true);
       }
     }
@@ -81,8 +89,14 @@ export const corsConfig = cors({
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      log.logSecurity('CORS Blocked', { origin });
-      callback(new Error('Not allowed by CORS'));
+      // In development, log but allow; in production, block
+      if (config.NODE_ENV === 'development') {
+        log.info(`CORS: Allowing unmatched origin in development: ${origin}`);
+        callback(null, true);
+      } else {
+        log.logSecurity('CORS Blocked', { origin });
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
   credentials: true,
@@ -127,28 +141,44 @@ export const createRateLimiter = (
         return true;
       }
       
+      // Skip rate limiting for Vite dev server paths
+      if (req.path.startsWith('/@vite/') || 
+          req.path.startsWith('/@fs/') || 
+          req.path.startsWith('/@id/') ||
+          req.path.startsWith('/@react-refresh') ||
+          req.path.includes('/__vite_ping') ||
+          req.path.includes('/.vite/')) {
+        return true;
+      }
+      
       // Skip rate limiting for static assets and development resources
-      const staticPaths = [
-        '/src/',
-        '/@',
-        '/node_modules/',
-        '.js',
-        '.css',
-        '.png',
-        '.jpg',
-        '.jpeg',
-        '.gif',
-        '.svg',
-        '.ico',
-        '.woff',
-        '.woff2',
-        '.ttf',
-        '.map',
-        '/service-worker.js',
-        '/favicon.ico'
+      const staticExtensions = [
+        '.js', '.mjs', '.jsx', '.ts', '.tsx',
+        '.css', '.scss', '.sass', '.less',
+        '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico',
+        '.woff', '.woff2', '.ttf', '.eot', '.otf',
+        '.map', '.json',
+        '.html', '.xml', '.txt', '.md'
       ];
       
-      return staticPaths.some(path => req.path.includes(path));
+      // Check file extensions
+      if (staticExtensions.some(ext => req.path.endsWith(ext))) {
+        return true;
+      }
+      
+      // Skip rate limiting for specific paths
+      const skipPaths = [
+        '/src/',
+        '/client/',
+        '/assets/',
+        '/node_modules/',
+        '/service-worker.js',
+        '/favicon.ico',
+        '/manifest.json',
+        '/robots.txt'
+      ];
+      
+      return skipPaths.some(path => req.path.includes(path));
     }
   });
 };
