@@ -24,43 +24,27 @@ app.set('trust proxy', 1);
 
 (async () => {
   try {
-    // ===== APPLY SECURITY MIDDLEWARE ONLY FOR NON-VITE PATHS =====
-    // In development, skip security for Vite paths
-    const applySecurityMiddleware = (middleware: any) => {
-      return (req: Request, res: Response, next: NextFunction) => {
-        // In development, check if this is a Vite-related path
-        if (config.NODE_ENV === 'development') {
-          const isVitePath = req.path.startsWith('/@') ||
-                           req.path.startsWith('/src/') ||
-                           req.path.includes('/.vite/') ||
-                           req.path.includes('/node_modules/') ||
-                           req.path.endsWith('.tsx') ||
-                           req.path.endsWith('.ts') ||
-                           req.path.endsWith('.jsx') ||
-                           req.path.endsWith('.js') ||
-                           req.path.endsWith('.mjs') ||
-                           req.path.endsWith('.css') ||
-                           req.path.endsWith('.scss');
-          
-          if (isVitePath) {
-            return next();
-          }
-        }
-        return middleware(req, res, next);
-      };
-    };
-
-    // Apply security middleware with Vite bypass
-    // In development, don't use Helmet at all as it interferes with module loading
+    // In development, COMPLETELY skip all security middleware
     if (config.NODE_ENV === 'production') {
+      // Only apply security in production
       app.use(helmetConfig);
+      app.use(corsConfig);
+      app.use(apiLimiter);
+      app.use(securityLogger);
+      app.use(requestSizeLimiter);
+      app.use(xssProtection);
+    } else {
+      // In development, only use minimal CORS for API calls
+      app.use((req, res, next) => {
+        if (req.path.startsWith('/api')) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', '*');
+          res.setHeader('Access-Control-Allow-Headers', '*');
+          res.setHeader('Access-Control-Allow-Credentials', 'true');
+        }
+        next();
+      });
     }
-    
-    app.use(applySecurityMiddleware(corsConfig));
-    app.use(applySecurityMiddleware(apiLimiter));
-    app.use(applySecurityMiddleware(securityLogger));
-    app.use(applySecurityMiddleware(requestSizeLimiter));
-    app.use(applySecurityMiddleware(xssProtection));
 
     // ===== BODY PARSING =====
     app.use(express.json({ limit: '50mb' }));
@@ -68,7 +52,9 @@ app.set('trust proxy', 1);
     app.use(cookieParser());
 
     // ===== SESSION SECURITY =====
-    app.use(applySecurityMiddleware(sessionSecurity));
+    if (config.NODE_ENV === 'production') {
+      app.use(sessionSecurity);
+    }
 
     // ===== HEALTH CHECK ENDPOINTS =====
     app.get('/health', (req: Request, res: Response) => {
