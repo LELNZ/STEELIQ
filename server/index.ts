@@ -1,20 +1,14 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { createServer, type Server } from "http";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
+import apiRouter from "./apiRouter";
 
 // Import security and logging utilities
 import { envValidator, config } from "./utils/envValidator.js";
 import { log, stream } from "./utils/logger.js";
-import { 
-  helmetConfig,
-  corsConfig,
-  apiLimiter,
-  securityLogger,
-  requestSizeLimiter,
-  xssProtection,
-  sessionSecurity 
-} from "./middleware/security.js";
+import { sessionSecurity } from "./middleware/security.js";
 
 // Validate environment variables before starting
 envValidator.validate();
@@ -24,39 +18,31 @@ app.set('trust proxy', 1);
 
 (async () => {
   try {
-    // In development, COMPLETELY skip all security middleware
-    if (config.NODE_ENV === 'production') {
-      // Only apply security in production
-      app.use(helmetConfig);
-      app.use(corsConfig);
-      app.use(apiLimiter);
-      app.use(securityLogger);
-      app.use(requestSizeLimiter);
-      app.use(xssProtection);
+    // ===== PHASE 1: CREATE HTTP SERVER =====
+    const server = createServer(app);
+
+    // ===== PHASE 2: VITE AND STATIC ASSETS (No Security) =====
+    // Setup Vite or static serving FIRST, before any middleware
+    // This ensures Vite's assets bypass all security middleware
+    if (app.get("env") === "development") {
+      log.info("Setting up Vite development server...");
+      await setupVite(app, server);
+      log.info("Vite development server setup complete");
     } else {
-      // In development, only use minimal CORS for API calls
-      app.use((req, res, next) => {
-        if (req.path.startsWith('/api')) {
-          res.setHeader('Access-Control-Allow-Origin', '*');
-          res.setHeader('Access-Control-Allow-Methods', '*');
-          res.setHeader('Access-Control-Allow-Headers', '*');
-          res.setHeader('Access-Control-Allow-Credentials', 'true');
-        }
-        next();
-      });
+      // Setup static file serving in production
+      serveStatic(app);
     }
 
-    // ===== BODY PARSING =====
+    // ===== PHASE 3: GLOBAL MIDDLEWARE (Applied to all routes) =====
+    // These are safe for both Vite and API routes
     app.use(express.json({ limit: '50mb' }));
     app.use(express.urlencoded({ extended: false, limit: '50mb' }));
     app.use(cookieParser());
 
-    // ===== SESSION SECURITY =====
-    if (config.NODE_ENV === 'production') {
-      app.use(sessionSecurity);
-    }
+    // Session middleware - needed for authentication
+    app.use(sessionSecurity);
 
-    // ===== HEALTH CHECK ENDPOINTS =====
+    // ===== PHASE 4: HEALTH CHECK ENDPOINTS (No security needed) =====
     app.get('/health', (req: Request, res: Response) => {
       res.json({
         status: 'healthy',
@@ -67,43 +53,12 @@ app.set('trust proxy', 1);
       });
     });
 
-    app.get('/api/health', (req: Request, res: Response) => {
-      res.json({
-        status: 'healthy',
-        api: 'operational',
-        database: 'connected',
-        timestamp: new Date().toISOString()
-      });
-    });
-
-    // ===== REQUEST LOGGING =====
-    app.use((req, res, next) => {
-      const start = Date.now();
-      
-      res.on("finish", () => {
-        const duration = Date.now() - start;
-        
-        // Only log API requests
-        if (req.path.startsWith("/api")) {
-          log.logRequest(req, res, duration);
-        }
-      });
-
-      next();
-    });
-
-    // Register API routes - this returns the HTTP server
-    const server = await registerRoutes(app);
-
-    // Setup Vite in development AFTER creating the server but with highest priority
-    if (app.get("env") === "development") {
-      log.info("Setting up Vite development server...");
-      await setupVite(app, server);
-      log.info("Vite development server setup complete");
-    } else {
-      // Setup static file serving in production
-      serveStatic(app);
-    }
+    // ===== PHASE 5: API ROUTES WITH FULL SECURITY =====
+    // Mount the API router with all security middleware
+    app.use('/api', apiRouter);
+    
+    // Register all API routes on the API router
+    await registerRoutes(app);
 
     // ===== ERROR HANDLING MIDDLEWARE =====
     app.use((err: any, req: Request, res: Response, next: NextFunction) => {
