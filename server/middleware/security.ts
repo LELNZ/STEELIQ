@@ -121,7 +121,32 @@ export const createRateLimiter = (
     },
     skip: (req) => {
       // Skip rate limiting for health checks
-      return req.path === '/health' || req.path === '/api/health';
+      if (req.path === '/health' || req.path === '/api/health') {
+        return true;
+      }
+      
+      // Skip rate limiting for static assets and development resources
+      const staticPaths = [
+        '/src/',
+        '/@',
+        '/node_modules/',
+        '.js',
+        '.css',
+        '.png',
+        '.jpg',
+        '.jpeg',
+        '.gif',
+        '.svg',
+        '.ico',
+        '.woff',
+        '.woff2',
+        '.ttf',
+        '.map',
+        '/service-worker.js',
+        '/favicon.ico'
+      ];
+      
+      return staticPaths.some(path => req.path.includes(path));
     }
   });
 };
