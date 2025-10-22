@@ -1,14 +1,22 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
-import apiRouter from "./apiRouter";
 
 // Import security and logging utilities
 import { envValidator, config } from "./utils/envValidator.js";
 import { log, stream } from "./utils/logger.js";
-import { sessionSecurity } from "./middleware/security.js";
+import { 
+  sessionSecurity,
+  xssProtection,
+  requestSizeLimiter,
+  createRateLimiter,
+  securityLogger 
+} from "./middleware/security.js";
+import { getHelmetConfig, getCorsConfig, getRateLimits } from "./config/securityConfig.js";
 
 // Validate environment variables before starting
 envValidator.validate();
@@ -18,18 +26,10 @@ app.set('trust proxy', 1);
 
 (async () => {
   try {
-    // ===== PHASE 1: CREATE HTTP SERVER =====
-    const server = createServer(app);
 
     // ===== PHASE 2: VITE AND STATIC ASSETS (No Security) =====
-    // Setup Vite or static serving FIRST, before any middleware
-    // This ensures Vite's assets bypass all security middleware
-    if (app.get("env") === "development") {
-      log.info("Setting up Vite development server...");
-      await setupVite(app, server);
-      log.info("Vite development server setup complete");
-    } else {
-      // Setup static file serving in production
+    // Setup static serving in production (Vite setup happens after server creation in dev)
+    if (app.get("env") !== "development") {
       serveStatic(app);
     }
 
@@ -53,12 +53,41 @@ app.set('trust proxy', 1);
       });
     });
 
-    // ===== PHASE 5: API ROUTES WITH FULL SECURITY =====
-    // Mount the API router with all security middleware
-    app.use('/api', apiRouter);
+    // ===== PHASE 5: API ROUTES WITH SECURITY =====
+    // Apply security middleware conditionally to /api routes only
+    const applyToApiOnly = (middleware: any) => {
+      return (req: Request, res: Response, next: NextFunction) => {
+        if (req.path.startsWith('/api')) {
+          return middleware(req, res, next);
+        }
+        next();
+      };
+    };
     
-    // Register all API routes on the API router
-    await registerRoutes(app);
+    // Apply security middleware stack only to API routes
+    app.use(applyToApiOnly(securityLogger));
+    app.use(applyToApiOnly(helmet(getHelmetConfig())));
+    app.use(applyToApiOnly(cors(getCorsConfig() as any)));
+    app.use(applyToApiOnly(xssProtection));
+    app.use(applyToApiOnly(requestSizeLimiter));
+    
+    // Apply rate limiting with path-specific limits
+    const rateLimits = getRateLimits();
+    app.use('/api/auth/*', createRateLimiter(rateLimits.auth.windowMs, rateLimits.auth.max, 'Too many authentication attempts'));
+    app.use('/api/ai/*', createRateLimiter(rateLimits.ai.windowMs, rateLimits.ai.max, 'AI processing limit reached'));
+    app.use('/api/upload/*', createRateLimiter(rateLimits.upload.windowMs, rateLimits.upload.max, 'Upload limit reached'));
+    app.use('/api/files/*', createRateLimiter(rateLimits.upload.windowMs, rateLimits.upload.max, 'Upload limit reached'));
+    app.use(applyToApiOnly(createRateLimiter(rateLimits.general.windowMs, rateLimits.general.max)));
+    
+    // Register all API routes (registerRoutes handles server creation)
+    const httpServer = await registerRoutes(app);
+    
+    // ===== PHASE 6: SETUP VITE IN DEVELOPMENT =====
+    if (app.get("env") === "development") {
+      log.info("Setting up Vite development server...");
+      await setupVite(app, httpServer);
+      log.info("Vite development server setup complete");
+    }
 
     // ===== ERROR HANDLING MIDDLEWARE =====
     app.use((err: any, req: Request, res: Response, next: NextFunction) => {
@@ -98,7 +127,7 @@ app.set('trust proxy', 1);
 
     // ===== START SERVER =====
     const port = config.PORT || 5000;
-    server.listen({
+    httpServer.listen({
       port: Number(port),
       host: "0.0.0.0",
       reusePort: true,
@@ -122,7 +151,7 @@ app.set('trust proxy', 1);
     const gracefulShutdown = (signal: string) => {
       log.logShutdown(signal);
       
-      server.close(() => {
+      httpServer.close(() => {
         log.info('HTTP server closed');
         process.exit(0);
       });
