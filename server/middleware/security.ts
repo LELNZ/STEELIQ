@@ -45,12 +45,14 @@ export const corsConfig = cors({
     if (!origin) return callback(null, true);
     
     // Check if running on Replit and allow Replit domains
-    if (process.env.REPLIT_DEV_DOMAIN || process.env.REPL_ID) {
-      // Allow all Replit domains in development
+    if (process.env.REPLIT_DOMAINS || process.env.REPL_OWNER || process.env.REPLIT_DEV_DOMAIN) {
+      // Allow all Replit domains
       if (origin.includes('.replit.dev') || 
           origin.includes('.replit.app') || 
           origin.includes('.repl.co') ||
-          origin.includes('.replit.com')) {
+          origin.includes('.replit.com') ||
+          origin.includes('replit.')) {
+        log.info(`CORS: Allowing Replit origin: ${origin}`);
         return callback(null, true);
       }
     }
