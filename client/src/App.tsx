@@ -158,7 +158,7 @@ function Router() {
           </ProtectedRoute>
         </Route>
         <Route path="/settings/operations">
-          <ProtectedRoute requiredRole={['admin', 'full']}>
+          <ProtectedRoute requiredRole={['owner', 'admin', 'full']}>
             <OperationsSettingsNew />
           </ProtectedRoute>
         </Route>
@@ -173,7 +173,7 @@ function Router() {
           </ProtectedRoute>
         </Route>
         <Route path="/organization-settings">
-          <ProtectedRoute requiredRole={['admin', 'full']}>
+          <ProtectedRoute requiredRole={['owner', 'admin', 'full']}>
             <OrganizationSettingsPage />
           </ProtectedRoute>
         </Route>
@@ -227,7 +227,7 @@ function Router() {
         <Route path="/mobile-operations" component={MobileOperations} />
         <Route path="/ai-dashboard" component={AIDashboard} />
         <Route path="/ai-control-center">
-          <ProtectedRoute requiredRole={['admin', 'full']}>
+          <ProtectedRoute requiredRole={['owner', 'admin', 'full']}>
             <AIControlCenter />
           </ProtectedRoute>
         </Route>
