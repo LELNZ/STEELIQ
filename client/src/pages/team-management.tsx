@@ -260,8 +260,18 @@ export default function TeamManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/members"] });
       toast({
-        title: "Success",
+        title: "✅ Success",
         description: "Team member removed successfully",
+        duration: 5000,
+      });
+    },
+    onError: (error: any) => {
+      console.error("Team member deletion error:", error);
+      toast({
+        title: "❌ Delete Failed",
+        description: error.response?.data?.error || error.message || "Failed to delete team member. Please check dependencies and try again.",
+        variant: "destructive",
+        duration: 8000,
       });
     },
   });
@@ -273,8 +283,18 @@ export default function TeamManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/roles"] });
       toast({
-        title: "Success",
+        title: "✅ Success",
         description: "Role deleted successfully",
+        duration: 5000,
+      });
+    },
+    onError: (error: any) => {
+      console.error("Role deletion error:", error);
+      toast({
+        title: "❌ Delete Failed",
+        description: error.response?.data?.error || error.message || "Failed to delete role. Please check dependencies and try again.",
+        variant: "destructive",
+        duration: 8000,
       });
     },
   });
@@ -286,8 +306,18 @@ export default function TeamManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team/departments"] });
       toast({
-        title: "Success", 
+        title: "✅ Success", 
         description: "Department deleted successfully",
+        duration: 5000,
+      });
+    },
+    onError: (error: any) => {
+      console.error("Department deletion error:", error);
+      toast({
+        title: "❌ Delete Failed",
+        description: error.response?.data?.error || error.message || "Failed to delete department. Please check dependencies and try again.",
+        variant: "destructive",
+        duration: 8000,
       });
     },
   });
@@ -533,21 +563,34 @@ export default function TeamManagement() {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="ghost" size="sm" title="Delete Role">
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4 text-destructive" />
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Role</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete the "{role.name}" role?
-                      This action cannot be undone and will affect all users assigned to this role.
+                    <AlertDialogTitle>⚠️ Confirm Role Deletion</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-2">
+                      <p>You are about to permanently delete the role: <strong className="text-foreground">{role.name}</strong></p>
+                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                        Warning: This action will:
+                      </p>
+                      <ul className="text-sm space-y-1 ml-4 list-disc">
+                        <li>Remove all permissions associated with this role</li>
+                        <li>Require reassignment of users currently assigned to this role</li>
+                        <li>Impact system access for affected users</li>
+                      </ul>
+                      <p className="text-sm font-semibold text-destructive">
+                        This action cannot be undone. Please confirm you wish to proceed.
+                      </p>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteRoleMutation.mutate(role.id)}>
-                      Delete
+                    <AlertDialogAction 
+                      onClick={() => deleteRoleMutation.mutate(role.id)}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      Yes, Delete Role
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -1160,16 +1203,29 @@ export default function TeamManagement() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Role</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete the {role.name} role?
-                                    This action cannot be undone.
+                                  <AlertDialogTitle>⚠️ Confirm Role Deletion</AlertDialogTitle>
+                                  <AlertDialogDescription className="space-y-2">
+                                    <p>You are about to permanently delete the role: <strong className="text-foreground">{role.name}</strong></p>
+                                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                                      Warning: This action will:
+                                    </p>
+                                    <ul className="text-sm space-y-1 ml-4 list-disc">
+                                      <li>Remove all permissions associated with this role</li>
+                                      <li>Require reassignment of users currently assigned to this role</li>
+                                      <li>Impact system access for affected users</li>
+                                    </ul>
+                                    <p className="text-sm font-semibold text-destructive">
+                                      This action cannot be undone. Please confirm you wish to proceed.
+                                    </p>
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => deleteRoleMutation.mutate(role.id)}>
-                                    Delete
+                                  <AlertDialogAction 
+                                    onClick={() => deleteRoleMutation.mutate(role.id)}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                  >
+                                    Yes, Delete Role
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
