@@ -1,18 +1,22 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { UserRole, UserPermissions, getDefaultPermissions } from "../lib/auth";
 
 interface User {
   id: number;
   username: string;
   name: string;
   email?: string;
-  role: string;
+  role: UserRole;
+  permissions: UserPermissions;
   department?: string;
   isActive: boolean;
   profileImageUrl?: string;
   twoFactorEnabled: boolean;
   lastLogin?: Date;
+  organizationId?: number;
+  dataScope?: 'personal' | 'department' | 'organization';
 }
 
 interface AuthContextType {
@@ -55,7 +59,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (authData) {
-      setUser(authData as User);
+      const userData = authData as any;
+      // Ensure permissions are properly set - if not provided by backend, use defaults
+      const permissions = userData.permissions || getDefaultPermissions(userData.role);
+      setUser({
+        ...userData,
+        permissions,
+        role: userData.role as UserRole,
+      });
     } else {
       setUser(null);
     }
@@ -95,7 +106,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Set user from the response (response contains user, token, expiresAt)
       if (data.user) {
-        setUser(data.user);
+        const userData = data.user;
+        // Ensure permissions are properly set - if not provided by backend, use defaults
+        const permissions = userData.permissions || getDefaultPermissions(userData.role);
+        setUser({
+          ...userData,
+          permissions,
+          role: userData.role as UserRole,
+        });
       }
       
       // Refetch user data to ensure consistency
