@@ -139,6 +139,26 @@ const PERMISSION_RULES: Record<string, Permission[]> = {
     { resource: 'reports', action: 'export' },
   ],
 
+  // Admin - system administration
+  admin: [
+    // Same as full role - complete system access
+    { resource: 'financial', action: 'manage', scope: 'organization' },
+    { resource: 'jobs', action: 'manage', scope: 'organization' },
+    { resource: 'materials', action: 'manage', scope: 'organization' },
+    { resource: 'suppliers', action: 'manage', scope: 'organization' },
+    { resource: 'procurement', action: 'manage', scope: 'organization' },
+    { resource: 'production', action: 'manage', scope: 'organization' },
+    { resource: 'ai_estimation', action: 'manage', scope: 'organization' },
+    { resource: 'users', action: 'manage', scope: 'organization' },
+    { resource: 'system', action: 'manage', scope: 'organization' },
+    { resource: 'audit', action: 'manage', scope: 'organization' },
+    { resource: 'inventory', action: 'manage', scope: 'organization' },
+    { resource: 'documents', action: 'manage', scope: 'organization' },
+    { resource: 'reports', action: 'manage', scope: 'organization' },
+    { resource: 'quality', action: 'manage', scope: 'organization' },
+    { resource: 'safety', action: 'manage', scope: 'organization' },
+  ],
+
   // Supervisors - departmental control
   supervisor: [
     { resource: 'jobs', action: 'view', scope: 'organization' },
@@ -409,7 +429,7 @@ async function loadUserPermissions(userId: number): Promise<EnhancedSession | nu
 
     // Determine data scope based on role
     let dataScope: 'self' | 'department' | 'organization' = 'self';
-    if (['admin', 'full'].includes(userData.role)) {
+    if (['owner', 'admin', 'full'].includes(userData.role)) {
       dataScope = 'organization';
     } else if (['supervisor', 'planning', 'accounting'].includes(userData.role)) {
       dataScope = 'department';
