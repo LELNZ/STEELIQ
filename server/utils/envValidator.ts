@@ -307,8 +307,9 @@ class EnvironmentValidator {
   private validateRBAC(): void {
     // Check RBAC_MODE
     if (!process.env.RBAC_MODE) {
-      process.env.RBAC_MODE = 'shadow';
-      this.warnings.push('RBAC_MODE not set - using default: shadow (logging mode, not enforcing)');
+      // Default to enforce mode for security - critical for Fortune 50 compliance
+      process.env.RBAC_MODE = 'enforce';
+      this.warnings.push('RBAC_MODE not set - using default: enforce (blocking unauthorized access)');
     } else if (!['shadow', 'enforce', 'bypass'].includes(process.env.RBAC_MODE)) {
       this.errors.push('RBAC_MODE must be one of: shadow, enforce, bypass');
     }
