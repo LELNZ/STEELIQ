@@ -44,6 +44,9 @@ interface EnvConfig {
   DEFAULT_OVERHEAD_PERCENTAGE?: string;
   DEFAULT_PROFIT_MARGIN?: string;
   DEFAULT_GST_RATE?: string;
+  
+  // RBAC Configuration
+  RBAC_MODE?: 'shadow' | 'enforce' | 'bypass';
 }
 
 class EnvironmentValidator {
@@ -72,6 +75,9 @@ class EnvironmentValidator {
     
     // Validate security settings
     this.validateSecurity();
+    
+    // Validate RBAC configuration
+    this.validateRBAC();
     
     // Report results
     this.reportResults();
@@ -292,6 +298,34 @@ class EnvironmentValidator {
           break;
         }
       }
+    }
+  }
+  
+  /**
+   * Validate RBAC configuration
+   */
+  private validateRBAC(): void {
+    // Check RBAC_MODE
+    if (!process.env.RBAC_MODE) {
+      process.env.RBAC_MODE = 'shadow';
+      this.warnings.push('RBAC_MODE not set - using default: shadow (logging mode, not enforcing)');
+    } else if (!['shadow', 'enforce', 'bypass'].includes(process.env.RBAC_MODE)) {
+      this.errors.push('RBAC_MODE must be one of: shadow, enforce, bypass');
+    }
+    
+    // Production-specific RBAC checks
+    if (process.env.NODE_ENV === 'production') {
+      if (process.env.RBAC_MODE === 'bypass') {
+        this.errors.push('RBAC_MODE cannot be set to "bypass" in production - this is a critical security risk');
+      }
+      if (process.env.RBAC_MODE === 'shadow') {
+        this.warnings.push('RBAC is in shadow mode - consider switching to "enforce" mode for production security');
+      }
+    }
+    
+    // Development-specific RBAC guidance
+    if (process.env.NODE_ENV === 'development' && process.env.RBAC_MODE === 'enforce') {
+      this.warnings.push('RBAC is in enforce mode - this may block access during development. Consider using "shadow" mode for testing');
     }
   }
   

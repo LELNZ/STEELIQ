@@ -17,6 +17,7 @@ import {
   securityLogger 
 } from "./middleware/security.js";
 import { getHelmetConfig, getCorsConfig, getRateLimits } from "./config/securityConfig.js";
+import { rbacMiddleware } from "./middleware/rbac";
 
 // Validate environment variables before starting
 envValidator.validate();
@@ -70,6 +71,9 @@ app.set('trust proxy', 1);
     app.use(applyToApiOnly(cors(getCorsConfig() as any)));
     app.use(applyToApiOnly(xssProtection));
     app.use(applyToApiOnly(requestSizeLimiter));
+    
+    // Apply RBAC middleware in shadow mode initially
+    app.use(applyToApiOnly(rbacMiddleware()));
     
     // Apply rate limiting with path-specific limits
     const rateLimits = getRateLimits();
