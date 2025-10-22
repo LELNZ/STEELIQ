@@ -1,6 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/contexts/auth-context";
+import { UserPermissions, UserRole } from "@/lib/auth";
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -30,53 +32,72 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-const navigation = [
+// Define navigation items with permission requirements
+interface NavItem {
+  name: string;
+  href: string;
+  icon: any;
+  badge?: string;
+  badgeVariant?: string;
+  permissions?: (keyof UserPermissions)[];
+  roles?: UserRole[];
+}
+
+interface NavSection {
+  name: string;
+  items: NavItem[];
+  permissions?: (keyof UserPermissions)[];
+  roles?: UserRole[];
+}
+
+const navigation: NavSection[] = [
   {
     name: "Core Operations",
     items: [
       { name: "Dashboard", href: "/", icon: LayoutDashboard },
-      { name: "Jobs & Production", href: "/jobs", icon: Briefcase },
-      { name: "Procurement", href: "/procurement", icon: ShoppingCart, badge: "NEW", badgeVariant: "success" },
-      { name: "AI Estimation Engine", href: "/estimation", icon: Bot },
-      { name: "Estimation Pipeline", href: "/estimation-pipeline", icon: TrendingUp },
-      { name: "Material Library", href: "/materials", icon: Package },
-      { name: "Inventory", href: "/inventory", icon: Warehouse },
-      { name: "Cutting Optimization", href: "/optimization", icon: Slice },
-      { name: "Remnant Management", href: "/remnant-management", icon: Package },
+      { name: "Jobs & Production", href: "/jobs", icon: Briefcase, permissions: ['viewJobs'] },
+      { name: "Procurement", href: "/procurement", icon: ShoppingCart, badge: "NEW", badgeVariant: "success", permissions: ['viewSuppliers'] },
+      { name: "AI Estimation Engine", href: "/estimation", icon: Bot, permissions: ['viewJobs', 'createJobs'] },
+      { name: "Estimation Pipeline", href: "/estimation-pipeline", icon: TrendingUp, permissions: ['viewJobs'] },
+      { name: "Material Library", href: "/materials", icon: Package, permissions: ['viewMaterials'] },
+      { name: "Inventory", href: "/inventory", icon: Warehouse, permissions: ['viewInventory'] },
+      { name: "Cutting Optimization", href: "/optimization", icon: Slice, permissions: ['viewCuttingPlans'] },
+      { name: "Remnant Management", href: "/remnant-management", icon: Package, permissions: ['viewInventory'] },
     ],
   },
   {
     name: "Intelligence Systems",
     items: [
-      { name: "AI Control Center", href: "/ai-control-center", icon: Brain, badge: "UNIFIED", badgeVariant: "success" },
-      { name: "Financial Intelligence", href: "/financial-intelligence", icon: TrendingUp },
-      { name: "Email Cost Import", href: "/email-cost-import", icon: Mail },
+      { name: "AI Control Center", href: "/ai-control-center", icon: Brain, badge: "UNIFIED", badgeVariant: "success", roles: ['admin', 'full'] },
+      { name: "Financial Intelligence", href: "/financial-intelligence", icon: TrendingUp, permissions: ['viewCosts', 'viewPricing'] },
+      { name: "Email Cost Import", href: "/email-cost-import", icon: Mail, permissions: ['viewCosts', 'editPricing'] },
     ],
   },
   {
     name: "Field Operations",
     items: [
-      { name: "Production Floor", href: "/production-floor", icon: Factory },
-      { name: "Resource Planning", href: "/resource-planning", icon: Calendar },
+      { name: "Production Floor", href: "/production-floor", icon: Factory, permissions: ['viewJobs'] },
+      { name: "Resource Planning", href: "/resource-planning", icon: Calendar, permissions: ['viewJobs', 'editJobs'] },
       { name: "Mobile Operations", href: "/mobile-operations", icon: Smartphone, badge: "NEW", badgeVariant: "success" },
     ],
   },
   {
     name: "Integration Hub",
     items: [
-      { name: "Supplier Integration", href: "/supplier-integration", icon: Zap },
+      { name: "Supplier Integration", href: "/supplier-integration", icon: Zap, permissions: ['viewSuppliers'] },
       { name: "Contacts", href: "/contacts", icon: Users },
     ],
   },
   {
     name: "Settings & Management",
+    roles: ['supervisor', 'admin', 'full'],
     items: [
-      { name: "Organization Settings", href: "/organization-settings", icon: Building2 },
-      { name: "Financial Settings", href: "/settings/financial", icon: DollarSign },
-      { name: "Operations Settings", href: "/settings/operations", icon: Settings2 },
-      { name: "Team Management", href: "/team-management", icon: Users },
-      { name: "Time & Payroll", href: "/time-payroll", icon: Timer },
-      { name: "Audit Center", href: "/settings/audit-center", icon: Shield },
+      { name: "Organization Settings", href: "/organization-settings", icon: Building2, roles: ['admin', 'full'] },
+      { name: "Financial Settings", href: "/settings/financial", icon: DollarSign, permissions: ['viewCosts', 'manageRates'] },
+      { name: "Operations Settings", href: "/settings/operations", icon: Settings2, roles: ['admin', 'full'] },
+      { name: "Team Management", href: "/team-management", icon: Users, permissions: ['manageUsers'] },
+      { name: "Time & Payroll", href: "/time-payroll", icon: Timer, permissions: ['viewCosts', 'manageRates'] },
+      { name: "Audit Center", href: "/settings/audit-center", icon: Shield, permissions: ['auditLogs'] },
       { name: "My Preferences", href: "/preferences", icon: Settings },
     ],
   },
@@ -88,6 +109,44 @@ interface SidebarProps {
 
 export default function Sidebar({ isCollapsed = false }: SidebarProps) {
   const [location] = useLocation();
+  const { user } = useAuth();
+
+  // Helper function to check if user has required permissions
+  const hasPermissions = (permissions?: (keyof UserPermissions)[]) => {
+    if (!permissions || permissions.length === 0) return true;
+    if (!user) return false;
+    return permissions.every(permission => user.permissions[permission]);
+  };
+
+  // Helper function to check if user has required role
+  const hasRole = (roles?: UserRole[]) => {
+    if (!roles || roles.length === 0) return true;
+    if (!user) return false;
+    return roles.includes(user.role);
+  };
+
+  // Filter navigation based on permissions and roles
+  const filteredNavigation = navigation.map(section => {
+    // Check if entire section has role/permission requirements
+    if (!hasRole(section.roles) || !hasPermissions(section.permissions)) {
+      return null;
+    }
+
+    // Filter items within the section
+    const filteredItems = section.items.filter(item => 
+      hasRole(item.roles) && hasPermissions(item.permissions)
+    );
+
+    // If no items remain after filtering, don't show the section
+    if (filteredItems.length === 0) {
+      return null;
+    }
+
+    return {
+      ...section,
+      items: filteredItems
+    };
+  }).filter(Boolean) as NavSection[];
 
   return (
     <div className={cn(
@@ -100,7 +159,7 @@ export default function Sidebar({ isCollapsed = false }: SidebarProps) {
           "overflow-y-auto flex-1",
           isCollapsed ? "p-2" : "p-4"
         )}>
-          {navigation.map((section) => (
+          {filteredNavigation.map((section) => (
             <div key={section.name} className={cn(
               isCollapsed ? "mb-3" : "mb-6"
             )}>

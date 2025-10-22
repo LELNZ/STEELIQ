@@ -10,6 +10,7 @@ import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RoleRouter } from "@/components/auth/RoleRouter";
 import NotFound from "@/pages/not-found";
+import Unauthorized from "@/pages/unauthorized";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 
@@ -87,6 +88,7 @@ function Router() {
     <RoleRouter>
       <Switch>
         <Route path="/login" component={Dashboard} />
+        <Route path="/unauthorized" component={Unauthorized} />
         <Route path="/" component={Dashboard} />
         
         {/* Role-specific dashboards */}
