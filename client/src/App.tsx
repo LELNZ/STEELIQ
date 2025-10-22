@@ -89,7 +89,9 @@ function Router() {
       <Switch>
         <Route path="/login" component={Dashboard} />
         <Route path="/unauthorized" component={Unauthorized} />
-        <Route path="/" component={Dashboard} />
+        <Route path="/">
+          <Dashboard />
+        </Route>
         
         {/* Role-specific dashboards */}
         <Route path="/dashboards/floor" component={FloorDashboard} />
@@ -100,22 +102,22 @@ function Router() {
           </ProtectedRoute>
         </Route>
         <Route path="/dashboards/supervisor">
-          <ProtectedRoute requiredRole={['supervisor', 'admin', 'full']}>
+          <ProtectedRoute requiredRole={['owner', 'supervisor', 'admin', 'full']}>
             <SupervisorDashboard />
           </ProtectedRoute>
         </Route>
         <Route path="/dashboards/admin">
-          <ProtectedRoute requiredRole={['admin', 'full']}>
+          <ProtectedRoute requiredRole={['owner', 'admin', 'full']}>
             <AdminDashboard />
           </ProtectedRoute>
         </Route>
         <Route path="/dashboards/executive">
-          <ProtectedRoute requiredRole={['full']}>
+          <ProtectedRoute requiredRole={['owner', 'full']}>
             <ExecutiveDashboard />
           </ProtectedRoute>
         </Route>
         <Route path="/dashboard">
-          <ProtectedRoute requiredRole={['supervisor', 'admin', 'full']}>
+          <ProtectedRoute requiredRole={['owner', 'supervisor', 'admin', 'full']}>
             <Dashboard />
           </ProtectedRoute>
         </Route>
