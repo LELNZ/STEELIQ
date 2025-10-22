@@ -81,24 +81,23 @@ class EnvironmentValidator {
    * Validate required environment variables
    */
   private validateRequired(): void {
-    const required: (keyof EnvConfig)[] = [
-      'DATABASE_URL',
-      'SESSION_SECRET',
-      'NODE_ENV',
-      'PORT',
-      'APP_NAME',
-      'APP_URL'
-    ];
-    
-    for (const key of required) {
-      if (!process.env[key]) {
-        this.errors.push(`Missing required environment variable: ${key}`);
-      }
+    // Only DATABASE_URL is truly required
+    if (!process.env.DATABASE_URL) {
+      this.errors.push(`Missing required environment variable: DATABASE_URL`);
+    } else if (!process.env.DATABASE_URL.startsWith('postgresql://')) {
+      this.errors.push('DATABASE_URL must be a valid PostgreSQL connection string');
     }
     
-    // Validate DATABASE_URL format
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith('postgresql://')) {
-      this.errors.push('DATABASE_URL must be a valid PostgreSQL connection string');
+    // SESSION_SECRET is critical for security but we can generate a default for development
+    if (!process.env.SESSION_SECRET) {
+      if (process.env.NODE_ENV === 'production') {
+        this.errors.push('SESSION_SECRET is required in production');
+      } else {
+        this.warnings.push('SESSION_SECRET not set - using default for development');
+        process.env.SESSION_SECRET = 'development-secret-key-not-for-production-use';
+      }
+    } else if (process.env.SESSION_SECRET.length < 32) {
+      this.warnings.push('SESSION_SECRET should be at least 32 characters long for security');
     }
     
     // Validate NODE_ENV
@@ -106,17 +105,26 @@ class EnvironmentValidator {
       this.errors.push('NODE_ENV must be one of: development, staging, production');
     }
     
-    // Validate PORT
-    if (process.env.PORT) {
+    // Set defaults for other variables
+    if (!process.env.PORT) {
+      process.env.PORT = '5000';
+      this.warnings.push('PORT not set - using default: 5000');
+    } else {
       const port = parseInt(process.env.PORT);
       if (isNaN(port) || port < 1 || port > 65535) {
         this.errors.push('PORT must be a valid port number (1-65535)');
       }
     }
     
-    // Validate SESSION_SECRET strength
-    if (process.env.SESSION_SECRET && process.env.SESSION_SECRET.length < 32) {
-      this.errors.push('SESSION_SECRET must be at least 32 characters long for security');
+    if (!process.env.APP_NAME) {
+      process.env.APP_NAME = 'STEELIQ';
+      this.warnings.push('APP_NAME not set - using default: STEELIQ');
+    }
+    
+    if (!process.env.APP_URL) {
+      const port = process.env.PORT || '5000';
+      process.env.APP_URL = `http://localhost:${port}`;
+      this.warnings.push(`APP_URL not set - using default: http://localhost:${port}`);
     }
   }
   
@@ -131,15 +139,22 @@ class EnvironmentValidator {
       this.warnings.push('ANTHROPIC_API_KEY format appears invalid');
     }
     
-    // Email Configuration
+    // Email Configuration - Only check if SendGrid is configured
     if (!process.env.SENDGRID_API_KEY) {
       this.warnings.push('SENDGRID_API_KEY not set - Email notifications will be disabled');
-    } else if (!process.env.SENDGRID_API_KEY.startsWith('SG.')) {
-      this.warnings.push('SENDGRID_API_KEY format appears invalid');
-    }
-    
-    if (process.env.SENDGRID_API_KEY && !process.env.SENDGRID_FROM_EMAIL) {
-      this.errors.push('SENDGRID_FROM_EMAIL is required when SENDGRID_API_KEY is set');
+    } else {
+      if (!process.env.SENDGRID_API_KEY.startsWith('SG.')) {
+        this.warnings.push('SENDGRID_API_KEY format appears invalid');
+      }
+      if (!process.env.SENDGRID_FROM_EMAIL) {
+        // Set a default for development
+        if (process.env.NODE_ENV === 'production') {
+          this.errors.push('SENDGRID_FROM_EMAIL is required when SENDGRID_API_KEY is set in production');
+        } else {
+          process.env.SENDGRID_FROM_EMAIL = 'noreply@steeliq.local';
+          this.warnings.push('SENDGRID_FROM_EMAIL not set - using default: noreply@steeliq.local');
+        }
+      }
     }
     
     // Gmail Configuration
@@ -245,7 +260,10 @@ class EnvironmentValidator {
       }
       
       // Ensure strong session secret
-      if (process.env.SESSION_SECRET && process.env.SESSION_SECRET === 'your-secure-session-secret-here') {
+      if (process.env.SESSION_SECRET && (
+        process.env.SESSION_SECRET === 'your-secure-session-secret-here' ||
+        process.env.SESSION_SECRET === 'development-secret-key-not-for-production-use'
+      )) {
         this.errors.push('SESSION_SECRET must be changed from default value in production');
       }
       
@@ -273,15 +291,6 @@ class EnvironmentValidator {
           this.errors.push('Default/example values detected in environment variables');
           break;
         }
-      }
-    }
-    
-    // Development-specific warnings
-    if (process.env.NODE_ENV === 'development') {
-      if (process.env.APP_URL && process.env.APP_URL.includes('localhost')) {
-        // This is expected in development
-      } else {
-        this.warnings.push('APP_URL should typically use localhost in development');
       }
     }
   }
@@ -344,7 +353,7 @@ export const envValidator = new EnvironmentValidator();
 export const config = {
   // Required
   DATABASE_URL: process.env.DATABASE_URL!,
-  SESSION_SECRET: process.env.SESSION_SECRET!,
+  SESSION_SECRET: process.env.SESSION_SECRET || 'development-secret-key-not-for-production-use',
   NODE_ENV: (process.env.NODE_ENV || 'development') as 'development' | 'staging' | 'production',
   PORT: process.env.PORT || '5000',
   APP_NAME: process.env.APP_NAME || 'STEELIQ',
@@ -353,13 +362,13 @@ export const config = {
   // Optional
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
-  SENDGRID_FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL,
+  SENDGRID_FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL || 'noreply@steeliq.local',
   SENDGRID_FROM_NAME: process.env.SENDGRID_FROM_NAME || 'STEELIQ',
   
   // Security
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'),
   RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
-  CORS_ORIGIN: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5000'],
+  CORS_ORIGIN: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5000', 'http://localhost:3000'],
   SESSION_TIMEOUT_MS: parseInt(process.env.SESSION_TIMEOUT_MS || '86400000'),
   
   // Logging

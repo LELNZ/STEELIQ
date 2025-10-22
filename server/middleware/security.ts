@@ -22,7 +22,7 @@ export const helmetConfig = helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Note: Remove unsafe-eval in production
       imgSrc: ["'self'", "data:", "https:", "blob:"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      connectSrc: ["'self'", "https://api.anthropic.com", "wss:"],
+      connectSrc: ["'self'", "https://api.anthropic.com", "wss:", "ws:"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: config.NODE_ENV === 'production' ? [] : null,
@@ -41,11 +41,31 @@ export const helmetConfig = helmet({
  */
 export const corsConfig = cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or Postman)
+    // Allow requests with no origin (like mobile apps, Postman, or same-origin)
     if (!origin) return callback(null, true);
     
+    // In development, be more permissive
+    if (config.NODE_ENV === 'development') {
+      // Allow localhost and 127.0.0.1 with any port
+      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        return callback(null, true);
+      }
+    }
+    
     // Check if origin is in allowed list
-    if (config.CORS_ORIGIN.includes(origin)) {
+    const allowedOrigins = [
+      ...config.CORS_ORIGIN,
+      'http://localhost:5000',
+      'http://localhost:3000',
+      'http://127.0.0.1:5000',
+      'http://127.0.0.1:3000',
+      'https://localhost:5000',
+      'https://localhost:3000',
+      'https://127.0.0.1:5000',
+      'https://127.0.0.1:3000'
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       log.logSecurity('CORS Blocked', { origin });

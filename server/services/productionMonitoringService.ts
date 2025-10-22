@@ -1,58 +1,88 @@
 /**
  * Production Monitoring Service
- * Fortune 50 compliant service for real-time production data collection
- * Collects and aggregates data from machines, production events, and shifts
- * NO mock data - all metrics are derived from actual database records
+ * Tracks real-time production metrics and OEE calculations
+ * Part of Wave 3 - Enterprise Integration
+ * 
+ * IMPORTANT: This service should integrate with real sensors/PLCs in production
+ * Currently using configurable defaults for demonstration
  */
 
-import { db } from '../db';
-import {
-  machines,
-  machineStatusLogs,
-  productionEvents,
-  productionShifts,
+import { db } from '../db/index.js';
+import { 
+  machines, 
+  machineStatusLogs, 
+  productionEvents, 
   productionMetrics,
-  jobs,
-  jobMaterials,
-  workOrders
-} from '@shared/schema';
-import { eq, and, sql, gte, lte, desc } from 'drizzle-orm';
+  productionShifts,
+  workOrders 
+} from '@shared/schema.js';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { config } from '../utils/envValidator.js';
+import { log } from '../utils/logger.js';
 
-interface ProductionKPI {
-  oee: number;
-  availability: number;
-  performance: number;
-  quality: number;
-  totalProduction: number;
-  defectRate: number;
-  machineUtilization: number;
-}
-
-interface MachineStatus {
-  id: number;
-  name: string;
-  status: 'running' | 'idle' | 'maintenance' | 'offline';
-  currentJob?: string;
-  utilizationRate: number;
-  lastStatusChange: Date;
-  productionToday: number;
-}
-
-interface DepartmentEfficiency {
-  department: string;
-  efficiency: number;
-  activeMachines: number;
-  totalMachines: number;
-  outputToday: number;
-}
+// Get configurable values from environment
+const PRODUCTION_CONFIG = {
+  defectRate: config.PRODUCTION_DEFECT_RATE || 0.02, // Default 2%
+  qualityThreshold: parseFloat(process.env.PRODUCTION_QUALITY_THRESHOLD || '0.05'), // Default 5%
+  monitoringInterval: config.PRODUCTION_MONITORING_INTERVAL_MS || 300000, // Default 5 minutes
+  eventRecordingInterval: parseInt(process.env.PRODUCTION_EVENT_INTERVAL_MS || '1800000'), // Default 30 minutes
+  
+  // Default availability and performance when no data
+  defaultAvailability: parseFloat(process.env.DEFAULT_AVAILABILITY || '0.85'), // Default 85%
+  defaultUtilization: parseFloat(process.env.DEFAULT_UTILIZATION || '0.75'), // Default 75%
+  defaultPerformance: parseFloat(process.env.DEFAULT_PERFORMANCE || '0.85'), // Default 85%
+  
+  // Machine status check intervals
+  statusLogInterval: parseInt(process.env.STATUS_LOG_INTERVAL_MS || '300000'), // Default 5 minutes
+};
 
 class ProductionMonitoringService {
+  private monitoringInterval: NodeJS.Timeout | null = null;
+  
   /**
-   * Collect real-time production data from machines
-   * This is called periodically (e.g., every minute) to capture production state
+   * Start production monitoring
+   */
+  async startMonitoring(): Promise<void> {
+    log.info('Starting production monitoring service', {
+      defectRate: PRODUCTION_CONFIG.defectRate,
+      monitoringInterval: PRODUCTION_CONFIG.monitoringInterval
+    });
+    
+    // Clear any existing interval
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+    }
+    
+    // Collect data immediately
+    await this.collectProductionData();
+    
+    // Set up periodic collection
+    this.monitoringInterval = setInterval(async () => {
+      try {
+        await this.collectProductionData();
+      } catch (error) {
+        log.logError(error as Error, 'Production monitoring error');
+      }
+    }, PRODUCTION_CONFIG.monitoringInterval);
+  }
+  
+  /**
+   * Stop production monitoring
+   */
+  stopMonitoring(): void {
+    log.info('Stopping production monitoring service');
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+    }
+  }
+  
+  /**
+   * Collect production data from all sources
    */
   async collectProductionData(): Promise<void> {
     const now = new Date();
+    log.debug('Collecting production data', { timestamp: now });
     
     // Get all active machines
     const activeMachines = await db.select()
@@ -87,10 +117,10 @@ class ProductionMonitoringService {
     if (!latestStatus) return true;
     
     const timeSinceLastLog = Date.now() - new Date(latestStatus.timestamp).getTime();
-    const fiveMinutes = 5 * 60 * 1000;
     
-    // Log if status changed or it's been more than 5 minutes
-    return machine.operationalStatus !== latestStatus.status || timeSinceLastLog > fiveMinutes;
+    // Log if status changed or it's been more than the configured interval
+    return machine.operationalStatus !== latestStatus.status || 
+           timeSinceLastLog > PRODUCTION_CONFIG.statusLogInterval;
   }
   
   /**
@@ -102,6 +132,11 @@ class ProductionMonitoringService {
       status: machine.operationalStatus || 'idle',
       timestamp,
       notes: `Automated status capture`
+    });
+    
+    log.debug('Machine status logged', {
+      machineId: machine.id,
+      status: machine.operationalStatus
     });
   }
   
@@ -144,14 +179,14 @@ class ProductionMonitoringService {
     if (!lastEvent) return true;
     
     const timeSinceLastEvent = Date.now() - new Date(lastEvent.eventTime).getTime();
-    const thirtyMinutes = 30 * 60 * 1000;
     
-    // Record event every 30 minutes for active work orders
-    return timeSinceLastEvent > thirtyMinutes;
+    // Record event at configured interval for active work orders
+    return timeSinceLastEvent > PRODUCTION_CONFIG.eventRecordingInterval;
   }
   
   /**
    * Record a production event
+   * NOTE: In production, this should receive real data from sensors/PLCs
    */
   private async recordProductionEvent(
     workOrder: any,
@@ -161,7 +196,8 @@ class ProductionMonitoringService {
     const quantity = workOrder.plannedQuantity || 1;
     const targetQuantity = workOrder.plannedQuantity || 1;
     
-    // Calculate production progress (simplified - in reality would come from sensors/PLCs)
+    // Calculate production progress
+    // TODO: Replace with real sensor data in Wave 4 (Physical Integration)
     const progressPercent = Math.min(
       100,
       (Date.now() - new Date(workOrder.startDate).getTime()) / 
@@ -169,7 +205,10 @@ class ProductionMonitoringService {
     );
     
     const producedQuantity = Math.floor((progressPercent / 100) * quantity);
-    const defects = Math.floor(producedQuantity * 0.02); // 2% defect rate estimate
+    
+    // Calculate defects based on configurable rate
+    // TODO: Replace with real quality control data in Wave 4
+    const defects = Math.floor(producedQuantity * PRODUCTION_CONFIG.defectRate);
     
     await db.insert(productionEvents).values({
       machineId: machine.id,
@@ -179,11 +218,19 @@ class ProductionMonitoringService {
       eventTime: timestamp,
       quantity: producedQuantity,
       scrapQuantity: defects,
-      passedQc: defects < (producedQuantity * 0.05), // Pass if less than 5% defects
+      passedQc: defects < (producedQuantity * PRODUCTION_CONFIG.qualityThreshold),
       operatorId: workOrder.assignedOperator,
       targetQuantity,
       actualVsTarget: ((producedQuantity / targetQuantity) * 100).toFixed(2),
-      notes: `Automated production tracking`
+      notes: `Production tracking (awaiting sensor integration)`
+    });
+    
+    log.info('Production event recorded', {
+      workOrderId: workOrder.id,
+      machineId: machine.id,
+      produced: producedQuantity,
+      defects,
+      defectRate: PRODUCTION_CONFIG.defectRate
     });
   }
   
@@ -277,6 +324,14 @@ class ProductionMonitoringService {
       // Create new metric
       await db.insert(productionMetrics).values(metricData);
     }
+    
+    log.info('Production metrics calculated', {
+      shiftId,
+      oee: metricData.oee,
+      availability: metricData.availability,
+      performance: metricData.performance,
+      quality: metricData.quality
+    });
   }
   
   /**
@@ -294,7 +349,11 @@ class ProductionMonitoringService {
       ));
     
     if (statusLogs.length === 0) {
-      return { availability: 0.85, utilization: 0.75 }; // Default values
+      // Return configurable defaults when no data
+      return { 
+        availability: PRODUCTION_CONFIG.defaultAvailability, 
+        utilization: PRODUCTION_CONFIG.defaultUtilization 
+      };
     }
     
     const totalTime = endTime.getTime() - startTime.getTime();
@@ -336,7 +395,7 @@ class ProductionMonitoringService {
    * Calculate performance rate from production events
    */
   private calculatePerformance(events: any[]): number {
-    if (events.length === 0) return 0.85; // Default
+    if (events.length === 0) return PRODUCTION_CONFIG.defaultPerformance;
     
     let totalPerformance = 0;
     let validEvents = 0;
@@ -349,7 +408,7 @@ class ProductionMonitoringService {
       }
     }
     
-    return validEvents > 0 ? totalPerformance / validEvents : 0.85;
+    return validEvents > 0 ? totalPerformance / validEvents : PRODUCTION_CONFIG.defaultPerformance;
   }
   
   /**
@@ -375,12 +434,11 @@ class ProductionMonitoringService {
     } else if (hour >= 14 && hour < 22) {
       date.setHours(14, 0, 0, 0);
     } else {
-      if (hour >= 22) {
-        date.setHours(22, 0, 0, 0);
-      } else {
+      if (hour < 6) {
+        // Previous day's night shift
         date.setDate(date.getDate() - 1);
-        date.setHours(22, 0, 0, 0);
       }
+      date.setHours(22, 0, 0, 0);
     }
     
     return date;
@@ -390,149 +448,108 @@ class ProductionMonitoringService {
    * Get shift end time
    */
   private getShiftEndTime(timestamp: Date): Date {
-    const startTime = this.getShiftStartTime(timestamp);
-    const endTime = new Date(startTime);
-    endTime.setHours(startTime.getHours() + 8);
-    return endTime;
-  }
-  
-  /**
-   * Get real-time machine statuses
-   */
-  async getMachineStatuses(): Promise<MachineStatus[]> {
-    const allMachines = await db.select()
-      .from(machines)
-      .where(eq(machines.status, 'active'));
+    const hour = timestamp.getHours();
+    const date = new Date(timestamp);
     
-    const statuses: MachineStatus[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    for (const machine of allMachines) {
-      // Get latest status
-      const [latestStatus] = await db.select()
-        .from(machineStatusLogs)
-        .where(eq(machineStatusLogs.machineId, machine.id))
-        .orderBy(desc(machineStatusLogs.timestamp))
-        .limit(1);
-      
-      // Get current job if any
-      const [currentWorkOrder] = await db.select({
-        job: jobs
-      })
-      .from(workOrders)
-      .leftJoin(jobs, eq(workOrders.jobId, jobs.id))
-      .where(and(
-        eq(workOrders.assignedMachine, machine.id),
-        eq(workOrders.status, 'in_progress')
-      ))
-      .limit(1);
-      
-      // Get today's production
-      const productionResult = await db.select({
-        total: sql<number>`COALESCE(SUM(quantity), 0)`.as('total')
-      })
-      .from(productionEvents)
-      .where(and(
-        eq(productionEvents.machineId, machine.id),
-        gte(productionEvents.eventTime, today)
-      ));
-      
-      // Calculate utilization
-      const utilizationData = await this.getMachineUtilization(today, new Date());
-      
-      statuses.push({
-        id: machine.id,
-        name: machine.name,
-        status: (latestStatus?.status || machine.operationalStatus || 'idle') as any,
-        currentJob: currentWorkOrder?.job?.jobNumber,
-        utilizationRate: utilizationData.utilization * 100,
-        lastStatusChange: latestStatus?.timestamp || new Date(),
-        productionToday: productionResult[0]?.total || 0
-      });
+    if (hour >= 6 && hour < 14) {
+      date.setHours(14, 0, 0, 0);
+    } else if (hour >= 14 && hour < 22) {
+      date.setHours(22, 0, 0, 0);
+    } else {
+      if (hour >= 22) {
+        // Next day
+        date.setDate(date.getDate() + 1);
+      }
+      date.setHours(6, 0, 0, 0);
     }
     
-    return statuses;
+    return date;
   }
   
   /**
-   * Get department efficiency metrics
+   * Get real-time dashboard data
    */
-  async getDepartmentEfficiency(): Promise<DepartmentEfficiency[]> {
-    const departments = ['Cutting', 'Welding', 'Assembly', 'Finishing', 'QC'];
-    const efficiencies: DepartmentEfficiency[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    for (const dept of departments) {
-      // Get machines in department
-      const deptMachines = await db.select()
-        .from(machines)
-        .where(eq(machines.department, dept));
-      
-      const activeMachines = deptMachines.filter(m => m.operationalStatus === 'running');
-      
-      // Get department production today
-      const productionResult = await db.select({
-        total: sql<number>`COALESCE(SUM(${productionEvents.quantity}), 0)`.as('total'),
-        target: sql<number>`COALESCE(SUM(${productionEvents.targetQuantity}), 0)`.as('target')
-      })
-      .from(productionEvents)
-      .innerJoin(machines, eq(productionEvents.machineId, machines.id))
-      .where(and(
-        eq(machines.department, dept),
-        gte(productionEvents.eventTime, today)
-      ));
-      
-      const efficiency = productionResult[0]?.target > 0
-        ? (productionResult[0].total / productionResult[0].target) * 100
-        : 85; // Default efficiency
-      
-      efficiencies.push({
-        department: dept,
-        efficiency: Math.min(100, efficiency), // Cap at 100%
-        activeMachines: activeMachines.length,
-        totalMachines: deptMachines.length,
-        outputToday: productionResult[0]?.total || 0
-      });
-    }
-    
-    return efficiencies;
-  }
-  
-  /**
-   * Get production KPIs
-   */
-  async getProductionKPIs(): Promise<ProductionKPI> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Get latest production metrics
-    const [latestMetric] = await db.select()
-      .from(productionMetrics)
-      .orderBy(desc(productionMetrics.recordedAt))
-      .limit(1);
+  async getDashboardData(): Promise<any> {
+    const now = new Date();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
     
     // Get today's production events
     const todayEvents = await db.select()
       .from(productionEvents)
-      .where(gte(productionEvents.eventTime, today));
+      .where(gte(productionEvents.eventTime, startOfDay));
     
-    const totalProduction = todayEvents.reduce((sum, e) => sum + (e.quantity || 0), 0);
+    // Get current shift metrics
+    const [currentShift] = await db.select()
+      .from(productionShifts)
+      .where(and(
+        lte(productionShifts.startTime, now),
+        gte(productionShifts.endTime, now)
+      ))
+      .limit(1);
+    
+    let currentMetrics = null;
+    if (currentShift) {
+      [currentMetrics] = await db.select()
+        .from(productionMetrics)
+        .where(eq(productionMetrics.shiftId, currentShift.id))
+        .limit(1);
+    }
+    
+    // Get machine statuses
+    const machineStatuses = await db.select({
+      machine: machines,
+      latestStatus: machineStatusLogs
+    })
+    .from(machines)
+    .leftJoin(
+      machineStatusLogs,
+      eq(machines.id, machineStatusLogs.machineId)
+    )
+    .where(eq(machines.status, 'active'));
+    
+    // Calculate summary
+    const totalProduced = todayEvents.reduce((sum, e) => sum + (e.quantity || 0), 0);
     const totalDefects = todayEvents.reduce((sum, e) => sum + (e.scrapQuantity || 0), 0);
-    const defectRate = totalProduction > 0 ? (totalDefects / totalProduction) * 100 : 0;
-    
-    // Get machine utilization
-    const utilizationData = await this.getMachineUtilization(today, new Date());
+    const qualityRate = totalProduced > 0 ? 
+      ((totalProduced - totalDefects) / totalProduced) * 100 : 0;
     
     return {
-      oee: latestMetric ? parseFloat(latestMetric.oee) : 75,
-      availability: latestMetric ? parseFloat(latestMetric.availability) : 85,
-      performance: latestMetric ? parseFloat(latestMetric.performance) : 88,
-      quality: latestMetric ? parseFloat(latestMetric.quality) : 95,
-      totalProduction,
-      defectRate,
-      machineUtilization: utilizationData.utilization * 100
+      currentShift: currentShift ? {
+        name: currentShift.shiftName,
+        startTime: currentShift.startTime,
+        endTime: currentShift.endTime
+      } : null,
+      metrics: currentMetrics ? {
+        oee: currentMetrics.oee,
+        availability: currentMetrics.availability,
+        performance: currentMetrics.performance,
+        quality: currentMetrics.quality,
+        utilizationRate: currentMetrics.utilizationRate
+      } : {
+        oee: '0',
+        availability: '0',
+        performance: '0',
+        quality: '0',
+        utilizationRate: '0'
+      },
+      today: {
+        totalProduced,
+        totalDefects,
+        qualityRate: qualityRate.toFixed(2),
+        eventCount: todayEvents.length
+      },
+      machines: machineStatuses.map(ms => ({
+        id: ms.machine.id,
+        name: ms.machine.name,
+        status: ms.latestStatus?.status || 'unknown',
+        lastUpdate: ms.latestStatus?.timestamp
+      })),
+      config: {
+        defectRate: (PRODUCTION_CONFIG.defectRate * 100).toFixed(1),
+        qualityThreshold: (PRODUCTION_CONFIG.qualityThreshold * 100).toFixed(1),
+        monitoringInterval: PRODUCTION_CONFIG.monitoringInterval / 1000 / 60, // minutes
+      }
     };
   }
 }
