@@ -11,6 +11,7 @@ import JobTable from "@/components/jobs/job-table";
 import InventoryAlerts from "@/components/inventory/inventory-alerts";
 import SetupWizard from "@/components/setup/setup-wizard";
 import { ViewSwitcher } from "@/components/ui/view-switcher";
+import { useAuth } from "@/contexts/auth-context";
 import { 
   Briefcase, 
   Leaf, 
@@ -34,6 +35,7 @@ import {
 import { JobStats, ActivityItem } from "@/types";
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'card' | 'list'>('table');
 
@@ -154,6 +156,25 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Debug Info - Remove this in production */}
+      {user && (
+        <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Debug Info (Current User)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xs space-y-1">
+              <p>Username: {user.username}</p>
+              <p>Role: <Badge variant="outline">{user.role}</Badge></p>
+              <p>Has manageUsers permission: {user.permissions?.manageUsers ? '✅ Yes' : '❌ No'}</p>
+              <p>Has systemSettings permission: {user.permissions?.systemSettings ? '✅ Yes' : '❌ No'}</p>
+              <p>Has auditLogs permission: {user.permissions?.auditLogs ? '✅ Yes' : '❌ No'}</p>
+              <p>Total permissions granted: {Object.values(user.permissions || {}).filter(Boolean).length} / {Object.keys(user.permissions || {}).length}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2 sm:gap-4">
