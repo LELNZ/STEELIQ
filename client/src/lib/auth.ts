@@ -218,38 +218,11 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
       };
 
     case 'admin':
-      return {
-        ...basePermissions,
-        viewMaterials: true,
-        editMaterials: true,
-        deleteMaterials: true,
-        managePricing: true,
-        viewSuppliers: true,
-        editSuppliers: true,
-        deleteSuppliers: true,
-        managePriceHistory: true,
-        viewJobs: true,
-        createJobs: true,
-        editJobs: true,
-        deleteJobs: true,
-        approveJobs: true,
-        viewCuttingPlans: true,
-        createCuttingPlans: true,
-        editCuttingPlans: true,
-        runOptimization: true,
-        viewInventory: true,
-        editInventory: true,
-        stockMovements: true,
-        viewPricing: true,
-        editPricing: true,
-        viewCosts: true,
-        manageRates: true,
-        viewReports: true,
-        exportData: true,
-        manageUsers: true,
-        systemSettings: true,
-        auditLogs: true,
-      };
+      // Admin role - full Super Admin access
+      return Object.keys(basePermissions).reduce((acc, key) => {
+        acc[key as keyof UserPermissions] = true;
+        return acc;
+      }, {} as UserPermissions);
 
     case 'full':
       return Object.keys(basePermissions).reduce((acc, key) => {

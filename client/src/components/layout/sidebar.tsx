@@ -68,7 +68,7 @@ const navigation: NavSection[] = [
   {
     name: "Intelligence Systems",
     items: [
-      { name: "AI Control Center", href: "/ai-control-center", icon: Brain, badge: "UNIFIED", badgeVariant: "success", roles: ['admin', 'full'] },
+      { name: "AI Control Center", href: "/ai-control-center", icon: Brain, badge: "UNIFIED", badgeVariant: "success", roles: ['owner', 'admin', 'full'] },
       { name: "Financial Intelligence", href: "/financial-intelligence", icon: TrendingUp, permissions: ['viewCosts', 'viewPricing'] },
       { name: "Email Cost Import", href: "/email-cost-import", icon: Mail, permissions: ['viewCosts', 'editPricing'] },
     ],
@@ -90,11 +90,11 @@ const navigation: NavSection[] = [
   },
   {
     name: "Settings & Management",
-    roles: ['supervisor', 'admin', 'full'],
+    roles: ['owner', 'supervisor', 'admin', 'full'],
     items: [
-      { name: "Organization Settings", href: "/organization-settings", icon: Building2, roles: ['admin', 'full'] },
+      { name: "Organization Settings", href: "/organization-settings", icon: Building2, roles: ['owner', 'admin', 'full'] },
       { name: "Financial Settings", href: "/settings/financial", icon: DollarSign, permissions: ['viewCosts', 'manageRates'] },
-      { name: "Operations Settings", href: "/settings/operations", icon: Settings2, roles: ['admin', 'full'] },
+      { name: "Operations Settings", href: "/settings/operations", icon: Settings2, roles: ['owner', 'admin', 'full'] },
       { name: "Team Management", href: "/team-management", icon: Users, permissions: ['manageUsers'] },
       { name: "Time & Payroll", href: "/time-payroll", icon: Timer, permissions: ['viewCosts', 'manageRates'] },
       { name: "Audit Center", href: "/settings/audit-center", icon: Shield, permissions: ['auditLogs'] },
