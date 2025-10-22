@@ -324,7 +324,7 @@ async function logPermissionAudit(
   method: string
 ): Promise<void> {
   try {
-    await db.insert(auditLog).values({
+    await db.insert(auditEvents).values({
       userId,
       action: allowed ? 'PERMISSION_GRANTED' : 'PERMISSION_DENIED',
       entityType: 'permission_check',
