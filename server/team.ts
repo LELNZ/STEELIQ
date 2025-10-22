@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { roles, departments, teamMembers, auditLog, users } from "@shared/schema";
+import { roles, departments, teamMembers, auditLog, users, laborRates, projectLaborRates, roleAllowances } from "@shared/schema";
 import { eq, and, desc, isNull, sql, gte } from "drizzle-orm";
 import type { 
   Role, 
@@ -64,7 +64,63 @@ export class TeamStorage implements ITeamStorage {
   }
 
   async deleteRole(id: number): Promise<void> {
-    await db.delete(roles).where(eq(roles.id, id));
+    try {
+      // First check if the role is being used in known tables
+      const [laborRateCount] = await db
+        .select({ count: sql`count(*)` })
+        .from(laborRates)
+        .where(eq(laborRates.roleId, id));
+        
+      const [projectLaborRateCount] = await db
+        .select({ count: sql`count(*)` })
+        .from(projectLaborRates)
+        .where(eq(projectLaborRates.roleId, id));
+        
+      const [teamMemberCount] = await db
+        .select({ count: sql`count(*)` })
+        .from(teamMembers)
+        .where(eq(teamMembers.roleId, id));
+        
+      const [roleAllowanceCount] = await db
+        .select({ count: sql`count(*)` })
+        .from(roleAllowances)
+        .where(eq(roleAllowances.roleId, id));
+      
+      // Also check for any role_rates table that might exist in the database
+      let roleRateCount = 0;
+      try {
+        const result = await db.execute(sql`SELECT COUNT(*) as count FROM role_rates WHERE role_id = ${id}`);
+        roleRateCount = Number(result.rows[0]?.count || 0);
+      } catch (e) {
+        // Table might not exist, ignore
+      }
+      
+      const totalUsage = Number(laborRateCount?.count || 0) + 
+                         Number(projectLaborRateCount?.count || 0) + 
+                         Number(teamMemberCount?.count || 0) +
+                         Number(roleAllowanceCount?.count || 0) +
+                         roleRateCount;
+      
+      if (totalUsage > 0) {
+        const details = [];
+        if (Number(laborRateCount?.count || 0) > 0) details.push(`${laborRateCount.count} labor rates`);
+        if (Number(projectLaborRateCount?.count || 0) > 0) details.push(`${projectLaborRateCount.count} project labor rates`);
+        if (Number(teamMemberCount?.count || 0) > 0) details.push(`${teamMemberCount.count} team members`);
+        if (Number(roleAllowanceCount?.count || 0) > 0) details.push(`${roleAllowanceCount.count} role allowances`);
+        if (roleRateCount > 0) details.push(`${roleRateCount} role rates`);
+        
+        throw new Error(`Cannot delete role. It is being used by: ${details.join(', ')}. Please remove all references first.`);
+      }
+      
+      // If no dependencies, proceed with deletion
+      await db.delete(roles).where(eq(roles.id, id));
+    } catch (error: any) {
+      // If it's a foreign key constraint error, provide a helpful message
+      if (error.code === '23503') {
+        throw new Error(`Cannot delete role. It is being referenced by other records in the system. Please remove all associated data first.`);
+      }
+      throw error;
+    }
   }
 
   async getRoleById(id: number): Promise<Role | undefined> {

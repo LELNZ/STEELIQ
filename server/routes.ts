@@ -5235,9 +5235,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await teamStorage.deleteRole(parseInt(req.params.id));
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting role:", error);
-      res.status(500).json({ error: "Failed to delete role" });
+      // Send the specific error message back to frontend
+      const message = error.message && error.message.includes('Cannot delete role') 
+        ? error.message 
+        : "Failed to delete role";
+      res.status(400).json({ error: message });
     }
   });
 
