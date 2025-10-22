@@ -14,27 +14,33 @@ import { log } from '../utils/logger.js';
 /**
  * Configure Helmet for security headers
  */
-export const helmetConfig = helmet({
-  contentSecurityPolicy: config.NODE_ENV === 'production' ? {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'"], 
-      imgSrc: ["'self'", "data:", "https:", "blob:"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      connectSrc: ["'self'", "https://api.anthropic.com", "wss:", "ws:"],
-      frameSrc: ["'none'"],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: [],
-    },
-  } : false, // Disable CSP in development for Vite compatibility
-  crossOriginEmbedderPolicy: false, // Disable to allow Vite HMR
-  hsts: config.NODE_ENV === 'production' ? {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true
-  } : false,
-});
+export const helmetConfig = config.NODE_ENV === 'production' 
+  ? helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          scriptSrc: ["'self'", "'unsafe-inline'"], 
+          imgSrc: ["'self'", "data:", "https:", "blob:"],
+          fontSrc: ["'self'", "https://fonts.gstatic.com"],
+          connectSrc: ["'self'", "https://api.anthropic.com", "wss:", "ws:"],
+          frameSrc: ["'none'"],
+          objectSrc: ["'none'"],
+          upgradeInsecureRequests: [],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+      }
+    })
+  : helmet({
+      contentSecurityPolicy: false, // Disable CSP completely in development
+      crossOriginEmbedderPolicy: false, // Disable to allow Vite HMR
+      hsts: false, // Disable HSTS in development
+    });
 
 /**
  * Configure CORS

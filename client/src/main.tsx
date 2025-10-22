@@ -39,4 +39,18 @@ window.addEventListener('beforeinstallprompt', (e) => {
   }
 };
 
-createRoot(document.getElementById("root")!).render(<App />);
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  console.error("Root element not found!");
+  document.body.innerHTML = "<h1>Error: Root element not found</h1>";
+} else {
+  try {
+    console.log("Attempting to render React app...");
+    createRoot(rootElement).render(<App />);
+    console.log("React app render initiated");
+  } catch (error) {
+    console.error("Failed to render React app:", error);
+    rootElement.innerHTML = `<h1>Error loading application</h1><pre>${error}</pre>`;
+  }
+}
