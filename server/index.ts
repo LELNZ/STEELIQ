@@ -20,99 +20,102 @@ import {
 envValidator.validate();
 
 const app = express();
-app.set('trust proxy', 1); // Trust first proxy (important for Replit environment)
-
-// ===== VITE PATH DETECTION =====
-const isVitePath = (path: string): boolean => {
-  return path.startsWith('/@vite') ||
-         path.startsWith('/@fs') || 
-         path.startsWith('/@id') ||
-         path.includes('/.vite/') ||
-         path.includes('/node_modules/.vite/') ||
-         path.includes('/__vite_ping') ||
-         path.startsWith('/src/') ||
-         path.endsWith('.tsx') ||
-         path.endsWith('.ts') ||
-         path.endsWith('.jsx') ||
-         path.endsWith('.js');
-};
-
-// ===== SECURITY MIDDLEWARE WITH VITE BYPASS =====
-const applySecurityMiddleware = (middleware: any) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    // Skip all security middleware for Vite development paths
-    if (config.NODE_ENV === 'development' && isVitePath(req.path)) {
-      return next();
-    }
-    return middleware(req, res, next);
-  };
-};
-
-// Apply security middleware with Vite bypass
-app.use(applySecurityMiddleware(helmetConfig));
-app.use(applySecurityMiddleware(corsConfig));
-app.use(applySecurityMiddleware(apiLimiter));
-app.use(applySecurityMiddleware(securityLogger));
-app.use(applySecurityMiddleware(requestSizeLimiter));
-app.use(applySecurityMiddleware(xssProtection));
-
-// ===== BODY PARSING =====
-app.use(express.json({ limit: '50mb' })); // Reduced from 500mb for security
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
-app.use(cookieParser());
-
-// ===== SESSION SECURITY =====
-app.use(applySecurityMiddleware(sessionSecurity));
-
-// ===== HEALTH CHECK ENDPOINTS =====
-app.get('/health', (req: Request, res: Response) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: config.NODE_ENV,
-    version: process.env.npm_package_version || '1.0.0'
-  });
-});
-
-app.get('/api/health', (req: Request, res: Response) => {
-  res.json({
-    status: 'healthy',
-    api: 'operational',
-    database: 'connected', // TODO: Add actual database health check
-    timestamp: new Date().toISOString()
-  });
-});
-
-// ===== REQUEST LOGGING (Using Winston) =====
-app.use((req, res, next) => {
-  const start = Date.now();
-  
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    
-    // Only log API requests
-    if (req.path.startsWith("/api")) {
-      log.logRequest(req, res, duration);
-    }
-  });
-
-  next();
-});
+app.set('trust proxy', 1);
 
 (async () => {
   try {
-    // Register API routes FIRST before any middleware
+    // ===== APPLY SECURITY MIDDLEWARE ONLY FOR NON-VITE PATHS =====
+    // In development, skip security for Vite paths
+    const applySecurityMiddleware = (middleware: any) => {
+      return (req: Request, res: Response, next: NextFunction) => {
+        // In development, check if this is a Vite-related path
+        if (config.NODE_ENV === 'development') {
+          const isVitePath = req.path.startsWith('/@') ||
+                           req.path.startsWith('/src/') ||
+                           req.path.includes('/.vite/') ||
+                           req.path.includes('/node_modules/') ||
+                           req.path.endsWith('.tsx') ||
+                           req.path.endsWith('.ts') ||
+                           req.path.endsWith('.jsx') ||
+                           req.path.endsWith('.js') ||
+                           req.path.endsWith('.mjs') ||
+                           req.path.endsWith('.css') ||
+                           req.path.endsWith('.scss');
+          
+          if (isVitePath) {
+            return next();
+          }
+        }
+        return middleware(req, res, next);
+      };
+    };
+
+    // Apply security middleware with Vite bypass
+    // In development, don't use Helmet at all as it interferes with module loading
+    if (config.NODE_ENV === 'production') {
+      app.use(helmetConfig);
+    }
+    
+    app.use(applySecurityMiddleware(corsConfig));
+    app.use(applySecurityMiddleware(apiLimiter));
+    app.use(applySecurityMiddleware(securityLogger));
+    app.use(applySecurityMiddleware(requestSizeLimiter));
+    app.use(applySecurityMiddleware(xssProtection));
+
+    // ===== BODY PARSING =====
+    app.use(express.json({ limit: '50mb' }));
+    app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+    app.use(cookieParser());
+
+    // ===== SESSION SECURITY =====
+    app.use(applySecurityMiddleware(sessionSecurity));
+
+    // ===== HEALTH CHECK ENDPOINTS =====
+    app.get('/health', (req: Request, res: Response) => {
+      res.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: config.NODE_ENV,
+        version: process.env.npm_package_version || '1.0.0'
+      });
+    });
+
+    app.get('/api/health', (req: Request, res: Response) => {
+      res.json({
+        status: 'healthy',
+        api: 'operational',
+        database: 'connected',
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    // ===== REQUEST LOGGING =====
+    app.use((req, res, next) => {
+      const start = Date.now();
+      
+      res.on("finish", () => {
+        const duration = Date.now() - start;
+        
+        // Only log API requests
+        if (req.path.startsWith("/api")) {
+          log.logRequest(req, res, duration);
+        }
+      });
+
+      next();
+    });
+
+    // Register API routes - this returns the HTTP server
     const server = await registerRoutes(app);
 
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
+    // Setup Vite in development AFTER creating the server but with highest priority
     if (app.get("env") === "development") {
       log.info("Setting up Vite development server...");
       await setupVite(app, server);
       log.info("Vite development server setup complete");
     } else {
+      // Setup static file serving in production
       serveStatic(app);
     }
 
