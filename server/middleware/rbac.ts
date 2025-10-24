@@ -257,10 +257,10 @@ const ROUTE_RESOURCES: Record<string, ResourceType> = {
 
 // Get RBAC mode from config/environment
 function getRBACMode(): RBACMode {
-  const mode = process.env.RBAC_MODE || 'shadow';
+  const mode = process.env.RBAC_MODE || 'enforce'; // Changed from 'shadow' to 'enforce'
   if (!['shadow', 'enforce', 'bypass'].includes(mode)) {
-    logger.warn(`Invalid RBAC mode: ${mode}, defaulting to shadow mode`);
-    return 'shadow';
+    logger.warn(`Invalid RBAC mode: ${mode}, defaulting to enforce mode`);
+    return 'enforce'; // Changed default to 'enforce'
   }
   return mode as RBACMode;
 }
