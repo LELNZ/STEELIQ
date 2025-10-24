@@ -1,0 +1,45 @@
+diff --git a/client/src/pages/dashboard.tsx b/client/src/pages/dashboard.tsx
+index 1234567..8901234 100644
+--- a/client/src/pages/dashboard.tsx
++++ b/client/src/pages/dashboard.tsx
+@@ -156,22 +156,24 @@ export default function Dashboard() {
+ 
+   return (
+     <div className="space-y-4 sm:space-y-6">
+-      {/* Debug Info - Remove this in production */}
+-      {user && (
+-        <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+-          <CardHeader className="pb-3">
+-            <CardTitle className="text-sm">Debug Info (Current User)</CardTitle>
+-          </CardHeader>
+-          <CardContent>
+-            <div className="text-xs space-y-1">
+-              <p>Username: {user.username}</p>
+-              <p>Role: <Badge variant="outline">{user.role}</Badge></p>
+-              <p>Has manageUsers permission: {user.permissions?.manageUsers ? '✅ Yes' : '❌ No'}</p>
+-              <p>Has systemSettings permission: {user.permissions?.systemSettings ? '✅ Yes' : '❌ No'}</p>
+-              <p>Has auditLogs permission: {user.permissions?.auditLogs ? '✅ Yes' : '❌ No'}</p>
+-              <p>Total permissions granted: {Object.values(user.permissions || {}).filter(Boolean).length} / {Object.keys(user.permissions || {}).length}</p>
+-            </div>
+-          </CardContent>
+-        </Card>
++      {/* Debug Info - Only show in development */}
++      {process.env.NODE_ENV === 'development' && user && (
++        <>
++          <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
++            <CardHeader className="pb-3">
++              <CardTitle className="text-sm">Debug Info (Current User)</CardTitle>
++            </CardHeader>
++            <CardContent>
++              <div className="text-xs space-y-1">
++                <p>Username: {user.username}</p>
++                <p>Role: <Badge variant="outline">{user.role}</Badge></p>
++                <p>Has manageUsers permission: {user.permissions?.manageUsers ? '✅ Yes' : '❌ No'}</p>
++                <p>Has systemSettings permission: {user.permissions?.systemSettings ? '✅ Yes' : '❌ No'}</p>
++                <p>Has auditLogs permission: {user.permissions?.auditLogs ? '✅ Yes' : '❌ No'}</p>
++                <p>Total permissions granted: {Object.values(user.permissions || {}).filter(Boolean).length} / {Object.keys(user.permissions || {}).length}</p>
++              </div>
++            </CardContent>
++          </Card>
++        </>
+       )}

@@ -1,0 +1,46 @@
+graph TB
+    subgraph Frontend [Frontend - React/Vite]
+        UI[UI Components]
+        Auth[Auth Context]
+        Query[TanStack Query]
+        Router[Wouter Router]
+    end
+    
+    subgraph Backend [Backend - Express/Node]
+        API[API Routes]
+        MW[Middleware Stack]
+        RBAC[RBAC System]
+        Services[Microservices]
+    end
+    
+    subgraph Services [Core Services]
+        AI[AI Estimation]
+        DXF[DXF Parser]
+        Job[Job Lifecycle]
+        RFQ[RFQ Automation]
+        Prod[Production Monitor]
+        Cost[Cost Aggregation]
+    end
+    
+    subgraph Database [PostgreSQL/Neon]
+        Schema[95+ Tables]
+        Audit[Audit Trail]
+        Sequences[Number Sequences]
+    end
+    
+    subgraph External [External Services]
+        Claude[Claude AI]
+        SendGrid[SendGrid Email]
+        Google[Google Auth]
+    end
+    
+    UI --> Auth
+    Auth --> Query
+    Query --> API
+    API --> MW
+    MW --> RBAC
+    RBAC --> Services
+    Services --> Database
+    AI --> Claude
+    API --> SendGrid
+    API --> Google

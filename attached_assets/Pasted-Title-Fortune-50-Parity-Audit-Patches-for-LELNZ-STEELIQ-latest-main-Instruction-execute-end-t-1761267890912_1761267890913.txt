@@ -1,0 +1,169 @@
+Title: Fortune-50 Parity Audit & Patches for LELNZ/STEELIQ (latest main)
+
+Instruction (execute end-to-end):
+
+Repository & context
+
+Target repo: LELNZ/STEELIQ (latest main).
+
+Stack: Node 20 + TypeScript + Vite + Express + Drizzle ORM; Puppeteer/Chromium; SendGrid/AI toggles; Replit autoscale.
+
+Goal: Produce a production-readiness package (artifacts + prioritized backlog + patch diffs) that brings the app to Fortune-50 parity (≥95% readiness).
+
+Install/check base tooling (dev-only)
+
+Run:
+
+npm ci
+npm run check || true
+npm run build || true
+npm audit --omit=dev || true
+npx depcheck || true
+
+
+Add (devDependencies if missing): semgrep, @cyclonedx/cyclonedx-npm, trufflehog, eslint, @typescript-eslint/parser, @typescript-eslint/eslint-plugin, k6 (used via Dockerless binary through npx where possible—otherwise generate scripts only).
+
+Ensure a .env.example exists and matches all keys used by the app.
+
+Architecture & inventory
+
+Generate import/dependency graphs for server and client.
+
+Map all HTTP endpoints programmatically from code (start at server/index.ts → registerRoutes(app) and follow imports). For each route: Method, Path, Auth (Y/N), Rate-limit bucket, Validation (schema), Side-effects (DB/file/email/AI).
+
+Output:
+
+/audits/<YYYY-MM-DD>/architecture/diagram.mmd (Mermaid)
+
+/audits/<YYYY-MM-DD>/architecture/notes.md (how modules relate, critical flows)
+
+Database & data integrity
+
+Enumerate Drizzle models and migrations; verify schema consistency.
+
+Detect demo/mock/hardcoded data paths.
+
+Check least-privilege DB access; note any raw SQL risks.
+
+AI Estimation Engine (functional integrity)
+
+Trace calculation chain (labour rates, references, totals).
+
+Validate error handling and boundary cases; produce 2–3 table-driven tests that prove correctness.
+
+Security & privacy hardening (Fortune-50 depth)
+
+Threat model (STRIDE or OWASP ASVS) for: auth/session, file upload, PDF/DXF parsing, email/AI flows, invoicing/payments.
+
+Controls audit: session cookies (Secure/HttpOnly/SameSite), CORS allow-list from env, CSP, HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy.
+
+File handling: max size, MIME checks, storage location, PDF sandboxing, image/office processing safety, antivirus hook (document plan if not feasible now).
+
+SSRF and outbound fetch/Puppeteer constraints.
+
+Secret hygiene: run trufflehog over the repo; ensure no keys in code; confirm .env is ignored.
+
+Semgrep scan: run with p/owasp-top-ten and p/nodejs rulepacks. Export SARIF + human Markdown.
+
+Observability & auditability
+
+Enforce structured logging with request IDs; no PII/secrets. Add log-redaction test.
+
+Add audit trail for sensitive actions (auth changes, emails, AI exports).
+
+Performance & capacity
+
+Auto-generate k6 script k6-script.js that exercises: /health, auth endpoints, file upload, AI estimation, and 1–2 heavy endpoints discovered in step 3.
+
+Run a light baseline (if runtime allows) or dry-run/analysis; collect/estimate p50/p95 latency, error rates, throughput. Provide perf budgets and pass/fail gates.
+
+Supply chain & licenses
+
+Generate CycloneDX SBOM:
+
+npx @cyclonedx/cyclonedx-npm --output /audits/<date>/cicd/sbom.json --spec-version 1.5
+
+
+List GPL/incompatible or risky licenses; list CVEs from npm audit. Propose safe pins or swaps.
+
+CI/CD & release
+
+Propose a pipeline: type-check → tests → ESLint → Semgrep → TruffleHog → SBOM → npm audit → build → deploy.
+
+Add a smoke test (hits /health and one authenticated flow) to run post-deploy.
+
+Validate .replit build/run on autoscale and secrets usage.
+
+Deliverables (must produce all)
+
+/audits/<date>/SUMMARY.md — executive summary & readiness % (target ≥95%).
+
+/audits/<date>/issues/audit_issues.csv — ranked backlog with: ID, Severity (Critical/High/Med/Low), Impact, Effort, Owner, Area, File:Line, Proposed Fix, Status.
+
+/audits/<date>/security/ — Semgrep results (Markdown + SARIF), threat model, secrets scan report, header/CORS/CSP review.
+
+/audits/<date>/performance/ — k6-script.js, results (or dry-run plan), perf budgets.
+
+/audits/<date>/cicd/ — sbom.json, suggested CI pipeline YAML, smoke-test script.
+
+/audits/<date>/quality/ — lint output, test coverage summary, depcheck report.
+
+/audits/<date>/architecture/ — diagram.mmd, notes.md.
+
+Patches (non-negotiable)
+
+For each Critical/High finding, provide a unified diff patch in /audits/<date>/patches/*.diff, grouped by topic:
+
+security-headers.diff (CSP/HSTS/XFO/Referrer-Policy hardened)
+
+cors-env.diff (strict allow-list from env; dev vs prod modes)
+
+session-cookies.diff (Secure/HttpOnly/SameSite; non-memory session store in prod)
+
+upload-safety.diff (MIME/size limits, safe tmp dirs)
+
+logging-redaction.diff (no PII/secrets; request IDs)
+
+rate-limits.diff (auth/AI/upload tuned from env)
+
+ai-engine-tests.diff (table-driven tests)
+
+cicd-pipeline.diff (CI gates for semgrep/trufflehog/sbom/audit)
+
+Patches must be idempotent and keep the project compiling.
+
+Action Plan (Now / Next / Later)
+
+End SUMMARY.md with a Prioritized Action Plan and dates to reach ≥95% readiness, listing which patches to apply first and the exact runbook to re-verify:
+
+npm run check
+npm run build
+npx semgrep scan --config p/owasp-top-ten --config p/nodejs
+npx trufflehog filesystem --entropy=False --no-update .
+npx @cyclonedx/cyclonedx-npm --output /audits/<date>/cicd/sbom.json
+node k6-script.js (or k6 run k6-script.js if available)
+
+
+Print a concise inline summary of: total issues, #Critical/#High, top 10 fixes with links to their .diff files, and the Fortune-50 readiness %.
+
+Constraints
+
+Do not leak secrets. Use environment flags for prod vs dev behavior.
+
+Keep changes minimal and safe; explain any breaking change and provide a migration note.
+
+If a test or tool can’t be executed in Replit (permissions or binaries), generate the artifact and instructions to run locally/CI.
+
+Output at end (inline)
+
+A short dashboard: counts by severity, readiness %, and clickable paths to:
+
+SUMMARY.md
+
+issues/audit_issues.csv
+
+patches/*.diff
+
+performance/k6-script.js
+
+cicd/sbom.json
