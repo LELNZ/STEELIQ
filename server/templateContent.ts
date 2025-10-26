@@ -89,8 +89,8 @@ export const professionalTemplates = {
         <td>{{description}}</td>
         <td>{{quantity}}</td>
         <td>{{unit}}</td>
-        <td>${{unitPrice | currency}}</td>
-        <td>${{total | currency}}</td>
+        <td>\${{unitPrice | currency}}</td>
+        <td>\${{total | currency}}</td>
       </tr>
       {{/each}}
     </tbody>
@@ -100,23 +100,23 @@ export const professionalTemplates = {
     <table style="width: 300px; margin-left: auto;">
       <tr>
         <td>Subtotal:</td>
-        <td style="text-align: right;">${{subtotal | currency}}</td>
+        <td style="text-align: right;">\${{subtotal | currency}}</td>
       </tr>
       {{#if tax}}
       <tr>
         <td>Tax ({{taxRate}}%):</td>
-        <td style="text-align: right;">${{tax | currency}}</td>
+        <td style="text-align: right;">\${{tax | currency}}</td>
       </tr>
       {{/if}}
       {{#if shipping}}
       <tr>
         <td>Shipping:</td>
-        <td style="text-align: right;">${{shipping | currency}}</td>
+        <td style="text-align: right;">\${{shipping | currency}}</td>
       </tr>
       {{/if}}
       <tr class="total-row">
         <td>Total:</td>
-        <td style="text-align: right;">${{total | currency}}</td>
+        <td style="text-align: right;">\${{total | currency}}</td>
       </tr>
     </table>
   </div>
@@ -333,8 +333,8 @@ export const professionalTemplates = {
         <td>{{item}}</td>
         <td>{{description}}</td>
         <td>{{quantity}}</td>
-        <td>${{unitPrice | currency}}</td>
-        <td>${{total | currency}}</td>
+        <td>\${{unitPrice | currency}}</td>
+        <td>\${{total | currency}}</td>
       </tr>
       {{/each}}
     </tbody>
@@ -344,23 +344,23 @@ export const professionalTemplates = {
     <table style="width: 100%;">
       <tr>
         <td style="text-align: right; padding: 5px;"><strong>Subtotal:</strong></td>
-        <td style="text-align: right; width: 150px;">${{subtotal | currency}}</td>
+        <td style="text-align: right; width: 150px;">\${{subtotal | currency}}</td>
       </tr>
       {{#if discount}}
       <tr>
         <td style="text-align: right; padding: 5px;">Discount ({{discountPercent}}%):</td>
-        <td style="text-align: right;">-${{discount | currency}}</td>
+        <td style="text-align: right;">-\${{discount | currency}}</td>
       </tr>
       {{/if}}
       <tr>
         <td style="text-align: right; padding: 5px;">GST (10%):</td>
-        <td style="text-align: right;">${{gst | currency}}</td>
+        <td style="text-align: right;">\${{gst | currency}}</td>
       </tr>
     </table>
   </div>
 
   <div class="total-box">
-    Total Amount: ${{total | currency}} AUD
+    Total Amount: \${{total | currency}} AUD
   </div>
 
   <div class="validity">
@@ -500,8 +500,8 @@ export const professionalTemplates = {
           {{#if details}}<br><small style="color: #6b7280;">{{details}}</small>{{/if}}
         </td>
         <td>{{quantity}}</td>
-        <td>${{rate | currency}}</td>
-        <td style="text-align: right;">${{amount | currency}}</td>
+        <td>\${{rate | currency}}</td>
+        <td style="text-align: right;">\${{amount | currency}}</td>
       </tr>
       {{/each}}
     </tbody>
@@ -511,21 +511,21 @@ export const professionalTemplates = {
     <table class="totals-table">
       <tr>
         <td style="text-align: right;">Subtotal:</td>
-        <td style="text-align: right; width: 120px;">${{subtotal | currency}}</td>
+        <td style="text-align: right; width: 120px;">\${{subtotal | currency}}</td>
       </tr>
       {{#if discount}}
       <tr>
         <td style="text-align: right;">Discount:</td>
-        <td style="text-align: right;">-${{discount | currency}}</td>
+        <td style="text-align: right;">-\${{discount | currency}}</td>
       </tr>
       {{/if}}
       <tr>
         <td style="text-align: right;">GST (10%):</td>
-        <td style="text-align: right;">${{gst | currency}}</td>
+        <td style="text-align: right;">\${{gst | currency}}</td>
       </tr>
       <tr class="total-due">
         <td>Total Due:</td>
-        <td>${{totalDue | currency}} AUD</td>
+        <td>\${{totalDue | currency}} AUD</td>
       </tr>
     </table>
   </div>
@@ -559,7 +559,7 @@ export const professionalTemplates = {
       <tr>
         <td>Invoice #: {{invoiceNumber}}</td>
         <td>Date: {{invoiceDate | date}}</td>
-        <td>Amount: ${{totalDue | currency}}</td>
+        <td>Amount: \${{totalDue | currency}}</td>
       </tr>
       <tr>
         <td colspan="3" style="padding-top: 15px;">
@@ -663,7 +663,7 @@ export const professionalTemplates = {
     </div>
 
     <div class="amount-box">
-      Amount Received: ${{amount | currency}} AUD
+      Amount Received: \${{amount | currency}} AUD
     </div>
 
     <table style="background: #f9fafb; padding: 15px; border-radius: 8px;">
@@ -677,19 +677,19 @@ export const professionalTemplates = {
         {{#each appliedInvoices}}
         <tr>
           <td style="padding: 5px 0;">{{invoiceNumber}}</td>
-          <td style="text-align: right; padding: 5px 0;">${{amount | currency}}</td>
+          <td style="text-align: right; padding: 5px 0;">\${{amount | currency}}</td>
         </tr>
         {{/each}}
       </tbody>
       <tfoot>
         <tr style="border-top: 2px solid #e5e7eb; font-weight: bold;">
           <td style="padding-top: 10px;">Total Applied:</td>
-          <td style="text-align: right; padding-top: 10px;">${{totalApplied | currency}}</td>
+          <td style="text-align: right; padding-top: 10px;">\${{totalApplied | currency}}</td>
         </tr>
         {{#if credit}}
         <tr>
           <td>Credit Balance:</td>
-          <td style="text-align: right;">${{credit | currency}}</td>
+          <td style="text-align: right;">\${{credit | currency}}</td>
         </tr>
         {{/if}}
       </tfoot>
@@ -939,7 +939,7 @@ export const professionalTemplates = {
         </tr>
         <tr>
           <td><strong>Total Amount:</strong></td>
-          <td>${{totalAmount | currency}}</td>
+          <td>\${{totalAmount | currency}}</td>
         </tr>
         <tr>
           <td><strong>Delivery Location:</strong></td>
@@ -1049,7 +1049,7 @@ export const professionalTemplates = {
         </tr>
         <tr>
           <td><strong>Total Amount:</strong></td>
-          <td>${{totalAmount | currency}}</td>
+          <td>\${{totalAmount | currency}}</td>
         </tr>
       </table>
     </div>
@@ -1267,7 +1267,7 @@ export const professionalTemplates = {
     </div>
     
     <div class="amount-due">
-      Amount Due: ${{amountDue | currency}} AUD
+      Amount Due: \${{amountDue | currency}} AUD
     </div>
     
     <h3>Payment Options:</h3>

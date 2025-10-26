@@ -1,4 +1,4 @@
-import { db } from '../db/index.js';
+import { db } from '../db/index.ts';
 import { complianceLints, lintRules } from '@shared/schema.js';
 import { eq } from 'drizzle-orm';
 

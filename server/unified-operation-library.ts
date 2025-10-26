@@ -220,7 +220,7 @@ export async function unifiedOperationLibrary(req: any, res: any) {
             });
             break;
           
-          case 'grinding':
+/* removed duplicate case 'grinding' */
           case 'coping':
           case 'notching':
           case 'punching':

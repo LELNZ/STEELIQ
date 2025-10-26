@@ -16,7 +16,7 @@ import {
   createRateLimiter,
   securityLogger 
 } from "./middleware/security.js";
-import { getHelmetConfig, getCorsConfig, getRateLimits } from "./config/securityConfig.js";
+import { getHelmetConfig, getCorsConfig, getRateLimits } from "./config/securityConfig";
 import { rbacMiddleware } from "./middleware/rbac";
 
 // Validate environment variables before starting
