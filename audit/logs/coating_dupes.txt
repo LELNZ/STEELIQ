@@ -1,0 +1,2 @@
+1037:  async getCoatingSystems(): Promise<CoatingSystem[]> {
+1050:  async createCoatingSystem(system: InsertCoatingSystem): Promise<CoatingSystem> {

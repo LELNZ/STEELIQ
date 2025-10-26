@@ -1,0 +1,45 @@
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.21 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 4079 modules transformed.
+rendering chunks...
+computing gzip size...
+../dist/public/index.html                                                              2.05 kB │ gzip:   0.92 kB
+../dist/public/assets/Reinforcing bar-WLwz3FrZ.png                                     5.23 kB
+../dist/public/assets/LEL Symbol black only-2pKUZQNK.png                               6.50 kB
+../dist/public/assets/Mesh-CvcZSpcE.png                                                6.96 kB
+../dist/public/assets/Flstd-BXdfy4KA.png                                              12.90 kB
+../dist/public/assets/Angles-C4wv05gd.png                                             18.39 kB
+../dist/public/assets/SHS-DPrQ8EJP.png                                                21.17 kB
+../dist/public/assets/Pipe-FXi4zqCO.png                                               25.58 kB
+../dist/public/assets/Universal Column-twbjwRn1.png                                   27.42 kB
+../dist/public/assets/Channel-ItKSCFmJ.png                                            27.52 kB
+../dist/public/assets/RHS-CiMiVnTk.png                                                29.01 kB
+../dist/public/assets/Round-0LJeeE8h.png                                              31.88 kB
+../dist/public/assets/Unequal Angles-C_dQhSSZ.png                                     32.33 kB
+../dist/public/assets/Universal Beam-B55qmK6h.png                                     33.17 kB
+../dist/public/assets/Square Bar-CmXW1ANH.png                                         37.52 kB
+../dist/public/assets/lateral-engineering-logo-zCnT2BXC.jpg                           72.65 kB
+../dist/public/assets/LEL Variations Logo Symbol 01-01_1753176530831-C4NEnhZF.jpg    191.09 kB
+../dist/public/assets/VisualTemplateBuilder-DjbYlo0b.css                              56.90 kB │ gzip:  12.05 kB
+../dist/public/assets/index-NBc3eDPS.css                                             123.57 kB │ gzip:  20.15 kB
+../dist/public/assets/purify.es-BFmuJLeH.js                                           21.93 kB │ gzip:   8.59 kB
+../dist/public/assets/index.es-C31Qrge4.js                                           149.98 kB │ gzip:  51.05 kB
+../dist/public/assets/VisualTemplateBuilder-DsqGJN9z.js                            1,105.08 kB │ gzip: 297.80 kB
+../dist/public/assets/index-DdWHRVNE.js                                            3,812.60 kB │ gzip: 932.42 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 25.53s
+
+  dist/index.js  1.7mb ⚠️
+
+⚡ Done in 84ms
