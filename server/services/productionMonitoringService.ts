@@ -7,7 +7,7 @@
  * Currently using configurable defaults for demonstration
  */
 
-import { db } from '../db/index.js';
+import { db } from '../db/index.ts';
 import { 
   machines, 
   machineStatusLogs, 

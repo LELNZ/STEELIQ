@@ -979,30 +979,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Coating systems methods
-  async getCoatingSystems(): Promise<CoatingSystem[]> {
-    try {
-      const result = await db.select()
-        .from(coatingSystems)
-        .where(eq(coatingSystems.isActive, true))
-        .orderBy(coatingSystems.name);
-      return result;
-    } catch (error) {
-      console.error('Error fetching coating systems:', error);
-      return [];
-    }
-  }
-
-  async createCoatingSystem(coatingData: InsertCoatingSystem): Promise<CoatingSystem> {
-    try {
-      const [result] = await db.insert(coatingSystems)
-        .values(coatingData)
-        .returning();
-      return result;
-    } catch (error) {
-      console.error('Error creating coating system:', error);
-      throw error;
-    }
-  }
 
   async deleteExpiredSimulations(): Promise<void> {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -1059,8 +1035,12 @@ export class DatabaseStorage implements IStorage {
 
   // Coating Systems
   async getCoatingSystems(): Promise<CoatingSystem[]> {
-    return await db.select().from(coatingSystems).where(eq(coatingSystems.isActive, true));
-  }
+      return await db
+        .select()
+        .from(coatingSystems)
+        .where(eq(coatingSystems.isActive, true))
+        .orderBy(coatingSystems.name);
+    }
 
   async getCoatingSystem(id: number): Promise<CoatingSystem | undefined> {
     const [system] = await db.select().from(coatingSystems).where(eq(coatingSystems.id, id));

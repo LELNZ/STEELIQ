@@ -16,7 +16,7 @@ import {
   createRateLimiter,
   securityLogger 
 } from "./middleware/security.js";
-import { getHelmetConfig, getCorsConfig, getRateLimits } from "./config/securityConfig.js";
+import { getHelmetConfig, getCorsConfig, getRateLimits } from "./config/securityConfig";
 import { rbacMiddleware } from "./middleware/rbac";
 
 // Validate environment variables before starting
@@ -79,8 +79,8 @@ app.set('trust proxy', 1);
     const rateLimits = getRateLimits();
     app.use('/api/auth/*', createRateLimiter(rateLimits.auth.windowMs, rateLimits.auth.max, 'Too many authentication attempts'));
     app.use('/api/ai/*', createRateLimiter(rateLimits.ai.windowMs, rateLimits.ai.max, 'AI processing limit reached'));
-    app.use('/api/upload/*', createRateLimiter(rateLimits.upload.windowMs, rateLimits.upload.max, 'Upload limit reached'));
-    app.use('/api/files/*', createRateLimiter(rateLimits.upload.windowMs, rateLimits.upload.max, 'Upload limit reached'));
+    app.use('/api/upload/*', createRateLimiter(rateLimits.uploads.windowMs, rateLimits.uploads.max, 'Upload limit reached'));
+    app.use('/api/files/*', createRateLimiter(rateLimits.uploads.windowMs, rateLimits.uploads.max, 'Upload limit reached'));
     app.use(applyToApiOnly(createRateLimiter(rateLimits.general.windowMs, rateLimits.general.max)));
     
     // Register all API routes (registerRoutes handles server creation)

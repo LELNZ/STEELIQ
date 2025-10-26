@@ -1,0 +1,101 @@
+diff --git a/server/utils/logger.ts b/server/utils/logger.ts
+index 1234567..8901234 100644
+--- a/server/utils/logger.ts
++++ b/server/utils/logger.ts
+@@ -1,6 +1,7 @@
+ import winston from 'winston';
+ import { Request } from 'express';
+ import path from 'path';
++import crypto from 'crypto';
+ 
+ const { combine, timestamp, printf, colorize, errors, json } = winston.format;
+ 
+@@ -10,6 +11,45 @@ const isDevelopment = process.env.NODE_ENV === 'development';
+ const LOG_LEVEL = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
+ const LOG_DIR = process.env.LOG_DIR || 'logs';
+ 
++// PII fields to redact
++const PII_FIELDS = [
++  'password',
++  'token',
++  'apiKey',
++  'secret',
++  'ssn',
++  'socialSecurity',
++  'creditCard',
++  'cardNumber',
++  'cvv',
++  'pin',
++  'bankAccount',
++  'routingNumber',
++  'taxId',
++  'driverLicense',
++  'passport',
++  'email',
++  'phone',
++  'address',
++  'dateOfBirth',
++  'dob'
++];
++
++// Redact sensitive information from logs
++function redactPII(obj: any): any {
++  if (typeof obj !== 'object' || obj === null) return obj;
++  
++  const redacted = Array.isArray(obj) ? [...obj] : { ...obj };
++  
++  for (const key in redacted) {
++    if (PII_FIELDS.some(field => key.toLowerCase().includes(field.toLowerCase()))) {
++      redacted[key] = '[REDACTED]';
++    } else if (typeof redacted[key] === 'object') {
++      redacted[key] = redactPII(redacted[key]);
++    }
++  }
++  
++  return redacted;
++}
++
+ // Custom format for console output
+ const consoleFormat = printf(({ level, message, timestamp, ...metadata }) => {
+   let msg = `${timestamp} [${level}]: ${message}`;
+@@ -20,6 +60,18 @@ const consoleFormat = printf(({ level, message, timestamp, ...metadata }) => {
+   return msg;
+ });
+ 
++// Generate request ID
++export function generateRequestId(): string {
++  return crypto.randomBytes(16).toString('hex');
++}
++
++// Attach request ID middleware
++export function attachRequestId(req: Request, res: any, next: any) {
++  req.id = req.headers['x-request-id'] as string || generateRequestId();
++  res.setHeader('x-request-id', req.id);
++  next();
++}
++
+ // Create transports based on environment
+ const transports: winston.transport[] = [];
+ 
+@@ -84,8 +136,9 @@ export const logger = winston.createLogger({
+ 
+ // Extended logging methods
+ export const log = {
+-  info: (message: string, meta?: any) => logger.info(message, meta),
+-  error: (message: string, meta?: any) => logger.error(message, meta),
++  info: (message: string, meta?: any) => logger.info(message, redactPII(meta)),
++  error: (message: string, meta?: any) => logger.error(message, redactPII(meta)),
++  warn: (message: string, meta?: any) => logger.warn(message, redactPII(meta)),
+   debug: (message: string, meta?: any) => logger.debug(message, meta),
+   warn: (message: string, meta?: any) => logger.warn(message, meta),
+   
+@@ -129,7 +182,8 @@ export const log = {
+       environment,
+       nodeVersion: process.version,
+       pid: process.pid,
+-      uptime: process.uptime()
++      uptime: process.uptime(),
++      requestId: crypto.randomBytes(8).toString('hex')
+     });
+   },
+   

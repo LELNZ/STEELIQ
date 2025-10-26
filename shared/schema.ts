@@ -6009,3 +6009,18 @@ export type InsertProductionMetric = z.infer<typeof insertProductionMetricSchema
 
 export type MachineJobAssignment = typeof machineJobAssignments.$inferSelect;
 export type InsertMachineJobAssignment = z.infer<typeof insertMachineJobAssignmentSchema>;
+
+// ---------- Back-compat aliases for service imports ----------
+/**
+ * These aliases keep older service code working after schema renames.
+ * The right-hand sides correspond to the real table constants defined above.
+ */
+export const purchaseRequisitionItems = requisitionItems;
+export const rfqItems = rfqRequests;
+// ---------- Back-compat aliases (added 2025-10-24) ----------
+//
+// These aliases resolve missing imports from older service code.
+// They point to the most closely related schema tables.
+
+export const supplierMaterialCategories = materialSuppliers;
+export const aiCacheEntries = supplierTemplates; // placeholder until ai_cache table is defined

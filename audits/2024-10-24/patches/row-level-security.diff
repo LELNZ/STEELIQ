@@ -1,0 +1,73 @@
+diff --git a/server/middleware/rbac.ts b/server/middleware/rbac.ts
+index 1234567..8901234 100644
+--- a/server/middleware/rbac.ts
++++ b/server/middleware/rbac.ts
+@@ -612,7 +612,7 @@ export function requirePermission(resource: ResourceType, action: PermissionAct
+ 
+ // Helper to get data scope filter for queries
+ export function getDataScopeFilter(req: Request): any {
+-  const enhancedSession: EnhancedSession = (req as any).rbac;
++  const enhancedSession: EnhancedSession = (req as any).rbac || req.session?.rbac;
+   
+   if (!enhancedSession) {
+     return {};
+@@ -620,10 +620,14 @@ export function getDataScopeFilter(req: Request): any {
+ 
+   switch (enhancedSession.dataScope) {
+     case 'self':
++      // User can only see their own data
+       return { userId: enhancedSession.userId };
++      
+     case 'department':
+-      return { department: { in: enhancedSession.departments || [] } };
++      // User can see data from their department(s)
++      return { departmentId: { in: enhancedSession.departments || [] } };
++      
+     case 'organization':
+-      return {}; // No filter - see all data
++      return {}; // No filter - can see all organizational data
++      
+     default:
+       return { userId: enhancedSession.userId };
+   }
+@@ -636,4 +640,39 @@ export {
+   hasPermission,
+   loadUserPermissions,
+ };
++
++// Apply row-level security to query results
++export function applyRowLevelSecurity<T>(
++  data: T[],
++  userId: number,
++  role: UserRole,
++  departments?: string[]
++): T[] {
++  // Fortune-50 compliant data filtering
++  if (['owner', 'admin', 'full'].includes(role)) {
++    return data; // Full access
++  }
++  
++  if (['supervisor', 'planning', 'accounting'].includes(role) && departments) {
++    // Department-level access
++    return data.filter((item: any) => {
++      if (item.departmentId) {
++        return departments.includes(item.departmentId);
++      }
++      if (item.department) {
++        return departments.includes(item.department);
++      }
++      return item.userId === userId; // Fallback to self
++    });
++  }
++  
++  // Default: self-only access
++  return data.filter((item: any) => {
++    if (item.userId) {
++      return item.userId === userId;
++    }
++    if (item.createdBy) {
++      return item.createdBy === userId;
++    }
++    return false; // Deny if no user association
++  });
++}

@@ -519,4 +519,33 @@ class SecureStorageService {
   }
 }
 
-export const secureStorageService = new SecureStorageService();
+// ---- Back-compat exports (do NOT remove) ----
+// Provide a pre-wired instance so both default and named imports work.
+
+// Named instance export for code that does:
+//   import { secureStorageService } from './secureStorageService'
+
+// Default export for code that does:
+//   import secureStorageService from './secureStorageService'
+
+// ---- Back-compat exports (do NOT remove) ----
+// Provide a pre-wired instance so both default and named imports work.
+
+// Named instance export for code that does:
+//   import { secureStorageService } from './secureStorageService'
+
+// Default export for code that does:
+//   import secureStorageService from './secureStorageService'
+// ---- Back-compat exports (single source of truth) ----\n// Provide a pre-wired instance so both default and named imports work.\nconst __secureStorageInstance = new SecureStorageService({ type: 'database' });\n\n// Named instance export for code that does:\n//   import { secureStorageService } from './secureStorageService'\nexport const secureStorageService = __secureStorageInstance;\n\n// Default export for code that does:\n//   import secureStorageService from './secureStorageService'\nexport default __secureStorageInstance;
+
+// ---- Back-compat exports (single source of truth) ----
+// Provide a pre-wired instance so both default and named imports work.
+const __secureStorageInstance = new SecureStorageService({ type: 'database' });
+
+// Named instance export for code that does:
+//   import { secureStorageService } from './secureStorageService'
+export const secureStorageService = __secureStorageInstance;
+
+// Default export for code that does:
+//   import secureStorageService from './secureStorageService'
+export default __secureStorageInstance;
