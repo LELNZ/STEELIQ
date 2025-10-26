@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import pg from 'pg';
+const { Pool } = pg;
 
 // In dev, you might have dotenv; in prod, rely on Replit/Secrets
 const DATABASE_URL = process.env.DATABASE_URL;
