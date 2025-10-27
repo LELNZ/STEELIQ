@@ -22,8 +22,10 @@ import { rbacMiddleware } from "./middleware/rbac";
 // Validate environment variables before starting
 envValidator.validate();
 import { applySecurityBaseline } from "./middleware/securityBaseline";
+import { applyObservability } from "./middleware/observability";
 
 const app = express();
+applyObservability(app);
 applySecurityBaseline(app);
 app.set('trust proxy', 1);
 
