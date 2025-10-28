@@ -1,0 +1,54 @@
+name: CD Verify (run pushed image)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Compute image name
+        id: meta
+        run: |
+          owner="\${GITHUB_REPOSITORY%/*}"
+          owner_lc="\$owner"
+          repo="\${GITHUB_REPOSITORY#*/}"
+          repo_lc="\$repo"
+          echo "image=ghcr.io/\${owner_lc}/\${repo_lc}" >> "\$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: \${{ github.actor }}
+          password: \${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        run: docker pull \${{ steps.meta.outputs.image }}:\${{ github.sha }}
+
+      - name: Run container
+        run: |
+          docker run -d --name app -p 5000:5000 \${{ steps.meta.outputs.image }}:\${{ github.sha }}
+          for i in {1..30}; do curl -sf http://localhost:5000/api/health && break; sleep 1; done
+
+      - name: Health check JSON
+        run: curl -sS http://localhost:5000/api/health | tee health.json
+
+      - name: Assert healthy
+        run: grep -q "status":"healthy" health.json
+
+      - name: Upload health.json
+        uses: actions/upload-artifact@v4
+        with:
+          name: cd-verify-health
+          path: health.json
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f app || true
