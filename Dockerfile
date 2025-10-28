@@ -1,17 +1,23 @@
-# ---- build stage ----
-FROM node:20-alpine AS build
+# syntax=docker/dockerfile:1
+
+### Build stage
+FROM node:20-bullseye-slim AS build
 WORKDIR /app
+# Install deps exactly as locked
 COPY package*.json ./
-RUN npm install
+RUN npm ci
+
+# Build app
 COPY . .
 RUN npm run build
 
-# ---- runtime stage ----
-FROM node:20-alpine
+### Runtime stage
+FROM node:20-bullseye-slim
 ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=build /app/dist ./dist
+# Only what we need to run
+COPY"--from=build" /app/dist ./dist
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 EXPOSE 5000
-CMD ["node", "dist/index.js"]
+CMD ["node","dist/index.js"]
