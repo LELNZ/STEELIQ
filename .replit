@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["jq", "chromium", "glib", "nss", "nspr", "fontconfig", "freetype", "zip"]
+packages = ["jq", "chromium", "glib", "nss", "nspr", "fontconfig", "freetype", "zip", "nano"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -16,44 +16,64 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 34181
-externalPort = 3003
-
-[[ports]]
-localPort = 34497
-externalPort = 8000
-
-[[ports]]
-localPort = 36695
-externalPort = 4200
-
-[[ports]]
-localPort = 37365
+localPort = 33335
 externalPort = 6800
 
 [[ports]]
-localPort = 39115
+localPort = 33513
 externalPort = 3002
 
 [[ports]]
-localPort = 40057
+localPort = 33737
+externalPort = 8080
+
+[[ports]]
+localPort = 34849
+externalPort = 8099
+
+[[ports]]
+localPort = 35631
+externalPort = 8000
+
+[[ports]]
+localPort = 36437
 externalPort = 3000
 
 [[ports]]
-localPort = 41699
-externalPort = 5173
+localPort = 36829
+externalPort = 3001
 
 [[ports]]
-localPort = 43049
+localPort = 36937
+externalPort = 9000
+
+[[ports]]
+localPort = 38089
+externalPort = 4200
+
+[[ports]]
+localPort = 38505
 externalPort = 5000
 
 [[ports]]
-localPort = 43335
+localPort = 38965
+externalPort = 8081
+
+[[ports]]
+localPort = 42449
 externalPort = 6000
 
 [[ports]]
-localPort = 43941
-externalPort = 3001
+localPort = 43189
+externalPort = 8008
+
+[[ports]]
+localPort = 44615
+externalPort = 3003
+
+[[ports]]
+localPort = 46481
+externalPort = 5173
 
 [workflows]
 runButton = "Project"
@@ -77,7 +97,29 @@ args = "npm run dev"
 waitForPort = 5000
 
 [agent]
-integrations = ["javascript_websocket==1.0.0", "javascript_sendgrid==1.0.0", "javascript_anthropic==1.0.0"]
+integrations = ["javascript_websocket:1.0.0", "javascript_sendgrid:1.0.0", "javascript_anthropic:1.0.0", "google-mail:1.0.0"]
 
 [objectStorage]
 defaultBucketID = "replit-objstore-9d2dc189-d4c8-4d4c-a5f8-d846d35f9804"
+
+[userenv]
+
+[userenv.shared]
+RBAC_MODE = "shadow"
+NODE_ENV = "development"
+PORT = "5000"
+APP_NAME = "STEELIQ"
+APP_URL = "http://localhost:5000"
+SENDGRID_FROM_EMAIL = "noreply@lateralengineering.co.nz"
+ENABLE_EMAIL_NOTIFICATIONS = "true"
+ENABLE_AI_ESTIMATION = "true"
+ENABLE_PRODUCTION_MONITORING = "true"
+ENABLE_COST_AGGREGATION = "true"
+ENABLE_2FA = "false"
+SESSION_TIMEOUT_MINUTES = "480"
+MAX_FILE_SIZE_MB = "50"
+ALLOWED_FILE_TYPES = "pdf,dxf,dwg,xlsx,xls,csv,png,jpg,jpeg"
+LOG_LEVEL = "debug"
+ENABLE_DEBUG_MODE = "true"
+PAYROLL_ENCRYPTION_KEY = "986b1061e146684faa90a6c0696f1326eaf8885bc66873285db0dd234c7f2a58"
+GMAIL_USER = "notifications@lateralengineering.co.nz"

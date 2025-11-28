@@ -1,0 +1,196 @@
+{
+  "feature": "wave-5.3-ai-scheduling",
+  "version": "1.0.0",
+  "description": "AI-powered shift scheduling with Claude API integration, constraint optimization, and shift swap workflows",
+  "dependencies": {
+    "tables": [
+      "scheduling_requirements",
+      "employee_availability",
+      "employee_schedule_preferences",
+      "ai_schedule_runs",
+      "schedule_assignments",
+      "shift_swap_requests",
+      "fatigue_rules",
+      "schedule_change_audit"
+    ],
+    "tableSchemas": {
+      "scheduling_requirements": {
+        "requiredColumns": ["id", "day_of_week", "start_time", "end_time", "min_staff", "is_active"],
+        "auditColumns": ["audit_hash", "previous_audit_hash"]
+      },
+      "employee_availability": {
+        "requiredColumns": ["id", "user_id", "day_of_week", "is_available"],
+        "auditColumns": []
+      },
+      "employee_schedule_preferences": {
+        "requiredColumns": ["id", "user_id", "preferred_hours_per_week", "max_hours_per_week"],
+        "auditColumns": []
+      },
+      "ai_schedule_runs": {
+        "requiredColumns": ["id", "week_starting", "status", "department_id", "created_at"],
+        "auditColumns": ["audit_hash", "previous_audit_hash"]
+      },
+      "schedule_assignments": {
+        "requiredColumns": ["id", "schedule_run_id", "user_id", "assignment_date", "start_time", "end_time", "break_duration"],
+        "auditColumns": ["audit_hash", "previous_audit_hash"]
+      },
+      "shift_swap_requests": {
+        "requiredColumns": ["id", "requesting_user_id", "target_user_id", "request_type", "status"],
+        "auditColumns": ["audit_hash", "previous_audit_hash"]
+      },
+      "fatigue_rules": {
+        "requiredColumns": ["id", "rule_name", "rule_type", "is_active"],
+        "auditColumns": []
+      },
+      "schedule_change_audit": {
+        "requiredColumns": ["id", "entity_type", "entity_id", "action_type"],
+        "auditColumns": ["audit_hash", "previous_audit_hash"]
+      }
+    },
+    "services": [
+      "aiSchedulingService"
+    ],
+    "routes": [
+      "/api/scheduling/requirements",
+      "/api/scheduling/availability",
+      "/api/scheduling/preferences",
+      "/api/scheduling/generate",
+      "/api/scheduling/runs",
+      "/api/scheduling/assignments",
+      "/api/scheduling/shift-swaps",
+      "/api/scheduling/fatigue-rules"
+    ],
+    "secrets": [
+      "ANTHROPIC_API_KEY"
+    ],
+    "envVars": [],
+    "rbacRequirements": {
+      "minRole": "supervisor",
+      "adminRoutes": ["/api/scheduling/generate"]
+    }
+  },
+  "auditFields": [
+    "auditHash",
+    "previousAuditHash"
+  ],
+  "preFlightChecks": [
+    "database",
+    "schema",
+    "columns",
+    "services",
+    "routes",
+    "secrets",
+    "audit",
+    "governance"
+  ],
+  "metadata": {
+    "status": "in_progress",
+    "startDate": "2025-11-28",
+    "owner": "Time & Payroll Team",
+    "fortune50Parity": [
+      "Workday Scheduling",
+      "ADP Workforce Manager",
+      "SAP SuccessFactors Workforce Management"
+    ],
+    "aiCapabilities": [
+      "Constraint-based optimization",
+      "Demand forecasting",
+      "Fairness scoring",
+      "Fatigue compliance",
+      "Shift swap automation"
+    ]
+  },
+  "governance": {
+    "togaf": {
+      "admPhase": "governance",
+      "architectureContract": {
+        "contractType": "deployment",
+        "stakeholders": ["Product Owner", "Technical Lead", "Security Team", "Compliance Team"],
+        "deliverables": ["AI Scheduling Service", "Shift Swap Workflow", "SOX Audit Trails"],
+        "slaMetrics": {
+          "availabilityPercent": 99.9,
+          "responseTimeMs": 500,
+          "errorRatePercent": 0.1
+        },
+        "complianceCriteria": [
+          "SOX Section 404 compliant",
+          "SHA-256 hash chain audit trails",
+          "RBAC enforcement for supervisor+ roles"
+        ]
+      },
+      "arbApproval": {
+        "required": true,
+        "approvalLevel": "enterprise"
+      }
+    },
+    "cobit2024": {
+      "objectives": [
+        { "id": "EDM03", "name": "Ensured Risk Optimization", "targetLevel": 4, "currentLevel": 3 },
+        { "id": "BAI06", "name": "Managed IT Changes", "targetLevel": 4, "currentLevel": 3 },
+        { "id": "BAI07", "name": "Managed IT Change Acceptance and Transitioning", "targetLevel": 4, "currentLevel": 3 },
+        { "id": "DSS05", "name": "Managed Security Services", "targetLevel": 5, "currentLevel": 4 },
+        { "id": "MEA02", "name": "Managed System of Internal Control", "targetLevel": 4, "currentLevel": 3 }
+      ],
+      "kpis": [
+        { "id": "kpi-schedule-accuracy", "name": "Schedule Generation Accuracy", "target": 95, "unit": "percent" },
+        { "id": "kpi-swap-approval-time", "name": "Shift Swap Approval Time", "target": 4, "unit": "hours" },
+        { "id": "kpi-fatigue-compliance", "name": "Fatigue Rule Compliance Rate", "target": 100, "unit": "percent" },
+        { "id": "kpi-ai-response-time", "name": "AI API Response Time", "target": 5000, "unit": "milliseconds" }
+      ]
+    },
+    "raci": [
+      { "activity": "Requirements Definition", "responsible": ["Product Owner"], "accountable": "Product Owner", "consulted": ["Technical Lead", "HR Team"], "informed": ["Dev Team"] },
+      { "activity": "Architecture Design", "responsible": ["Technical Lead"], "accountable": "Technical Lead", "consulted": ["Security Team"], "informed": ["Product Owner"] },
+      { "activity": "Implementation", "responsible": ["Development Team"], "accountable": "Technical Lead", "consulted": ["QA Team"], "informed": ["Product Owner"] },
+      { "activity": "Testing & Validation", "responsible": ["QA Team"], "accountable": "QA Lead", "consulted": ["Dev Team", "Security"], "informed": ["All Stakeholders"] },
+      { "activity": "Deployment Approval", "responsible": ["Change Advisory Board"], "accountable": "IT Director", "consulted": ["Security", "Compliance"], "informed": ["All Affected Parties"] },
+      { "activity": "Production Release", "responsible": ["DevOps Team"], "accountable": "DevOps Lead", "consulted": ["Dev Team"], "informed": ["All Stakeholders"] }
+    ],
+    "soxControls": {
+      "itgc": {
+        "accessControls": true,
+        "changeManagement": true,
+        "computerOperations": true,
+        "programDevelopment": true
+      },
+      "sodRequirements": [
+        "Schedule creation separate from schedule approval",
+        "Shift swap request separate from swap approval",
+        "Time entry separate from payroll processing"
+      ],
+      "auditTrailRequirements": [
+        "SHA-256 hash chain on all schedule changes",
+        "Immutable audit records with previous hash reference",
+        "User action logging with timestamp and IP"
+      ]
+    },
+    "deploymentGates": {
+      "preDeployment": {
+        "gates": [
+          { "name": "Pre-Flight Checklist", "type": "automated", "blocking": true },
+          { "name": "Security Scan", "type": "automated", "blocking": true },
+          { "name": "Database Migration Test", "type": "automated", "blocking": true },
+          { "name": "Change Request Approval", "type": "manual", "blocking": true }
+        ],
+        "timeout": 1800,
+        "samplingInterval": 300
+      },
+      "postDeployment": {
+        "gates": [
+          { "name": "Health Check", "type": "automated", "blocking": true },
+          { "name": "Smoke Tests", "type": "automated", "blocking": true },
+          { "name": "Performance Validation", "type": "automated", "blocking": false },
+          { "name": "Business Validation", "type": "manual", "blocking": false }
+        ],
+        "timeout": 3600,
+        "samplingInterval": 600
+      },
+      "rollbackValidation": {
+        "procedureDocumented": true,
+        "previousVersionRetained": true,
+        "maxRollbackTime": 900,
+        "rollbackTested": true
+      }
+    }
+  }
+}

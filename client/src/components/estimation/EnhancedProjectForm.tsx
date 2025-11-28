@@ -103,7 +103,7 @@ function QuickAddClientDialog({ onClientAdded }: { onClientAdded: (client: any) 
 
   const createClientMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return await apiRequest("POST", "/api/clients", data);
+      return await apiRequest("/api/clients", "POST", data);
     },
     onSuccess: (data) => {
       toast({
@@ -326,7 +326,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
   return (
     <Card className="max-w-6xl mx-auto">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle className="text-2xl flex items-center gap-2">
               <Building2 className="h-6 w-6" />
@@ -392,7 +392,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
             )(e);
           }} className="space-y-6">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="commercial">Commercial</TabsTrigger>
                 <TabsTrigger value="timeline">Timeline</TabsTrigger>
@@ -404,7 +404,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
               <div className="min-h-[500px]">
                 {/* Basic Information Tab */}
                 <TabsContent value="basic" className="space-y-4 mt-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="name"
@@ -500,7 +500,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="clientId"
@@ -566,7 +566,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
 
               {/* Commercial Tab */}
               <TabsContent value="commercial" className="space-y-4 mt-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="contractType"
@@ -624,7 +624,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
                     name="targetValue"
@@ -696,7 +696,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
 
               {/* Timeline Tab */}
               <TabsContent value="timeline" className="space-y-4 mt-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="bidDate"
@@ -749,7 +749,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
 
               {/* Risk & Resources Tab */}
               <TabsContent value="risk" className="space-y-4 mt-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="riskLevel"
@@ -821,7 +821,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="estimatedHours"
@@ -894,7 +894,7 @@ export function EnhancedProjectForm({ onSubmit, initialData, isLoading }: Enhanc
                 <div className="space-y-4">
                   {(form.watch('keyMilestones') || []).map((_, index) => (
                     <Card key={index} className="p-4">
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <FormField
                           control={form.control}
                           name={`keyMilestones.${index}.name`}

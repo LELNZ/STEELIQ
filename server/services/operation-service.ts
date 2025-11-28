@@ -21,15 +21,22 @@ import {
 interface OperationCreationParams {
   projectId: number;
   materialDesignation: string;
-  materialId?: string;
+  materialId?: number;
   operationType: string;
   description: string;
+  operationDesignation?: string;
+  quantity?: number;
+  unitCost?: number;
+  totalCost?: number;
   operationData?: any;
   method?: string;
   position?: string;
   includeInLabor?: boolean;
   includeInConsumables?: boolean;
   includeInCoatings?: boolean;
+  includeInEquipment?: boolean;
+  sequenceOrder?: number;
+  notes?: string;
   userId?: number;
 }
 
@@ -40,6 +47,22 @@ interface OperationRouteConfig {
 }
 
 export class OperationService {
+  // PostgreSQL integer maximum value
+  private static readonly POSTGRES_MAX_INT = 2147483647;
+
+  // Validate that an ID doesn't exceed PostgreSQL's integer limit
+  private validateIntegerRange(value: number | null | undefined, fieldName: string): void {
+    if (value !== null && value !== undefined) {
+      if (value > OperationService.POSTGRES_MAX_INT || value < -OperationService.POSTGRES_MAX_INT) {
+        throw new Error(
+          `${fieldName} value ${value} exceeds PostgreSQL integer range. ` +
+          `Maximum allowed value is ${OperationService.POSTGRES_MAX_INT}. ` +
+          `This often happens when using Date.now() or timestamp values instead of database IDs.`
+        );
+      }
+    }
+  }
+
   // Create an operation and route it to appropriate tabs
   async createOperation(params: OperationCreationParams): Promise<EstimationOperation> {
     const {
@@ -48,42 +71,113 @@ export class OperationService {
       materialId,
       operationType,
       description,
+      operationDesignation: providedDesignation,
+      quantity = 1,
+      unitCost = 0,
+      totalCost = 0,
       operationData = {},
       method,
       position,
       includeInLabor = false,
       includeInConsumables = false,
       includeInCoatings = false,
+      includeInEquipment = false,
+      sequenceOrder,
+      notes,
       userId
     } = params;
 
-    // Generate unique operation designation
-    const operationDesignation = await this.generateOperationDesignation(projectId, materialDesignation, operationType);
+    try {
+      // Validate projectId doesn't exceed integer limits
+      this.validateIntegerRange(projectId, 'projectId');
 
-    // Create the operation record
-    const [operation] = await db.insert(estimationOperations)
-      .values({
-        project_id: projectId,
-        material_id: materialId || materialDesignation,
-        material_designation: materialDesignation,
-        operation_type: operationType,
-        operation_designation: operationDesignation,
+      // Ensure materialId is numeric or null, not a string designation
+      let validMaterialId: number | null = null;
+      if (materialId) {
+        // Check if materialId is numeric
+        const numericId = typeof materialId === 'number' ? materialId : parseInt(materialId.toString(), 10);
+        
+        // Validate the numeric ID doesn't exceed PostgreSQL limits
+        if (!isNaN(numericId)) {
+          // Critical: Check for integer overflow before using
+          this.validateIntegerRange(numericId, 'materialId');
+          validMaterialId = numericId;
+        } else {
+          // If not numeric, try to look up the material by designation
+          console.warn(`Material ID "${materialId}" is not numeric, attempting lookup by designation`);
+          const [material] = await db.select()
+            .from(estimationMaterials)
+            .where(and(
+              eq(estimationMaterials.projectId, projectId),
+              eq(estimationMaterials.designation, materialId.toString())
+            ))
+            .limit(1);
+          
+          if (material) {
+            validMaterialId = material.id;
+          } else {
+            console.warn(`Could not find material with designation "${materialId}", proceeding with null material_id`);
+          }
+        }
+      }
+
+      // Generate unique operation designation if not provided
+      const operationDesignation = providedDesignation || await this.generateOperationDesignation(projectId, materialDesignation, operationType);
+
+      // Log the data being inserted for debugging
+      const insertData = {
+        projectId: projectId,
+        materialId: validMaterialId, // Use validated numeric ID or null
+        materialDesignation: materialDesignation,
+        operationType: operationType,
+        operationDesignation: operationDesignation,
         description,
-        operation_data: operationData,
+        quantity: quantity.toString(),
+        unitCost: unitCost.toString(),
+        totalCost: totalCost.toString(),
+        operationData: operationData,
         method,
         position,
-        include_in_labor: includeInLabor,
-        include_in_consumables: includeInConsumables,
-        include_in_coatings: includeInCoatings,
+        sequenceOrder: sequenceOrder,
+        includeInLabor: includeInLabor,
+        includeInConsumables: includeInConsumables,
+        includeInCoatings: includeInCoatings,
+        includeInEquipment: includeInEquipment,
         status: 'planned',
-        created_by: userId
-      })
-      .returning();
+        notes,
+        createdBy: userId
+      };
 
-    // Route to appropriate tabs based on operation type and flags
-    await this.routeOperationToTabs(operation, operationData);
+      console.log('Creating operation with data:', JSON.stringify(insertData, null, 2));
 
-    return operation;
+      // Create the operation record
+      const [operation] = await db.insert(estimationOperations)
+        .values(insertData)
+        .returning();
+      
+      console.log('Operation created successfully:', operation);
+
+      // Route to appropriate tabs based on operation type and flags
+      await this.routeOperationToTabs(operation, operationData);
+
+      return operation;
+    } catch (error) {
+      console.error('Failed to create operation - Database error:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        params: {
+          projectId,
+          materialDesignation,
+          operationType,
+          description,
+          includeInLabor,
+          includeInConsumables,
+          includeInCoatings
+        }
+      });
+      throw error;
+    }
   }
 
   // Generate unique operation designation (e.g., C1-cut-1, B2-drill-2, PL1-weld-3)
@@ -98,9 +192,9 @@ export class OperationService {
     const existingOps = await db.select({ id: estimationOperations.id })
       .from(estimationOperations)
       .where(and(
-        eq(estimationOperations.project_id, projectId),
-        eq(estimationOperations.material_designation, materialDesignation),
-        eq(estimationOperations.operation_type, operationType)
+        eq(estimationOperations.projectId, projectId),
+        eq(estimationOperations.materialDesignation, materialDesignation),
+        eq(estimationOperations.operationType, operationType)
       ));
     
     const sequence = existingOps.length + 1;
@@ -132,14 +226,14 @@ export class OperationService {
     const routeConfig = await this.determineRouteConfig(operation, operationData);
     
     // Create labor items
-    if (operation.include_in_labor && routeConfig.laborItems) {
+    if (operation.includeInLabor && routeConfig.laborItems) {
       for (const laborItem of routeConfig.laborItems) {
         await db.insert(estimationLabor).values({
           ...laborItem,
-          project_id: operation.project_id,
-          designation: operation.operation_designation,
-          parent_material_id: operation.material_designation,
-          operation_type: operation.operation_type
+          projectId: operation.projectId,
+          designation: operation.operationDesignation,
+          parentMaterialId: operation.materialDesignation,
+          operationType: operation.operationType
         } as any);
       }
       
@@ -147,24 +241,24 @@ export class OperationService {
       const laborIds = await db.select({ id: estimationLabor.id })
         .from(estimationLabor)
         .where(and(
-          eq(estimationLabor.project_id, operation.project_id),
-          eq(estimationLabor.designation, operation.operation_designation)
+          eq(estimationLabor.projectId, operation.projectId),
+          eq(estimationLabor.designation, operation.operationDesignation)
         ));
       
       await db.update(estimationOperations)
-        .set({ labor_item_ids: laborIds.map(l => l.id) })
+        .set({ laborItemIds: laborIds.map(l => l.id) })
         .where(eq(estimationOperations.id, operation.id));
     }
 
     // Create consumable items
-    if (operation.include_in_consumables && routeConfig.consumableItems) {
+    if (operation.includeInConsumables && routeConfig.consumableItems) {
       for (const consumableItem of routeConfig.consumableItems) {
         await db.insert(estimationConsumables).values({
           ...consumableItem,
-          project_id: operation.project_id,
-          designation: operation.operation_designation,
-          parent_material_id: operation.material_designation,
-          operation_type: operation.operation_type
+          projectId: operation.projectId,
+          designation: operation.operationDesignation,
+          parentMaterialId: operation.materialDesignation,
+          operationType: operation.operationType
         } as any);
       }
       
@@ -172,24 +266,24 @@ export class OperationService {
       const consumableIds = await db.select({ id: estimationConsumables.id })
         .from(estimationConsumables)
         .where(and(
-          eq(estimationConsumables.project_id, operation.project_id),
-          eq(estimationConsumables.designation, operation.operation_designation)
+          eq(estimationConsumables.projectId, operation.projectId),
+          eq(estimationConsumables.designation, operation.operationDesignation)
         ));
       
       await db.update(estimationOperations)
-        .set({ consumable_item_ids: consumableIds.map(c => c.id) })
+        .set({ consumableItemIds: consumableIds.map(c => c.id) })
         .where(eq(estimationOperations.id, operation.id));
     }
 
     // Create coating items
-    if (operation.include_in_coatings && routeConfig.coatingItems) {
+    if (operation.includeInCoatings && routeConfig.coatingItems) {
       for (const coatingItem of routeConfig.coatingItems) {
         await db.insert(estimationCoatings).values({
           ...coatingItem,
-          project_id: operation.project_id,
-          designation: operation.operation_designation,
-          parent_material_id: operation.material_designation,
-          operation_type: operation.operation_type
+          projectId: operation.projectId,
+          designation: operation.operationDesignation,
+          parentMaterialId: operation.materialDesignation,
+          operationType: operation.operationType
         } as any);
       }
       
@@ -197,12 +291,12 @@ export class OperationService {
       const coatingIds = await db.select({ id: estimationCoatings.id })
         .from(estimationCoatings)
         .where(and(
-          eq(estimationCoatings.project_id, operation.project_id),
-          eq(estimationCoatings.designation, operation.operation_designation)
+          eq(estimationCoatings.projectId, operation.projectId),
+          eq(estimationCoatings.designation, operation.operationDesignation)
         ));
       
       await db.update(estimationOperations)
-        .set({ coating_item_ids: coatingIds.map(c => c.id) })
+        .set({ coatingItemIds: coatingIds.map(c => c.id) })
         .where(eq(estimationOperations.id, operation.id));
     }
   }
@@ -216,16 +310,16 @@ export class OperationService {
     };
 
     // Based on operation type, determine default routing
-    switch (operation.operation_type.toLowerCase()) {
+    switch (operation.operationType.toLowerCase()) {
       case 'cutting':
         config.laborItems = [{
           category: 'fabrication',
           type: 'cutting',
           description: operation.description,
           hours: operationData.laborHours || 0.5,
-          hourly_rate: 75,
-          total_cost: (operationData.laborHours || 0.5) * 75,
-          skill_level: 'intermediate',
+          hourlyRate: 75,
+          totalCost: (operationData.laborHours || 0.5) * 75,
+          skillLevel: 'intermediate',
           location: 'workshop'
         }];
         
@@ -234,8 +328,8 @@ export class OperationService {
           category: 'cutting',
           quantity: operationData.discQuantity || 0.1,
           unit: 'disc',
-          unit_cost: 15,
-          total_cost: (operationData.discQuantity || 0.1) * 15
+          unitCost: 15,
+          totalCost: (operationData.discQuantity || 0.1) * 15
         }];
         break;
 
@@ -245,9 +339,9 @@ export class OperationService {
           type: 'drilling',
           description: operation.description,
           hours: operationData.laborHours || 0.25,
-          hourly_rate: 70,
-          total_cost: (operationData.laborHours || 0.25) * 70,
-          skill_level: 'intermediate',
+          hourlyRate: 70,
+          totalCost: (operationData.laborHours || 0.25) * 70,
+          skillLevel: 'intermediate',
           location: 'workshop'
         }];
         
@@ -256,8 +350,8 @@ export class OperationService {
           category: 'drilling',
           quantity: operationData.bitWear || 0.05,
           unit: 'bit',
-          unit_cost: 25,
-          total_cost: (operationData.bitWear || 0.05) * 25
+          unitCost: 25,
+          totalCost: (operationData.bitWear || 0.05) * 25
         }];
         break;
 
@@ -267,9 +361,9 @@ export class OperationService {
           type: 'welding',
           description: operation.description,
           hours: operationData.laborHours || 1.0,
-          hourly_rate: 85,
-          total_cost: (operationData.laborHours || 1.0) * 85,
-          skill_level: 'advanced',
+          hourlyRate: 85,
+          totalCost: (operationData.laborHours || 1.0) * 85,
+          skillLevel: 'advanced',
           location: 'workshop',
           subcategory: operation.method || 'MIG'
         }];
@@ -279,15 +373,15 @@ export class OperationService {
           category: 'welding',
           quantity: operationData.wireQuantity || 0.5,
           unit: 'kg',
-          unit_cost: 12,
-          total_cost: (operationData.wireQuantity || 0.5) * 12
+          unitCost: 12,
+          totalCost: (operationData.wireQuantity || 0.5) * 12
         }, {
           item: 'Shielding gas',
           category: 'welding',
           quantity: operationData.gasQuantity || 0.2,
           unit: 'm³',
-          unit_cost: 25,
-          total_cost: (operationData.gasQuantity || 0.2) * 25
+          unitCost: 25,
+          totalCost: (operationData.gasQuantity || 0.2) * 25
         }];
         break;
 
@@ -297,9 +391,9 @@ export class OperationService {
           type: 'blasting',
           description: operation.description,
           hours: operationData.laborHours || 0.5,
-          hourly_rate: 65,
-          total_cost: (operationData.laborHours || 0.5) * 65,
-          skill_level: 'intermediate',
+          hourlyRate: 65,
+          totalCost: (operationData.laborHours || 0.5) * 65,
+          skillLevel: 'intermediate',
           location: 'blast_booth'
         }];
         
@@ -308,50 +402,50 @@ export class OperationService {
           category: 'blasting',
           quantity: operationData.gritQuantity || 10,
           unit: 'kg',
-          unit_cost: 2,
-          total_cost: (operationData.gritQuantity || 10) * 2
+          unitCost: 2,
+          totalCost: (operationData.gritQuantity || 10) * 2
         }];
         break;
 
       case 'painting':
       case 'priming':
         config.coatingItems = [{
-          coating_type: operation.operation_type,
+          coatingType: operation.operationType,
           description: operation.description,
-          surface_area: operationData.surfaceArea || 1.0,
-          coats_required: operationData.coatsRequired || 2,
-          coverage_rate: operationData.coverageRate || 10,
+          surfaceArea: operationData.surfaceArea || 1.0,
+          coatsRequired: operationData.coatsRequired || 2,
+          coverageRate: operationData.coverageRate || 10,
           quantity: (operationData.surfaceArea || 1.0) / (operationData.coverageRate || 10) * (operationData.coatsRequired || 2),
           unit: 'L',
-          unit_cost: operationData.unitCost || 25,
-          total_cost: ((operationData.surfaceArea || 1.0) / (operationData.coverageRate || 10) * (operationData.coatsRequired || 2)) * (operationData.unitCost || 25),
-          application_method: operationData.applicationMethod || 'spray',
-          preparation_method: operationData.preparationMethod || 'blast_clean'
+          unitCost: operationData.unitCost || 25,
+          totalCost: ((operationData.surfaceArea || 1.0) / (operationData.coverageRate || 10) * (operationData.coatsRequired || 2)) * (operationData.unitCost || 25),
+          applicationMethod: operationData.applicationMethod || 'spray',
+          preparationMethod: operationData.preparationMethod || 'blast_clean'
         }];
         
         config.laborItems = [{
           category: 'surface_treatment',
-          type: operation.operation_type,
+          type: operation.operationType,
           description: operation.description,
           hours: operationData.laborHours || 0.75,
-          hourly_rate: 70,
-          total_cost: (operationData.laborHours || 0.75) * 70,
-          skill_level: 'intermediate',
+          hourlyRate: 70,
+          totalCost: (operationData.laborHours || 0.75) * 70,
+          skillLevel: 'intermediate',
           location: 'paint_booth'
         }];
         break;
 
       default:
         // For other operation types, create basic labor item
-        if (operation.include_in_labor) {
+        if (operation.includeInLabor) {
           config.laborItems = [{
             category: 'general',
-            type: operation.operation_type,
+            type: operation.operationType,
             description: operation.description,
             hours: operationData.laborHours || 1.0,
-            hourly_rate: 70,
-            total_cost: (operationData.laborHours || 1.0) * 70,
-            skill_level: 'intermediate',
+            hourlyRate: 70,
+            totalCost: (operationData.laborHours || 1.0) * 70,
+            skillLevel: 'intermediate',
             location: 'workshop'
           }];
         }
@@ -384,14 +478,14 @@ export class OperationService {
       const newOp = await this.createOperation({
         projectId,
         materialDesignation: designation,
-        operationType: templateOp.operation_type,
+        operationType: templateOp.operationType,
         description: templateOp.description,
-        operationData: templateOp.operation_data,
+        operationData: templateOp.operationData,
         method: templateOp.method || undefined,
         position: templateOp.position || undefined,
-        includeInLabor: templateOp.include_in_labor,
-        includeInConsumables: templateOp.include_in_consumables,
-        includeInCoatings: templateOp.include_in_coatings,
+        includeInLabor: templateOp.includeInLabor,
+        includeInConsumables: templateOp.includeInConsumables,
+        includeInCoatings: templateOp.includeInCoatings,
         userId
       });
 
@@ -414,42 +508,42 @@ export class OperationService {
 
     // Delete related items by designation (more robust than ID arrays)
     // This ensures all related items are deleted even if IDs weren't stored
-    if (operation.operation_designation && operation.project_id) {
+    if (operation.operationDesignation && operation.projectId) {
       // Delete labor items with this operation designation
       await db.delete(estimationLabor)
         .where(and(
-          eq(estimationLabor.project_id, operation.project_id),
-          eq(estimationLabor.designation, operation.operation_designation)
+          eq(estimationLabor.projectId, operation.projectId),
+          eq(estimationLabor.designation, operation.operationDesignation)
         ));
 
       // Delete consumable items with this operation designation
       await db.delete(estimationConsumables)
         .where(and(
-          eq(estimationConsumables.project_id, operation.project_id),
-          eq(estimationConsumables.designation, operation.operation_designation)
+          eq(estimationConsumables.projectId, operation.projectId),
+          eq(estimationConsumables.designation, operation.operationDesignation)
         ));
 
       // Delete coating items with this operation designation
       await db.delete(estimationCoatings)
         .where(and(
-          eq(estimationCoatings.project_id, operation.project_id),
-          eq(estimationCoatings.designation, operation.operation_designation)
+          eq(estimationCoatings.projectId, operation.projectId),
+          eq(estimationCoatings.designation, operation.operationDesignation)
         ));
     } else {
       // Fallback to ID-based deletion if designation isn't available
-      if (operation.labor_item_ids && Array.isArray(operation.labor_item_ids)) {
+      if (operation.laborItemIds && Array.isArray(operation.laborItemIds)) {
         await db.delete(estimationLabor)
-          .where(inArray(estimationLabor.id, operation.labor_item_ids as number[]));
+          .where(inArray(estimationLabor.id, operation.laborItemIds as number[]));
       }
 
-      if (operation.consumable_item_ids && Array.isArray(operation.consumable_item_ids)) {
+      if (operation.consumableItemIds && Array.isArray(operation.consumableItemIds)) {
         await db.delete(estimationConsumables)
-          .where(inArray(estimationConsumables.id, operation.consumable_item_ids as number[]));
+          .where(inArray(estimationConsumables.id, operation.consumableItemIds as number[]));
       }
 
-      if (operation.coating_item_ids && Array.isArray(operation.coating_item_ids)) {
+      if (operation.coatingItemIds && Array.isArray(operation.coatingItemIds)) {
         await db.delete(estimationCoatings)
-          .where(inArray(estimationCoatings.id, operation.coating_item_ids as number[]));
+          .where(inArray(estimationCoatings.id, operation.coatingItemIds as number[]));
       }
     }
 
@@ -464,8 +558,8 @@ export class OperationService {
     const operations = await db.select()
       .from(estimationOperations)
       .where(and(
-        eq(estimationOperations.project_id, projectId),
-        eq(estimationOperations.material_designation, materialDesignation)
+        eq(estimationOperations.projectId, projectId),
+        eq(estimationOperations.materialDesignation, materialDesignation)
       ));
 
     // Delete each operation with cascade
@@ -478,16 +572,16 @@ export class OperationService {
   async getProjectOperations(projectId: number): Promise<Record<string, EstimationOperation[]>> {
     const operations = await db.select()
       .from(estimationOperations)
-      .where(eq(estimationOperations.project_id, projectId))
-      .orderBy(estimationOperations.material_designation, estimationOperations.sequence_order);
+      .where(eq(estimationOperations.projectId, projectId))
+      .orderBy(estimationOperations.materialDesignation, estimationOperations.sequenceOrder);
 
     // Group by material designation
     const grouped: Record<string, EstimationOperation[]> = {};
     for (const op of operations) {
-      if (!grouped[op.material_designation]) {
-        grouped[op.material_designation] = [];
+      if (!grouped[op.materialDesignation]) {
+        grouped[op.materialDesignation] = [];
       }
-      grouped[op.material_designation].push(op);
+      grouped[op.materialDesignation].push(op);
     }
 
     return grouped;
@@ -590,14 +684,14 @@ export class OperationService {
         const clonedOp = await this.createOperation({
           projectId,
           materialDesignation: targetDesignation,
-          operationType: sourceOp.operation_type,
+          operationType: sourceOp.operationType,
           description: sourceOp.description,
-          operationData: sourceOp.operation_data,
+          operationData: sourceOp.operationData,
           method: sourceOp.method || undefined,
           position: sourceOp.position || undefined,
-          includeInLabor: sourceOp.include_in_labor,
-          includeInConsumables: sourceOp.include_in_consumables,
-          includeInCoatings: sourceOp.include_in_coatings,
+          includeInLabor: sourceOp.includeInLabor,
+          includeInConsumables: sourceOp.includeInConsumables,
+          includeInCoatings: sourceOp.includeInCoatings,
           userId
         });
 

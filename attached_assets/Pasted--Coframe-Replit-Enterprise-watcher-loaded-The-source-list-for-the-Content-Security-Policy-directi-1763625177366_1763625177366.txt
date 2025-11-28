@@ -1,0 +1,243 @@
+ [Coframe] Replit Enterprise watcher loaded
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+/~:1 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+/~:1 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+/~:1 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+ 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+ Download the Apollo DevTools for a better development experience: https://chrome.google.com/webstore/detail/apollo-client-developer-t/jdkknkkbebbapilgoeccciglkfbmbnfm
+ [LaunchDarkly] LaunchDarkly client initialized
+ Adding extension: GPT-Replit - ChatGPT in your Repl. Object
+ Adding extension: CSV Editor Object
+ Adding extension: API Request Tester Object
+ Adding extension: AI Playground Object
+ Adding extension: UI Sketcher Object
+ Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+z @ ed1e693c96a75807.js:2
+ Unrecognized feature: 'ambient-light-sensor'.
+z @ ed1e693c96a75807.js:2
+ Unrecognized feature: 'battery'.
+z @ ed1e693c96a75807.js:2
+ Unrecognized feature: 'execution-while-not-rendered'.
+z @ ed1e693c96a75807.js:2
+ Unrecognized feature: 'execution-while-out-of-viewport'.
+z @ ed1e693c96a75807.js:2
+ Unrecognized feature: 'layout-animations'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'legacy-image-formats'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'navigation-override'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'oversized-images'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'publickey-credentials'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'speaker-selection'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'unoptimized-images'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'unsized-media'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Unrecognized feature: 'pointer-lock'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowfullscreen'.
+z @ ed1e693c96a75807.js:2
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowpaymentrequest'.
+z @ ed1e693c96a75807.js:2
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'ambient-light-sensor'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'battery'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'execution-while-not-rendered'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'layout-animations'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'legacy-image-formats'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'navigation-override'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'oversized-images'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'publickey-credentials'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'speaker-selection'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'unoptimized-images'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'unsized-media'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Allow attribute will take precedence over 'allowfullscreen'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/:1 Loading the script 'https://replit.com/public/js/replit-dev-banner.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+enhanced-consumables-tab.tsx:361  Failed to load resource: net::ERR_FAILED
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:142 Loading the script 'https://replit.com/public/js/beacon.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+onIframeLoad @ workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:142
+subcontractors-tab.tsx:216  Failed to load resource: net::ERR_FAILED
+coatings-tab.tsx:360  Failed to load resource: net::ERR_FAILED
+useBusinessSettings.ts:1  Failed to load resource: net::ERR_FAILED
+useEstimationDefaults.ts:1  Failed to load resource: net::ERR_FAILED
+useOperationOrchestrator.ts:1  Failed to load resource: net::ERR_FAILED
+EnhancedProjectForm.tsx:144  Failed to load resource: net::ERR_FAILED
+estimation-table.tsx:140  Failed to load resource: net::ERR_FAILED
+quote-generator.tsx:637  Failed to load resource: net::ERR_FAILED
+company-branding.tsx:197  Failed to load resource: net::ERR_FAILED
+office-locations.tsx:172  Failed to load resource: net::ERR_FAILED
+templates.tsx:4  Failed to load resource: net::ERR_FAILED
+email-configuration.tsx:238  Failed to load resource: net::ERR_FAILED
+terms-conditions.tsx:194  Failed to load resource: net::ERR_FAILED
+handling-costs.tsx:200  Failed to load resource: net::ERR_FAILED
+client-portal.tsx:181  Failed to load resource: net::ERR_FAILED
+e-signatures.tsx:102  Failed to load resource: net::ERR_FAILED
+branding-settings.tsx:154  Failed to load resource: net::ERR_FAILED
+data-management.tsx:254  Failed to load resource: net::ERR_FAILED
+EmailAccountsTab.tsx:179  Failed to load resource: net::ERR_FAILED
+ImportedCostsTab.tsx:73  Failed to load resource: net::ERR_FAILED
+CostVarianceTab.tsx:64  Failed to load resource: net::ERR_FAILED
+SupplierTemplatesTab.tsx:109  Failed to load resource: net::ERR_FAILED
+PdfViewerComponent.tsx:353  Failed to load resource: net::ERR_FAILED
+PriceFeedsTab.tsx:76  Failed to load resource: net::ERR_FAILED
+ApiConnectionsTab.tsx:91  Failed to load resource: net::ERR_FAILED
+PurchaseOrdersTab.tsx:79  Failed to load resource: net::ERR_FAILED
+PerformanceTab.tsx:75  Failed to load resource: net::ERR_FAILED
+WorkOrderTrackingTab.tsx:128  Failed to load resource: net::ERR_FAILED
+MachineMonitoringTab.tsx:86  Failed to load resource: net::ERR_FAILED
+QualityControlTab.tsx:212  Failed to load resource: net::ERR_FAILED
+ProductionMetricsTab.tsx:91  Failed to load resource: net::ERR_FAILED
+SafetyInspectionTab.tsx:156  Failed to load resource: net::ERR_FAILED
+FinancialAnalyticsTab.tsx:114  Failed to load resource: net::ERR_FAILED
+CashFlowManagementTab.tsx:191  Failed to load resource: net::ERR_FAILED
+CostAnalysisTab.tsx:181  Failed to load resource: net::ERR_FAILED
+BudgetTrackingTab.tsx:120  Failed to load resource: net::ERR_FAILED
+JobCostingAnalytics.tsx:129  Failed to load resource: net::ERR_FAILED
+ExecutiveReportingDashboard.tsx:154  Failed to load resource: net::ERR_FAILED
+skeleton.tsx:8  Failed to load resource: net::ERR_FAILED
+CapacityPlanningTab.tsx:46  Failed to load resource: net::ERR_FAILED
+LaborAllocationTab.tsx:46  Failed to load resource: net::ERR_FAILED
+EquipmentSchedulingTab.tsx:60  Failed to load resource: net::ERR_FAILED
+ProjectTimelineTab.tsx:39  Failed to load resource: net::ERR_FAILED
+labelPrinter.ts:22  Failed to load resource: net::ERR_FAILED
+offlineSync.ts:2  Failed to load resource: net::ERR_FAILED
+toggle.tsx:34  Failed to load resource: net::ERR_FAILED
+scroll-area.tsx:15  Failed to load resource: net::ERR_FAILED
+simple-cutting-optimizer.ts:47  Failed to load resource: net::ERR_FAILED
+standard-cutting-plan.tsx:233  Failed to load resource: net::ERR_FAILED
+simulation-history.tsx:121  Failed to load resource: net::ERR_FAILED
+recharts.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+CreateRequisitionDialog.tsx:186  Failed to load resource: net::ERR_FAILED
+RequisitionDetailsDialog.tsx:205  Failed to load resource: net::ERR_FAILED
+RejectRequisitionDialog.tsx:48  Failed to load resource: net::ERR_FAILED
+ResubmitRequisitionDialog.tsx:49  Failed to load resource: net::ERR_FAILED
+PurchaseOrdersView.tsx:166  Failed to load resource: net::ERR_FAILED
+RFQManagementView.tsx:406  Failed to load resource: net::ERR_FAILED
+QuotesComparisonView.tsx:381  Failed to load resource: net::ERR_FAILED
+ConvertToPODialog.tsx:155  Failed to load resource: net::ERR_FAILED
+AuditLogViewer.tsx:71  Failed to load resource: net::ERR_FAILED
+DocumentHistoryView.tsx:39  Failed to load resource: net::ERR_FAILED
+LEL Symbol black only.png:1  Failed to load resource: net::ERR_FAILED
+avatar.tsx:12  Failed to load resource: net::ERR_FAILED
+chunk-6LQQUYCN.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-545JO3F6.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-SBO4SQHK.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-OMDPF3XN.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-6MTKRYAT.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-VJ3IH7GN.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-7GLZXUXQ.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-5Q5YC75F.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-5ZB7HMJW.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-OXZDJRWN.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-KCFVMCIE.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-IWFJIMEQ.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-LHPXHTGV.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-JDYSANEB.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-slot.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+class-variance-authority.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+clsx.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+tailwind-merge.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-toast.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-label.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-separator.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-progress.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+job-edit-modal.tsx:103  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-select.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-tabs.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-dialog.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+enhanced-steel-catalogue-table.tsx:124  Failed to load resource: net::ERR_FAILED
+material-edit-modal.tsx:124  Failed to load resource: net::ERR_FAILED
+consumable-add-modal.tsx:167  Failed to load resource: net::ERR_FAILED
+chunk-4BFJKWC4.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-switch.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-6PJ6ZD5Z.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-alert-dialog.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-toggle-group.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+collapsible.tsx:1  Failed to load resource: net::ERR_FAILED
+WorkshopInductionModal.tsx:16  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-dropdown-menu.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+chunk-UAMM46Q3.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+address-search.tsx:218  Failed to load resource: net::ERR_FAILED
+contact-management-tab.tsx:363  Failed to load resource: net::ERR_FAILED
+locations-manager.tsx:343  Failed to load resource: net::ERR_FAILED
+offline-storage.ts:2  Failed to load resource: net::ERR_FAILED
+googleMaps.ts:16  Failed to load resource: net::ERR_FAILED
+@radix-ui_react-slider.js?v=4dc94f4a:1  Failed to load resource: net::ERR_FAILED
+PhotoCapture.tsx:167  Failed to load resource: net::ERR_FAILED
+sw.js:169 [Service Worker] Script loaded. Version: steeliq-dev-bypass-v1, Environment: DEVELOPMENT (No Caching)
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/:1 Loading the script 'https://replit.com/public/js/replit-dev-banner.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+main.tsx:99 Attempting to render React app...
+main.tsx:101 React app render initiated
+App.tsx:316 App component is rendering
+js?key=AIzaSyBEEa2BPkoP1oDArOsiJuJ5u_g3YvNAPso&libraries=geocoding&v=weekly:316 Google Maps JavaScript API has been loaded directly without loading=async. This can result in suboptimal performance. For best-practice loading patterns please see https://goo.gle/js-api-loading
+iea @ js?key=AIzaSyBEEa2BPkoP1oDArOsiJuJ5u_g3YvNAPso&libraries=geocoding&v=weekly:316
+main.tsx:16 [Main] Clearing all caches and service workers...
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:142 Loading the script 'https://replit.com/public/js/beacon.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+onIframeLoad @ workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:142
+main.tsx:27 [Main] All caches cleared
+main.tsx:33 [Main] Unregistering service worker: https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/
+main.tsx:39 [Main] Registering development bypass service worker...
+main.tsx:62 [Main] Development service worker registered (no caching)
+76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/api/auth/user:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/api/analytics/executive-metrics:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/api/analytics/department-performance:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/api/analytics/risk-assessment:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/api/time/summary/2025-11-20:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/api/time/timesheets?startDate=2025-11-16&endDate=2025-11-22:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/api/time/clock:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)

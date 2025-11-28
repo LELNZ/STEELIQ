@@ -91,7 +91,7 @@ interface GlobalSettings {
     cadSoftware: string;
     crmSystem: string;
     emailProvider: string;
-    smsProvider: string;
+    whatsappProvider: string;
     weatherAPI: boolean;
     mapService: string;
     cloudStorage: string;
@@ -216,7 +216,7 @@ const defaultGlobalSettings: GlobalSettings = {
     cadSoftware: 'AutoCAD',
     crmSystem: '',
     emailProvider: 'SMTP',
-    smsProvider: '',
+    whatsappProvider: '',
     weatherAPI: true,
     mapService: 'Google Maps',
     cloudStorage: 'Replit Storage'

@@ -85,7 +85,7 @@ export default function ContactsPage() {
   // Create supplier mutation
   const createSupplierMutation = useMutation({
     mutationFn: async (supplierData: SupplierFormData) => {
-      return apiRequest("POST", "/api/suppliers", supplierData);
+      return apiRequest("/api/suppliers", "POST", supplierData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
@@ -100,7 +100,7 @@ export default function ContactsPage() {
   // Update supplier mutation
   const updateSupplierMutation = useMutation({
     mutationFn: async (supplierData: SupplierFormData & { id: number }) => {
-      return apiRequest("PATCH", `/api/suppliers/${supplierData.id}`, supplierData);
+      return apiRequest(`/api/suppliers/${supplierData.id}`, "PATCH", supplierData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
@@ -115,7 +115,7 @@ export default function ContactsPage() {
   // Delete supplier mutation
   const deleteSupplierMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest("DELETE", `/api/suppliers/${id}`);
+      return apiRequest(`/api/suppliers/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
@@ -242,7 +242,7 @@ export default function ContactsPage() {
   // Delete client mutation
   const deleteClientMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest("DELETE", `/api/clients/${id}`);
+      return apiRequest(`/api/clients/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });

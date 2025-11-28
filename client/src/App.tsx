@@ -5,7 +5,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
+import { ThemeProvider } from "@/contexts/theme-context";
+import { GeolocationProvider } from "@/contexts/geolocation-context";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { NotificationProvider } from "@/hooks/useNotifications";
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RoleRouter } from "@/components/auth/RoleRouter";
@@ -30,11 +33,30 @@ import ClientPortal from "@/pages/client-portal";
 import Contacts from "@/pages/contacts";
 
 import UserPreferences from "@/pages/user-preferences";
+import NotificationPreferences from "@/pages/notification-preferences";
+import NotificationPreferencesReport from "@/pages/notification-preferences-report";
+import NotificationRolePolicies from "@/pages/notification-role-policies";
+import NotificationsPage from "@/pages/notifications";
+import WhatsAppTest from "@/pages/whatsapp-test";
 import TeamManagement from "@/pages/team-management";
 import EmployeeProfile from "@/pages/employee-profile";
 import FinancialSettings from "@/pages/settings/financial";
 import OperationsSettingsNew from "@/pages/operations-settings-new";
 import TimePayroll from "@/pages/time-payroll";
+import TimeAnalyticsDashboard from "@/pages/TimeAnalyticsDashboard";
+import TimeReportingSystem from "@/pages/TimeReportingSystem";
+
+// Wave 1.5 Time Management Components
+import { BulkCorrectionManager } from "@/components/time/BulkCorrectionManager";
+import { KioskModePage } from "@/components/time/KioskModePage";
+import { ShiftReminderConfigurator } from "@/components/time/ShiftReminderConfigurator";
+import { GeofenceDesigner } from "@/components/time/GeofenceDesigner";
+import { BatteryOptimizationSettings } from "@/components/time/BatteryOptimizationSettings";
+import SupervisorAnomalyConsole from "@/components/time/SupervisorAnomalyConsole";
+import { FraudRiskDashboard } from "@/components/time/FraudRiskDashboard";
+import { AutomatedShiftScheduler } from "@/components/time/AutomatedShiftScheduler";
+import { ShiftSwapWorkflow } from "@/components/time/ShiftSwapWorkflow";
+
 import ProjectLifecycleTracker from "@/pages/project-lifecycle-tracker";
 import LifecycleTemplates from "@/pages/lifecycle-templates";
 import EstimationPipeline from "@/pages/estimation-pipeline";
@@ -54,9 +76,12 @@ import Optimization from "@/pages/optimization";
 import MobileOperations from "@/pages/mobile-operations";
 import AIDashboard from "@/pages/AIDashboard";
 import AIControlCenter from "@/pages/AIControlCenter";
+import FeatureDashboard from "@/pages/feature-dashboard";
+import TestEmailPage from "@/pages/TestEmailPage";
 
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/topbar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -152,6 +177,31 @@ function Router() {
             <FinancialSettings />
           </ProtectedRoute>
         </Route>
+        <Route path="/notification-preferences">
+          <ProtectedRoute>
+            <NotificationPreferences />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/notifications/policies">
+          <ProtectedRoute requiredRole={['owner', 'admin']}>
+            <NotificationRolePolicies />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/notifications/preferences-report">
+          <ProtectedRoute requiredRole={['owner', 'admin']}>
+            <NotificationPreferencesReport />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/notifications">
+          <ProtectedRoute>
+            <NotificationsPage />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/whatsapp-test">
+          <ProtectedRoute requiredRole={['owner', 'admin']}>
+            <WhatsAppTest />
+          </ProtectedRoute>
+        </Route>
         <Route path="/settings/financial">
           <ProtectedRoute requiredPermissions={['viewCosts', 'manageRates']}>
             <FinancialSettings />
@@ -170,6 +220,11 @@ function Router() {
         <Route path="/settings/audit-center">
           <ProtectedRoute requiredPermissions={['auditLogs']}>
             <AuditCenter />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/settings/features">
+          <ProtectedRoute requiredRole={['owner', 'admin', 'full']}>
+            <FeatureDashboard />
           </ProtectedRoute>
         </Route>
         <Route path="/organization-settings">
@@ -195,8 +250,83 @@ function Router() {
           </ProtectedRoute>
         </Route>
         <Route path="/time-payroll">
-          <ProtectedRoute requiredPermissions={['viewCosts', 'manageRates']}>
+          <ProtectedRoute>
+            {/* Employee self-service time clock - accessible to all authenticated users */}
             <TimePayroll />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/time-analytics">
+          <ProtectedRoute requiredPermissions={['timeAnalyticsView']}>
+            {/* Admin-only analytics dashboard - restricted to system admins */}
+            <TimeAnalyticsDashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/time-reports">
+          <ProtectedRoute requiredPermissions={['timeReportsProcess']}>
+            {/* Admin-only reporting system - restricted to system admins */}
+            <TimeReportingSystem />
+          </ProtectedRoute>
+        </Route>
+        
+        {/* Wave 1.5 Time Management Routes */}
+        <Route path="/time/bulk-corrections">
+          <ProtectedRoute requiredPermissions={['manage_time_entries']}>
+            <BulkCorrectionManager />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/time/kiosk">
+          <ProtectedRoute requiredRole={['owner', 'admin', 'supervisor', 'full']}>
+            <KioskModePage />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/time/shift-reminders">
+          <ProtectedRoute requiredRole={['owner', 'admin', 'supervisor', 'full']}>
+            <ShiftReminderConfigurator />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/time/geofences">
+          <ProtectedRoute requiredRole={['owner', 'admin', 'full']}>
+            <GeofenceDesigner />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/time/battery-optimization">
+          <ProtectedRoute requiredRole={['owner', 'admin', 'full']}>
+            <BatteryOptimizationSettings />
+          </ProtectedRoute>
+        </Route>
+        
+        {/* Wave 5.1 ML Anomaly Detection Console */}
+        <Route path="/time/anomaly-console">
+          <ProtectedRoute requiredRole={['owner', 'admin', 'supervisor', 'full']}>
+            <SupervisorAnomalyConsole />
+          </ProtectedRoute>
+        </Route>
+        
+        {/* Wave 5.2 Fraud Prevention Dashboard */}
+        <Route path="/time/fraud-dashboard">
+          <ProtectedRoute requiredRole={['owner', 'admin', 'supervisor', 'full']}>
+            <FraudRiskDashboard />
+          </ProtectedRoute>
+        </Route>
+        
+        {/* Wave 5.3 AI Scheduling */}
+        <Route path="/time/ai-scheduling">
+          <ProtectedRoute requiredRole={['owner', 'admin', 'supervisor', 'full']}>
+            <AutomatedShiftScheduler />
+          </ProtectedRoute>
+        </Route>
+        
+        {/* Wave 5.3 Shift Swap Workflow */}
+        <Route path="/time/shift-swaps">
+          <ProtectedRoute requiredRole={['owner', 'admin', 'supervisor', 'full']}>
+            <ShiftSwapWorkflow />
+          </ProtectedRoute>
+        </Route>
+        
+        {/* Email Test Page - Admin and above */}
+        <Route path="/test-email">
+          <ProtectedRoute requiredRole={['owner', 'admin', 'supervisor', 'full']}>
+            <TestEmailPage />
           </ProtectedRoute>
         </Route>
         
@@ -240,6 +370,7 @@ function Router() {
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
+  const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('sidebarCollapsed') === 'true';
@@ -253,15 +384,21 @@ function Layout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const toggleSidebarCollapse = () => {
-    const newCollapsed = !isSidebarCollapsed;
-    setIsSidebarCollapsed(newCollapsed);
-    localStorage.setItem('sidebarCollapsed', newCollapsed.toString());
+  const handleMenuClick = () => {
+    if (isMobile) {
+      // On mobile, toggle the sidebar open/closed
+      setIsSidebarOpen(!isSidebarOpen);
+    } else {
+      // On desktop, toggle the sidebar collapsed/expanded
+      const newCollapsed = !isSidebarCollapsed;
+      setIsSidebarCollapsed(newCollapsed);
+      localStorage.setItem('sidebarCollapsed', newCollapsed.toString());
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <TopBar onMenuClick={toggleSidebarCollapse} />
+      <TopBar onMenuClick={handleMenuClick} />
       <div className="flex min-h-screen pt-0">
         {/* Mobile sidebar overlay */}
         <div 
@@ -275,7 +412,10 @@ function Layout({ children }: { children: React.ReactNode }) {
         <div className={`${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } md:translate-x-0 fixed md:relative transition-transform duration-200 z-50 md:z-auto`}>
-          <Sidebar isCollapsed={isSidebarCollapsed} />
+          <Sidebar 
+            isCollapsed={isMobile ? false : isSidebarCollapsed} 
+            onNavigate={() => isMobile && setIsSidebarOpen(false)} 
+          />
         </div>
         
         <main className="flex-1 p-2 sm:p-4 md:p-6 pb-20 max-w-full overflow-x-hidden">
@@ -287,18 +427,25 @@ function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  console.log("App component is rendering");
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <TooltipProvider>
-            <Layout>
-              <Router />
-            </Layout>
-            <Toaster />
-            <PwaInstallPrompt />
-          </TooltipProvider>
-        </AuthProvider>
+        <ThemeProvider defaultTheme="system" storageKey="steeliq-ui-theme">
+          <AuthProvider>
+            <GeolocationProvider>
+              <NotificationProvider>
+                <TooltipProvider>
+                  <Layout>
+                    <Router />
+                  </Layout>
+                  <Toaster />
+                  <PwaInstallPrompt />
+                </TooltipProvider>
+              </NotificationProvider>
+            </GeolocationProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

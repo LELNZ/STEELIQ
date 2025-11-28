@@ -432,7 +432,7 @@ export function ExecutiveReportingDashboard() {
 
       {/* Main Dashboard Tabs */}
       <Tabs value={selectedView} onValueChange={setSelectedView} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="overview">Strategic Overview</TabsTrigger>
           <TabsTrigger value="financial">Financial Performance</TabsTrigger>
           <TabsTrigger value="operational">Operational Excellence</TabsTrigger>

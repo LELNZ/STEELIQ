@@ -12,7 +12,9 @@ import {
   Globe,
   PenTool,
   Brush,
-  Database
+  Database,
+  Bell,
+  Wallet
 } from "lucide-react";
 import CompanyBranding from "@/components/organization-settings/company-branding";
 import OfficeLocations from "@/components/organization-settings/office-locations";
@@ -24,6 +26,9 @@ import ClientPortal from "@/components/organization-settings/client-portal";
 import ESignatures from "@/components/organization-settings/e-signatures";
 import BrandingSettings from "@/components/organization-settings/branding-settings";
 import DataManagement from "@/components/organization-settings/data-management";
+import PayrollIntegrations from "@/components/organization-settings/payroll-integrations";
+import NotificationPreferences from "./notification-preferences";
+import NotificationRolePolicies from "./notification-role-policies";
 
 export default function OrganizationSettings() {
   const [activeTab, setActiveTab] = useState("branding");
@@ -79,6 +84,14 @@ export default function OrganizationSettings() {
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Data</span>
           </TabsTrigger>
+          <TabsTrigger value="payroll" className="flex items-center gap-2">
+            <Wallet className="h-4 w-4" />
+            <span className="hidden sm:inline">Payroll</span>
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            <span className="hidden sm:inline">Notifications</span>
+          </TabsTrigger>
         </TabsList>
 
         <Card className="p-6">
@@ -120,6 +133,25 @@ export default function OrganizationSettings() {
 
           <TabsContent value="data" className="mt-0">
             <DataManagement />
+          </TabsContent>
+
+          <TabsContent value="payroll" className="mt-0">
+            <PayrollIntegrations />
+          </TabsContent>
+
+          <TabsContent value="notifications" className="mt-0">
+            <Tabs defaultValue="preferences" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="preferences">Personal Preferences</TabsTrigger>
+                <TabsTrigger value="policies">Role Policies (Admin)</TabsTrigger>
+              </TabsList>
+              <TabsContent value="preferences" className="mt-6">
+                <NotificationPreferences />
+              </TabsContent>
+              <TabsContent value="policies" className="mt-6">
+                <NotificationRolePolicies />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Card>
       </Tabs>

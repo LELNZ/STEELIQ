@@ -232,32 +232,34 @@ export default function PurchaseOrdersView() {
       {/* Purchase Orders List */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <CardTitle>Purchase Orders</CardTitle>
               <CardDescription>Manage and track purchase orders</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-none">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search POs..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 w-[200px]"
+                  className="pl-8 w-full sm:w-[200px]"
                 />
               </div>
-              <Button 
-                variant="outline" 
-                onClick={() => setArchiveDialogOpen(true)}
-                className="gap-2"
-              >
-                <Archive className="h-4 w-4" />
-                Archive
-              </Button>
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setArchiveDialogOpen(true)}
+                  className="gap-2 flex-1 sm:flex-none"
+                >
+                  <Archive className="h-4 w-4" />
+                  Archive
+                </Button>
+                <Button variant="outline" size="icon">
+                  <Filter className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>

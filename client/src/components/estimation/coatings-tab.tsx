@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,15 +9,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator, Trash2, Plus, Building2, Users, Palette, Search, FileText, Shield, Clock, Layers } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Calculator, Trash2, Plus, Building2, Users, Palette, Search, FileText, Shield, Clock, Layers, Package, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 interface CoatingCost {
-  id: string;
+  id: number; // Database-backed ID
+  projectId: number;
   designation?: string; // Material designation (e.g., C1, B2, PL1)
-  operationDesignation?: string; // Operation designation (e.g., C1-paint-1, B2-blast-2)
+  parentMaterialId?: number; // Reference to parent material for proper grouping
+  operationId?: number; // Direct link to operation for tracking
+  operationDesignation?: string; // Operation designation (e.g., C1-310-paint-1, B2-400-blast-2)
+  operationType?: string; // Type of operation that created this coating need
   coatingName: string;
   coatingType: "paint" | "galvanizing" | "powder_coating";
   category: "primer" | "topcoat" | "finish" | "protective";
@@ -34,22 +40,128 @@ interface CoatingCost {
 }
 
 interface CoatingsTabProps {
+  projectId?: number;
   coatings: CoatingCost[];
   onCoatingsChange: (coatings: CoatingCost[]) => void;
   materials?: any[]; // Materials from materials tab for auto-calculation
 }
 
-export default function CoatingsTab({ coatings, onCoatingsChange, materials = [] }: CoatingsTabProps) {
+export default function CoatingsTab({ projectId, coatings, onCoatingsChange, materials = [] }: CoatingsTabProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingCoating, setEditingCoating] = useState<CoatingCost | null>(null);
   const [selectedCoatingSystemId, setSelectedCoatingSystemId] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const { toast } = useToast();
   
   // Query coating systems from material library
   const { data: coatingSystems = [] } = useQuery({
     queryKey: ["/api/coating-systems"]
+  });
+
+  // Fetch coatings from database
+  const { data: coatingItems, isLoading, refetch } = useQuery({
+    queryKey: ['/api/estimation/projects', projectId, 'coatings'],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const response = await fetch(`/api/estimation/projects/${projectId}/coatings`);
+      if (!response.ok) throw new Error('Failed to fetch coating items');
+      return response.json();
+    },
+    enabled: !!projectId
+  });
+
+  // Sync database items with local state
+  useEffect(() => {
+    if (coatingItems && coatingItems.length > 0) {
+      onCoatingsChange(coatingItems);
+    }
+  }, [coatingItems, onCoatingsChange]);
+
+  // Create coating mutation
+  const createCoatingMutation = useMutation({
+    mutationFn: async (coatingData: Partial<CoatingCost>) => {
+      if (!projectId) {
+        throw new Error('Project ID is required');
+      }
+      
+      return apiRequest(`/api/estimation/projects/${projectId}/coatings`, {
+        method: 'POST',
+        body: JSON.stringify(coatingData)
+      });
+    },
+    onSuccess: (newCoating) => {
+      const updatedCoatings = [...coatings, newCoating];
+      onCoatingsChange(updatedCoatings);
+      
+      toast({
+        title: "Coating added",
+        description: "Coating has been saved to the database"
+      });
+      
+      refetch();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error adding coating",
+        description: error.message || "Failed to save coating",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Update coating mutation
+  const updateCoatingMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: number; updates: Partial<CoatingCost> }) => {
+      return apiRequest(`/api/estimation/coatings/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates)
+      });
+    },
+    onSuccess: (updatedItem) => {
+      const updatedCoatings = coatings.map(item => 
+        item.id === updatedItem.id ? updatedItem : item
+      );
+      onCoatingsChange(updatedCoatings);
+      
+      toast({
+        title: "Coating updated",
+        description: "Changes have been saved"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating coating",
+        description: error.message || "Failed to update coating",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete coating mutation
+  const deleteCoatingMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/estimation/coatings/${id}`, {
+        method: 'DELETE'
+      });
+    },
+    onSuccess: (_, deletedId) => {
+      const updatedCoatings = coatings.filter(item => item.id !== deletedId);
+      onCoatingsChange(updatedCoatings);
+      
+      toast({
+        title: "Coating removed",
+        description: "Coating has been deleted"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error removing coating",
+        description: error.message || "Failed to delete coating",
+        variant: "destructive"
+      });
+    }
   });
 
   // Calculate total surface area and weight from materials for auto-population
@@ -59,6 +171,72 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
   const totalMaterialWeight = materials.reduce((sum, material) => 
     sum + (material.totalWeight || 0), 0
   );
+  
+  // Group coating items by parent material ID for true parent-child relationship
+  const groupedCoatings = useMemo(() => {
+    const groups: { [key: string]: { designation: string; items: CoatingCost[] } } = {};
+    
+    coatings.forEach(item => {
+      // Use parentMaterialId as primary grouping key, fallback to designation
+      const groupKey = item.parentMaterialId ? item.parentMaterialId.toString() : (item.designation || 'Unassigned');
+      const displayDesignation = item.designation || 'Unassigned';
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
+          designation: displayDesignation,
+          items: []
+        };
+      }
+      groups[groupKey].items.push(item);
+    });
+    
+    // Sort groups by designation
+    const sortedGroups = Object.keys(groups).sort((a, b) => {
+      if (a === 'Unassigned') return 1;
+      if (b === 'Unassigned') return -1;
+      const desA = groups[a].designation;
+      const desB = groups[b].designation;
+      return desA.localeCompare(desB);
+    });
+    
+    const result: { [key: string]: { designation: string; items: CoatingCost[] } } = {};
+    sortedGroups.forEach(key => {
+      result[key] = groups[key];
+    });
+    
+    return result;
+  }, [coatings]);
+
+  // Calculate summary for a group
+  const getGroupSummary = (items: CoatingCost[]) => {
+    const totalSurfaceArea = items.reduce((sum, item) => sum + (item.surfaceArea || 0), 0);
+    const totalCost = items.reduce((sum, item) => sum + item.totalCost, 0);
+    const coatingCount = items.length;
+    
+    return {
+      totalSurfaceArea,
+      totalCost,
+      coatingCount
+    };
+  };
+
+  // Toggle group expansion
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupKey) 
+        ? prev.filter(key => key !== groupKey)
+        : [...prev, groupKey]
+    );
+  };
+
+  // Toggle all groups
+  const toggleAllGroups = (expand: boolean) => {
+    if (expand) {
+      setExpandedGroups(Object.keys(groupedCoatings));
+    } else {
+      setExpandedGroups([]);
+    }
+  };
   
   // Extract unique coating categories
   const coatingCategories = useMemo(() => {
@@ -123,7 +301,7 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
 
   const handleAddCoating = async () => {
     const isGalvanizing = newCoating.coatingType === "galvanizing";
-    const hasValidMeasurement = isGalvanizing ? newCoating.weightKg > 0 : newCoating.surfaceArea > 0;
+    const hasValidMeasurement = isGalvanizing ? (newCoating.weightKg || 0) > 0 : (newCoating.surfaceArea || 0) > 0;
     
     // Only require coating name and measurement - allow 0 unit cost for editing
     if (!newCoating.coatingName || !hasValidMeasurement) {
@@ -135,44 +313,32 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
       return;
     }
 
-    const coating: CoatingCost = {
+    const coatingData: Partial<CoatingCost> = {
+      projectId: projectId,
       ...newCoating,
-      id: `coating-${Date.now()}`,
       totalCost: calculateTotal(newCoating)
     };
 
-    onCoatingsChange([...coatings, coating]);
+    createCoatingMutation.mutate(coatingData);
     setNewCoating(defaultCoating);
     setShowAddDialog(false);
-    
-    toast({
-      title: "Coating Added",
-      description: `${coating.coatingName} has been added to the estimation`
-    });
   };
 
-  const handleUpdateCoating = (id: string, updates: Partial<CoatingCost>) => {
-    const updatedCoatings = coatings.map(coating => {
-      if (coating.id === id) {
-        const updated = { ...coating, ...updates };
-        if ('surfaceArea' in updates || 'weightKg' in updates || 'coats' in updates || 'unitCost' in updates || 'coatingType' in updates) {
-          updated.totalCost = calculateTotal(updated);
-        }
-        return updated;
+  const handleUpdateCoating = (id: number, updates: Partial<CoatingCost>) => {
+    // Calculate totalCost if relevant fields change
+    if ('surfaceArea' in updates || 'weightKg' in updates || 'coats' in updates || 'unitCost' in updates || 'coatingType' in updates) {
+      const item = coatings.find(c => c.id === id);
+      if (item) {
+        const updated = { ...item, ...updates };
+        updates.totalCost = calculateTotal(updated);
       }
-      return coating;
-    });
-    onCoatingsChange(updatedCoatings);
+    }
+    
+    updateCoatingMutation.mutate({ id, updates });
   };
 
-  const handleRemoveCoating = (id: string) => {
-    const updatedCoatings = coatings.filter(coating => coating.id !== id);
-    onCoatingsChange(updatedCoatings);
-    
-    toast({
-      title: "Coating Removed",
-      description: "Coating has been removed from the estimation"
-    });
+  const handleRemoveCoating = (id: number) => {
+    deleteCoatingMutation.mutate(id);
   };
 
   const getTotalCost = () => {
@@ -187,6 +353,15 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading coatings...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -456,7 +631,7 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
               </TabsContent>
               
               <TabsContent value="custom" className="space-y-3 mt-3 h-[calc(85vh-120px)] overflow-y-auto">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label htmlFor="coatingName" className="text-sm">Coating Name *</Label>
                     <Input
@@ -615,7 +790,7 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
         </Dialog>
       </div>
 
-      {/* Coatings List */}
+      {/* Coatings Grouped by Parent Designation */}
       {coatings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-8">
@@ -633,112 +808,165 @@ export default function CoatingsTab({ coatings, onCoatingsChange, materials = []
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {coatings.map((coating) => (
-            <Card key={coating.id}>
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="flex flex-col mr-3">
-                        <span className="text-xs text-muted-foreground">Designation</span>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-sm">{coating.designation || '-'}</span>
-                          <span className="text-xs text-muted-foreground">{coating.operationDesignation || '-'}</span>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Coatings Breakdown by Material Designation</CardTitle>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => toggleAllGroups(true)}
+                >
+                  Expand All
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => toggleAllGroups(false)}
+                >
+                  Collapse All
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Accordion type="multiple" value={expandedGroups} className="w-full">
+              {Object.entries(groupedCoatings).map(([materialId, group]) => {
+                const summary = getGroupSummary(group.items);
+                return (
+                  <AccordionItem key={materialId} value={materialId}>
+                    <AccordionTrigger onClick={() => toggleGroup(materialId)}>
+                      <div className="flex items-center justify-between w-full pr-4">
+                        <div className="flex items-center gap-3">
+                          <Badge className="text-sm font-semibold">
+                            {group.designation}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {summary.coatingCount} coating{summary.coatingCount !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm">
+                            <Layers className="inline h-4 w-4 mr-1" />
+                            {summary.totalSurfaceArea.toFixed(1)} m²
+                          </span>
+                          <span className="text-sm font-medium">
+                            ${summary.totalCost.toLocaleString()}
+                          </span>
                         </div>
                       </div>
-                      <Separator orientation="vertical" className="h-8 mx-2" />
-                      <h4 className="font-medium">{coating.coatingName}</h4>
-                      <Badge className={getCoatingTypeColor(coating.coatingType || 'paint')}>
-                        {(coating.coatingType || 'paint').replace('_', ' ')}
-                      </Badge>
-                      <Badge variant="outline">{coating.category || 'protective'}</Badge>
-                      {coating.isInhouse ? (
-                        <Badge variant="secondary">
-                          <Building2 className="w-3 h-3 mr-1" />
-                          In-house
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline">
-                          <Users className="w-3 h-3 mr-1" />
-                          {coating.supplier || 'Subcontracted'}
-                        </Badge>
-                      )}
-                    </div>
-                    {coating.notes && (
-                      <p className="text-sm text-gray-600">{coating.notes}</p>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveCoating(coating.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-5 gap-4 text-sm">
-                  <div>
-                    <Label className="text-xs text-gray-500">Surface Area</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={coating.surfaceArea}
-                      onChange={(e) => handleUpdateCoating(coating.id, { surfaceArea: parseFloat(e.target.value) || 0 })}
-                      className="mt-1"
-                    />
-                    <span className="text-xs text-gray-500">m²</span>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-xs text-gray-500">Coats</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={coating.coats}
-                      onChange={(e) => handleUpdateCoating(coating.id, { coats: parseInt(e.target.value) || 1 })}
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label className="text-xs text-gray-500">Unit Cost</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={coating.unitCost}
-                      onChange={(e) => handleUpdateCoating(coating.id, { unitCost: parseFloat(e.target.value) || 0 })}
-                      className="mt-1"
-                    />
-                    <span className="text-xs text-gray-500">$/m²</span>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-xs text-gray-500">Total Cost</Label>
-                    <div className="mt-1 p-2 bg-gray-50 rounded text-right font-medium">
-                      ${coating.totalCost.toFixed(2)}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const updated = calculateTotal(coating);
-                        handleUpdateCoating(coating.id, { totalCost: updated });
-                      }}
-                    >
-                      <Calculator className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3">
+                        {group.items.map((coating) => (
+                          <Card key={coating.id}>
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs text-muted-foreground">
+                                      {coating.operationDesignation || '-'}
+                                    </span>
+                                    <Separator orientation="vertical" className="h-4" />
+                                    <h4 className="font-medium">{coating.coatingName}</h4>
+                                    <Badge className={getCoatingTypeColor(coating.coatingType || 'paint')}>
+                                      {(coating.coatingType || 'paint').replace('_', ' ')}
+                                    </Badge>
+                                    <Badge variant="outline">{coating.category || 'protective'}</Badge>
+                                    {coating.isInhouse ? (
+                                      <Badge variant="secondary">
+                                        <Building2 className="w-3 h-3 mr-1" />
+                                        In-house
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline">
+                                        <Users className="w-3 h-3 mr-1" />
+                                        {coating.supplier || 'Subcontracted'}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {coating.notes && (
+                                    <p className="text-sm text-gray-600">{coating.notes}</p>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveCoating(coating.id)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
+                                <div>
+                                  <Label className="text-xs text-gray-500">Surface Area</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={coating.surfaceArea}
+                                    onChange={(e) => handleUpdateCoating(coating.id, { surfaceArea: parseFloat(e.target.value) || 0 })}
+                                    className="mt-1"
+                                  />
+                                  <span className="text-xs text-gray-500">m²</span>
+                                </div>
+                                
+                                <div>
+                                  <Label className="text-xs text-gray-500">Coats</Label>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={coating.coats}
+                                    onChange={(e) => handleUpdateCoating(coating.id, { coats: parseInt(e.target.value) || 1 })}
+                                    className="mt-1"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label className="text-xs text-gray-500">Unit Cost</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={coating.unitCost}
+                                    onChange={(e) => handleUpdateCoating(coating.id, { unitCost: parseFloat(e.target.value) || 0 })}
+                                    className="mt-1"
+                                  />
+                                  <span className="text-xs text-gray-500">$/m²</span>
+                                </div>
+                                
+                                <div>
+                                  <Label className="text-xs text-gray-500">Total Cost</Label>
+                                  <div className="mt-1 p-2 bg-gray-50 rounded text-right font-medium">
+                                    ${coating.totalCost.toFixed(2)}
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-end">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      const updated = calculateTotal(coating);
+                                      handleUpdateCoating(coating.id, { totalCost: updated });
+                                    }}
+                                  >
+                                    <Calculator className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </CardContent>
+        </Card>
       )}
 
       {/* Summary */}

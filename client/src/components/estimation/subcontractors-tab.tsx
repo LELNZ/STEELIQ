@@ -17,7 +17,7 @@ import type { Supplier, InsertSupplier } from "@shared/schema";
 import { SupplierForm } from "@/components/forms/supplier-form";
 
 interface SubcontractorCost {
-  id: string;
+  id?: number; // Changed to optional number for database-backed IDs  
   contractor: string;
   service: string;
   description: string;
@@ -59,7 +59,7 @@ const COMMON_SERVICES = [
 
 export function SubcontractorsTab({ subcontractors, setSubcontractors }: SubcontractorsTabProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState<Partial<SubcontractorCost>>({
     contractor: "",
     service: "",
@@ -129,7 +129,8 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
     }
 
     const newSubcontractor: SubcontractorCost = {
-      id: Date.now().toString(),
+      // Don't assign an ID - let the database handle it when saved
+      // The parent component should handle database persistence
       contractor: formData.contractor,
       service: formData.service,
       description: formData.description || "",
@@ -148,7 +149,10 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
     };
 
     if (editingId) {
-      setSubcontractors((subcontractors || []).map(s => s.id === editingId ? newSubcontractor : s));
+      // Keep the existing ID when editing
+      setSubcontractors((subcontractors || []).map(s => 
+        s.id === editingId ? { ...newSubcontractor, id: editingId } : s
+      ));
       setEditingId(null);
     } else {
       console.log("Adding new subcontractor:", newSubcontractor);
@@ -171,11 +175,13 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
     setShowAddDialog(true);
   };
 
-  const handleRemove = (id: string) => {
+  const handleRemove = (id: number | undefined) => {
+    if (id === undefined) return;
     setSubcontractors((subcontractors || []).filter(s => s.id !== id));
   };
 
-  const updateMarkup = (id: string, markup: number) => {
+  const updateMarkup = (id: number | undefined, markup: number) => {
+    if (id === undefined) return;
     setSubcontractors((subcontractors || []).map(s => {
       if (s.id === id) {
         const totalCost = s.quotedAmount * (1 + markup / 100);
@@ -205,17 +211,17 @@ export function SubcontractorsTab({ subcontractors, setSubcontractors }: Subcont
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <CardTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5" />
               Subcontractors
             </CardTitle>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="text-left sm:text-right">
                 <p className="text-sm text-muted-foreground">Total Subcontract Cost</p>
                 <p className="text-2xl font-bold">${totalCost.toLocaleString()}</p>
               </div>
-              <Button onClick={() => setShowAddDialog(true)}>
+              <Button onClick={() => setShowAddDialog(true)} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Subcontractor
               </Button>

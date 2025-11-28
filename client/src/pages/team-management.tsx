@@ -17,7 +17,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activity, ChevronRight, ShieldCheck, Target, UserX, Star, Calendar, UserCheck, MapPin, Clock, AlertTriangle, CheckCircle, ArrowLeft, LayoutGrid, List } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator 
+} from "@/components/ui/dropdown-menu";
+import { Users, UserPlus, Shield, Building2, Eye, Edit2, Trash2, Settings, Activity, ChevronRight, ShieldCheck, Target, UserX, Star, Calendar, UserCheck, MapPin, Clock, AlertTriangle, CheckCircle, ArrowLeft, LayoutGrid, List, MoreVertical } from "lucide-react";
 import { PermissionViewer } from "@/components/team/PermissionViewer";
 import { PerformanceDashboard } from "@/components/team/PerformanceDashboard";
 import { HealthSafetyForm } from "@/components/team/HealthSafetyForm";
@@ -96,6 +103,107 @@ const SKILL_LEVELS = [
   "Manager",
 ];
 
+// UserTableRow component to manage its own deletion state
+function UserTableRow({ user, onEdit, onDelete, checkUserDependencies }: { 
+  user: any; 
+  onEdit: () => void; 
+  onDelete: any;
+  checkUserDependencies: (userId: number) => Promise<any>;
+}) {
+  const { toast } = useToast();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  return (
+    <TableRow className="hover:bg-muted/50">
+      <TableCell>
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-sm font-medium text-primary">
+              {user.name?.[0]}{user.name?.split(' ')[1]?.[0] || ''}
+            </span>
+          </div>
+          <div>
+            <div className="font-medium">{user.name}</div>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>{user.username}</TableCell>
+      <TableCell>
+        <Badge variant="outline">
+          {user.role === 'owner' ? 'Business Owner' : 
+           user.role === 'admin' ? 'System Administrator' :
+           user.role === 'planning' ? 'Senior Estimator' :
+           user.role === 'operator' ? 'Machine Operator' :
+           user.role === 'supervisor' ? 'Supervisor' :
+           user.role === 'accounting' ? 'Accounting' :
+           user.role === 'basic' ? 'Basic User' :
+           user.role === 'full' ? 'Full Access' : user.role}
+        </Badge>
+      </TableCell>
+      <TableCell>{user.email || "-"}</TableCell>
+      <TableCell>{user.phone || "-"}</TableCell>
+      <TableCell className="text-center">
+        <Badge variant={user.isActive ? "default" : "secondary"}>
+          {user.isActive ? "Active" : "Inactive"}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-right">
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>⚠️ Confirm User Deletion</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {user.name}'s account?
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => {
+                  // Attempt deletion directly - if it fails due to dependencies, 
+                  // the error handler will show the toast
+                  onDelete.mutate(user.id);
+                  setShowDeleteDialog(false);
+                }}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                Yes, Delete Account
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={onEdit}>
+                <Edit2 className="mr-2 h-4 w-4" />
+                Edit Account
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive"
+                onSelect={() => {
+                  // Show confirmation dialog without pre-checking dependencies
+                  setShowDeleteDialog(true);
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Account
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </AlertDialog>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export default function TeamManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -111,8 +219,42 @@ export default function TeamManagement() {
   const [showPerformanceReview, setShowPerformanceReview] = useState(false);
   const [selectedMemberForReview, setSelectedMemberForReview] = useState<any>(null);
   const [viewMode, setViewMode] = useState<"table" | "card">("table"); // Default to table view
+  const [roleDependencies, setRoleDependencies] = useState<any>(null);
+  const [userDependencies, setUserDependencies] = useState<any>(null);
+  const [checkingDependencies, setCheckingDependencies] = useState(false);
 
 
+
+  // Helper functions to check dependencies
+  const checkRoleDependencies = async (roleId: number) => {
+    setCheckingDependencies(true);
+    try {
+      const response = await fetch(`/api/team/roles/${roleId}/dependencies`);
+      const data = await response.json();
+      setRoleDependencies(data);
+      return data;
+    } catch (error) {
+      console.error("Error checking role dependencies:", error);
+      return null;
+    } finally {
+      setCheckingDependencies(false);
+    }
+  };
+
+  const checkUserDependencies = async (userId: number) => {
+    setCheckingDependencies(true);
+    try {
+      const response = await fetch(`/api/users/${userId}/dependencies`);
+      const data = await response.json();
+      setUserDependencies(data);
+      return data;
+    } catch (error) {
+      console.error("Error checking user dependencies:", error);
+      return null;
+    } finally {
+      setCheckingDependencies(false);
+    }
+  };
 
   // Fetch team members
   const { data: teamMembers = [], isLoading: membersLoading } = useQuery({
@@ -290,11 +432,13 @@ export default function TeamManagement() {
     },
     onError: (error: any) => {
       console.error("Role deletion error:", error);
+      
+      // Simply use the error message which already includes the dependency counts from backend
       toast({
-        title: "❌ Delete Failed",
-        description: error.response?.data?.error || error.message || "Failed to delete role. Please check dependencies and try again.",
+        title: "❌ Delete Failed", 
+        description: error.message || "Failed to delete role.",
         variant: "destructive",
-        duration: 8000,
+        duration: 10000,
       });
     },
   });
@@ -324,7 +468,13 @@ export default function TeamManagement() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      return apiRequest(`/api/users/${userId}`, "DELETE");
+      try {
+        return await apiRequest(`/api/users/${userId}`, "DELETE");
+      } catch (error: any) {
+        // The error already has the correct message from the backend
+        // Make sure we preserve it when re-throwing
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -334,10 +484,41 @@ export default function TeamManagement() {
       });
     },
     onError: (error: any) => {
+      console.error("User deletion error - full object:", error);
+      console.log("Error message property:", error.message);
+      console.log("Error details:", error.details);
+      console.log("Error summary:", error.summary);
+      console.log("Error dependencies:", error.dependencies);
+      
+      // Build the error message with dependency details
+      let errorMessage = "Failed to delete user account.";
+      
+      // Priority 1: Use the summary if available (most user-friendly)
+      if (error.details?.summary) {
+        errorMessage = `Cannot delete user. This user has dependencies: ${error.details.summary}`;
+      } else if (error.summary) {
+        errorMessage = `Cannot delete user. This user has dependencies: ${error.summary}`;
+      }
+      // Priority 2: Use the dependencies array if available
+      else if (error.details?.dependencies && Array.isArray(error.details.dependencies)) {
+        errorMessage = `Cannot delete user. Dependencies found: ${error.details.dependencies.join(', ')}`;
+      } else if (error.dependencies && Array.isArray(error.dependencies)) {
+        errorMessage = `Cannot delete user. Dependencies found: ${error.dependencies.join(', ')}`;
+      }
+      // Priority 3: Use the error message if it contains dependency info
+      else if (error.message && error.message.includes("dependencies")) {
+        errorMessage = error.message;
+      }
+      // Priority 4: Fall back to generic error message
+      else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete user account",
+        title: "❌ Cannot Delete User",
+        description: errorMessage,
         variant: "destructive",
+        duration: 15000, // Show longer for dependency errors
       });
     },
   });
@@ -501,6 +682,8 @@ export default function TeamManagement() {
 
   const RoleCard = ({ role }: { role: Role }) => {
     const [viewPermissions, setViewPermissions] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [localDependencies, setLocalDependencies] = useState<any>(null);
     const permissions = typeof role.permissions === 'object' && !Array.isArray(role.permissions) 
       ? role.permissions as Record<string, string[]>
       : {};
@@ -533,11 +716,6 @@ export default function TeamManagement() {
             </div>
             <div className="flex items-center space-x-1">
               <Dialog open={viewPermissions} onOpenChange={setViewPermissions}>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" title="View Permissions">
-                    <ShieldCheck className="w-4 h-4" />
-                  </Button>
-                </DialogTrigger>
                 <DialogContent className="max-w-4xl max-h-[80vh]">
                   <DialogHeader>
                     <DialogTitle>Role Permissions - {role.name}</DialogTitle>
@@ -549,52 +727,100 @@ export default function TeamManagement() {
                   />
                 </DialogContent>
               </Dialog>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSelectedRole(role);
-                  setIsEditingRole(true);
-                }}
-                title="Edit Role"
-              >
-                <Edit2 className="w-4 h-4" />
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm" title="Delete Role">
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </AlertDialogTrigger>
+              
+              <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>⚠️ Confirm Role Deletion</AlertDialogTitle>
                     <AlertDialogDescription className="space-y-2">
                       <p>You are about to permanently delete the role: <strong className="text-foreground">{role.name}</strong></p>
-                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                        Warning: This action will:
-                      </p>
-                      <ul className="text-sm space-y-1 ml-4 list-disc">
-                        <li>Remove all permissions associated with this role</li>
-                        <li>Require reassignment of users currently assigned to this role</li>
-                        <li>Impact system access for affected users</li>
-                      </ul>
-                      <p className="text-sm font-semibold text-destructive">
-                        This action cannot be undone. Please confirm you wish to proceed.
-                      </p>
+                      
+                      {localDependencies && localDependencies.blocking && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-md">
+                          <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2">
+                            ⛔ Cannot Delete - Dependencies Found:
+                          </p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc text-red-600 dark:text-red-400">
+                            {localDependencies.counts.teamMembers > 0 && (
+                              <li>{localDependencies.counts.teamMembers} team member{localDependencies.counts.teamMembers !== 1 ? 's' : ''} assigned to this role</li>
+                            )}
+                            {localDependencies.counts.laborRates > 0 && (
+                              <li>{localDependencies.counts.laborRates} labor rate{localDependencies.counts.laborRates !== 1 ? 's' : ''} configured for this role</li>
+                            )}
+                            {localDependencies.counts.roleRates > 0 && (
+                              <li>{localDependencies.counts.roleRates} role rate{localDependencies.counts.roleRates !== 1 ? 's' : ''} defined</li>
+                            )}
+                          </ul>
+                          <p className="text-sm mt-2 text-red-600 dark:text-red-400">
+                            Please remove or reassign these dependencies first.
+                          </p>
+                        </div>
+                      )}
+                      
+                      {(!localDependencies || !localDependencies.blocking) && (
+                        <>
+                          <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                            Warning: This action will:
+                          </p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>Remove all permissions associated with this role</li>
+                            <li>Delete all audit logs for this role</li>
+                            <li>This action cannot be undone</li>
+                          </ul>
+                        </>
+                      )}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={() => deleteRoleMutation.mutate(role.id)}
-                      className="bg-destructive hover:bg-destructive/90"
-                    >
-                      Yes, Delete Role
-                    </AlertDialogAction>
+                    {(!localDependencies || !localDependencies.blocking) && (
+                      <AlertDialogAction 
+                        onClick={() => {
+                          deleteRoleMutation.mutate(role.id);
+                          setShowDeleteDialog(false);
+                        }}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Yes, Delete Role
+                      </AlertDialogAction>
+                    )}
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setViewPermissions(true)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Permissions
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => {
+                    setSelectedRole(role);
+                    setIsEditingRole(true);
+                  }}>
+                    <Edit2 className="mr-2 h-4 w-4" />
+                    Edit Role
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="text-destructive focus:text-destructive"
+                    onSelect={async () => {
+                      const deps = await checkRoleDependencies(role.id);
+                      setLocalDependencies(deps);
+                      setShowDeleteDialog(true);
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Role
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardContent>
@@ -765,78 +991,16 @@ export default function TeamManagement() {
                 </TableHeader>
                 <TableBody>
                   {availableUsers.map((user: any) => (
-                    <TableRow key={user.id} className="hover:bg-muted/50">
-                      <TableCell>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-sm font-medium text-primary">
-                              {user.name?.[0]}{user.name?.split(' ')[1]?.[0] || ''}
-                            </span>
-                          </div>
-                          <div>
-                            <div className="font-medium">{user.name}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{user.username}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {user.role === 'owner' ? 'Business Owner' : 
-                           user.role === 'admin' ? 'System Administrator' :
-                           user.role === 'planning' ? 'Senior Estimator' :
-                           user.role === 'operator' ? 'Machine Operator' :
-                           user.role === 'supervisor' ? 'Supervisor' :
-                           user.role === 'accounting' ? 'Accounting' :
-                           user.role === 'basic' ? 'Basic User' :
-                           user.role === 'full' ? 'Full Access' : user.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{user.email || "-"}</TableCell>
-                      <TableCell>{user.phone || "-"}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant={user.isActive ? "default" : "secondary"}>
-                          {user.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end items-center space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setIsEditingUser(true);
-                            }}
-                            title="Edit"
-                            className="hover:bg-secondary"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" title="Delete" className="hover:bg-destructive/10">
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete User Account</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete {user.name}'s account?
-                                  This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteUserMutation.mutate(user.id)}>
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <UserTableRow 
+                      key={user.id} 
+                      user={user}
+                      onEdit={() => {
+                        setSelectedUser(user);
+                        setIsEditingUser(true);
+                      }}
+                      onDelete={deleteUserMutation}
+                      checkUserDependencies={checkUserDependencies}
+                    />
                   ))}
                 </TableBody>
               </Table>
@@ -983,61 +1147,58 @@ export default function TeamManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end items-center space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedMemberForReview(member);
-                              setShowPerformanceReview(true);
-                            }}
-                            title="Performance Review"
-                            className="hover:bg-secondary"
-                          >
-                            <Star className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => syncDataMutation.mutate({ teamMemberId: member.id, syncDirection: 'team-to-user' })}
-                            title="Sync to User Account"
-                            className="hover:bg-secondary"
-                          >
-                            <UserCheck className="w-4 h-4" />
-                          </Button>
-                          <Link href={`/team-management/employee/${member.id}`}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="View/Edit Profile"
-                              className="hover:bg-secondary"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </Link>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" title="Delete" className="hover:bg-destructive/10">
-                                <Trash2 className="w-4 h-4 text-destructive" />
+                        <AlertDialog>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to remove {member.userName} from the team?
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteMemberMutation.mutate(member.id)}>
+                                Remove
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreVertical className="h-4 w-4" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to remove {member.userName} from the team?
-                                  This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteMemberMutation.mutate(member.id)}>
-                                  Remove
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/team-management/employee/${member.id}`}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View/Edit Profile
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => {
+                                setSelectedMemberForReview(member);
+                                setShowPerformanceReview(true);
+                              }}>
+                                <Star className="mr-2 h-4 w-4" />
+                                Performance Review
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => syncDataMutation.mutate({ teamMemberId: member.id, syncDirection: 'team-to-user' })}>
+                                <UserCheck className="mr-2 h-4 w-4" />
+                                Sync to User Account
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem className="text-destructive focus:text-destructive">
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Remove Member
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </AlertDialog>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1195,41 +1356,29 @@ export default function TeamManagement() {
                             >
                               <Edit2 className="w-4 h-4" />
                             </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" title="Delete" className="hover:bg-destructive/10">
-                                  <Trash2 className="w-4 h-4 text-destructive" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>⚠️ Confirm Role Deletion</AlertDialogTitle>
-                                  <AlertDialogDescription className="space-y-2">
-                                    <p>You are about to permanently delete the role: <strong className="text-foreground">{role.name}</strong></p>
-                                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                                      Warning: This action will:
-                                    </p>
-                                    <ul className="text-sm space-y-1 ml-4 list-disc">
-                                      <li>Remove all permissions associated with this role</li>
-                                      <li>Require reassignment of users currently assigned to this role</li>
-                                      <li>Impact system access for affected users</li>
-                                    </ul>
-                                    <p className="text-sm font-semibold text-destructive">
-                                      This action cannot be undone. Please confirm you wish to proceed.
-                                    </p>
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    onClick={() => deleteRoleMutation.mutate(role.id)}
-                                    className="bg-destructive hover:bg-destructive/90"
-                                  >
-                                    Yes, Delete Role
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              title="Delete" 
+                              className="hover:bg-destructive/10"
+                              onClick={async () => {
+                                const deps = await checkRoleDependencies(role.id);
+                                if (deps && deps.blocking) {
+                                  toast({
+                                    title: "Cannot Delete Role",
+                                    description: `This role has dependencies: ${deps.messages.join(', ')}. Please remove them first.`,
+                                    variant: "destructive",
+                                    duration: 5000,
+                                  });
+                                } else {
+                                  if (confirm(`Are you sure you want to delete the role "${role.name}"? This action cannot be undone.`)) {
+                                    deleteRoleMutation.mutate(role.id);
+                                  }
+                                }
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1770,23 +1919,25 @@ function MemberForm({ member, roles, departments, users, onSubmit, isLoading }: 
   return (
     <div className="max-w-4xl mx-auto">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="basic" className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900 dark:data-[state=active]:text-blue-100">
-            📋 Basic Info
-          </TabsTrigger>
-          <TabsTrigger value="personal" className="data-[state=active]:bg-green-100 data-[state=active]:text-green-700 dark:data-[state=active]:bg-green-900 dark:data-[state=active]:text-green-100">
-            👤 Personal
-          </TabsTrigger>
-          <TabsTrigger value="employment" className="data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700 dark:data-[state=active]:bg-purple-900 dark:data-[state=active]:text-purple-100">
-            💼 Employment
-          </TabsTrigger>
-          <TabsTrigger value="compensation" className="data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700 dark:data-[state=active]:bg-orange-900 dark:data-[state=active]:text-orange-100">
-            💰 Compensation
-          </TabsTrigger>
-          <TabsTrigger value="healthsafety" className="data-[state=active]:bg-red-100 data-[state=active]:text-red-700 dark:data-[state=active]:bg-red-900 dark:data-[state=active]:text-red-100">
-            🛡️ Health & Safety
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto w-full">
+          <TabsList className="w-max">
+            <TabsTrigger value="basic" className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900 dark:data-[state=active]:text-blue-100">
+              📋 Basic Info
+            </TabsTrigger>
+            <TabsTrigger value="personal" className="data-[state=active]:bg-green-100 data-[state=active]:text-green-700 dark:data-[state=active]:bg-green-900 dark:data-[state=active]:text-green-100">
+              👤 Personal
+            </TabsTrigger>
+            <TabsTrigger value="employment" className="data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700 dark:data-[state=active]:bg-purple-900 dark:data-[state=active]:text-purple-100">
+              💼 Employment
+            </TabsTrigger>
+            <TabsTrigger value="compensation" className="data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700 dark:data-[state=active]:bg-orange-900 dark:data-[state=active]:text-orange-100">
+              💰 Compensation
+            </TabsTrigger>
+            <TabsTrigger value="healthsafety" className="data-[state=active]:bg-red-100 data-[state=active]:text-red-700 dark:data-[state=active]:bg-red-900 dark:data-[state=active]:text-red-100">
+              🛡️ Health & Safety
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <div className="flex-1 overflow-hidden">
           <form onSubmit={handleSubmit} className="h-full flex flex-col">
@@ -2482,6 +2633,8 @@ function UserCard({ user }: { user: any }) {
   const queryClient = useQueryClient();
   const hasTeamMember = user.teamMemberId !== null && user.teamMemberId !== undefined;
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [localDependencies, setLocalDependencies] = useState<any>(null);
   
   const updateUserMutation = useMutation({
     mutationFn: async (userData: any) => {
@@ -2519,16 +2672,56 @@ function UserCard({ user }: { user: any }) {
         description: "User account has been archived with all data retained for legal compliance.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("User archive error:", error);
+      
+      // Handle structured error response with dependency details
+      let description = error.message || "Failed to archive user account.";
+      
+      // If we have structured error details with dependencies, format them nicely
+      if (error.details && error.details.dependencies && Array.isArray(error.details.dependencies)) {
+        description = (
+          <div className="space-y-2">
+            <p>{error.message || "Cannot archive this user."}</p>
+            <div className="mt-2 text-sm">
+              <p className="font-semibold">Dependencies found:</p>
+              <ul className="list-disc list-inside ml-2 mt-1">
+                {error.details.dependencies.map((dep: string, idx: number) => (
+                  <li key={idx}>{dep}</li>
+                ))}
+              </ul>
+              {error.details.remediation && (
+                <p className="mt-2 text-xs italic">{error.details.remediation}</p>
+              )}
+            </div>
+          </div>
+        );
+      }
+      
       toast({
-        title: "Archive Failed", 
-        description: error.message,
+        title: "❌ Archive Failed", 
+        description,
         variant: "destructive",
+        duration: 10000,
       });
     },
   });
 
-  const handleArchiveUser = () => {
+  const handleArchiveUser = async () => {
+    // First check for dependencies
+    const deps = await checkUserDependencies(user.id);
+    setLocalDependencies(deps);
+    
+    if (deps && deps.blocking) {
+      toast({
+        title: "Cannot Archive User",
+        description: `This user account has dependencies: ${deps.messages.join(', ')}. Please remove them first.`,
+        variant: "destructive",
+        duration: 5000,
+      });
+      return;
+    }
+    
     const reason = hasTeamMember 
       ? "Employee termination - full data archived" 
       : "Unused account removal - basic data archived";
@@ -2537,6 +2730,17 @@ function UserCard({ user }: { user: any }) {
       userId: user.id,
       archiveReason: reason
     });
+  };
+  
+  const checkUserDependencies = async (userId: number) => {
+    try {
+      const response = await fetch(`/api/users/${userId}/dependencies`);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error checking user dependencies:", error);
+      return null;
+    }
   };
   
   return (
@@ -2598,13 +2802,8 @@ function UserCard({ user }: { user: any }) {
               </p>
             )}
           </div>
-          <div className="flex flex-col space-y-1">
+          <div>
             <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Edit2 className="w-4 h-4" />
-                </Button>
-              </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>Edit User Account</DialogTitle>
@@ -2618,51 +2817,104 @@ function UserCard({ user }: { user: any }) {
                   isLoading={updateUserMutation.isPending}
                 />
               </DialogContent>
+              
+              <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Archive User Account?</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-3">
+                      <div>
+                        Archive user account <strong>"{user.username}"</strong>?
+                      </div>
+                      
+                      {localDependencies && localDependencies.blocking && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-md">
+                          <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2">
+                            ⛔ Cannot Archive - Dependencies Found:
+                          </p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc text-red-600 dark:text-red-400">
+                            {localDependencies.messages.map((msg: string, idx: number) => (
+                              <li key={idx}>{msg}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {(!localDependencies || !localDependencies.blocking) && (
+                        <>
+                          <div className="bg-orange-50 p-3 rounded-md text-sm">
+                            <strong>This will:</strong>
+                            <ul className="list-disc list-inside mt-1 space-y-1">
+                              <li>Remove login access immediately</li>
+                              <li>Archive all data for legal retention (7 years)</li>
+                              <li>Cannot be undone</li>
+                            </ul>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            <strong>Reason:</strong> {hasTeamMember 
+                              ? "Employee termination - full data archived" 
+                              : "Unused account removal - basic data archived"}
+                          </div>
+                        </>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    {(!localDependencies || !localDependencies.blocking) && (
+                      <AlertDialogAction 
+                        onClick={() => {
+                          handleArchiveUser();
+                          setShowDeleteDialog(false);
+                        }}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Archive User
+                      </AlertDialogAction>
+                    )}
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DialogTrigger asChild>
+                      <DropdownMenuItem>
+                        <Edit2 className="mr-2 h-4 w-4" />
+                        Edit Account
+                      </DropdownMenuItem>
+                    </DialogTrigger>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      className="text-destructive focus:text-destructive"
+                      disabled={deleteUserMutation.isPending}
+                      onSelect={async () => {
+                        const deps = await checkUserDependencies(user.id);
+                        setLocalDependencies(deps);
+                        if (deps && deps.blocking) {
+                          toast({
+                            title: "Cannot Archive User", 
+                            description: `This user account has dependencies: ${deps.messages.join(', ')}. Please remove them first.`,
+                            variant: "destructive",
+                            duration: 5000,
+                          });
+                        } else {
+                          setShowDeleteDialog(true);
+                        }
+                      }}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Archive Account
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </AlertDialog>
             </Dialog>
-            
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={deleteUserMutation.isPending}
-                >
-                  <Trash2 className="w-4 h-4 text-red-500" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Archive User Account?</AlertDialogTitle>
-                  <AlertDialogDescription className="space-y-3">
-                    <div>
-                      Archive user account <strong>"{user.username}"</strong>?
-                    </div>
-                    <div className="bg-orange-50 p-3 rounded-md text-sm">
-                      <strong>This will:</strong>
-                      <ul className="list-disc list-inside mt-1 space-y-1">
-                        <li>Remove login access immediately</li>
-                        <li>Archive all data for legal retention (7 years)</li>
-                        <li>Cannot be undone</li>
-                      </ul>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      <strong>Reason:</strong> {hasTeamMember 
-                        ? "Employee termination - full data archived" 
-                        : "Unused account removal - basic data archived"}
-                    </div>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleArchiveUser}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    Archive User
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
         </div>
       </CardContent>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
-import { DELIVERY_TERMS } from "@shared/constants/deliveryTerms";
+import { DELIVERY_TERMS } from "../../shared/constants/deliveryTerms";
 import {
   Send,
   FileText,
@@ -401,30 +401,30 @@ export default function RFQManagementView({ requisitionToConvert, onRequisitionP
     <>
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-base">Request for Quotes Management</CardTitle>
               <CardDescription className="text-xs">
                 Send approved requisitions to suppliers for competitive quotes
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowArchived(!showArchived)}
-                className="h-9"
+                className="h-9 w-full sm:w-auto"
               >
                 <Archive className="h-4 w-4 mr-2" />
                 {showArchived ? 'Hide' : 'Show'} Archived
               </Button>
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-none">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search RFQs..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 w-[200px]"
+                  className="pl-8 w-full sm:w-[200px]"
                 />
               </div>
             </div>

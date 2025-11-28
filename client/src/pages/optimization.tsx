@@ -119,7 +119,7 @@ export default function OptimizationPage() {
   // Save optimization mutation
   const saveOptimizationMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/optimization/save", data);
+      return apiRequest("/api/optimization/save", "POST", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/optimization/history"] });

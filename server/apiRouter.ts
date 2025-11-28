@@ -17,15 +17,8 @@ const apiRouter = Router();
 // ===== SECURITY MONITORING =====
 apiRouter.use(securityLogger);
 
-// ===== HELMET SECURITY HEADERS =====
-// Use environment-aware configuration from securityConfig
-apiRouter.use(helmet(getHelmetConfig()));
-
-// ===== CORS CONFIGURATION =====
-// Use environment-aware CORS configuration
-apiRouter.use(cors(getCorsConfig() as any));
-
 // ===== XSS PROTECTION =====
+// Note: Helmet and CORS are already applied globally in securityBaseline.ts
 apiRouter.use(xssProtection);
 
 // ===== REQUEST SIZE LIMITING =====

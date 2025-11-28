@@ -42,7 +42,7 @@ interface InventoryMovement {
 
 interface MovementFormData {
   movementType: string;
-  materialId: string;
+  materialId: number;
   quantity: number;
   unit: string;
   sourceLocation?: string;
@@ -62,7 +62,7 @@ export default function MovementsTab() {
   const form = useForm<MovementFormData>({
     defaultValues: {
       movementType: "",
-      materialId: "",
+      materialId: 0,
       quantity: 0,
       unit: "kg",
       sourceLocation: "",
@@ -318,7 +318,7 @@ export default function MovementsTab() {
                               <SelectValue placeholder="Select job" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">None</SelectItem>
+                              <SelectItem value="none">None</SelectItem>
                               {jobs.map((job: any) => (
                                 <SelectItem key={job.id} value={job.id.toString()}>
                                   {job.jobNumber} - {job.name}
@@ -343,7 +343,7 @@ export default function MovementsTab() {
                               <SelectValue placeholder="Select job" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">None</SelectItem>
+                              <SelectItem value="none">None</SelectItem>
                               {jobs.map((job: any) => (
                                 <SelectItem key={job.id} value={job.id.toString()}>
                                   {job.jobNumber} - {job.name}

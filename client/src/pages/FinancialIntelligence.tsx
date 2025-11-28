@@ -187,32 +187,34 @@ export default function FinancialIntelligence() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="analytics" className="flex items-center space-x-2">
-            <TrendingUp className="h-4 w-4" />
-            <span>Financial Analytics</span>
-          </TabsTrigger>
-          <TabsTrigger value="cashflow" className="flex items-center space-x-2">
-            <DollarSign className="h-4 w-4" />
-            <span>Cash Flow</span>
-          </TabsTrigger>
-          <TabsTrigger value="costs" className="flex items-center space-x-2">
-            <PieChart className="h-4 w-4" />
-            <span>Cost Analysis</span>
-          </TabsTrigger>
-          <TabsTrigger value="budgets" className="flex items-center space-x-2">
-            <Target className="h-4 w-4" />
-            <span>Budget Tracking</span>
-          </TabsTrigger>
-          <TabsTrigger value="jobcosting" className="flex items-center space-x-2">
-            <Calculator className="h-4 w-4" />
-            <span>Job Costing</span>
-          </TabsTrigger>
-          <TabsTrigger value="executive" className="flex items-center space-x-2">
-            <BarChart3 className="h-4 w-4" />
-            <span>Executive</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto w-full">
+          <TabsList className="w-max">
+            <TabsTrigger value="analytics" className="flex items-center space-x-2">
+              <TrendingUp className="h-4 w-4" />
+              <span>Financial Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="cashflow" className="flex items-center space-x-2">
+              <DollarSign className="h-4 w-4" />
+              <span>Cash Flow</span>
+            </TabsTrigger>
+            <TabsTrigger value="costs" className="flex items-center space-x-2">
+              <PieChart className="h-4 w-4" />
+              <span>Cost Analysis</span>
+            </TabsTrigger>
+            <TabsTrigger value="budgets" className="flex items-center space-x-2">
+              <Target className="h-4 w-4" />
+              <span>Budget Tracking</span>
+            </TabsTrigger>
+            <TabsTrigger value="jobcosting" className="flex items-center space-x-2">
+              <Calculator className="h-4 w-4" />
+              <span>Job Costing</span>
+            </TabsTrigger>
+            <TabsTrigger value="executive" className="flex items-center space-x-2">
+              <BarChart3 className="h-4 w-4" />
+              <span>Executive</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="analytics" className="space-y-4">
           <FinancialAnalyticsTab />

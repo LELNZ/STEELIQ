@@ -1,31 +1,32 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import path from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
+  root: "./client",
   plugins: [
-    react(),
-    runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
+    react({ fastRefresh: false })
   ],
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
-    },
+  resolve: { 
+    alias: { 
+      "@": "/src", 
+      "@assets": "/src/assets", 
+      "@shared": "../shared" 
+    } 
   },
-  root: path.resolve(import.meta.dirname, "client"),
+  server: { 
+    host: true, 
+    port: 5173, 
+    strictPort: true 
+  },
+  preview: { 
+    host: true, 
+    port: 5173 
+  },
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true,
-  },
+    target: 'es2020',
+    outDir: 'dist',
+    sourcemap: false,
+    minify: false,  // Disable minification to reduce memory usage
+    chunkSizeWarningLimit: 2000
+  }
 });

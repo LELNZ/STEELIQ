@@ -74,7 +74,7 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
 
   const deleteEstimationMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest('DELETE', `/api/estimations/${id}`, {
+      await apiRequest(`/api/estimations/${id}`, 'DELETE', {
         reason: 'Deleted by user'
       });
     },
@@ -102,7 +102,7 @@ export default function EstimationTable({ estimations, onStatusChange }: Estimat
 
   const duplicateEstimation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest('POST', `/api/estimations/${id}/duplicate`);
+      const response = await apiRequest(`/api/estimations/${id}/duplicate`, 'POST');
       return response;
     },
     onSuccess: (data) => {

@@ -43,7 +43,8 @@ import {
   type Quote, type InsertQuote, type QuoteHistory, type InsertQuoteHistory, type QuoteView, type InsertQuoteView,
   documentHistory, documentAttachments, documentAccessLogs,
   timeEntries, type TimeEntry, type InsertTimeEntry,
-  drawingDocuments, aiDrawingAnalysis
+  drawingDocuments, aiDrawingAnalysis,
+  companyLocations, type CompanyLocation, type InsertCompanyLocation
 } from "@shared/schema";
 import { desc, eq, lt, gte, lte, asc, like, and, or, sql, inArray, not, ne, isNotNull } from "drizzle-orm";
 import { db } from "./db";
@@ -61,6 +62,15 @@ export interface IStorage {
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   updateUserLastLogin(id: number): Promise<void>;
   deleteUser(id: number): Promise<void>;
+  getUserDependencies(id: number): Promise<{
+    blocking: boolean;
+    counts: {
+      teamMember: number;
+      drawingProjects: number;
+      auditLogs: number;
+    };
+    messages: string[];
+  }>;
   
   // Team Members
   getTeamMemberByUserId(userId: number): Promise<TeamMember | undefined>;
@@ -249,6 +259,10 @@ export interface IStorage {
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: number, client: Partial<InsertClient>): Promise<Client>;
   deleteClient(id: number): Promise<boolean>;
+  
+  // Company Locations Management
+  getCompanyLocations(): Promise<CompanyLocation[]>;
+  getCompanyLocationByName(locationName: string): Promise<CompanyLocation | undefined>;
 
   // Location Management
   getLocations(entityType: 'supplier' | 'client', entityId: number): Promise<Location[]>;
@@ -472,6 +486,9 @@ export interface IStorage {
   
   // Drawing Documents
   getDrawingDocument(id: number): Promise<any | undefined>;
+  
+  // System Audit Log
+  createSystemAuditLog(auditLog: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -553,6 +570,97 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: number): Promise<void> {
     await db.delete(users).where(eq(users.id, id));
+  }
+
+  async getUserDependencies(id: number): Promise<{
+    blocking: boolean;
+    counts: {
+      teamMember: number;
+      drawingProjects: number;
+      auditLogs: number;
+      permissionAuditLogs: number;
+    };
+    messages: string[];
+  }> {
+    const counts = {
+      teamMember: 0,
+      drawingProjects: 0,
+      auditLogs: 0,
+      permissionAuditLogs: 0
+    };
+    const messages: string[] = [];
+
+    try {
+      // Check team_members table
+      const teamMemberResult = await db.execute(sql`
+        SELECT COUNT(*) as count 
+        FROM team_members 
+        WHERE user_id = ${id}
+      `);
+      counts.teamMember = Number(teamMemberResult.rows[0]?.count || 0);
+      
+      if (counts.teamMember > 0) {
+        messages.push(`${counts.teamMember} employee profile${counts.teamMember !== 1 ? 's' : ''}`);
+      }
+
+      // Check drawing_projects table  
+      try {
+        const drawingResult = await db.execute(sql`
+          SELECT COUNT(*) as count 
+          FROM drawing_projects 
+          WHERE user_id = ${id}
+        `);
+        counts.drawingProjects = Number(drawingResult.rows[0]?.count || 0);
+        
+        if (counts.drawingProjects > 0) {
+          messages.push(`${counts.drawingProjects} drawing project${counts.drawingProjects !== 1 ? 's' : ''}`);
+        }
+      } catch (e) {
+        // Table might not exist, continue
+      }
+
+      // Check permission_audit_logs table (this is the constraint that's failing)
+      try {
+        const permissionAuditResult = await db.execute(sql`
+          SELECT COUNT(*) as count 
+          FROM permission_audit_logs 
+          WHERE user_id = ${id}
+        `);
+        counts.permissionAuditLogs = Number(permissionAuditResult.rows[0]?.count || 0);
+        
+        if (counts.permissionAuditLogs > 0) {
+          messages.push(`${counts.permissionAuditLogs} permission audit log${counts.permissionAuditLogs !== 1 ? 's' : ''}`);
+        }
+      } catch (e) {
+        // Table might not exist, continue
+      }
+
+      // Check audit_logs
+      try {
+        const auditResult = await db.execute(sql`
+          SELECT COUNT(*) as count 
+          FROM employee_audit_log 
+          WHERE affected_user_id = ${id}
+        `);
+        counts.auditLogs = Number(auditResult.rows[0]?.count || 0);
+        
+        if (counts.auditLogs > 0) {
+          messages.push(`${counts.auditLogs} audit log${counts.auditLogs !== 1 ? 's' : ''} recorded`);
+        }
+      } catch (e) {
+        // Table might not exist, continue
+      }
+    } catch (error) {
+      console.error("Error checking user dependencies:", error);
+    }
+
+    const blocking = counts.teamMember > 0 || counts.drawingProjects > 0 || counts.auditLogs > 0 || counts.permissionAuditLogs > 0;
+    
+    return {
+      blocking,
+      counts,
+      messages
+    };
   }
 
   // Team Members
@@ -1414,6 +1522,48 @@ export class DatabaseStorage implements IStorage {
     // Then delete the client
     const result = await db.delete(clients).where(eq(clients.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // Company Locations Implementation
+  async getCompanyLocations(): Promise<CompanyLocation[]> {
+    return await db
+      .select()
+      .from(companyLocations)
+      .where(eq(companyLocations.isActive, true))
+      .orderBy(desc(companyLocations.isPrimary), asc(companyLocations.locationName));
+  }
+
+  async getCompanyLocationByName(locationName: string): Promise<CompanyLocation | undefined> {
+    // Normalize the location name for flexible matching
+    const normalizedSearch = locationName.toLowerCase().trim();
+    
+    // First try exact match
+    const [exactMatch] = await db
+      .select()
+      .from(companyLocations)
+      .where(
+        and(
+          eq(companyLocations.isActive, true),
+          sql`LOWER(TRIM(${companyLocations.locationName})) = ${normalizedSearch}`
+        )
+      )
+      .limit(1);
+    
+    if (exactMatch) return exactMatch;
+    
+    // Try partial match for common variations (e.g., "Workshop" -> "Auckland Workshop")
+    const [partialMatch] = await db
+      .select()
+      .from(companyLocations)
+      .where(
+        and(
+          eq(companyLocations.isActive, true),
+          sql`LOWER(${companyLocations.locationName}) LIKE ${'%' + normalizedSearch + '%'}`
+        )
+      )
+      .limit(1);
+    
+    return partialMatch;
   }
 
   // Location Management
@@ -3377,59 +3527,183 @@ export class DatabaseStorage implements IStorage {
 
     // Clear all estimation-related tables using raw SQL
     // Clear in proper order to handle foreign key constraints
+    // CRITICAL: Delete child tables first to avoid FK constraint violations
     
-    // 1. Clear estimation_data first (contains the actual estimation details)
+    console.log("[CLEAR DATA] Starting comprehensive estimation data cleanup...");
+    
+    // 1. First clear the most dependent tables (child tables with foreign keys)
+    // These reference operations and materials
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_consumables RETURNING id`);
+      counts.estimationConsumables = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationConsumables} consumables`);
+    } catch (e) {
+      console.error("Error clearing estimation consumables:", e);
+      counts.estimationConsumables = 0;
+    }
+    
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_equipment RETURNING id`);
+      counts.estimationEquipment = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationEquipment} equipment items`);
+    } catch (e) {
+      console.error("Error clearing estimation equipment:", e);
+      counts.estimationEquipment = 0;
+    }
+    
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_labor RETURNING id`);
+      counts.estimationLabor = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationLabor} labor items`);
+    } catch (e) {
+      console.error("Error clearing estimation labor:", e);
+      counts.estimationLabor = 0;
+    }
+    
+    // 2. Clear operations (may have foreign key constraints to materials)
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_operations RETURNING id`);
+      counts.estimationOperations = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationOperations} operations`);
+    } catch (e) {
+      console.error("Error clearing estimation operations:", e);
+      counts.estimationOperations = 0;
+    }
+    
+    // 3. Clear other dependent estimation tables
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_subcontractor RETURNING id`);
+      counts.estimationSubcontractor = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationSubcontractor} subcontractor items`);
+    } catch (e) {
+      console.error("Error clearing estimation subcontractor:", e);
+      counts.estimationSubcontractor = 0;
+    }
+    
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_coatings RETURNING id`);
+      counts.estimationCoatings = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationCoatings} coating items`);
+    } catch (e) {
+      console.error("Error clearing estimation coatings:", e);
+      counts.estimationCoatings = 0;
+    }
+    
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_overheads RETURNING id`);
+      counts.estimationOverheads = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationOverheads} overhead items`);
+    } catch (e) {
+      console.error("Error clearing estimation overheads:", e);
+      counts.estimationOverheads = 0;
+    }
+    
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_margins RETURNING id`);
+      counts.estimationMargins = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationMargins} margin items`);
+    } catch (e) {
+      console.error("Error clearing estimation margins:", e);
+      counts.estimationMargins = 0;
+    }
+    
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_totals RETURNING id`);
+      counts.estimationTotals = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationTotals} total records`);
+    } catch (e) {
+      console.error("Error clearing estimation totals:", e);
+      counts.estimationTotals = 0;
+    }
+    
+    // 4. Clear materials (CRITICAL: This contains the problematic IDs from old test data)
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_materials RETURNING id`);
+      counts.estimationMaterials = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationMaterials} materials`);
+    } catch (e) {
+      console.error("Error clearing estimation materials:", e);
+      counts.estimationMaterials = 0;
+    }
+    
+    // 5. Clear estimation data and templates
     try {
       const result = await db.execute(sql`DELETE FROM estimation_data RETURNING id`);
       counts.estimationData = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationData} estimation data records`);
     } catch (e) {
       console.error("Error clearing estimation data:", e);
       counts.estimationData = 0;
     }
     
-    // 2. Clear estimations_archive
+    try {
+      const result = await db.execute(sql`DELETE FROM estimation_templates RETURNING id`);
+      counts.estimationTemplates = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationTemplates} templates`);
+    } catch (e) {
+      console.error("Error clearing estimation templates:", e);
+      counts.estimationTemplates = 0;
+    }
+    
+    // 6. Clear archive tables
     try {
       const result = await db.execute(sql`DELETE FROM estimations_archive RETURNING id`);
       counts.estimationsArchive = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationsArchive} archived items`);
     } catch (e) {
       console.error("Error clearing estimations archive:", e);
       counts.estimationsArchive = 0;
     }
     
-    // 3. Clear optimization simulations
+    // 7. Clear AI-related estimation tables
+    try {
+      const result = await db.execute(sql`DELETE FROM ai_mto_operations RETURNING id`);
+      counts.aiMtoOperations = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.aiMtoOperations} AI MTO operations`);
+    } catch (e) {
+      console.error("Error clearing AI MTO operations:", e);
+      counts.aiMtoOperations = 0;
+    }
+    
+    // 8. Clear optimization simulations
     try {
       const result = await db.execute(sql`DELETE FROM optimization_simulations RETURNING id`);
       counts.optimizationSimulations = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.optimizationSimulations} optimization simulations`);
     } catch (e) {
       console.error("Error clearing optimization simulations:", e);
       counts.optimizationSimulations = 0;
     }
     
-    // 4. Clear test_estimation_project if it exists
+    // 9. Clear test estimation project if it exists (legacy table)
     try {
       const result = await db.execute(sql`DELETE FROM test_estimation_project RETURNING id`);
       counts.testEstimationProject = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.testEstimationProject} test projects`);
     } catch (e) {
       // This table might not always exist, so we can ignore errors
       counts.testEstimationProject = 0;
     }
     
-    // 5. Finally clear estimation projects (main table)
+    // 10. FINALLY clear estimation projects (main parent table - must be last!)
     try {
       const result = await db.execute(sql`DELETE FROM estimation_projects RETURNING id`);
       counts.estimationProjects = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.estimationProjects} estimation projects`);
     } catch (e) {
       console.error("Error clearing estimation projects:", e);
       counts.estimationProjects = 0;
     }
 
-    // Reset estimation numbering sequence
+    // Reset estimation numbering sequence to start fresh
     try {
       await this.resetNumberingSequence('EST', 1, userId);
+      console.log("[CLEAR DATA] Reset estimation numbering sequence to EST-00001");
     } catch (e) {
       console.error("Error resetting estimation numbering:", e);
     }
 
+    console.log("[CLEAR DATA] Estimation data cleanup complete. Summary:", counts);
     return { deletedCounts: counts };
   }
 
@@ -4362,6 +4636,12 @@ export class DatabaseStorage implements IStorage {
     return document;
   }
 
+  // System Audit Log
+  async createSystemAuditLog(auditLog: any): Promise<any> {
+    const [created] = await db.insert(systemAuditLog).values(auditLog).returning();
+    return created;
+  }
+
   // Job Costing Analytics
   async getJobCostingAnalytics(period?: string, jobId?: number): Promise<any> {
     try {
@@ -4414,16 +4694,22 @@ export class DatabaseStorage implements IStorage {
       }
       
       const timeEntriesRaw = await db
-        .select()
+        .select({
+          jobId: timeEntries.jobId,
+          totalHours: timeEntries.totalHours,
+          userId: timeEntries.userId,
+          clockIn: timeEntries.clockIn,
+          clockOut: timeEntries.clockOut
+        })
         .from(timeEntries)
         .where(and(...whereConditions));
       
       // Process time entries data
       const timeEntriesData = timeEntriesRaw.map(entry => ({
         jobId: entry.jobId,
-        totalHours: entry.totalHours || 0,
+        totalHours: entry.totalHours || 0, // Already in hours from database
         employeeId: entry.userId,
-        hourlyRate: entry.hourlyRate || 50
+        hourlyRate: 50 // Default rate since timeEntries doesn't have an hourlyRate field
       }));
 
       // Calculate actual labor costs by job

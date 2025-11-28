@@ -94,10 +94,40 @@ const OPERATION_SEQUENCES = {
 };
 
 // Consumables formulas (industry standard)
-const CONSUMABLES_FORMULAS = {
-  cutting: {
-    disc: { formula: "cuts / 10", unit: "disc", description: "1 disc per 10 cuts" }
+// Method-specific consumables for cutting operations
+const CUTTING_METHOD_CONSUMABLES = {
+  bandsaw: {
+    blade: { formula: "length * 0.0005", unit: "blades", description: "Blade wear per meter cut" },
+    coolant: { formula: "length * 0.05", unit: "L", description: "50ml coolant per meter" }
   },
+  plasma: {
+    tips: { formula: "length * 0.002", unit: "tips", description: "Plasma tips wear" },
+    gas: { formula: "time * 20 / 60", unit: "L", description: "20L/min gas consumption" }
+  },
+  laser: {
+    nozzle: { formula: "length * 0.0001", unit: "nozzles", description: "Nozzle wear" },
+    assist_gas: { formula: "time * 25 / 60", unit: "L", description: "25L/min assist gas" }
+  },
+  fiber_laser: {
+    nozzle: { formula: "length * 0.00005", unit: "nozzles", description: "Fiber laser nozzle wear" },
+    lens: { formula: "length * 0.00001", unit: "lenses", description: "Protective lens wear" },
+    assist_gas: { formula: "time * 30 / 60", unit: "L", description: "30L/min assist gas" },
+    protective_window: { formula: "length * 0.00002", unit: "windows", description: "Protective window wear" }
+  },
+  oxy: {
+    oxygen: { formula: "time * 40 / 60", unit: "L", description: "40L/min oxygen" },
+    acetylene: { formula: "time * 15 / 60", unit: "L", description: "15L/min acetylene" }
+  },
+  grinder_125: {
+    disc: { formula: "cuts / 20", unit: "discs", description: "125mm disc per 20 cuts" }
+  },
+  grinder_230: {
+    disc: { formula: "cuts / 15", unit: "discs", description: "230mm disc per 15 cuts" }
+  }
+};
+
+const CONSUMABLES_FORMULAS = {
+  cutting: CUTTING_METHOD_CONSUMABLES, // Now method-specific
   grinding: {
     disc: { formula: "weight * 0.02", unit: "disc", description: "1 disc per 50kg" }
   },
@@ -122,7 +152,7 @@ const CONSUMABLES_FORMULAS = {
 interface OperationItem {
   id: string;
   estimationId: number;
-  parentMaterialId: string;
+  parentMaterialId: number;
   category: string;
   type: string;
   description: string;
@@ -182,7 +212,7 @@ export default function AddOperationDialog({
   // Form data with comprehensive fields
   const [formData, setFormData] = useState<Partial<OperationItem>>({
     estimationId,
-    parentMaterialId: parentMaterial?.id || "",
+    parentMaterialId: parentMaterial?.id || 0,
     description: "",
     quantity: 1,
     unit: "each",
@@ -195,6 +225,7 @@ export default function AddOperationDialog({
     includeInLabor: true,
     includeInMaterials: true, // Default to true for fabrication operations
     includeInConsumables: false,
+    includeInEquipment: false,
     includeInCoatings: false,
     sequence: 100
   });
@@ -217,15 +248,15 @@ export default function AddOperationDialog({
     enabled: !!selectedCategory
   });
 
-  // Fetch welding standards
+  // Fetch welding standards from Operations Settings
   const { data: weldingStandards = [] } = useQuery({
-    queryKey: ['/api/labor-standards/welding'],
+    queryKey: ['/api/operations/welding-standards'],
     enabled: !!(selectedType === 'weld' || selectedType === 'welding')
   });
 
-  // Fetch drilling standards
+  // Fetch drilling standards from Operations Settings
   const { data: drillingStandards = [] } = useQuery({
-    queryKey: ['/api/labor-standards/drilling'],
+    queryKey: ['/api/operations/drilling-standards'],
     enabled: !!(selectedType === 'drilling')
   });
 
@@ -246,9 +277,9 @@ export default function AddOperationDialog({
     enabled: !!selectedCategory && !!selectedType
   });
 
-  // Fetch cutting standards
+  // Fetch cutting standards from Operations Settings
   const { data: cuttingStandards = [] } = useQuery({
-    queryKey: ['/api/labor-standards/cutting'],
+    queryKey: ['/api/operations/cutting-standards'],
     enabled: !!(selectedType === 'cutting')
   });
 
@@ -348,9 +379,16 @@ export default function AddOperationDialog({
     }
     
     // Fallback to formula-based calculation if no rates from database
-    const formulas = CONSUMABLES_FORMULAS[operation.type || ""];
+    let formulas: any = {};
     
-    if (!formulas) return [];
+    // For cutting operations, get method-specific consumables
+    if (operation.type === "cutting" && operation.method) {
+      formulas = CUTTING_METHOD_CONSUMABLES[operation.method] || {};
+    } else {
+      formulas = CONSUMABLES_FORMULAS[operation.type || ""];
+    }
+    
+    if (!formulas || Object.keys(formulas).length === 0) return [];
 
     for (const [consumable, config] of Object.entries(formulas)) {
       let quantity = 0;
@@ -361,9 +399,28 @@ export default function AddOperationDialog({
       
       switch (operation.type) {
         case "cutting":
-          // Use database rate if available, otherwise default to 1 disc per 10 cuts
-          const cuttingRate = dbRate?.primary_consumable_rate || 0.1;
-          quantity = (operation.quantity || 0) * cuttingRate;
+          // Calculate based on cutting method
+          if (operation.method === 'bandsaw') {
+            if (consumable === 'blade') {
+              quantity = (operation.length || 0) / 1000 * 0.5; // 0.5 blades per meter
+            } else if (consumable === 'coolant') {
+              quantity = (operation.length || 0) / 1000 * 0.05; // 50ml per meter
+            }
+          } else if (operation.method === 'grinder_125' || operation.method === 'grinder_230') {
+            quantity = (operation.quantity || 1) / (operation.method === 'grinder_125' ? 20 : 15);
+          } else if (operation.method === 'fiber_laser') {
+            // Fiber laser consumables
+            const lengthMeters = (operation.length || 0) / 1000;
+            const timeHours = operation.laborHours || 0;
+            if (consumable === 'nozzle') quantity = lengthMeters * 0.00005;
+            else if (consumable === 'lens') quantity = lengthMeters * 0.00001;
+            else if (consumable === 'assist_gas') quantity = timeHours * 30; // 30L/hr
+            else if (consumable === 'protective_window') quantity = lengthMeters * 0.00002;
+          } else {
+            // Default cutting consumable calculation
+            const cuttingRate = dbRate?.primary_consumable_rate || 0.1;
+            quantity = (operation.quantity || 0) * cuttingRate;
+          }
           break;
         case "grinding":
           // Use database rate if available, otherwise default formula
@@ -439,38 +496,76 @@ export default function AddOperationDialog({
   const calculateLaborHours = () => {
     let hours = 0;
     
-    switch (formData.type) {
+    switch (selectedType) {
       case "cutting":
-        const cuttingStandard = cuttingStandards.find(s => s.method === formData.method);
+        // Find matching cutting standard based on thickness range
+        const cuttingStandard = cuttingStandards.find(s => {
+          const thickness = formData.thickness || 10; // Default thickness
+          return s.thickness_min <= thickness && s.thickness_max >= thickness && 
+                 s.equipment?.toLowerCase() === formData.method?.toLowerCase();
+        });
         if (cuttingStandard) {
-          hours = (formData.length || 0) / 1000 * (cuttingStandard.timePerMeter || 0) / 60;
+          // Per meter calculation for cutting
+          hours = (formData.length || 0) / 1000 * (cuttingStandard.time_per_meter || 2) / 60;
+        } else {
+          // Default calculation if no standard found
+          hours = (formData.length || 0) / 1000 * 2 / 60; // 2 min per meter default
         }
         break;
+        
       case "drilling":
-        const drillingStandard = drillingStandards.find(s => 
-          s.method === formData.method && 
-          formData.diameter >= s.diameterMin && 
-          formData.diameter <= s.diameterMax
-        );
+        // Find matching drilling standard based on hole diameter
+        const drillingStandard = drillingStandards.find(s => {
+          if (s.hole_diameter) {
+            // If specific diameter is set, match within 20% tolerance
+            return Math.abs(s.hole_diameter - (formData.diameter || 0)) / s.hole_diameter < 0.2;
+          }
+          return true; // Use general standard if no specific diameter
+        });
         if (drillingStandard) {
-          hours = (formData.quantity || 0) * (drillingStandard.timePerHole || 0) / 60;
+          // Per hole calculation for drilling
+          hours = (formData.quantity || 1) * (drillingStandard.time_per_hole || 1) / 60;
+        } else {
+          // Default calculation if no standard found
+          hours = (formData.quantity || 1) * 1 / 60; // 1 min per hole default
         }
         break;
+        
       case "welding":
       case "weld":
-        const weldingStandard = weldingStandards.find(s => 
-          s.weldType === formData.method && 
-          s.size === formData.size
-        );
+        // Find matching welding standard based on size and type
+        const weldingStandard = weldingStandards.find(s => {
+          const sizeMatch = s.size?.replace(/[^0-9.]/g, '') === formData.size?.toString();
+          const typeMatch = s.name?.toLowerCase().includes(formData.method?.toLowerCase() || '');
+          return sizeMatch || typeMatch;
+        });
         if (weldingStandard) {
-          hours = (formData.length || 0) / 1000 * (weldingStandard.timePerMeter || 0) / 60;
+          // Per meter calculation for welding
+          hours = (formData.length || 0) / 1000 * (weldingStandard.time_per_meter || 5) / 60;
+          
+          // Apply site premium if applicable
+          if (weldingStandard.location === 'site') {
+            hours *= 1.2; // 20% site premium
+          }
           
           // Apply position factor
           if (formData.position === "overhead") hours *= 2;
           else if (formData.position === "vertical") hours *= 1.5;
           else if (formData.position === "horizontal") hours *= 1.2;
+        } else {
+          // Default calculation if no standard found
+          hours = (formData.length || 0) / 1000 * 5 / 60; // 5 min per meter default
         }
         break;
+        
+      case "grinding":
+        // Per meter calculation for grinding
+        hours = (formData.length || 0) / 1000 * 3 / 60; // 3 min per meter default
+        break;
+        
+      default:
+        // For other operations, use quantity-based calculation
+        hours = (formData.quantity || 1) * 0.5; // 30 min per unit default
     }
     
     // Apply skill level factor
@@ -500,11 +595,16 @@ export default function AddOperationDialog({
   // Handle type selection
   const handleTypeSelect = (type: string) => {
     setSelectedType(type);
+    
+    // Determine if operation needs equipment
+    const needsEquipment = ['cutting', 'drilling', 'welding', 'weld', 'grinding', 'blasting', 'painting', 'lifting'].includes(type);
+    
     setFormData(prev => ({
       ...prev,
       type,
       description: `${OPERATION_CATEGORIES[selectedCategory]?.label} - ${type}`,
-      sequence: OPERATION_SEQUENCES[type] || 100
+      sequence: OPERATION_SEQUENCES[type] || 100,
+      includeInEquipment: needsEquipment // Auto-set equipment flag based on operation type
     }));
   };
 
@@ -828,129 +928,234 @@ export default function AddOperationDialog({
                         />
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <Label htmlFor="quantity">Quantity</Label>
-                          <Input
-                            id="quantity"
-                            type="number"
-                            value={formData.quantity}
-                            onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) }))}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="unit">Unit</Label>
-                          <Select 
-                            value={formData.unit}
-                            onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="each">Each</SelectItem>
-                              <SelectItem value="m">Meters</SelectItem>
-                              <SelectItem value="m2">Square Meters</SelectItem>
-                              <SelectItem value="kg">Kilograms</SelectItem>
-                              <SelectItem value="hours">Hours</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="unitCost">Unit Cost ($)</Label>
-                          <Input
-                            id="unitCost"
-                            type="number"
-                            value={formData.unitCost}
-                            onChange={(e) => setFormData(prev => ({ ...prev, unitCost: parseFloat(e.target.value) }))}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Type-specific fields */}
-                      {selectedType === "cutting" && (
-                        <div className="grid grid-cols-2 gap-4">
+                      {/* Show generic fields only for non-specific operations */}
+                      {selectedType !== 'cutting' && selectedType !== 'drilling' && selectedType !== 'welding' && (
+                        <div className="grid grid-cols-3 gap-4">
                           <div>
-                            <Label>Cutting Method</Label>
+                            <Label htmlFor="quantity">Quantity</Label>
+                            <Input
+                              id="quantity"
+                              type="number"
+                              value={formData.quantity}
+                              onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) }))}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="unit">Unit</Label>
                             <Select 
-                              value={formData.method}
-                              onValueChange={(value) => {
-                                setFormData(prev => ({ ...prev, method: value }));
-                                calculateLaborHours();
-                              }}
+                              value={formData.unit}
+                              onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Select method" />
+                                <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="bandsaw">Bandsaw</SelectItem>
-                                <SelectItem value="plasma">Plasma</SelectItem>
-                                <SelectItem value="laser">Laser</SelectItem>
-                                <SelectItem value="oxy">Oxy Cut</SelectItem>
+                                <SelectItem value="each">Each</SelectItem>
+                                <SelectItem value="m">Meters</SelectItem>
+                                <SelectItem value="m2">Square Meters</SelectItem>
+                                <SelectItem value="kg">Kilograms</SelectItem>
+                                <SelectItem value="hours">Hours</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div>
-                            <Label>Cut Length (mm)</Label>
+                            <Label htmlFor="unitCost">Unit Cost ($)</Label>
                             <Input
+                              id="unitCost"
                               type="number"
-                              value={formData.length}
-                              onChange={(e) => {
-                                setFormData(prev => ({ ...prev, length: parseFloat(e.target.value) }));
-                                calculateLaborHours();
-                              }}
+                              value={formData.unitCost}
+                              onChange={(e) => setFormData(prev => ({ ...prev, unitCost: parseFloat(e.target.value) }))}
                             />
                           </div>
                         </div>
                       )}
 
+                      {/* Type-specific fields */}
+                      {selectedType === "cutting" && (
+                        <div className="space-y-4">
+                          {/* Select from Operations Database Standards */}
+                          {cuttingStandards.length > 0 && (
+                            <div>
+                              <Label>Select from Operations Database</Label>
+                              <Select 
+                                onValueChange={(value) => {
+                                  const standard = cuttingStandards.find(s => s.id.toString() === value);
+                                  if (standard) {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      method: standard.equipment?.toLowerCase() || prev.method,
+                                      // Calculate labor hours based on time_per_meter from database
+                                      laborHours: ((prev.length || 1000) / 1000) * (standard.time_per_meter || 2)
+                                    }));
+                                  }
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select from database (optional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {cuttingStandards.filter(s => s.is_active).map(standard => (
+                                    <SelectItem key={standard.id} value={standard.id.toString()}>
+                                      {standard.name} - {standard.thickness_min}-{standard.thickness_max}mm ({standard.time_per_meter} min/m)
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>Cutting Method</Label>
+                              <Select 
+                                value={formData.method}
+                                onValueChange={(value) => {
+                                  setFormData(prev => ({ ...prev, method: value }));
+                                  calculateLaborHours();
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select method" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="bandsaw">Bandsaw</SelectItem>
+                                  <SelectItem value="plasma">Plasma</SelectItem>
+                                  <SelectItem value="laser">Laser</SelectItem>
+                                  <SelectItem value="fiber_laser">Fiber Laser</SelectItem>
+                                  <SelectItem value="oxy">Oxy Cut</SelectItem>
+                                  <SelectItem value="grinder_125">125mm Grinder</SelectItem>
+                                  <SelectItem value="grinder_230">230mm Grinder</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Cut Length (mm)</Label>
+                              <Input
+                                type="number"
+                                value={formData.length}
+                                onChange={(e) => {
+                                  setFormData(prev => ({ ...prev, length: parseFloat(e.target.value) }));
+                                  calculateLaborHours();
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {selectedType === "drilling" && (
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <Label>Method</Label>
-                            <Select 
-                              value={formData.method}
-                              onValueChange={(value) => {
-                                setFormData(prev => ({ ...prev, method: value }));
-                                calculateLaborHours();
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select method" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="mag_drill">Mag Drill</SelectItem>
-                                <SelectItem value="hand_drill">Hand Drill</SelectItem>
-                                <SelectItem value="laser">Laser</SelectItem>
-                                <SelectItem value="plasma">Plasma</SelectItem>
-                                <SelectItem value="punch">Punch</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label>Hole Diameter (mm)</Label>
-                            <Input
-                              type="number"
-                              value={formData.diameter}
-                              onChange={(e) => {
-                                setFormData(prev => ({ ...prev, diameter: parseFloat(e.target.value) }));
-                                calculateLaborHours();
-                              }}
-                            />
-                          </div>
-                          <div>
-                            <Label>Number of Holes</Label>
-                            <Input
-                              type="number"
-                              value={formData.quantity}
-                              onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) }))}
-                            />
+                        <div className="space-y-4">
+                          {/* Select from Operations Database Standards */}
+                          {drillingStandards.length > 0 && (
+                            <div>
+                              <Label>Select from Operations Database</Label>
+                              <Select 
+                                onValueChange={(value) => {
+                                  const standard = drillingStandards.find(s => s.id.toString() === value);
+                                  if (standard) {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      diameter: standard.hole_diameter || prev.diameter,
+                                      // Calculate labor hours based on time_per_hole from database
+                                      laborHours: (prev.quantity || 1) * (standard.time_per_hole || 1)
+                                    }));
+                                  }
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select from database (optional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {drillingStandards.filter(s => s.is_active).map(standard => (
+                                    <SelectItem key={standard.id} value={standard.id.toString()}>
+                                      {standard.name} - {standard.hole_diameter || 'Various'}mm ({standard.time_per_hole} min/hole)
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <Label>Method</Label>
+                              <Select 
+                                value={formData.method}
+                                onValueChange={(value) => {
+                                  setFormData(prev => ({ ...prev, method: value }));
+                                  calculateLaborHours();
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select method" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="mag_drill">Mag Drill</SelectItem>
+                                  <SelectItem value="hand_drill">Hand Drill</SelectItem>
+                                  <SelectItem value="laser">Laser</SelectItem>
+                                  <SelectItem value="plasma">Plasma</SelectItem>
+                                  <SelectItem value="punch">Punch</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Hole Diameter (mm)</Label>
+                              <Input
+                                type="number"
+                                value={formData.diameter}
+                                onChange={(e) => {
+                                  setFormData(prev => ({ ...prev, diameter: parseFloat(e.target.value) }));
+                                  calculateLaborHours();
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <Label>Number of Holes</Label>
+                              <Input
+                                type="number"
+                                value={formData.quantity}
+                                onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) }))}
+                              />
+                            </div>
                           </div>
                         </div>
                       )}
 
                       {(selectedType === "welding" || selectedType === "weld") && (
                         <div className="space-y-4">
+                          {/* Select from Operations Database Standards */}
+                          {weldingStandards.length > 0 && (
+                            <div>
+                              <Label>Select from Operations Database</Label>
+                              <Select 
+                                onValueChange={(value) => {
+                                  const standard = weldingStandards.find(s => s.id.toString() === value);
+                                  if (standard) {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      method: standard.name?.includes('Fillet') ? 'fillet' : 
+                                              standard.name?.includes('Butt') ? 'butt_single_v' : prev.method,
+                                      size: standard.size?.replace(/[^0-9.]/g, '') || prev.size,
+                                      // Calculate labor hours based on time_per_meter from database
+                                      laborHours: ((prev.length || 1000) / 1000) * (standard.time_per_meter || 5)
+                                    }));
+                                  }
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select from database (optional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {weldingStandards.filter(s => s.is_active).map(standard => (
+                                    <SelectItem key={standard.id} value={standard.id.toString()}>
+                                      {standard.name} - {standard.size} ({standard.time_per_meter} min/m)
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+
                           <div className="grid grid-cols-3 gap-4">
                             <div>
                               <Label>Weld Type</Label>

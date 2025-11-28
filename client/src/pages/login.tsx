@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Shield, Clock, User, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
-import companyLogo from "@assets/lateral-engineering-logo.jpg";
+import companyLogo from "@assets/LEL Variations Logo Symbol 01-01_1753176530831.jpg";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();

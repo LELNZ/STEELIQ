@@ -88,7 +88,7 @@ export default function Materials() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="steel-catalogue" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-6 h-12 bg-muted/50 rounded-lg p-1">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-6 h-auto sm:h-12 bg-muted/50 rounded-lg p-1">
               <TabsTrigger 
                 value="steel-catalogue" 
                 className="text-sm font-medium rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"

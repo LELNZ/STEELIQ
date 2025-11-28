@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Pencil, Trash2, Plus, Info, ChevronDown, Settings2 } from 'lucide-react';
+import { Pencil, Trash2, Plus, Info, ChevronDown, Settings2, X } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { StandardTooltip } from '@/components/ui/tooltip-standard';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import ConsumptionRates from '@/components/organization-settings/consumption-rates';
+import { EquipmentLibraryTab } from '@/components/operations-settings/EquipmentLibraryTab';
 import { 
   Dialog, 
   DialogContent, 
@@ -70,12 +71,12 @@ const tabs = [
   },
   {
     value: 'annotation-themes',
-    label: 'PDF Themes',
+    label: 'PDF',
     tooltip: 'Configure color themes and styles for PDF markup and annotations'
   },
   {
     value: 'plate-schedule',
-    label: 'Plate Schedule',
+    label: 'Plates',
     tooltip: 'Manage plate nesting optimization and cutting schedules'
   },
   {
@@ -90,24 +91,29 @@ const tabs = [
   },
   {
     value: 'labor-defaults',
-    label: 'Labor Defaults',
+    label: 'Labor',
     tooltip: 'Set default labor allocations and site premiums for different operation types used in estimations'
   },
   {
     value: 'labor-rates',
-    label: 'Labor Rates',
+    label: 'Rates',
     tooltip: 'Manage role-based labor rates with skill levels, allowances, and overtime multipliers for accurate cost estimation'
   },
   {
     value: 'consumption-rates',
-    label: 'Consumption Rates',
+    label: 'Consumables',
     tooltip: 'Configure consumption rates for materials and consumables used in operations'
+  },
+  {
+    value: 'equipment-library',
+    label: 'Equipment',
+    tooltip: 'Manage your equipment inventory with hourly rates, ownership status, and automation levels'
   }
 ];
 
 export default function OperationsSettings() {
-  // Debug log to verify this component is loaded
-  console.log("OperationsSettings v2 component loaded");
+  // Debug log to verify this component is loaded with compact tabs
+  console.log("OperationsSettings v3 with compact tabs - Equipment Library included");
   
   return (
     <TooltipProvider>
@@ -120,18 +126,20 @@ export default function OperationsSettings() {
         </div>
 
         <Tabs defaultValue="fabrication" className="w-full">
-          {/* Tabs on single line with proper spacing */}
-          <TabsList className="grid grid-cols-12 h-10 p-1 bg-muted w-full gap-0">
-            {tabs.map((tab) => (
-              <TabsTrigger 
-                key={tab.value} 
-                value={tab.value} 
-                className="px-2 py-1 text-xs font-medium whitespace-nowrap data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-colors"
-              >
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          {/* Custom scrollable tab navigation to ensure all tabs are accessible */}
+          <div className="w-full overflow-x-auto bg-muted p-0.5 rounded-lg">
+            <TabsList className="inline-flex h-8 items-center justify-start gap-0.5 bg-transparent p-0 min-w-max">
+              {tabs.map((tab) => (
+                <TabsTrigger 
+                  key={tab.value} 
+                  value={tab.value} 
+                  className="px-2 py-1 text-[11px] font-medium whitespace-nowrap data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-colors rounded text-center min-w-[60px]"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           <TabsContent value="fabrication" className="mt-4">
             <FabricationTab />
@@ -179,6 +187,9 @@ export default function OperationsSettings() {
           
           <TabsContent value="consumption-rates" className="mt-4">
             <ConsumptionRates />
+          </TabsContent>
+          <TabsContent value="equipment-library" className="mt-4">
+            <EquipmentLibraryTab />
           </TabsContent>
         </Tabs>
       </div>
@@ -705,24 +716,51 @@ function LaborDefaultForm({ defaultItem, onClose }: { defaultItem: any; onClose:
   );
 }
 
-// Welding Standards Tab
+// Welding Standards Tab with Workshop/Site Split
 function WeldingStandardsTab() {
   const { data: standards = [], isLoading } = useQuery<any[]>({
-    queryKey: ['/api/operations/welding-standards']
+    queryKey: ['/api/labor-standards/welding']
   });
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingStandard, setEditingStandard] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [workshopCollapsed, setWorkshopCollapsed] = useState(false);
+  const [siteCollapsed, setSiteCollapsed] = useState(false);
+  const [collapsedMethods, setCollapsedMethods] = useState<Record<string, boolean>>({});
+  
+  // Split standards into Workshop and Site
+  const workshopStandards = standards.filter(s => s.location !== 'site');
+  const siteStandards = standards.filter(s => s.location === 'site');
+  
+  // Group each location's standards by method
+  const groupStandardsByMethod = (stds: any[]) => {
+    return stds.reduce((acc: any, standard: any) => {
+      const method = standard.method || 'other';
+      if (!acc[method]) acc[method] = [];
+      acc[method].push(standard);
+      return acc;
+    }, {});
+  };
+  
+  const workshopGrouped = groupStandardsByMethod(workshopStandards);
+  const siteGrouped = groupStandardsByMethod(siteStandards);
+  
+  const methodNames: Record<string, string> = {
+    MIG: 'MIG Welding',
+    TIG: 'TIG Welding',
+    MMAW: 'MMAW (Stick)',
+    FCAW: 'FCAW (Flux Core)'
+  };
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/operations/welding-standards/${id}`);
+      return apiRequest(`/api/labor-standards/welding/${id}`, 'DELETE');
     },
     onSuccess: () => {
       toast({ title: "Welding standard deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ['/api/operations/welding-standards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/labor-standards/welding'] });
     }
   });
 
@@ -731,16 +769,33 @@ function WeldingStandardsTab() {
     setIsDialogOpen(true);
   };
 
-  const handleCreate = () => {
-    setEditingStandard(null);
+  const handleCreate = (location: 'workshop' | 'site' = 'workshop') => {
+    setEditingStandard({ location });
     setIsDialogOpen(true);
+  };
+
+  const toggleMethod = (location: string, method: string) => {
+    const key = `${location}-${method}`;
+    setCollapsedMethods(prev => ({
+      ...prev,
+      [key]: prev[key] === false ? true : false
+    }));
   };
 
   const columns = [
     { key: 'name', header: 'Name' },
-    { key: 'size', header: 'Size' },
-    { key: 'material_type', header: 'Material Type', render: (value: string) => value?.replace(/_/g, ' ') },
-    { key: 'time_per_meter', header: 'Time/Meter', render: (value: number) => `${value} min` },
+    { 
+      key: 'method', 
+      header: 'Method',
+      render: (value: string) => value?.toUpperCase()
+    },
+    { 
+      key: 'weld_type', 
+      header: 'Weld Type',
+      render: (value: string) => value?.replace(/_/g, ' ')
+    },
+    { key: 'size', header: 'Size (mm)' },
+    { key: 'time_per_meter', header: 'Time/m', render: (value: number) => `${value} min` },
     { 
       key: 'is_active', 
       header: 'Status',
@@ -755,39 +810,157 @@ function WeldingStandardsTab() {
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Welding Standards</CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" onClick={handleCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create
+    <div className="space-y-4">
+      {/* Workshop Standards */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setWorkshopCollapsed(!workshopCollapsed)}
+              className="p-0 h-auto"
+            >
+              <ChevronDown className={`h-4 w-4 transition-transform ${workshopCollapsed ? '-rotate-90' : ''}`} />
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingStandard ? 'Edit Welding Standard' : 'Create Welding Standard'}
-              </DialogTitle>
-            </DialogHeader>
-            <WeldingStandardForm 
-              standard={editingStandard}
-              onClose={() => setIsDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        <StandardsTable
-          data={standards}
-          columns={columns}
-          onEdit={handleEdit}
-          onDelete={(id) => deleteMutation.mutate(id)}
-          emptyMessage="No welding standards configured"
-        />
-      </CardContent>
-    </Card>
+            <CardTitle className="text-lg">Workshop Standards</CardTitle>
+          </div>
+          <Dialog open={isDialogOpen && editingStandard?.location !== 'site'} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={() => handleCreate('workshop')}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Workshop Standard
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingStandard && editingStandard.id ? 'Edit Workshop Standard' : 'Create Workshop Standard'}
+                </DialogTitle>
+              </DialogHeader>
+              <WeldingStandardForm 
+                standard={editingStandard}
+                onClose={() => setIsDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        {!workshopCollapsed && (
+          <CardContent className="space-y-4">
+            {Object.keys(workshopGrouped).length === 0 ? (
+              <div className="text-center py-4 text-gray-500">
+                No workshop welding standards configured
+              </div>
+            ) : (
+              Object.entries(workshopGrouped)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([method, methodStandards]: [string, any]) => (
+                  <div key={method} className="border rounded-lg">
+                    <div 
+                      className="flex items-center justify-between p-3 bg-gray-50 cursor-pointer hover:bg-gray-100"
+                      onClick={() => toggleMethod('workshop', method)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <ChevronDown className={`h-4 w-4 transition-transform ${collapsedMethods[`workshop-${method}`] !== false ? '-rotate-90' : ''}`} />
+                        <h4 className="font-medium">
+                          {methodNames[method] || method}
+                        </h4>
+                        <span className="text-sm text-gray-600">({methodStandards.length} standards)</span>
+                      </div>
+                    </div>
+                    {collapsedMethods[`workshop-${method}`] === false && (
+                      <div className="p-3">
+                        <StandardsTable
+                          data={methodStandards}
+                          columns={columns}
+                          onEdit={handleEdit}
+                          onDelete={(id) => deleteMutation.mutate(id)}
+                          emptyMessage=""
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Site Standards */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSiteCollapsed(!siteCollapsed)}
+              className="p-0 h-auto"
+            >
+              <ChevronDown className={`h-4 w-4 transition-transform ${siteCollapsed ? '-rotate-90' : ''}`} />
+            </Button>
+            <CardTitle className="text-lg">Site Standards (20% Premium Applied)</CardTitle>
+          </div>
+          <Dialog open={isDialogOpen && editingStandard?.location === 'site'} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={() => handleCreate('site')}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Site Standard
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingStandard && editingStandard.id ? 'Edit Site Standard' : 'Create Site Standard'}
+                </DialogTitle>
+              </DialogHeader>
+              <WeldingStandardForm 
+                standard={editingStandard}
+                onClose={() => setIsDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        {!siteCollapsed && (
+          <CardContent className="space-y-4">
+            {Object.keys(siteGrouped).length === 0 ? (
+              <div className="text-center py-4 text-gray-500">
+                No site welding standards configured
+              </div>
+            ) : (
+              Object.entries(siteGrouped)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([method, methodStandards]: [string, any]) => (
+                  <div key={method} className="border rounded-lg">
+                    <div 
+                      className="flex items-center justify-between p-3 bg-gray-50 cursor-pointer hover:bg-gray-100"
+                      onClick={() => toggleMethod('site', method)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <ChevronDown className={`h-4 w-4 transition-transform ${collapsedMethods[`site-${method}`] !== false ? '-rotate-90' : ''}`} />
+                        <h4 className="font-medium">
+                          {methodNames[method] || method}
+                        </h4>
+                        <span className="text-sm text-gray-600">({methodStandards.length} standards)</span>
+                      </div>
+                    </div>
+                    {collapsedMethods[`site-${method}`] === false && (
+                      <div className="p-3">
+                        <StandardsTable
+                          data={methodStandards}
+                          columns={columns}
+                          onEdit={handleEdit}
+                          onDelete={(id) => deleteMutation.mutate(id)}
+                          emptyMessage=""
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))
+            )}
+          </CardContent>
+        )}
+      </Card>
+    </div>
   );
 }
 
@@ -804,7 +977,7 @@ function PlateScheduleTab() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/operations/plate-schedule/${id}`);
+      return apiRequest(`/api/operations/plate-schedule/${id}`, 'DELETE');
     },
     onSuccess: () => {
       toast({ title: "Plate schedule deleted successfully" });
@@ -890,7 +1063,7 @@ function AnnotationThemesTab() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/operations/annotation-themes/${id}`);
+      return apiRequest(`/api/operations/annotation-themes/${id}`, 'DELETE');
     },
     onSuccess: () => {
       toast({ title: "Annotation theme deleted successfully" });
@@ -1006,7 +1179,7 @@ function EdgePreparationsTab() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/operations/edge-preparations/${id}`);
+      return apiRequest(`/api/operations/edge-preparations/${id}`, 'DELETE');
     },
     onSuccess: () => {
       toast({ title: "Edge preparation deleted successfully" });
@@ -1097,21 +1270,22 @@ function EdgePreparationsTab() {
 // Drilling Standards Tab
 function DrillingStandardsTab() {
   const { data: standards = [], isLoading } = useQuery<any[]>({
-    queryKey: ['/api/operations/drilling-standards']
+    queryKey: ['/api/labor-standards/drilling']
   });
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingStandard, setEditingStandard] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [collapsedMethods, setCollapsedMethods] = useState<Record<string, boolean>>({});
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/operations/drilling-standards/${id}`);
+      return apiRequest(`/api/labor-standards/drilling/${id}`, 'DELETE');
     },
     onSuccess: () => {
       toast({ title: "Drilling standard deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ['/api/operations/drilling-standards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/labor-standards/drilling'] });
     }
   });
 
@@ -1125,11 +1299,38 @@ function DrillingStandardsTab() {
     setIsDialogOpen(true);
   };
 
+  const toggleMethod = (method: string) => {
+    setCollapsedMethods(prev => ({
+      ...prev,
+      [method]: prev[method] === false ? true : false
+    }));
+  };
+
   const columns = [
     { key: 'name', header: 'Name' },
-    { key: 'hole_diameter', header: 'Size (mm)', render: (value: number) => value || '-' },
-    { key: 'material_type', header: 'Material Type', render: (value: string) => value?.replace(/_/g, ' ') },
+    { 
+      key: 'complexity', 
+      header: 'Complexity',
+      render: (value: string) => {
+        const colors = {
+          light: 'bg-green-100 text-green-800',
+          medium: 'bg-yellow-100 text-yellow-800',
+          heavy: 'bg-red-100 text-red-800'
+        };
+        return (
+          <span className={`text-xs px-2 py-1 rounded capitalize ${colors[value as keyof typeof colors] || 'bg-gray-100 text-gray-800'}`}>
+            {value}
+          </span>
+        );
+      }
+    },
+    { 
+      key: 'diameter_range', 
+      header: 'Diameter',
+      render: (_: any, row: any) => row.diameter_min && row.diameter_max ? `${row.diameter_min}-${row.diameter_max}mm` : '-'
+    },
     { key: 'time_per_hole', header: 'Time/Hole', render: (value: number) => `${value} min` },
+    { key: 'equipment', header: 'Equipment', render: (value: string) => value || '-' },
     { 
       key: 'is_active', 
       header: 'Status',
@@ -1141,63 +1342,114 @@ function DrillingStandardsTab() {
     }
   ];
 
+  // Group standards by method
+  const groupedStandards = standards.reduce((acc: any, standard: any) => {
+    const method = standard.method || 'other';
+    if (!acc[method]) acc[method] = [];
+    acc[method].push(standard);
+    return acc;
+  }, {});
+
+  const methodNames: Record<string, string> = {
+    hand_drill: 'Hand Drill',
+    mag_drill: 'Mag Drill',
+    drill_press: 'Drill Press',
+    oxy_fuel: 'Oxy Fuel Holes',
+    plasma_hand: 'Plasma Hand Holes',
+    cnc_drill: 'CNC Drill',
+    laser: 'Laser',
+    plasma: 'Plasma',
+    punch: 'Punch'
+  };
+
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Drilling Standards</CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" onClick={handleCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingStandard ? 'Edit Drilling Standard' : 'Create Drilling Standard'}
-              </DialogTitle>
-            </DialogHeader>
-            <DrillingStandardForm 
-              standard={editingStandard}
-              onClose={() => setIsDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        <StandardsTable
-          data={standards}
-          columns={columns}
-          onEdit={handleEdit}
-          onDelete={(id) => deleteMutation.mutate(id)}
-          emptyMessage="No drilling standards configured"
-        />
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Drilling Standards</CardTitle>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={handleCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingStandard ? 'Edit Drilling Standard' : 'Create Drilling Standard'}
+                </DialogTitle>
+              </DialogHeader>
+              <DrillingStandardForm 
+                standard={editingStandard}
+                onClose={() => setIsDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {Object.keys(groupedStandards).length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No drilling standards configured
+            </div>
+          ) : (
+            Object.entries(groupedStandards)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([method, methodStandards]: [string, any]) => (
+                <div key={method} className="border rounded-lg">
+                  <div 
+                    className="flex items-center justify-between p-3 bg-gray-50 cursor-pointer hover:bg-gray-100"
+                    onClick={() => toggleMethod(method)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <ChevronDown className={`h-4 w-4 transition-transform ${collapsedMethods[method] !== false ? '-rotate-90' : ''}`} />
+                      <h3 className="font-semibold">
+                        {methodNames[method] || method.replace(/_/g, ' ').toUpperCase()}
+                      </h3>
+                      <span className="text-sm text-gray-600">({methodStandards.length} standards)</span>
+                    </div>
+                  </div>
+                  {collapsedMethods[method] === false && (
+                    <div className="p-3">
+                      <StandardsTable
+                        data={methodStandards}
+                        columns={columns}
+                        onEdit={handleEdit}
+                        onDelete={(id) => deleteMutation.mutate(id)}
+                        emptyMessage=""
+                      />
+                    </div>
+                  )}
+                </div>
+              ))
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
 // Cutting Standards Tab
 function CuttingStandardsTab() {
   const { data: standards = [], isLoading } = useQuery<any[]>({
-    queryKey: ['/api/operations/cutting-standards']
+    queryKey: ['/api/labor-standards/cutting']
   });
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingStandard, setEditingStandard] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [collapsedMethods, setCollapsedMethods] = useState<Record<string, boolean>>({});
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/operations/cutting-standards/${id}`);
+      return apiRequest(`/api/labor-standards/cutting/${id}`, 'DELETE');
     },
     onSuccess: () => {
       toast({ title: "Cutting standard deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ['/api/operations/cutting-standards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/labor-standards/cutting'] });
     }
   });
 
@@ -1211,16 +1463,39 @@ function CuttingStandardsTab() {
     setIsDialogOpen(true);
   };
 
+  const toggleMethod = (method: string) => {
+    setCollapsedMethods(prev => ({
+      ...prev,
+      [method]: prev[method] === false ? true : false
+    }));
+  };
+
   const columns = [
     { key: 'name', header: 'Name' },
-    { key: 'material_type', header: 'Material Type', render: (value: string) => value?.replace(/_/g, ' ') },
+    { 
+      key: 'complexity', 
+      header: 'Complexity',
+      render: (value: string) => {
+        const colors = {
+          light: 'bg-green-100 text-green-800',
+          medium: 'bg-yellow-100 text-yellow-800',
+          heavy: 'bg-red-100 text-red-800'
+        };
+        return (
+          <span className={`text-xs px-2 py-1 rounded capitalize ${colors[value as keyof typeof colors] || 'bg-gray-100 text-gray-800'}`}>
+            {value}
+          </span>
+        );
+      }
+    },
+    { key: 'material_type', header: 'Material', render: (value: string) => value?.replace(/_/g, ' ') },
     { 
       key: 'thickness_range', 
-      header: 'Thickness Range',
+      header: 'Thickness',
       render: (_: any, row: any) => `${row.thickness_min}-${row.thickness_max}mm`
     },
-    { key: 'time_per_meter', header: 'Time/Meter', render: (value: number) => `${value} min` },
-    { key: 'equipment', header: 'Equipment' },
+    { key: 'time_per_meter', header: 'Time/m', render: (value: number) => `${value} min` },
+    { key: 'equipment', header: 'Equipment', render: (value: string) => value || '-' },
     { 
       key: 'is_active', 
       header: 'Status',
@@ -1232,42 +1507,92 @@ function CuttingStandardsTab() {
     }
   ];
 
+  // Group standards by method
+  const groupedStandards = standards.reduce((acc: any, standard: any) => {
+    const method = standard.method || 'other';
+    if (!acc[method]) acc[method] = [];
+    acc[method].push(standard);
+    return acc;
+  }, {});
+
+  const methodNames: Record<string, string> = {
+    bandsaw: 'Bandsaw',
+    grinder_125: '125mm Grinder',
+    grinder_230: '230mm Grinder',
+    oxy_hand: 'Oxy Fuel Hand Cut',
+    plasma_hand: 'Plasma Hand Cut',
+    plasma: 'Plasma (Automated)',
+    laser: 'Laser',
+    oxy: 'Oxy-Acetylene',
+    waterjet: 'Waterjet'
+  };
+
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Cutting Standards</CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" onClick={handleCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingStandard ? 'Edit Cutting Standard' : 'Create Cutting Standard'}
-              </DialogTitle>
-            </DialogHeader>
-            <CuttingStandardForm 
-              standard={editingStandard}
-              onClose={() => setIsDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        <StandardsTable
-          data={standards}
-          columns={columns}
-          onEdit={handleEdit}
-          onDelete={(id) => deleteMutation.mutate(id)}
-          emptyMessage="No cutting standards configured"
-        />
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Cutting Standards</CardTitle>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={handleCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingStandard ? 'Edit Cutting Standard' : 'Create Cutting Standard'}
+                </DialogTitle>
+              </DialogHeader>
+              <CuttingStandardForm 
+                standard={editingStandard}
+                onClose={() => setIsDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {Object.keys(groupedStandards).length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No cutting standards configured
+            </div>
+          ) : (
+            Object.entries(groupedStandards)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([method, methodStandards]: [string, any]) => (
+                <div key={method} className="border rounded-lg">
+                  <div 
+                    className="flex items-center justify-between p-3 bg-gray-50 cursor-pointer hover:bg-gray-100"
+                    onClick={() => toggleMethod(method)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <ChevronDown className={`h-4 w-4 transition-transform ${collapsedMethods[method] !== false ? '-rotate-90' : ''}`} />
+                      <h3 className="font-semibold">
+                        {methodNames[method] || method.replace(/_/g, ' ').toUpperCase()}
+                      </h3>
+                      <span className="text-sm text-gray-600">({methodStandards.length} standards)</span>
+                    </div>
+                  </div>
+                  {collapsedMethods[method] === false && (
+                    <div className="p-3">
+                      <StandardsTable
+                        data={methodStandards}
+                        columns={columns}
+                        onEdit={handleEdit}
+                        onDelete={(id) => deleteMutation.mutate(id)}
+                        emptyMessage=""
+                      />
+                    </div>
+                  )}
+                </div>
+              ))
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -1284,7 +1609,7 @@ function PositionFactorsTab() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/operations/position-factors/${id}`);
+      return apiRequest(`/api/operations/position-factors/${id}`, 'DELETE');
     },
     onSuccess: () => {
       toast({ title: "Position factor deleted successfully" });
@@ -1372,7 +1697,7 @@ function AssemblyTemplatesTab() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/operations/assembly-templates/${id}`);
+      return apiRequest(`/api/operations/assembly-templates/${id}`, 'DELETE');
     },
     onSuccess: () => {
       toast({ title: "Assembly template deleted successfully" });
@@ -1465,7 +1790,7 @@ function LaborDefaultsTab() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/operations/labor-defaults/${id}`);
+      return apiRequest(`/api/operations/labor-defaults/${id}`, 'DELETE');
     },
     onSuccess: () => {
       toast({ title: "Labor default deleted successfully" });
@@ -1561,13 +1886,15 @@ function LaborRatesTab() {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-5 w-full">
-          <TabsTrigger value="profiles">Rate Profiles</TabsTrigger>
-          <TabsTrigger value="skill-levels">Skill Levels</TabsTrigger>
-          <TabsTrigger value="role-rates">Role Rates</TabsTrigger>
-          <TabsTrigger value="allowances">Allowances</TabsTrigger>
-          <TabsTrigger value="history">Rate History</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto w-full">
+          <TabsList className="w-max">
+            <TabsTrigger value="profiles">Rate Profiles</TabsTrigger>
+            <TabsTrigger value="skill-levels">Skill Levels</TabsTrigger>
+            <TabsTrigger value="role-rates">Role Rates</TabsTrigger>
+            <TabsTrigger value="allowances">Allowances</TabsTrigger>
+            <TabsTrigger value="history">Rate History</TabsTrigger>
+          </TabsList>
+        </div>
         
         <TabsContent value="profiles">
           <LaborRateProfiles />
@@ -1605,7 +1932,7 @@ function LaborRateProfiles() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/labor-rate-profiles/${id}`);
+      return apiRequest(`/api/labor-rate-profiles/${id}`, 'DELETE');
     },
     onSuccess: () => {
       toast({ title: "Rate profile deleted successfully" });
@@ -2030,13 +2357,16 @@ function RoleRates() {
                   ${(safeToNumber(rate.baseRate) * safeToNumber(rate.skillLevelMultiplier || 1)).toFixed(2)}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    onClick={() => { setEditingRate(rate); setIsDialogOpen(true); }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+                  <div className="flex justify-end gap-1">
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => { setEditingRate(rate); setIsDialogOpen(true); }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <DeleteRoleRateButton rateId={rate.id} />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -2044,6 +2374,58 @@ function RoleRates() {
         </Table>
       </CardContent>
     </Card>
+  );
+}
+
+// Delete button component for Role Rates
+function DeleteRoleRateButton({ rateId }: { rateId: number }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this role rate? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/role-rates/${rateId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete role rate');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Role rate deleted successfully',
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['/api/role-rates'] });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete role rate',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      onClick={handleDelete}
+      disabled={isDeleting}
+      className="hover:bg-destructive/10"
+    >
+      <Trash2 className="h-4 w-4 text-destructive" />
+    </Button>
   );
 }
 
@@ -2247,7 +2629,7 @@ function LaborAllowances() {
   
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/labor-allowances/${id}`);
+      return apiRequest(`/api/labor-allowances/${id}`, 'DELETE');
     },
     onSuccess: () => {
       toast({ title: "Allowance deleted successfully" });
@@ -2539,23 +2921,33 @@ function WeldingStandardForm({ standard, onClose }: { standard: any; onClose: ()
   
   const [form, setForm] = useState({
     name: standard?.name || '',
+    method: standard?.method || 'MIG',
+    weld_type: standard?.weld_type || 'fillet',
     size: standard?.size || '',
-    material_type: standard?.material_type || 'mild_steel',
     time_per_meter: standard?.time_per_meter || 5,
+    equipment: standard?.equipment || '',
+    location: standard?.location || 'workshop',
     is_active: standard?.is_active ?? true
   });
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof form) => {
       const url = standard 
-        ? `/api/operations/welding-standards/${standard.id}`
-        : '/api/operations/welding-standards';
-      return apiRequest(standard ? 'PUT' : 'POST', url, data);
+        ? `/api/labor-standards/welding/${standard.id}`
+        : '/api/labor-standards/welding';
+      return apiRequest(url, standard ? 'PUT' : 'POST', data);
     },
     onSuccess: () => {
       toast({ title: `Welding standard ${standard ? 'updated' : 'created'} successfully` });
-      queryClient.invalidateQueries({ queryKey: ['/api/operations/welding-standards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/labor-standards/welding'] });
       onClose();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: `Failed to ${standard ? 'update' : 'create'} welding standard`, 
+        description: error.message,
+        variant: "destructive" 
+      });
     }
   });
 
@@ -2567,32 +2959,53 @@ function WeldingStandardForm({ standard, onClose }: { standard: any; onClose: ()
           id="name"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
-          placeholder="e.g., 10mm Fillet"
+          placeholder="e.g., MIG Fillet 10mm"
         />
       </div>
       
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="method">Welding Method</Label>
+          <Select value={form.method} onValueChange={(value) => setForm({ ...form, method: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="MIG">MIG</SelectItem>
+              <SelectItem value="TIG">TIG</SelectItem>
+              <SelectItem value="MMAW">MMAW (Stick)</SelectItem>
+              <SelectItem value="FCAW">FCAW (Flux Core)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
+          <Label htmlFor="weld_type">Weld Type</Label>
+          <Select value={form.weld_type} onValueChange={(value) => setForm({ ...form, weld_type: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fillet">Fillet</SelectItem>
+              <SelectItem value="butt_single_v">Butt Single V</SelectItem>
+              <SelectItem value="butt_double_v">Butt Double V</SelectItem>
+              <SelectItem value="seal">Seal</SelectItem>
+              <SelectItem value="plug">Plug</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
       <div>
-        <Label htmlFor="size">Size</Label>
+        <Label htmlFor="size">Weld Size (mm)</Label>
         <Input
           id="size"
+          type="number"
+          step="1"
           value={form.size}
           onChange={(e) => setForm({ ...form, size: e.target.value })}
-          placeholder="e.g., 10mm"
+          placeholder="e.g., 10"
         />
-      </div>
-      
-      <div>
-        <Label htmlFor="material_type">Material Type</Label>
-        <Select value={form.material_type} onValueChange={(value) => setForm({ ...form, material_type: value })}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="mild_steel">Mild Steel</SelectItem>
-            <SelectItem value="stainless_steel">Stainless Steel</SelectItem>
-            <SelectItem value="aluminum">Aluminum</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
       
       <div>
@@ -2603,6 +3016,16 @@ function WeldingStandardForm({ standard, onClose }: { standard: any; onClose: ()
           step="0.1"
           value={form.time_per_meter}
           onChange={(e) => setForm({ ...form, time_per_meter: parseFloat(e.target.value) })}
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="equipment">Equipment</Label>
+        <Input
+          id="equipment"
+          value={form.equipment}
+          onChange={(e) => setForm({ ...form, equipment: e.target.value })}
+          placeholder="e.g., MIG Welder 400A"
         />
       </div>
       
@@ -2631,23 +3054,33 @@ function DrillingStandardForm({ standard, onClose }: { standard: any; onClose: (
   
   const [form, setForm] = useState({
     name: standard?.name || '',
-    hole_diameter: standard?.hole_diameter || null,
-    material_type: standard?.material_type || 'mild_steel',
+    method: standard?.method || 'mag_drill',
+    complexity: standard?.complexity || 'medium',
+    diameter_min: standard?.diameter_min || 0,
+    diameter_max: standard?.diameter_max || 20,
     time_per_hole: standard?.time_per_hole || 1,
+    equipment: standard?.equipment || '',
     is_active: standard?.is_active ?? true
   });
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof form) => {
       const url = standard 
-        ? `/api/operations/drilling-standards/${standard.id}`
-        : '/api/operations/drilling-standards';
-      return apiRequest(standard ? 'PUT' : 'POST', url, data);
+        ? `/api/labor-standards/drilling/${standard.id}`
+        : '/api/labor-standards/drilling';
+      return apiRequest(url, standard ? 'PUT' : 'POST', data);
     },
     onSuccess: () => {
       toast({ title: `Drilling standard ${standard ? 'updated' : 'created'} successfully` });
-      queryClient.invalidateQueries({ queryKey: ['/api/operations/drilling-standards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/labor-standards/drilling'] });
       onClose();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: `Failed to ${standard ? 'update' : 'create'} drilling standard`, 
+        description: error.message,
+        variant: "destructive" 
+      });
     }
   });
 
@@ -2659,34 +3092,65 @@ function DrillingStandardForm({ standard, onClose }: { standard: any; onClose: (
           id="name"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
-          placeholder="e.g., Extra Large Holes"
+          placeholder="e.g., Mag Drill Heavy"
         />
       </div>
       
-      <div>
-        <Label htmlFor="hole_diameter">Hole Diameter (mm)</Label>
-        <Input
-          id="hole_diameter"
-          type="number"
-          step="0.1"
-          value={form.hole_diameter || ''}
-          onChange={(e) => setForm({ ...form, hole_diameter: e.target.value ? parseFloat(e.target.value) : null })}
-          placeholder="Optional"
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="method">Drilling Method</Label>
+          <Select value={form.method} onValueChange={(value) => setForm({ ...form, method: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="hand_drill">Hand Drill</SelectItem>
+              <SelectItem value="mag_drill">Mag Drill</SelectItem>
+              <SelectItem value="drill_press">Drill Press</SelectItem>
+              <SelectItem value="cnc_drill">CNC Drill</SelectItem>
+              <SelectItem value="laser">Laser</SelectItem>
+              <SelectItem value="plasma">Plasma</SelectItem>
+              <SelectItem value="punch">Punch</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
+          <Label htmlFor="complexity">Complexity</Label>
+          <Select value={form.complexity} onValueChange={(value) => setForm({ ...form, complexity: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="light">Light (0-10mm)</SelectItem>
+              <SelectItem value="medium">Medium (10-20mm)</SelectItem>
+              <SelectItem value="heavy">Heavy (20mm+)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       
-      <div>
-        <Label htmlFor="material_type">Material Type</Label>
-        <Select value={form.material_type} onValueChange={(value) => setForm({ ...form, material_type: value })}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="mild_steel">Mild Steel</SelectItem>
-            <SelectItem value="stainless_steel">Stainless Steel</SelectItem>
-            <SelectItem value="aluminum">Aluminum</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="diameter_min">Min Diameter (mm)</Label>
+          <Input
+            id="diameter_min"
+            type="number"
+            step="0.1"
+            value={form.diameter_min}
+            onChange={(e) => setForm({ ...form, diameter_min: parseFloat(e.target.value) })}
+          />
+        </div>
+        <div>
+          <Label htmlFor="diameter_max">Max Diameter (mm)</Label>
+          <Input
+            id="diameter_max"
+            type="number"
+            step="0.1"
+            value={form.diameter_max}
+            onChange={(e) => setForm({ ...form, diameter_max: parseFloat(e.target.value) })}
+          />
+        </div>
       </div>
       
       <div>
@@ -2697,6 +3161,16 @@ function DrillingStandardForm({ standard, onClose }: { standard: any; onClose: (
           step="0.1"
           value={form.time_per_hole}
           onChange={(e) => setForm({ ...form, time_per_hole: parseFloat(e.target.value) })}
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="equipment">Equipment</Label>
+        <Input
+          id="equipment"
+          value={form.equipment}
+          onChange={(e) => setForm({ ...form, equipment: e.target.value })}
+          placeholder="e.g., Mag Drill 40mm"
         />
       </div>
       
@@ -2725,6 +3199,8 @@ function CuttingStandardForm({ standard, onClose }: { standard: any; onClose: ()
   
   const [form, setForm] = useState({
     name: standard?.name || '',
+    method: standard?.method || 'bandsaw',
+    complexity: standard?.complexity || 'medium',
     material_type: standard?.material_type || 'mild_steel',
     thickness_min: standard?.thickness_min || 0,
     thickness_max: standard?.thickness_max || 10,
@@ -2736,14 +3212,21 @@ function CuttingStandardForm({ standard, onClose }: { standard: any; onClose: ()
   const saveMutation = useMutation({
     mutationFn: async (data: typeof form) => {
       const url = standard 
-        ? `/api/operations/cutting-standards/${standard.id}`
-        : '/api/operations/cutting-standards';
-      return apiRequest(standard ? 'PUT' : 'POST', url, data);
+        ? `/api/labor-standards/cutting/${standard.id}`
+        : '/api/labor-standards/cutting';
+      return apiRequest(url, standard ? 'PUT' : 'POST', data);
     },
     onSuccess: () => {
       toast({ title: `Cutting standard ${standard ? 'updated' : 'created'} successfully` });
-      queryClient.invalidateQueries({ queryKey: ['/api/operations/cutting-standards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/labor-standards/cutting'] });
       onClose();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: `Failed to ${standard ? 'update' : 'create'} cutting standard`, 
+        description: error.message,
+        variant: "destructive" 
+      });
     }
   });
 
@@ -2755,8 +3238,44 @@ function CuttingStandardForm({ standard, onClose }: { standard: any; onClose: ()
           id="name"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
-          placeholder="e.g., Plasma Cut - Thick"
+          placeholder="e.g., Bandsaw Heavy Steel"
         />
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="method">Cutting Method</Label>
+          <Select value={form.method} onValueChange={(value) => setForm({ ...form, method: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bandsaw">Bandsaw</SelectItem>
+              <SelectItem value="grinder_125">Grinder 125mm</SelectItem>
+              <SelectItem value="grinder_230">Grinder 230mm</SelectItem>
+              <SelectItem value="oxy_hand">Oxy-Fuel Hand Cut</SelectItem>
+              <SelectItem value="plasma_hand">Plasma Hand Cut</SelectItem>
+              <SelectItem value="plasma">Plasma (Auto)</SelectItem>
+              <SelectItem value="laser">Laser</SelectItem>
+              <SelectItem value="oxy">Oxy-Acetylene (Auto)</SelectItem>
+              <SelectItem value="waterjet">Waterjet</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
+          <Label htmlFor="complexity">Complexity</Label>
+          <Select value={form.complexity} onValueChange={(value) => setForm({ ...form, complexity: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="light">Light (0-10mm)</SelectItem>
+              <SelectItem value="medium">Medium (10-25mm)</SelectItem>
+              <SelectItem value="heavy">Heavy (25mm+)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       
       <div>
@@ -2769,6 +3288,7 @@ function CuttingStandardForm({ standard, onClose }: { standard: any; onClose: ()
             <SelectItem value="mild_steel">Mild Steel</SelectItem>
             <SelectItem value="stainless_steel">Stainless Steel</SelectItem>
             <SelectItem value="aluminum">Aluminum</SelectItem>
+            <SelectItem value="high_tensile">High Tensile</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -28,7 +29,10 @@ import {
   Calendar,
   ShoppingCart,
   Shield,
-  Brain
+  Brain,
+  ChevronDown,
+  ChevronRight,
+  MessageCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -89,6 +93,19 @@ const navigation: NavSection[] = [
     ],
   },
   {
+    name: "Employee & Payroll",
+    items: [
+      { name: "Time Clock", href: "/time-payroll", icon: Timer },  // All employees can access
+      { name: "Time Analytics", href: "/time-analytics", icon: BarChart3, permissions: ['timeAnalyticsView'] },
+      { name: "Time Reports", href: "/time-reports", icon: FileText, permissions: ['timeReportsProcess'] },
+      { name: "Bulk Corrections", href: "/time/bulk-corrections", icon: Calculator, badge: "1.5", badgeVariant: "info", permissions: ['manage_time_entries'] },
+      { name: "Kiosk Mode", href: "/time/kiosk", icon: Smartphone, badge: "1.5", badgeVariant: "info", roles: ['owner', 'admin', 'supervisor', 'full'] },
+      { name: "Shift Reminders", href: "/time/shift-reminders", icon: Timer, badge: "1.5", badgeVariant: "info", roles: ['owner', 'admin', 'supervisor', 'full'] },
+      { name: "Geofences", href: "/time/geofences", icon: Shield, badge: "1.5", badgeVariant: "info", roles: ['owner', 'admin', 'full'] },
+      { name: "GPS Optimization", href: "/time/battery-optimization", icon: Zap, badge: "1.5", badgeVariant: "info", roles: ['owner', 'admin', 'full'] },
+    ],
+  },
+  {
     name: "Settings & Management",
     roles: ['owner', 'supervisor', 'admin', 'full'],
     items: [
@@ -96,8 +113,9 @@ const navigation: NavSection[] = [
       { name: "Financial Settings", href: "/settings/financial", icon: DollarSign, permissions: ['viewCosts', 'manageRates'] },
       { name: "Operations Settings", href: "/settings/operations", icon: Settings2, roles: ['owner', 'admin', 'full'] },
       { name: "Team Management", href: "/team-management", icon: Users, permissions: ['manageUsers'] },
-      { name: "Time & Payroll", href: "/time-payroll", icon: Timer, permissions: ['viewCosts', 'manageRates'] },
+      { name: "Feature Dashboard", href: "/settings/features", icon: BarChart3, badge: "NEW", badgeVariant: "success", roles: ['owner', 'admin', 'full'] },
       { name: "Audit Center", href: "/settings/audit-center", icon: Shield, permissions: ['auditLogs'] },
+      { name: "WhatsApp Test", href: "/whatsapp-test", icon: MessageCircle, badge: "NEW", badgeVariant: "success", roles: ['owner', 'admin'] },
       { name: "My Preferences", href: "/preferences", icon: Settings },
     ],
   },
@@ -105,11 +123,25 @@ const navigation: NavSection[] = [
 
 interface SidebarProps {
   isCollapsed?: boolean;
+  onNavigate?: () => void;
 }
 
-export default function Sidebar({ isCollapsed = false }: SidebarProps) {
+export default function Sidebar({ isCollapsed = false, onNavigate }: SidebarProps) {
   const [location] = useLocation();
   const { user } = useAuth();
+  
+  // State to track which sections are expanded
+  // Core Operations is open by default, all others are closed
+  const [expandedSections, setExpandedSections] = useState<string[]>(['Core Operations']);
+  
+  // Toggle section expansion
+  const toggleSection = (sectionName: string) => {
+    setExpandedSections(prev => 
+      prev.includes(sectionName)
+        ? prev.filter(name => name !== sectionName)
+        : [...prev, sectionName]
+    );
+  };
 
   // Helper function to check if user has required permissions
   const hasPermissions = (permissions?: (keyof UserPermissions)[]) => {
@@ -122,7 +154,33 @@ export default function Sidebar({ isCollapsed = false }: SidebarProps) {
   const hasRole = (roles?: UserRole[]) => {
     if (!roles || roles.length === 0) return true;
     if (!user) return false;
-    return roles.includes(user.role);
+    
+    // Check both legacy role field and new roleName from database
+    const userRole = (user as any).roleName || user.role;
+    
+    // Map database role names to legacy role names for compatibility
+    const roleMapping: Record<string, string> = {
+      'Business Owner': 'owner',
+      'System Administrator': 'admin',
+      'Administrator': 'admin',
+      'Department Supervisor': 'supervisor',
+      'Full Access': 'full'
+    };
+    
+    // Check if user has any of the required roles
+    // First check direct match with legacy role
+    if (roles.includes(user.role)) return true;
+    
+    // Then check if database roleName maps to a required role
+    const mappedRole = roleMapping[userRole];
+    if (mappedRole && roles.includes(mappedRole as UserRole)) return true;
+    
+    // Check if userRole is Business Owner or System Administrator (always full access)
+    if (userRole === 'Business Owner' || userRole === 'System Administrator') {
+      return true; // These roles have access to everything
+    }
+    
+    return false;
   };
 
   // Filter navigation based on permissions and roles
@@ -159,21 +217,37 @@ export default function Sidebar({ isCollapsed = false }: SidebarProps) {
           "overflow-y-auto flex-1",
           isCollapsed ? "p-2" : "p-4"
         )}>
-          {filteredNavigation.map((section) => (
-            <div key={section.name} className={cn(
-              isCollapsed ? "mb-3" : "mb-6"
-            )}>
-              {!isCollapsed && (
-                <h3 className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  {section.name}
-                </h3>
-              )}
-              <ul className="space-y-1">
-                {section.items.map((item) => {
+          {filteredNavigation.map((section) => {
+            const isExpanded = expandedSections.includes(section.name);
+            
+            return (
+              <div key={section.name} className={cn(
+                isCollapsed ? "mb-3" : "mb-6"
+              )}>
+                {!isCollapsed && (
+                  <button
+                    onClick={() => toggleSection(section.name)}
+                    className="w-full flex items-center justify-between px-2 py-1 hover:bg-accent/50 rounded-md transition-colors mb-2"
+                  >
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {section.name}
+                    </h3>
+                    {isExpanded ? (
+                      <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                    )}
+                  </button>
+                )}
+                {/* Only show items if section is expanded or sidebar is collapsed */}
+                {(isExpanded || isCollapsed) && (
+                  <ul className="space-y-1">
+                    {section.items.map((item) => {
                   const isActive = location === item.href;
                   const linkContent = (
                     <Link
                       href={item.href}
+                      onClick={onNavigate}
                       className={cn(
                         "flex items-center text-sm font-medium rounded-lg transition-colors",
                         isCollapsed ? "px-2 py-2 justify-center" : "px-3 py-2.5",
@@ -233,9 +307,11 @@ export default function Sidebar({ isCollapsed = false }: SidebarProps) {
                     </li>
                   );
                 })}
-              </ul>
-            </div>
-          ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
         </nav>
       </div>
     </div>

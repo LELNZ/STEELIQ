@@ -1,190 +1,169 @@
-// Service Worker for LEL Steel Fabrication Management System
-// Force cache refresh - v6
-const CACHE_NAME = 'lel-steel-v6-force-refresh';
-const urlsToCache = [
-  '/',
-  '/assets/index.css',
-  '/assets/index.js',
-  '/manifest.json',
-  '/icon-192.svg',
-  '/icon-512.svg',
-  // Core pages for offline access
-  '/time-payroll',
-  '/jobs',
-  '/mobile-operations',
-  '/cutting-optimization',
-  '/remnant-management'
-];
+// STEELIQ Service Worker - Development Safe Version
+// This version completely bypasses caching in development environments
 
-// Install event - cache core assets
+const VERSION = 'steeliq-dev-bypass-v1';
+const isDevelopment = 
+  self.location.hostname === 'localhost' || 
+  self.location.hostname.includes('.replit.dev') ||
+  self.location.hostname === '127.0.0.1' ||
+  self.location.hostname === '0.0.0.0';
+
+// Install event - clear everything and claim control
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Caching core assets');
-        return cache.addAll(urlsToCache);
-      })
-      .then(() => self.skipWaiting())
-  );
-});
-
-// Activate event - clean up ALL caches to force refresh
-self.addEventListener('activate', event => {
+  console.log(`[Service Worker] Installing ${VERSION}`);
+  
   event.waitUntil(
     caches.keys().then(cacheNames => {
-      // Delete ALL caches to force complete refresh
+      // Delete ALL existing caches to force fresh content
       return Promise.all(
         cacheNames.map(cacheName => {
-          console.log('Deleting cache:', cacheName);
+          console.log(`[Service Worker] Deleting cache: ${cacheName}`);
           return caches.delete(cacheName);
         })
       );
     }).then(() => {
-      // Create fresh cache
-      return caches.open(CACHE_NAME);
-    }).then(() => self.clients.claim())
+      console.log('[Service Worker] All caches cleared, skipping waiting');
+      return self.skipWaiting();
+    })
   );
 });
 
-// Fetch event - serve from cache when offline
-self.addEventListener('fetch', event => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
+// Activate event - take control and clear everything again
+self.addEventListener('activate', event => {
+  console.log(`[Service Worker] Activating ${VERSION}`);
+  
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      // Delete ALL caches again to ensure complete refresh
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          console.log(`[Service Worker] Removing cache on activate: ${cacheName}`);
+          return caches.delete(cacheName);
+        })
+      );
+    }).then(() => {
+      console.log('[Service Worker] Taking control of all clients');
+      // Force all tabs to use this service worker immediately
+      return self.clients.claim();
+    }).then(() => {
+      // Send message to all clients to reload
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'CACHE_CLEARED',
+            version: VERSION
+          });
+        });
+      });
+    })
+  );
+});
 
-  // Handle API requests differently
-  if (event.request.url.includes('/api/')) {
+// Fetch event - ALWAYS go to network in development
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  const url = new URL(request.url);
+  
+  // Check if this is an API request
+  const isApiRequest = url.pathname.startsWith('/api/');
+  
+  // In development, NEVER cache, ALWAYS fetch fresh
+  if (isDevelopment) {
+    // For API requests, pass through without modifying credentials
+    if (isApiRequest) {
+      event.respondWith(
+        fetch(request).catch(error => {
+          console.error('[Service Worker] API request failed:', error);
+          throw error;
+        })
+      );
+      return;
+    }
+    
+    // For non-API requests, use no-store cache
     event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          // Cache successful API responses
-          if (response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => cache.put(event.request, responseToCache));
-          }
-          return response;
-        })
-        .catch(() => {
-          // Return cached API response when offline
-          return caches.match(event.request)
-            .then(response => {
-              if (response) {
-                return response;
-              }
-              // Return offline status for API calls
-              return new Response(
-                JSON.stringify({ offline: true, message: 'You are currently offline' }),
-                { headers: { 'Content-Type': 'application/json' } }
-              );
-            });
-        })
+      fetch(request, {
+        cache: 'no-store'
+      }).catch(error => {
+        console.error('[Service Worker] Network request failed:', error);
+        // Return a basic offline page for navigation requests
+        if (request.mode === 'navigate') {
+          return new Response(
+            `<!DOCTYPE html>
+            <html>
+            <head>
+              <title>Offline</title>
+              <style>
+                body { 
+                  font-family: system-ui; 
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: center; 
+                  height: 100vh; 
+                  margin: 0;
+                  background: #f5f5f5;
+                }
+                .container { 
+                  text-align: center; 
+                  padding: 2rem;
+                  background: white;
+                  border-radius: 8px;
+                  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }
+                h1 { color: #333; }
+                p { color: #666; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>Connection Lost</h1>
+                <p>Please check your internet connection and refresh the page.</p>
+              </div>
+            </body>
+            </html>`,
+            {
+              headers: { 'Content-Type': 'text/html' }
+            }
+          );
+        }
+        throw error;
+      })
     );
     return;
   }
 
-  // Handle other requests (assets, pages)
+  // Production mode (for future use) - minimal caching
+  // For API requests, pass through without modifying
+  if (isApiRequest) {
+    event.respondWith(fetch(request));
+    return;
+  }
+  
+  // For non-API requests, still bypass everything to ensure fresh content
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request)
-          .then(response => {
-            // Don't cache non-successful responses
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-            
-            // Cache the response
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => cache.put(event.request, responseToCache));
-            
-            return response;
-          });
-      })
-      .catch(() => {
-        // Return offline page for navigation requests
-        if (event.request.destination === 'document') {
-          return caches.match('/');
-        }
-      })
+    fetch(request).catch(() => {
+      // Only try cache as absolute last resort
+      return caches.match(request);
+    })
   );
 });
 
-// Handle background sync for offline data
-self.addEventListener('sync', event => {
-  if (event.tag === 'sync-offline-data') {
-    event.waitUntil(syncOfflineData());
+// Listen for skip waiting message
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'CLEAR_ALL_CACHES') {
+    caches.keys().then(cacheNames => {
+      Promise.all(
+        cacheNames.map(cacheName => caches.delete(cacheName))
+      ).then(() => {
+        console.log('[Service Worker] All caches cleared by request');
+        event.ports[0].postMessage({ success: true });
+      });
+    });
   }
 });
 
-// Handle push notifications
-self.addEventListener('push', event => {
-  const options = {
-    body: event.data ? event.data.text() : 'New update available',
-    icon: '/icon-192.png',
-    badge: '/icon-96.png',
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    }
-  };
-
-  event.waitUntil(
-    self.registration.showNotification('LEL Steel Update', options)
-  );
-});
-
-// Sync offline data when connection is restored
-async function syncOfflineData() {
-  try {
-    // Open IndexedDB
-    const db = await openDB();
-    const tx = db.transaction(['offlineQueue'], 'readonly');
-    const store = tx.objectStore('offlineQueue');
-    const requests = await store.getAll();
-
-    // Process each queued request
-    for (const request of requests) {
-      try {
-        const response = await fetch(request.url, {
-          method: request.method,
-          headers: request.headers,
-          body: request.body
-        });
-
-        if (response.ok) {
-          // Remove from queue if successful
-          const deleteTx = db.transaction(['offlineQueue'], 'readwrite');
-          await deleteTx.objectStore('offlineQueue').delete(request.id);
-        }
-      } catch (error) {
-        console.error('Failed to sync request:', error);
-      }
-    }
-  } catch (error) {
-    console.error('Sync failed:', error);
-  }
-}
-
-// Helper function to open IndexedDB
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('LELSteelOffline', 1);
-    
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-    
-    request.onupgradeneeded = event => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('offlineQueue')) {
-        db.createObjectStore('offlineQueue', { keyPath: 'id', autoIncrement: true });
-      }
-    };
-  });
-}
+console.log(`[Service Worker] Script loaded. Version: ${VERSION}, Environment: ${isDevelopment ? 'DEVELOPMENT (No Caching)' : 'PRODUCTION'}`);

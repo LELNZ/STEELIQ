@@ -152,7 +152,7 @@ export default function SetupWizard({ open, onOpenChange }: SetupWizardProps) {
       ];
 
       for (const material of initialMaterials) {
-        await apiRequest("POST", "/api/materials", material);
+        await apiRequest("/api/materials", "POST", material);
       }
     },
     onSuccess: () => {
@@ -170,7 +170,7 @@ export default function SetupWizard({ open, onOpenChange }: SetupWizardProps) {
       
       if (materials.length > 0) {
         for (const material of materials.slice(0, 3)) {
-          await apiRequest("POST", "/api/inventory", {
+          await apiRequest("/api/inventory", "POST", {
             materialId: material.id,
             quantityInStock: 10,
             unitLength: 6000, // 6m standard length

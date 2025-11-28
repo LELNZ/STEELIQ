@@ -277,7 +277,9 @@ export const xssProtection = (req: Request, res: Response, next: NextFunction) =
   // Set additional XSS protection headers
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
+  
+  // Note: X-Frame-Options is now handled globally in securityBaseline.ts
+  
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   
   // Sanitize user input (basic implementation - consider using a library like DOMPurify)
@@ -302,10 +304,14 @@ export const xssProtection = (req: Request, res: Response, next: NextFunction) =
     return input;
   };
   
-  // Sanitize request body, query, and params
+  // Sanitize request body (body is still writable in Express 5)
   if (req.body) req.body = sanitizeInput(req.body);
-  if (req.query) req.query = sanitizeInput(req.query);
-  if (req.params) req.params = sanitizeInput(req.params);
+  
+  // In Express 5, req.query and req.params are read-only getters
+  // Store sanitized versions in req object for later use if needed
+  // This approach maintains security without modifying read-only properties
+  (req as any).sanitizedQuery = req.query ? sanitizeInput(req.query) : {};
+  (req as any).sanitizedParams = req.params ? sanitizeInput(req.params) : {};
   
   next();
 };

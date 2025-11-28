@@ -164,7 +164,7 @@ export default function ProductionFloor() {
       </div>
 
       {/* Real-time Production Metrics - Enhanced with Wave 2 Features */}
-      <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-9 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 lg:grid-cols-9 gap-3 sm:gap-4">
         {/* OEE Score - Wave 2 Feature */}
         <Card>
           <CardContent className="p-3 sm:p-4">
@@ -335,32 +335,34 @@ export default function ProductionFloor() {
 
       {/* Main Content Tabs - Enhanced with Wave 2 Floor View */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="floor-view" className="flex items-center gap-1 text-xs">
-            <Eye className="h-4 w-4" />
-            Floor View
-          </TabsTrigger>
-          <TabsTrigger value="work-orders" className="flex items-center gap-1 text-xs">
-            <ClipboardList className="h-4 w-4" />
-            Work Orders
-          </TabsTrigger>
-          <TabsTrigger value="machine-monitoring" className="flex items-center gap-1 text-xs">
-            <Wrench className="h-4 w-4" />
-            Machines
-          </TabsTrigger>
-          <TabsTrigger value="quality-control" className="flex items-center gap-1 text-xs">
-            <CheckCircle2 className="h-4 w-4" />
-            Quality
-          </TabsTrigger>
-          <TabsTrigger value="safety" className="flex items-center gap-1 text-xs">
-            <AlertTriangle className="h-4 w-4" />
-            Safety
-          </TabsTrigger>
-          <TabsTrigger value="production-metrics" className="flex items-center gap-1 text-xs">
-            <BarChart3 className="h-4 w-4" />
-            Analytics
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto w-full">
+          <TabsList className="w-max">
+            <TabsTrigger value="floor-view" className="flex items-center gap-1 text-xs">
+              <Eye className="h-4 w-4" />
+              Floor View
+            </TabsTrigger>
+            <TabsTrigger value="work-orders" className="flex items-center gap-1 text-xs">
+              <ClipboardList className="h-4 w-4" />
+              Work Orders
+            </TabsTrigger>
+            <TabsTrigger value="machine-monitoring" className="flex items-center gap-1 text-xs">
+              <Wrench className="h-4 w-4" />
+              Machines
+            </TabsTrigger>
+            <TabsTrigger value="quality-control" className="flex items-center gap-1 text-xs">
+              <CheckCircle2 className="h-4 w-4" />
+              Quality
+            </TabsTrigger>
+            <TabsTrigger value="safety" className="flex items-center gap-1 text-xs">
+              <AlertTriangle className="h-4 w-4" />
+              Safety
+            </TabsTrigger>
+            <TabsTrigger value="production-metrics" className="flex items-center gap-1 text-xs">
+              <BarChart3 className="h-4 w-4" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Floor View Tab - Wave 2 Feature */}
         <TabsContent value="floor-view" className="space-y-4">

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, numeric, date, index, bigint, bigserial, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, numeric, date, index, unique, bigint, uuid, time } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -25,6 +25,10 @@ export const users = pgTable("users", {
   loginAttempts: integer("login_attempts").default(0),
   lockedUntil: timestamp("locked_until"), // Account lockout
   sessionToken: text("session_token"), // Current session token
+  biometricCredentialId: text("biometric_credential_id"), // WebAuthn credential ID
+  biometricPublicKey: text("biometric_public_key"), // WebAuthn public key
+  biometricType: text("biometric_type"), // Type of biometric (face, fingerprint, webauthn)
+  biometricSignCount: integer("biometric_sign_count").default(0), // WebAuthn signature counter
   profileImageUrl: text("profile_image_url"),
   createdBy: integer("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -486,9 +490,11 @@ export const wpsAlerts = pgTable("wps_alerts", {
 export const weldingStandards = pgTable("welding_standards", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
+  method: varchar("method", { length: 50 }).notNull(), // MIG, TIG, MMAW, FCAW
   weld_type: varchar("weld_type", { length: 50 }).notNull(), // fillet, butt_single_v, butt_double_v, seal, plug
   size: decimal("size", { precision: 10, scale: 2 }), // in mm
   time_per_meter: decimal("time_per_meter", { precision: 10, scale: 2 }).notNull(), // minutes per meter
+  equipment: varchar("equipment", { length: 100 }), // specific equipment name/model
   description: text("description"),
   is_active: boolean("is_active").default(true),
   created_at: timestamp("created_at").defaultNow().notNull(),
@@ -499,10 +505,12 @@ export const weldingStandards = pgTable("welding_standards", {
 export const drillingStandards = pgTable("drilling_standards", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
-  method: varchar("method", { length: 50 }).notNull(), // mag_drill, hand_drill, laser, plasma, punch
+  method: varchar("method", { length: 50 }).notNull(), // mag_drill, hand_drill, drill_press, laser, plasma, punch
+  complexity: varchar("complexity", { length: 20 }).notNull(), // light, medium, heavy
   diameter_min: decimal("diameter_min", { precision: 10, scale: 2 }), // mm
   diameter_max: decimal("diameter_max", { precision: 10, scale: 2 }), // mm
   time_per_hole: decimal("time_per_hole", { precision: 10, scale: 2 }).notNull(), // minutes
+  equipment: varchar("equipment", { length: 100 }), // specific equipment name/model
   description: text("description"),
   is_active: boolean("is_active").default(true),
   created_at: timestamp("created_at").defaultNow().notNull(),
@@ -513,16 +521,49 @@ export const drillingStandards = pgTable("drilling_standards", {
 export const cuttingStandards = pgTable("cutting_standards", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
+  method: varchar("method", { length: 50 }).notNull(), // bandsaw, plasma, laser, oxy, waterjet
+  complexity: varchar("complexity", { length: 20 }).notNull(), // light, medium, heavy
   material_type: varchar("material_type", { length: 50 }).notNull(), // mild_steel, stainless, aluminum, high_tensile
   thickness_min: decimal("thickness_min", { precision: 10, scale: 2 }), // mm
   thickness_max: decimal("thickness_max", { precision: 10, scale: 2 }), // mm
   time_per_meter: decimal("time_per_meter", { precision: 10, scale: 2 }).notNull(), // minutes
-  equipment: varchar("equipment", { length: 100 }), // bandsaw, plasma, laser, oxy
+  equipment: varchar("equipment", { length: 100 }), // specific equipment name/model
   description: text("description"),
   is_active: boolean("is_active").default(true),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull()
 });
+
+// Equipment Library - Track all equipment and machinery
+export const equipmentLibrary = pgTable("equipment_library", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  equipment_type: varchar("equipment_type", { length: 50 }).notNull(), // cutting, welding, drilling, grinding, material_handling, surface_treatment
+  model: varchar("model", { length: 100 }),
+  manufacturer: varchar("manufacturer", { length: 100 }),
+  ownership: varchar("ownership", { length: 20 }).notNull().default("owned"), // owned, leased, rental
+  hourly_rate: decimal("hourly_rate", { precision: 10, scale: 2 }).notNull(), // cost per hour
+  setup_time_minutes: decimal("setup_time_minutes", { precision: 10, scale: 2 }).default("0"),
+  power_kw: decimal("power_kw", { precision: 10, scale: 2 }), // power consumption in kilowatts
+  max_capacity: jsonb("max_capacity").default('{}'), // e.g., {thickness_mm: 25, width_mm: 3000}
+  maintenance_interval_hours: integer("maintenance_interval_hours"),
+  location: varchar("location", { length: 50 }), // workshop, site, mobile
+  automation_level: varchar("automation_level", { length: 20 }), // manual, semi_auto, full_auto
+  operator_required: boolean("operator_required").default(true),
+  consumables_list: jsonb("consumables_list").default('[]'), // list of consumables used
+  notes: text("notes"),
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertEquipmentLibrarySchema = createInsertSchema(equipmentLibrary).omit({
+  id: true,
+  created_at: true,
+  updated_at: true
+});
+export type InsertEquipmentLibrary = z.infer<typeof insertEquipmentLibrarySchema>;
+export type EquipmentLibrary = typeof equipmentLibrary.$inferSelect;
 
 // Edge Preparations Standards
 export const edgePreparations = pgTable("edge_preparations", {
@@ -765,6 +806,12 @@ export const operationItems = pgTable("operation_items", {
   skillLevel: varchar("skill_level", { length: 50 }).default("standard"), // apprentice, standard, senior, specialist
   weldTime: decimal("weld_time", { precision: 10, scale: 2 }), // minutes from library component
   
+  // Time-based pricing fields
+  timeFactor: decimal("time_factor", { precision: 10, scale: 2 }), // Time per operation (e.g., 10 for "10 mins per cut")
+  timeUnit: varchar("time_unit", { length: 10 }).default("mins"), // mins or hours
+  laborCategory: varchar("labor_category", { length: 50 }), // workshop, onsite, subcontractor
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }), // Selected labor rate per hour
+  
   // Consumables data
   consumablesData: jsonb("consumables_data"), // Array of consumables required
   
@@ -865,6 +912,12 @@ export const jobs = pgTable("jobs", {
   specialRequirements: text("special_requirements"),
   optimizationId: text("optimization_id"), // Link to optimization result
   estimationId: integer("estimation_id"), // Link to estimation project
+  
+  // ADR-0002: Hash chain for Fortune 50 tamper-evident audit trail
+  previousHash: varchar("previous_hash", { length: 64 }), // SHA-256 of previous record or 'GENESIS'
+  currentHash: varchar("current_hash", { length: 64 }), // SHA-256 of this record
+  chainValid: boolean("chain_valid"), // Result of last validation check
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -878,6 +931,48 @@ export const jobMaterials = pgTable("job_materials", {
   cutAngle: decimal("cut_angle", { precision: 5, scale: 2 }).default("90"),
   isCompleted: boolean("is_completed").default(false),
   notes: text("notes"),
+});
+
+// Job Status History - Track job status transitions with ADR-0002 hash chain
+export const jobStatusHistory = pgTable("job_status_history", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => jobs.id).notNull(),
+  oldStatus: varchar("old_status", { length: 50 }),
+  newStatus: varchar("new_status", { length: 50 }).notNull(),
+  changedBy: integer("changed_by").references(() => users.id),
+  reason: text("reason"),
+  
+  // ADR-0002: Hash chain for Fortune 50 tamper-evident audit trail
+  previousHash: varchar("previous_hash", { length: 64 }), // SHA-256 of previous record or 'GENESIS'
+  currentHash: varchar("current_hash", { length: 64 }), // SHA-256 of this record
+  chainValid: boolean("chain_valid"), // Result of last validation check
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Job Cost Snapshots - Track cost snapshots with ADR-0002 hash chain
+export const jobCostSnapshots = pgTable("job_cost_snapshots", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => jobs.id).notNull(),
+  snapshotDate: timestamp("snapshot_date").notNull(),
+  
+  // Cost Breakdown
+  materialCost: decimal("material_cost", { precision: 15, scale: 2 }),
+  laborCost: decimal("labor_cost", { precision: 15, scale: 2 }),
+  overheadCost: decimal("overhead_cost", { precision: 15, scale: 2 }),
+  indirectCost: decimal("indirect_cost", { precision: 15, scale: 2 }),
+  totalCost: decimal("total_cost", { precision: 15, scale: 2 }),
+  
+  // Variance Tracking
+  varianceAmount: decimal("variance_amount", { precision: 15, scale: 2 }),
+  variancePercent: decimal("variance_percent", { precision: 5, scale: 2 }),
+  
+  // ADR-0002: Hash chain for Fortune 50 tamper-evident audit trail
+  previousHash: varchar("previous_hash", { length: 64 }), // SHA-256 of previous record or 'GENESIS'
+  currentHash: varchar("current_hash", { length: 64 }), // SHA-256 of this record
+  chainValid: boolean("chain_valid"), // Result of last validation check
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Cutting plans (optimization results)
@@ -1188,6 +1283,12 @@ export const purchaseOrders = pgTable("purchase_orders", {
   isArchived: boolean("is_archived").default(false),
   archivedAt: timestamp("archived_at"),
   archivedBy: integer("archived_by").references(() => users.id),
+  
+  // ADR-0002: Hash chain for Fortune 50 tamper-evident audit trail
+  previousHash: varchar("previous_hash", { length: 64 }), // SHA-256 of previous record or 'GENESIS'
+  currentHash: varchar("current_hash", { length: 64 }), // SHA-256 of this record
+  chainValid: boolean("chain_valid"), // Result of last validation check
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
@@ -1950,6 +2051,35 @@ export const insertSupplierSchema = createInsertSchema(suppliers).omit({
   reliabilityRating: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
 });
 
+// Update schema with proper coercion for numeric fields coming from forms - Fortune 50 compliance
+export const updateSupplierSchema = insertSupplierSchema.partial().extend({
+  // Coerce numeric fields that come as strings from HTML forms
+  creditLimit: z.union([z.string(), z.number(), z.undefined()]).transform(val => 
+    val === undefined || val === '' ? undefined : Number(val)
+  ).optional(),
+  leadTimeStandard: z.union([z.string(), z.number(), z.undefined()]).transform(val => 
+    val === undefined || val === '' ? undefined : Number(val)
+  ).optional(),
+  leadTimeExpress: z.union([z.string(), z.number(), z.undefined()]).transform(val => 
+    val === undefined || val === '' ? undefined : Number(val)
+  ).optional(),
+  minimumOrderQuantity: z.union([z.string(), z.number(), z.undefined()]).transform(val => 
+    val === undefined || val === '' ? undefined : String(val)
+  ).optional(),
+  minimumOrderValue: z.union([z.string(), z.number(), z.undefined()]).transform(val => 
+    val === undefined || val === '' ? undefined : String(val)
+  ).optional(),
+  qualityRating: z.union([z.string(), z.number(), z.undefined()]).transform(val => 
+    val === undefined || val === '' ? undefined : String(val)
+  ).optional(),
+  reliabilityRating: z.union([z.string(), z.number(), z.undefined()]).transform(val => 
+    val === undefined || val === '' ? undefined : String(val)
+  ).optional(),
+  discountRate: z.union([z.string(), z.number(), z.undefined()]).transform(val => 
+    val === undefined || val === '' ? undefined : String(val)
+  ).optional(),
+});
+
 export const insertMaterialSupplierSchema = createInsertSchema(materialSuppliers).omit({
   id: true,
   createdAt: true,
@@ -2394,6 +2524,12 @@ export const aiRunTelemetry = pgTable("ai_run_telemetry", {
   processingTimeMs: integer("processing_time_ms"),
   visionApiCalls: integer("vision_api_calls"),
   totalTokensUsed: integer("total_tokens_used"),
+  
+  // ADR-0002: Hash chain for Fortune 50 tamper-evident audit trail
+  previousHash: varchar("previous_hash", { length: 64 }), // SHA-256 of previous record or 'GENESIS'
+  currentHash: varchar("current_hash", { length: 64 }), // SHA-256 of this record
+  chainValid: boolean("chain_valid"), // Result of last validation check
+  
   createdAt: timestamp("created_at").defaultNow()
 });
 
@@ -2697,7 +2833,7 @@ export const projectStakeholders = pgTable("project_stakeholders", {
   phone: varchar("phone", { length: 50 }),
   portalAccess: boolean("portal_access").default(false),
   portalRole: varchar("portal_role", { length: 50 }),
-  notificationPreferences: jsonb("notification_preferences").default({ email: true, sms: false, in_app: true }),
+  notificationPreferences: jsonb("notification_preferences").default({ email: true, whatsapp: false, in_app: true }),
   accessPermissions: jsonb("access_permissions").default([]),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -2775,6 +2911,7 @@ export const estimationMaterials = pgTable("estimation_materials", {
   materialCode: text("material_code").notNull(),
   materialName: text("material_name").notNull(),
   designation: text("designation"), // C1, B2, PL1, etc. - stable reference for material
+  // Removed non-existent columns: drawingRef, assemblyMark, phase, sequence, gridLine
   length: decimal("length", { precision: 10, scale: 3 }).default("6.0"), // Individual piece length in meters
   lengthUnit: text("length_unit").default("m"), // Unit of measurement (m, mm, ft)
   totalLength: decimal("total_length", { precision: 12, scale: 3 }), // quantity × length
@@ -2786,6 +2923,15 @@ export const estimationMaterials = pgTable("estimation_materials", {
   handlingCost: decimal("handling_cost", { precision: 10, scale: 2 }).default("0"),
   supplier: text("supplier"),
   leadTime: integer("lead_time"), // days
+  // Dimensional fields for advanced calculations
+  width: decimal("width", { precision: 10, scale: 3 }), // Width in mm (hidden in UI)
+  height: decimal("height", { precision: 10, scale: 3 }), // Height in mm (hidden in UI) 
+  thickness: decimal("thickness", { precision: 10, scale: 3 }), // Thickness in mm (hidden in UI)
+  weight: decimal("weight", { precision: 12, scale: 3 }), // Total weight in kg (visible)
+  weightPerMeter: decimal("weight_per_meter", { precision: 10, scale: 3 }), // kg/m for steel profiles
+  surfaceArea: decimal("surface_area", { precision: 12, scale: 3 }), // Total surface area in m² (visible)
+  surfaceAreaExposed: decimal("surface_area_exposed", { precision: 12, scale: 3 }), // Exposed surface area in m²
+  surfaceAreaConfig: jsonb("surface_area_config"), // Configuration for which surfaces are exposed
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -2794,7 +2940,13 @@ export const estimationLabor = pgTable("estimation_labor", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => estimationProjects.id),
   designation: text("designation"), // C1-cut, B2-drill, PL1-weld - tracks parent material and operation
+  drawingRef: text("drawing_ref"), // Drawing reference number
+  assemblyMark: text("assembly_mark"), // Assembly mark/number
+  phase: text("phase"), // Construction phase
+  sequence: text("sequence"), // Installation sequence
+  gridLine: text("grid_line"), // Grid line reference
   parentMaterialId: text("parent_material_id"), // Reference to parent material
+  operationId: integer("operation_id"), // Direct link to operation - will reference estimationOperations later
   operationType: text("operation_type"), // cut, drill, weld, etc. from operation
   category: text("category").notNull(), // workshop, onsite, subcontractor
   type: text("type").notNull(), // fabrication, welding, assembly, finishing, etc.
@@ -2818,6 +2970,15 @@ export const estimationLabor = pgTable("estimation_labor", {
 export const estimationEquipment = pgTable("estimation_equipment", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => estimationProjects.id),
+  designation: text("designation"), // Reference to parent material
+  drawingRef: text("drawing_ref"), // Drawing reference number
+  assemblyMark: text("assembly_mark"), // Assembly mark/number
+  phase: text("phase"), // Construction phase
+  sequence: text("sequence"), // Installation sequence
+  gridLine: text("grid_line"), // Grid line reference
+  parentMaterialId: text("parent_material_id"), // Reference to parent material
+  operationId: integer("operation_id"), // Direct link to operation
+  operationType: text("operation_type"), // Operation that requires this equipment
   equipment: text("equipment").notNull(),
   type: text("type").notNull(), // inhouse, rental
   duration: decimal("duration", { precision: 8, scale: 2 }).notNull(),
@@ -2835,7 +2996,13 @@ export const estimationConsumables = pgTable("estimation_consumables", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => estimationProjects.id),
   designation: text("designation"), // C1-cut, B2-drill - tracks parent material and operation
+  drawingRef: text("drawing_ref"), // Drawing reference number
+  assemblyMark: text("assembly_mark"), // Assembly mark/number
+  phase: text("phase"), // Construction phase
+  sequence: text("sequence"), // Installation sequence
+  gridLine: text("grid_line"), // Grid line reference
   parentMaterialId: text("parent_material_id"), // Reference to parent material
+  operationId: integer("operation_id"), // Direct link to operation
   operationType: text("operation_type"), // cut, drill, weld, etc. from operation
   item: text("item").notNull(),
   category: text("category"), // welding, cutting, finishing, fasteners, etc.
@@ -2848,11 +3015,45 @@ export const estimationConsumables = pgTable("estimation_consumables", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const estimationSubcontractor = pgTable("estimation_subcontractor", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => estimationProjects.id),
+  designation: text("designation"), // Material designation reference
+  drawingRef: text("drawing_ref"), // Drawing reference number
+  assemblyMark: text("assembly_mark"), // Assembly mark/number
+  phase: text("phase"), // Construction phase
+  sequence: text("sequence"), // Installation sequence
+  gridLine: text("grid_line"), // Grid line reference
+  parentMaterialId: text("parent_material_id"), // Reference to parent material
+  operationId: integer("operation_id"), // Direct link to operation
+  operationType: text("operation_type"), // Operation being subcontracted
+  companyName: text("company_name").notNull(), // Subcontractor company (editable)
+  companyId: integer("company_id"), // Future link to company database
+  scope: text("scope").notNull(), // Description of work scope
+  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(),
+  unit: text("unit").notNull(),
+  unitCost: decimal("unit_cost", { precision: 10, scale: 4 }).notNull(),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
+  leadTime: integer("lead_time"), // days
+  includesLabor: boolean("includes_labor").default(true),
+  includesEquipment: boolean("includes_equipment").default(false),
+  includesMaterials: boolean("includes_materials").default(false),
+  includesConsumables: boolean("includes_consumables").default(false),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const estimationCoatings = pgTable("estimation_coatings", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => estimationProjects.id),
   designation: text("designation"), // C1-coat, B2-prime - tracks parent material and operation
+  drawingRef: text("drawing_ref"), // Drawing reference number
+  assemblyMark: text("assembly_mark"), // Assembly mark/number
+  phase: text("phase"), // Construction phase
+  sequence: text("sequence"), // Installation sequence
+  gridLine: text("grid_line"), // Grid line reference
   parentMaterialId: text("parent_material_id"), // Reference to parent material  
+  operationId: integer("operation_id"), // Direct link to operation
   operationType: text("operation_type"), // prime, paint, galvanize, etc. from operation
   coatingSystemId: integer("coating_system_id").references(() => coatingSystems.id),
   coatingType: text("coating_type").notNull(), // primer, paint, galvanizing, etc.
@@ -2875,12 +3076,17 @@ export const estimationCoatings = pgTable("estimation_coatings", {
 export const estimationOperations = pgTable("estimation_operations", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => estimationProjects.id),
-  materialId: text("material_id").notNull(), // Reference to material in materials table
+  materialId: integer("material_id").references(() => estimationMaterials.id), // FK to estimation_materials
   materialDesignation: text("material_designation").notNull(), // C1, B2, PL1
   operationType: text("operation_type").notNull(), // cut, drill, weld, grind, coat, etc.
-  operationDesignation: text("operation_designation").notNull(), // C1-cut, B2-drill, PL1-weld
+  operationDesignation: text("operation_designation").notNull(), // C1-310-cut-1, B2-400-drill-1
   description: text("description").notNull(),
   sequenceOrder: integer("sequence_order"), // Order of operations
+  
+  // Quantity and cost tracking
+  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(), // Number of operations (e.g., 2 cuts)
+  unitCost: decimal("unit_cost", { precision: 10, scale: 4 }).notNull(), // Cost per operation
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(), // Total cost for this operation
   
   // Operation details
   operationData: jsonb("operation_data"), // Stores all operation-specific data
@@ -2962,6 +3168,11 @@ export const insertEstimationConsumableSchema = createInsertSchema(estimationCon
 });
 
 export const insertEstimationCoatingsSchema = createInsertSchema(estimationCoatings).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEstimationSubcontractorSchema = createInsertSchema(estimationSubcontractor).omit({
   id: true,
   createdAt: true,
 });
@@ -3082,6 +3293,9 @@ export type InsertEstimationConsumable = z.infer<typeof insertEstimationConsumab
 export type EstimationCoatings = typeof estimationCoatings.$inferSelect;
 export type InsertEstimationCoatings = z.infer<typeof insertEstimationCoatingsSchema>;
 
+export type EstimationSubcontractor = typeof estimationSubcontractor.$inferSelect;
+export type InsertEstimationSubcontractor = z.infer<typeof insertEstimationSubcontractorSchema>;
+
 export type EstimationOperations = typeof estimationOperations.$inferSelect;
 export type InsertEstimationOperations = z.infer<typeof insertEstimationOperationsSchema>;
 
@@ -3171,6 +3385,12 @@ export const teamMembers = pgTable("team_members", {
   annualSalary: decimal("annual_salary", { precision: 12, scale: 2 }),
   payFrequency: varchar("pay_frequency", { length: 20 }).default("weekly"), // weekly, fortnightly, monthly
   
+  // 2FA Security for Supervisors
+  supervisorPinHash: varchar("supervisor_pin_hash", { length: 255 }), // Hashed 6-digit PIN for dual authorization
+  supervisorPinSetAt: timestamp("supervisor_pin_set_at"), // When PIN was last set
+  supervisorPinFailedAttempts: integer("supervisor_pin_failed_attempts").default(0), // Track failed attempts
+  supervisorPinLockedUntil: timestamp("supervisor_pin_locked_until"), // Lockout after too many failures
+  
   // Certifications & Qualifications
   certifications: jsonb("certifications"), // Array of certification objects
   qualifications: jsonb("qualifications"), // Array of qualification objects
@@ -3245,13 +3465,21 @@ export const auditLog = pgTable("audit_log", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
   action: varchar("action", { length: 100 }).notNull(),
-  entityType: varchar("entity_type", { length: 50 }).notNull(),
-  entityId: varchar("entity_id", { length: 100 }),
-  oldValues: jsonb("old_values"),
-  newValues: jsonb("new_values"),
+  resourceType: varchar("resource_type", { length: 50 }).notNull(),
+  resourceId: varchar("resource_id", { length: 100 }),
+  changes: jsonb("changes"),
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: text("user_agent"),
-  timestamp: timestamp("timestamp").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  
+  // Fortune 50 Wave 1.5: Hash chain linkage
+  hashChainId: varchar("hash_chain_id", { length: 50 }).default("main"),
+  chainBlockIndex: bigint("chain_block_index", { mode: "number" }),
+  
+  // Enhanced audit fields
+  entity: varchar("entity", { length: 100 }), // For better categorization
+  entityId: varchar("entity_id", { length: 100 }), // For better tracking
+  details: text("details"), // Additional details text field
 });
 
 // Time Management Schema
@@ -3259,20 +3487,19 @@ export const auditLog = pgTable("audit_log", {
 export const timeEntries = pgTable("time_entries", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  timesheetId: integer("timesheet_id").references(() => timesheets.id), // FK to timesheets for audit trail
   jobId: integer("job_id").references(() => jobs.id),
+  locationId: integer("location_id"),
   clockIn: timestamp("clock_in").notNull(),
   clockOut: timestamp("clock_out"),
-  breakMinutes: integer("break_minutes").default(0),
-  totalMinutes: integer("total_minutes"),
-  location: text("location"),
-  gpsLatitude: decimal("gps_latitude", { precision: 10, scale: 6 }),
-  gpsLongitude: decimal("gps_longitude", { precision: 10, scale: 6 }),
+  breakDuration: integer("break_duration").default(0),
+  totalHours: decimal("total_hours", { precision: 10, scale: 2 }),
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }),
+  status: varchar("status").default("active"), // active, completed, cancelled
   notes: text("notes"),
-  status: text("status").default("active"), // active, completed, cancelled
-  deviceId: text("device_id"),
-  photoUrl: text("photo_url"),
-  verifiedBy: integer("verified_by").references(() => users.id),
-  verifiedAt: timestamp("verified_at"),
+  gpsLat: decimal("gps_lat", { precision: 10, scale: 6 }),
+  gpsLng: decimal("gps_lng", { precision: 10, scale: 6 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -3280,24 +3507,30 @@ export const timeEntries = pgTable("time_entries", {
 export const timesheets = pgTable("timesheets", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  date: date("date").notNull(),
   jobId: integer("job_id").references(() => jobs.id),
   taskId: integer("task_id").references(() => jobTasks.id),
-  date: date("date").notNull(),
-  startTime: timestamp("start_time").notNull(),
+  // Raw timestamp data for audit trail (Fortune 50 requirement)
+  startTime: timestamp("start_time"),
   endTime: timestamp("end_time"),
-  breakDuration: integer("break_duration").default(0),
-  totalHours: decimal("total_hours", { precision: 5, scale: 2 }),
+  // Calculated fields preserved for backward compatibility
+  hoursWorked: decimal("hours_worked", { precision: 5, scale: 2 }),
+  breakHours: decimal("break_hours", { precision: 5, scale: 2 }),
   overtimeHours: decimal("overtime_hours", { precision: 5, scale: 2 }).default("0"),
-  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
-  overtimeRate: decimal("overtime_rate", { precision: 10, scale: 2 }),
-  totalPay: decimal("total_pay", { precision: 12, scale: 2 }),
-  workLocation: varchar("work_location", { length: 100 }).default("workshop"),
+  // Fortune 50 Compliance: Full state machine for timesheet lifecycle
+  status: varchar("status", { length: 20 })
+    .default("draft")
+    .$type<'draft' | 'submitted' | 'approved' | 'locked' | 'processing' | 'rejected'>(),
+  description: text("description"),
   notes: text("notes"),
-  status: varchar("status", { length: 20 }).default("draft"),
+  workLocation: varchar("work_location", { length: 100 }).default("workshop"),
+  // Approval workflow
   supervisorId: integer("supervisor_id").references(() => users.id),
+  approved: boolean("approved").default(false),
   approvedBy: integer("approved_by").references(() => users.id),
   approvedAt: timestamp("approved_at"),
   submittedAt: timestamp("submitted_at"),
+  // Audit fields
   geolocation: jsonb("geolocation"),
   deviceInfo: jsonb("device_info"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -3334,13 +3567,1142 @@ export const timeClocks = pgTable("time_clocks", {
   clockType: varchar("clock_type", { length: 20 }).notNull(),
   timestamp: timestamp("timestamp").notNull(),
   location: varchar("location", { length: 100 }),
-  geolocation: jsonb("geolocation"),
+  geolocation: jsonb("geolocation"), // {lat, lng, accuracy, address}
+  photoUrl: text("photo_url"), // Path to stored photo
+  captureMethod: varchar("capture_method", { length: 20 }), // camera, gallery, manual
+  geofenceValidated: boolean("geofence_validated").default(false),
+  geofenceId: integer("geofence_id").references(() => geofenceZones.id),
+  locationTrackingId: integer("location_tracking_id").references(() => locationTracking.id), // Link to GPS breadcrumb
   deviceInfo: jsonb("device_info"),
   notes: text("notes"),
   jobId: integer("job_id").references(() => jobs.id),
   taskId: integer("task_id").references(() => jobTasks.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Fortune 50 Continuous Location Tracking - GPS breadcrumbs for audit & compliance
+export const locationTracking = pgTable("location_tracking", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  sessionId: uuid("session_id").defaultRandom().notNull(), // Groups tracking for a work session
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  
+  // GPS Data
+  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
+  accuracy: decimal("accuracy", { precision: 8, scale: 2 }), // meters
+  altitude: decimal("altitude", { precision: 8, scale: 2 }), // meters
+  altitudeAccuracy: decimal("altitude_accuracy", { precision: 8, scale: 2 }),
+  heading: decimal("heading", { precision: 5, scale: 2 }), // degrees
+  speed: decimal("speed", { precision: 6, scale: 2 }), // m/s
+  
+  // Anti-Spoofing & Validation
+  provider: varchar("provider", { length: 20 }), // gps, network, passive, fused
+  isMockLocation: boolean("is_mock_location").default(false), // Detected fake GPS
+  wifiSSID: varchar("wifi_ssid", { length: 100 }), // Cross-validate with known SSIDs
+  wifiBSSID: varchar("wifi_bssid", { length: 20 }), // WiFi MAC address
+  cellTowerId: varchar("cell_tower_id", { length: 50 }), // Cell tower validation
+  ipAddress: varchar("ip_address", { length: 45 }), // IPv4/IPv6 validation
+  
+  // Device Fingerprinting
+  deviceId: varchar("device_id", { length: 100 }).notNull(), // Unique device identifier
+  deviceModel: varchar("device_model", { length: 100 }),
+  osVersion: varchar("os_version", { length: 50 }),
+  appVersion: varchar("app_version", { length: 20 }),
+  
+  // Velocity & Movement Analysis
+  distanceFromLast: decimal("distance_from_last", { precision: 10, scale: 2 }), // meters
+  timeFromLast: integer("time_from_last"), // seconds
+  calculatedSpeed: decimal("calculated_speed", { precision: 8, scale: 2 }), // m/s
+  impossibleTravel: boolean("impossible_travel").default(false), // Flag violations
+  
+  // Geofence Validation
+  geofenceId: integer("geofence_id").references(() => geofenceZones.id),
+  insideGeofence: boolean("inside_geofence").default(false),
+  distanceFromGeofence: decimal("distance_from_geofence", { precision: 10, scale: 2 }), // meters
+  
+  // Audit Trail
+  captureMethod: varchar("capture_method", { length: 20 }).default("automatic"), // automatic, manual, override
+  supervisorOverride: boolean("supervisor_override").default(false),
+  overrideReason: text("override_reason"),
+  overrideBy: integer("override_by").references(() => users.id),
+  
+  // SOX Compliance - Tamper Evidence
+  previousHash: varchar("previous_hash", { length: 64 }), // SHA-256 of previous record
+  currentHash: varchar("current_hash", { length: 64 }), // SHA-256 of current record
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  // Indexes for performance
+  userIdIdx: index("idx_location_tracking_user").on(table.userId),
+  sessionIdx: index("idx_location_tracking_session").on(table.sessionId),
+  timestampIdx: index("idx_location_tracking_timestamp").on(table.timestamp),
+  deviceIdx: index("idx_location_tracking_device").on(table.deviceId),
+  geofenceIdx: index("idx_location_tracking_geofence").on(table.geofenceId),
+  // Composite index for velocity queries
+  velocityIdx: index("idx_location_tracking_velocity").on(table.userId, table.timestamp, table.impossibleTravel),
+}));
+
+// GPS Override Approvals for dual authorization
+export const gpsOverrideApprovals = pgTable("gps_override_approvals", {
+  id: serial("id").primaryKey(),
+  requestId: uuid("request_id").defaultRandom().notNull().unique(),
+  
+  // Request details
+  requesterId: integer("requester_id").notNull().references(() => users.id),
+  employeeId: integer("employee_id").notNull().references(() => users.id),
+  clockType: varchar("clock_type", { length: 20 }).notNull(),
+  reason: text("reason").notNull(),
+  overrideCode: varchar("override_code", { length: 50 }),
+  
+  // Approval details
+  approverId: integer("approver_id").references(() => users.id),
+  approvalPinHash: varchar("approval_pin_hash", { length: 255 }),
+  approvalMethod: varchar("approval_method", { length: 20 }),
+  
+  // Status tracking
+  status: varchar("status", { length: 20 }).notNull().default("pending"),
+  
+  // JWT tracking
+  jwtToken: text("jwt_token"),
+  jti: varchar("jti", { length: 100 }).unique(),
+  jwtSecretVersion: integer("jwt_secret_version"),
+  
+  // Metadata
+  requestMetadata: jsonb("request_metadata").notNull().default({}),
+  approvalMetadata: jsonb("approval_metadata").default({}),
+  offlineApprovalCode: varchar("offline_approval_code", { length: 100 }),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  approvedAt: timestamp("approved_at"),
+  deniedAt: timestamp("denied_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+  consumedAt: timestamp("consumed_at"),
+  
+  // GPS tracking linkage
+  locationTrackingId: integer("location_tracking_id").references(() => locationTracking.id),
+  timeClockId: integer("time_clock_id").references(() => timeClocks.id),
+  
+  // Audit fields
+  requestIpAddress: varchar("request_ip_address", { length: 45 }),
+  approvalIpAddress: varchar("approval_ip_address", { length: 45 }),
+  userAgent: text("user_agent")
+}, (table) => ({
+  // Indexes for performance
+  pendingIdx: index("idx_override_pending").on(table.status, table.expiresAt),
+  employeeIdx: index("idx_override_employee").on(table.employeeId, table.createdAt),
+  requesterIdx: index("idx_override_requester").on(table.requesterId, table.createdAt),
+  jtiIdx: index("idx_override_jti").on(table.jti)
+}));
+
+export type GpsOverrideApproval = typeof gpsOverrideApprovals.$inferSelect;
+export type InsertGpsOverrideApproval = typeof gpsOverrideApprovals.$inferInsert;
+
+// Immutable Audit Log Table - Fortune 50 Compliance
+export const gpsOverrideAuditLog = pgTable("gps_override_audit_log", {
+  id: serial("id").primaryKey(),
+  eventId: uuid("event_id").defaultRandom().notNull().unique(),
+  eventType: varchar("event_type", { length: 50 }).notNull(), // CREATED, APPROVED, DENIED, CONSUMED, EXPIRED
+  
+  // Reference to the approval
+  approvalId: integer("approval_id").references(() => gpsOverrideApprovals.id).notNull(),
+  requestId: uuid("request_id").notNull(),
+  
+  // Actor information
+  actorId: integer("actor_id").references(() => users.id),
+  actorRole: varchar("actor_role", { length: 50 }),
+  actorName: varchar("actor_name", { length: 255 }),
+  
+  // Event details
+  eventData: jsonb("event_data").notNull().default({}),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  
+  // Hash chain for tamper evidence
+  previousHash: varchar("previous_hash", { length: 64 }).notNull(),
+  currentHash: varchar("current_hash", { length: 64 }).notNull(),
+  hashAlgorithm: varchar("hash_algorithm", { length: 20 }).default('SHA-256').notNull(),
+  
+  // Compliance fields
+  sequenceNumber: bigint("sequence_number", { mode: 'bigint' }).notNull(),
+  signatureData: text("signature_data"), // For cryptographic signatures if needed
+  complianceFlags: jsonb("compliance_flags").default({}),
+  
+  // Timestamps (immutable)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  
+  // Location data for payroll linkage
+  locationTrackingId: integer("location_tracking_id").references(() => locationTracking.id),
+  payrollAdjustmentId: integer("payroll_adjustment_id").references(() => payrollAdjustments.id)
+}, (table) => ({
+  eventTypeIdx: index("idx_gps_audit_event_type").on(table.eventType),
+  requestIdIdx: index("idx_gps_audit_request_id").on(table.requestId),
+  actorIdIdx: index("idx_gps_audit_actor_id").on(table.actorId),
+  sequenceIdx: index("idx_gps_audit_sequence").on(table.sequenceNumber),
+  hashIdx: index("idx_gps_audit_hash").on(table.currentHash),
+  timestampIdx: index("idx_gps_audit_timestamp").on(table.createdAt)
+}));
+
+export type GpsOverrideAuditLogEntry = typeof gpsOverrideAuditLog.$inferSelect;
+export type InsertGpsOverrideAuditLog = typeof gpsOverrideAuditLog.$inferInsert;
+
+// Payroll Adjustments - GPS-based compensation tracking for Fortune 50 compliance
+export const payrollAdjustments = pgTable("payroll_adjustments", {
+  id: serial("id").primaryKey(),
+  
+  // Core adjustment data
+  employeeId: integer("employee_id").notNull().references(() => users.id),
+  adjustmentType: varchar("adjustment_type", { length: 50 }).notNull(), // hazard_pay, mileage, zone_differential, gps_override
+  adjustmentDate: date("adjustment_date").notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  
+  // GPS and approval linkage
+  locationTrackingId: integer("location_tracking_id").references(() => locationTracking.id),
+  approvalId: integer("approval_id").references(() => gpsOverrideApprovals.id),
+  approvedBy: integer("approved_by").references(() => users.id),
+  
+  // Metadata
+  reason: text("reason"),
+  metadata: jsonb("metadata").default({}),
+  
+  // Audit fields for SOX compliance
+  previousHash: varchar("previous_hash", { length: 64 }),
+  currentHash: varchar("current_hash", { length: 64 }),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: integer("created_by").references(() => users.id),
+  appliedAt: timestamp("applied_at"), // When applied to payroll
+  periodId: integer("period_id").references(() => payrollPeriods.id)
+}, (table) => ({
+  employeeIdx: index("idx_payroll_adj_employee").on(table.employeeId, table.adjustmentDate),
+  locationIdx: index("idx_payroll_adj_location").on(table.locationTrackingId),
+  approvalIdx: index("idx_payroll_adj_approval").on(table.approvalId),
+  typeIdx: index("idx_payroll_adj_type").on(table.adjustmentType),
+  periodIdx: index("idx_payroll_adj_period").on(table.periodId),
+  dateIdx: index("idx_payroll_adj_date").on(table.adjustmentDate)
+}));
+
+export type PayrollAdjustment = typeof payrollAdjustments.$inferSelect;
+export type InsertPayrollAdjustment = typeof payrollAdjustments.$inferInsert;
+
+// Photo Evidence Table - Fortune 50 Compliance for Time Clock Photos
+export const photoEvidence = pgTable("photo_evidence", {
+  id: serial("id").primaryKey(),
+  
+  // Reference to time clock entry
+  clockId: integer("clock_id").notNull().references(() => timeClocks.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  
+  // File information
+  filename: varchar("filename", { length: 255 }).notNull(),
+  filepath: text("filepath").notNull(),
+  mimeType: varchar("mime_type", { length: 50 }).notNull(),
+  fileSize: integer("file_size").notNull(),
+  
+  // Security and tamper detection
+  fileHash: varchar("file_hash", { length: 64 }).notNull(), // SHA-256 hash
+  encryptionMethod: varchar("encryption_method", { length: 50 }).default('AES-256-GCM'),
+  encryptionKeyId: varchar("encryption_key_id", { length: 100 }), // Reference to key management
+  
+  // Capture metadata
+  captureMethod: varchar("capture_method", { length: 20 }).notNull(), // camera, gallery, manual
+  captureTimestamp: timestamp("capture_timestamp").notNull(),
+  deviceInfo: jsonb("device_info"), // Device model, OS, browser
+  
+  // GPS data at capture time
+  captureLatitude: decimal("capture_latitude", { precision: 10, scale: 8 }),
+  captureLongitude: decimal("capture_longitude", { precision: 11, scale: 8 }),
+  captureAccuracy: decimal("capture_accuracy", { precision: 8, scale: 2 }),
+  
+  // Verification status
+  verificationStatus: varchar("verification_status", { length: 20 }).default('pending'), // pending, verified, suspicious, rejected
+  verifiedAt: timestamp("verified_at"),
+  verifiedBy: integer("verified_by").references(() => users.id),
+  verificationNotes: text("verification_notes"),
+  
+  // Facial recognition metadata (if applicable)
+  facialDetected: boolean("facial_detected").default(false),
+  facialConfidence: decimal("facial_confidence", { precision: 5, scale: 2 }),
+  facialMatchScore: decimal("facial_match_score", { precision: 5, scale: 2 }),
+  
+  // Compliance and audit
+  retentionDays: integer("retention_days").default(2555), // 7 years default
+  deletionScheduledAt: timestamp("deletion_scheduled_at"),
+  deletedAt: timestamp("deleted_at"),
+  deletedBy: integer("deleted_by").references(() => users.id),
+  
+  // Hash chain for immutability
+  previousHash: varchar("previous_hash", { length: 64 }),
+  currentHash: varchar("current_hash", { length: 64 }).notNull(),
+  
+  // Access control
+  accessLevel: varchar("access_level", { length: 20 }).default('restricted'), // public, internal, restricted, confidential
+  lastAccessedAt: timestamp("last_accessed_at"),
+  accessCount: integer("access_count").default(0),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (table) => ({
+  clockIdx: index("idx_photo_evidence_clock").on(table.clockId),
+  userIdx: index("idx_photo_evidence_user").on(table.userId),
+  hashIdx: index("idx_photo_evidence_hash").on(table.fileHash),
+  verificationIdx: index("idx_photo_evidence_verification").on(table.verificationStatus),
+  retentionIdx: index("idx_photo_evidence_retention").on(table.deletionScheduledAt),
+  createdIdx: index("idx_photo_evidence_created").on(table.createdAt)
+}));
+
+export type PhotoEvidence = typeof photoEvidence.$inferSelect;
+export type InsertPhotoEvidence = typeof photoEvidence.$inferInsert;
+
+// ==================== WAVE 1.5 TABLES ====================
+
+// Bulk Time Corrections - For managers to efficiently correct multiple time entries
+export const timeCorrections = pgTable("time_corrections", {
+  id: serial("id").primaryKey(),
+  correctionId: uuid("correction_id").defaultRandom().notNull().unique(),
+  
+  // Manager who applied corrections
+  managerId: integer("manager_id").notNull().references(() => users.id),
+  reason: text("reason").notNull(),
+  
+  // Batch metadata
+  totalEntries: integer("total_entries").notNull(),
+  totalAdjustmentMinutes: integer("total_adjustment_minutes").notNull(),
+  
+  // Status tracking
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, applied, rejected
+  
+  // Audit fields
+  appliedAt: timestamp("applied_at"),
+  appliedBy: integer("applied_by").references(() => users.id),
+  rejectedAt: timestamp("rejected_at"),
+  rejectedBy: integer("rejected_by").references(() => users.id),
+  rejectionReason: text("rejection_reason"),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (table) => ({
+  managerIdx: index("idx_corrections_manager").on(table.managerId),
+  statusIdx: index("idx_corrections_status").on(table.status),
+  createdAtIdx: index("idx_corrections_created").on(table.createdAt)
+}));
+
+// Individual correction items within a batch
+export const timeCorrectionItems = pgTable("time_correction_items", {
+  id: serial("id").primaryKey(),
+  correctionId: integer("correction_id").notNull().references(() => timeCorrections.id),
+  timeClockId: integer("time_clock_id").notNull().references(() => timeClocks.id),
+  
+  // Original values
+  originalTimestamp: timestamp("original_timestamp").notNull(),
+  originalClockType: varchar("original_clock_type", { length: 20 }).notNull(),
+  
+  // New values
+  newTimestamp: timestamp("new_timestamp").notNull(),
+  adjustmentMinutes: integer("adjustment_minutes").notNull(),
+  
+  // Metadata
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => ({
+  correctionIdx: index("idx_correction_items_batch").on(table.correctionId),
+  timeClockIdx: index("idx_correction_items_clock").on(table.timeClockId)
+}));
+
+// Shift Notifications - Automated reminders for upcoming shifts
+export const shiftNotifications = pgTable("shift_notifications", {
+  id: serial("id").primaryKey(),
+  notificationId: uuid("notification_id").defaultRandom().notNull().unique(),
+  
+  // Target employee
+  userId: integer("user_id").notNull().references(() => users.id),
+  
+  // Shift details
+  shiftId: integer("shift_id").references(() => jobTasks.id),
+  shiftDate: date("shift_date").notNull(),
+  shiftStartTime: timestamp("shift_start_time").notNull(),
+  
+  // Notification settings
+  notificationType: varchar("notification_type", { length: 20 }).notNull(), // email, whatsapp, push, in_app
+  reminderMinutes: integer("reminder_minutes").notNull().default(30), // Minutes before shift
+  
+  // Status tracking
+  status: varchar("status", { length: 20 }).notNull().default("scheduled"), // scheduled, sent, failed, cancelled
+  sentAt: timestamp("sent_at"),
+  failureReason: text("failure_reason"),
+  
+  // Metadata
+  metadata: jsonb("metadata").default({}),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  scheduledFor: timestamp("scheduled_for").notNull()
+}, (table) => ({
+  userIdx: index("idx_shift_notif_user").on(table.userId, table.shiftDate),
+  statusIdx: index("idx_shift_notif_status").on(table.status, table.scheduledFor),
+  shiftIdx: index("idx_shift_notif_shift").on(table.shiftId)
+}));
+
+// User notification preferences
+export const shiftNotificationPreferences = pgTable("shift_notification_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  
+  // Notification channels
+  emailEnabled: boolean("email_enabled").default(true),
+  whatsappEnabled: boolean("whatsapp_enabled").default(false),
+  pushEnabled: boolean("push_enabled").default(true),
+  
+  // Timing preferences
+  defaultReminderMinutes: integer("default_reminder_minutes").default(30),
+  weekendReminders: boolean("weekend_reminders").default(true),
+  
+  // Contact info (encrypted)
+  whatsappNumber: text("whatsapp_number"), // Encrypted
+  emailOverride: text("email_override"), // Use different email than account
+  
+  // Opt-in status
+  optedIn: boolean("opted_in").default(true),
+  optInDate: timestamp("opt_in_date"),
+  optOutDate: timestamp("opt_out_date"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// ==================== FORTUNE 50 NOTIFICATION SYSTEM ====================
+// Comprehensive notification infrastructure for multi-channel delivery
+
+// Core notification record - single source of truth for all notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  notificationId: uuid("notification_id").defaultRandom().notNull().unique(),
+  
+  // Recipient information
+  userId: integer("user_id").notNull().references(() => users.id),
+  roleId: integer("role_id").references(() => roles.id), // For role-based notifications
+  departmentId: integer("department_id").references(() => departments.id), // For department notifications
+  
+  // Notification content
+  type: varchar("type", { length: 50 }).notNull(), // shift-reminder, clock-in, clock-out, approval-request, payroll-alert
+  category: varchar("category", { length: 50 }).notNull(), // time-payroll, safety, compliance, system
+  priority: varchar("priority", { length: 20 }).notNull().default("normal"), // low, normal, high, critical
+  
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  htmlBody: text("html_body"), // Rich HTML content
+  jsonData: jsonb("json_data"), // Structured data for rendering
+  
+  // Multi-channel delivery status
+  channels: text("channels").array().notNull(), // ['email', 'in-app', 'whatsapp']
+  channelStatus: jsonb("channel_status").default({}), // {email: 'sent', 'in-app': 'delivered', whatsapp: 'pending'}
+  
+  // Read/acknowledgment tracking
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+  isAcknowledged: boolean("is_acknowledged").default(false),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  acknowledgmentRequired: boolean("acknowledgment_required").default(false),
+  
+  // Expiry and archival
+  expiresAt: timestamp("expires_at"),
+  archivedAt: timestamp("archived_at"),
+  
+  // Reference links
+  relatedEntityType: varchar("related_entity_type", { length: 50 }), // timesheet, time_clock, job, user
+  relatedEntityId: integer("related_entity_id"),
+  actionUrl: text("action_url"), // Deep link to relevant screen
+  
+  // Audit trail
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: integer("created_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  
+  // Compliance fields
+  retentionDays: integer("retention_days").default(365), // How long to keep
+  encryptionStatus: varchar("encryption_status", { length: 20 }).default("encrypted"), // encrypted, decrypted
+  piiRedacted: boolean("pii_redacted").default(false)
+}, (table) => ({
+  userIdx: index("idx_notif_user").on(table.userId, table.isRead),
+  typeIdx: index("idx_notif_type").on(table.type, table.createdAt),
+  priorityIdx: index("idx_notif_priority").on(table.priority, table.isRead),
+  expiryIdx: index("idx_notif_expiry").on(table.expiresAt),
+  entityIdx: index("idx_notif_entity").on(table.relatedEntityType, table.relatedEntityId)
+}));
+
+// Notification delivery attempts - tracks each channel attempt
+export const notificationDeliveries = pgTable("notification_deliveries", {
+  id: serial("id").primaryKey(),
+  notificationId: integer("notification_id").notNull().references(() => notifications.id),
+  
+  channel: varchar("channel", { length: 20 }).notNull(), // email, in-app, whatsapp
+  status: varchar("status", { length: 20 }).notNull(), // pending, sent, delivered, failed, bounced
+  
+  // Delivery details
+  attemptNumber: integer("attempt_number").notNull().default(1),
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  failedAt: timestamp("failed_at"),
+  
+  // Channel-specific data
+  recipientAddress: text("recipient_address"), // email, phone number, device token
+  messageId: text("message_id"), // External system message ID
+  
+  // Error tracking
+  errorCode: varchar("error_code", { length: 50 }),
+  errorMessage: text("error_message"),
+  
+  // SLA tracking
+  slaDeadline: timestamp("sla_deadline"),
+  slaBreached: boolean("sla_breached").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => ({
+  notifIdx: index("idx_delivery_notif").on(table.notificationId, table.channel),
+  statusIdx: index("idx_delivery_status").on(table.status, table.createdAt),
+  slaIdx: index("idx_delivery_sla").on(table.slaDeadline, table.slaBreached)
+}));
+
+// User notification preferences - comprehensive channel and type preferences
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  category: varchar("category", { length: 50 }).notNull(), // time_clock, payroll, approvals, compliance
+  type: varchar("type", { length: 50 }).default("all"), // all, critical, important, etc.
+  
+  // Channels as JSONB object {email: true, inApp: true, whatsapp: false}
+  channels: jsonb("channels").default({ email: true, inApp: true, whatsapp: false }),
+  
+  priority: varchar("priority", { length: 50 }).default("all"), // all, high, critical
+  frequency: varchar("frequency", { length: 50 }).default("immediate"), // immediate, digest, weekly
+  timezone: varchar("timezone", { length: 50 }).default("Pacific/Auckland"),
+  
+  // Quiet hours as JSONB {enabled: false, start: "22:00", end: "07:00", days: ["Mon", "Tue"]}
+  quietHours: jsonb("quiet_hours").default({ enabled: false, start: "22:00", end: "07:00", days: [] }),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (table) => {
+  return {
+    // Ensure unique combination of user and category
+    userCategoryUnique: unique().on(table.userId, table.category)
+  }
+});
+
+// Notification Policies - Admin-controlled mandatory notification settings by role
+export const notificationPolicies = pgTable("notification_policies", {
+  id: serial("id").primaryKey(),
+  role: varchar("role", { length: 50 }).notNull(), // owner, admin, full, manager, employee, viewer
+  category: varchar("category", { length: 50 }).notNull(), // time_clock, payroll, approvals, compliance
+  
+  // Mandatory channels (users cannot disable these)
+  mandatoryChannels: jsonb("mandatory_channels").default({ email: false, inApp: false, whatsapp: false }),
+  
+  // Default channels (applied when user has no preference)
+  defaultChannels: jsonb("default_channels").default({ email: true, inApp: true, whatsapp: false }),
+  
+  // Priority levels that trigger mandatory notifications
+  mandatoryPriorityLevels: jsonb("mandatory_priority_levels").default(["critical", "high"]),
+  
+  // Specific notification types that are always mandatory
+  mandatoryTypes: jsonb("mandatory_types").default([]),
+  
+  // Can users modify preferences for this category/role
+  userCanModify: boolean("user_can_modify").default(true),
+  
+  // Escalation settings
+  escalationEnabled: boolean("escalation_enabled").default(false),
+  escalationDelayMinutes: integer("escalation_delay_minutes").default(30),
+  escalationToRole: varchar("escalation_to_role", { length: 50 }),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: integer("created_by").references(() => users.id)
+}, (table) => {
+  return {
+    // Ensure unique combination of role and category
+    roleCategoryUnique: unique().on(table.role, table.category),
+    roleIdx: index("idx_notification_policies_role").on(table.role),
+    categoryIdx: index("idx_notification_policies_category").on(table.category)
+  }
+});
+
+// Notification Audit Log for compliance tracking
+export const notificationAuditLog = pgTable("notification_audit_log", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  notificationId: varchar("notification_id", { length: 100 }),
+  action: varchar("action", { length: 50 }), // preference_changed, notification_disabled, policy_override
+  previousValue: jsonb("previous_value"),
+  newValue: jsonb("new_value"),
+  reason: text("reason"),
+  ipAddress: varchar("ip_address", { length: 50 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => {
+  return {
+    userIdx: index("idx_notification_audit_user").on(table.userId),
+    actionIdx: index("idx_notification_audit_action").on(table.action),
+    createdIdx: index("idx_notification_audit_created").on(table.createdAt)
+  }
+});
+
+// Notification templates - reusable message templates
+export const notificationTemplates = pgTable("notification_templates", {
+  id: serial("id").primaryKey(),
+  templateId: varchar("template_id", { length: 100 }).notNull().unique(), // e.g., "shift-reminder-email"
+  
+  type: varchar("type", { length: 50 }).notNull(),
+  channel: varchar("channel", { length: 20 }).notNull(),
+  language: varchar("language", { length: 10 }).default("en"),
+  
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  
+  // Template content
+  subjectTemplate: text("subject_template"), // With placeholders {{userName}}
+  bodyTemplate: text("body_template"),
+  htmlTemplate: text("html_template"),
+  
+  // Variables schema
+  variablesSchema: jsonb("variables_schema"), // JSON Schema for template variables
+  
+  // Metadata
+  isActive: boolean("is_active").default(true),
+  version: integer("version").default(1),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: integer("created_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (table) => ({
+  typeChannelIdx: index("idx_template_type_channel").on(table.type, table.channel, table.language),
+  templateIdIdx: index("idx_template_id").on(table.templateId)
+}));
+
+// Notification escalations - for critical notifications requiring acknowledgment
+export const notificationEscalations = pgTable("notification_escalations", {
+  id: serial("id").primaryKey(),
+  notificationId: integer("notification_id").notNull().references(() => notifications.id),
+  
+  escalationLevel: integer("escalation_level").notNull().default(0),
+  escalatedToUserId: integer("escalated_to_user_id").references(() => users.id),
+  escalatedToRoleId: integer("escalated_to_role_id").references(() => roles.id),
+  
+  escalationReason: text("escalation_reason"),
+  escalatedAt: timestamp("escalated_at").defaultNow().notNull(),
+  
+  // Response tracking
+  respondedAt: timestamp("responded_at"),
+  responseAction: varchar("response_action", { length: 50 }), // acknowledged, dismissed, delegated
+  responseNotes: text("response_notes"),
+  
+  // Next escalation
+  nextEscalationAt: timestamp("next_escalation_at"),
+  maxEscalationLevel: integer("max_escalation_level").default(3),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => ({
+  notifIdx: index("idx_escalation_notif").on(table.notificationId),
+  levelIdx: index("idx_escalation_level").on(table.escalationLevel),
+  nextIdx: index("idx_escalation_next").on(table.nextEscalationAt)
+}));
+
+// Notification analytics - for reporting and insights
+export const notificationAnalytics = pgTable("notification_analytics", {
+  id: serial("id").primaryKey(),
+  
+  // Dimensions
+  date: date("date").notNull(),
+  type: varchar("type", { length: 50 }).notNull(),
+  channel: varchar("channel", { length: 20 }).notNull(),
+  priority: varchar("priority", { length: 20 }),
+  
+  // Metrics
+  sentCount: integer("sent_count").default(0),
+  deliveredCount: integer("delivered_count").default(0),
+  readCount: integer("read_count").default(0),
+  acknowledgedCount: integer("acknowledged_count").default(0),
+  failedCount: integer("failed_count").default(0),
+  
+  // Performance metrics
+  avgDeliveryTimeMs: integer("avg_delivery_time_ms"),
+  avgReadTimeMs: integer("avg_read_time_ms"),
+  slaBreachCount: integer("sla_breach_count").default(0),
+  
+  // User engagement
+  uniqueRecipients: integer("unique_recipients").default(0),
+  clickThroughCount: integer("click_through_count").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => ({
+  dateIdx: index("idx_notif_analytics_date").on(table.date, table.type, table.channel),
+  typeIdx: index("idx_notif_analytics_type").on(table.type, table.date)
+}));
+
+// Device Sessions for Kiosk Mode
+export const deviceSessions = pgTable("device_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: uuid("session_id").defaultRandom().notNull().unique(),
+  
+  // Device identification
+  deviceId: varchar("device_id", { length: 100 }).notNull(),
+  deviceFingerprint: jsonb("device_fingerprint").default({}),
+  
+  // Location binding
+  locationId: integer("location_id").references(() => companyLocations.id),
+  locationName: varchar("location_name", { length: 100 }),
+  
+  // Session management
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  terminatedAt: timestamp("terminated_at"),
+  
+  // Active user tracking (for kiosk mode)
+  activeUserId: integer("active_user_id").references(() => users.id),
+  lastActivityAt: timestamp("last_activity_at"),
+  
+  // Security
+  sessionToken: text("session_token").notNull(),
+  refreshToken: text("refresh_token"),
+  
+  // Kiosk settings
+  kioskMode: boolean("kiosk_mode").default(false),
+  requiresPhoto: boolean("requires_photo").default(true),
+  requiresPin: boolean("requires_pin").default(false),
+  allowedActions: jsonb("allowed_actions").default([]), // ['clock_in', 'clock_out', 'break']
+  
+  // Audit
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent")
+}, (table) => ({
+  deviceIdx: index("idx_device_session_device").on(table.deviceId),
+  locationIdx: index("idx_device_session_location").on(table.locationId),
+  expiryIdx: index("idx_device_session_expiry").on(table.expiresAt),
+  activeUserIdx: index("idx_device_session_active_user").on(table.activeUserId)
+}));
+
+// SMS Notification Preferences - DEPRECATED: Replaced with WhatsApp
+// Keeping table definition for database migration compatibility
+// export const smsNotificationPreferences = pgTable("sms_notification_preferences", {
+//   id: serial("id").primaryKey(),
+//   userId: integer("user_id").notNull().references(() => users.id).unique(),
+//   enabled: boolean("enabled").default(false),
+//   phoneNumber: varchar("phone_number", { length: 20 }),
+//   
+//   // Notification types
+//   clockReminders: boolean("clock_reminders").default(false),
+//   shiftReminders: boolean("shift_reminders").default(false),
+//   overtimeAlerts: boolean("overtime_alerts").default(false),
+//   payrollAlerts: boolean("payroll_alerts").default(false),
+//   correctionNotifications: boolean("correction_notifications").default(false),
+//   
+//   // Timing preferences  
+//   reminderMinutesBefore: integer("reminder_minutes_before").default(15),
+//   dailyReminderTime: varchar("daily_reminder_time", { length: 5 }), // HH:MM format
+//   weeklyPayrollDay: integer("weekly_payroll_day").default(5), // 0=Sunday, 6=Saturday
+//   
+//   // Quiet hours
+//   quietHoursEnabled: boolean("quiet_hours_enabled").default(true),
+//   quietHoursStart: varchar("quiet_hours_start", { length: 5 }).default("22:00"), // HH:MM
+//   quietHoursEnd: varchar("quiet_hours_end", { length: 5 }).default("07:00"), // HH:MM
+//   
+//   // Compliance
+//   consentDate: timestamp("consent_date"),
+//   consentIp: varchar("consent_ip", { length: 45 }),
+//   optOutDate: timestamp("opt_out_date"),
+//   
+//   createdAt: timestamp("created_at").defaultNow(),
+//   updatedAt: timestamp("updated_at").defaultNow()
+// });
+
+// Calendar Sync Configuration
+export const calendarSyncConfig = pgTable("calendar_sync_config", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  
+  // Connection details
+  provider: varchar("provider", { length: 50 }), // google, outlook, apple
+  connected: boolean("connected").default(false),
+  connectionDate: timestamp("connection_date"),
+  accessToken: text("access_token"), // Encrypted OAuth token
+  refreshToken: text("refresh_token"), // Encrypted refresh token
+  tokenExpiresAt: timestamp("token_expires_at"),
+  calendarId: varchar("calendar_id", { length: 255 }),
+  calendarName: varchar("calendar_name", { length: 255 }),
+  
+  // Sync settings
+  syncEnabled: boolean("sync_enabled").default(false),
+  syncDirection: varchar("sync_direction", { length: 20 }).default("one_way"), // one_way (to calendar), two_way
+  syncFrequency: integer("sync_frequency").default(60), // minutes
+  lastSyncAt: timestamp("last_sync_at"),
+  lastSyncStatus: varchar("last_sync_status", { length: 20 }), // success, failed, in_progress
+  lastSyncError: text("last_sync_error"),
+  
+  // Event settings
+  createClockEvents: boolean("create_clock_events").default(true),
+  createShiftEvents: boolean("create_shift_events").default(true),
+  createOvertimeEvents: boolean("create_overtime_events").default(false),
+  eventPrefix: varchar("event_prefix", { length: 50 }).default("[Work]"),
+  eventColor: varchar("event_color", { length: 7 }).default("#0066CC"),
+  eventReminder: integer("event_reminder"), // minutes before
+  
+  // Privacy settings
+  includeLocation: boolean("include_location").default(false),
+  includeJobDetails: boolean("include_job_details").default(true),
+  includeManager: boolean("include_manager").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// GPS Battery Optimization Settings - Fortune 50 compliance with battery efficiency
+export const gpsBatteryProfiles = pgTable("gps_battery_profiles", {
+  id: serial("id").primaryKey(),
+  profileId: uuid("profile_id").defaultRandom().notNull().unique(),
+  
+  // Profile identification
+  profileName: varchar("profile_name", { length: 100 }).notNull(),
+  profileType: varchar("profile_type", { length: 20 }).notNull(), // aggressive, balanced, battery_saver, custom
+  description: text("description"),
+  isDefault: boolean("is_default").default(false),
+  
+  // Frequency settings (in seconds)
+  baseFrequency: integer("base_frequency").notNull().default(30), // Normal tracking frequency
+  criticalFrequency: integer("critical_frequency").notNull().default(300), // When battery is critical
+  geofenceFrequency: integer("geofence_frequency").default(120), // Inside trusted geofences
+  idleFrequency: integer("idle_frequency").default(180), // When stationary
+  
+  // Battery thresholds (percentage)
+  criticalBatteryLevel: integer("critical_battery_level").default(10),
+  lowBatteryLevel: integer("low_battery_level").default(25),
+  normalBatteryLevel: integer("normal_battery_level").default(50),
+  
+  // Optimization features
+  adaptiveFrequency: boolean("adaptive_frequency").default(true),
+  wifiPreferred: boolean("wifi_preferred").default(true),
+  cellularFallback: boolean("cellular_fallback").default(true),
+  offlineMode: boolean("offline_mode").default(false),
+  geofenceOptimization: boolean("geofence_optimization").default(true),
+  movementDetection: boolean("movement_detection").default(true),
+  
+  // Night mode settings
+  nightModeEnabled: boolean("night_mode_enabled").default(false),
+  nightModeStart: varchar("night_mode_start", { length: 5 }), // HH:MM format
+  nightModeEnd: varchar("night_mode_end", { length: 5 }), // HH:MM format
+  nightModeFrequency: integer("night_mode_frequency").default(300),
+  
+  // Compliance settings
+  minimumComplianceFrequency: integer("minimum_compliance_frequency").default(30), // Can't go below this (Fortune 50)
+  
+  // Audit fields
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  profileTypeIdx: index("idx_gps_profile_type").on(table.profileType),
+  defaultIdx: index("idx_gps_profile_default").on(table.isDefault)
+}));
+
+// GPS Device Battery Status - Real-time tracking of device battery levels
+export const gpsDeviceStatus = pgTable("gps_device_status", {
+  id: serial("id").primaryKey(),
+  
+  // Device & user identification
+  deviceId: varchar("device_id", { length: 100 }).notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  sessionId: uuid("session_id").references(() => locationTracking.sessionId),
+  
+  // Battery status
+  batteryLevel: integer("battery_level").notNull(), // 0-100%
+  isCharging: boolean("is_charging").default(false),
+  batteryHealth: varchar("battery_health", { length: 20 }), // good, overheat, dead, cold, failure
+  
+  // Current GPS settings
+  currentProfileId: integer("current_profile_id").references(() => gpsBatteryProfiles.id),
+  currentFrequency: integer("current_frequency").notNull(), // Actual frequency being used
+  gpsMode: varchar("gps_mode", { length: 20 }), // high_accuracy, balanced, battery_saving, device_only
+  
+  // Network status
+  networkType: varchar("network_type", { length: 20 }), // wifi, cellular, offline
+  networkQuality: varchar("network_quality", { length: 20 }), // excellent, good, fair, poor
+  
+  // Optimization status
+  optimizationActive: boolean("optimization_active").default(true),
+  lastOptimizationAt: timestamp("last_optimization_at"),
+  batterySavedPercent: decimal("battery_saved_percent", { precision: 5, scale: 2 }),
+  
+  // Location context
+  inGeofence: boolean("in_geofence").default(false),
+  isMoving: boolean("is_moving").default(false),
+  lastMovementAt: timestamp("last_movement_at"),
+  
+  // Timestamps
+  lastUpdateAt: timestamp("last_update_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  deviceUserIdx: index("idx_gps_status_device_user").on(table.deviceId, table.userId),
+  sessionIdx: index("idx_gps_status_session").on(table.sessionId),
+  lastUpdateIdx: index("idx_gps_status_update").on(table.lastUpdateAt)
+}));
+
+// ============================================
+// FORTUNE 50 SECURITY TABLES - WAVE 1.5
+// ============================================
+
+// Dual Authorization Requests - Generic framework for all dual-auth operations
+export const dualAuthRequests = pgTable("dual_auth_requests", {
+  id: serial("id").primaryKey(),
+  requestId: uuid("request_id").defaultRandom().notNull().unique(),
+  
+  // Request details
+  requestType: varchar("request_type", { length: 50 }).notNull(), // GPS_OVERRIDE, BULK_CORRECTION, etc.
+  requesterId: integer("requester_id").notNull().references(() => users.id),
+  requesterName: varchar("requester_name", { length: 255 }).notNull(),
+  
+  // Target resource
+  resourceType: varchar("resource_type", { length: 50 }).notNull(), // gps_tracking, time_entries, etc.
+  resourceId: varchar("resource_id", { length: 100 }).notNull(),
+  action: varchar("action", { length: 100 }).notNull(),
+  reason: text("reason").notNull(),
+  
+  // Metadata
+  metadata: jsonb("metadata").notNull().default({}),
+  
+  // Status
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, approved, rejected, expired
+  
+  // Timing
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  resolvedAt: timestamp("resolved_at"),
+  
+  // Hash chain reference
+  hashChainBlockIndex: bigint("hash_chain_block_index", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_dual_auth_status").on(table.status, table.expiresAt),
+  resourceIdx: index("idx_dual_auth_resource").on(table.resourceType, table.resourceId),
+  requesterIdx: index("idx_dual_auth_requester").on(table.requesterId),
+}));
+
+// Dual Authorization Events - Approval/rejection events
+export const dualAuthEvents = pgTable("dual_auth_events", {
+  id: serial("id").primaryKey(),
+  eventId: uuid("event_id").defaultRandom().notNull().unique(),
+  
+  // Link to request
+  requestId: uuid("request_id").notNull().references(() => dualAuthRequests.requestId),
+  
+  // Event details
+  eventType: varchar("event_type", { length: 20 }).notNull(), // approve, reject
+  approverId: integer("approver_id").notNull().references(() => users.id),
+  approverName: varchar("approver_name", { length: 255 }).notNull(),
+  
+  // Digital signature
+  signature: text("signature").notNull(), // Cryptographic signature
+  signatureMethod: varchar("signature_method", { length: 50 }).default("SHA256"),
+  
+  // Metadata
+  comments: text("comments"),
+  metadata: jsonb("metadata").default({}),
+  
+  // Timestamp
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  
+  // Hash chain reference
+  hashChainBlockIndex: bigint("hash_chain_block_index", { mode: "number" }),
+}, (table) => ({
+  requestIdx: index("idx_dual_auth_event_request").on(table.requestId),
+  approverIdx: index("idx_dual_auth_event_approver").on(table.approverId),
+  // Constraint: approver cannot be same as requester (enforced at app level)
+}));
+
+// Hash Chain Blocks - Immutable audit trail
+export const hashChainBlocks = pgTable("hash_chain_blocks", {
+  id: serial("id").primaryKey(),
+  
+  // Chain identification
+  chainId: varchar("chain_id", { length: 50 }).notNull().default("main"),
+  blockIndex: bigint("block_index", { mode: "number" }).notNull(),
+  
+  // Hash values
+  previousHash: varchar("previous_hash", { length: 64 }).notNull(),
+  blockHash: varchar("block_hash", { length: 64 }).notNull(),
+  
+  // Block data
+  blockType: varchar("block_type", { length: 50 }).notNull(),
+  payload: jsonb("payload").notNull(),
+  
+  // Timestamp (immutable)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  
+  // Link to audit log entry
+  auditLogId: integer("audit_log_id").references(() => auditLog.id),
+}, (table) => ({
+  chainBlockIdx: index("idx_hash_chain_block").on(table.chainId, table.blockIndex),
+  hashIdx: index("idx_hash_chain_hash").on(table.blockHash),
+  typeIdx: index("idx_hash_chain_type").on(table.blockType),
+  // Note: Add trigger to prevent UPDATE/DELETE operations
+  // Note: (chainId, blockIndex) should be unique - enforced at app level
+}));
+
+// Kiosk Sessions - Cryptographically signed shared device sessions
+export const kioskSessions = pgTable("kiosk_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: uuid("session_id").defaultRandom().notNull().unique(),
+  
+  // Device identification
+  deviceId: varchar("device_id", { length: 100 }).notNull(),
+  deviceFingerprint: jsonb("device_fingerprint").notNull(),
+  
+  // Location binding
+  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
+  locationName: varchar("location_name", { length: 200 }),
+  
+  // Cryptographic elements
+  publicKey: text("public_key").notNull(),
+  certificateChain: jsonb("certificate_chain").default([]),
+  sessionSignature: text("session_signature").notNull(),
+  
+  // Session management
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  closedAt: timestamp("closed_at"),
+  
+  // Created by (supervisor who initialized kiosk)
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  
+  // Metadata
+  metadata: jsonb("metadata").default({}),
+  allowedActions: jsonb("allowed_actions").default(['clock_in', 'clock_out']),
+  
+  // Link to dual-auth if override required
+  dualAuthRequestId: uuid("dual_auth_request_id").references(() => dualAuthRequests.requestId),
+}, (table) => ({
+  deviceIdx: index("idx_kiosk_device").on(table.deviceId),
+  activeIdx: index("idx_kiosk_active").on(table.expiresAt).where(sql`closed_at IS NULL`),
+  locationIdx: index("idx_kiosk_location").on(table.latitude, table.longitude),
+}));
+
+// GPS Breadcrumbs - Raw 30-second GPS points
+export const gpsBreadcrumbs = pgTable("gps_breadcrumbs", {
+  id: serial("id").primaryKey(),
+  
+  // User and session
+  userId: integer("user_id").notNull().references(() => users.id),
+  sessionHash: varchar("session_hash", { length: 64 }).notNull(),
+  
+  // Timestamp
+  capturedAt: timestamp("captured_at", { withTimezone: true }).notNull(),
+  
+  // Location data
+  latitude: decimal("latitude", { precision: 9, scale: 6 }).notNull(),
+  longitude: decimal("longitude", { precision: 9, scale: 6 }).notNull(),
+  accuracy: decimal("accuracy", { precision: 6, scale: 2 }), // meters
+  altitude: decimal("altitude", { precision: 8, scale: 2 }), // meters
+  speed: decimal("speed", { precision: 6, scale: 2 }), // m/s
+  heading: decimal("heading", { precision: 5, scale: 2 }), // degrees
+  
+  // Battery status
+  batteryLevel: integer("battery_level"), // 0-100
+  isCharging: boolean("is_charging").default(false),
+  
+  // Network status
+  networkType: varchar("network_type", { length: 20 }), // wifi, cellular, offline
+  
+  // Hash chain
+  previousBreadcrumbHash: varchar("previous_breadcrumb_hash", { length: 64 }),
+  breadcrumbHash: varchar("breadcrumb_hash", { length: 64 }).notNull(),
+}, (table) => ({
+  userSessionIdx: index("idx_breadcrumb_user_session").on(table.userId, table.sessionHash, table.capturedAt),
+  capturedIdx: index("idx_breadcrumb_captured").on(table.capturedAt),
+  locationIdx: index("idx_breadcrumb_location").on(table.latitude, table.longitude),
+  // Consider PostGIS GIST index for spatial queries in production
+}));
+
+// GPS Breadcrumb Summaries - Analytics for time windows
+export const gpsBreadcrumbSummaries = pgTable("gps_breadcrumb_summaries", {
+  id: serial("id").primaryKey(),
+  summaryId: uuid("summary_id").defaultRandom().notNull().unique(),
+  
+  // User and time window
+  userId: integer("user_id").notNull().references(() => users.id),
+  sessionHash: varchar("session_hash", { length: 64 }).notNull(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  windowEnd: timestamp("window_end", { withTimezone: true }).notNull(),
+  
+  // Distance and movement
+  totalDistance: decimal("total_distance", { precision: 10, scale: 2 }), // meters
+  averageSpeed: decimal("average_speed", { precision: 6, scale: 2 }), // m/s
+  maxSpeed: decimal("max_speed", { precision: 6, scale: 2 }), // m/s
+  stationarySeconds: integer("stationary_seconds").default(0),
+  
+  // Coverage
+  breadcrumbCount: integer("breadcrumb_count").notNull(),
+  expectedCount: integer("expected_count").notNull(), // Based on 30-second intervals
+  coveragePercent: decimal("coverage_percent", { precision: 5, scale: 2 }),
+  
+  // Anomalies
+  anomalyFlags: jsonb("anomaly_flags").default([]), // MOCK_LOCATION, IMPOSSIBLE_TRAVEL, etc.
+  geofenceViolations: jsonb("geofence_violations").default([]),
+  
+  // Battery
+  avgBatteryLevel: decimal("avg_battery_level", { precision: 5, scale: 2 }),
+  batteryDrainRate: decimal("battery_drain_rate", { precision: 5, scale: 2 }), // % per hour
+  
+  // Metadata
+  analysisMetadata: jsonb("analysis_metadata").default({}),
+  
+  // Timestamps
+  analyzedAt: timestamp("analyzed_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userWindowIdx: index("idx_summary_user_window").on(table.userId, table.windowStart),
+  sessionIdx: index("idx_summary_session").on(table.sessionHash),
+  anomalyIdx: index("idx_summary_anomaly").on(table.anomalyFlags),
+}));
+
+// GPS Logs - Link GPS data to time entries
+export const gpsLogs = pgTable("gps_logs", {
+  id: serial("id").primaryKey(),
+  
+  // Link to time entry
+  timeEntryId: integer("time_entry_id").references(() => timeEntries.id),
+  
+  // Link to breadcrumb
+  breadcrumbId: integer("breadcrumb_id").references(() => gpsBreadcrumbs.id),
+  
+  // User reference
+  userId: integer("user_id").notNull().references(() => users.id),
+  
+  // Raw location data (denormalized for quick access)
+  timestamp: timestamp("timestamp", { withTimezone: true }).notNull(),
+  latitude: decimal("latitude", { precision: 9, scale: 6 }).notNull(),
+  longitude: decimal("longitude", { precision: 9, scale: 6 }).notNull(),
+  accuracy: decimal("accuracy", { precision: 6, scale: 2 }),
+  altitude: decimal("altitude", { precision: 8, scale: 2 }),
+  speed: decimal("speed", { precision: 6, scale: 2 }),
+  heading: decimal("heading", { precision: 5, scale: 2 }),
+  
+  // Session tracking
+  sessionHash: varchar("session_hash", { length: 64 }),
+  
+  // Raw payload for debugging
+  rawPayload: jsonb("raw_payload"),
+  
+  // Timestamp
+  recordedAt: timestamp("recorded_at").defaultNow().notNull(),
+}, (table) => ({
+  timeEntryIdx: index("idx_gps_log_time_entry").on(table.timeEntryId),
+  userTimestampIdx: index("idx_gps_log_user_timestamp").on(table.userId, table.timestamp),
+  breadcrumbIdx: index("idx_gps_log_breadcrumb").on(table.breadcrumbId),
+}));
 
 export const leaveRequests = pgTable("leave_requests", {
   id: serial("id").primaryKey(),
@@ -3509,13 +4871,12 @@ export const workSchedules = pgTable("work_schedules", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   date: date("date").notNull(),
-  shiftStart: timestamp("shift_start").notNull(),
-  shiftEnd: timestamp("shift_end").notNull(),
+  shiftStart: time("shift_start").notNull(),
+  shiftEnd: time("shift_end").notNull(),
   breakDuration: integer("break_duration").default(30),
   location: varchar("location", { length: 100 }).default("workshop"),
   jobId: integer("job_id").references(() => jobs.id),
   notes: text("notes"),
-  createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -3629,10 +4990,6 @@ export const workSchedulesRelations = relations(workSchedules, ({ one }) => ({
     fields: [workSchedules.jobId],
     references: [jobs.id],
   }),
-  creator: one(users, {
-    fields: [workSchedules.createdBy],
-    references: [users.id],
-  }),
 }));
 
 // Team Management Types
@@ -3652,6 +5009,8 @@ export type JobTask = typeof jobTasks.$inferSelect;
 export type InsertJobTask = typeof jobTasks.$inferInsert;
 export type TimeClock = typeof timeClocks.$inferSelect;
 export type InsertTimeClock = typeof timeClocks.$inferInsert;
+export type LocationTracking = typeof locationTracking.$inferSelect;
+export type InsertLocationTracking = typeof locationTracking.$inferInsert;
 export type LeaveRequest = typeof leaveRequests.$inferSelect;
 export type InsertLeaveRequest = typeof leaveRequests.$inferInsert;
 export type WorkSchedule = typeof workSchedules.$inferSelect;
@@ -3765,6 +5124,85 @@ export type EmployeeAuditLog = typeof employeeAuditLog.$inferSelect;
 export type InsertEmployeeAuditLog = typeof employeeAuditLog.$inferInsert;
 export type ArchivedTimesheet = typeof archivedTimesheets.$inferSelect;
 export type InsertArchivedTimesheet = typeof archivedTimesheets.$inferInsert;
+
+// ============================================================================
+// FORTUNE 50 COMPLIANCE: PERMISSION AUDIT LOGS
+// ============================================================================
+
+/**
+ * Permission Audit Logs - Fortune 50 Compliance Requirement
+ * Immutable, tamper-evident audit trail of all permission checks and changes
+ * Implements hash chaining for data integrity verification
+ */
+export const permissionAuditLogs = pgTable("permission_audit_logs", {
+  id: serial("id").primaryKey(),
+  
+  // Event metadata
+  eventType: varchar("event_type").notNull(), // 'permission_check', 'permission_change', 'role_assignment', 'login'
+  eventTimestamp: timestamp("event_timestamp").defaultNow().notNull(),
+  eventId: varchar("event_id").notNull().unique(), // UUID for each event
+  
+  // User context
+  userId: integer("user_id").references(() => users.id),
+  username: varchar("username").notNull(),
+  userIp: varchar("user_ip"),
+  userAgent: text("user_agent"),
+  sessionId: varchar("session_id"),
+  
+  // Permission context
+  roleId: integer("role_id").references(() => roles.id),
+  roleName: varchar("role_name"),
+  permission: varchar("permission"),
+  permissionCategory: varchar("permission_category"),
+  permissionSource: varchar("permission_source"), // 'database', 'legacy', 'default'
+  
+  // Action details
+  action: varchar("action").notNull(), // 'granted', 'denied', 'checked', 'added', 'removed'
+  resource: varchar("resource"), // Resource being accessed
+  resourceId: varchar("resource_id"), // ID of the resource
+  requestMethod: varchar("request_method"), // HTTP method for API requests
+  requestPath: text("request_path"), // API endpoint path
+  
+  // Result and metadata
+  success: boolean("success").notNull(),
+  errorMessage: text("error_message"),
+  details: jsonb("details"), // Additional context as JSON
+  
+  // Retention and compliance
+  retentionDate: timestamp("retention_date"), // When this record can be deleted
+  complianceTag: varchar("compliance_tag"), // For regulatory categorization
+  dataClassification: varchar("data_classification").default("internal"), // 'public', 'internal', 'confidential', 'restricted'
+  
+  // Hash chain for tamper detection
+  previousHash: varchar("previous_hash"), // Hash of the previous record
+  currentHash: varchar("current_hash").notNull(), // Hash of this record
+  
+  // Immutable - no update timestamp
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  // Indexes for efficient querying
+  userIdIdx: index("perm_audit_user_id_idx").on(table.userId),
+  roleIdIdx: index("perm_audit_role_id_idx").on(table.roleId),
+  eventTimestampIdx: index("perm_audit_timestamp_idx").on(table.eventTimestamp),
+  eventTypeIdx: index("perm_audit_event_type_idx").on(table.eventType),
+  retentionDateIdx: index("perm_audit_retention_idx").on(table.retentionDate),
+}));
+
+// Permission Audit Logs Relations
+export const permissionAuditLogsRelations = relations(permissionAuditLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [permissionAuditLogs.userId],
+    references: [users.id],
+  }),
+  role: one(roles, {
+    fields: [permissionAuditLogs.roleId],
+    references: [roles.id],
+  }),
+}));
+
+// Permission Audit Log Types
+export type PermissionAuditLog = typeof permissionAuditLogs.$inferSelect;
+export type InsertPermissionAuditLog = typeof permissionAuditLogs.$inferInsert;
 
 // ==========================================
 // WAVE 1: FORTUNE 50 ANALYTICS & BI PLATFORM
@@ -4017,6 +5455,14 @@ export const systemAuditLog = pgTable("system_audit_log", {
   index("idx_audit_review").on(table.requiresReview),
 ]);
 
+// System Audit Log schemas and types
+export const insertSystemAuditLogSchema = createInsertSchema(systemAuditLog).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSystemAuditLog = z.infer<typeof insertSystemAuditLogSchema>;
+export type SystemAuditLog = typeof systemAuditLog.$inferSelect;
+
 export const settingsApprovals = pgTable("settings_approvals", {
   id: serial("id").primaryKey(),
   settingId: integer("setting_id").references(() => settings.id),
@@ -4128,6 +5574,414 @@ export const businessUnits = pgTable("business_units", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
+// Fortune 50 Time & Payroll Compliance Tables
+
+// Timesheet Corrections - Track correction requests for locked timesheets
+export const timesheetCorrections = pgTable("timesheet_corrections", {
+  id: serial("id").primaryKey(),
+  timesheetId: integer("timesheet_id").notNull().references(() => timesheets.id),
+  requestedBy: integer("requested_by").notNull().references(() => users.id),
+  requestType: varchar("request_type", { length: 50 }).notNull(), // hours_adjustment, date_change, job_change, approval_override
+  originalValues: jsonb("original_values").notNull(), // Store original state
+  requestedValues: jsonb("requested_values").notNull(), // Store requested changes
+  reason: text("reason").notNull(),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending, approved, rejected, escalated
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  rejectionReason: text("rejection_reason"),
+  escalationPath: jsonb("escalation_path"), // Array of user IDs for escalation
+  windowViolation: boolean("window_violation").default(false), // True if outside 48-hour window
+  metadata: jsonb("metadata"), // Additional context, attachments, etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  timesheetStatusIdx: index("idx_timesheet_corrections_timesheet_status").on(table.timesheetId, table.status),
+  requestedByStatusIdx: index("idx_timesheet_corrections_requested_status").on(table.requestedBy, table.status)
+}));
+
+// Payroll Periods - Manage payroll period locking and processing
+export const payrollPeriods = pgTable("payroll_periods", {
+  id: serial("id").primaryKey(),
+  businessUnitId: integer("business_unit_id").references(() => businessUnits.id),
+  periodType: varchar("period_type", { length: 20 }).notNull(), // weekly, biweekly, semimonthly, monthly
+  payPeriodStart: date("pay_period_start").notNull(),
+  payPeriodEnd: date("pay_period_end").notNull(),
+  payDate: date("pay_date").notNull(),
+  status: varchar("status", { length: 20 }).default("open").notNull(), // open, locked, processing, completed, archived
+  lockedAt: timestamp("locked_at"),
+  lockedBy: integer("locked_by").references(() => users.id),
+  processingStartedAt: timestamp("processing_started_at"),
+  processingCompletedAt: timestamp("processing_completed_at"),
+  employeeCount: integer("employee_count"),
+  totalHours: decimal("total_hours", { precision: 10, scale: 2 }),
+  totalAmount: decimal("total_amount", { precision: 15, scale: 2 }),
+  processingCheckpoints: jsonb("processing_checkpoints"), // Track stages of payroll processing
+  errorLog: jsonb("error_log"), // Track any processing errors
+  syncStatus: varchar("sync_status", { length: 20 }), // Track sync with external payroll systems: pending, synced, failed
+  lastSyncedAt: timestamp("last_synced_at"), // Last successful sync timestamp
+  syncProviderId: varchar("sync_provider_id", { length: 50 }), // Which provider was used for sync
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  businessUnitPeriodIdx: unique("idx_payroll_periods_unit_start").on(table.businessUnitId, table.payPeriodStart)
+}));
+
+// Payroll Provider Configuration - Settings for external payroll system integration
+export const payrollProviderConfig = pgTable("payroll_provider_config", {
+  id: serial("id").primaryKey(),
+  providerId: varchar("provider_id", { length: 50 }).notNull().unique(),
+  name: varchar("name", { length: 100 }).notNull(),
+  apiUrl: varchar("api_url", { length: 500 }),
+  authType: varchar("auth_type", { length: 20 }).notNull(), // apiKey, oauth, basic
+  credentials: jsonb("credentials").notNull(), // Encrypted credentials storage
+  fieldMappings: jsonb("field_mappings").notNull(), // Map our fields to provider fields
+  transformations: jsonb("transformations"), // Custom data transformations
+  // organizationId removed - not needed for single-organization system
+  isActive: boolean("is_active").default(true),
+  lastSyncedAt: timestamp("last_synced_at"),
+  tokenExpiresAt: timestamp("token_expires_at"), // OAuth token expiry for scheduling (Wave 3)
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Payroll Sync Log - Track all sync attempts and results (Wave 3 Enhanced)
+export const payrollSyncLog = pgTable("payroll_sync_log", {
+  id: serial("id").primaryKey(),
+  periodId: integer("period_id").notNull().references(() => payrollPeriods.id),
+  providerId: varchar("provider_id", { length: 50 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull(), // pending, processing, completed, failed, partial, cancelled
+  startedAt: timestamp("started_at").notNull(),
+  completedAt: timestamp("completed_at"),
+  startedBy: integer("started_by").references(() => users.id),
+  recordCount: integer("record_count"),
+  successCount: integer("success_count"),
+  errorCount: integer("error_count"),
+  errors: jsonb("errors"), // Array of error details
+  metadata: jsonb("metadata"), // Additional sync metadata
+  retryCount: integer("retry_count").default(0),
+  nextRetryAt: timestamp("next_retry_at"),
+  // Wave 3 additions for Fortune 50 compliance
+  idempotencyKey: varchar("idempotency_key", { length: 64 }).unique(), // Prevent duplicate syncs
+  hashChain: varchar("hash_chain", { length: 64 }), // SHA-256 hash chain for audit trail
+  previousHashChain: varchar("previous_hash_chain", { length: 64 }), // Link to previous sync
+  dualAuthRequestId: integer("dual_auth_request_id"), // Reference to dual auth if required
+  encryptedPayload: text("encrypted_payload"), // AES-256-GCM encrypted export data
+  payloadHash: varchar("payload_hash", { length: 64 }), // SHA-256 hash of unencrypted payload
+  providerResponseCode: varchar("provider_response_code", { length: 50 }),
+  providerTransactionId: varchar("provider_transaction_id", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  periodProviderIdx: index("idx_sync_log_period_provider").on(table.periodId, table.providerId),
+  statusIdx: index("idx_sync_log_status").on(table.status),
+  idempotencyIdx: index("idx_sync_log_idempotency").on(table.idempotencyKey)
+}));
+
+// Payroll Field Mapping Templates - Reusable field mappings for providers (Wave 3)
+export const payrollFieldMappingTemplates = pgTable("payroll_field_mapping_templates", {
+  id: serial("id").primaryKey(),
+  providerId: varchar("provider_id", { length: 50 }).notNull(), // quickbooks, xero, adp
+  templateName: varchar("template_name", { length: 100 }).notNull(),
+  description: text("description"),
+  isDefault: boolean("is_default").default(false), // Default template for this provider
+  // Source fields (STEELIQ fields)
+  sourceFields: jsonb("source_fields").notNull(), // Array of field definitions
+  // Target fields (Provider fields)
+  targetFields: jsonb("target_fields").notNull(), // Array of field definitions
+  // Mapping rules - how source maps to target
+  mappingRules: jsonb("mapping_rules").notNull(), // Array of {source, target, transform, required}
+  // Validation rules
+  validationRules: jsonb("validation_rules"), // Array of validation constraints
+  // Sample data for testing
+  sampleData: jsonb("sample_data"),
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  providerTemplateIdx: index("idx_field_mapping_provider").on(table.providerId, table.isActive),
+  defaultTemplateIdx: index("idx_field_mapping_default").on(table.providerId, table.isDefault)
+}));
+
+// Payroll Webhook Events - Track incoming webhooks from providers (Wave 3)
+export const payrollWebhookEvents = pgTable("payroll_webhook_events", {
+  id: serial("id").primaryKey(),
+  providerId: varchar("provider_id", { length: 50 }).notNull(),
+  eventType: varchar("event_type", { length: 100 }).notNull(), // payroll.completed, sync.status, error.notification
+  eventId: varchar("event_id", { length: 100 }), // Provider's event ID
+  signature: varchar("signature", { length: 256 }), // Webhook signature for verification
+  signatureValid: boolean("signature_valid"),
+  payload: jsonb("payload").notNull(), // Raw webhook payload
+  processedAt: timestamp("processed_at"),
+  processingStatus: varchar("processing_status", { length: 20 }).default("pending"), // pending, processed, failed, ignored
+  processingError: text("processing_error"),
+  relatedSyncLogId: integer("related_sync_log_id").references(() => payrollSyncLog.id),
+  receivedAt: timestamp("received_at").defaultNow().notNull(),
+  ipAddress: varchar("ip_address", { length: 45 }),
+}, (table) => ({
+  providerEventIdx: index("idx_webhook_provider_event").on(table.providerId, table.eventType),
+  eventIdIdx: index("idx_webhook_event_id").on(table.providerId, table.eventId),
+  statusIdx: index("idx_webhook_status").on(table.processingStatus)
+}));
+
+// Payroll Sync Schedule - Automated sync scheduling (Wave 3)
+export const payrollSyncSchedule = pgTable("payroll_sync_schedule", {
+  id: serial("id").primaryKey(),
+  providerId: varchar("provider_id", { length: 50 }).notNull().references(() => payrollProviderConfig.providerId),
+  scheduleName: varchar("schedule_name", { length: 100 }).notNull(),
+  cronExpression: varchar("cron_expression", { length: 100 }).notNull(), // Standard cron format
+  timezone: varchar("timezone", { length: 50 }).default("Pacific/Auckland"),
+  isActive: boolean("is_active").default(true),
+  // Retry configuration
+  maxRetries: integer("max_retries").default(3),
+  retryDelayMinutes: integer("retry_delay_minutes").default(15),
+  retryBackoffMultiplier: decimal("retry_backoff_multiplier", { precision: 3, scale: 2 }).default("2.0"),
+  // Notification settings
+  notifyOnSuccess: boolean("notify_on_success").default(false),
+  notifyOnFailure: boolean("notify_on_failure").default(true),
+  notificationRecipients: jsonb("notification_recipients"), // Array of user IDs or roles
+  // Execution tracking
+  lastRunAt: timestamp("last_run_at"),
+  lastRunStatus: varchar("last_run_status", { length: 20 }),
+  nextRunAt: timestamp("next_run_at"),
+  consecutiveFailures: integer("consecutive_failures").default(0),
+  // Configuration
+  syncOptions: jsonb("sync_options"), // Additional options like dry-run, partial sync
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  providerScheduleIdx: index("idx_sync_schedule_provider").on(table.providerId, table.isActive),
+  nextRunIdx: index("idx_sync_schedule_next_run").on(table.nextRunAt, table.isActive)
+}));
+
+// Payroll Provider Credentials Audit - Track credential access (Wave 3 Fortune 50 compliance)
+export const payrollCredentialAudit = pgTable("payroll_credential_audit", {
+  id: serial("id").primaryKey(),
+  providerId: varchar("provider_id", { length: 50 }).notNull(),
+  action: varchar("action", { length: 50 }).notNull(), // created, updated, accessed, rotated, revoked
+  userId: integer("user_id").references(() => users.id),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  reason: text("reason"),
+  dualAuthRequestId: integer("dual_auth_request_id"),
+  hashChain: varchar("hash_chain", { length: 64 }).notNull(),
+  previousHashChain: varchar("previous_hash_chain", { length: 64 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  providerActionIdx: index("idx_credential_audit_provider").on(table.providerId, table.action),
+  userIdx: index("idx_credential_audit_user").on(table.userId),
+  hashChainIdx: index("idx_credential_audit_hash").on(table.hashChain)
+}));
+
+// Time Permissions - Granular permission matrix for time management
+export const timePermissions = pgTable("time_permissions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  permissionScope: varchar("permission_scope", { length: 50 }).notNull(), // view_own, edit_own, view_team, approve_team, view_all, approve_all, override_locks, manage_periods
+  resourceType: varchar("resource_type", { length: 50 }), // timesheet, time_entry, schedule, leave_request
+  resourceId: integer("resource_id"), // Specific resource ID if applicable
+  departmentId: integer("department_id").references(() => departments.id),
+  businessUnitId: integer("business_unit_id").references(() => businessUnits.id),
+  grantedBy: integer("granted_by").references(() => users.id),
+  effectiveFrom: timestamp("effective_from").defaultNow().notNull(),
+  effectiveTo: timestamp("effective_to"),
+  conditions: jsonb("conditions"), // Additional conditions like time windows, approval limits
+  delegated: boolean("delegated").default(false),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userScopeIdx: index("idx_time_permissions_user_scope").on(table.userId, table.permissionScope, table.isActive),
+  scopeResourceIdx: index("idx_time_permissions_scope_resource").on(table.permissionScope, table.resourceType, table.isActive)
+}));
+
+// Overtime Rules - Fortune 50 compliant overtime calculation engine
+export const overtimeRules = pgTable("overtime_rules", {
+  id: serial("id").primaryKey(),
+  businessUnitId: integer("business_unit_id").references(() => businessUnits.id),
+  jurisdictionType: varchar("jurisdiction_type", { length: 20 }).notNull(), // federal, state, local, union
+  jurisdictionIdentifier: varchar("jurisdiction_identifier", { length: 50 }), // CA, NY, FLSA, UAW_2023
+  unionAgreementId: integer("union_agreement_id"), // FK to union_contracts if exists
+  employmentClassification: varchar("employment_classification", { length: 50 }), // full_time, part_time, contractor, union
+  appliesToShiftType: varchar("applies_to_shift_type", { length: 50 }), // all, day, night, weekend, holiday
+  
+  // Tiered threshold configuration
+  thresholds: jsonb("thresholds").notNull(), // Array of {basis: daily/weekly/consecutive, threshold_hours, rate_multiplier, cap_hours, escalation_rule_id}
+  
+  // Priority and effective dating
+  priority: integer("priority").default(0), // Higher number = higher priority (union > state > federal)
+  effectiveStart: date("effective_start").notNull(),
+  effectiveEnd: date("effective_end"),
+  isActive: boolean("is_active").default(true),
+  
+  // Metadata and audit
+  ruleSource: varchar("rule_source", { length: 100 }), // FLSA, CA_Labor_Code, UAW_Contract_2023
+  linkedComplianceRuleId: integer("linked_compliance_rule_id").references(() => complianceRules.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdBy: integer("created_by").references(() => users.id),
+  updatedBy: integer("updated_by").references(() => users.id)
+}, (table) => ({
+  businessJurisdictionIdx: index("idx_overtime_rules_unit_jurisdiction").on(table.businessUnitId, table.jurisdictionType, table.isActive),
+  effectiveDateIdx: index("idx_overtime_rules_effective").on(table.effectiveStart, table.effectiveEnd)
+}));
+
+// Timesheet Overtime Segments - Track overtime tier breakdowns for audit
+export const timesheetOvertimeSegments = pgTable("timesheet_overtime_segments", {
+  id: serial("id").primaryKey(),
+  timesheetId: integer("timesheet_id").notNull().references(() => timesheets.id),
+  overtimeRuleId: integer("overtime_rule_id").notNull().references(() => overtimeRules.id),
+  tierType: varchar("tier_type", { length: 20 }).notNull(), // daily_ot, weekly_ot, consecutive_ot
+  thresholdHours: decimal("threshold_hours", { precision: 5, scale: 2 }).notNull(),
+  hoursApplied: decimal("hours_applied", { precision: 5, scale: 2 }).notNull(),
+  rateMultiplier: decimal("rate_multiplier", { precision: 3, scale: 2 }).notNull(),
+  calculatedCost: decimal("calculated_cost", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow()
+}, (table) => ({
+  timesheetRuleIdx: index("idx_overtime_segments_timesheet").on(table.timesheetId)
+}));
+
+// Compliance Rules - Break/overtime/shift rules engine
+export const complianceRules = pgTable("compliance_rules", {
+  id: serial("id").primaryKey(),
+  businessUnitId: integer("business_unit_id").references(() => businessUnits.id), // Null for global rules
+  ruleType: varchar("rule_type", { length: 50 }).notNull(), // break_required, max_hours_daily, max_hours_weekly, overtime_threshold, consecutive_days_limit
+  ruleName: varchar("rule_name", { length: 100 }).notNull(),
+  description: text("description"),
+  severity: varchar("severity", { length: 20 }).default("warning").notNull(), // info, warning, error, critical
+  thresholds: jsonb("thresholds").notNull(), // Rule-specific thresholds and parameters
+  applicability: jsonb("applicability"), // Conditions for when rule applies (employee types, departments, etc.)
+  enforcementAction: varchar("enforcement_action", { length: 50 }), // block_submission, require_approval, alert_only, auto_correct
+  notificationSettings: jsonb("notification_settings"), // Who to notify and how
+  effectiveFrom: date("effective_from").notNull(),
+  effectiveTo: date("effective_to"),
+  jurisdiction: varchar("jurisdiction", { length: 100 }), // Legal jurisdiction (state, country, union agreement)
+  parentRuleId: integer("parent_rule_id"), // For hierarchical rule inheritance
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  businessRuleTypeIdx: index("idx_compliance_rules_unit_type").on(table.businessUnitId, table.ruleType, table.isActive)
+}));
+
+// Compliance Violations - Track violations of compliance rules
+export const complianceViolations = pgTable("compliance_violations", {
+  id: serial("id").primaryKey(),
+  ruleId: integer("rule_id").notNull().references(() => complianceRules.id),
+  employeeId: integer("employee_id").notNull().references(() => users.id),
+  periodId: integer("period_id").references(() => payrollPeriods.id),
+  violationDate: date("violation_date").notNull(),
+  severity: varchar("severity", { length: 20 }).notNull(), // warning, error, critical
+  description: text("description").notNull(),
+  details: jsonb("details"), // Additional violation details
+  status: varchar("status", { length: 20 }).default("open"), // open, acknowledged, resolved, waived
+  resolution: text("resolution"),
+  resolvedBy: integer("resolved_by").references(() => users.id),
+  resolvedAt: timestamp("resolved_at"),
+  waivedBy: integer("waived_by").references(() => users.id),
+  waivedAt: timestamp("waived_at"),
+  waiverReason: text("waiver_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  employeeIdx: index("idx_violations_employee").on(table.employeeId),
+  periodIdx: index("idx_violations_period").on(table.periodId),
+  dateIdx: index("idx_violations_date").on(table.violationDate),
+  statusIdx: index("idx_violations_status").on(table.status),
+  severityIdx: index("idx_violations_severity").on(table.severity)
+}));
+
+// Exception Alerts - Track and alert on violations
+export const exceptionAlerts = pgTable("exception_alerts", {
+  id: serial("id").primaryKey(),
+  ruleId: integer("rule_id").notNull().references(() => complianceRules.id),
+  timesheetId: integer("timesheet_id").references(() => timesheets.id),
+  timeEntryId: integer("time_entry_id").references(() => timeEntries.id),
+  timeClockId: integer("time_clock_id").references(() => timeClocks.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  alertType: varchar("alert_type", { length: 50 }).notNull(), // missing_punch, excessive_hours, no_break, early_clock_in, location_violation
+  severity: varchar("severity", { length: 20 }).notNull(), // Inherited from rule
+  detectedAt: timestamp("detected_at").defaultNow().notNull(),
+  detectionMethod: varchar("detection_method", { length: 50 }), // real_time, batch_scan, manual_review
+  violationDetails: jsonb("violation_details").notNull(), // Specific violation data
+  status: varchar("status", { length: 20 }).default("open").notNull(), // open, acknowledged, resolved, escalated, ignored
+  acknowledgedBy: integer("acknowledged_by").references(() => users.id),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  resolvedBy: integer("resolved_by").references(() => users.id),
+  resolvedAt: timestamp("resolved_at"),
+  resolutionNotes: text("resolution_notes"),
+  escalationLevel: integer("escalation_level").default(0),
+  notifications: jsonb("notifications"), // Track sent notifications
+  metadata: jsonb("metadata"), // Additional context
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  ruleStatusIdx: index("idx_exception_alerts_rule_status").on(table.ruleId, table.status),
+  userStatusIdx: index("idx_exception_alerts_user_status").on(table.userId, table.status),
+  detectedAtIdx: index("idx_exception_alerts_detected").on(table.detectedAt)
+}));
+
+// Delegation Rules - Supervisor delegation of approval authority
+export const delegationRules = pgTable("delegation_rules", {
+  id: serial("id").primaryKey(),
+  supervisorId: integer("supervisor_id").notNull().references(() => users.id),
+  delegateId: integer("delegate_id").notNull().references(() => users.id),
+  delegationScope: varchar("delegation_scope", { length: 50 }).notNull(), // approve_timesheets, approve_leave, approve_corrections, all
+  departmentId: integer("department_id").references(() => departments.id),
+  businessUnitId: integer("business_unit_id").references(() => businessUnits.id),
+  effectiveFrom: timestamp("effective_from").notNull(),
+  effectiveTo: timestamp("effective_to").notNull(),
+  reason: text("reason"),
+  maxApprovalAmount: decimal("max_approval_amount", { precision: 10, scale: 2 }), // Monetary limit if applicable
+  restrictions: jsonb("restrictions"), // Additional restrictions on delegation
+  escalationRules: jsonb("escalation_rules"), // When to escalate beyond delegate
+  autoRevert: boolean("auto_revert").default(true), // Revert when period ends
+  notificationsSent: jsonb("notifications_sent"), // Track notifications
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  // Note: Business rule - only one active delegation per supervisor/scope combination
+  // This needs to be enforced at the application layer since partial unique constraints aren't supported
+  supervisorScopeIdx: index("idx_delegation_supervisor_scope").on(table.supervisorId, table.delegationScope, table.isActive),
+  delegateIdx: index("idx_delegation_delegate").on(table.delegateId, table.isActive)
+}));
+
+// Geofence Zones - Location-based clock-in/out enforcement
+export const geofenceZones = pgTable("geofence_zones", {
+  id: serial("id").primaryKey(),
+  businessUnitId: integer("business_unit_id").references(() => businessUnits.id),
+  jobId: integer("job_id").references(() => jobs.id), // Optional link to specific job
+  zoneName: varchar("zone_name", { length: 100 }).notNull(),
+  zoneType: varchar("zone_type", { length: 20 }).notNull(), // job_site, office, warehouse, field
+  geometry: jsonb("geometry").notNull(), // GeoJSON format: polygon or center point with radius
+  radiusMeters: integer("radius_meters"), // For circular zones
+  toleranceMeters: integer("tolerance_meters").default(50), // GPS accuracy tolerance
+  enforcementLevel: varchar("enforcement_level", { length: 20 }).default("warning"), // none, warning, strict
+  schedule: jsonb("schedule"), // When zone is active (days, hours)
+  allowedUsers: jsonb("allowed_users"), // Specific user IDs or roles allowed
+  restrictedActions: jsonb("restricted_actions"), // What actions are restricted (clock_in, clock_out, break)
+  notificationSettings: jsonb("notification_settings"), // Alerts for violations
+  
+  // Wave 1.5 UI enhancements
+  displayColor: varchar("display_color", { length: 7 }).default("#0066CC"), // Hex color for map display
+  notificationRadius: integer("notification_radius"), // Meters from zone for proximity alerts
+  lastEditedBy: integer("last_edited_by").references(() => users.id),
+  centerLatitude: decimal("center_latitude", { precision: 10, scale: 8 }),
+  centerLongitude: decimal("center_longitude", { precision: 11, scale: 8 }),
+  
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  businessUnitIdx: index("idx_geofence_zones_business_unit").on(table.businessUnitId, table.isActive),
+  jobIdx: index("idx_geofence_zones_job").on(table.jobId, table.isActive)
+  // Note: For production, consider PostGIS GIST index on geometry for spatial queries
+}));
+
 // Export types for new tables
 export type SettingsCategory = typeof settingsCategories.$inferSelect;
 export type InsertSettingsCategory = typeof settingsCategories.$inferInsert;
@@ -4144,6 +5998,22 @@ export type CostCenter = typeof costCenters.$inferSelect;
 export type InsertCostCenter = typeof costCenters.$inferInsert;
 export type BusinessUnit = typeof businessUnits.$inferSelect;
 export type InsertBusinessUnit = typeof businessUnits.$inferInsert;
+
+// Fortune 50 Time & Payroll Compliance Types
+export type TimesheetCorrection = typeof timesheetCorrections.$inferSelect;
+export type InsertTimesheetCorrection = typeof timesheetCorrections.$inferInsert;
+export type PayrollPeriod = typeof payrollPeriods.$inferSelect;
+export type InsertPayrollPeriod = typeof payrollPeriods.$inferInsert;
+export type TimePermission = typeof timePermissions.$inferSelect;
+export type InsertTimePermission = typeof timePermissions.$inferInsert;
+export type ComplianceRule = typeof complianceRules.$inferSelect;
+export type InsertComplianceRule = typeof complianceRules.$inferInsert;
+export type ExceptionAlert = typeof exceptionAlerts.$inferSelect;
+export type InsertExceptionAlert = typeof exceptionAlerts.$inferInsert;
+export type DelegationRule = typeof delegationRules.$inferSelect;
+export type InsertDelegationRule = typeof delegationRules.$inferInsert;
+export type GeofenceZone = typeof geofenceZones.$inferSelect;
+export type InsertGeofenceZone = typeof geofenceZones.$inferInsert;
 
 // AI System tables for Fortune 50-level ML infrastructure
 export const aiWorkerJobs = pgTable("ai_worker_jobs", {
@@ -4222,14 +6092,63 @@ export const aiMtoEvidence = pgTable("ai_mto_evidence", {
   id: serial("id").primaryKey(),
   runTelemetryId: integer("run_telemetry_id").references(() => aiRunTelemetry.id),
   elementId: varchar("element_id", { length: 255 }).notNull(),
-  fileId: varchar("file_id", { length: 255 }).notNull(),
+  elementDesignation: varchar("element_designation", { length: 255 }), // B1, C1, etc.
+  elementType: varchar("element_type", { length: 50 }), // beam, column, plate, etc.
+  
+  // ADR-0005: Secure file storage reference (FK constraint added via migration)
+  secureFileId: integer("secure_file_id"), // Link to encrypted file in secure_files table
+  fileId: varchar("file_id", { length: 255 }).notNull(), // Legacy file path (deprecating)
+  
   page: integer("page").notNull(),
   bbox: jsonb("bbox"), // [x1, y1, x2, y2]
   extractionMethod: text("extraction_method").notNull(), // 'TEXT' | 'VISION' | 'HYBRID' | 'UNSPECIFIED'
   confidence: decimal("confidence", { precision: 3, scale: 2 }),
   metadata: jsonb("metadata"),
+  
+  // ADR-0002: Hash chain for Fortune 50 tamper-evident audit trail
+  previousHash: varchar("previous_hash", { length: 64 }), // SHA-256 of previous record or 'GENESIS'
+  currentHash: varchar("current_hash", { length: 64 }), // SHA-256 of this record
+  chainValid: boolean("chain_valid"), // Result of last validation check
+  
   createdAt: timestamp("created_at").defaultNow()
 });
+
+// Fortune 50 Enterprise Offline Sync Queue - Durable field operation storage
+export const offlineSyncQueue = pgTable("offline_sync_queue", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  operation: text("operation").notNull(), // clock_in, clock_out, update_timesheet, submit_timesheet
+  payload: jsonb("payload").notNull(), // Operation data
+  deviceId: varchar("device_id", { length: 100 }), // Device fingerprint for tracking
+  collectedAt: timestamp("collected_at").notNull(), // When operation was performed on device
+  retryCount: integer("retry_count").default(0).notNull(),
+  maxRetries: integer("max_retries").default(3).notNull(),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending, processing, completed, failed
+  lastError: text("last_error"), // Last error message if failed
+  
+  // Conflict resolution metadata
+  conflictResolution: varchar("conflict_resolution", { length: 20 }), // client_wins, server_wins, merge, manual
+  hashSignature: varchar("hash_signature", { length: 64 }), // SHA-256 for integrity verification
+  serverVersion: integer("server_version"), // For optimistic locking
+  
+  // Audit trail
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  syncedAt: timestamp("synced_at"), // When successfully synced
+  processedBy: integer("processed_by").references(() => users.id), // Who processed manual conflicts
+  
+  // Network context
+  networkType: varchar("network_type", { length: 20 }), // wifi, cellular, offline
+  appVersion: varchar("app_version", { length: 20 }), // Track client version for compatibility
+}, (table) => ({
+  statusIdx: index("idx_offline_sync_status").on(table.status),
+  userIdx: index("idx_offline_sync_user").on(table.userId),
+  createdIdx: index("idx_offline_sync_created").on(table.createdAt),
+  deviceIdx: index("idx_offline_sync_device").on(table.deviceId)
+}));
+
+// Type exports for offline sync queue
+export type OfflineSyncQueue = typeof offlineSyncQueue.$inferSelect;
+export type InsertOfflineSyncQueue = typeof offlineSyncQueue.$inferInsert;
 
 // Hierarchical MTO structure for parent-child relationships
 export const aiMtoElements = pgTable("ai_mto_elements", {
@@ -5040,6 +6959,12 @@ export const rfqRequests = pgTable("rfq_requests", {
   closedAt: timestamp("closed_at"),
   winningResponseId: integer("winning_response_id"),
   createdBy: integer("created_by").references(() => users.id).notNull(),
+  
+  // ADR-0002: Hash chain for Fortune 50 tamper-evident audit trail
+  previousHash: varchar("previous_hash", { length: 64 }), // SHA-256 of previous record or 'GENESIS'
+  currentHash: varchar("current_hash", { length: 64 }), // SHA-256 of this record
+  chainValid: boolean("chain_valid"), // Result of last validation check
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -5072,6 +6997,15 @@ export const rfqResponses = pgTable("rfq_responses", {
   reviewedAt: timestamp("reviewed_at"),
   rejectionReason: text("rejection_reason"),
   submittedAt: timestamp("submitted_at"),
+  
+  // ADR-0002: Hash chain for Fortune 50 tamper-evident audit trail
+  previousHash: varchar("previous_hash", { length: 64 }), // SHA-256 of previous record or 'GENESIS'
+  currentHash: varchar("current_hash", { length: 64 }), // SHA-256 of this record
+  chainValid: boolean("chain_valid"), // Result of last validation check
+  
+  // ADR-0005: Secure file storage reference
+  secureFileId: integer("secure_file_id"), // Link to encrypted quote document in secure_files table
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -5757,6 +7691,12 @@ export const productionEvents = pgTable("production_events", {
   
   // Metadata
   notes: text("notes"),
+  
+  // ADR-0002: Hash chain for Fortune 50 tamper-evident audit trail
+  previousHash: varchar("previous_hash", { length: 64 }), // SHA-256 of previous record or 'GENESIS'
+  currentHash: varchar("current_hash", { length: 64 }), // SHA-256 of this record
+  chainValid: boolean("chain_valid"), // Result of last validation check
+  
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
@@ -5825,6 +7765,11 @@ export const productionMetrics = pgTable("production_metrics", {
   
   // Shift Data
   shiftId: integer("shift_id").references(() => productionShifts.id),
+  
+  // ADR-0002: Hash chain for Fortune 50 tamper-evident audit trail
+  previousHash: varchar("previous_hash", { length: 64 }), // SHA-256 of previous record or 'GENESIS'
+  currentHash: varchar("current_hash", { length: 64 }), // SHA-256 of this record
+  chainValid: boolean("chain_valid"), // Result of last validation check
   
   // Metadata
   calculatedAt: timestamp("calculated_at").defaultNow().notNull(),
@@ -5932,12 +7877,95 @@ export const insertDocumentSchema = createInsertSchema(documents).omit({
   uploadedAt: true
 });
 
+// Time Management Insert Schemas
+export const insertTimeClockSchema = createInsertSchema(timeClocks).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertLocationTrackingSchema = createInsertSchema(locationTracking).omit({
+  id: true,
+  sessionId: true,
+  timestamp: true
+});
+
+export const insertTimeCorrectionSchema = createInsertSchema(timeCorrections).omit({
+  id: true,
+  correctionId: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertTimeCorrectionItemSchema = createInsertSchema(timeCorrectionItems).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertShiftNotificationSchema = createInsertSchema(shiftNotifications).omit({
+  id: true,
+  notificationId: true,
+  createdAt: true
+});
+
+export const insertDeviceSessionSchema = createInsertSchema(deviceSessions).omit({
+  id: true,
+  sessionId: true,
+  createdAt: true
+});
+
+export const insertGeofenceZoneSchema = createInsertSchema(geofenceZones).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertGpsBatteryProfileSchema = createInsertSchema(gpsBatteryProfiles).omit({
+  id: true,
+  profileId: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertGpsDeviceStatusSchema = createInsertSchema(gpsDeviceStatus).omit({
+  id: true,
+  createdAt: true,
+  lastUpdateAt: true
+});
+
 // Type exports
 export type QualityInspection = typeof qualityInspections.$inferSelect;
 export type InsertQualityInspection = z.infer<typeof insertQualityInspectionSchema>;
 
 export type InventoryMovement = typeof inventoryMovements.$inferSelect;
 export type InsertInventoryMovement = z.infer<typeof insertInventoryMovementSchema>;
+
+// Time Management Types
+export type TimeClock = typeof timeClocks.$inferSelect;
+export type InsertTimeClock = z.infer<typeof insertTimeClockSchema>;
+
+export type LocationTracking = typeof locationTracking.$inferSelect;
+export type InsertLocationTracking = z.infer<typeof insertLocationTrackingSchema>;
+
+export type TimeCorrection = typeof timeCorrections.$inferSelect;
+export type InsertTimeCorrection = z.infer<typeof insertTimeCorrectionSchema>;
+
+export type TimeCorrectionItem = typeof timeCorrectionItems.$inferSelect;
+export type InsertTimeCorrectionItem = z.infer<typeof insertTimeCorrectionItemSchema>;
+
+export type ShiftNotification = typeof shiftNotifications.$inferSelect;
+export type InsertShiftNotification = z.infer<typeof insertShiftNotificationSchema>;
+
+export type DeviceSession = typeof deviceSessions.$inferSelect;
+export type InsertDeviceSession = z.infer<typeof insertDeviceSessionSchema>;
+
+export type GeofenceZone = typeof geofenceZones.$inferSelect;
+export type InsertGeofenceZone = z.infer<typeof insertGeofenceZoneSchema>;
+
+export type GpsBatteryProfile = typeof gpsBatteryProfiles.$inferSelect;
+export type InsertGpsBatteryProfile = z.infer<typeof insertGpsBatteryProfileSchema>;
+
+export type GpsDeviceStatus = typeof gpsDeviceStatus.$inferSelect;
+export type InsertGpsDeviceStatus = z.infer<typeof insertGpsDeviceStatusSchema>;
 
 export type SafetyInspection = typeof safetyInspections.$inferSelect;
 export type InsertSafetyInspection = z.infer<typeof insertSafetyInspectionSchema>;
@@ -6009,6 +8037,803 @@ export type InsertProductionMetric = z.infer<typeof insertProductionMetricSchema
 
 export type MachineJobAssignment = typeof machineJobAssignments.$inferSelect;
 export type InsertMachineJobAssignment = z.infer<typeof insertMachineJobAssignmentSchema>;
+
+// =============================================================================
+// Wave 5.1: ML Anomaly Detection Tables (Fortune 50 AI/ML Enhancement)
+// =============================================================================
+
+/**
+ * Anomaly Detection Models - Model Registry for ML versioning
+ * ADR-0006: Model Governance - versioning, drift monitoring, quarterly bias audits
+ */
+export const anomalyDetectionModels = pgTable("anomaly_detection_models", {
+  id: serial("id").primaryKey(),
+  modelVersion: varchar("model_version", { length: 50 }).notNull(),
+  modelName: varchar("model_name", { length: 100 }).notNull().default("timesheet_anomaly_detector"),
+  status: varchar("status", { length: 20 }).notNull().default("training"), // training, deployed, retired, failed
+  accuracy: decimal("accuracy", { precision: 5, scale: 4 }), // e.g., 0.9234
+  precision: decimal("precision", { precision: 5, scale: 4 }),
+  recall: decimal("recall", { precision: 5, scale: 4 }),
+  f1Score: decimal("f1_score", { precision: 5, scale: 4 }),
+  falsePositiveRate: decimal("false_positive_rate", { precision: 5, scale: 4 }),
+  falseNegativeRate: decimal("false_negative_rate", { precision: 5, scale: 4 }),
+  featureImportance: jsonb("feature_importance"), // SHAP values for explainability
+  trainingDataRange: jsonb("training_data_range"), // { startDate, endDate, recordCount }
+  hyperparameters: jsonb("hyperparameters"), // Model configuration
+  driftScore: decimal("drift_score", { precision: 5, scale: 4 }), // Data drift monitoring
+  biasAuditDate: timestamp("bias_audit_date"), // Last bias audit
+  biasAuditResult: jsonb("bias_audit_result"), // Bias audit findings
+  modelBlob: text("model_blob"), // Serialized model (encrypted)
+  modelBlobHash: varchar("model_blob_hash", { length: 64 }), // SHA-256 hash for integrity
+  deployedAt: timestamp("deployed_at"),
+  deployedBy: integer("deployed_by").references(() => users.id),
+  retiredAt: timestamp("retired_at"),
+  retiredBy: integer("retired_by").references(() => users.id),
+  retiredReason: text("retired_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  statusIdx: index("idx_anomaly_models_status").on(table.status),
+  versionIdx: index("idx_anomaly_models_version").on(table.modelVersion),
+}));
+
+/**
+ * Anomaly Flags - Flagged timesheets with ML-detected anomalies
+ * SOX compliance: Full explainability with SHAP values and audit trail
+ */
+export const anomalyFlags = pgTable("anomaly_flags", {
+  id: serial("id").primaryKey(),
+  flagId: uuid("flag_id").defaultRandom().notNull().unique(),
+  timesheetId: integer("timesheet_id").references(() => timesheets.id),
+  timeClockId: integer("time_clock_id").references(() => timeClocks.id),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  modelId: integer("model_id").references(() => anomalyDetectionModels.id),
+  modelVersion: varchar("model_version", { length: 50 }),
+  anomalyType: varchar("anomaly_type", { length: 50 }).notNull(), // time_pattern, location_mismatch, duration_outlier, velocity_fraud, ghost_employee
+  anomalyScore: decimal("anomaly_score", { precision: 5, scale: 4 }).notNull(), // 0-1 confidence
+  severity: varchar("severity", { length: 20 }).notNull().default("medium"), // low, medium, high, critical
+  shapExplanation: jsonb("shap_explanation"), // SHAP values for SOX audit compliance
+  featureContributions: jsonb("feature_contributions"), // Which features triggered the flag
+  rawPrediction: jsonb("raw_prediction"), // Full model output
+  contextData: jsonb("context_data"), // Additional context (GPS, time patterns, etc.)
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, reviewing, confirmed, dismissed, escalated
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
+  resolution: varchar("resolution", { length: 50 }), // confirmed_fraud, false_positive, needs_investigation, corrected
+  escalatedTo: integer("escalated_to").references(() => users.id),
+  escalatedAt: timestamp("escalated_at"),
+  escalationReason: text("escalation_reason"),
+  auditHash: varchar("audit_hash", { length: 64 }), // SHA-256 hash chain for immutable audit
+  previousAuditHash: varchar("previous_audit_hash", { length: 64 }), // Link to previous record
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userStatusIdx: index("idx_anomaly_flags_user_status").on(table.userId, table.status),
+  timesheetIdx: index("idx_anomaly_flags_timesheet").on(table.timesheetId),
+  timeClockIdx: index("idx_anomaly_flags_time_clock").on(table.timeClockId),
+  typeIdx: index("idx_anomaly_flags_type").on(table.anomalyType),
+  severityIdx: index("idx_anomaly_flags_severity").on(table.severity),
+  modelIdx: index("idx_anomaly_flags_model").on(table.modelId),
+  createdAtIdx: index("idx_anomaly_flags_created").on(table.createdAt),
+}));
+
+/**
+ * Anomaly Model Training Runs - Track training history
+ */
+export const anomalyModelTrainingRuns = pgTable("anomaly_model_training_runs", {
+  id: serial("id").primaryKey(),
+  runId: uuid("run_id").defaultRandom().notNull().unique(),
+  modelId: integer("model_id").references(() => anomalyDetectionModels.id),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, running, completed, failed
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  triggeredBy: integer("triggered_by").references(() => users.id),
+  triggerType: varchar("trigger_type", { length: 20 }).notNull().default("manual"), // manual, scheduled, drift_detected
+  trainingConfig: jsonb("training_config"), // Training parameters
+  trainingMetrics: jsonb("training_metrics"), // Loss curves, validation metrics
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  modelStatusIdx: index("idx_training_runs_model_status").on(table.modelId, table.status),
+}));
+
+// Wave 5.1 Insert Schemas
+export const insertAnomalyDetectionModelSchema = createInsertSchema(anomalyDetectionModels).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAnomalyFlagSchema = createInsertSchema(anomalyFlags).omit({
+  id: true,
+  flagId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAnomalyModelTrainingRunSchema = createInsertSchema(anomalyModelTrainingRuns).omit({
+  id: true,
+  runId: true,
+  createdAt: true,
+});
+
+// Wave 5.1 Type Exports
+export type AnomalyDetectionModel = typeof anomalyDetectionModels.$inferSelect;
+export type InsertAnomalyDetectionModel = z.infer<typeof insertAnomalyDetectionModelSchema>;
+
+export type AnomalyFlag = typeof anomalyFlags.$inferSelect;
+export type InsertAnomalyFlag = z.infer<typeof insertAnomalyFlagSchema>;
+
+export type AnomalyModelTrainingRun = typeof anomalyModelTrainingRuns.$inferSelect;
+export type InsertAnomalyModelTrainingRun = z.infer<typeof insertAnomalyModelTrainingRunSchema>;
+
+// =============================================================================
+// End Wave 5.1 Tables
+// =============================================================================
+
+// =============================================================================
+// Wave 5.2: Fraud Prevention Algorithms
+// Fortune 50 Compliance: SOC 2 Type II, Dual-Authorization, Sub-second Latency
+// =============================================================================
+
+/**
+ * Fraud Risk Profiles - User behavioral baselines for fraud detection
+ * Tracks velocity patterns, location consistency, and time-of-day patterns
+ * ADR-0007: AI Fairness - Bias monitoring in risk scoring
+ */
+export const fraudRiskProfiles = pgTable("fraud_risk_profiles", {
+  id: serial("id").primaryKey(),
+  profileId: uuid("profile_id").defaultRandom().notNull().unique(),
+  userId: integer("user_id").references(() => users.id).notNull().unique(),
+  
+  // Risk Score Summary
+  overallRiskScore: decimal("overall_risk_score", { precision: 5, scale: 4 }).default("0.0000"), // 0-1 composite risk
+  riskTier: varchar("risk_tier", { length: 20 }).notNull().default("low"), // low, medium, high, critical
+  lastRiskAssessment: timestamp("last_risk_assessment"),
+  
+  // Velocity Patterns (normal behavior baseline)
+  avgDailyClockEvents: decimal("avg_daily_clock_events", { precision: 5, scale: 2 }),
+  maxDailyClockEvents: integer("max_daily_clock_events"),
+  avgTimeBetweenEvents: decimal("avg_time_between_events", { precision: 10, scale: 2 }), // minutes
+  velocityAnomaly: decimal("velocity_anomaly", { precision: 5, scale: 4 }).default("0.0000"), // deviation from baseline
+  
+  // Location Patterns
+  primaryWorkLocations: jsonb("primary_work_locations").default([]), // [{lat, lng, name, frequency}]
+  locationConsistency: decimal("location_consistency", { precision: 5, scale: 4 }).default("1.0000"), // 0-1
+  avgTravelDistance: decimal("avg_travel_distance", { precision: 10, scale: 2 }), // km
+  maxTravelSpeed: decimal("max_travel_speed", { precision: 10, scale: 2 }), // km/h
+  locationAnomalyCount: integer("location_anomaly_count").default(0),
+  
+  // Time-of-Day Patterns
+  typicalStartTime: varchar("typical_start_time", { length: 8 }), // HH:MM:SS
+  typicalEndTime: varchar("typical_end_time", { length: 8 }),
+  typicalBreakTimes: jsonb("typical_break_times").default([]), // [{start, end, avgDuration}]
+  timePatternStability: decimal("time_pattern_stability", { precision: 5, scale: 4 }).default("1.0000"), // 0-1
+  offHoursEventCount: integer("off_hours_event_count").default(0),
+  
+  // Historical Risk Events
+  totalFlagsRaised: integer("total_flags_raised").default(0),
+  confirmedFraudCount: integer("confirmed_fraud_count").default(0),
+  falsePositiveCount: integer("false_positive_count").default(0),
+  lastFraudIncident: timestamp("last_fraud_incident"),
+  
+  // Device Fingerprinting
+  knownDevices: jsonb("known_devices").default([]), // [{deviceId, userAgent, lastSeen}]
+  deviceConsistency: decimal("device_consistency", { precision: 5, scale: 4 }).default("1.0000"),
+  
+  // Behavioral Fingerprint
+  behavioralHash: varchar("behavioral_hash", { length: 64 }), // SHA-256 of behavioral patterns
+  patternLastUpdated: timestamp("pattern_last_updated"),
+  
+  // Audit Trail
+  auditHash: varchar("audit_hash", { length: 64 }),
+  previousAuditHash: varchar("previous_audit_hash", { length: 64 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index("idx_fraud_risk_profiles_user").on(table.userId),
+  riskTierIdx: index("idx_fraud_risk_profiles_tier").on(table.riskTier),
+  overallRiskIdx: index("idx_fraud_risk_profiles_score").on(table.overallRiskScore),
+}));
+
+/**
+ * Clock Event Risk - Per-event real-time risk scoring
+ * Sub-second latency requirement: Risk calculated on clock-in/out
+ * Complete audit trail for SOC 2 Type II compliance
+ */
+export const clockEventRisk = pgTable("clock_event_risk", {
+  id: serial("id").primaryKey(),
+  riskEventId: uuid("risk_event_id").defaultRandom().notNull().unique(),
+  
+  // Event References
+  timeClockId: integer("time_clock_id").references(() => timeClocks.id),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  profileId: integer("profile_id").references(() => fraudRiskProfiles.id),
+  
+  // Composite Risk Score
+  compositeRiskScore: decimal("composite_risk_score", { precision: 5, scale: 4 }).notNull(), // 0-1
+  riskLevel: varchar("risk_level", { length: 20 }).notNull().default("low"), // low, medium, high, critical
+  requiresReview: boolean("requires_review").default(false),
+  requiresDualAuth: boolean("requires_dual_auth").default(false),
+  
+  // Individual Risk Factors (each 0-1)
+  gpsRiskScore: decimal("gps_risk_score", { precision: 5, scale: 4 }).default("0.0000"),
+  velocityRiskScore: decimal("velocity_risk_score", { precision: 5, scale: 4 }).default("0.0000"),
+  patternRiskScore: decimal("pattern_risk_score", { precision: 5, scale: 4 }).default("0.0000"),
+  deviceRiskScore: decimal("device_risk_score", { precision: 5, scale: 4 }).default("0.0000"),
+  timeRiskScore: decimal("time_risk_score", { precision: 5, scale: 4 }).default("0.0000"),
+  
+  // Risk Factor Details
+  gpsRiskFactors: jsonb("gps_risk_factors").default({}), // {spoofingDetected, outsideGeofence, accuracy, etc.}
+  velocityRiskFactors: jsonb("velocity_risk_factors").default({}), // {impossibleTravel, speedExceeded, etc.}
+  patternRiskFactors: jsonb("pattern_risk_factors").default({}), // {unusualTime, unusualLocation, etc.}
+  deviceRiskFactors: jsonb("device_risk_factors").default({}), // {unknownDevice, multipleDevices, etc.}
+  timeRiskFactors: jsonb("time_risk_factors").default({}), // {offHours, overtimeAnomaly, etc.}
+  
+  // Event Context
+  eventType: varchar("event_type", { length: 20 }).notNull(), // clock_in, clock_out, break_start, break_end
+  eventTimestamp: timestamp("event_timestamp").notNull(),
+  gpsLatitude: decimal("gps_latitude", { precision: 10, scale: 7 }),
+  gpsLongitude: decimal("gps_longitude", { precision: 10, scale: 7 }),
+  gpsAccuracy: decimal("gps_accuracy", { precision: 10, scale: 2 }),
+  deviceFingerprint: varchar("device_fingerprint", { length: 64 }),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  
+  // Processing Metadata
+  processingLatencyMs: integer("processing_latency_ms"), // Target: <100ms
+  modelVersion: varchar("model_version", { length: 50 }),
+  algorithmUsed: varchar("algorithm_used", { length: 50 }),
+  
+  // Review Status
+  reviewStatus: varchar("review_status", { length: 20 }).default("pending"), // pending, approved, rejected, escalated
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
+  
+  // Dual Authorization (for high-risk events)
+  primaryApproverId: integer("primary_approver_id").references(() => users.id),
+  primaryApprovedAt: timestamp("primary_approved_at"),
+  primaryApprovalHmac: varchar("primary_approval_hmac", { length: 64 }), // HMAC-SHA256 signature
+  secondaryApproverId: integer("secondary_approver_id").references(() => users.id),
+  secondaryApprovedAt: timestamp("secondary_approved_at"),
+  secondaryApprovalHmac: varchar("secondary_approval_hmac", { length: 64 }),
+  dualAuthComplete: boolean("dual_auth_complete").default(false),
+  
+  // Override Tracking
+  overrideApplied: boolean("override_applied").default(false),
+  overrideReason: text("override_reason"),
+  overrideApprovedBy: integer("override_approved_by").references(() => users.id),
+  overrideApprovedAt: timestamp("override_approved_at"),
+  
+  // Audit Trail (SOC 2 Type II)
+  auditHash: varchar("audit_hash", { length: 64 }),
+  previousAuditHash: varchar("previous_audit_hash", { length: 64 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  timeClockIdx: index("idx_clock_event_risk_time_clock").on(table.timeClockId),
+  userIdx: index("idx_clock_event_risk_user").on(table.userId),
+  riskLevelIdx: index("idx_clock_event_risk_level").on(table.riskLevel),
+  reviewStatusIdx: index("idx_clock_event_risk_review").on(table.reviewStatus),
+  eventTimestampIdx: index("idx_clock_event_risk_timestamp").on(table.eventTimestamp),
+  compositeScoreIdx: index("idx_clock_event_risk_score").on(table.compositeRiskScore),
+}));
+
+/**
+ * Risk Override Requests - Track dual-authorization override workflows
+ * SOC 2 Type II: Complete audit trail for all override decisions
+ */
+export const riskOverrideRequests = pgTable("risk_override_requests", {
+  id: serial("id").primaryKey(),
+  requestId: uuid("request_id").defaultRandom().notNull().unique(),
+  
+  // References
+  clockEventRiskId: integer("clock_event_risk_id").references(() => clockEventRisk.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(), // Employee
+  requestedBy: integer("requested_by").references(() => users.id).notNull(), // Requester (could be employee or supervisor)
+  
+  // Override Details
+  overrideType: varchar("override_type", { length: 30 }).notNull(), // risk_score, location, time, device
+  originalRiskScore: decimal("original_risk_score", { precision: 5, scale: 4 }).notNull(),
+  requestedAction: varchar("requested_action", { length: 50 }).notNull(), // approve_clock, reduce_risk, dismiss_flag
+  justification: text("justification").notNull(),
+  supportingEvidence: jsonb("supporting_evidence").default([]), // [{type, url, description}]
+  
+  // Workflow Status
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, approved, rejected, expired
+  priority: varchar("priority", { length: 10 }).notNull().default("normal"), // low, normal, high, urgent
+  slaDeadline: timestamp("sla_deadline"), // 2-hour SLA for high-risk
+  
+  // Primary Approval
+  primaryApproverId: integer("primary_approver_id").references(() => users.id),
+  primaryDecision: varchar("primary_decision", { length: 20 }), // approved, rejected
+  primaryDecisionAt: timestamp("primary_decision_at"),
+  primaryNotes: text("primary_notes"),
+  primaryHmac: varchar("primary_hmac", { length: 64 }),
+  
+  // Secondary Approval (for critical risk)
+  requiresSecondaryApproval: boolean("requires_secondary_approval").default(false),
+  secondaryApproverId: integer("secondary_approver_id").references(() => users.id),
+  secondaryDecision: varchar("secondary_decision", { length: 20 }),
+  secondaryDecisionAt: timestamp("secondary_decision_at"),
+  secondaryNotes: text("secondary_notes"),
+  secondaryHmac: varchar("secondary_hmac", { length: 64 }),
+  
+  // Final Decision
+  finalDecision: varchar("final_decision", { length: 20 }), // approved, rejected
+  finalDecisionAt: timestamp("final_decision_at"),
+  appliedAt: timestamp("applied_at"),
+  
+  // Audit Trail
+  auditHash: varchar("audit_hash", { length: 64 }),
+  previousAuditHash: varchar("previous_audit_hash", { length: 64 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  clockEventRiskIdx: index("idx_risk_override_clock_event").on(table.clockEventRiskId),
+  userIdx: index("idx_risk_override_user").on(table.userId),
+  statusIdx: index("idx_risk_override_status").on(table.status),
+  slaDeadlineIdx: index("idx_risk_override_sla").on(table.slaDeadline),
+}));
+
+// Wave 5.2 Insert Schemas
+export const insertFraudRiskProfileSchema = createInsertSchema(fraudRiskProfiles).omit({
+  id: true,
+  profileId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertClockEventRiskSchema = createInsertSchema(clockEventRisk).omit({
+  id: true,
+  riskEventId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRiskOverrideRequestSchema = createInsertSchema(riskOverrideRequests).omit({
+  id: true,
+  requestId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Wave 5.2 Type Exports
+export type FraudRiskProfile = typeof fraudRiskProfiles.$inferSelect;
+export type InsertFraudRiskProfile = z.infer<typeof insertFraudRiskProfileSchema>;
+
+export type ClockEventRisk = typeof clockEventRisk.$inferSelect;
+export type InsertClockEventRisk = z.infer<typeof insertClockEventRiskSchema>;
+
+export type RiskOverrideRequest = typeof riskOverrideRequests.$inferSelect;
+export type InsertRiskOverrideRequest = z.infer<typeof insertRiskOverrideRequestSchema>;
+
+// =============================================================================
+// End Wave 5.2 Tables
+// =============================================================================
+
+// =============================================================================
+// Wave 5.3: AI Scheduling (Fortune 50 AI-Powered Schedule Optimization)
+// =============================================================================
+
+// Scheduling Requirements - Define shift staffing needs per day/time
+export const schedulingRequirements = pgTable("scheduling_requirements", {
+  id: serial("id").primaryKey(),
+  requirementId: uuid("requirement_id").defaultRandom().notNull().unique(),
+  
+  // Shift timing
+  dayOfWeek: integer("day_of_week").notNull(), // 0=Sunday, 6=Saturday
+  startTime: time("start_time").notNull(),
+  endTime: time("end_time").notNull(),
+  
+  // Staffing levels
+  minStaff: integer("min_staff").notNull().default(1),
+  preferredStaff: integer("preferred_staff").notNull().default(2),
+  maxStaff: integer("max_staff"),
+  
+  // Job/location context
+  jobId: integer("job_id").references(() => jobs.id),
+  departmentId: integer("department_id").references(() => departments.id),
+  locationCode: varchar("location_code", { length: 50 }).default("workshop"),
+  
+  // Required skills/certifications
+  requiredSkills: jsonb("required_skills").$type<string[]>().default([]),
+  requiredCertifications: jsonb("required_certifications").$type<string[]>().default([]),
+  
+  // Priority and notes
+  priority: varchar("priority", { length: 20 }).default("normal"), // critical, high, normal, low
+  notes: text("notes"),
+  
+  // Active status
+  isActive: boolean("is_active").default(true),
+  effectiveFrom: date("effective_from"),
+  effectiveTo: date("effective_to"),
+  
+  // Audit fields
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  dayTimeIdx: index("idx_sched_req_day_time").on(table.dayOfWeek, table.startTime),
+  jobIdx: index("idx_sched_req_job").on(table.jobId),
+  departmentIdx: index("idx_sched_req_dept").on(table.departmentId),
+  activeIdx: index("idx_sched_req_active").on(table.isActive),
+}));
+
+// Employee Availability - Individual availability preferences
+export const employeeAvailability = pgTable("employee_availability", {
+  id: serial("id").primaryKey(),
+  availabilityId: uuid("availability_id").defaultRandom().notNull().unique(),
+  
+  userId: integer("user_id").notNull().references(() => users.id),
+  
+  // Recurring availability (weekly pattern)
+  dayOfWeek: integer("day_of_week").notNull(), // 0-6
+  availableFrom: time("available_from"),
+  availableTo: time("available_to"),
+  
+  // Or specific date availability
+  specificDate: date("specific_date"),
+  isAvailable: boolean("is_available").default(true),
+  
+  // Preference type
+  preferenceType: varchar("preference_type", { length: 30 }).default("available"), // available, preferred, unavailable, blocked
+  
+  // Reason for unavailability
+  reason: text("reason"),
+  
+  // Approval for blocked time
+  requiresApproval: boolean("requires_approval").default(false),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userDayIdx: index("idx_emp_avail_user_day").on(table.userId, table.dayOfWeek),
+  userDateIdx: index("idx_emp_avail_user_date").on(table.userId, table.specificDate),
+  typeIdx: index("idx_emp_avail_type").on(table.preferenceType),
+}));
+
+// Employee Schedule Preferences - Shift preferences and constraints
+export const employeeSchedulePreferences = pgTable("employee_schedule_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  
+  // Hours preferences
+  preferredHoursPerWeek: integer("preferred_hours_per_week").default(40),
+  minHoursPerWeek: integer("min_hours_per_week").default(20),
+  maxHoursPerWeek: integer("max_hours_per_week").default(50),
+  
+  // Shift preferences
+  preferredShiftType: varchar("preferred_shift_type", { length: 30 }), // morning, afternoon, night, flexible
+  avoidNightShifts: boolean("avoid_night_shifts").default(false),
+  avoidWeekends: boolean("avoid_weekends").default(false),
+  
+  // Consecutive day preferences
+  maxConsecutiveDays: integer("max_consecutive_days").default(5),
+  preferConsecutiveShifts: boolean("prefer_consecutive_shifts").default(true),
+  
+  // Location preferences
+  preferredLocations: jsonb("preferred_locations").$type<string[]>().default([]),
+  
+  // Seniority weight for scheduling priority
+  seniorityWeight: decimal("seniority_weight", { precision: 3, scale: 2 }).default("1.00"),
+  
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// AI Schedule Runs - Track AI schedule generation jobs
+export const aiScheduleRuns = pgTable("ai_schedule_runs", {
+  id: serial("id").primaryKey(),
+  runId: uuid("run_id").defaultRandom().notNull().unique(),
+  
+  // Schedule period
+  weekStarting: date("week_starting").notNull(),
+  weekEnding: date("week_ending").notNull(),
+  
+  // Department/scope
+  departmentId: integer("department_id").references(() => departments.id),
+  scopeType: varchar("scope_type", { length: 30 }).default("all"), // all, department, job
+  
+  // Generation parameters
+  constraints: jsonb("constraints").$type<{
+    maxHoursPerWeek: number;
+    maxConsecutiveDays: number;
+    minRestHours: number;
+    fairnessWeight: number;
+    considerPreferences: boolean;
+    autoFillGaps: boolean;
+  }>(),
+  optimizationPriority: varchar("optimization_priority", { length: 30 }).default("balanced"), // coverage, balanced, fairness
+  
+  // AI prompt/response metadata (SOX audit)
+  aiPromptHash: varchar("ai_prompt_hash", { length: 64 }),
+  aiResponseHash: varchar("ai_response_hash", { length: 64 }),
+  modelVersion: varchar("model_version", { length: 50 }),
+  
+  // Results
+  status: varchar("status", { length: 30 }).default("pending"), // pending, running, completed, failed, cancelled
+  coverageScore: decimal("coverage_score", { precision: 5, scale: 2 }),
+  fairnessScore: decimal("fairness_score", { precision: 5, scale: 2 }),
+  fatigueComplianceScore: decimal("fatigue_compliance_score", { precision: 5, scale: 2 }),
+  
+  // Violations and suggestions
+  violations: jsonb("violations").$type<string[]>().default([]),
+  suggestions: jsonb("suggestions").$type<string[]>().default([]),
+  
+  // Approval workflow
+  approvalStatus: varchar("approval_status", { length: 30 }).default("draft"), // draft, pending_approval, approved, published, rejected
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  publishedBy: integer("published_by").references(() => users.id),
+  publishedAt: timestamp("published_at"),
+  
+  // Timing
+  generationStartedAt: timestamp("generation_started_at"),
+  generationCompletedAt: timestamp("generation_completed_at"),
+  
+  // Audit trail (SOX)
+  auditHash: varchar("audit_hash", { length: 64 }),
+  previousAuditHash: varchar("previous_audit_hash", { length: 64 }),
+  
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  weekIdx: index("idx_ai_sched_run_week").on(table.weekStarting),
+  statusIdx: index("idx_ai_sched_run_status").on(table.status),
+  approvalIdx: index("idx_ai_sched_run_approval").on(table.approvalStatus),
+  deptIdx: index("idx_ai_sched_run_dept").on(table.departmentId),
+}));
+
+// Schedule Assignments - Individual shift assignments from AI schedules
+export const scheduleAssignments = pgTable("schedule_assignments", {
+  id: serial("id").primaryKey(),
+  assignmentId: uuid("assignment_id").defaultRandom().notNull().unique(),
+  
+  // Link to schedule run
+  scheduleRunId: integer("schedule_run_id").notNull().references(() => aiScheduleRuns.id),
+  
+  // Assignment details
+  userId: integer("user_id").notNull().references(() => users.id),
+  assignmentDate: date("assignment_date").notNull(),
+  startTime: time("start_time").notNull(),
+  endTime: time("end_time").notNull(),
+  breakDuration: integer("break_duration").default(30), // minutes
+  
+  // Context
+  jobId: integer("job_id").references(() => jobs.id),
+  departmentId: integer("department_id").references(() => departments.id),
+  locationCode: varchar("location_code", { length: 50 }),
+  requirementId: integer("requirement_id").references(() => schedulingRequirements.id),
+  
+  // AI scoring
+  fitScore: decimal("fit_score", { precision: 5, scale: 2 }), // How well employee fits this shift
+  fatigueRisk: varchar("fatigue_risk", { length: 20 }).default("low"), // low, medium, high
+  aiExplanation: text("ai_explanation"), // Why AI assigned this employee
+  
+  // Status
+  status: varchar("status", { length: 30 }).default("scheduled"), // scheduled, confirmed, declined, swapped, cancelled
+  confirmedAt: timestamp("confirmed_at"),
+  
+  // Notification tracking
+  notificationSent: boolean("notification_sent").default(false),
+  notificationSentAt: timestamp("notification_sent_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  runIdx: index("idx_sched_assign_run").on(table.scheduleRunId),
+  userDateIdx: index("idx_sched_assign_user_date").on(table.userId, table.assignmentDate),
+  dateIdx: index("idx_sched_assign_date").on(table.assignmentDate),
+  statusIdx: index("idx_sched_assign_status").on(table.status),
+  jobIdx: index("idx_sched_assign_job").on(table.jobId),
+}));
+
+// Shift Swap Requests - Employee-initiated shift swaps
+export const shiftSwapRequests = pgTable("shift_swap_requests", {
+  id: serial("id").primaryKey(),
+  requestId: uuid("request_id").defaultRandom().notNull().unique(),
+  
+  // Original assignment
+  originalAssignmentId: integer("original_assignment_id").notNull().references(() => scheduleAssignments.id),
+  requesterId: integer("requester_id").notNull().references(() => users.id),
+  
+  // Swap type
+  swapType: varchar("swap_type", { length: 30 }).notNull(), // swap, giveaway, coverage_request
+  
+  // Target (for swap)
+  targetUserId: integer("target_user_id").references(() => users.id),
+  targetAssignmentId: integer("target_assignment_id").references(() => scheduleAssignments.id),
+  
+  // Request details
+  reason: text("reason").notNull(),
+  urgency: varchar("urgency", { length: 20 }).default("normal"), // low, normal, high, emergency
+  
+  // Workflow status
+  status: varchar("status", { length: 30 }).default("pending"), // pending, peer_approved, supervisor_pending, approved, rejected, cancelled, expired
+  
+  // Peer approval (for swaps)
+  peerApprovedAt: timestamp("peer_approved_at"),
+  peerApprovedBy: integer("peer_approved_by").references(() => users.id),
+  
+  // Supervisor approval
+  supervisorApprovedAt: timestamp("supervisor_approved_at"),
+  supervisorApprovedBy: integer("supervisor_approved_by").references(() => users.id),
+  rejectionReason: text("rejection_reason"),
+  
+  // SLA tracking
+  requestedAt: timestamp("requested_at").defaultNow(),
+  slaDeadline: timestamp("sla_deadline"),
+  
+  // Audit trail (SOX)
+  auditHash: varchar("audit_hash", { length: 64 }),
+  previousAuditHash: varchar("previous_audit_hash", { length: 64 }),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  requesterIdx: index("idx_swap_req_requester").on(table.requesterId),
+  targetIdx: index("idx_swap_req_target").on(table.targetUserId),
+  statusIdx: index("idx_swap_req_status").on(table.status),
+  originalAssignIdx: index("idx_swap_req_original").on(table.originalAssignmentId),
+  slaIdx: index("idx_swap_req_sla").on(table.slaDeadline),
+}));
+
+// Schedule Change Audit - SOX-compliant change tracking
+export const scheduleChangeAudit = pgTable("schedule_change_audit", {
+  id: serial("id").primaryKey(),
+  auditId: uuid("audit_id").defaultRandom().notNull().unique(),
+  
+  // What changed
+  entityType: varchar("entity_type", { length: 50 }).notNull(), // schedule_run, assignment, swap_request, requirement
+  entityId: integer("entity_id").notNull(),
+  
+  // Change details
+  changeType: varchar("change_type", { length: 30 }).notNull(), // create, update, delete, approve, reject, publish
+  previousState: jsonb("previous_state"),
+  newState: jsonb("new_state"),
+  changeDescription: text("change_description"),
+  
+  // Who made the change
+  changedBy: integer("changed_by").notNull().references(() => users.id),
+  changedByRole: varchar("changed_by_role", { length: 50 }),
+  
+  // Context
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  sessionId: varchar("session_id", { length: 100 }),
+  
+  // Hash chain for immutability (SOX)
+  auditHash: varchar("audit_hash", { length: 64 }).notNull(),
+  previousAuditHash: varchar("previous_audit_hash", { length: 64 }),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  entityIdx: index("idx_sched_audit_entity").on(table.entityType, table.entityId),
+  changedByIdx: index("idx_sched_audit_changed_by").on(table.changedBy),
+  createdAtIdx: index("idx_sched_audit_created").on(table.createdAt),
+  hashIdx: index("idx_sched_audit_hash").on(table.auditHash),
+}));
+
+// Fatigue Rules - Compliance rules for fatigue management
+export const fatigueRules = pgTable("fatigue_rules", {
+  id: serial("id").primaryKey(),
+  ruleId: uuid("rule_id").defaultRandom().notNull().unique(),
+  
+  ruleName: varchar("rule_name", { length: 100 }).notNull(),
+  ruleDescription: text("rule_description"),
+  
+  // Rule parameters
+  maxHoursPerDay: integer("max_hours_per_day").default(12),
+  maxHoursPerWeek: integer("max_hours_per_week").default(50),
+  minRestBetweenShifts: integer("min_rest_between_shifts").default(8), // hours
+  maxConsecutiveDays: integer("max_consecutive_days").default(6),
+  maxNightShiftsPerWeek: integer("max_night_shifts_per_week").default(3),
+  
+  // Overtime thresholds
+  dailyOvertimeThreshold: integer("daily_overtime_threshold").default(8),
+  weeklyOvertimeThreshold: integer("weekly_overtime_threshold").default(40),
+  
+  // Enforcement
+  enforcementLevel: varchar("enforcement_level", { length: 20 }).default("warning"), // warning, soft_block, hard_block
+  
+  // Scope
+  appliesToDepartment: integer("applies_to_department").references(() => departments.id),
+  appliesToJobType: varchar("applies_to_job_type", { length: 50 }),
+  
+  isActive: boolean("is_active").default(true),
+  
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wave 5.3 Insert Schemas
+export const insertSchedulingRequirementSchema = createInsertSchema(schedulingRequirements).omit({
+  id: true,
+  requirementId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmployeeAvailabilitySchema = createInsertSchema(employeeAvailability).omit({
+  id: true,
+  availabilityId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmployeeSchedulePreferencesSchema = createInsertSchema(employeeSchedulePreferences).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertAiScheduleRunSchema = createInsertSchema(aiScheduleRuns).omit({
+  id: true,
+  runId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertScheduleAssignmentSchema = createInsertSchema(scheduleAssignments).omit({
+  id: true,
+  assignmentId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertShiftSwapRequestSchema = createInsertSchema(shiftSwapRequests).omit({
+  id: true,
+  requestId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertScheduleChangeAuditSchema = createInsertSchema(scheduleChangeAudit).omit({
+  id: true,
+  auditId: true,
+  createdAt: true,
+});
+
+export const insertFatigueRuleSchema = createInsertSchema(fatigueRules).omit({
+  id: true,
+  ruleId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Wave 5.3 Type Exports
+export type SchedulingRequirement = typeof schedulingRequirements.$inferSelect;
+export type InsertSchedulingRequirement = z.infer<typeof insertSchedulingRequirementSchema>;
+
+export type EmployeeAvailability = typeof employeeAvailability.$inferSelect;
+export type InsertEmployeeAvailability = z.infer<typeof insertEmployeeAvailabilitySchema>;
+
+export type EmployeeSchedulePreferences = typeof employeeSchedulePreferences.$inferSelect;
+export type InsertEmployeeSchedulePreferences = z.infer<typeof insertEmployeeSchedulePreferencesSchema>;
+
+export type AiScheduleRun = typeof aiScheduleRuns.$inferSelect;
+export type InsertAiScheduleRun = z.infer<typeof insertAiScheduleRunSchema>;
+
+export type ScheduleAssignment = typeof scheduleAssignments.$inferSelect;
+export type InsertScheduleAssignment = z.infer<typeof insertScheduleAssignmentSchema>;
+
+export type ShiftSwapRequest = typeof shiftSwapRequests.$inferSelect;
+export type InsertShiftSwapRequest = z.infer<typeof insertShiftSwapRequestSchema>;
+
+export type ScheduleChangeAudit = typeof scheduleChangeAudit.$inferSelect;
+export type InsertScheduleChangeAudit = z.infer<typeof insertScheduleChangeAuditSchema>;
+
+export type FatigueRule = typeof fatigueRules.$inferSelect;
+export type InsertFatigueRule = z.infer<typeof insertFatigueRuleSchema>;
+
+// =============================================================================
+// End Wave 5.3 Tables
+// =============================================================================
 
 // ---------- Back-compat aliases for service imports ----------
 /**

@@ -328,35 +328,37 @@ export default function Procurement() {
         // Show archived items when switching to archived tab
         setShowArchived(value === "archived");
       }}>
-        <div className="flex items-center justify-between mb-2">
-          <TabsList>
-            <TabsTrigger value="dashboard">Overview</TabsTrigger>
-            <TabsTrigger value="requisitions">
-              Requisitions
-              {metrics.pendingRequisitions > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {metrics.pendingRequisitions}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="approvals">
-              Approvals
-              {metrics.pendingApprovals > 0 && (
-                <Badge variant="warning" className="ml-2">
-                  {metrics.pendingApprovals}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="rfqs">RFQs</TabsTrigger>
-            <TabsTrigger value="quotes">Quotes</TabsTrigger>
-            <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
-            <TabsTrigger value="receiving">Receiving</TabsTrigger>
-            <TabsTrigger value="audit">Audit Trail</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="archived">Archived</TabsTrigger>
-          </TabsList>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
+          <div className="overflow-x-auto w-full sm:w-auto">
+            <TabsList className="w-max">
+              <TabsTrigger value="dashboard">Overview</TabsTrigger>
+              <TabsTrigger value="requisitions">
+                Requisitions
+                {metrics.pendingRequisitions > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {metrics.pendingRequisitions}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="approvals">
+                Approvals
+                {metrics.pendingApprovals > 0 && (
+                  <Badge variant="warning" className="ml-2">
+                    {metrics.pendingApprovals}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="rfqs">RFQs</TabsTrigger>
+              <TabsTrigger value="quotes">Quotes</TabsTrigger>
+              <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
+              <TabsTrigger value="receiving">Receiving</TabsTrigger>
+              <TabsTrigger value="audit">Audit Trail</TabsTrigger>
+              <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="archived">Archived</TabsTrigger>
+            </TabsList>
+          </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button className="gap-2" onClick={() => setCreateRequisitionOpen(true)}>
               <Plus className="h-4 w-4" />
               New Requisition
@@ -613,22 +615,22 @@ export default function Procurement() {
         <TabsContent value="requisitions" className="space-y-2">
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <CardTitle className="text-base">Purchase Requisitions</CardTitle>
                   <CardDescription className="text-xs">Manage and track all purchase requests</CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <div className="relative">
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:flex-none">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input 
                       placeholder="Search requisitions..." 
-                      className="pl-8 w-[250px]"
+                      className="pl-8 w-full sm:w-[250px]"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" className="flex-shrink-0">
                     <Filter className="h-4 w-4" />
                   </Button>
                 </div>
@@ -702,56 +704,59 @@ export default function Procurement() {
                   </div>
                 ) : (
                   filteredRequisitions.map((req: any) => (
-                    <div key={req.id} className={`flex items-center justify-between p-2.5 border rounded-lg transition-colors ${
+                    <div key={req.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 border rounded-lg transition-colors ${
                       req.status === 'converted_to_po' ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' :
                       req.status === 'rejected' ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' :
                       req.status === 'pending_approval' ? 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800' :
                       req.status === 'approved' ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' :
                       'hover:bg-accent/50'
                     }`}>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="font-medium text-sm">{req.requisitionNumber}</span>
-                          <Badge variant={priorityColors[req.priority as keyof typeof priorityColors]} className="text-xs">
-                            {req.priority}
-                          </Badge>
-                          <Badge variant={statusColors[req.status as keyof typeof statusColors]} className="text-xs">
-                            {req.status.replace(/_/g, " ")}
-                          </Badge>
-                          {req.poNumber && (
-                            <Badge variant="success" className="text-xs">
-                              PO: {req.poNumber}
+                      <div className="flex flex-col sm:flex-row sm:items-start gap-3 w-full sm:w-auto sm:flex-1">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                            <span className="font-medium text-sm">{req.requisitionNumber}</span>
+                            <Badge variant={priorityColors[req.priority as keyof typeof priorityColors]} className="text-xs">
+                              {req.priority}
                             </Badge>
+                            <Badge variant={statusColors[req.status as keyof typeof statusColors]} className="text-xs">
+                              {req.status.replace(/_/g, " ")}
+                            </Badge>
+                            {req.poNumber && (
+                              <Badge variant="success" className="text-xs">
+                                PO: {req.poNumber}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {req.department} Department • {req.category}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {req.justification?.substring(0, 100)}...
+                          </p>
+                          {req.status === 'converted_to_po' && req.convertedDate && (
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                              Converted to PO on {format(new Date(req.convertedDate), "MMM dd, yyyy")}
+                            </p>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {req.department} Department • {req.category}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {req.justification?.substring(0, 100)}...
-                        </p>
-                        {req.status === 'converted_to_po' && req.convertedDate && (
-                          <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                            Converted to PO on {format(new Date(req.convertedDate), "MMM dd, yyyy")}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-base">${(req.estimatedTotal || 0).toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Approval {req.currentApprovalLevel || 0}/{req.maxApprovalLevel || 1}
-                        </p>
-                        {req.requiredByDate && (
+                        <div className="text-left sm:text-right">
+                          <p className="font-semibold text-base">${(req.estimatedTotal || 0).toLocaleString()}</p>
                           <p className="text-xs text-muted-foreground">
-                            Due {format(new Date(req.requiredByDate), "MMM dd")}
+                            Approval {req.currentApprovalLevel || 0}/{req.maxApprovalLevel || 1}
                           </p>
-                        )}
+                          {req.requiredByDate && (
+                            <p className="text-xs text-muted-foreground">
+                              Due {format(new Date(req.requiredByDate), "MMM dd")}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="ml-3 flex flex-col gap-1.5">
+                      <div className="flex flex-row gap-1.5 w-full sm:w-auto">
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => setSelectedRequisitionId(req.id)}
+                          className="flex-1 sm:flex-none"
                         >
                           View Details
                         </Button>
@@ -854,8 +859,8 @@ export default function Procurement() {
                   </div>
                 ) : (
                   requisitions.filter((r: any) => r.status === 'pending_approval').map((req: any) => (
-                    <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
-                      <div className="flex-1">
+                    <div key={req.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors gap-3">
+                      <div className="flex-1 w-full sm:w-auto">
                         <div className="flex items-center gap-1.5 mb-0.5">
                           <span className="font-medium text-sm">{req.requisitionNumber}</span>
                           <Badge variant={priorityColors[req.priority as keyof typeof priorityColors]} className="text-xs">

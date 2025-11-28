@@ -26,6 +26,18 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // Validate materialId if provided - prevent integer overflow
+    if (materialId !== null && materialId !== undefined) {
+      const numericId = typeof materialId === 'number' ? materialId : parseInt(materialId.toString(), 10);
+      if (!isNaN(numericId) && numericId > 2147483647) {
+        return res.status(400).json({
+          error: `Invalid materialId: ${materialId} exceeds PostgreSQL integer limit (2,147,483,647). This often occurs when using Date.now() or timestamp values instead of proper database IDs.`,
+          received: materialId,
+          maximum: 2147483647
+        });
+      }
+    }
+
     const operation = await operationService.createOperation({
       projectId,
       materialDesignation,

@@ -66,6 +66,73 @@ export class TeamStorage implements ITeamStorage {
     return updatedRole;
   }
 
+  async getRoleDependencies(id: number): Promise<{
+    blocking: boolean;
+    counts: {
+      laborRates: number;
+      teamMembers: number;
+      roleRates: number;
+    };
+    messages: string[];
+  }> {
+    const counts = {
+      laborRates: 0,
+      teamMembers: 0,
+      roleRates: 0
+    };
+    const messages: string[] = [];
+
+    try {
+      // Check labor_rates table
+      const [laborRateResult] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(laborRates)
+        .where(eq(laborRates.roleId, id));
+      counts.laborRates = laborRateResult?.count || 0;
+      
+      if (counts.laborRates > 0) {
+        messages.push(`${counts.laborRates} labor rate${counts.laborRates !== 1 ? 's' : ''} configured`);
+      }
+
+      // Check team_members table  
+      const [teamMemberResult] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(teamMembers)
+        .where(eq(teamMembers.roleId, id));
+      counts.teamMembers = teamMemberResult?.count || 0;
+      
+      if (counts.teamMembers > 0) {
+        messages.push(`${counts.teamMembers} team member${counts.teamMembers !== 1 ? 's' : ''} assigned`);
+      }
+
+      // Check role_rates table via raw SQL
+      try {
+        const roleRateResult = await db.execute(sql`
+          SELECT COUNT(*) as count 
+          FROM role_rates 
+          WHERE role_id = ${id}
+        `);
+        counts.roleRates = Number(roleRateResult.rows[0]?.count || 0);
+        
+        if (counts.roleRates > 0) {
+          messages.push(`${counts.roleRates} role rate${counts.roleRates !== 1 ? 's' : ''} defined`);
+        }
+      } catch (e) {
+        // Table might not exist, continue
+      }
+    } catch (error) {
+      console.error("Error checking role dependencies:", error);
+    }
+
+    const blocking = counts.laborRates > 0 || counts.teamMembers > 0 || counts.roleRates > 0;
+    
+    return {
+      blocking,
+      counts,
+      messages
+    };
+  }
+
   async deleteRole(id: number): Promise<void> {
     try {
       // Check dependencies in existing tables only

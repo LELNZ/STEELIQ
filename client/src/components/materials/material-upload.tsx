@@ -93,7 +93,7 @@ export default function MaterialUpload({ open, onOpenChange }: MaterialUploadPro
       for (let i = 0; i < materialData.length; i += chunkSize) {
         const chunk = materialData.slice(i, i + chunkSize);
         
-        const response = await apiRequest("POST", "/api/materials/bulk-import", {
+        const response = await apiRequest("/api/materials/bulk-import", "POST", {
           materials: chunk
         });
         

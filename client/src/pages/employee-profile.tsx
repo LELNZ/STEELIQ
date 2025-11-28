@@ -293,40 +293,42 @@ export default function EmployeeProfile() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="overview">
-            <User className="h-4 w-4 mr-2" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="personal">
-            <User className="h-4 w-4 mr-2" />
-            Personal
-          </TabsTrigger>
-          <TabsTrigger value="employment">
-            <Briefcase className="h-4 w-4 mr-2" />
-            Employment
-          </TabsTrigger>
-          <TabsTrigger value="compensation">
-            <DollarSign className="h-4 w-4 mr-2" />
-            Compensation
-          </TabsTrigger>
-          <TabsTrigger value="health-safety">
-            <Shield className="h-4 w-4 mr-2" />
-            Health & Safety
-          </TabsTrigger>
-          <TabsTrigger value="trade-quals">
-            <Award className="h-4 w-4 mr-2" />
-            Trade Quals
-          </TabsTrigger>
-          <TabsTrigger value="skills">
-            <Award className="h-4 w-4 mr-2" />
-            Skills
-          </TabsTrigger>
-          <TabsTrigger value="documents">
-            <FileText className="h-4 w-4 mr-2" />
-            Documents
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto w-full">
+          <TabsList className="w-max">
+            <TabsTrigger value="overview">
+              <User className="h-4 w-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="personal">
+              <User className="h-4 w-4 mr-2" />
+              Personal
+            </TabsTrigger>
+            <TabsTrigger value="employment">
+              <Briefcase className="h-4 w-4 mr-2" />
+              Employment
+            </TabsTrigger>
+            <TabsTrigger value="compensation">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Compensation
+            </TabsTrigger>
+            <TabsTrigger value="health-safety">
+              <Shield className="h-4 w-4 mr-2" />
+              Health & Safety
+            </TabsTrigger>
+            <TabsTrigger value="trade-quals">
+              <Award className="h-4 w-4 mr-2" />
+              Trade Quals
+            </TabsTrigger>
+            <TabsTrigger value="skills">
+              <Award className="h-4 w-4 mr-2" />
+              Skills
+            </TabsTrigger>
+            <TabsTrigger value="documents">
+              <FileText className="h-4 w-4 mr-2" />
+              Documents
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">

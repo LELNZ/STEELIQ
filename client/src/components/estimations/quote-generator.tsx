@@ -458,7 +458,7 @@ export default function QuoteGenerator({ estimation, open, onOpenChange }: Quote
 
   const generateQuoteMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest('POST', `/api/estimations/${estimation.id}/generate-quote`, data);
+      return apiRequest(`/api/estimations/${estimation.id}/generate-quote`, 'POST', data);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`/api/estimations/${estimation.id}/quotes`] });
@@ -480,7 +480,7 @@ export default function QuoteGenerator({ estimation, open, onOpenChange }: Quote
   const sendQuoteMutation = useMutation({
     mutationFn: async (data: any) => {
       const { quoteId, ...emailData } = data;
-      return apiRequest('POST', `/api/quotes/${quoteId}/send`, emailData);
+      return apiRequest(`/api/quotes/${quoteId}/send`, 'POST', emailData);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/estimations'] });

@@ -74,6 +74,15 @@ export interface UserPermissions {
   systemSettings: boolean;
   auditLogs: boolean;
   backupRestore: boolean;
+  
+  // Time & Payroll (Fortune 50 RBAC)
+  timeClockSelf: boolean;        // Employee self-service clock in/out
+  timeClockManage: boolean;      // Manage all employee time entries
+  timeApprovalView: boolean;     // View timesheets for approval
+  timeApprovalManage: boolean;   // Approve/reject timesheets
+  timeAnalyticsView: boolean;    // View time analytics dashboard
+  timeReportsProcess: boolean;   // Generate payroll reports
+  payrollPeriodManage: boolean;  // Manage payroll periods
 }
 
 /**
@@ -111,6 +120,13 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
     systemSettings: false,
     auditLogs: false,
     backupRestore: false,
+    timeClockSelf: false,
+    timeClockManage: false,
+    timeApprovalView: false,
+    timeApprovalManage: false,
+    timeAnalyticsView: false,
+    timeReportsProcess: false,
+    payrollPeriodManage: false,
   };
 
   switch (role) {
@@ -132,6 +148,7 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
         viewReports: true,
         editJobs: true,
         stockMovements: true,
+        timeClockSelf: true,  // Can clock in/out
       };
 
     case 'basic':
@@ -143,6 +160,7 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
         viewCuttingPlans: true,
         viewInventory: true,
         viewReports: true,
+        timeClockSelf: true,  // Can clock in/out
       };
 
     case 'planning':
@@ -184,6 +202,10 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
         manageRates: true,
         viewReports: true,
         exportData: true,
+        timeClockSelf: true,          // Can clock in/out
+        timeAnalyticsView: true,      // Can view analytics
+        timeReportsProcess: true,     // Can generate reports
+        payrollPeriodManage: true,    // Can manage payroll periods
       };
 
     case 'supervisor':
@@ -215,6 +237,11 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
         viewReports: true,
         exportData: true,
         manageUsers: true,
+        timeClockSelf: true,          // Can clock in/out
+        timeClockManage: true,        // Can manage team time entries
+        timeApprovalView: true,       // Can view timesheets
+        timeApprovalManage: true,     // Can approve timesheets
+        timeAnalyticsView: true,      // Can view analytics
       };
 
     case 'admin':
@@ -281,4 +308,11 @@ export function getDepartmentOptions(): string[] {
     'Management',
     'Administration'
   ];
+}
+
+// Helper function to get the display role name
+export function getDisplayRole(user: { role?: string; roleName?: string } | null): string {
+  if (!user) return 'User';
+  // Prefer database role name if available, otherwise fall back to legacy role
+  return user.roleName || user.role || 'User';
 }

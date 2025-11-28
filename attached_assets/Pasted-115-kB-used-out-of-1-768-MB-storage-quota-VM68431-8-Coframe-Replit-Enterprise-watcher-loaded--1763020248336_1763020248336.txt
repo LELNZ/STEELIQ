@@ -1,0 +1,316 @@
+115 kB used out of 1,768 MB storage quota
+﻿
+VM68431:8 [Coframe] Replit Enterprise watcher loaded
+15
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+15
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+15
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+SeelIQ:1 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+SeelIQ:1 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+SeelIQ:1 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+cc0c51f4eeb86deb.js:2 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+cc0c51f4eeb86deb.js:2 Download the Apollo DevTools for a better development experience: https://chrome.google.com/webstore/detail/apollo-client-developer-t/jdkknkkbebbapilgoeccciglkfbmbnfm
+cc0c51f4eeb86deb.js:2 [LaunchDarkly] LaunchDarkly client initialized
+cc0c51f4eeb86deb.js:2 Adding extension: GPT-Replit - ChatGPT in your Repl. 
+Object
+cc0c51f4eeb86deb.js:2 Adding extension: CSV Editor 
+Object
+cc0c51f4eeb86deb.js:2 Adding extension: API Request Tester 
+Object
+cc0c51f4eeb86deb.js:2 Adding extension: AI Playground 
+Object
+cc0c51f4eeb86deb.js:2 Adding extension: UI Sketcher 
+Object
+6
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+ed1e693c96a75807.js:2 Unrecognized feature: 'ambient-light-sensor'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'battery'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'execution-while-not-rendered'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'execution-while-out-of-viewport'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'layout-animations'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'legacy-image-formats'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'navigation-override'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'oversized-images'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'publickey-credentials'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'speaker-selection'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'unoptimized-images'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'unsized-media'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'pointer-lock'.
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowfullscreen'.
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowpaymentrequest'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Unrecognized feature: 'ambient-light-sensor'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Unrecognized feature: 'battery'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Unrecognized feature: 'execution-while-not-rendered'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Unrecognized feature: 'layout-animations'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Unrecognized feature: 'legacy-image-formats'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Unrecognized feature: 'navigation-override'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Unrecognized feature: 'oversized-images'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Unrecognized feature: 'publickey-credentials'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Unrecognized feature: 'speaker-selection'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Unrecognized feature: 'unoptimized-images'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Unrecognized feature: 'unsized-media'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Allow attribute will take precedence over 'allowfullscreen'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ar9s%3A:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+76081e7b-4fdf-4405-b…icard.replit.dev/:1 Loading the script 'https://replit.com/public/js/replit-dev-banner.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval'". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+ Loading the script 'https://replit.com/public/js/beacon.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval'". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+76081e7b-4fdf-4405-b…executive-metrics:1 
+ Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+76081e7b-4fdf-4405-b…s/risk-assessment:1 
+ Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+76081e7b-4fdf-4405-b…tment-performance:1 
+ Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+team-management:1 Loading the script 'https://replit.com/public/js/replit-dev-banner.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval'". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+main.tsx:99 Attempting to render React app...
+main.tsx:101 React app render initiated
+main.tsx:16 [Main] Clearing all caches and service workers...
+workspace_iframe.htm…nt&id=%3Ar9s%3A:142 Loading the script 'https://replit.com/public/js/beacon.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval'". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+App.tsx:313 App component is rendering
+main.tsx:27 [Main] All caches cleared
+main.tsx:33 [Main] Unregistering service worker: https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/
+main.tsx:39 [Main] Registering development bypass service worker...
+main.tsx:62 [Main] Development service worker registered (no caching)
+sw.js:169 [Service Worker] Script loaded. Version: steeliq-dev-bypass-v1, Environment: DEVELOPMENT (No Caching)
+team-management.tsx:229 User dependencies response: 
+Object
+chunk-RPCDYKBN.js?v=4dc94f4a:521 Warning: validateDOMNesting(...): <p> cannot appear as a descendant of <p>.
+    at p
+    at div
+    at p
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:285:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=4dc94f4a:136:11
+    at _c9 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/alert-dialog.tsx:148:12)
+    at div
+    at AlertDialogHeader (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/alert-dialog.tsx:82:3)
+    at Slottable2 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:59:25)
+    at div
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…runner/workspace/node_modules/.vite/deps/chunk-OMDPF3XN.js?v=4dc94f4a:63:7
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:43:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:20:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…runner/workspace/node_modules/.vite/deps/chunk-NDGO7H72.js?v=4dc94f4a:29:5
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:237:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:160:58
+    at Presence (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-7GLZXUXQ.js?v=4dc94f4a:24:11)
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:151:64
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:17:13)
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…e/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=4dc94f4a:89:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:43:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:20:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-OMDPF3XN.js?v=4dc94f4a:262:22
+    at Presence (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-7GLZXUXQ.js?v=4dc94f4a:24:11)
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at DialogPortal (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:113:11)
+    at AlertDialogPortal (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…e/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=4dc94f4a:70:11)
+    at _c3 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/alert-dialog.tsx:48:12)
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at Dialog (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…runner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:54:5)
+    at AlertDialog (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…e/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=4dc94f4a:54:11)
+    at td
+    at _c11 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/table.tsx:142:13)
+    at tr
+    at _c9 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/table.tsx:96:12)
+    at UserTableRow (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/pages/team-management.tsx:77:3)
+    at tbody
+    at _c5 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/table.tsx:53:12)
+    at table
+    at div
+    at _c (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/table.tsx:20:11)
+    at div
+    at div
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at Presence (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-7GLZXUXQ.js?v=4dc94f4a:24:11)
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…orkspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=4dc94f4a:178:13
+    at _c5 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/tabs.tsx:68:12)
+    at div
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=4dc94f4a:56:7
+    at div
+    at TeamManagement (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/pages/team-management.tsx:352:21)
+    at ProtectedRoute (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/auth/ProtectedRoute.tsx:22:3)
+    at Route (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=4dc94f4a:265:16)
+    at Switch (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=4dc94f4a:321:17)
+    at RoleRouter (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/auth/RoleRouter.tsx:34:30)
+    at Router (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/App.tsx?v=ajNy-zEpBvOlygv96-3nN:77:42)
+    at main
+    at div
+    at div
+    at Layout (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/App.tsx?v=ajNy-zEpBvOlygv96-3nN:565:19)
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at TooltipProvider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…rkspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=4dc94f4a:67:5)
+    at AuthProvider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/contexts/auth-context.tsx:23:32)
+    at QueryClientProvider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=4dc94f4a:2805:3)
+    at ErrorBoundary (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/error-boundary.tsx:10:5)
+    at App
+chunk-RPCDYKBN.js?v=4dc94f4a:521 Warning: validateDOMNesting(...): <ul> cannot appear as a descendant of <p>.
+    at ul
+    at div
+    at p
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:285:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=4dc94f4a:136:11
+    at _c9 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/alert-dialog.tsx:148:12)
+    at div
+    at AlertDialogHeader (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/alert-dialog.tsx:82:3)
+    at Slottable2 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:59:25)
+    at div
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…runner/workspace/node_modules/.vite/deps/chunk-OMDPF3XN.js?v=4dc94f4a:63:7
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:43:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:20:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…runner/workspace/node_modules/.vite/deps/chunk-NDGO7H72.js?v=4dc94f4a:29:5
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:237:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:160:58
+    at Presence (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-7GLZXUXQ.js?v=4dc94f4a:24:11)
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:151:64
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:17:13)
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…e/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=4dc94f4a:89:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:43:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:20:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-OMDPF3XN.js?v=4dc94f4a:262:22
+    at Presence (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-7GLZXUXQ.js?v=4dc94f4a:24:11)
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at DialogPortal (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:113:11)
+    at AlertDialogPortal (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…e/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=4dc94f4a:70:11)
+    at _c3 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/alert-dialog.tsx:48:12)
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at Dialog (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…runner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:54:5)
+    at AlertDialog (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…e/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=4dc94f4a:54:11)
+    at td
+    at _c11 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/table.tsx:142:13)
+    at tr
+    at _c9 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/table.tsx:96:12)
+    at UserTableRow (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/pages/team-management.tsx:77:3)
+    at tbody
+    at _c5 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/table.tsx:53:12)
+    at table
+    at div
+    at _c (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/table.tsx:20:11)
+    at div
+    at div
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at Presence (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-7GLZXUXQ.js?v=4dc94f4a:24:11)
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…orkspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=4dc94f4a:178:13
+    at _c5 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/tabs.tsx:68:12)
+    at div
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=4dc94f4a:56:7
+    at div
+    at TeamManagement (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/pages/team-management.tsx:352:21)
+    at ProtectedRoute (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/auth/ProtectedRoute.tsx:22:3)
+    at Route (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=4dc94f4a:265:16)
+    at Switch (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=4dc94f4a:321:17)
+    at RoleRouter (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/auth/RoleRouter.tsx:34:30)
+    at Router (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/App.tsx?v=ajNy-zEpBvOlygv96-3nN:77:42)
+    at main
+    at div
+    at div
+    at Layout (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/App.tsx?v=ajNy-zEpBvOlygv96-3nN:565:19)
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at TooltipProvider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…rkspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=4dc94f4a:67:5)
+    at AuthProvider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/contexts/auth-context.tsx:23:32)
+    at QueryClientProvider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=4dc94f4a:2805:3)
+    at ErrorBoundary (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/error-boundary.tsx:10:5)
+    at App
+chunk-RPCDYKBN.js?v=4dc94f4a:521 Warning: validateDOMNesting(...): <div> cannot appear as a descendant of <p>.
+    at div
+    at p
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:285:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=4dc94f4a:136:11
+    at _c9 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/alert-dialog.tsx:148:12)
+    at div
+    at AlertDialogHeader (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/alert-dialog.tsx:82:3)
+    at Slottable2 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:59:25)
+    at div
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…runner/workspace/node_modules/.vite/deps/chunk-OMDPF3XN.js?v=4dc94f4a:63:7
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:43:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:20:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…runner/workspace/node_modules/.vite/deps/chunk-NDGO7H72.js?v=4dc94f4a:29:5
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:237:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:160:58
+    at Presence (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-7GLZXUXQ.js?v=4dc94f4a:24:11)
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:151:64
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:17:13)
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…e/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=4dc94f4a:89:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:43:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-LHPXHTGV.js?v=4dc94f4a:20:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-OMDPF3XN.js?v=4dc94f4a:262:22
+    at Presence (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-7GLZXUXQ.js?v=4dc94f4a:24:11)
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at DialogPortal (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:113:11)
+    at AlertDialogPortal (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…e/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=4dc94f4a:70:11)
+    at _c3 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/alert-dialog.tsx:48:12)
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at Dialog (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…runner/workspace/node_modules/.vite/deps/chunk-U2MNRSVW.js?v=4dc94f4a:54:5)
+    at AlertDialog (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…e/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js?v=4dc94f4a:54:11)
+    at td
+    at _c11 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/table.tsx:142:13)
+    at tr
+    at _c9 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/table.tsx:96:12)
+    at UserTableRow (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/pages/team-management.tsx:77:3)
+    at tbody
+    at _c5 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/table.tsx:53:12)
+    at table
+    at div
+    at _c (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/table.tsx:20:11)
+    at div
+    at div
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at Presence (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-7GLZXUXQ.js?v=4dc94f4a:24:11)
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…orkspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=4dc94f4a:178:13
+    at _c5 (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/tabs.tsx:68:12)
+    at div
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-IWFJIMEQ.js?v=4dc94f4a:42:13
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=4dc94f4a:56:7
+    at div
+    at TeamManagement (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/pages/team-management.tsx:352:21)
+    at ProtectedRoute (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/auth/ProtectedRoute.tsx:22:3)
+    at Route (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=4dc94f4a:265:16)
+    at Switch (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=4dc94f4a:321:17)
+    at RoleRouter (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/auth/RoleRouter.tsx:34:30)
+    at Router (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/App.tsx?v=ajNy-zEpBvOlygv96-3nN:77:42)
+    at main
+    at div
+    at div
+    at Layout (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/App.tsx?v=ajNy-zEpBvOlygv96-3nN:565:19)
+    at Provider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=4dc94f4a:38:15)
+    at TooltipProvider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…rkspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=4dc94f4a:67:5)
+    at AuthProvider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/contexts/auth-context.tsx:23:32)
+    at QueryClientProvider (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=4dc94f4a:2805:3)
+    at ErrorBoundary (https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/src/components/ui/error-boundary.tsx:10:5)
+    at App
+printWarning	@	chunk-RPCDYKBN.js?v=4dc94f4a:521
+
+﻿
+

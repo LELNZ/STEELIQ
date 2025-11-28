@@ -108,6 +108,123 @@ export class ObjectStorageService {
     
     await file.delete();
   }
+
+  // Upload a buffer directly to cloud storage (for server-side uploads like time clock photos)
+  async uploadBuffer({
+    buffer,
+    mimeType,
+    path,
+    metadata = {},
+  }: {
+    buffer: Buffer;
+    mimeType: string;
+    path: string;
+    metadata?: Record<string, string>;
+  }): Promise<{ objectPath: string; signedUrl: string }> {
+    const { bucketName, objectName } = parseObjectPath(path);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+
+    await file.save(buffer, {
+      metadata: {
+        contentType: mimeType,
+        ...metadata,
+      },
+    });
+
+    const signedUrl = await signObjectURL({
+      bucketName,
+      objectName,
+      method: "GET",
+      ttlSec: 3600,
+    });
+
+    return { objectPath: path, signedUrl };
+  }
+
+  // Generate a signed URL for reading a file
+  async getSignedReadUrl(cloudPath: string, ttlSec: number = 3600): Promise<string> {
+    const { bucketName, objectName } = parseObjectPath(cloudPath);
+    return signObjectURL({
+      bucketName,
+      objectName,
+      method: "GET",
+      ttlSec,
+    });
+  }
+
+  // Check if a file exists
+  async fileExists(cloudPath: string): Promise<boolean> {
+    try {
+      const { bucketName, objectName } = parseObjectPath(cloudPath);
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+      const [exists] = await file.exists();
+      return exists;
+    } catch {
+      return false;
+    }
+  }
+
+  // Read file contents as buffer
+  async readFileAsBuffer(cloudPath: string): Promise<Buffer> {
+    const { bucketName, objectName } = parseObjectPath(cloudPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    const [contents] = await file.download();
+    return contents;
+  }
+
+  // Get upload URL for time clock photos
+  async getTimeClockPhotoUploadURL(userId: number, clockType: string): Promise<{ uploadUrl: string; objectPath: string }> {
+    const privateObjectDir = this.getPrivateObjectDir();
+    const timestamp = Date.now();
+    const objectId = randomUUID().substring(0, 8);
+    const fullPath = `${privateObjectDir}/time-clock-photos/${userId}/${timestamp}_${objectId}_${clockType}.jpg`;
+
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const uploadUrl = await signObjectURL({
+      bucketName,
+      objectName,
+      method: "PUT",
+      ttlSec: 900,
+    });
+
+    return { uploadUrl, objectPath: fullPath };
+  }
+
+  // Upload time clock photo directly (for base64 uploads from mobile)
+  async uploadTimeClockPhoto({
+    userId,
+    clockType,
+    buffer,
+    mimeType,
+    fileHash,
+  }: {
+    userId: number;
+    clockType: string;
+    buffer: Buffer;
+    mimeType: string;
+    fileHash: string;
+  }): Promise<{ objectPath: string; signedUrl: string }> {
+    const privateObjectDir = this.getPrivateObjectDir();
+    const timestamp = Date.now();
+    const objectId = randomUUID().substring(0, 8);
+    const extension = mimeType.includes('png') ? 'png' : 'jpg';
+    const fullPath = `${privateObjectDir}/time-clock-photos/${userId}/${timestamp}_${objectId}_${clockType}.${extension}`;
+
+    return this.uploadBuffer({
+      buffer,
+      mimeType: `image/${extension}`,
+      path: fullPath,
+      metadata: {
+        'x-steeliq-user-id': userId.toString(),
+        'x-steeliq-clock-type': clockType,
+        'x-steeliq-file-hash': fileHash,
+        'x-steeliq-upload-time': new Date().toISOString(),
+      },
+    });
+  }
 }
 
 function parseObjectPath(path: string): {

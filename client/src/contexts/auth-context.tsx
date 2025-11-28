@@ -9,6 +9,8 @@ interface User {
   name: string;
   email?: string;
   role: UserRole;
+  roleName?: string;  // Database role name (e.g., "Business Owner")
+  roleId?: number;    // Database role ID for future use
   permissions: UserPermissions;
   department?: string;
   isActive: boolean;
@@ -35,7 +37,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [currentClockStatus, setCurrentClockStatus] = useState<"clocked-in" | "clocked-out" | "break" | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -43,19 +44,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasToken = !!localStorage.getItem('auth_token');
 
   // Query to check authentication status
-  const { data: authData, isLoading, refetch } = useQuery({
+  const { data: authData, isLoading: queryLoading, refetch } = useQuery({
     queryKey: ["/api/auth/user"],
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: hasToken, // Only run if we have a token
   });
+  
+  // If no token, we're not loading - we're just not authenticated
+  const isLoading = hasToken ? queryLoading : false;
 
-  // Get current clock status
-  const { data: clockStatus } = useQuery({
+  // Single source of truth for clock status
+  const { data: clockStatus, refetch: refetchClockStatus } = useQuery({
     queryKey: ["/api/time/clock-status"],
     enabled: !!user,
     refetchInterval: 30000, // Check every 30 seconds
   });
+  
+  // Derive clock status from query data - no local state!
+  const currentClockStatus = clockStatus?.isClockedIn ? "clocked-in" : "clocked-out";
 
   useEffect(() => {
     if (authData) {
@@ -66,17 +73,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...userData,
         permissions,
         role: userData.role as UserRole,
+        roleName: userData.roleName, // Preserve database role name
+        roleId: userData.roleId,     // Preserve database role ID
       });
     } else {
       setUser(null);
     }
   }, [authData]);
 
-  useEffect(() => {
-    if (clockStatus && typeof clockStatus === 'object' && 'status' in clockStatus) {
-      setCurrentClockStatus(clockStatus.status);
-    }
-  }, [clockStatus]);
+  // Removed redundant useEffect - clock status is now derived directly from query
 
   const login = async (username: string, password: string, twoFactorCode?: string) => {
     try {
@@ -113,6 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...userData,
           permissions,
           role: userData.role as UserRole,
+          roleName: userData.roleName, // Preserve database role name
+          roleId: userData.roleId,     // Preserve database role ID
         });
       }
       
@@ -153,7 +160,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Clear local state
       setUser(null);
-      setCurrentClockStatus(null);
 
       // Clear all cached data
       queryClient.clear();
@@ -167,7 +173,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Still clear local state even if logout request fails
       localStorage.removeItem('auth_token');
       setUser(null);
-      setCurrentClockStatus(null);
       queryClient.clear();
     }
   };
@@ -176,27 +181,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     
     try {
-      const response = await fetch('/api/time/clock-in', {
+      // Default location data
+      let locationData = { location: 'Remote', geolocation: null };
+      
+      // Try to get actual location
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              reject,
+              { 
+                enableHighAccuracy: true,
+                timeout: 3000,
+                maximumAge: 0 
+              }
+            );
+          });
+          
+          locationData = {
+            location: `GPS: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`,
+            geolocation: {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            }
+          };
+        } catch (error) {
+          console.log('Geolocation failed, using Remote as fallback');
+        }
+      }
+      
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/time/clock', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ userId: user.id }),
+        body: JSON.stringify({ 
+          clockType: 'clock_in',
+          timestamp: new Date().toISOString(),
+          location: locationData.location,
+          jobId: null,
+          taskId: null,
+          geolocation: locationData.geolocation,
+          notes: null
+        }),
         credentials: 'include',
       });
 
       if (!response.ok) {
         throw new Error('Failed to clock in');
       }
-
-      setCurrentClockStatus("clocked-in");
       
-      // Refetch clock status
-      queryClient.invalidateQueries({ queryKey: ["/api/time/clock-status"] });
+      // Immediate invalidation - await to ensure updates complete
+      await Promise.all([
+        refetchClockStatus(),
+        queryClient.invalidateQueries({ queryKey: ["/api/time/clock-status"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/time/clocks/today"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/time/summary"] })
+      ]);
 
       toast({
         title: "Clocked In",
-        description: "You have successfully clocked in.",
+        description: "Time tracking started successfully",
       });
     } catch (error: any) {
       toast({
@@ -211,27 +260,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     
     try {
-      const response = await fetch('/api/time/clock-out', {
+      // Default location data
+      let locationData = { location: 'Remote', geolocation: null };
+      
+      // Try to get actual location
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              reject,
+              { 
+                enableHighAccuracy: true,
+                timeout: 3000,
+                maximumAge: 0 
+              }
+            );
+          });
+          
+          locationData = {
+            location: `GPS: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`,
+            geolocation: {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            }
+          };
+        } catch (error) {
+          console.log('Geolocation failed, using Remote as fallback');
+        }
+      }
+      
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/time/clock', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ userId: user.id }),
+        body: JSON.stringify({ 
+          clockType: 'clock_out',
+          timestamp: new Date().toISOString(),
+          location: locationData.location,
+          jobId: null,
+          taskId: null,
+          geolocation: locationData.geolocation,
+          notes: null
+        }),
         credentials: 'include',
       });
 
       if (!response.ok) {
         throw new Error('Failed to clock out');
       }
-
-      setCurrentClockStatus("clocked-out");
       
-      // Refetch clock status
-      queryClient.invalidateQueries({ queryKey: ["/api/time/clock-status"] });
+      // Immediate invalidation - await to ensure updates complete
+      await Promise.all([
+        refetchClockStatus(),
+        queryClient.invalidateQueries({ queryKey: ["/api/time/clock-status"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/time/clocks/today"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/time/summary"] })
+      ]);
 
       toast({
         title: "Clocked Out",
-        description: "You have successfully clocked out.",
+        description: "Time tracking stopped successfully",
       });
     } catch (error: any) {
       toast({

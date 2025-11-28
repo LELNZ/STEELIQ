@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,12 +7,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Zap, Wrench, Droplets, Palette, Bolt } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Plus, Trash2, Zap, Wrench, Droplets, Palette, Bolt, Package, Loader2 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface ConsumableItem {
-  id: string;
+  id: number; // Database-backed ID
+  projectId: number;
   designation?: string; // Material designation (e.g., C1, B2, PL1)
-  operationDesignation?: string; // Operation designation (e.g., C1-cut-1, B2-drill-2)
+  parentMaterialId?: number; // Reference to parent material for proper grouping
+  operationId?: number; // Direct link to operation for tracking
+  operationDesignation?: string; // Operation designation (e.g., C1-310-cut-1, B2-400-drill-2)
+  operationType?: string; // Type of operation that created this consumable need
   category: string;
   itemType: string;
   specification: string;
@@ -24,6 +32,7 @@ interface ConsumableItem {
 }
 
 interface EnhancedConsumablesTabProps {
+  projectId?: number;
   consumables: ConsumableItem[];
   setConsumables: (consumables: ConsumableItem[]) => void;
 }
@@ -90,7 +99,9 @@ const CONSUMABLE_CATEGORIES = {
   }
 };
 
-export default function EnhancedConsumablesTab({ consumables, setConsumables }: EnhancedConsumablesTabProps) {
+export default function EnhancedConsumablesTab({ projectId, consumables, setConsumables }: EnhancedConsumablesTabProps) {
+  const { toast } = useToast();
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [newItem, setNewItem] = useState<Partial<ConsumableItem>>({
     category: 'welding',
     itemType: 'welding_rod',
@@ -100,11 +111,185 @@ export default function EnhancedConsumablesTab({ consumables, setConsumables }: 
     unitCost: 0
   });
 
+  // Fetch consumables from database
+  const { data: consumableItems, isLoading, refetch } = useQuery({
+    queryKey: ['/api/estimation/projects', projectId, 'consumables'],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const response = await fetch(`/api/estimation/projects/${projectId}/consumables`);
+      if (!response.ok) throw new Error('Failed to fetch consumable items');
+      return response.json();
+    },
+    enabled: !!projectId
+  });
+
+  // Sync database items with local state
+  useEffect(() => {
+    if (consumableItems && consumableItems.length > 0) {
+      setConsumables(consumableItems);
+    }
+  }, [consumableItems, setConsumables]);
+
+  // Create consumable item mutation
+  const createConsumableMutation = useMutation({
+    mutationFn: async (consumableData: Partial<ConsumableItem>) => {
+      if (!projectId) {
+        throw new Error('Project ID is required');
+      }
+      
+      return apiRequest(`/api/estimation/projects/${projectId}/consumables`, {
+        method: 'POST',
+        body: JSON.stringify(consumableData)
+      });
+    },
+    onSuccess: (newConsumable) => {
+      // Add the new consumable item with database-generated ID
+      const updatedConsumables = [...consumables, newConsumable];
+      setConsumables(updatedConsumables);
+      
+      toast({
+        title: "Consumable item created",
+        description: "Consumable item has been saved to the database"
+      });
+      
+      // Refetch to ensure sync
+      refetch();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error creating consumable item",
+        description: error.message || "Failed to save consumable item",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Update consumable item mutation
+  const updateConsumableMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: number; updates: Partial<ConsumableItem> }) => {
+      return apiRequest(`/api/estimation/consumables/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates)
+      });
+    },
+    onSuccess: (updatedItem) => {
+      // Update the local state
+      const updatedConsumables = consumables.map(item => 
+        item.id === updatedItem.id ? updatedItem : item
+      );
+      setConsumables(updatedConsumables);
+      
+      toast({
+        title: "Consumable item updated",
+        description: "Changes have been saved"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating consumable item",
+        description: error.message || "Failed to update consumable item",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete consumable item mutation
+  const deleteConsumableMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/estimation/consumables/${id}`, {
+        method: 'DELETE'
+      });
+    },
+    onSuccess: (_, deletedId) => {
+      // Remove from local state
+      const updatedConsumables = consumables.filter(item => item.id !== deletedId);
+      setConsumables(updatedConsumables);
+      
+      toast({
+        title: "Consumable item deleted",
+        description: "Consumable item has been removed"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting consumable item",
+        description: error.message || "Failed to delete consumable item",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Group consumable items by parent material ID for true parent-child relationship
+  const groupedConsumables = useMemo(() => {
+    const groups: { [key: string]: { designation: string; items: ConsumableItem[] } } = {};
+    
+    consumables.forEach(item => {
+      // Use parentMaterialId as primary grouping key, fallback to designation
+      const groupKey = item.parentMaterialId ? item.parentMaterialId.toString() : (item.designation || 'Unassigned');
+      const displayDesignation = item.designation || 'Unassigned';
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
+          designation: displayDesignation,
+          items: []
+        };
+      }
+      groups[groupKey].items.push(item);
+    });
+    
+    // Sort groups by designation
+    const sortedGroups = Object.keys(groups).sort((a, b) => {
+      if (a === 'Unassigned') return 1;
+      if (b === 'Unassigned') return -1;
+      const desA = groups[a].designation;
+      const desB = groups[b].designation;
+      return desA.localeCompare(desB);
+    });
+    
+    const result: { [key: string]: { designation: string; items: ConsumableItem[] } } = {};
+    sortedGroups.forEach(key => {
+      result[key] = groups[key];
+    });
+    
+    return result;
+  }, [consumables]);
+
+  // Calculate summary for a group
+  const getGroupSummary = (items: ConsumableItem[]) => {
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalCost = items.reduce((sum, item) => sum + item.totalCost, 0);
+    const itemCount = items.length;
+    
+    return {
+      totalQuantity,
+      totalCost,
+      itemCount
+    };
+  };
+
+  // Toggle group expansion
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupKey) 
+        ? prev.filter(key => key !== groupKey)
+        : [...prev, groupKey]
+    );
+  };
+
+  // Toggle all groups
+  const toggleAllGroups = (expand: boolean) => {
+    if (expand) {
+      setExpandedGroups(Object.keys(groupedConsumables));
+    } else {
+      setExpandedGroups([]);
+    }
+  };
+
   const addConsumableItem = () => {
     if (!newItem.specification || !newItem.quantity) return;
 
-    const item: ConsumableItem = {
-      id: `consumable-${Date.now()}`,
+    const consumableData: Partial<ConsumableItem> = {
+      projectId: projectId,
       category: newItem.category || 'welding',
       itemType: newItem.itemType || 'welding_rod',
       specification: newItem.specification,
@@ -115,7 +300,9 @@ export default function EnhancedConsumablesTab({ consumables, setConsumables }: 
       notes: newItem.notes
     };
 
-    setConsumables([...consumables, item]);
+    createConsumableMutation.mutate(consumableData);
+    
+    // Reset form
     setNewItem({
       category: 'welding',
       itemType: 'welding_rod',
@@ -126,20 +313,22 @@ export default function EnhancedConsumablesTab({ consumables, setConsumables }: 
     });
   };
 
-  const updateConsumableItem = (id: string, updates: Partial<ConsumableItem>) => {
-    const updatedConsumables = consumables.map(item => {
-      if (item.id === id) {
-        const updated = { ...item, ...updates };
-        updated.totalCost = updated.quantity * updated.unitCost;
-        return updated;
+  const updateConsumableItem = (id: number, updates: Partial<ConsumableItem>) => {
+    // Calculate totalCost if quantity or unitCost changes
+    if (updates.quantity !== undefined || updates.unitCost !== undefined) {
+      const item = consumables.find(c => c.id === id);
+      if (item) {
+        const quantity = updates.quantity !== undefined ? updates.quantity : item.quantity;
+        const unitCost = updates.unitCost !== undefined ? updates.unitCost : item.unitCost;
+        updates.totalCost = quantity * unitCost;
       }
-      return item;
-    });
-    setConsumables(updatedConsumables);
+    }
+    
+    updateConsumableMutation.mutate({ id, updates });
   };
 
-  const removeConsumableItem = (id: string) => {
-    setConsumables(consumables.filter(item => item.id !== id));
+  const removeConsumableItem = (id: number) => {
+    deleteConsumableMutation.mutate(id);
   };
 
   const updateItemType = (category: string, itemType: string) => {
@@ -166,6 +355,15 @@ export default function EnhancedConsumablesTab({ consumables, setConsumables }: 
     return consumables.reduce((sum, item) => sum + item.totalCost, 0);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading consumables...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -177,7 +375,7 @@ export default function EnhancedConsumablesTab({ consumables, setConsumables }: 
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="welding">
-            <TabsList className="grid grid-cols-5 w-full">
+            <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 w-full">
               {Object.entries(CONSUMABLE_CATEGORIES).map(([key, category]) => {
                 const Icon = category.icon;
                 return (
@@ -191,7 +389,7 @@ export default function EnhancedConsumablesTab({ consumables, setConsumables }: 
 
             {Object.entries(CONSUMABLE_CATEGORIES).map(([categoryKey, categoryData]) => (
               <TabsContent key={categoryKey} value={categoryKey} className="space-y-4">
-                <div className="grid grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                   <div>
                     <Label>Item Type</Label>
                     <Select 
@@ -283,7 +481,7 @@ export default function EnhancedConsumablesTab({ consumables, setConsumables }: 
       </Card>
 
       {/* Consumables Summary */}
-      <div className="grid grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {Object.entries(CONSUMABLE_CATEGORIES).map(([key, category]) => {
           const Icon = category.icon;
           return (
@@ -310,82 +508,133 @@ export default function EnhancedConsumablesTab({ consumables, setConsumables }: 
         </Card>
       </div>
 
-      {/* Consumables Items Table */}
+      {/* Consumables Items Grouped by Parent Designation */}
       {consumables.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Consumables Breakdown</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Consumables Breakdown by Material Designation</CardTitle>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => toggleAllGroups(true)}
+                >
+                  Expand All
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => toggleAllGroups(false)}
+                >
+                  Collapse All
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Designation</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Specification</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead>Unit</TableHead>
-                  <TableHead>Unit Cost</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {consumables.map((item) => {
-                  const categoryData = CONSUMABLE_CATEGORIES[item.category as keyof typeof CONSUMABLE_CATEGORIES];
-                  const Icon = categoryData?.icon || Zap;
-                  
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-sm">{item.designation || '-'}</span>
-                          <span className="text-xs text-muted-foreground">{item.operationDesignation || '-'}</span>
+            <Accordion type="multiple" value={expandedGroups} className="w-full">
+              {Object.entries(groupedConsumables).map(([materialId, group]) => {
+                const summary = getGroupSummary(group.items);
+                return (
+                  <AccordionItem key={materialId} value={materialId}>
+                    <AccordionTrigger onClick={() => toggleGroup(materialId)}>
+                      <div className="flex items-center justify-between w-full pr-4">
+                        <div className="flex items-center gap-3">
+                          <Badge className="text-sm font-semibold">
+                            {group.designation}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {summary.itemCount} consumable{summary.itemCount !== 1 ? 's' : ''}
+                          </span>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Icon className={`h-4 w-4 ${categoryData?.color || 'text-gray-500'}`} />
-                          <Badge variant="outline">{item.category}</Badge>
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm">
+                            <Package className="inline h-4 w-4 mr-1" />
+                            {summary.totalQuantity.toFixed(0)} items
+                          </span>
+                          <span className="text-sm font-medium">
+                            ${summary.totalCost.toLocaleString()}
+                          </span>
                         </div>
-                      </TableCell>
-                      <TableCell>{item.itemType.replace('_', ' ')}</TableCell>
-                      <TableCell className="font-mono text-sm">{item.specification}</TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateConsumableItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
-                          className="w-20"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{item.unit}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={item.unitCost}
-                          onChange={(e) => updateConsumableItem(item.id, { unitCost: parseFloat(e.target.value) || 0 })}
-                          className="w-20"
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">${item.totalCost.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeConsumableItem(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Operation</TableHead>
+                              <TableHead>Category</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Specification</TableHead>
+                              <TableHead>Quantity</TableHead>
+                              <TableHead>Unit</TableHead>
+                              <TableHead>Unit Cost</TableHead>
+                              <TableHead>Total</TableHead>
+                              <TableHead>Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.items.map((item) => {
+                              const categoryData = CONSUMABLE_CATEGORIES[item.category as keyof typeof CONSUMABLE_CATEGORIES];
+                              const Icon = categoryData?.icon || Zap;
+                              
+                              return (
+                                <TableRow key={item.id}>
+                                  <TableCell>
+                                    <span className="text-xs text-muted-foreground">
+                                      {item.operationDesignation || '-'}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <Icon className={`h-4 w-4 ${categoryData?.color || 'text-gray-500'}`} />
+                                      <Badge variant="outline">{item.category}</Badge>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{item.itemType.replace('_', ' ')}</TableCell>
+                                  <TableCell className="font-mono text-sm">{item.specification}</TableCell>
+                                  <TableCell>
+                                    <Input
+                                      type="number"
+                                      value={item.quantity}
+                                      onChange={(e) => updateConsumableItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
+                                      className="w-20"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="secondary">{item.unit}</Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Input
+                                      type="number"
+                                      value={item.unitCost}
+                                      onChange={(e) => updateConsumableItem(item.id, { unitCost: parseFloat(e.target.value) || 0 })}
+                                      className="w-20"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="font-medium">${item.totalCost.toLocaleString()}</TableCell>
+                                  <TableCell>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeConsumableItem(item.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           </CardContent>
         </Card>
       )}

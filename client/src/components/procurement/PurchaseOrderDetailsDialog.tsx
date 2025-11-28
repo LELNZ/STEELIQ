@@ -77,9 +77,94 @@ export default function PurchaseOrderDetailsDialog({
     enabled: open && !!purchaseOrder?.id,
   });
 
-  // For now, we'll just display the delivery address as stored
-  // In future, this could be enhanced to link to actual location entities
-  const deliveryLocation = null;
+  // Fetch company locations
+  const { data: companyLocations = [] } = useQuery({
+    queryKey: ['/api/company-locations'],
+    enabled: open,
+  });
+
+  // Find the delivery location based on the purchase order's delivery address
+  const getDeliveryLocation = () => {
+    if (!purchaseOrder?.deliveryAddress || companyLocations.length === 0) return null;
+    
+    // Normalize the address - remove punctuation, extra spaces, etc.
+    const normalizedAddress = purchaseOrder.deliveryAddress
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ')  // Replace punctuation with spaces
+      .replace(/\s+/g, ' ')       // Multiple spaces to single space
+      .trim();
+    
+    // 1. First, try common aliases (including variations)
+    const addressMapping: Record<string, string> = {
+      'workshop': 'Auckland Head Office',
+      'workshop east tamaki': 'Auckland Head Office',
+      'main warehouse': 'Auckland Head Office',
+      'head office': 'Auckland Head Office',
+      'auckland workshop': 'Auckland Head Office',
+      'main office': 'Auckland Head Office',
+      'hq': 'Auckland Head Office',
+      'headquarters': 'Auckland Head Office',
+    };
+    
+    // Check all aliases for matches
+    for (const [alias, locationName] of Object.entries(addressMapping)) {
+      if (normalizedAddress.includes(alias) || alias.includes(normalizedAddress)) {
+        const location = companyLocations.find((loc: any) => 
+          loc.locationName === locationName
+        );
+        if (location) return location;
+      }
+    }
+    
+    // 2. Try exact location name match
+    const exactNameMatch = companyLocations.find((loc: any) => 
+      loc.locationName?.toLowerCase() === normalizedAddress
+    );
+    if (exactNameMatch) return exactNameMatch;
+    
+    // 3. Check if the delivery address contains any of the database address fields
+    // This handles cases where PO has full address like "107 Harris Road, East Tamaki"
+    for (const location of companyLocations) {
+      // Check if delivery address contains the location's street address
+      if (location.addressLine1) {
+        const normalizedLine1 = location.addressLine1.toLowerCase();
+        if (normalizedAddress.includes(normalizedLine1) || 
+            normalizedLine1.includes(normalizedAddress)) {
+          return location;
+        }
+      }
+      
+      // Check if delivery address contains key parts of the location
+      const addressParts = [
+        location.addressLine1,
+        location.addressLine2,
+        location.city,
+        location.postalCode
+      ].filter(Boolean).map(part => part.toLowerCase());
+      
+      // Count how many parts of the database address appear in the PO address
+      const matchCount = addressParts.filter(part => 
+        normalizedAddress.includes(part)
+      ).length;
+      
+      // If we have multiple matches, this is likely the right location
+      if (matchCount >= 2) {
+        return location;
+      }
+    }
+    
+    // 4. Finally, try partial name match
+    const partialNameMatch = companyLocations.find((loc: any) => 
+      loc.locationName?.toLowerCase().includes(normalizedAddress) ||
+      normalizedAddress.includes(loc.locationName?.toLowerCase())
+    );
+    
+    // Return null if no confident match found - don't force a wrong location
+    // This allows the UI to properly display custom/drop-ship addresses
+    return partialNameMatch || null;
+  };
+
+  const deliveryLocation = getDeliveryLocation();
 
 
   const handleSendToSupplier = () => {
@@ -175,26 +260,36 @@ export default function PurchaseOrderDetailsDialog({
                 <p className="font-medium">
                   {purchaseOrder?.deliveryAddress || "Main Warehouse"}
                 </p>
-                {/* Display standard company address for known locations */}
-                {(purchaseOrder?.deliveryAddress === "Workshop" || purchaseOrder?.deliveryAddress === "workshop") && (
+                {/* Display actual location address from database */}
+                {deliveryLocation && (
                   <>
-                    <p className="text-xs text-muted-foreground">
-                      107 Harris Road, East Tāmaki
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Auckland 2013, New Zealand
-                    </p>
+                    {deliveryLocation.addressLine1 && (
+                      <p className="text-xs text-muted-foreground">
+                        {deliveryLocation.addressLine1}
+                        {deliveryLocation.addressLine2 && `, ${deliveryLocation.addressLine2}`}
+                      </p>
+                    )}
+                    {(deliveryLocation.city || deliveryLocation.postalCode || deliveryLocation.country) && (
+                      <p className="text-xs text-muted-foreground">
+                        {[
+                          deliveryLocation.city,
+                          deliveryLocation.postalCode,
+                          deliveryLocation.country
+                        ].filter(Boolean).join(', ')}
+                      </p>
+                    )}
+                    {deliveryLocation.phone && (
+                      <p className="text-xs text-muted-foreground">
+                        Phone: {deliveryLocation.phone}
+                      </p>
+                    )}
                   </>
                 )}
-                {(purchaseOrder?.deliveryAddress === "Main Warehouse" || !purchaseOrder?.deliveryAddress) && (
-                  <>
-                    <p className="text-xs text-muted-foreground">
-                      107 Harris Road, East Tāmaki
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Auckland 2013, New Zealand
-                    </p>
-                  </>
+                {/* Show default or custom address if no location match */}
+                {!deliveryLocation && purchaseOrder?.deliveryAddress && purchaseOrder.deliveryAddress !== "Main Warehouse" && (
+                  <p className="text-xs text-muted-foreground">
+                    Custom delivery address
+                  </p>
                 )}
               </div>
               <div>

@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import cors from "cors";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic } from "./vite";
+import { setupVite, serveStatic } from "./viteV5";
 
 // Import security and logging utilities
 import { envValidator, config } from "./utils/envValidator.js";
@@ -24,6 +24,17 @@ envValidator.validate();
 import { applySecurityBaseline } from "./middleware/securityBaseline";
 import { applyObservability } from "./middleware/observability";
 
+// Fortune 50 Compliance: Dual Authorization Bootstrap
+import { rehydrateDualAuthManager, cleanupExpiredDualAuthRequests } from "./services/dualAuthBootstrap";
+
+// Real-time Notifications: WebSocket Service
+import WebSocketService from "./services/webSocketService";
+
+// Fortune 50 Compliance: Data Retention Services
+import { GPSArchivalService } from "./services/gpsArchivalService";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
+
 const app = express();
 applyObservability(app);
 applySecurityBaseline(app);
@@ -40,7 +51,18 @@ app.set('trust proxy', 1);
 
     // ===== PHASE 3: GLOBAL MIDDLEWARE (Applied to all routes) =====
     // These are safe for both Vite and API routes
-    app.use(express.json({ limit: '50mb' }));
+    
+    // Wave 3: Capture raw body as Buffer for webhook signature verification
+    // Preserves exact bytes for HMAC computation per provider specs
+    app.use(express.json({ 
+      limit: '50mb',
+      verify: (req: Request, res: Response, buf: Buffer, encoding: string) => {
+        // Only capture raw body for webhook routes - store as Buffer to preserve exact bytes
+        if (req.url?.startsWith('/api/payroll-integrations/webhooks')) {
+          (req as any).rawBodyBuffer = Buffer.from(buf);
+        }
+      }
+    }));
     app.use(express.urlencoded({ extended: false, limit: '50mb' }));
     app.use(cookieParser());
 
@@ -70,9 +92,8 @@ app.set('trust proxy', 1);
     };
     
     // Apply security middleware stack only to API routes
+    // Note: Basic security (helmet, CORS, X-Frame-Options) is already applied in securityBaseline.ts
     app.use(applyToApiOnly(securityLogger));
-    app.use(applyToApiOnly(helmet(getHelmetConfig())));
-    app.use(applyToApiOnly(cors(getCorsConfig() as any)));
     app.use(applyToApiOnly(xssProtection));
     app.use(applyToApiOnly(requestSizeLimiter));
     
@@ -87,14 +108,98 @@ app.set('trust proxy', 1);
     app.use('/api/files', createRateLimiter(rateLimits.uploads.windowMs, rateLimits.uploads.max, 'Upload limit reached'));
     app.use(applyToApiOnly(createRateLimiter(rateLimits.general.windowMs, rateLimits.general.max)));
     
+    // ===== FORTUNE 50 COMPLIANCE: DUAL AUTH REHYDRATION =====
+    // Rehydrate dual authorization manager from database before routes are registered
+    // This ensures pending approval workflows survive server restarts
+    const rehydrationResult = await rehydrateDualAuthManager();
+    if (!rehydrationResult.success) {
+      log.warn('[Startup] Dual auth rehydration failed, continuing with empty state', {
+        error: rehydrationResult.error
+      });
+    } else {
+      log.info('[Startup] Dual auth rehydration complete', {
+        hydratedCount: rehydrationResult.hydratedCount,
+        expiredCount: rehydrationResult.expiredCount
+      });
+    }
+    
+    // Setup periodic cleanup of expired dual auth requests (every 5 minutes)
+    setInterval(async () => {
+      try {
+        await cleanupExpiredDualAuthRequests();
+      } catch (error) {
+        log.warn('[Cleanup] Failed to cleanup expired dual auth requests', { error });
+      }
+    }, 5 * 60 * 1000);
+    
+    // ===== FORTUNE 50 COMPLIANCE: GPS DATA ARCHIVAL (Daily at midnight) =====
+    // Runs GPS data compression (90 days), archival (365 days), and purging (7 years)
+    const runGPSArchival = async () => {
+      try {
+        log.info('[GPS Archival] Starting daily GPS data archival job');
+        const gpsArchivalService = new GPSArchivalService();
+        const result = await gpsArchivalService.archiveGPSData();
+        log.info('[GPS Archival] Completed', {
+          compressed: result.compressed,
+          archived: result.archived,
+          deleted: result.deleted,
+          errors: result.errors.length
+        });
+      } catch (error) {
+        log.error('[GPS Archival] Failed', { error });
+      }
+    };
+    
+    // Run GPS archival every 24 hours (86400000ms)
+    setInterval(runGPSArchival, 24 * 60 * 60 * 1000);
+    // Also run once at startup (after 10 second delay to allow server to stabilize)
+    setTimeout(runGPSArchival, 10000);
+    
+    // ===== FORTUNE 50 COMPLIANCE: NOTIFICATION RETENTION ENFORCEMENT =====
+    // Enforces notification retention_days field, purges expired notifications
+    const enforceNotificationRetention = async () => {
+      try {
+        log.info('[Notification Retention] Starting retention enforcement');
+        
+        // Find and purge expired notifications based on retention_days
+        const result = await db.execute(sql`
+          UPDATE notifications 
+          SET 
+            title = '[PURGED]',
+            body = '[Content purged per retention policy]',
+            pii_redacted = true,
+            updated_at = NOW()
+          WHERE 
+            retention_days IS NOT NULL 
+            AND created_at < NOW() - (retention_days * INTERVAL '1 day')
+            AND title != '[PURGED]'
+          RETURNING id
+        `);
+        
+        const purgedCount = result.rows?.length || 0;
+        log.info('[Notification Retention] Completed', { purgedCount });
+      } catch (error) {
+        log.error('[Notification Retention] Failed', { error });
+      }
+    };
+    
+    // Run notification retention every 6 hours (21600000ms)
+    setInterval(enforceNotificationRetention, 6 * 60 * 60 * 1000);
+    // Also run once at startup (after 15 second delay)
+    setTimeout(enforceNotificationRetention, 15000);
+    
     // Register all API routes (registerRoutes handles server creation)
     const httpServer = await registerRoutes(app);
-    
-    // ===== PHASE 6: SETUP VITE IN DEVELOPMENT =====
-    if (app.get("env") === "development") {
-      log.info("Setting up Vite development server...");
-      await setupVite(app, httpServer);
-      log.info("Vite development server setup complete");
+
+    // ===== WAVE 2: INITIALIZE WEBSOCKET SERVICE =====
+    // Real-time notifications require WebSocket connection
+    try {
+      WebSocketService.getInstance().initialize(httpServer);
+      log.info('[Startup] WebSocket service initialized for real-time notifications');
+    } catch (wsError) {
+      log.warn('[Startup] WebSocket initialization failed, real-time notifications disabled', {
+        error: wsError
+      });
     }
 
     // ===== ERROR HANDLING MIDDLEWARE =====
@@ -117,21 +222,30 @@ app.set('trust proxy', 1);
       });
     });
 
-    // ===== 404 HANDLER =====
-    app.use('*', (req: Request, res: Response) => {
-      log.warn(`404 Not Found: ${req.method} ${req.originalUrl}`, {
-        ip: req.ip,
-        userAgent: req.get('user-agent')
+    // ===== 404 HANDLER (Only for production) =====
+    if (app.get("env") !== "development") {
+      app.use((req: Request, res: Response) => {
+        log.warn(`404 Not Found: ${req.method} ${req.originalUrl}`, {
+          ip: req.ip,
+          userAgent: req.get('user-agent')
+        });
+        
+        res.status(404).json({
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: 'The requested resource was not found'
+          }
+        });
       });
-      
-      res.status(404).json({
-        success: false,
-        error: {
-          code: 'NOT_FOUND',
-          message: 'The requested resource was not found'
-        }
-      });
-    });
+    }
+    
+    // ===== PHASE 6: SETUP VITE IN DEVELOPMENT =====
+    if (app.get("env") === "development") {
+      log.info("Setting up Vite development server...");
+      await setupVite(app, httpServer);
+      log.info("Vite development server setup complete");
+    }
 
     // ===== START SERVER =====
     const port = config.PORT || 5000;

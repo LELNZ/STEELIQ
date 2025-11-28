@@ -50,6 +50,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { SupplierPriceRefresh } from "./supplier-price-refresh";
 import { LaborStandardsCalculator } from "./labor-standards-calculator";
 import AddOperationDialog from "./add-operation-dialog";
+import OperationsManager from "./operations-manager";
 
 interface MaterialCost {
   id: string;
@@ -111,6 +112,7 @@ interface MaterialsTabProps {
   materials: MaterialCost[];
   availableMaterials: any[];
   onUpdate: (materials: MaterialCost[]) => void;
+  operationOrchestrator?: any; // Fortune 50 compliant orchestrator for database operations
   onLaborUpdate?: (laborItems: any[]) => void;
   onConsumablesUpdate?: (consumableItems: any[]) => void;
   onLaborDelete?: (operationId: string) => void;
@@ -257,9 +259,10 @@ function ImportMTODialog({ projectId, onImport }: ImportMTODialogProps) {
       // Fetch detailed material takeoffs for the selected drawing
       const takeoffsData = await apiRequest(`/api/material-takeoffs/drawing/${selectedDrawingId}`, 'GET');
       
-      // Transform takeoff data to MaterialCost format
-      const importedMaterials: MaterialCost[] = takeoffsData.map((takeoff: any) => ({
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      // Transform takeoff data to MaterialCost format WITHOUT mock IDs
+      // Parent component will handle saving to database and assigning real IDs
+      const importedMaterials: Partial<MaterialCost>[] = takeoffsData.map((takeoff: any) => ({
+        // NO ID HERE - will be assigned by database after save
         materialCode: takeoff.mark || "",
         materialName: takeoff.section || `Material ${takeoff.mark}`,
         designation: `${takeoff.mark} - ${takeoff.section}`,
@@ -277,7 +280,7 @@ function ImportMTODialog({ projectId, onImport }: ImportMTODialogProps) {
         aiSuggested: false
       }));
       
-      onImport(importedMaterials);
+      onImport(importedMaterials as MaterialCost[]);
       setIsOpen(false);
       setSelectedProjectId("");
       setSelectedDrawingId("");
@@ -431,7 +434,61 @@ const getCategoryFromType = (type: string): string => {
   return typeMap[type.toLowerCase()] || 'general';
 };
 
-export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborUpdate, onConsumablesUpdate, onLaborDelete, onConsumablesDelete, onQuantityChange, onMaterialAreaWeightChange, projectId }: MaterialsTabProps) {
+// Helper function to determine equipment needed for an operation
+const determineEquipmentForOperation = (operationType: string, method?: string): any[] => {
+  const equipment: any[] = [];
+  
+  switch (operationType) {
+    case 'cutting':
+      if (method === 'plasma') {
+        equipment.push({ type: 'Plasma Cutter', category: 'cutting', rate: 180 });
+      } else if (method === 'laser') {
+        equipment.push({ type: 'Laser Cutter', category: 'cutting', rate: 250 });
+      } else if (method === 'bandsaw') {
+        equipment.push({ type: 'Bandsaw', category: 'cutting', rate: 120 });
+      } else if (method === 'oxy') {
+        equipment.push({ type: 'Oxy-Acetylene Set', category: 'cutting', rate: 100 });
+      }
+      break;
+      
+    case 'drilling':
+      if (method === 'mag_drill') {
+        equipment.push({ type: 'Magnetic Drill', category: 'drilling', rate: 150 });
+      } else if (method === 'hand_drill') {
+        equipment.push({ type: 'Hand Drill', category: 'drilling', rate: 50 });
+      } else {
+        equipment.push({ type: 'Drill Press', category: 'drilling', rate: 100 });
+      }
+      break;
+      
+    case 'welding':
+    case 'weld':
+      equipment.push({ type: 'MIG Welder', category: 'welding', rate: 150 });
+      equipment.push({ type: 'Welding Positioner', category: 'welding', rate: 80 });
+      break;
+      
+    case 'grinding':
+      equipment.push({ type: 'Angle Grinder', category: 'grinding', rate: 60 });
+      break;
+      
+    case 'blasting':
+      equipment.push({ type: 'Sandblaster', category: 'surface_treatment', rate: 200 });
+      break;
+      
+    case 'painting':
+      equipment.push({ type: 'Spray Booth', category: 'surface_treatment', rate: 150 });
+      equipment.push({ type: 'Paint Gun', category: 'surface_treatment', rate: 50 });
+      break;
+      
+    case 'lifting':
+      equipment.push({ type: 'Crane', category: 'material_handling', rate: 300 });
+      break;
+  }
+  
+  return equipment;
+};
+
+export function MaterialsTab({ materials, availableMaterials, onUpdate, operationOrchestrator, onLaborUpdate, onConsumablesUpdate, onLaborDelete, onConsumablesDelete, onQuantityChange, onMaterialAreaWeightChange, projectId }: MaterialsTabProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MaterialCost | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -439,9 +496,71 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
   const [aiSuggestions, setAiSuggestions] = useState<MaterialCost[]>([]);
   const [isAddChildDialogOpen, setIsAddChildDialogOpen] = useState(false);
   const [addChildItemMaterialId, setAddChildItemMaterialId] = useState<string | null>(null);
+  const [isOperationsManagerOpen, setIsOperationsManagerOpen] = useState(false);
+  const [selectedMaterialForOperations, setSelectedMaterialForOperations] = useState<MaterialCost | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Load materials from database on mount
+  useEffect(() => {
+    if (projectId) {
+      loadMaterialsFromDatabase();
+    }
+  }, [projectId]);
+
+  const loadMaterialsFromDatabase = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/estimation/materials/project/${projectId}`);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Transform database materials to MaterialCost format
+        const transformedMaterials = data.map((dbMat: any) => ({
+          id: dbMat.id, // Use actual database ID
+          materialId: dbMat.material_id,
+          materialCode: dbMat.material_code,
+          materialName: dbMat.material_name,
+          designation: dbMat.designation,
+          drawingReference: dbMat.drawing_ref,
+          assemblyMark: dbMat.assembly_mark,
+          phase: dbMat.phase,
+          sequence: dbMat.sequence,
+          gridLine: dbMat.grid_line,
+          length: parseFloat(dbMat.length) || 6.0,
+          quantity: parseFloat(dbMat.quantity) || 1,
+          unit: dbMat.unit || "m",
+          unitCost: parseFloat(dbMat.unit_cost) || 0,
+          totalCost: parseFloat(dbMat.total_cost) || 0,
+          wasteFactor: parseFloat(dbMat.waste_factor) || 5,
+          handlingCost: parseFloat(dbMat.handling_cost) || 0,
+          supplier: dbMat.supplier,
+          leadTime: dbMat.lead_time,
+          notes: dbMat.notes,
+          weight: dbMat.weight ? parseFloat(dbMat.weight) : undefined,
+          weightPerMeter: dbMat.weight_per_meter ? parseFloat(dbMat.weight_per_meter) : undefined,
+          width: dbMat.width ? parseFloat(dbMat.width) : undefined,
+          height: dbMat.height ? parseFloat(dbMat.height) : undefined,
+          thickness: dbMat.thickness ? parseFloat(dbMat.thickness) : undefined,
+          surfaceArea: dbMat.surface_area ? parseFloat(dbMat.surface_area) : undefined,
+          childItems: []
+        }));
+        
+        onUpdate(transformedMaterials);
+      }
+    } catch (error) {
+      console.error("Error loading materials from database:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load materials from database",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Calculate handling time and cost based on material weight
   const calculateHandlingCost = (material: any, quantity: number) => {
@@ -480,7 +599,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
   };
 
   // Add new material to estimation
-  const addMaterial = (materialData: Partial<MaterialCost>) => {
+  const addMaterial = async (materialData: Partial<MaterialCost>) => {
     // Get existing designations
     const existingDesignations = materials.map(m => m.designation).filter(Boolean) as string[];
     
@@ -488,37 +607,108 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
     const designation = materialData.designation || 
       generateMaterialDesignation(materialData.materialCode || '', existingDesignations);
     
-    const newMaterial: MaterialCost = {
-      id: Date.now().toString(),
-      materialId: materialData.materialId,
-      materialCode: materialData.materialCode || "",
-      materialName: materialData.materialName || "",
-      designation, // Auto-generated or provided designation
-      length: materialData.length || 6.0, // Default 6m length
-      lengthUnit: materialData.lengthUnit || 'm',
-      quantity: materialData.quantity || 1,
-      unit: materialData.unit || "m",
-      unitCost: materialData.unitCost || 0,
-      wasteFactor: materialData.wasteFactor || 5,
-      handlingTime: materialData.handlingTime || 0,
-      handlingCost: materialData.handlingCost || 0,
-      supplier: materialData.supplier || "",
-      leadTime: materialData.leadTime,
-      notes: materialData.notes,
-      totalCost: 0,
-      totalLength: 0, // Will be calculated below
-      childItems: [], // Initialize childItems array
-      ...materialData
-    };
-
     // Calculate totals with waste factor
-    const adjustedQuantity = newMaterial.quantity * (1 + newMaterial.wasteFactor / 100);
-    newMaterial.totalCost = adjustedQuantity * newMaterial.unitCost + newMaterial.handlingCost;
-    newMaterial.totalLength = (newMaterial.length || 6.0) * newMaterial.quantity;
+    const quantity = materialData.quantity || 1;
+    const unitCost = materialData.unitCost || 0;
+    const wasteFactor = materialData.wasteFactor || 5;
+    const handlingCost = materialData.handlingCost || 0;
+    const adjustedQuantity = quantity * (1 + wasteFactor / 100);
+    const totalCost = adjustedQuantity * unitCost + handlingCost;
+    const totalLength = (materialData.length || 6.0) * quantity;
 
-    const updatedMaterials = [...materials, newMaterial];
-    onUpdate(updatedMaterials);
-    setIsAddDialogOpen(false);
+    try {
+      // Save to database first
+      const response = await fetch('/api/estimation/materials', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectId,
+          materialId: materialData.materialId,
+          materialCode: materialData.materialCode || "",
+          materialName: materialData.materialName || "",
+          designation,
+          drawingRef: materialData.drawingReference,
+          assemblyMark: materialData.assemblyMark,
+          phase: materialData.phase,
+          sequence: materialData.sequenceNumber?.toString(),
+          gridLine: materialData.gridLine,
+          quantity,
+          unit: materialData.unit || "m",
+          unitCost,
+          totalCost,
+          wasteFactor,
+          handlingCost,
+          supplier: materialData.supplier || "",
+          leadTime: materialData.leadTime,
+          notes: materialData.notes,
+          length: materialData.length || 6.0,
+          width: materialData.width,
+          height: materialData.height,
+          thickness: materialData.thickness,
+          weight: materialData.weight,
+          weightPerMeter: materialData.weightPerMeter,
+          surfaceArea: materialData.surfaceArea
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save material to database');
+      }
+
+      const savedMaterial = await response.json();
+      
+      // Create MaterialCost object with database ID
+      const newMaterial: MaterialCost = {
+        id: savedMaterial.id, // Use database ID
+        materialId: savedMaterial.material_id,
+        materialCode: savedMaterial.material_code,
+        materialName: savedMaterial.material_name,
+        designation: savedMaterial.designation,
+        drawingReference: savedMaterial.drawing_ref,
+        assemblyMark: savedMaterial.assembly_mark,
+        phase: savedMaterial.phase,
+        sequence: savedMaterial.sequence,
+        gridLine: savedMaterial.grid_line,
+        length: parseFloat(savedMaterial.length) || 6.0,
+        lengthUnit: 'm',
+        quantity: parseFloat(savedMaterial.quantity) || 1,
+        unit: savedMaterial.unit || "m",
+        unitCost: parseFloat(savedMaterial.unit_cost) || 0,
+        totalCost: parseFloat(savedMaterial.total_cost) || 0,
+        totalLength,
+        wasteFactor: parseFloat(savedMaterial.waste_factor) || 5,
+        handlingTime: materialData.handlingTime || 0,
+        handlingCost: parseFloat(savedMaterial.handling_cost) || 0,
+        supplier: savedMaterial.supplier || "",
+        leadTime: savedMaterial.lead_time,
+        notes: savedMaterial.notes,
+        weight: savedMaterial.weight ? parseFloat(savedMaterial.weight) : undefined,
+        weightPerMeter: savedMaterial.weight_per_meter ? parseFloat(savedMaterial.weight_per_meter) : undefined,
+        width: savedMaterial.width ? parseFloat(savedMaterial.width) : undefined,
+        height: savedMaterial.height ? parseFloat(savedMaterial.height) : undefined,
+        thickness: savedMaterial.thickness ? parseFloat(savedMaterial.thickness) : undefined,
+        surfaceArea: savedMaterial.surface_area ? parseFloat(savedMaterial.surface_area) : undefined,
+        childItems: []
+      };
+
+      const updatedMaterials = [...materials, newMaterial];
+      onUpdate(updatedMaterials);
+      setIsAddDialogOpen(false);
+      
+      toast({
+        title: "Success",
+        description: "Material added successfully",
+      });
+    } catch (error) {
+      console.error("Error adding material:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add material",
+        variant: "destructive"
+      });
+    }
   };
 
   // Update existing material
@@ -544,7 +734,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
   };
 
   // Update material field inline
-  const updateMaterialField = (id: string, field: keyof MaterialCost, value: any) => {
+  const updateMaterialField = async (id: string | number, field: keyof MaterialCost, value: any) => {
     // Track old quantity for parent material quantity changes
     let oldQuantity = 0;
     let materialId = '';
@@ -607,94 +797,190 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
     onUpdate(updatedMaterials);
   };
 
-  // Add child item to a material
+  // Add child item to a material (legacy - keeping for backward compatibility)
   const addChildItem = (materialId: string) => {
     setAddChildItemMaterialId(materialId);
     setIsAddChildDialogOpen(true);
   };
 
+  // Open Operations Manager for a material
+  const openOperationsManager = (material: MaterialCost) => {
+    setSelectedMaterialForOperations(material);
+    setIsOperationsManagerOpen(true);
+  };
+
   // Handle operation submission from new dialog
-  const handleAddOperation = (operation: any) => {
+  const handleAddOperation = async (operation: any) => {
     const materialId = addChildItemMaterialId;
-    if (!materialId) {
-      console.error('No material ID set for adding operation');
+    if (!materialId || !projectId) {
+      console.error('No material ID or project ID set for adding operation');
       return;
     }
     
     console.log('Adding operation to material:', materialId, operation);
+    
+    // Find parent material to get its designation
+    const parentMaterial = materials.find(m => m.id === materialId);
+    const parentDesignation = parentMaterial?.designation || `MAT-${materialId}`;
 
-    // Create child item from operation
-    const newChildItem: MaterialChildItem = {
-      id: `op-${Date.now()}`,
-      type: operation.type as MaterialChildItem['type'],
-      description: operation.description,
-      quantity: operation.quantity,
-      unit: operation.unit,
-      unitCost: operation.unitCost,
-      totalCost: operation.totalCost,
-      thickness: operation.thickness,
-      size: operation.size,
-      length: operation.length,
-      notes: operation.notes,
-      weldTime: operation.weldTime,
-      libraryComponentId: operation.libraryComponentId
-    };
-
-    const updatedMaterials = materials.map(material => {
-      if (material.id === materialId) {
-        const currentChildItems = material.childItems || [];
-        const updated = { 
-          ...material, 
-          childItems: [...currentChildItems, newChildItem],
-          isExpanded: true
+    // Fortune 50 Compliance: Use orchestrator for database-first ID generation
+    if (operationOrchestrator) {
+      try {
+        // Create UI handle for tracking
+        const uiHandle = `ui-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        operationOrchestrator.registerUiHandle(uiHandle);
+        
+        // Create placeholder with pending status
+        const placeholderItem: MaterialChildItem = {
+          id: uiHandle, // Temporary handle, will be replaced
+          type: operation.type as MaterialChildItem['type'],
+          description: `${operation.description} (creating...)`,
+          quantity: operation.quantity,
+          unit: operation.unit,
+          unitCost: operation.unitCost,
+          totalCost: operation.totalCost,
+          thickness: operation.thickness,
+          size: operation.size,
+          length: operation.length,
+          notes: operation.notes,
+          weldTime: operation.weldTime,
+          libraryComponentId: operation.libraryComponentId,
         };
         
-        // Recalculate total including child items
-        const adjustedQuantity = updated.quantity * (1 + updated.wasteFactor / 100);
-        updated.totalCost = adjustedQuantity * updated.unitCost + updated.handlingCost;
-        const childTotal = updated.childItems.reduce((sum, child) => sum + child.totalCost, 0);
-        updated.totalCost += childTotal;
+        // Show placeholder immediately for responsive UI
+        const optimisticMaterials = materials.map(material => {
+          if (material.id === materialId) {
+            return {
+              ...material,
+              childItems: [...(material.childItems || []), placeholderItem],
+              isExpanded: true
+            };
+          }
+          return material;
+        });
+        onUpdate(optimisticMaterials);
         
-        return updated;
+        // Create operation in database with UI handle for tracking
+        const dbOperation = await operationOrchestrator.createOperationImmediately(uiHandle, {
+          projectId,
+          materialId: Number(materialId),
+          designation: `${parentDesignation}-${operation.type}`,
+          description: operation.description,
+          type: operation.type,
+          quantity: operation.quantity,
+          unit: operation.unit,
+          unitCost: operation.unitCost,
+          totalCost: operation.totalCost,
+        });
+        
+        // Update with real database ID
+        const finalItem: MaterialChildItem = {
+          ...placeholderItem,
+          id: dbOperation.id.toString(),
+          description: operation.description, // Remove "creating..." suffix
+        };
+        
+        // Replace placeholder with real item
+        const updatedMaterials = materials.map(material => {
+          if (material.id === materialId) {
+            const updatedChildItems = material.childItems?.map(child =>
+              child.id === uiHandle ? finalItem : child
+            ) || [finalItem];
+            
+            const updated = {
+              ...material,
+              childItems: updatedChildItems,
+              isExpanded: true
+            };
+            
+            // Recalculate total including child items
+            const adjustedQuantity = updated.quantity * (1 + updated.wasteFactor / 100);
+            updated.totalCost = adjustedQuantity * updated.unitCost + updated.handlingCost;
+            const childTotal = updated.childItems.reduce((sum, child) => sum + child.totalCost, 0);
+            updated.totalCost += childTotal;
+            
+            return updated;
+          }
+          return material;
+        });
+        
+        onUpdate(updatedMaterials);
+        
+        // Process follow-up items (labor, equipment, consumables) with proper context
+        await processOperationFollowUps(dbOperation, operation, materialId, parentDesignation);
+        
+      } catch (error) {
+        console.error('Failed to create operation:', error);
+        toast({
+          title: "Error",
+          description: "Failed to create operation. Please try again.",
+          variant: "destructive"
+        });
+        
+        // Remove placeholder on error
+        const revertedMaterials = materials.map(material => {
+          if (material.id === materialId) {
+            return {
+              ...material,
+              childItems: material.childItems?.filter(child => !child.id.startsWith('ui-'))
+            };
+          }
+          return material;
+        });
+        onUpdate(revertedMaterials);
       }
-      return material;
-    });
+    } else {
+      // Fallback for when orchestrator is not available (shouldn't happen in production)
+      console.warn('Operation orchestrator not available, operation not created');
+      toast({
+        title: "Warning",
+        description: "Unable to create operation. Please refresh and try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
-    onUpdate(updatedMaterials);
+  // Helper function to process follow-up items after operation creation
+  const processOperationFollowUps = async (
+    dbOperation: any, 
+    originalOperation: any,
+    materialId: string,
+    parentDesignation: string
+  ) => {
+    const operationId = dbOperation.id;
 
     // Route to appropriate tabs
-    if (operation.includeInLabor && onLaborUpdate) {
-      const laborRate = operation.laborLocation === 'site' ? 120 : 85;
-      const laborHours = operation.laborHours || 0;
+    if (originalOperation.includeInLabor && onLaborUpdate) {
+      const laborRate = originalOperation.laborLocation === 'site' ? 120 : 85;
+      const laborHours = originalOperation.laborHours || 0;
       // Map location to labor category
-      const laborCategory = operation.laborLocation === 'site' ? 'onsite' : 'workshop';
+      const laborCategory = originalOperation.laborLocation === 'site' ? 'onsite' : 'workshop';
       
       onLaborUpdate([{
-        id: `labor-${Date.now()}`,
-        operationId: newChildItem.id,
-        description: operation.description,
+        // Use real database operation ID
+        operationId: operationId.toString(),
+        designation: `${parentDesignation}-${originalOperation.type}`, // Add designation for traceability
+        description: originalOperation.description,
         hours: laborHours,
-        location: operation.laborLocation,
-        skillLevel: operation.skillLevel,
+        location: originalOperation.laborLocation,
+        skillLevel: originalOperation.skillLevel,
         rate: laborRate,
         totalCost: laborHours * laborRate, // Calculate totalCost
         parentMaterialId: materialId,
         category: laborCategory, // Use mapped category
-        subcategory: operation.type || 'fabrication', // Add subcategory
-        notes: operation.notes
+        subcategory: originalOperation.type || 'fabrication', // Add subcategory
+        notes: originalOperation.notes
       }]);
     }
 
     // Handle consumables routing
-    if (operation.includeInConsumables && operation.consumablesData && operation.consumablesData.length > 0 && onConsumablesUpdate) {
-      // Get parent material for designation
-      const parentMaterial = materials.find(m => m.id === materialId);
-      
+    if (originalOperation.includeInConsumables && originalOperation.consumablesData && originalOperation.consumablesData.length > 0 && onConsumablesUpdate) {
       // Map consumables data to the format expected by consumables tab
-      const consumableItems = operation.consumablesData.map((item: any, index: number) => ({
-        id: `cons-${Date.now()}-${index}`,
-        designation: parentMaterial?.designation || '',
-        operationDesignation: `${parentMaterial?.designation || 'OP'}-${operation.type}-${index + 1}`,
+      const consumableItems = originalOperation.consumablesData.map((item: any, index: number) => ({
+        // Use real database operation ID
+        operationId: operationId.toString(),
+        designation: parentDesignation,
+        operationDesignation: `${parentDesignation}-${originalOperation.type}-${index + 1}`,
         category: getCategoryFromType(item.type),
         itemType: item.type || 'consumable',
         specification: item.description || '',
@@ -702,18 +988,42 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
         unit: item.unit || 'each',
         unitCost: item.unitCost || 0,
         totalCost: (item.quantity || 1) * (item.unitCost || 0),
-        notes: `Auto-generated from ${operation.description}`,
-        parentMaterialId: materialId,
-        operationId: newChildItem.id
+        notes: `Auto-generated from ${originalOperation.description}`,
+        parentMaterialId: materialId
       }));
       
       onConsumablesUpdate(consumableItems);
       console.log('Routed consumables to consumables tab:', consumableItems);
     }
+    
+    // Handle equipment routing for operations that require machinery
+    if (originalOperation.includeInEquipment && onEquipmentUpdate) {
+      const equipmentNeeded = determineEquipmentForOperation(originalOperation.type, originalOperation.method);
+      if (equipmentNeeded.length > 0) {
+        const equipmentItems = equipmentNeeded.map((equipment: any, index: number) => ({
+          // Use real database operation ID for linkage
+          operationId: operationId.toString(),
+          designation: `${parentDesignation}-${originalOperation.type}`,
+          category: equipment.category || 'machinery',
+          equipmentType: equipment.type,
+          specification: equipment.specification || originalOperation.method || '',
+          quantity: 1,
+          unit: 'hours',
+          hoursRequired: originalOperation.laborHours || 0, // Equipment hours match labor hours
+          hourlyRate: equipment.rate || 150,
+          totalCost: (originalOperation.laborHours || 0) * (equipment.rate || 150),
+          notes: `Required for ${originalOperation.description}`,
+          parentMaterialId: materialId
+        }));
+        
+        onEquipmentUpdate(equipmentItems);
+        console.log('Routed equipment to equipment tab:', equipmentItems);
+      }
+    }
 
     toast({
       title: "Operation Added",
-      description: `${operation.description} added successfully`
+      description: `${originalOperation.description} added successfully with ID ${operationId}`
     });
     
     setIsAddChildDialogOpen(false);
@@ -725,7 +1035,8 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
     if (!addChildItemMaterialId) return;
 
     const newChildItem: MaterialChildItem = {
-      id: Date.now().toString(),
+      // Use a temporary client-side ID that won't overflow database integers
+      id: `temp-child-${Math.random().toString(36).substr(2, 9)}`,
       type: childData.type || 'stiffener',
       description: childData.description || '',
       quantity: childData.quantity || 1,
@@ -852,24 +1163,52 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
     }
   };
 
-  // Handle importing materials from MTO
-  const handleImportMTO = (importedMaterials: MaterialCost[]) => {
-    // Filter out empty placeholder materials (those with no materialCode and no totalCost)
-    const nonEmptyMaterials = materials.filter(m => 
-      m.materialCode || m.materialName || m.totalCost > 0
-    );
+  // Handle importing materials from MTO - Save to database first
+  const handleImportMTO = async (importedMaterials: MaterialCost[]) => {
+    // Show loading state to disable operations UI
+    setIsLoading(true);
     
-    // Replace empty materials with imported ones, or append if all existing materials have content
-    const updatedMaterials = nonEmptyMaterials.length === materials.length 
-      ? [...materials, ...importedMaterials]  // All existing have content, append
-      : [...nonEmptyMaterials, ...importedMaterials]; // Replace empty ones
-    
-    onUpdate(updatedMaterials);
-    
-    toast({
-      title: "MTO Import Successful",
-      description: `Imported ${importedMaterials.length} materials from takeoff`,
-    });
+    try {
+      // Save each imported material using the existing addMaterial logic
+      const savedCount = { success: 0, failed: 0 };
+      
+      for (const material of importedMaterials) {
+        try {
+          // Use addMaterial to ensure proper database save and ID assignment
+          await addMaterial(material);
+          savedCount.success++;
+        } catch (error) {
+          console.error(`Failed to save material ${material.materialCode}:`, error);
+          savedCount.failed++;
+        }
+      }
+      
+      // Show results
+      if (savedCount.success > 0) {
+        toast({
+          title: "MTO Import Complete",
+          description: `Successfully imported ${savedCount.success} of ${importedMaterials.length} materials`,
+        });
+      }
+      
+      if (savedCount.failed > 0) {
+        toast({
+          title: "Import Warnings",
+          description: `${savedCount.failed} materials failed to import. Check console for details.`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error during MTO import:", error);
+      toast({
+        title: "Import Failed",
+        description: "Failed to import materials. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      // Re-enable operations UI
+      setIsLoading(false);
+    }
   };
 
   // Apply AI suggestion
@@ -942,10 +1281,12 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Material Cost Breakdown</h3>
         <div className="flex gap-2">
-          <ImportMTODialog 
-            projectId={projectId}
-            onImport={handleImportMTO}
-          />
+          {projectId && (
+            <ImportMTODialog 
+              projectId={projectId}
+              onImport={handleImportMTO}
+            />
+          )}
           <SupplierPriceRefresh
             materials={materials}
             onPricesUpdate={onUpdate}
@@ -1010,10 +1351,11 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
                     <th className="text-left p-2">Material</th>
                     <th className="text-left p-2">Designation</th>
                     <th className="text-left p-2">Length (m)</th>
+                    <th className="text-left p-2">Weight (kg)</th>
+                    <th className="text-left p-2">Surface Area (m²)</th>
                     <th className="text-left p-2">Drawing Ref</th>
                     <th className="text-left p-2">Quantity</th>
                     <th className="text-left p-2">Unit Cost</th>
-                    <th className="text-left p-2">Waste %</th>
                     <th className="text-left p-2">Total Cost</th>
                     <th className="text-left p-2">Actions</th>
                   </tr>
@@ -1076,6 +1418,26 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
                         </td>
                         <td className="p-2">
                           <Input
+                            type="number"
+                            step="0.01"
+                            value={material.weight || 0}
+                            onChange={(e) => updateMaterialField(material.id, 'weight', parseFloat(e.target.value) || 0)}
+                            className="w-20 text-sm"
+                            title="Total weight in kg"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={material.surfaceArea || 0}
+                            onChange={(e) => updateMaterialField(material.id, 'surfaceArea', parseFloat(e.target.value) || 0)}
+                            className="w-20 text-sm"
+                            title="Total surface area in m²"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input
                             value={material.drawingReference || ''}
                             onChange={(e) => updateMaterialField(material.id, 'drawingReference', e.target.value)}
                             placeholder="S-101"
@@ -1101,14 +1463,6 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
                             className="w-24"
                           />
                         </td>
-                        <td className="p-2">
-                          <Input
-                            type="number"
-                            value={material.wasteFactor}
-                            onChange={(e) => updateMaterialField(material.id, 'wasteFactor', parseFloat(e.target.value) || 0)}
-                            className="w-20"
-                          />
-                        </td>
                         <td className="p-2 font-medium">
                           ${(material.totalCost || 0).toLocaleString()}
                         </td>
@@ -1120,14 +1474,15 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => addChildItem(material.id)}
-                                    title="Add Operation"
+                                    onClick={() => openOperationsManager(material)}
+                                    disabled={isLoading || !material.id || (typeof material.id === 'string' && material.id.length > 10)}
+                                    title={isLoading ? "Saving materials..." : !material.id ? "Material must be saved first" : "Manage Operations"}
                                   >
                                     <Plus className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Add stiffener, end plate, or connection detail</p>
+                                  <p>{isLoading ? "Materials are being saved..." : !material.id ? "Save material first" : "Manage operations for this material"}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -1162,7 +1517,7 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
                               <span className="text-sm">{child.description}</span>
                             </div>
                           </td>
-                          <td className="p-2" colSpan={3}>
+                          <td className="p-2" colSpan={4}>
                             {child.size && <span className="text-xs text-gray-600">Size: {child.size}</span>}
                             {child.thickness && <span className="text-xs text-gray-600">Thickness: {child.thickness}mm</span>}
                           </td>
@@ -1184,7 +1539,6 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
                               className="w-24 h-8"
                             />
                           </td>
-                          <td className="p-2">-</td>
                           <td className="p-2 font-medium">
                             ${(child.totalCost || 0).toLocaleString()}
                           </td>
@@ -1233,13 +1587,41 @@ export function MaterialsTab({ materials, availableMaterials, onUpdate, onLaborU
       />
 
       {/* Add Operation Dialog */}
-      <AddOperationDialog
-        open={isAddChildDialogOpen}
-        onOpenChange={setIsAddChildDialogOpen}
-        onSubmit={handleAddOperation}
-        parentMaterial={materials.find(m => m.id === addChildItemMaterialId)}
-        estimationId={projectId || 0}
-      />
+      {projectId && (
+        <AddOperationDialog
+          open={isAddChildDialogOpen}
+          onOpenChange={setIsAddChildDialogOpen}
+          onSubmit={handleAddOperation}
+          parentMaterial={materials.find(m => m.id === addChildItemMaterialId)}
+          estimationId={projectId}
+        />
+      )}
+
+      {/* Operations Manager Dialog */}
+      <Dialog open={isOperationsManagerOpen} onOpenChange={setIsOperationsManagerOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Operations Manager - {selectedMaterialForOperations?.designation || 'Material'}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedMaterialForOperations && projectId && (
+            <OperationsManager
+              projectId={projectId}
+              material={selectedMaterialForOperations}
+              isLoading={isLoading} // Pass loading state to disable operations during import
+              onOperationsChange={(operations) => {
+                // Handle operations updates
+                console.log('Operations updated:', operations);
+                toast({
+                  title: "Operations Updated",
+                  description: `Operations for ${selectedMaterialForOperations.designation} have been updated.`
+                });
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1270,11 +1652,58 @@ function AddMaterialForm({
     assemblyMark: "",
     phase: "",
     sequenceNumber: undefined as number | undefined,
-    gridLine: ""
+    gridLine: "",
+    // Dimensional fields
+    length: "6.0",
+    width: "",
+    height: "",
+    thickness: "",
+    weight: "",
+    weightPerMeter: "",
+    surfaceArea: "",
+    surfaceAreaExposed: "",
+    surfaceAreaConfig: "all" // 'all' or 'exposed'
   });
 
   const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
   const [handlingCalc, setHandlingCalc] = useState({ time: 0, cost: 0 });
+  const [useAutoCalculate, setUseAutoCalculate] = useState(true);
+
+  // Function to calculate surface area based on dimensions
+  const calculateSurfaceArea = () => {
+    if (!formData.width || !formData.height || !formData.length) return;
+    
+    const width = parseFloat(formData.width) / 1000; // Convert mm to m
+    const height = parseFloat(formData.height) / 1000; // Convert mm to m
+    const length = parseFloat(formData.length); // Already in m
+    const thickness = formData.thickness ? parseFloat(formData.thickness) / 1000 : 0; // Convert mm to m
+    
+    let area = 0;
+    
+    // Calculate based on profile type (simplified for now)
+    if (formData.materialName.toLowerCase().includes('hollow') || 
+        formData.materialName.toLowerCase().includes('rhs') || 
+        formData.materialName.toLowerCase().includes('shs')) {
+      // Hollow section - calculate outer perimeter
+      area = 2 * (width + height) * length;
+    } else if (formData.materialName.toLowerCase().includes('plate') || 
+               formData.materialName.toLowerCase().includes('sheet')) {
+      // Plate - calculate both sides
+      area = 2 * width * length; // Assuming width is the plate width and length is the plate length
+    } else {
+      // Standard beam/column - calculate all surfaces
+      area = (2 * width + 2 * height) * length;
+    }
+    
+    // Apply exposed surface configuration
+    const exposedArea = formData.surfaceAreaConfig === 'exposed' ? area * 0.75 : area; // Assume 75% exposed
+    
+    setFormData(prev => ({
+      ...prev,
+      surfaceArea: area.toFixed(2),
+      surfaceAreaExposed: exposedArea.toFixed(2)
+    }));
+  };
 
   useEffect(() => {
     if (selectedMaterial && formData.quantity) {
@@ -1282,6 +1711,12 @@ function AddMaterialForm({
       setHandlingCalc(calc);
     }
   }, [selectedMaterial, formData.quantity, calculateHandlingCost]);
+
+  useEffect(() => {
+    if (useAutoCalculate) {
+      calculateSurfaceArea();
+    }
+  }, [formData.width, formData.height, formData.length, formData.thickness, formData.surfaceAreaConfig, useAutoCalculate]);
 
   const handleMaterialSelect = (material: any) => {
     setSelectedMaterial(material);
@@ -1316,7 +1751,17 @@ function AddMaterialForm({
       assemblyMark: formData.assemblyMark,
       phase: formData.phase,
       sequenceNumber: formData.sequenceNumber,
-      gridLine: formData.gridLine
+      gridLine: formData.gridLine,
+      // Dimensional fields
+      length: formData.length ? parseFloat(formData.length) : 6.0,
+      width: formData.width ? parseFloat(formData.width) : undefined,
+      height: formData.height ? parseFloat(formData.height) : undefined,
+      thickness: formData.thickness ? parseFloat(formData.thickness) : undefined,
+      weight: formData.weight ? parseFloat(formData.weight) : undefined,
+      weightPerMeter: formData.weightPerMeter ? parseFloat(formData.weightPerMeter) : undefined,
+      surfaceArea: formData.surfaceArea ? parseFloat(formData.surfaceArea) : undefined,
+      surfaceAreaExposed: formData.surfaceAreaExposed ? parseFloat(formData.surfaceAreaExposed) : undefined,
+      surfaceAreaConfig: formData.surfaceAreaConfig
     });
   };
 
@@ -1555,6 +2000,149 @@ function AddMaterialForm({
         </div>
       </div>
 
+      {/* Dimensional Fields */}
+      <div className="space-y-4">
+        <div className="border-t pt-4">
+          <h4 className="text-sm font-medium mb-4 text-muted-foreground">Dimensions & Weight</h4>
+          <div className="grid grid-cols-4 gap-4">
+            <div>
+              <Label htmlFor="length">Length (m)</Label>
+              <Input
+                id="length"
+                type="number"
+                step="0.1"
+                value={formData.length}
+                onChange={(e) => setFormData(prev => ({ ...prev, length: e.target.value }))}
+                placeholder="6.0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="width">Width (mm)</Label>
+              <Input
+                id="width"
+                type="number"
+                value={formData.width}
+                onChange={(e) => setFormData(prev => ({ ...prev, width: e.target.value }))}
+                placeholder="200"
+              />
+            </div>
+            <div>
+              <Label htmlFor="height">Height (mm)</Label>
+              <Input
+                id="height"
+                type="number"
+                value={formData.height}
+                onChange={(e) => setFormData(prev => ({ ...prev, height: e.target.value }))}
+                placeholder="300"
+              />
+            </div>
+            <div>
+              <Label htmlFor="thickness">Thickness (mm)</Label>
+              <Input
+                id="thickness"
+                type="number"
+                step="0.1"
+                value={formData.thickness}
+                onChange={(e) => setFormData(prev => ({ ...prev, thickness: e.target.value }))}
+                placeholder="10"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div>
+              <Label htmlFor="weight">Total Weight (kg)</Label>
+              <Input
+                id="weight"
+                type="number"
+                step="0.01"
+                value={formData.weight}
+                onChange={(e) => setFormData(prev => ({ ...prev, weight: e.target.value }))}
+                placeholder="Calculate or enter manually"
+              />
+            </div>
+            <div>
+              <Label htmlFor="weightPerMeter">Weight per Meter (kg/m)</Label>
+              <Input
+                id="weightPerMeter"
+                type="number"
+                step="0.01"
+                value={formData.weightPerMeter}
+                onChange={(e) => setFormData(prev => ({ ...prev, weightPerMeter: e.target.value }))}
+                placeholder="Auto-calculated or manual"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Surface Area Calculator */}
+        <div className="border-t pt-4">
+          <h4 className="text-sm font-medium mb-4 text-muted-foreground">Surface Area Calculator</h4>
+          
+          <div className="flex items-center gap-2 mb-4">
+            <Switch
+              checked={useAutoCalculate}
+              onCheckedChange={setUseAutoCalculate}
+              id="auto-calculate"
+            />
+            <Label htmlFor="auto-calculate" className="text-sm cursor-pointer">
+              Auto-calculate from dimensions
+            </Label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <Label>Surface Configuration</Label>
+              <Select 
+                value={formData.surfaceAreaConfig} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, surfaceAreaConfig: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Surfaces</SelectItem>
+                  <SelectItem value="exposed">Exposed Surfaces Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="surfaceArea">Total Surface Area (m²)</Label>
+              <Input
+                id="surfaceArea"
+                type="number"
+                step="0.01"
+                value={formData.surfaceArea}
+                onChange={(e) => setFormData(prev => ({ ...prev, surfaceArea: e.target.value }))}
+                disabled={useAutoCalculate}
+                placeholder={useAutoCalculate ? "Auto-calculated" : "Enter manually"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="surfaceAreaExposed">Exposed Surface Area (m²)</Label>
+              <Input
+                id="surfaceAreaExposed"
+                type="number"
+                step="0.01"
+                value={formData.surfaceAreaExposed}
+                onChange={(e) => setFormData(prev => ({ ...prev, surfaceAreaExposed: e.target.value }))}
+                disabled={useAutoCalculate}
+                placeholder={useAutoCalculate ? "Auto-calculated" : "Enter manually"}
+              />
+            </div>
+          </div>
+
+          {useAutoCalculate && formData.surfaceArea && (
+            <div className="mt-2 text-sm text-muted-foreground">
+              <p>Calculated: {formData.surfaceArea} m² total, {formData.surfaceAreaExposed} m² exposed</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {handlingCalc.time > 0 && (
         <div className="bg-blue-50 p-3 rounded-md">
           <p className="text-sm text-blue-800">
@@ -1758,6 +2346,83 @@ function EditMaterialDialog({
                   value={formData.gridLine || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, gridLine: e.target.value }))}
                   placeholder="e.g., A-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Dimensional Fields */}
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-4 text-muted-foreground">Dimensions & Surface Area</h4>
+            <div className="grid grid-cols-4 gap-4">
+              <div>
+                <Label htmlFor="edit-length">Length (m)</Label>
+                <Input
+                  id="edit-length"
+                  type="number"
+                  step="0.1"
+                  value={formData.length || 6.0}
+                  onChange={(e) => setFormData(prev => ({ ...prev, length: parseFloat(e.target.value) || 6.0 }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-width">Width (mm)</Label>
+                <Input
+                  id="edit-width"
+                  type="number"
+                  value={formData.width || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, width: parseFloat(e.target.value) || undefined }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-height">Height (mm)</Label>
+                <Input
+                  id="edit-height"
+                  type="number"
+                  value={formData.height || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, height: parseFloat(e.target.value) || undefined }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-thickness">Thickness (mm)</Label>
+                <Input
+                  id="edit-thickness"
+                  type="number"
+                  step="0.1"
+                  value={formData.thickness || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, thickness: parseFloat(e.target.value) || undefined }))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4 mt-4">
+              <div>
+                <Label htmlFor="edit-weight">Weight (kg)</Label>
+                <Input
+                  id="edit-weight"
+                  type="number"
+                  step="0.01"
+                  value={formData.weight || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, weight: parseFloat(e.target.value) || undefined }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-surface-area">Surface Area (m²)</Label>
+                <Input
+                  id="edit-surface-area"
+                  type="number"
+                  step="0.01"
+                  value={formData.surfaceArea || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, surfaceArea: parseFloat(e.target.value) || undefined }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-surface-area-exposed">Exposed Area (m²)</Label>
+                <Input
+                  id="edit-surface-area-exposed"
+                  type="number"
+                  step="0.01"
+                  value={formData.surfaceAreaExposed || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, surfaceAreaExposed: parseFloat(e.target.value) || undefined }))}
                 />
               </div>
             </div>

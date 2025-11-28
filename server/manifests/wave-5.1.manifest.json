@@ -1,0 +1,40 @@
+{
+  "feature": "wave-5.1-anomaly-detection",
+  "version": "1.0.0",
+  "description": "ML-powered anomaly detection for time clock events with SHAP explainability",
+  "dependencies": {
+    "tables": [
+      "time_anomalies",
+      "anomaly_patterns",
+      "time_clocks",
+      "users"
+    ],
+    "services": [
+      "anomalyDetectionService"
+    ],
+    "routes": [
+      "/api/time/anomalies",
+      "/api/time/anomaly-patterns"
+    ],
+    "secrets": [],
+    "envVars": []
+  },
+  "auditFields": [
+    "auditHash",
+    "previousAuditHash"
+  ],
+  "preFlightChecks": [
+    "database",
+    "services",
+    "routes"
+  ],
+  "metadata": {
+    "status": "complete",
+    "completedDate": "2025-11-28",
+    "owner": "Time & Payroll Team",
+    "fortune50Parity": [
+      "Workday Anomaly Detection",
+      "ADP Fraud Detection"
+    ]
+  }
+}

@@ -1,7 +1,11 @@
-import { Bell, User, Clock, LogOut, Shield, Timer, Menu } from "lucide-react";
+import { User, Clock, LogOut, Shield, Timer, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Input } from "@/components/ui/input";
 import logoIcon from "@assets/LEL Symbol black only.png";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LanguageSelector } from "@/components/ui/language-selector";
+import { AccessibilityPanel } from "@/components/ui/accessibility-panel";
 import { 
   Select,
   SelectContent,
@@ -20,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/auth-context";
+import { getDisplayRole } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
 interface TopBarProps {
@@ -89,12 +94,15 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
             </Select>
           </div>
 
-          {/* Notifications - smaller on mobile */}
-          <div className="relative">
-            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
-              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
+          {/* Global Enhancement Controls */}
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <LanguageSelector />
+            <AccessibilityPanel />
           </div>
+
+          {/* Notifications with real-time updates */}
+          <NotificationBell />
 
           {/* User menu */}
           <UserMenu />
@@ -188,7 +196,7 @@ function UserMenu() {
           <Button variant="ghost" className="flex items-center gap-1 sm:gap-2 px-1 sm:px-2 hover:bg-accent">
             <div className="text-right hidden sm:block">
               <p className="text-xs sm:text-sm font-medium text-foreground leading-tight">{user.name || user.username}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">{user.role || 'User'}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">{getDisplayRole(user)}</p>
             </div>
             <Avatar className="h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10">
               <AvatarImage src={user.profileImageUrl} alt={user.name} />
@@ -205,7 +213,7 @@ function UserMenu() {
               <p className="text-xs text-muted-foreground">{user.email || 'No email'}</p>
               <div className="flex items-center space-x-2">
                 <Badge variant="secondary" className="text-xs">
-                  {user.department || user.role || 'User'}
+                  {user.department || getDisplayRole(user)}
                 </Badge>
               </div>
             </div>

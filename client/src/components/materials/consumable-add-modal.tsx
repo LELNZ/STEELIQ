@@ -110,7 +110,7 @@ export function ConsumableAddModal({ open, onOpenChange, suppliers }: Consumable
         supplier: data.supplierId ? `supplier_${data.supplierId}` : "",
       };
 
-      return await apiRequest("POST", "/api/materials", processedData);
+      return await apiRequest("/api/materials", "POST", processedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/materials"] });

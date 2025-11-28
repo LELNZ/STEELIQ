@@ -54,7 +54,7 @@ export default function CuttingPanel({ algorithm }: CuttingPanelProps) {
       stockLengths: StockMaterial[];
       algorithm: string;
     }) => {
-      const response = await apiRequest("POST", "/api/optimize/linear", data);
+      const response = await apiRequest("/api/optimize/linear", "POST", data);
       return response.json();
     },
     onSuccess: (result) => {

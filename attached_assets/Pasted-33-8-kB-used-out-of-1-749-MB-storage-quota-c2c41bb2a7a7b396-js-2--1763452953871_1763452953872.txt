@@ -1,0 +1,87 @@
+33.8 kB used out of 1,749 MB storage quota
+﻿
+c2c41bb2a7a7b396.js:2 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+c2c41bb2a7a7b396.js:2 Download the Apollo DevTools for a better development experience: https://chrome.google.com/webstore/detail/apollo-client-developer-t/jdkknkkbebbapilgoeccciglkfbmbnfm
+c2c41bb2a7a7b396.js:2 [LaunchDarkly] LaunchDarkly client initialized
+c2c41bb2a7a7b396.js:2 Adding extension: GPT-Replit - ChatGPT in your Repl. 
+Object
+c2c41bb2a7a7b396.js:2 Adding extension: CSV Editor 
+Object
+6
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+ed1e693c96a75807.js:2 Unrecognized feature: 'ambient-light-sensor'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'battery'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'execution-while-not-rendered'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'execution-while-out-of-viewport'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'layout-animations'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'legacy-image-formats'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'navigation-override'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'oversized-images'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'publickey-credentials'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'speaker-selection'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'unoptimized-images'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'unsized-media'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'pointer-lock'.
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowfullscreen'.
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowpaymentrequest'.
+c2c41bb2a7a7b396.js:2 Adding extension: API Request Tester 
+Object
+c2c41bb2a7a7b396.js:2 Adding extension: AI Playground 
+Object
+c2c41bb2a7a7b396.js:2 Adding extension: UI Sketcher 
+Object
+attached_assets/imag…1763450926995.png:1 
+ Failed to load resource: the server responded with a status of 404 ()
+stallwart.build.js:1 stallwart: failed ping 1
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Unrecognized feature: 'ambient-light-sensor'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Unrecognized feature: 'battery'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Unrecognized feature: 'execution-while-not-rendered'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Unrecognized feature: 'layout-animations'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Unrecognized feature: 'legacy-image-formats'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Unrecognized feature: 'navigation-override'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Unrecognized feature: 'oversized-images'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Unrecognized feature: 'publickey-credentials'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Unrecognized feature: 'speaker-selection'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Unrecognized feature: 'unoptimized-images'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Unrecognized feature: 'unsized-media'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Allow attribute will take precedence over 'allowfullscreen'.
+76081e7b-4fdf-4405-b…%2F&id=%3Ara0%3A:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+76081e7b-4fdf-4405-b…icard.replit.dev/:1 Loading the script 'https://replit.com/public/js/replit-dev-banner.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+time-payroll:1 Loading the script 'https://replit.com/public/js/replit-dev-banner.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+client:560 [vite] server connection lost. Polling for restart...
+time-payroll:1 Loading the script 'https://replit.com/public/js/replit-dev-banner.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+main.tsx:99 Attempting to render React app...
+main.tsx:101 React app render initiated
+js?key=AIzaSyBEEa2BP…coding&v=weekly:316 Google Maps JavaScript API has been loaded directly without loading=async. This can result in suboptimal performance. For best-practice loading patterns please see https://goo.gle/js-api-loading
+App.tsx:316 App component is rendering
+main.tsx:16 [Main] Clearing all caches and service workers...
+workspace_iframe.htm…ll&id=%3Ara0%3A:142 Loading the script 'https://replit.com/public/js/beacon.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+main.tsx:27 [Main] All caches cleared
+main.tsx:33 [Main] Unregistering service worker: https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/
+main.tsx:39 [Main] Registering development bypass service worker...
+main.tsx:62 [Main] Development service worker registered (no caching)
+76081e7b-4fdf-4405-b…ummary/2025-11-18:1 
+ Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+76081e7b-4fdf-4405-b…ndDate=2025-11-22:1 
+ Failed to load resource: the server responded with a status of 401 (Unauthorized)
+sw.js:169 [Service Worker] Script loaded. Version: steeliq-dev-bypass-v1, Environment: DEVELOPMENT (No Caching)
+76081e7b-4fdf-4405-b…ev/api/time/clock:1 
+ Failed to load resource: the server responded with a status of 400 (Bad Request)
+
+﻿
+

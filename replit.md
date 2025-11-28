@@ -1,16 +1,39 @@
 # STEELIQ - Enterprise Steel Fabrication & Procurement Platform
 
-## Platform Overview
+## Platform Purpose & Vision
 
 STEELIQ is an enterprise platform built for **Lateral Engineering Limited** (New Zealand) to manage the complete steel fabrication lifecycle from initial client inquiry through to final delivery. The platform aims to achieve **Fortune 50 standards** in data integrity, operational efficiency, and enterprise control.
 
 **Core Business Problems Solved:**
-- Streamline steel estimation with AI-powered drawing analysis (reduces 4-hour process to 10 minutes)
+- Streamline steel estimation with AI-powered drawing analysis
 - Automate procurement workflows (RFQs, POs, supplier management)
 - Track production from quote to delivery with real-time monitoring
 - Manage time, attendance, and payroll with GPS validation
 - Ensure compliance with AS/NZS steel fabrication standards
 - Provide complete audit trails for SOX compliance
+
+---
+
+## MANDATORY: Enterprise Control Framework Governance
+
+**ALL development actions MUST comply with the Enterprise Control Framework defined in:**
+`ENTERPRISE_CONTROL_FRAMEWORK_GOVERNANCE.md`
+
+### Before ANY Code Change:
+1. Verify feature has a manifest file at `server/manifests/{feature-name}.manifest.json`
+2. Confirm manifest includes complete governance metadata (TOGAF, COBIT, SOX, Gates)
+3. Run pre-flight check: `GET /api/system/pre-flight-check?feature={name}`
+4. Deployment is BLOCKED if any control fails
+
+### Governance Enforcement Rules:
+| Control | Failure = BLOCKED |
+|---------|-------------------|
+| Invalid TOGAF ADM Phase | YES |
+| ITGC Control Disabled | YES |
+| COBIT Maturity Gap > 1 | YES |
+| Rollback Not Validated | YES |
+| Missing Audit Columns | YES |
+| SoD Violation | YES |
 
 ---
 
@@ -25,35 +48,38 @@ STEELIQ is an enterprise platform built for **Lateral Engineering Limited** (New
 - **Do not make changes to the server/services directory without explicit approval.**
 - **Do not modify replit.md without explicit user approval.** When updating, ADD content - never delete existing instructions.
 - Keep code explanations brief unless explicitly requested.
-- Ensure strict type checking and comprehensive error handling.
 
 ---
 
-## Implementation Status
+## Complete Feature Inventory
 
-### Wave 1: Foundation (COMPLETED - August 2024)
-- Core database schema (75+ tables)
-- User authentication and granular RBAC
-- Basic job management and procurement
-- Material library with 602+ AS/NZS standard items
+### Core Modules
+- **Dashboard** (`/dashboard`) - Central overview with KPIs, job stats, inventory alerts
+- **Jobs & Production** (`/jobs`) - Job management, cutting operations, document management
+- **Materials Library** (`/materials`) - Steel catalogue, consumables, coatings, connections
+- **Inventory** (`/inventory`) - Stock tracking, low stock alerts, remnants, movements
+- **Procurement** (`/procurement`) - Requisitions, RFQs, quotes, POs, receiving
+- **Estimation** (`/estimation`) - AI-powered estimation with multi-tab workflow
+- **Contacts** (`/contacts`) - Unified suppliers and clients management
 
-### Wave 2: Intelligence Layer (COMPLETED - September 2024)
-- AI Estimation Engine with Claude Sonnet 4.0
-- DXF/DWG parser implementation (0.01mm precision)
-- Pattern recognition library (18 AS/NZS patterns)
-- Self-learning feedback system
+### Advanced Modules
+- **Production Floor** (`/production-floor`) - Real-time monitoring, work orders, quality control
+- **Resource Planning** (`/resource-planning`) - Capacity planning, labor allocation, equipment scheduling
+- **Financial Intelligence** (`/financial-intelligence`) - Revenue, costs, cash flow, profit margins
+- **Time & Payroll** (`/time-payroll`) - Time clock, timesheets, GPS validation, payroll export
+- **AI Control Center** (`/ai-control`) - AI operations monitoring, cache, feedback management
+- **Drawing Intelligence** (`/drawing-intelligence`) - PDF/DXF analysis, material takeoff extraction
+- **Audit Center** (`/audit-center`) - System logs, activity tracking, compliance reports
 
-### Wave 3: Enterprise Integration (COMPLETED - October 2025)
-- Complete job lifecycle integration
-- Fortune 50 data integrity standards (zero mock data)
-- RFQ automation with supplier category matching
-- Production monitoring with OEE metrics
-- Immutable audit trail implementation
+### Portals
+- **Client Portal** (`/client-portal`) - Project viewing, quote approval, feedback submission
+- **Supplier Portal** (`/supplier/po/:id`) - PO acknowledgment, delivery confirmation
 
-### Wave 4: Physical Integration (Planned Q1 2026)
-- Machine telemetry via PLC/SCADA
-- IoT sensor network deployment
-- Time-series database implementation
+### Role-Based Dashboards
+- Executive Dashboard (`/dashboards/executive`)
+- Supervisor Dashboard (`/dashboards/supervisor`)
+- Planning Dashboard (`/dashboards/planning`)
+- Accounting Dashboard (`/dashboards/accounting`)
 
 ---
 
@@ -65,7 +91,7 @@ STEELIQ is an enterprise platform built for **Lateral Engineering Limited** (New
 | UI Components | Tailwind CSS, Radix UI, shadcn/ui |
 | State Management | TanStack Query v5 |
 | Forms | React Hook Form + Zod validation |
-| Backend | Node.js, Express.js 4.x, TypeScript |
+| Backend | Node.js, Express.js, TypeScript |
 | Database | PostgreSQL (Neon) with Drizzle ORM |
 | Authentication | bcrypt, session-based with 2FA support |
 | Real-time | WebSocket for notifications |
@@ -73,206 +99,180 @@ STEELIQ is an enterprise platform built for **Lateral Engineering Limited** (New
 
 ---
 
-## Complete Feature Inventory
+## Core Microservices (DO NOT MODIFY WITHOUT APPROVAL)
 
-### Core Application Pages
-| Page | Route | Description |
-|------|-------|-------------|
-| Dashboard | /dashboard | Central overview with KPIs |
-| Jobs | /jobs | Job management |
-| Materials | /materials | Steel catalogue |
-| Inventory | /inventory | Stock tracking |
-| Procurement | /procurement | RFQs, POs |
-| Estimation | /estimation-clean | AI-powered estimation |
-| Contacts | /contacts | Suppliers and clients |
+Located in `server/services/`:
 
-### Advanced Modules
-| Page | Route | Description |
-|------|-------|-------------|
-| Production Floor | /production-floor | Real-time monitoring |
-| Resource Planning | /resource-planning | Capacity planning |
-| Financial Intelligence | /financial-intelligence | Revenue, costs |
-| Time and Payroll | /time-payroll | Time clock, GPS |
-| AI Control Center | /ai-control | AI monitoring |
-| Drawing Intelligence | /drawing-intelligence | PDF/DXF analysis |
-| Audit Center | /audit-center | Compliance reports |
-| Cutting Optimization | /optimization | Material optimization |
-| Remnant Management | /remnant-management | Steel remnant tracking |
-| Mobile Operations | /mobile-operations | Field operations |
-
-### Role-Based Dashboards (6)
-- Executive Dashboard (/dashboards/executive)
-- Admin Dashboard (/dashboards/admin)
-- Supervisor Dashboard (/dashboards/supervisor)
-- Planning Dashboard (/dashboards/planning)
-- Accounting Dashboard (/dashboards/accounting)
-- Floor Dashboard (/dashboards/floor)
-
-### Portals
-- Client Portal (/client-portal)
-- Supplier Portal (/supplier-portal)
-- Supplier Integration Hub (/supplier-integration-hub)
+| Service | File | Responsibility |
+|---------|------|----------------|
+| AI Estimation | `aiEstimationService.ts` | Drawing analysis, MTO extraction |
+| AI Workflow | `aiWorkflowService.ts` | Job orchestration, processing queues |
+| AI Scheduling | `aiSchedulingService.ts` | Constraint-based scheduling, shift management |
+| DXF Parser | `dxfParserService.ts` | DXF file parsing, structural element identification |
+| Job Lifecycle | `jobLifecycleService.ts` | Job state management, transitions |
+| RFQ Automation | `rfqAutomationService.ts` | RFQ generation, supplier distribution |
+| Production Monitoring | `productionMonitoringService.ts` | Real-time production tracking |
+| Cost Aggregation | `costAggregationService.ts` | Cost rollup, margin calculations |
+| Fraud Scoring | `fraudScoringService.ts` | Anomaly detection, risk scoring |
+| GPS Archival | `gpsArchivalService.ts` | GPS data retention, compliance archiving |
+| Time Analytics | `timeAnalyticsService.ts` | Time tracking analytics, reports |
+| Payroll Export | `payrollExportService.ts` | ADP/QuickBooks/Xero integration |
+| Notification | `notificationService.ts` | Multi-channel notifications |
+| WebSocket | `webSocketService.ts` | Real-time event streaming |
 
 ---
 
-## Core Microservices (32 services)
+## Database Schema (100+ tables)
 
-**Location:** server/services/
-**WARNING: DO NOT MODIFY WITHOUT EXPLICIT APPROVAL**
+**Core Entities:**
+- `users` - System users with roles, permissions, 2FA
+- `projects` - Three-phase estimation workflow
+- `jobs` - Production jobs (legacy compatibility)
+- `materials` - Steel catalogue with dimensions, pricing
+- `suppliers` - Supplier management with ratings
+- `clients` - Client management with credit terms
+- `purchase_orders` - PO lifecycle with hash chain audit
+- `invoices` - Supplier and client invoicing
 
-### AI and Estimation Services
-- aiEstimationService.ts - Drawing analysis, MTO extraction
-- aiWorkflowService.ts - Job orchestration
-- aiCacheService.ts - AI response caching
-- aiFeedbackService.ts - User correction collection
-- aiMonitoringService.ts - AI performance tracking
-- patternPackService.ts - Steel pattern library
+**Time & Payroll:**
+- `time_entries` - Clock in/out records with GPS
+- `timesheets` - Weekly timesheet aggregation
+- `payroll_periods` - Pay period definitions
+- `gps_tracking_records` - Location verification
 
-### Document Processing Services
-- dxfParserService.ts - DXF file parsing
-- dxfGeometryService.ts - CAD geometry calculations
-- pdfAnalysisService.ts - PDF drawing analysis
-- pdfGenerationService.ts - Quote/report PDF generation
-- ocrService.ts - Optical character recognition
-- drawingStorageService.ts - Drawing file management
-- mtoExportService.ts - Material takeoff export
+**Estimation:**
+- `estimation_materials` - Project material lists
+- `estimation_operations` - Fabrication operations
+- `estimation_labor` - Labor hour calculations
+- `drawing_projects` - Drawing intelligence projects
 
-### Business Process Services
-- jobLifecycleService.ts - Job state management
-- rfqAutomationService.ts - RFQ generation
-- rfqEmailService.ts - RFQ email delivery
-- productionMonitoringService.ts - Real-time OEE tracking
-- costAggregationService.ts - Cost rollup
-- operation-service.ts - Fabrication operations
-
-### Infrastructure Services
-- emailTemplatesService.ts - Email template management
-- integratedEmailService.ts - Multi-provider email
-- secureStorageService.ts - Encrypted credential storage
-- workerQueueService.ts - Background job processing
-- errorRecoveryService.ts - Fault tolerance
-- complianceLintService.ts - Code compliance checking
+**Procurement:**
+- `purchase_requisitions` - Material requisitions
+- `rfq_requests` - Request for quote tracking
+- `rfq_responses` - Supplier quote responses
+- `po_distributions` - PO email distribution
 
 ---
 
-## Database Schema
+## Security & Compliance
 
-**Total Tables:** 340+ exported schemas
-**Schema File:** shared/schema.ts (6,026 lines)
-
-### Core Entity Groups
-| Group | Purpose |
-|-------|---------|
-| Users and Auth | Authentication, authorization |
-| Jobs and Projects | Job lifecycle management |
-| Materials | Material catalog and stock |
-| Procurement | Procurement workflow |
-| Production | Shop floor operations |
-| Financial | Financial tracking |
-| Time and Payroll | Time tracking |
-| AI and Learning | AI training data |
-
----
-
-## Security and Compliance
-
-### SOX Compliance Implementation
-- Audit Trail: SHA-256 hash chains on financial records
-- Segregation of Duties: Role-based access, approval workflows
-- Access Control: RBAC with 8+ permission levels
-- Data Encryption: AES-256-GCM for sensitive data
+### SOX Compliance Controls
+- **Audit Trail:** SHA-256 hash chains on financial records
+- **Segregation of Duties:** Role-based access, approval workflows
+- **Change Management:** Manifest-based pre-flight checks
+- **Access Control:** RBAC with 8 permission levels
+- **Data Encryption:** AES-256-GCM for sensitive data
 
 ### RBAC Roles (Hierarchy)
-1. owner - Full system access
-2. admin - Administrative functions
-3. full - Complete operational access
-4. supervisor - Team supervision
-5. planning - Resource planning
-6. accounting - Financial access
-7. operator - Standard operations
-8. basic - Minimal access
-
-### Authentication Features
-- bcrypt password hashing
-- Session-based authentication
-- TOTP two-factor authentication
-- WebAuthn biometric support
-- Progressive account lockout
+1. `owner` - Full system access
+2. `admin` - Administrative functions
+3. `super_admin` - Cross-department admin
+4. `manager` - Department management
+5. `supervisor` - Team supervision
+6. `team_member` - Standard operations
+7. `user` - Basic access
+8. `basic` - Minimal access
 
 ### GPS Anti-Spoofing
 - Mock location detection
-- Velocity fraud checks
+- Velocity fraud checks (impossible travel)
 - Geofence boundary validation
+- Network consistency verification
 - Device fingerprinting
 
 ---
 
 ## External Integrations
 
-| Integration | Provider | Purpose |
-|-------------|----------|---------|
-| AI | Anthropic Claude Sonnet 4.0 | Drawing analysis |
-| Email | SendGrid | Transactional emails |
-| Email Import | Gmail API | Cost import |
-| Messaging | WhatsApp Business API v21.0 | Time clock notifications |
-| Payroll | ADP, QuickBooks, Xero | Payroll export |
+| Integration | Provider | Purpose | Secret |
+|-------------|----------|---------|--------|
+| AI | Anthropic Claude Sonnet 4.0 | Drawing analysis, estimation | `ANTHROPIC_API_KEY` |
+| Email | SendGrid | Transactional emails, PO/RFQ | `SENDGRID_API_KEY` |
+| Email Import | Gmail API | Cost import, inbox monitoring | OAuth tokens |
+| Messaging | WhatsApp Business API v21.0 | Time clock notifications | `WHATSAPP_TOKEN` |
+| Payroll | ADP Workforce Now | Payroll export | Encrypted credentials |
+| Payroll | QuickBooks | Time data export | Encrypted credentials |
+| Payroll | Xero | Payroll sync | Encrypted credentials |
 
 ---
 
 ## Development Guidelines
 
 ### Common Pitfalls to AVOID
-1. Never use mock data - All data must come from real database sources
-2. Never modify server/services without approval - Core business logic protected
-3. Always use TanStack Query v5 object form - useQuery({ queryKey: [...] })
-4. Import useToast from @/hooks/use-toast - Not from shadcn directly
-5. Use import.meta.env for frontend env vars - Not process.env
-6. Prefix frontend env vars with VITE_ - Required for Vite
-7. Always provide value prop to SelectItem - Will throw error otherwise
-8. Use hierarchical query keys - ['/api/resource', id] not template strings
-9. Never import React explicitly - Vite JSX transformer handles it
-10. Express 4.x only - Do not upgrade to Express 5.x (breaking changes)
+1. **Never use mock data** - All data must come from real sources
+2. **Never modify server/services without approval** - Core business logic
+3. **Always use TanStack Query v5 object form** - `useQuery({ queryKey: [...] })`
+4. **Import useToast from `@/hooks/use-toast`** - Not from shadcn directly
+5. **Use `import.meta.env` for frontend env vars** - Not `process.env`
+6. **Prefix frontend env vars with `VITE_`** - Required for Vite
+7. **Always provide value prop to SelectItem** - Will throw error otherwise
+8. **Use hierarchical query keys** - `['/api/resource', id]` not template strings
 
-### Data Integrity Rules
-- No mock data - All metrics traceable to database records
-- Proper relational structure with foreign key constraints
-- Audit everything - User, timestamp, changes for all operations
-- Role-based permissions for all endpoints
-- Strict TypeScript with no any types
+### API Patterns
+```typescript
+// Always validate with Zod
+const validated = insertSchema.parse(req.body);
+// Use storage interface for CRUD
+const data = await storage.getResource(req.params.id);
+```
 
----
-
-## Business Rules
-
-| Rule | Value |
-|------|-------|
-| Cutting Operations | 10 min standard, 12 min for angles |
-| Kerf Width | 2.4mm + 0.5mm tolerance |
-| Remnant Management | Minimum 500mm for reuse |
-| Pricing Updates | 7-day validity periods |
-| Material Waste Target | Under 5 percent |
-| Material Catalog | 602+ AS/NZS items |
-
-### Performance Benchmarks
-- API Response Time: Under 200ms for 95 percent of requests
-- AI Processing Speed: 10-30 seconds for typical drawings
-- Concurrent Users: 100+ simultaneous connections
-- Annual Job Capacity: 10,000+ jobs with full audit trails
-- Estimation Efficiency: 50 percent reduction in time-to-quote
+### Frontend Patterns
+```typescript
+// TanStack Query v5 object form
+const { data, isLoading } = useQuery({
+  queryKey: ['/api/resource', id],
+});
+// Mutations with cache invalidation
+onSuccess: () => queryClient.invalidateQueries({ queryKey: ['/api/resource'] })
+```
 
 ---
 
-## Recent Updates
+## File Structure
 
-| Date | Change |
-|------|--------|
-| 2025-11-28 | Fixed Express 5.x compatibility (downgraded to 4.21.2) |
-| 2025-11-28 | Fixed wildcard route patterns for rate limiting |
-| 2025-11-28 | Fixed login.tsx asset import path |
-| 2025-10-21 | Wave 3 completion - Fortune 50 production readiness |
+```
+client/
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── hooks/          # Custom React hooks
+│   ├── lib/            # Utilities (queryClient, utils)
+│   ├── pages/          # Route pages
+│   │   ├── dashboards/ # Role-based dashboards
+│   │   └── settings/   # Settings pages
+│   └── App.tsx         # Route definitions
+server/
+├── manifests/          # Feature governance manifests
+├── routes/             # API route handlers
+├── routes.ts           # Main route registration
+├── services/           # Business logic (DO NOT MODIFY)
+├── utils/              # Utilities (preFlightChecklist, etc.)
+└── index.ts            # Server entry point
+shared/
+└── schema.ts           # Drizzle schema definitions
+```
+
+---
+
+## Document References
+
+| Document | Location | Purpose |
+|----------|----------|---------|
+| Governance Framework | `ENTERPRISE_CONTROL_FRAMEWORK_GOVERNANCE.md` | Control specifications |
+| Feature Manifests | `server/manifests/*.manifest.json` | Per-feature governance |
+| Database Schema | `shared/schema.ts` | All table definitions |
+| Pre-Flight Service | `server/utils/preFlightChecklist.ts` | Deployment validation |
+
+---
+
+## Recent Changes Log
+
+| Date | Change | Impact |
+|------|--------|--------|
+| 2025-11-28 | Enterprise Control Framework v2.0.1 | TOGAF/COBIT/SOX governance enforcement |
+| 2025-11-28 | Comprehensive replit.md rebuild | Complete platform documentation |
 
 ---
 
 **END OF DOCUMENT**
 
-This document is the authoritative reference for STEELIQ development. Any modifications require explicit user approval. ADD new content - NEVER delete existing instructions.
+*This document is the authoritative reference for STEELIQ development. Any modifications require explicit user approval. ADD new content - NEVER delete existing instructions.*

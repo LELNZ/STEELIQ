@@ -90,13 +90,13 @@ export default function NewJobModal({ open, onOpenChange }: NewJobModalProps) {
         isRushOrder: data.priority === "rush",
       };
 
-      const response = await apiRequest("POST", "/api/jobs", jobData);
+      const response = await apiRequest("/api/jobs", "POST", jobData);
       return response.json();
     },
     onSuccess: async (job) => {
       // Add material requirements to the job
       for (const req of materialRequirements) {
-        await apiRequest("POST", `/api/jobs/${job.id}/materials`, {
+        await apiRequest(`/api/jobs/${job.id}/materials`, "POST", {
           materialId: req.materialId,
           requiredLength: parseFloat(req.requiredLength),
           quantity: parseInt(req.quantity),

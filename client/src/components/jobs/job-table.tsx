@@ -64,7 +64,7 @@ export default function JobTable({ jobs, searchQuery = "", statusFilter = "all" 
   // Delete job mutation
   const deleteJobMutation = useMutation({
     mutationFn: async (jobId: number) => {
-      await apiRequest('DELETE', `/api/jobs/${jobId}`, {
+      await apiRequest(`/api/jobs/${jobId}`, 'DELETE', {
         reason: 'Deleted by user'
       });
     },
@@ -88,7 +88,7 @@ export default function JobTable({ jobs, searchQuery = "", statusFilter = "all" 
   // Copy job mutation
   const copyJobMutation = useMutation({
     mutationFn: async (jobId: number) => {
-      await apiRequest('POST', `/api/jobs/${jobId}/copy`);
+      await apiRequest(`/api/jobs/${jobId}/copy`, 'POST');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });

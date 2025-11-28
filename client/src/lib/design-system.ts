@@ -107,15 +107,15 @@ export const badgeStyles = {
 
 // Table styles matching Team Management design
 export const tableStyles = {
-  wrapper: "rounded-lg border bg-card",
+  wrapper: "rounded-lg border bg-card overflow-x-auto",
   header: "border-b bg-muted/50",
   headerRow: "border-b transition-colors hover:bg-muted/50",
-  headerCell: "h-12 px-4 text-left align-middle font-medium text-muted-foreground",
+  headerCell: "h-10 sm:h-12 px-2 sm:px-4 text-left align-middle font-medium text-muted-foreground text-xs sm:text-sm whitespace-nowrap",
   body: "divide-y divide-border",
   row: "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
-  cell: "p-4 align-middle",
+  cell: "p-2 sm:p-4 align-middle text-xs sm:text-sm",
   // Special cells
-  avatarCell: "flex items-center gap-3",
+  avatarCell: "flex items-center gap-2 sm:gap-3",
   actionsCell: "text-right"
 };
 

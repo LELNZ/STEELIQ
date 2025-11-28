@@ -18,7 +18,7 @@ import { LocationsManager } from "@/components/ui/locations-manager";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-// Form validation schema
+// Form validation schema with proper numeric coercion
 export const supplierFormSchema = z.object({
   name: z.string().min(1, "Company/Supplier name is required"),
   company: z.string().optional(),
@@ -39,7 +39,8 @@ export const supplierFormSchema = z.object({
   email: z.string().email("Please enter a valid email address").optional().or(z.literal("")),
   paymentTerms: z.string().default("30 days"),
   assignedProjectManager: z.string().optional(),
-  creditLimit: z.number().min(0, "Credit limit must be 0 or greater").default(0),
+  // Use coercion for numeric fields to handle empty strings properly
+  creditLimit: z.coerce.number().min(0, "Credit limit must be 0 or greater").default(0),
   discountRate: z.string().default("0"),
   industry: z.string().optional(),
   type: z.string().default("vendor"),
@@ -47,11 +48,11 @@ export const supplierFormSchema = z.object({
   billingSchedule: z.string().optional(),
   deliveryInstructions: z.string().optional(),
   specialRequirements: z.string().optional(),
-  // Adding comprehensive data collection fields
-  leadTimeStandard: z.number().min(0, "Lead time must be 0 or greater").default(7),
-  leadTimeExpress: z.number().min(0, "Express lead time must be 0 or greater").default(3),
-  minimumOrderQuantity: z.number().min(0, "Minimum order quantity must be 0 or greater").default(0),
-  minimumOrderValue: z.number().min(0, "Minimum order value must be 0 or greater").default(0),
+  // Use coercion for all numeric fields to handle empty strings
+  leadTimeStandard: z.coerce.number().min(0, "Lead time must be 0 or greater").default(7),
+  leadTimeExpress: z.coerce.number().min(0, "Express lead time must be 0 or greater").default(3),
+  minimumOrderQuantity: z.coerce.number().min(0, "Minimum order quantity must be 0 or greater").default(0),
+  minimumOrderValue: z.coerce.number().min(0, "Minimum order value must be 0 or greater").default(0),
   deliveryAreas: z.string().optional(),
   certifications: z.string().optional(),
   standardsCompliance: z.string().optional(),
@@ -182,7 +183,7 @@ export function SupplierForm({
         isPreferredSupplier: data.isPreferredSupplier ?? false
       };
       
-      return await apiRequest("POST", "/api/suppliers", autoSaveData);
+      return await apiRequest("/api/suppliers", "POST", autoSaveData);
     },
     onSuccess: (data) => {
       setAutoSavedSupplierId(data.id);
@@ -733,7 +734,6 @@ export function SupplierForm({
                       type="number" 
                       placeholder="0" 
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -856,7 +856,6 @@ export function SupplierForm({
                       type="number" 
                       placeholder="7" 
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -875,7 +874,6 @@ export function SupplierForm({
                       type="number" 
                       placeholder="3" 
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -894,7 +892,6 @@ export function SupplierForm({
                       type="number" 
                       placeholder="0" 
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -913,7 +910,6 @@ export function SupplierForm({
                       type="number" 
                       placeholder="0" 
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />

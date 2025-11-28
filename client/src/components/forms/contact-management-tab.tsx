@@ -445,7 +445,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                         Personal Information
                       </h4>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FormField
                         control={addForm.control}
                         name="firstName"
@@ -496,7 +496,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                         </FormItem>
                       )}
                     />
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FormField
                         control={addForm.control}
                         name="mobile"
@@ -534,7 +534,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                         Professional Information
                       </h4>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FormField
                         control={addForm.control}
                         name="title"
@@ -861,7 +861,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
           </DialogHeader>
           <Form {...editForm}>
             <form onSubmit={editForm.handleSubmit(handleEditSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={editForm.control}
                   name="firstName"
@@ -905,7 +905,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={editForm.control}
                   name="mobile"
@@ -935,7 +935,7 @@ export function ContactManagementTab({ entityId, entityType, entityName, mode = 
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={editForm.control}
                   name="title"

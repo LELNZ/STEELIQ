@@ -185,7 +185,7 @@ export function ClientForm({
         isPreferredClient: data.isPreferredClient ?? false
       };
       
-      return await apiRequest("POST", "/api/clients", autoSaveData);
+      return await apiRequest("/api/clients", "POST", autoSaveData);
     },
     onSuccess: (data) => {
       setAutoSavedClientId(data.id);

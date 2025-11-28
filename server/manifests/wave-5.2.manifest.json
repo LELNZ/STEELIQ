@@ -1,0 +1,55 @@
+{
+  "feature": "wave-5.2-fraud-prevention",
+  "version": "1.0.0",
+  "description": "Real-time multi-factor fraud scoring with dual authorization workflows",
+  "dependencies": {
+    "tables": [
+      "fraud_risk_profiles",
+      "clock_event_risks",
+      "risk_override_requests",
+      "gps_override_requests",
+      "time_clocks",
+      "users"
+    ],
+    "services": [
+      "fraudScoringService",
+      "approvalRequestService",
+      "jwtOverrideService"
+    ],
+    "routes": [
+      "/api/time/fraud-score",
+      "/api/time/fraud-dashboard",
+      "/api/time/risk-overrides"
+    ],
+    "secrets": [],
+    "envVars": []
+  },
+  "auditFields": [
+    "auditHash",
+    "previousAuditHash"
+  ],
+  "preFlightChecks": [
+    "database",
+    "schema",
+    "services",
+    "routes",
+    "audit"
+  ],
+  "metadata": {
+    "status": "complete",
+    "completedDate": "2025-11-28",
+    "owner": "Time & Payroll Team",
+    "fortune50Parity": [
+      "Workday Fraud Prevention",
+      "ADP Risk Management",
+      "SAP GRC"
+    ],
+    "riskWeights": {
+      "gps": 0.25,
+      "velocity": 0.20,
+      "pattern": 0.20,
+      "device": 0.15,
+      "time": 0.20
+    }
+  }
+}

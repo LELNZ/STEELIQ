@@ -149,7 +149,7 @@ export default function MobileOperations() {
   // Submit field update mutation
   const submitFieldUpdateMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/field-updates", data);
+      return apiRequest("/api/field-updates", "POST", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/field-updates'] });
@@ -163,7 +163,7 @@ export default function MobileOperations() {
   // Submit quality checkpoint
   const submitQualityCheckpointMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("PATCH", `/api/quality-checkpoints/${data.id}`, data);
+      return apiRequest(`/api/quality-checkpoints/${data.id}`, "PATCH", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/quality-checkpoints'] });
@@ -178,7 +178,7 @@ export default function MobileOperations() {
   // Submit safety report
   const submitSafetyReportMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/safety-reports", data);
+      return apiRequest("/api/safety-reports", "POST", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/safety-reports'] });

@@ -1,0 +1,90 @@
+115 kB used out of 1,768 MB storage quota
+﻿
+VM68431:8 [Coframe] Replit Enterprise watcher loaded
+17
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+17
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+17
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+SeelIQ:1 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+SeelIQ:1 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+SeelIQ:1 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+cc0c51f4eeb86deb.js:2 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+cc0c51f4eeb86deb.js:2 Download the Apollo DevTools for a better development experience: https://chrome.google.com/webstore/detail/apollo-client-developer-t/jdkknkkbebbapilgoeccciglkfbmbnfm
+cc0c51f4eeb86deb.js:2 [LaunchDarkly] LaunchDarkly client initialized
+cc0c51f4eeb86deb.js:2 Adding extension: GPT-Replit - ChatGPT in your Repl. 
+Object
+cc0c51f4eeb86deb.js:2 Adding extension: CSV Editor 
+Object
+cc0c51f4eeb86deb.js:2 Adding extension: API Request Tester 
+Object
+cc0c51f4eeb86deb.js:2 Adding extension: AI Playground 
+Object
+cc0c51f4eeb86deb.js:2 Adding extension: UI Sketcher 
+Object
+7
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+ed1e693c96a75807.js:2 Unrecognized feature: 'ambient-light-sensor'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'battery'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'execution-while-not-rendered'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'execution-while-out-of-viewport'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'layout-animations'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'legacy-image-formats'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'navigation-override'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'oversized-images'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'publickey-credentials'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'speaker-selection'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'unoptimized-images'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'unsized-media'.
+ed1e693c96a75807.js:2 Unrecognized feature: 'pointer-lock'.
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowfullscreen'.
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowpaymentrequest'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Unrecognized feature: 'ambient-light-sensor'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Unrecognized feature: 'battery'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Unrecognized feature: 'execution-while-not-rendered'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Unrecognized feature: 'layout-animations'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Unrecognized feature: 'legacy-image-formats'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Unrecognized feature: 'navigation-override'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Unrecognized feature: 'oversized-images'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Unrecognized feature: 'publickey-credentials'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Unrecognized feature: 'speaker-selection'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Unrecognized feature: 'unoptimized-images'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Unrecognized feature: 'unsized-media'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Allow attribute will take precedence over 'allowfullscreen'.
+workspace_iframe.htm…ent&id=%3Are1%3A:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+team-management:1 Loading the script 'https://replit.com/public/js/replit-dev-banner.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval'". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+main.tsx:99 Attempting to render React app...
+main.tsx:101 React app render initiated
+main.tsx:16 [Main] Clearing all caches and service workers...
+workspace_iframe.htm…nt&id=%3Are1%3A:142 Loading the script 'https://replit.com/public/js/beacon.js' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval'". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked.
+App.tsx:313 App component is rendering
+main.tsx:27 [Main] All caches cleared
+main.tsx:33 [Main] Unregistering service worker: https://76081e7b-4fdf-4405-b978-d60a15812f92-00-1dx7y2mut8su1.picard.replit.dev/
+main.tsx:39 [Main] Registering development bypass service worker...
+main.tsx:62 [Main] Development service worker registered (no caching)
+sw.js:169 [Service Worker] Script loaded. Version: steeliq-dev-bypass-v1, Environment: DEVELOPMENT (No Caching)
+76081e7b-4fdf-4405-b….dev/api/users/17:1 
+ Failed to load resource: the server responded with a status of 409 (Conflict)
+team-management.tsx:481 User deletion error: Error: Cannot delete user. This user has dependencies: 1 permission audit log
+    at throwIfResNotOk (queryClient.ts:42:19)
+    at async apiRequest (queryClient.ts:76:3)
+team-management.tsx:482 Error message: Cannot delete user. This user has dependencies: 1 permission audit log
+team-management.tsx:483 Error object: {"details":{"blocking":true,"dependencies":["1 permission audit log"],"counts":{"teamMember":0,"drawingProjects":0,"auditLogs":0,"permissionAuditLogs":1},"summary":"1 permission audit log","remediation":"Please remove or reassign these dependencies before deleting the user."},"code":"DELETION_BLOCKED"}
+﻿
+

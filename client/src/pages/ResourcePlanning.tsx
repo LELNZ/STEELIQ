@@ -139,7 +139,7 @@ export default function ResourcePlanning() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-6">
             <TabsTrigger value="capacity" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Capacity Planning

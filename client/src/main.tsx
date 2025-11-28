@@ -2,21 +2,71 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
-// Register service worker for PWA functionality
+// Service Worker Registration with Cache Clearing
+const isDevelopment = 
+  window.location.hostname === 'localhost' || 
+  window.location.hostname.includes('.replit.dev') ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname === '0.0.0.0';
+
+// CRITICAL: Clear all caches and force new service worker
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('ServiceWorker registration successful:', registration.scope);
+  window.addEventListener('load', async () => {
+    try {
+      console.log('[Main] Clearing all caches and service workers...');
+      
+      // First, clear ALL caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => {
+            console.log(`[Main] Deleting cache: ${cacheName}`);
+            return caches.delete(cacheName);
+          })
+        );
+        console.log('[Main] All caches cleared');
+      }
+      
+      // Unregister ALL existing service workers
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        console.log('[Main] Unregistering service worker:', registration.scope);
+        await registration.unregister();
+      }
+      
+      // In development, register our bypass service worker to prevent caching
+      if (isDevelopment) {
+        console.log('[Main] Registering development bypass service worker...');
+        const registration = await navigator.serviceWorker.register('/sw.js', {
+          updateViaCache: 'none',
+          scope: '/'
+        });
         
-        // Check for updates periodically
-        setInterval(() => {
-          registration.update();
-        }, 60000); // Check every minute
-      })
-      .catch(err => {
-        console.log('ServiceWorker registration failed:', err);
-      });
+        // Force immediate activation
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+        
+        // Listen for cache cleared message
+        navigator.serviceWorker.addEventListener('message', event => {
+          if (event.data && event.data.type === 'CACHE_CLEARED') {
+            console.log('[Main] Cache cleared by service worker, version:', event.data.version);
+            // Force a soft reload to get fresh content
+            if (!window.__reloadTriggered) {
+              window.__reloadTriggered = true;
+              window.location.reload();
+            }
+          }
+        });
+        
+        console.log('[Main] Development service worker registered (no caching)');
+      } else {
+        console.log('[Main] Production mode - service worker disabled for now');
+      }
+      
+    } catch (err) {
+      console.error('[Main] Service worker setup failed:', err);
+    }
   });
 }
 

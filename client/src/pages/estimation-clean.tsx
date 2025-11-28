@@ -64,6 +64,7 @@ import CoatingsTab from "@/components/estimation/coatings-tab";
 import OverheadConfiguration from "@/components/estimation/overhead-configuration";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useEstimationDefaults } from "@/hooks/useEstimationDefaults";
+import { useOperationOrchestrator } from "@/hooks/useOperationOrchestrator";
 import { EnhancedProjectForm } from "@/components/estimation/EnhancedProjectForm";
 import { ViewSwitcher } from "@/components/ui/view-switcher";
 import EstimationTable from "@/components/estimations/estimation-table";
@@ -89,6 +90,12 @@ interface MaterialCost {
   materialId?: number;
   materialCode: string;
   materialName: string;
+  designation?: string;     // C1, B2, PL1, etc.
+  drawingRef?: string;      // Drawing reference number
+  assemblyMark?: string;    // Assembly mark/number
+  phase?: string;           // Construction phase
+  sequence?: string;        // Installation sequence
+  gridLine?: string;        // Grid line reference
   quantity: number;
   unit: string;
   unitCost: number;
@@ -104,6 +111,14 @@ interface MaterialCost {
 
 interface LaborCost {
   id: string;
+  designation?: string;     // C1-cut, B2-drill, etc.
+  drawingRef?: string;      // Drawing reference number
+  assemblyMark?: string;    // Assembly mark/number
+  phase?: string;           // Construction phase
+  sequence?: string;        // Installation sequence
+  gridLine?: string;        // Grid line reference
+  parentMaterialId?: number; // Reference to parent material
+  operationType?: string;   // cut, drill, weld, etc.
   category: 'workshop' | 'onsite' | 'subcontractor';
   subcategory: string;
   description: string;
@@ -117,6 +132,14 @@ interface LaborCost {
 
 interface EquipmentCost {
   id: string;
+  designation?: string;     // Reference to parent material
+  drawingRef?: string;      // Drawing reference number
+  assemblyMark?: string;    // Assembly mark/number
+  phase?: string;           // Construction phase
+  sequence?: string;        // Installation sequence
+  gridLine?: string;        // Grid line reference
+  parentMaterialId?: number; // Reference to parent material
+  operationType?: string;   // Operation that requires this equipment
   equipment: string;
   type: 'rental' | 'owned' | 'purchase';
   hoursPerDay: number;
@@ -128,6 +151,14 @@ interface EquipmentCost {
 
 interface ConsumableCost {
   id: string;
+  designation?: string;     // C1-cut, B2-drill, etc.
+  drawingRef?: string;      // Drawing reference number
+  assemblyMark?: string;    // Assembly mark/number
+  phase?: string;           // Construction phase
+  sequence?: string;        // Installation sequence
+  gridLine?: string;        // Grid line reference
+  parentMaterialId?: number; // Reference to parent material
+  operationType?: string;   // cut, drill, weld, etc.
   item: string;
   quantity: number;
   unit: string;
@@ -138,6 +169,14 @@ interface ConsumableCost {
 
 interface CoatingCost {
   id: string;
+  designation?: string;     // C1-coat, B2-prime, etc.
+  drawingRef?: string;      // Drawing reference number
+  assemblyMark?: string;    // Assembly mark/number
+  phase?: string;           // Construction phase
+  sequence?: string;        // Installation sequence
+  gridLine?: string;        // Grid line reference
+  parentMaterialId?: number; // Reference to parent material
+  operationType?: string;   // prime, paint, galvanize, etc.
   coatingName: string;
   coatingType: "paint" | "galvanizing" | "powder_coating";
   category: "primer" | "topcoat" | "finish" | "protective";
@@ -613,7 +652,7 @@ export default function EstimationPage() {
   // AI-assisted cost estimation mutation
   const aiEstimateMutation = useMutation({
     mutationFn: async (projectData: any) => {
-      return await apiRequest("POST", "/api/ai/estimate", projectData);
+      return await apiRequest("/api/ai/estimate", "POST", projectData);
     },
     onSuccess: (data) => {
       setAiSuggestions(data.suggestions || []);
@@ -875,7 +914,7 @@ export default function EstimationPage() {
 
       {/* Main Tabbed Interface */}
       <Tabs defaultValue="estimation" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
           <TabsTrigger value="estimation" className="flex items-center gap-2">
             <Calculator className="h-4 w-4" />
             AI Estimation
@@ -991,7 +1030,7 @@ function QuickAddClientDialog({ onClientAdded }: { onClientAdded: (client: any) 
 
   const createClientMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("POST", "/api/clients", data);
+      return apiRequest("/api/clients", "POST", data);
     },
     onSuccess: (newClient) => {
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
@@ -1038,7 +1077,7 @@ function QuickAddClientDialog({ onClientAdded }: { onClientAdded: (client: any) 
           <DialogTitle>Quick Add Client</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="quick-name">Client Name*</Label>
               <Input
@@ -1060,7 +1099,7 @@ function QuickAddClientDialog({ onClientAdded }: { onClientAdded: (client: any) 
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="quick-email">Email</Label>
               <Input
@@ -1092,7 +1131,7 @@ function QuickAddClientDialog({ onClientAdded }: { onClientAdded: (client: any) 
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="quick-city">City</Label>
               <Input
@@ -1439,6 +1478,9 @@ function EstimationWorkspace({
 }) {
   const [activeTab, setActiveTab] = useState("materials");
   const [, navigate] = useLocation();
+  
+  // Fortune 50 Compliant Operation Orchestrator
+  const operationOrchestrator = useOperationOrchestrator();
 
   // Simple tab change without auto-save
   const handleTabChange = (newTab: string) => {
@@ -1472,20 +1514,24 @@ function EstimationWorkspace({
       
       {/* Tabs for estimation sections */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="materials">Materials</TabsTrigger>
-          <TabsTrigger value="labor">Labor</TabsTrigger>
-          <TabsTrigger value="equipment">Equipment</TabsTrigger>
-          <TabsTrigger value="consumables">Consumables</TabsTrigger>
-          <TabsTrigger value="coatings">Coatings</TabsTrigger>
-          <TabsTrigger value="subcontractors">Subcontractors</TabsTrigger>
-          <TabsTrigger value="summary">Summary</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto w-full">
+          <TabsList className="w-max">
+            <TabsTrigger value="materials">Materials</TabsTrigger>
+            <TabsTrigger value="labor">Labor</TabsTrigger>
+            <TabsTrigger value="equipment">Equipment</TabsTrigger>
+            <TabsTrigger value="consumables">Consumables</TabsTrigger>
+            <TabsTrigger value="coatings">Coatings</TabsTrigger>
+            <TabsTrigger value="subcontractors">Subcontractors</TabsTrigger>
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+          </TabsList>
+        </div>
         
         <TabsContent value="materials">
           <MaterialsTab
+            projectId={project?.id}
             materials={estimationData.materials}
             onUpdate={(materials) => setEstimationData({ ...estimationData, materials })}
+            operationOrchestrator={operationOrchestrator}
             onLaborUpdate={(laborItems) => {
               // Append new labor items to existing ones instead of replacing
               setEstimationData(prev => {
@@ -1590,6 +1636,7 @@ function EstimationWorkspace({
         
         <TabsContent value="labor">
           <EnhancedLaborTab
+            projectId={project?.id}
             labor={estimationData.labor}
             setLabor={(labor) => setEstimationData({ ...estimationData, labor })}
           />
@@ -1597,6 +1644,7 @@ function EstimationWorkspace({
         
         <TabsContent value="equipment">
           <EnhancedEquipmentTab
+            projectId={project?.id}
             equipment={estimationData.equipment}
             setEquipment={(equipment) => setEstimationData({ ...estimationData, equipment })}
           />
@@ -1604,6 +1652,7 @@ function EstimationWorkspace({
         
         <TabsContent value="subcontractors">
           <SubcontractorsTab
+            projectId={project?.id}
             subcontractors={estimationData.subcontractors}
             setSubcontractors={(subcontractors) => setEstimationData({ ...estimationData, subcontractors })}
           />
@@ -1611,6 +1660,7 @@ function EstimationWorkspace({
         
         <TabsContent value="consumables">
           <EnhancedConsumablesTab
+            projectId={project?.id}
             consumables={estimationData.consumables}
             setConsumables={(consumables) => setEstimationData({ ...estimationData, consumables })}
           />
@@ -1618,6 +1668,7 @@ function EstimationWorkspace({
         
         <TabsContent value="coatings">
           <CoatingsTab
+            projectId={project?.id}
             coatings={estimationData.coatings}
             onCoatingsChange={(coatings) => setEstimationData({ ...estimationData, coatings })}
             materials={estimationData.materials}

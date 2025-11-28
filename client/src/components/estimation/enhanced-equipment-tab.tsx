@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Truck, Settings, Fuel, User } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Plus, Trash2, Truck, Settings, Fuel, User, Clock, Loader2 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface EquipmentItem {
-  id: string;
+  id: number; // Database-backed ID
+  projectId: number;
+  designation?: string; // Material designation (e.g., C1, B2, PL1)
+  parentMaterialId?: number; // Reference to parent material for proper grouping
+  operationId?: number; // Direct link to operation for tracking
+  operationDesignation?: string; // Operation designation (e.g., C1-310-cut-1, B2-400-drill-2)
+  operationType?: string; // Type of operation that created this equipment need
   equipmentType: 'inhouse' | 'rental';
   category: string;
   name: string;
@@ -23,6 +33,7 @@ interface EquipmentItem {
 }
 
 interface EnhancedEquipmentTabProps {
+  projectId?: number;
   equipment: EquipmentItem[];
   setEquipment: (equipment: EquipmentItem[]) => void;
 }
@@ -56,7 +67,9 @@ const STANDARD_EQUIPMENT = {
   }
 };
 
-export default function EnhancedEquipmentTab({ equipment, setEquipment }: EnhancedEquipmentTabProps) {
+export default function EnhancedEquipmentTab({ projectId, equipment, setEquipment }: EnhancedEquipmentTabProps) {
+  const { toast } = useToast();
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [newItem, setNewItem] = useState<Partial<EquipmentItem>>({
     equipmentType: 'inhouse',
     category: 'transport',
@@ -66,11 +79,193 @@ export default function EnhancedEquipmentTab({ equipment, setEquipment }: Enhanc
     operatorCost: 55
   });
 
-  const addEquipmentItem = () => {
-    if (!newItem.name || !newItem.hours) return;
+  // Fetch equipment items from database
+  const { data: equipmentItems, isLoading, refetch } = useQuery({
+    queryKey: ['/api/estimation/projects', projectId, 'equipment'],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const response = await fetch(`/api/estimation/projects/${projectId}/equipment`);
+      if (!response.ok) throw new Error('Failed to fetch equipment items');
+      return response.json();
+    },
+    enabled: !!projectId
+  });
 
-    const item: EquipmentItem = {
-      id: `equipment-${Date.now()}`,
+  // Sync database items with local state
+  useEffect(() => {
+    if (equipmentItems && equipmentItems.length > 0) {
+      setEquipment(equipmentItems);
+    }
+  }, [equipmentItems, setEquipment]);
+
+  // Create equipment item mutation
+  const createEquipmentMutation = useMutation({
+    mutationFn: async (equipmentData: Partial<EquipmentItem>) => {
+      if (!projectId) {
+        throw new Error('Project ID is required');
+      }
+      
+      return apiRequest(`/api/estimation/projects/${projectId}/equipment`, {
+        method: 'POST',
+        body: JSON.stringify(equipmentData)
+      });
+    },
+    onSuccess: (newEquipment) => {
+      // Add the new equipment item with database-generated ID
+      const updatedEquipment = [...equipment, newEquipment];
+      setEquipment(updatedEquipment);
+      
+      toast({
+        title: "Equipment item created",
+        description: "Equipment item has been saved to the database"
+      });
+      
+      // Refetch to ensure sync
+      refetch();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error creating equipment item",
+        description: error.message || "Failed to save equipment item",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Update equipment item mutation
+  const updateEquipmentMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: number; updates: Partial<EquipmentItem> }) => {
+      return apiRequest(`/api/estimation/equipment/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates)
+      });
+    },
+    onSuccess: (updatedItem) => {
+      // Update the local state
+      const updatedEquipment = equipment.map(item => 
+        item.id === updatedItem.id ? updatedItem : item
+      );
+      setEquipment(updatedEquipment);
+      
+      toast({
+        title: "Equipment item updated",
+        description: "Changes have been saved"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating equipment item",
+        description: error.message || "Failed to update equipment item",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete equipment item mutation
+  const deleteEquipmentMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/estimation/equipment/${id}`, {
+        method: 'DELETE'
+      });
+    },
+    onSuccess: (_, deletedId) => {
+      // Remove from local state
+      const updatedEquipment = equipment.filter(item => item.id !== deletedId);
+      setEquipment(updatedEquipment);
+      
+      toast({
+        title: "Equipment item deleted",
+        description: "Equipment item has been removed"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting equipment item",
+        description: error.message || "Failed to delete equipment item",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Group equipment items by parent material ID for true parent-child relationship
+  const groupedEquipment = useMemo(() => {
+    const groups: { [key: string]: { designation: string; items: EquipmentItem[] } } = {};
+    
+    equipment.forEach(item => {
+      // Use parentMaterialId as primary grouping key, fallback to designation
+      const groupKey = item.parentMaterialId ? item.parentMaterialId.toString() : (item.designation || 'Unassigned');
+      const displayDesignation = item.designation || 'Unassigned';
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
+          designation: displayDesignation,
+          items: []
+        };
+      }
+      groups[groupKey].items.push(item);
+    });
+    
+    // Sort groups by designation
+    const sortedGroups = Object.keys(groups).sort((a, b) => {
+      if (a === 'Unassigned') return 1;
+      if (b === 'Unassigned') return -1;
+      const desA = groups[a].designation;
+      const desB = groups[b].designation;
+      return desA.localeCompare(desB);
+    });
+    
+    const result: { [key: string]: { designation: string; items: EquipmentItem[] } } = {};
+    sortedGroups.forEach(key => {
+      result[key] = groups[key];
+    });
+    
+    return result;
+  }, [equipment]);
+
+  // Calculate summary for a group
+  const getGroupSummary = (items: EquipmentItem[]) => {
+    const totalHours = items.reduce((sum, item) => sum + item.hours, 0);
+    const totalCost = items.reduce((sum, item) => sum + item.totalCost, 0);
+    const equipmentCount = items.length;
+    
+    return {
+      totalHours,
+      totalCost,
+      equipmentCount
+    };
+  };
+
+  // Toggle group expansion
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupKey) 
+        ? prev.filter(key => key !== groupKey)
+        : [...prev, groupKey]
+    );
+  };
+
+  // Toggle all groups
+  const toggleAllGroups = (expand: boolean) => {
+    if (expand) {
+      setExpandedGroups(Object.keys(groupedEquipment));
+    } else {
+      setExpandedGroups([]);
+    }
+  };
+
+  const addEquipmentItem = async () => {
+    if (!newItem.name || !newItem.hours) return;
+    
+    if (!projectId) {
+      toast({
+        title: "Cannot add equipment item",
+        description: "No project selected. Please select a project first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const equipmentData = {
       equipmentType: newItem.equipmentType as EquipmentItem['equipmentType'],
       category: newItem.category || 'transport',
       name: newItem.name,
@@ -82,31 +277,40 @@ export default function EnhancedEquipmentTab({ equipment, setEquipment }: Enhanc
       notes: newItem.notes
     };
 
-    setEquipment([...equipment, item]);
+    // Create in database - will get back item with database-generated ID
+    await createEquipmentMutation.mutate(equipmentData);
+    
+    // Reset form
     setNewItem({
       equipmentType: 'inhouse',
       category: 'transport',
       hours: 0,
       rate: 45,
       fuelCost: 25,
-      operatorCost: 55
+      operatorCost: 55,
+      name: ''
     });
   };
 
-  const updateEquipmentItem = (id: string, updates: Partial<EquipmentItem>) => {
-    const updatedEquipment = equipment.map(item => {
-      if (item.id === id) {
-        const updated = { ...item, ...updates };
-        updated.totalCost = (updated.hours * updated.rate) + updated.fuelCost + updated.operatorCost;
-        return updated;
+  const updateEquipmentItem = (id: number, updates: Partial<EquipmentItem>) => {
+    // Calculate total cost if hours, rate, fuel or operator cost changed
+    if (updates.hours !== undefined || updates.rate !== undefined || 
+        updates.fuelCost !== undefined || updates.operatorCost !== undefined) {
+      const item = equipment.find(i => i.id === id);
+      if (item) {
+        const hours = updates.hours !== undefined ? updates.hours : item.hours;
+        const rate = updates.rate !== undefined ? updates.rate : item.rate;
+        const fuelCost = updates.fuelCost !== undefined ? updates.fuelCost : item.fuelCost;
+        const operatorCost = updates.operatorCost !== undefined ? updates.operatorCost : item.operatorCost;
+        updates.totalCost = (hours * rate) + fuelCost + operatorCost;
       }
-      return item;
-    });
-    setEquipment(updatedEquipment);
+    }
+    
+    updateEquipmentMutation.mutate({ id, updates });
   };
 
-  const removeEquipmentItem = (id: string) => {
-    setEquipment(equipment.filter(item => item.id !== id));
+  const removeEquipmentItem = (id: number) => {
+    deleteEquipmentMutation.mutate(id);
   };
 
   const updateStandardRates = (equipmentType: 'inhouse' | 'rental', category: string) => {
@@ -136,6 +340,11 @@ export default function EnhancedEquipmentTab({ equipment, setEquipment }: Enhanc
     return Object.values(EQUIPMENT_CATEGORIES).flat();
   };
 
+  const isCreating = createEquipmentMutation.isPending;
+  const isUpdating = updateEquipmentMutation.isPending;
+  const isDeleting = deleteEquipmentMutation.isPending;
+  const isAnyOperationPending = isCreating || isUpdating || isDeleting || isLoading;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -143,6 +352,7 @@ export default function EnhancedEquipmentTab({ equipment, setEquipment }: Enhanc
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
             Enhanced Equipment Management
+            {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -153,7 +363,15 @@ export default function EnhancedEquipmentTab({ equipment, setEquipment }: Enhanc
             </TabsList>
 
             <TabsContent value="inhouse" className="space-y-4">
-              <div className="grid grid-cols-7 gap-4">
+              {!projectId && (
+                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    No project selected. Please select a project to add equipment items.
+                  </p>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
                 <div>
                   <Label>Category</Label>
                   <Select 
@@ -225,9 +443,14 @@ export default function EnhancedEquipmentTab({ equipment, setEquipment }: Enhanc
                       setNewItem(prev => ({ ...prev, equipmentType: 'inhouse' }));
                       addEquipmentItem();
                     }}
+                    disabled={!projectId || isCreating}
                     className="w-full"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    {isCreating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4 mr-2" />
+                    )}
                     Add
                   </Button>
                 </div>
@@ -235,7 +458,15 @@ export default function EnhancedEquipmentTab({ equipment, setEquipment }: Enhanc
             </TabsContent>
 
             <TabsContent value="rental" className="space-y-4">
-              <div className="grid grid-cols-7 gap-4">
+              {!projectId && (
+                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    No project selected. Please select a project to add equipment items.
+                  </p>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
                 <div>
                   <Label>Category</Label>
                   <Select 
@@ -307,9 +538,14 @@ export default function EnhancedEquipmentTab({ equipment, setEquipment }: Enhanc
                       setNewItem(prev => ({ ...prev, equipmentType: 'rental' }));
                       addEquipmentItem();
                     }}
+                    disabled={!projectId || isCreating}
                     className="w-full"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    {isCreating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4 mr-2" />
+                    )}
                     Add
                   </Button>
                 </div>
@@ -320,7 +556,7 @@ export default function EnhancedEquipmentTab({ equipment, setEquipment }: Enhanc
       </Card>
 
       {/* Equipment Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -352,91 +588,160 @@ export default function EnhancedEquipmentTab({ equipment, setEquipment }: Enhanc
         </Card>
       </div>
 
-      {/* Equipment Items Table */}
+      {/* Equipment Items Grouped by Parent Designation */}
       {equipment.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Equipment Breakdown</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Equipment Breakdown by Material Designation</CardTitle>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => toggleAllGroups(true)}
+                >
+                  Expand All
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => toggleAllGroups(false)}
+                >
+                  Collapse All
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Hours</TableHead>
-                  <TableHead>Rate</TableHead>
-                  <TableHead>Fuel</TableHead>
-                  <TableHead>Operator</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {equipment.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <Badge variant={item.equipmentType === 'inhouse' ? 'default' : 'secondary'}>
-                        {item.equipmentType}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{item.category}</Badge>
-                    </TableCell>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        value={item.hours}
-                        onChange={(e) => updateEquipmentItem(item.id, { hours: parseFloat(e.target.value) || 0 })}
-                        className="w-20"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        value={item.rate}
-                        onChange={(e) => updateEquipmentItem(item.id, { rate: parseFloat(e.target.value) || 0 })}
-                        className="w-20"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Fuel className="h-3 w-3" />
-                        <Input
-                          type="number"
-                          value={item.fuelCost}
-                          onChange={(e) => updateEquipmentItem(item.id, { fuelCost: parseFloat(e.target.value) || 0 })}
-                          className="w-16"
-                        />
+            <Accordion type="multiple" value={expandedGroups} className="w-full">
+              {Object.entries(groupedEquipment).map(([materialId, group]) => {
+                const summary = getGroupSummary(group.items);
+                return (
+                  <AccordionItem key={materialId} value={materialId}>
+                    <AccordionTrigger onClick={() => toggleGroup(materialId)}>
+                      <div className="flex items-center justify-between w-full pr-4">
+                        <div className="flex items-center gap-3">
+                          <Badge className="text-sm font-semibold">
+                            {group.designation}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {summary.equipmentCount} equipment item{summary.equipmentCount !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm">
+                            <Clock className="inline h-4 w-4 mr-1" />
+                            {summary.totalHours.toFixed(1)} hrs
+                          </span>
+                          <span className="text-sm font-medium">
+                            ${summary.totalCost.toLocaleString()}
+                          </span>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        <Input
-                          type="number"
-                          value={item.operatorCost}
-                          onChange={(e) => updateEquipmentItem(item.id, { operatorCost: parseFloat(e.target.value) || 0 })}
-                          className="w-16"
-                        />
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Operation</TableHead>
+                              <TableHead>Op Type</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Category</TableHead>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Hours</TableHead>
+                              <TableHead>Rate</TableHead>
+                              <TableHead>Fuel</TableHead>
+                              <TableHead>Operator</TableHead>
+                              <TableHead>Total</TableHead>
+                              <TableHead>Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.items.map((item) => (
+                              <TableRow key={item.id}>
+                                <TableCell>
+                                  <span className="text-xs font-mono">
+                                    {item.operationDesignation || '-'}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-xs text-muted-foreground">
+                                    {item.operationType || '-'}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={item.equipmentType === 'inhouse' ? 'default' : 'secondary'}>
+                                    {item.equipmentType}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{item.category}</Badge>
+                                </TableCell>
+                                <TableCell>{item.name}</TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="number"
+                                    value={item.hours}
+                                    onChange={(e) => updateEquipmentItem(item.id, { hours: parseFloat(e.target.value) || 0 })}
+                                    className="w-20"
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="number"
+                                    value={item.rate}
+                                    onChange={(e) => updateEquipmentItem(item.id, { rate: parseFloat(e.target.value) || 0 })}
+                                    className="w-20"
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-1">
+                                    <Fuel className="h-3 w-3" />
+                                    <Input
+                                      type="number"
+                                      value={item.fuelCost}
+                                      onChange={(e) => updateEquipmentItem(item.id, { fuelCost: parseFloat(e.target.value) || 0 })}
+                                      className="w-16"
+                                    />
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-1">
+                                    <User className="h-3 w-3" />
+                                    <Input
+                                      type="number"
+                                      value={item.operatorCost}
+                                      onChange={(e) => updateEquipmentItem(item.id, { operatorCost: parseFloat(e.target.value) || 0 })}
+                                      className="w-16"
+                                    />
+                                  </div>
+                                </TableCell>
+                                <TableCell className="font-medium">${item.totalCost.toLocaleString()}</TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeEquipmentItem(item.id)}
+                                    disabled={isDeleting}
+                                  >
+                                    {isDeleting ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                       </div>
-                    </TableCell>
-                    <TableCell className="font-medium">${item.totalCost.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeEquipmentItem(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           </CardContent>
         </Card>
       )}

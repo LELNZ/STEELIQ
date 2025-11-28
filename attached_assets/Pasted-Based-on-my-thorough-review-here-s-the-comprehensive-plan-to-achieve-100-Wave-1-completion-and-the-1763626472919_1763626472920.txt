@@ -1,0 +1,50 @@
+Based on my thorough review, here's the comprehensive plan to achieve 100% Wave 1 completion and then Fortune 50 parity:
+
+Phase 1: Restore Wave 1 to 100% (Fix GPS)
+Goal: Get the Time Clock working again with GPS location
+
+Restore the original GPS location requirement I removed
+Fix the geolocation state machine with 15-second timeout
+Add fallback for Replit iframe limitations
+Ensure photo capture → location → clock-in flow works
+Phase 2: Complete Original Wave 2 Requirements
+Goal: Finish your documented Wave 2 items
+
+Database migration: Add timesheetId to time_entries
+Complete audit trail linkage between tables
+Implement proper manager hierarchy with delegation
+Add ServiceContext for report generation
+Phase 3: Biometric & Authentication (Fortune 50)
+Goal: Multi-factor identity verification
+
+WebAuthn biometric authentication (fingerprint/face)
+Device fingerprinting for buddy-punch prevention
+TOTP-based 2FA for supervisor overrides
+Session attestation and device binding
+Phase 4: Fraud & Compliance (Fortune 50)
+Goal: Anti-fraud and regulatory compliance
+
+GPS anti-spoofing detection (velocity checks)
+Impossible travel detection algorithms
+FLSA automated break/meal compliance
+SOX-compliant tamper-evident audit trails
+Union/overtime rule engine
+Phase 5: Enterprise Integration (Fortune 50)
+Goal: Payroll system connectivity
+
+Abstract payroll connector interface
+ADP integration adapter
+Workday integration adapter
+SAP SuccessFactors adapter
+Automated payroll export/sync
+This phased approach ensures we first restore your existing functionality, complete your planned Wave 2, then systematically add Fortune 50 features.
+
+
+""Fix the GPS location feature in the Time Clock system (Wave 1) - it's currently stuck on 'Getting Location...'"
+
+The key issues to fix are:
+
+Geolocation fails in Replit iframe environment
+No timeout or error recovery
+State machine doesn't continue after location acquisition
+This way we can tackle Phase 1 (tasks 1-4) cleanly and get your Time Clock working again before moving to Wave 2 and Fortune 50 enhancements."
