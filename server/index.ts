@@ -165,14 +165,14 @@ app.set('trust proxy', 1);
         const result = await db.execute(sql`
           UPDATE notifications 
           SET 
-            title = '[PURGED]',
+            subject = '[PURGED]',
             body = '[Content purged per retention policy]',
             pii_redacted = true,
             updated_at = NOW()
           WHERE 
             retention_days IS NOT NULL 
             AND created_at < NOW() - (retention_days * INTERVAL '1 day')
-            AND title != '[PURGED]'
+            AND subject != '[PURGED]'
           RETURNING id
         `);
         

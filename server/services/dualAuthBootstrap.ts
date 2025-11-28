@@ -82,15 +82,15 @@ export async function rehydrateDualAuthManager(): Promise<{
     
     // Log successful rehydration to audit trail
     await db.insert(auditLog).values({
-      userId: 0, // System action
+      userId: null, // System action - null for system-initiated events
       action: 'dual_auth_rehydration',
-      entity: 'system',
-      entityId: 'startup',
-      details: JSON.stringify({
+      resourceType: 'system',
+      resourceId: 'startup',
+      changes: {
         hydratedCount: status.pendingCount,
         expiredCount,
         timestamp: now.toISOString()
-      })
+      }
     });
     
     console.log(`[DualAuthBootstrap] Rehydration complete. Status: ${JSON.stringify(status)}`);
@@ -107,14 +107,14 @@ export async function rehydrateDualAuthManager(): Promise<{
     // Log failure to audit trail if possible
     try {
       await db.insert(auditLog).values({
-        userId: 0,
+        userId: null, // System action - null for system-initiated events
         action: 'dual_auth_rehydration_failed',
-        entity: 'system',
-        entityId: 'startup',
-        details: JSON.stringify({
+        resourceType: 'system',
+        resourceId: 'startup',
+        changes: {
           error: error.message,
           timestamp: new Date().toISOString()
-        })
+        }
       });
     } catch (auditError) {
       console.error('[DualAuthBootstrap] Failed to log rehydration failure:', auditError);
@@ -185,20 +185,18 @@ export async function cleanupExpiredDualAuthRequests(): Promise<{
     
     // Fortune 50 Compliance: Create audit log entries for each expired request
     const auditEntries = expiredRequests.map(req => ({
-      userId: 0, // System action
+      userId: null, // System action - null for system-initiated events
       action: 'dual_auth_expired',
-      entity: 'dual_auth',
-      entityId: req.requestId,
-      resourceType: req.resourceType,
-      resourceId: req.resourceId,
-      details: JSON.stringify({
+      resourceType: req.resourceType || 'dual_auth',
+      resourceId: req.resourceId || req.requestId,
+      changes: {
         requestId: req.requestId,
         requesterId: req.requesterId,
         requestType: req.requestType,
         expiresAt: req.expiresAt?.toISOString(),
         expiredAt: now.toISOString(),
         reason: 'Automatic expiration - 15 minute timeout exceeded'
-      })
+      }
     }));
     
     // Insert audit entries in batches if there are many
@@ -219,14 +217,14 @@ export async function cleanupExpiredDualAuthRequests(): Promise<{
     // Log cleanup failure
     try {
       await db.insert(auditLog).values({
-        userId: 0,
+        userId: null, // System action - null for system-initiated events
         action: 'dual_auth_cleanup_failed',
-        entity: 'system',
-        entityId: 'cleanup',
-        details: JSON.stringify({
+        resourceType: 'system',
+        resourceId: 'cleanup',
+        changes: {
           error: error.message,
           timestamp: new Date().toISOString()
-        })
+        }
       });
     } catch (auditError) {
       console.error('[DualAuthBootstrap] Failed to log cleanup failure:', auditError);

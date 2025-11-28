@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { locationTracking } from '@shared/schema';
-import { and, lt, gte, sql, eq, isNull } from 'drizzle-orm';
+import { and, lt, gte, sql, eq, isNull, inArray } from 'drizzle-orm';
 import * as crypto from 'crypto';
 
 /**
@@ -110,7 +110,7 @@ export class GPSArchivalService {
           // The last record's previousHash must skip over archived records
           await this.rehashRecordAfterCompression(Number(userId), lastRecord.id, firstRecord.id);
           
-          // Now safe to archive intermediate records
+          // Now safe to archive intermediate records - use inArray for proper SQL generation
           await db.update(locationTracking)
             .set({ 
               archivedAt: new Date(),
@@ -123,7 +123,7 @@ export class GPSArchivalService {
             .where(
               and(
                 eq(locationTracking.userId, Number(userId)),
-                sql`${locationTracking.id} IN (${sql.join(toArchive, sql`, `)})`
+                inArray(locationTracking.id, toArchive as number[])
               )
             );
 
