@@ -1,290 +1,278 @@
 # STEELIQ - Enterprise Steel Fabrication & Procurement Platform
 
-## Overview
-STEELIQ is an enterprise platform for Lateral Engineering Limited, designed to manage and streamline the entire steel fabrication lifecycle from procurement to job execution. The platform achieves Fortune 50 standards in data integrity, operational efficiency, and enterprise control through AI-powered optimization, self-learning AI estimation, automated procurement, real-time production monitoring, and comprehensive cost aggregation. It ensures complete traceability from drawing to delivery with core goals of transitioning from manual to automatic processes, improving accuracy through AI assistance, and reducing estimation time by 50%.
+## Platform Overview
 
-## User Preferences
-I prefer simple language and clear explanations.
-I want iterative development with regular updates.
-Ask before making major changes or architectural decisions.
-Ensure all metrics are traceable to source records; do not use mock data.
-Prioritize security and compliance with Fortune 50 standards.
-Do not make changes to the server/services directory without explicit approval.
-Ensure strict type checking and comprehensive error handling.
+STEELIQ is an enterprise platform built for **Lateral Engineering Limited** (New Zealand) to manage the complete steel fabrication lifecycle from initial client inquiry through to final delivery. The platform aims to achieve **Fortune 50 standards** in data integrity, operational efficiency, and enterprise control.
 
-## Current Status: October 21, 2025
-**Wave 3 Implementation - Fortune 50 Production Readiness Phase (100% COMPLETE)**
+**Core Business Problems Solved:**
+- Streamline steel estimation with AI-powered drawing analysis (reduces 4-hour process to 10 minutes)
+- Automate procurement workflows (RFQs, POs, supplier management)
+- Track production from quote to delivery with real-time monitoring
+- Manage time, attendance, and payroll with GPS validation
+- Ensure compliance with AS/NZS steel fabrication standards
+- Provide complete audit trails for SOX compliance
 
-## Wave Implementation Progress
+---
+
+## User Preferences (DO NOT DELETE OR MODIFY)
+
+- I prefer simple language and clear explanations.
+- I want iterative development with regular updates.
+- **Ask before making major changes or architectural decisions.**
+- Ensure all metrics are traceable to source records; do not use mock data.
+- **NO MOCK OR DEMO DATA IN PRODUCTION** - All data must be real and traceable.
+- Prioritize security and compliance with Fortune 50 standards.
+- **Do not make changes to the server/services directory without explicit approval.**
+- **Do not modify replit.md without explicit user approval.** When updating, ADD content - never delete existing instructions.
+- Keep code explanations brief unless explicitly requested.
+- Ensure strict type checking and comprehensive error handling.
+
+---
+
+## Implementation Status
 
 ### Wave 1: Foundation (COMPLETED - August 2024)
 - Core database schema (75+ tables)
 - User authentication and granular RBAC
 - Basic job management and procurement
 - Material library with 602+ AS/NZS standard items
-- Supplier management and categorization
-- Initial procurement workflow (requisition to PO)
 
 ### Wave 2: Intelligence Layer (COMPLETED - September 2024)
 - AI Estimation Engine with Claude Sonnet 4.0
 - DXF/DWG parser implementation (0.01mm precision)
 - Pattern recognition library (18 AS/NZS patterns)
 - Self-learning feedback system
-- Production monitoring infrastructure
-- Quality control and safety modules
-- Real-time KPI dashboards
 
-### Wave 3: Enterprise Integration (100% COMPLETE - October 2025)
-#### Completed Components:
-- Complete job lifecycle integration (Estimation to Job to MTO to Procurement)
-- 7 core enterprise services architecture
+### Wave 3: Enterprise Integration (COMPLETED - October 2025)
+- Complete job lifecycle integration
 - Fortune 50 data integrity standards (zero mock data)
 - RFQ automation with supplier category matching
 - Production monitoring with OEE metrics
-- Comprehensive cost aggregation system
-- Database sequence-based numbering
 - Immutable audit trail implementation
-- Integration testing for full lifecycle
-- Production deployment validation
-- Codebase cleanup and archival of unused files
 
 ### Wave 4: Physical Integration (Planned Q1 2026)
 - Machine telemetry via PLC/SCADA
 - IoT sensor network deployment
 - Time-series database implementation
-- Predictive maintenance algorithms
-- Edge computing for local processing
-
-## System Architecture
-
-### Core Service Architecture (Wave 3 - October 2025)
-The server/services directory contains 7 key microservices:
-- **aiEstimationService.ts**: AI-powered MTO extraction using Claude Sonnet 4.0
-- **aiWorkflowService.ts**: PDF/DXF processing pipeline with validation
-- **dxfParserService.ts**: Precision CAD geometry parsing (0.01mm accuracy)
-- **jobLifecycleService.ts**: Job creation, validation, and MTO transfer
-- **rfqAutomationService.ts**: Automated supplier matching and RFQ generation
-- **productionMonitoringService.ts**: Real-time OEE tracking and metrics
-- **costAggregationService.ts**: Multi-source cost analysis and variance tracking
-
-### Database Architecture (95+ Tables)
-
-#### Core Business Tables
-- Jobs & Projects: jobs, job_materials, job_estimates, job_lifecycle_events
-- Estimation: estimation_projects, operation_items, material_takeoffs
-- Procurement: purchase_requisitions, rfq_requests, purchase_orders
-- Production: machines, machine_status_logs, production_events, work_orders
-- Financial: invoices, payments, cost_variances, imported_costs
-- Team: users, roles, departments, team_members, time_entries, labor_rates
-
-#### AI & Learning Tables
-- ai_mto_elements: Hierarchical material extraction with parent-child relationships
-- ai_pattern_library: Self-improving pattern recognition (18 base AS/NZS patterns)
-- ai_feedback: User corrections for continuous learning
-- ai_learning_metrics: Accuracy tracking and improvement measurement
-- ai_mto_geometries: CAD geometry with 0.01mm precision
-- ai_mto_features: Feature detection (holes, bends, notches, cutouts)
-
-#### System Tables
-- numbering_sequences: Unique number generation for all entities
-- audit_events: Immutable transaction logging
-- role_permissions: Granular access control
-- system_audit_log: System-level event tracking
-
-### UI/UX Decisions
-Frontend uses React 18 with TypeScript, Tailwind CSS and Radix UI components. State management via TanStack Query v5, forms via React Hook Form with Zod validation, charts via Chart.js/Recharts. Mobile-responsive design supporting field access, GPS time clocks, and photo uploads.
-
-### Technical Implementations
-Backend built with Node.js and TypeScript using Express.js. PostgreSQL (Neon) with Drizzle ORM. Authentication via bcrypt with session management. Vite with ESBuild for build process, Drizzle Kit for database migrations.
-
-## Fortune 50 Standards & Gap Analysis
-
-### Industry Leaders Comparison
-
-**STRUMIS (Steel Industry Leader)**
-- CAD/CAM Integration with Tekla, SDS/2, Advance Steel
-- Real-time steel pricing from suppliers via API
-- Barcode scanning throughout workshop
-- Automatic nesting for plate cutting
-- Contract Review System with automated workflows
-- EDI integration for electronic purchase orders
-
-**Procore (Construction Management Leader)**
-- Mobile-first architecture with offline sync
-- RFI management system
-- Drawing version control with markup tools
-- Change order workflows with approval chains
-- Subcontractor payment applications
-
-**SAP S/4HANA (Used by 92% of Fortune 50)**
-- Phase-gate process with mandatory approval points
-- RACI matrix integration for role assignments
-- Automated stakeholder notifications
-- Real-time KPI dashboards with predictive analytics
-- Multi-currency and multi-site support
-- Banking integration for automated payments
-
-### Critical Gaps for Fortune 50 Parity
-
-#### Priority 1 - Immediate Requirements
-1. Mobile-First Architecture: Offline capability with sync for field operations
-2. Barcode/QR Scanning: Throughout workshop and warehouse for tracking
-3. Drawing Version Control: With markup and approval workflows
-
-#### Priority 2 - Strategic Requirements
-1. CAD/CAM Integration: Direct import from Tekla/SDS/2/Advance Steel
-2. EDI Integration: Electronic data interchange with suppliers
-3. Banking Integration: Automated payment processing and reconciliation
-
-#### Priority 3 - Advanced Features
-1. Predictive Analytics: ML-based project risk assessment
-2. Multi-Site Synchronization: Cloud-based data replication
-3. Advanced Reporting: Executive dashboards with drill-down capabilities
-
-## Feature Specifications
-
-### AI Estimation Engine
-- Input Processing: PDF/DXF/DWG drawings via drag-and-drop interface
-- Pattern Recognition: 18 AS/NZS steel pattern templates
-- MTO Generation: Hierarchical material take-offs with parent-child relationships
-- Learning System: Self-improving accuracy through feedback (15-20% improvement after 10 corrections)
-- Automation Impact: Reduces 4-hour manual process to 10 minutes
-
-### Procurement Automation
-- Requisition Generation: Automatic from job materials with approval routing
-- RFQ Distribution: Multi-supplier matching by material category
-- Quote Comparison: Side-by-side analysis with variance highlighting
-- PO Generation: One-click conversion from accepted quotes
-- Invoice Processing: OCR capability for automated cost import
-
-### Production Intelligence
-- Machine Monitoring: Real-time status tracking with event logging
-- OEE Metrics: Availability × Performance × Quality calculations
-- Department Efficiency: Comparative analysis across teams
-- Shift Management: Automatic metric aggregation by shift
-- Quality Control: NCR tracking with corrective actions
-
-### Cost Management
-- Multi-Source Aggregation: POs, invoices, time entries, requisitions
-- Variance Analysis: Real-time actual vs. estimated comparisons
-- Overhead Allocation: Department and project-based distribution
-- Indirect Cost Tracking: Shipping, handling, insurance, permits
-- Margin Protection: Automated alerts for cost overruns
-
-## Technical Specifications
-
-### Business Rules & Operational Constraints
-- Cutting Operations: 10 minutes standard, 12 minutes for angles
-- Kerf Width: 2.4mm + 0.5mm user error tolerance
-- Remnant Management: Minimum 500mm for reuse eligibility
-- Pricing Updates: Required within 7-day validity periods
-- Material Waste Target: <5% with remnant tracking
-- Material Catalog: 602+ items with AS/NZS standards compliance
-- Mill Certificate Tracking: Heat numbers and test certificates
-- GPS Time Clock: Location verification for field workers
-- Photo Documentation: Quality inspections with metadata
-
-### Performance Benchmarks
-- API Response Time: <200ms for 95% of requests
-- AI Processing Speed: 10-30 seconds for typical drawings
-- Database Query Optimization: Proper indexing for sub-second responses
-- Concurrent Users: Supports 100+ simultaneous connections
-- Annual Job Capacity: Handles 10,000+ jobs with full audit trails
-- Estimation Efficiency: 50% reduction in time-to-quote
-
-### Security & Compliance Standards
-- Authentication: Session-based with encrypted tokens
-- Authorization: Granular RBAC with role_permissions table
-- Data Protection: Encryption at rest for sensitive information
-- Audit Trail: Immutable event logging for all transactions
-- Input Validation: Strict type checking and sanitization
-- File Security: MIME verification, size limits, sanitized filenames
-- Compliance Standards: AS/NZS, ISO 45001, GDPR-ready, SOC 2 Type II
-
-## Development Guidelines
-1. No mock data: All metrics must be traceable to database records
-2. Data integrity: Proper relational structure with foreign key constraints
-3. Audit everything: User, timestamp, and changes for all operations
-4. Query optimization: Appropriate indexes for performance
-5. Error handling: Comprehensive logging with context
-6. Security first: Role-based permissions for all endpoints
-7. Type safety: Strict TypeScript with no any types
-8. Testing coverage: Integration tests for critical paths
-9. Documentation: Clear inline comments for complex logic
-10. Code reviews: No direct commits to main branch
-
-## External Dependencies
-- Database: PostgreSQL (Neon) - Cloud-hosted with automatic backups
-- AI Service: Anthropic Claude Sonnet 4.0 API - Pattern recognition and MTO extraction
-- Email Services: SendGrid (transactional), Gmail API (invoice import)
-- File Processing: PDFKit, pdf-parse, dxf-parser - Drawing analysis
-- Authentication: bcrypt - Password hashing and verification
-- Frontend Libraries: React, Tailwind CSS, Radix UI, TanStack Query, React Hook Form, Zod, Chart.js, Recharts, Wouter
-
-## Infrastructure Requirements
-
-### Current Implementation (Wave 3 - Production Ready)
-- Software architecture complete with 7 core services
-- Database-driven metrics with zero mock data
-- Complete job lifecycle with validation
-- Real-time cost tracking and variance analysis
-- Audit trail for all operations
-
-### Infrastructure Gaps for Full Fortune 50 Parity
-1. Machine Integration: Currently simulates production events - Required: PLC/SCADA integration via OPC-UA protocol
-2. Sensor Networks: No real-time telemetry collection - Required: IoT gateways with MQTT broker
-3. Time-Series Storage: Using standard PostgreSQL - Required: InfluxDB or TimescaleDB for high-frequency data
-
-## Roadmap to Fortune 50 Parity
-
-### Q4 2025 (Current - Wave 3 Completion)
-- Fortune 50 data standards achieved
-- Enterprise service architecture deployed
-- Production deployment validation (in progress)
-- Integration testing completion (in progress)
-
-### Q1 2026 (Wave 4 - Physical Integration)
-- Machine telemetry integration (PLC/SCADA)
-- IoT sensor network deployment
-- Time-series database implementation
-- Edge computing for local processing
-- Predictive maintenance algorithms
-
-### Q2 2026 (Feature Parity)
-- Mobile-first architecture with PWA
-- Barcode/QR scanning throughout facility
-- CAD/CAM integration (Tekla/SDS/2)
-- EDI with major suppliers
-- Banking system integration
-
-### Q3 2026 (Advanced Analytics)
-- Machine learning for risk assessment
-- Predictive analytics dashboards
-- Multi-site data synchronization
-- Supply chain optimization
-- Advanced executive reporting
-
-### Q4 2026 (Full Fortune 50 Certification)
-- Complete feature parity with STRUMIS/Procore
-- SOX compliance certification
-- Global deployment capability
-- Multi-currency support
-- Performance benchmarking validation
-
-## Recent Updates (October 21, 2025)
-1. Production Audit Complete: Eliminated ALL Math.random() and mock data
-2. Job Lifecycle Integration: Complete flow with validation and MTO transfer
-3. Service Architecture: 7 core microservices deployed and tested
-4. Cost Aggregation: Multi-source tracking with batch optimization
-5. RFQ Automation: Direct MTO to RFQ with supplier matching
-6. Production Monitoring: OEE metrics from actual database events
-7. DXF Parser Integration: Full CAD file support with 0.01mm precision
-8. Fortune 50 Audit: Data integrity and traceability confirmed
-9. Codebase Cleanup: Archived 10+ unused one-time scripts and test files
-10. Wave 3 Completion: 100% of enterprise integration features implemented
 
 ---
-Last Updated: October 21, 2025
-Status: Wave 3 - 100% Complete (Production Ready)
-Architecture: Fortune 50 Compliant Software Layer
-Next Milestone: Wave 4 - Physical Integration (Q1 2026)
+
+## Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 18, TypeScript, Vite |
+| UI Components | Tailwind CSS, Radix UI, shadcn/ui |
+| State Management | TanStack Query v5 |
+| Forms | React Hook Form + Zod validation |
+| Backend | Node.js, Express.js 4.x, TypeScript |
+| Database | PostgreSQL (Neon) with Drizzle ORM |
+| Authentication | bcrypt, session-based with 2FA support |
+| Real-time | WebSocket for notifications |
+| AI | Anthropic Claude Sonnet 4.0 API |
+
+---
+
+## Complete Feature Inventory
+
+### Core Application Pages
+| Page | Route | Description |
+|------|-------|-------------|
+| Dashboard | /dashboard | Central overview with KPIs |
+| Jobs | /jobs | Job management |
+| Materials | /materials | Steel catalogue |
+| Inventory | /inventory | Stock tracking |
+| Procurement | /procurement | RFQs, POs |
+| Estimation | /estimation-clean | AI-powered estimation |
+| Contacts | /contacts | Suppliers and clients |
+
+### Advanced Modules
+| Page | Route | Description |
+|------|-------|-------------|
+| Production Floor | /production-floor | Real-time monitoring |
+| Resource Planning | /resource-planning | Capacity planning |
+| Financial Intelligence | /financial-intelligence | Revenue, costs |
+| Time and Payroll | /time-payroll | Time clock, GPS |
+| AI Control Center | /ai-control | AI monitoring |
+| Drawing Intelligence | /drawing-intelligence | PDF/DXF analysis |
+| Audit Center | /audit-center | Compliance reports |
+| Cutting Optimization | /optimization | Material optimization |
+| Remnant Management | /remnant-management | Steel remnant tracking |
+| Mobile Operations | /mobile-operations | Field operations |
+
+### Role-Based Dashboards (6)
+- Executive Dashboard (/dashboards/executive)
+- Admin Dashboard (/dashboards/admin)
+- Supervisor Dashboard (/dashboards/supervisor)
+- Planning Dashboard (/dashboards/planning)
+- Accounting Dashboard (/dashboards/accounting)
+- Floor Dashboard (/dashboards/floor)
+
+### Portals
+- Client Portal (/client-portal)
+- Supplier Portal (/supplier-portal)
+- Supplier Integration Hub (/supplier-integration-hub)
+
+---
+
+## Core Microservices (32 services)
+
+**Location:** server/services/
+**WARNING: DO NOT MODIFY WITHOUT EXPLICIT APPROVAL**
+
+### AI and Estimation Services
+- aiEstimationService.ts - Drawing analysis, MTO extraction
+- aiWorkflowService.ts - Job orchestration
+- aiCacheService.ts - AI response caching
+- aiFeedbackService.ts - User correction collection
+- aiMonitoringService.ts - AI performance tracking
+- patternPackService.ts - Steel pattern library
+
+### Document Processing Services
+- dxfParserService.ts - DXF file parsing
+- dxfGeometryService.ts - CAD geometry calculations
+- pdfAnalysisService.ts - PDF drawing analysis
+- pdfGenerationService.ts - Quote/report PDF generation
+- ocrService.ts - Optical character recognition
+- drawingStorageService.ts - Drawing file management
+- mtoExportService.ts - Material takeoff export
+
+### Business Process Services
+- jobLifecycleService.ts - Job state management
+- rfqAutomationService.ts - RFQ generation
+- rfqEmailService.ts - RFQ email delivery
+- productionMonitoringService.ts - Real-time OEE tracking
+- costAggregationService.ts - Cost rollup
+- operation-service.ts - Fabrication operations
+
+### Infrastructure Services
+- emailTemplatesService.ts - Email template management
+- integratedEmailService.ts - Multi-provider email
+- secureStorageService.ts - Encrypted credential storage
+- workerQueueService.ts - Background job processing
+- errorRecoveryService.ts - Fault tolerance
+- complianceLintService.ts - Code compliance checking
+
+---
+
+## Database Schema
+
+**Total Tables:** 340+ exported schemas
+**Schema File:** shared/schema.ts (6,026 lines)
+
+### Core Entity Groups
+| Group | Purpose |
+|-------|---------|
+| Users and Auth | Authentication, authorization |
+| Jobs and Projects | Job lifecycle management |
+| Materials | Material catalog and stock |
+| Procurement | Procurement workflow |
+| Production | Shop floor operations |
+| Financial | Financial tracking |
+| Time and Payroll | Time tracking |
+| AI and Learning | AI training data |
+
+---
+
+## Security and Compliance
+
+### SOX Compliance Implementation
+- Audit Trail: SHA-256 hash chains on financial records
+- Segregation of Duties: Role-based access, approval workflows
+- Access Control: RBAC with 8+ permission levels
+- Data Encryption: AES-256-GCM for sensitive data
+
+### RBAC Roles (Hierarchy)
+1. owner - Full system access
+2. admin - Administrative functions
+3. full - Complete operational access
+4. supervisor - Team supervision
+5. planning - Resource planning
+6. accounting - Financial access
+7. operator - Standard operations
+8. basic - Minimal access
+
+### Authentication Features
+- bcrypt password hashing
+- Session-based authentication
+- TOTP two-factor authentication
+- WebAuthn biometric support
+- Progressive account lockout
+
+### GPS Anti-Spoofing
+- Mock location detection
+- Velocity fraud checks
+- Geofence boundary validation
+- Device fingerprinting
+
+---
+
+## External Integrations
+
+| Integration | Provider | Purpose |
+|-------------|----------|---------|
+| AI | Anthropic Claude Sonnet 4.0 | Drawing analysis |
+| Email | SendGrid | Transactional emails |
+| Email Import | Gmail API | Cost import |
+| Messaging | WhatsApp Business API v21.0 | Time clock notifications |
+| Payroll | ADP, QuickBooks, Xero | Payroll export |
+
+---
+
+## Development Guidelines
+
+### Common Pitfalls to AVOID
+1. Never use mock data - All data must come from real database sources
+2. Never modify server/services without approval - Core business logic protected
+3. Always use TanStack Query v5 object form - useQuery({ queryKey: [...] })
+4. Import useToast from @/hooks/use-toast - Not from shadcn directly
+5. Use import.meta.env for frontend env vars - Not process.env
+6. Prefix frontend env vars with VITE_ - Required for Vite
+7. Always provide value prop to SelectItem - Will throw error otherwise
+8. Use hierarchical query keys - ['/api/resource', id] not template strings
+9. Never import React explicitly - Vite JSX transformer handles it
+10. Express 4.x only - Do not upgrade to Express 5.x (breaking changes)
+
+### Data Integrity Rules
+- No mock data - All metrics traceable to database records
+- Proper relational structure with foreign key constraints
+- Audit everything - User, timestamp, changes for all operations
+- Role-based permissions for all endpoints
+- Strict TypeScript with no any types
+
+---
+
+## Business Rules
+
+| Rule | Value |
+|------|-------|
+| Cutting Operations | 10 min standard, 12 min for angles |
+| Kerf Width | 2.4mm + 0.5mm tolerance |
+| Remnant Management | Minimum 500mm for reuse |
+| Pricing Updates | 7-day validity periods |
+| Material Waste Target | Under 5 percent |
+| Material Catalog | 602+ AS/NZS items |
+
+### Performance Benchmarks
+- API Response Time: Under 200ms for 95 percent of requests
+- AI Processing Speed: 10-30 seconds for typical drawings
+- Concurrent Users: 100+ simultaneous connections
+- Annual Job Capacity: 10,000+ jobs with full audit trails
+- Estimation Efficiency: 50 percent reduction in time-to-quote
+
+---
+
+## Recent Updates
+
+| Date | Change |
+|------|--------|
+| 2025-11-28 | Fixed Express 5.x compatibility (downgraded to 4.21.2) |
+| 2025-11-28 | Fixed wildcard route patterns for rate limiting |
+| 2025-11-28 | Fixed login.tsx asset import path |
+| 2025-10-21 | Wave 3 completion - Fortune 50 production readiness |
+
+---
+
+**END OF DOCUMENT**
+
+This document is the authoritative reference for STEELIQ development. Any modifications require explicit user approval. ADD new content - NEVER delete existing instructions.

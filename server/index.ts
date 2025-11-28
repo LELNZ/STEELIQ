@@ -81,10 +81,10 @@ app.set('trust proxy', 1);
     
     // Apply rate limiting with path-specific limits
     const rateLimits = getRateLimits();
-    app.use('/api/auth/*', createRateLimiter(rateLimits.auth.windowMs, rateLimits.auth.max, 'Too many authentication attempts'));
-    app.use('/api/ai/*', createRateLimiter(rateLimits.ai.windowMs, rateLimits.ai.max, 'AI processing limit reached'));
-    app.use('/api/upload/*', createRateLimiter(rateLimits.uploads.windowMs, rateLimits.uploads.max, 'Upload limit reached'));
-    app.use('/api/files/*', createRateLimiter(rateLimits.uploads.windowMs, rateLimits.uploads.max, 'Upload limit reached'));
+    app.use('/api/auth', createRateLimiter(rateLimits.auth.windowMs, rateLimits.auth.max, 'Too many authentication attempts'));
+    app.use('/api/ai', createRateLimiter(rateLimits.ai.windowMs, rateLimits.ai.max, 'AI processing limit reached'));
+    app.use('/api/upload', createRateLimiter(rateLimits.uploads.windowMs, rateLimits.uploads.max, 'Upload limit reached'));
+    app.use('/api/files', createRateLimiter(rateLimits.uploads.windowMs, rateLimits.uploads.max, 'Upload limit reached'));
     app.use(applyToApiOnly(createRateLimiter(rateLimits.general.windowMs, rateLimits.general.max)));
     
     // Register all API routes (registerRoutes handles server creation)
