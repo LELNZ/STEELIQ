@@ -3500,8 +3500,13 @@ export const timeEntries = pgTable("time_entries", {
   notes: text("notes"),
   gpsLat: decimal("gps_lat", { precision: 10, scale: 6 }),
   gpsLng: decimal("gps_lng", { precision: 10, scale: 6 }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  
+  // SOX/ITGC Compliance: Hash chain for tamper-evident audit trail
+  auditHash: varchar("audit_hash", { length: 64 }), // SHA-256 hash of record content
+  previousAuditHash: varchar("previous_audit_hash", { length: 64 }), // SHA-256 hash of previous record or 'GENESIS'
+  
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const timesheets = pgTable("timesheets", {
@@ -3533,8 +3538,17 @@ export const timesheets = pgTable("timesheets", {
   // Audit fields
   geolocation: jsonb("geolocation"),
   deviceInfo: jsonb("device_info"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  
+  // SOX/ITGC Compliance: Hash chain for tamper-evident audit trail
+  auditHash: varchar("audit_hash", { length: 64 }), // SHA-256 hash of record content
+  previousAuditHash: varchar("previous_audit_hash", { length: 64 }), // SHA-256 hash of previous record or 'GENESIS'
+  
+  // SOX/ITGC Compliance: User attribution for all changes
+  createdBy: integer("created_by").references(() => users.id), // User who created the record
+  modifiedBy: integer("modified_by").references(() => users.id), // User who last modified the record
+  
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
 export const jobTasks = pgTable("job_tasks", {
@@ -5620,8 +5634,13 @@ export const payrollPeriods = pgTable("payroll_periods", {
   syncStatus: varchar("sync_status", { length: 20 }), // Track sync with external payroll systems: pending, synced, failed
   lastSyncedAt: timestamp("last_synced_at"), // Last successful sync timestamp
   syncProviderId: varchar("sync_provider_id", { length: 50 }), // Which provider was used for sync
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  
+  // SOX/ITGC Compliance: Hash chain for tamper-evident audit trail
+  auditHash: varchar("audit_hash", { length: 64 }), // SHA-256 hash of record content
+  previousAuditHash: varchar("previous_audit_hash", { length: 64 }), // SHA-256 hash of previous record or 'GENESIS'
+  
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   businessUnitPeriodIdx: unique("idx_payroll_periods_unit_start").on(table.businessUnitId, table.payPeriodStart)
 }));
