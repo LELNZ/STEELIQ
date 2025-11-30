@@ -1,0 +1,100 @@
+Great work on the migration and hash-chain implementation.
+
+From here, I want you to complete two things for the Time & Payroll subsystem:
+
+================================
+PHASE 3 – Backfill existing data
+================================
+
+Goal:
+Ensure that existing records in Time & Payroll tables are brought under the same hash-chain model, so we don’t leave historical data with NULL audit_hash / previous_audit_hash.
+
+IMPORTANT RULES:
+- Do NOT run this automatically on every startup.
+- Make it a controlled, one-time (or occasional) admin/backfill operation.
+- Use the SAME chain strategy you already implemented:
+  - time_entries: per-user chain (user_id + chronological by clock_in)
+  - timesheets: per-user chain (user_id + chronological by date)
+  - payroll_periods: global chain (chronological by pay_period_start or id)
+
+Tasks:
+
+1) Implement a backfill routine (script or admin function) that:
+   - Iterates over existing records for:
+     - time_entries
+     - timesheets
+     - payroll_periods
+   - Processes records in a deterministic order for each chain:
+     - time_entries: order by user_id, then clock_in
+     - timesheets: order by user_id, then date (or primary timesheet date field)
+     - payroll_periods: order by pay_period_start (or id)
+   - For each record in the sequence:
+     - Sets previous_audit_hash to the previous record’s audit_hash in the chain,
+       or to GENESIS for the first record in that sequence.
+     - Computes audit_hash using the same helper(s) you already created.
+
+2) Make the backfill idempotent:
+   - If audit_hash and previous_audit_hash are already present, decide whether to:
+     - Skip the record, or
+     - Recompute in a consistent way.
+   - Document your choice clearly in comments.
+
+3) Expose the backfill in a safe way:
+   - Either as:
+     - A script under a clearly named file (e.g. scripts/backfillTimePayrollAuditHashes.ts), OR
+     - A manual endpoint / CLI handler that will only be invoked explicitly.
+   - Do NOT wire it into normal runtime flows or automatic startup.
+
+4) Show me:
+   - The backfill code.
+   - A short explanation of how to run it (command or call).
+   - Any safeguards you added (e.g. dry-run option, batching).
+
+============================================
+PHASE 4 – Pre-flight checks for time-payroll
+============================================
+
+Goal:
+Make sure the time-payroll-core feature is properly validated by the pre-flight governance system, and that deployment is BLOCKED if critical controls are missing.
+
+Tasks:
+
+1) In the preFlightChecklist / governance utilities (e.g. server/utils/preFlightChecklist.ts):
+   - Add logic to load and validate the new manifest:
+     - server/manifests/time-payroll-core.manifest.json
+
+2) Implement feature-specific checks for time-payroll-core:
+   - Confirm the following tables exist:
+     - time_entries
+     - timesheets
+     - time_clocks
+     - payroll_periods
+     - location_tracking
+     - timesheet_corrections
+     - payroll_adjustments
+     - payroll_sync_log
+     - time_permissions
+   - Confirm the required audit columns exist:
+     - timesheets: audit_hash, previous_audit_hash, created_by, modified_by, created_at, updated_at
+     - time_entries: audit_hash, previous_audit_hash, created_at, updated_at
+     - payroll_periods: audit_hash, previous_audit_hash, created_at, updated_at
+   - Confirm the PAYROLL_ENCRYPTION_KEY secret is present in the environment.
+
+3) Enforcement:
+   - If any required table or audit column is missing for time-payroll-core:
+     - Mark the check as FAIL.
+     - Add a blocking issue with a clear message.
+   - If PAYROLL_ENCRYPTION_KEY is missing:
+     - Mark the check as FAIL.
+     - Add a blocking issue.
+   - Make sure canDeploy for time-payroll-core is false if these checks fail.
+
+4) Show me:
+   - The new pre-flight check code for time-payroll-core.
+   - An example JSON response from calling:
+     - GET /api/system/pre-flight-check?feature=time-payroll-core
+
+IMPORTANT:
+- Do NOT change any overtime/payroll business logic in this step.
+- Do NOT touch replit.md or the governance framework markdown file.
+- Keep the backfill and pre-flight logic focused only on governance, audit, and control requirements.
