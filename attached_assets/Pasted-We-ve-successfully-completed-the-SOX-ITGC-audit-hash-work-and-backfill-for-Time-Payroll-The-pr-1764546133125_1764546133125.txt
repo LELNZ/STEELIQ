@@ -1,0 +1,137 @@
+We’ve successfully completed the SOX/ITGC audit hash work and backfill for Time & Payroll.
+
+The pre-flight check for time-payroll-core now fails ONLY because of missing tables and routes, not audit issues.
+
+Here is the pre-flight status you reported:
+
+- overallStatus: fail
+- canDeploy: false
+
+PASSING:
+- All three core tables (time_entries, timesheets, payroll_periods) exist
+- All required SOX audit columns exist and are populated
+
+BLOCKING (remaining):
+- Missing required table: timesheet_corrections
+- Missing required table: time_permissions
+- Missing routes:
+  - /api/time/timesheets/:id/reject
+  - /api/time/timesheets/pending-approval
+  - /api/payroll/periods
+  - /api/payroll/periods/lock
+  - /api/payroll/export
+
+I want you to fix these blockers in a controlled way, without breaking existing behaviour.
+
+IMPORTANT CONSTRAINTS:
+- Do NOT modify replit.md.
+- Do NOT modify STEELIQ_Enterprise_Control_Framework_Governance_v2.0.md.
+- Do NOT remove or loosen SOX/ITGC requirements.
+- Prefer reconciling manifest ↔ actual code before creating brand-new things.
+
+====================================================
+STEP 1 – Reconcile manifest vs actual schema (tables)
+====================================================
+
+1) Open the manifest at:
+   server/manifests/time-payroll-core.manifest.json
+
+2) For each of the “missing” tables:
+   - timesheet_corrections
+   - time_permissions
+
+   Search the codebase to see if an equivalent table/schema already exists with a slightly different name:
+   - e.g. timesheetCorrections, timeCorrections, timePermissions, etc.
+
+3) For each table:
+
+   A) If an equivalent table DOES exist in shared/schema.ts:
+      - Show me:
+        - The table name in schema
+        - The name currently used in the manifest
+      - Propose whether we should:
+        - Update the manifest to match the actual table name, OR
+        - Update the schema to align with the manifest’s snake_case name.
+      - Then make the minimal change needed so schema + manifest + pre-flight agree.
+
+   B) If NO equivalent table exists:
+      - Propose a minimal, governance-aligned table definition based on how you referenced it in previous analysis:
+        - For timesheet_corrections:
+          - It should support tracking corrections to timesheets:
+            - Which timesheet was corrected
+            - Old vs new values
+            - Reason
+            - requested_by / approved_by
+            - timestamps
+            - audit fields if appropriate
+        - For time_permissions:
+            - It should support granular time-related permissions by user/role.
+      - Show me the proposed Drizzle schema and migration **before** you implement it.
+      - Wait for my explicit approval before creating new tables.
+
+Do NOT run any new migrations until I approve the proposed schema design.
+
+==================================================
+STEP 2 – Reconcile manifest vs actual routes (APIs)
+==================================================
+
+1) From your pre-flight report, the following routes are missing:
+
+   - /api/time/timesheets/:id/reject
+   - /api/time/timesheets/pending-approval
+   - /api/payroll/periods
+   - /api/payroll/periods/lock
+   - /api/payroll/export
+
+2) Search the existing routes and services to see if equivalent functionality already exists under different paths. For example:
+   - There may already be approve/reject logic for timesheets in timeManagement routes.
+   - There may already be payroll period creation/locking and export functions in payrollPeriodService or payrollExportService.
+
+3) For each of the 5 routes:
+
+   A) If equivalent functionality already exists:
+      - Show me:
+        - The existing route path + method.
+        - How it maps to the manifest’s required route.
+      - Propose whether we should:
+        - Update the manifest to match the existing route path, OR
+        - Add a thin wrapper route that forwards to the existing handler but uses the manifest’s path.
+      - I prefer adding small wrapper routes if that keeps the manifest clean and aligned with the governance doc.
+
+   B) If functionality does NOT yet exist:
+      - Propose a minimal route implementation that:
+        - Respects RBAC (e.g. only supervisor/manager/admin can reject, lock, or export).
+        - Delegates to existing services where possible (timeManagement, payrollPeriodService, payrollExportService).
+        - Returns clear 501/“Not implemented yet” ONLY if we truly cannot wire to any existing logic.
+      - Show me a summary of the proposed route handlers BEFORE you implement them.
+
+Again, do NOT change the manifest yet. The first pass is discovery and proposal.
+
+====================================================
+STEP 3 – Propose a change plan, then implement
+====================================================
+
+Once you’ve done the discovery in Steps 1 and 2, respond with:
+
+A) “Table Alignment Plan”
+   - For timesheet_corrections
+   - For time_permissions
+   - For each: whether you will:
+     - Align manifest to existing schema, OR
+     - Add new schema + migration.
+
+B) “Route Alignment Plan”
+   - For each of the 5 missing routes:
+     - Whether an equivalent exists already.
+     - Whether you plan to:
+       - Update the manifest, OR
+       - Add a wrapper route, OR
+       - Implement a new route.
+
+C) “Impact Summary”
+   - Files likely to change (schema, migrations, routes, services).
+   - Any risk areas.
+
+After you present the plan, WAIT FOR MY APPROVAL.
+
+Do NOT create any new tables or routes until I explicitly say “Approved, implement your plan.”
