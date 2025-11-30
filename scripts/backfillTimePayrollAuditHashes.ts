@@ -20,16 +20,21 @@
  *   npx tsx scripts/backfillTimePayrollAuditHashes.ts [options]
  * 
  * OPTIONS:
- *   --dry-run        Preview changes without writing to database
+ *   --execute        REQUIRED to actually write changes (without this, always dry-run)
  *   --force          Recompute hashes even for records that already have them
- *   --batch-size N   Number of records to process per batch (default: 100)
  *   --table <name>   Process only one table (time_entries, timesheets, payroll_periods)
  *   --verbose        Show detailed progress logs
  * 
+ * SAFETY:
+ *   By default, the script runs in DRY-RUN mode and will not modify any data.
+ *   You MUST explicitly pass --execute to write changes to the database.
+ *   This prevents accidental data modification.
+ * 
  * EXAMPLE:
- *   npx tsx scripts/backfillTimePayrollAuditHashes.ts --dry-run --verbose
- *   npx tsx scripts/backfillTimePayrollAuditHashes.ts --table timesheets
- *   npx tsx scripts/backfillTimePayrollAuditHashes.ts --batch-size 50
+ *   npx tsx scripts/backfillTimePayrollAuditHashes.ts                    # Dry-run (preview only)
+ *   npx tsx scripts/backfillTimePayrollAuditHashes.ts --verbose          # Dry-run with details
+ *   npx tsx scripts/backfillTimePayrollAuditHashes.ts --execute          # Actually write changes
+ *   npx tsx scripts/backfillTimePayrollAuditHashes.ts --execute --force  # Recompute all hashes
  * 
  * SAFEGUARDS:
  * - Dry-run mode by default when no arguments provided
@@ -69,8 +74,13 @@ interface BackfillResult {
 
 function parseArgs(): BackfillOptions {
   const args = process.argv.slice(2);
+  
+  // SAFETY: Dry-run is ALWAYS true unless --execute is explicitly provided
+  // This prevents accidental writes even when other flags are passed
+  const executeMode = args.includes('--execute');
+  
   const options: BackfillOptions = {
-    dryRun: args.length === 0 || args.includes('--dry-run'),
+    dryRun: !executeMode, // Only false if --execute is explicitly passed
     force: args.includes('--force'),
     batchSize: 100,
     table: 'all',
@@ -100,8 +110,70 @@ function log(message: string, options: BackfillOptions, isVerbose: boolean = fal
 }
 
 /**
+ * Process a batch of updates within a database transaction.
+ * Uses Drizzle's transaction API to ensure atomicity - either all updates
+ * in the batch succeed or the entire batch is rolled back.
+ * 
+ * SOX COMPLIANCE: Ensures hash chain integrity by preventing partial updates
+ * that could leave the chain in an inconsistent state.
+ */
+async function processBatch(
+  tableName: string,
+  updates: Array<{ id: number; previousAuditHash: string; auditHash: string }>,
+  options: BackfillOptions
+): Promise<{ success: boolean; errors: string[] }> {
+  const errors: string[] = [];
+  
+  if (options.dryRun || updates.length === 0) {
+    return { success: true, errors };
+  }
+  
+  log(`  Processing batch of ${updates.length} ${tableName} updates in transaction...`, options, true);
+  
+  try {
+    // Execute all updates within a single transaction for atomicity
+    await db.transaction(async (tx) => {
+      for (const update of updates) {
+        if (tableName === 'time_entries') {
+          await tx
+            .update(timeEntries)
+            .set({ previousAuditHash: update.previousAuditHash, auditHash: update.auditHash })
+            .where(eq(timeEntries.id, update.id));
+        } else if (tableName === 'timesheets') {
+          await tx
+            .update(timesheets)
+            .set({ previousAuditHash: update.previousAuditHash, auditHash: update.auditHash })
+            .where(eq(timesheets.id, update.id));
+        } else if (tableName === 'payroll_periods') {
+          await tx
+            .update(payrollPeriods)
+            .set({ previousAuditHash: update.previousAuditHash, auditHash: update.auditHash })
+            .where(eq(payrollPeriods.id, update.id));
+        }
+      }
+    });
+    
+    log(`    Transaction committed successfully (${updates.length} records)`, options, true);
+  } catch (error) {
+    // Transaction will be rolled back automatically on error
+    const errMsg = `Transaction failed for ${tableName} batch (${updates.length} records): ${error}`;
+    errors.push(errMsg);
+    log(`    ERROR: ${errMsg}`, options);
+  }
+  
+  return { success: errors.length === 0, errors };
+}
+
+/**
  * Backfills audit hashes for time_entries table.
  * Chain: Per-user, ordered by clock_in
+ * 
+ * CHAIN INTEGRITY LOGIC:
+ * - Processes records in batches for memory efficiency
+ * - For each record, determines previousAuditHash from last valid hash in chain
+ * - If a record has NULL audit_hash, it is computed (unless dry-run)
+ * - If a record has existing hash and not forcing, it becomes the new "last valid hash"
+ * - This ensures partially-hashed chains are properly linked
  */
 async function backfillTimeEntries(options: BackfillOptions): Promise<BackfillResult> {
   const startTime = Date.now();
@@ -125,102 +197,159 @@ async function backfillTimeEntries(options: BackfillOptions): Promise<BackfillRe
     for (const { userId } of users) {
       log(`Processing time entries for user ${userId}...`, options, true);
 
-      // Build query based on force flag
-      let query;
-      if (options.force) {
-        query = db
-          .select()
-          .from(timeEntries)
-          .where(eq(timeEntries.userId, userId))
-          .orderBy(asc(timeEntries.clockIn));
-      } else {
-        query = db
-          .select()
-          .from(timeEntries)
-          .where(
-            and(
-              eq(timeEntries.userId, userId),
-              isNull(timeEntries.auditHash)
-            )
-          )
-          .orderBy(asc(timeEntries.clockIn));
-      }
+      // Get total count for this user
+      const countResult = await db.execute(sql`
+        SELECT COUNT(*) as count FROM time_entries WHERE user_id = ${userId}
+      `);
+      const totalUserRecords = parseInt((countResult.rows[0] as any).count) || 0;
+      result.totalRecords += totalUserRecords;
 
-      const records = await query;
-      result.totalRecords += records.length;
-
-      if (records.length === 0) {
+      if (totalUserRecords === 0) {
         log(`  No records to process for user ${userId}`, options, true);
         continue;
       }
 
-      // If force mode, we need to process ALL records in order to maintain chain integrity
-      // Otherwise we only process records with NULL audit_hash
-      let allRecordsForChain = records;
-      if (options.force) {
-        allRecordsForChain = await db
+      // Track the last valid hash in the chain (starts as GENESIS)
+      let lastValidHash = GENESIS_HASH;
+      let offset = 0;
+      
+      // Process in batches
+      while (offset < totalUserRecords) {
+        // Load a batch of records
+        const batchRecords = await db
           .select()
           .from(timeEntries)
           .where(eq(timeEntries.userId, userId))
-          .orderBy(asc(timeEntries.clockIn));
-      }
+          .orderBy(asc(timeEntries.clockIn))
+          .limit(options.batchSize)
+          .offset(offset);
+        
+        if (batchRecords.length === 0) break;
+        
+        log(`  Processing batch ${Math.floor(offset / options.batchSize) + 1} (${batchRecords.length} records)...`, options, true);
+        
+        // CRITICAL: Save chain state before processing batch for rollback recovery
+        const preBatchHash = lastValidHash;
+        const preBatchUpdatedCount = result.updatedRecords;
+        const preBatchSkippedCount = result.skippedRecords;
+        
+        // Prepare batch updates
+        const batchUpdates: Array<{ id: number; previousAuditHash: string; auditHash: string }> = [];
 
-      let previousHash = GENESIS_HASH;
+        for (const record of batchRecords) {
+          result.processedRecords++;
 
-      for (const record of allRecordsForChain) {
-        result.processedRecords++;
+          // Determine if this record needs updating
+          const needsUpdate = !record.auditHash || options.force;
 
-        // Skip if already has hash and not forcing
-        if (record.auditHash && !options.force) {
-          previousHash = record.auditHash;
-          result.skippedRecords++;
-          continue;
-        }
+          if (!needsUpdate) {
+            // Record has valid hash and we're not forcing - verify chain integrity
+            if (record.previousAuditHash !== lastValidHash) {
+              // Chain is broken! Need to update previousAuditHash and recompute
+              log(`    Chain repair needed for time_entry ${record.id} (previousAuditHash mismatch)`, options, true);
+              
+              const recomputedHash = computeTimeEntryAuditHash(
+                {
+                  id: record.id,
+                  userId: record.userId,
+                  timesheetId: record.timesheetId,
+                  jobId: record.jobId,
+                  clockIn: record.clockIn,
+                  clockOut: record.clockOut,
+                  breakDuration: record.breakDuration,
+                  totalHours: record.totalHours,
+                  hourlyRate: record.hourlyRate,
+                  totalCost: record.totalCost,
+                  status: record.status,
+                  gpsLat: record.gpsLat,
+                  gpsLng: record.gpsLng
+                },
+                lastValidHash
+              );
 
-        try {
-          const computedHash = computeTimeEntryAuditHash(
-            {
-              id: record.id,
-              userId: record.userId,
-              timesheetId: record.timesheetId,
-              jobId: record.jobId,
-              clockIn: record.clockIn,
-              clockOut: record.clockOut,
-              breakDuration: record.breakDuration,
-              totalHours: record.totalHours,
-              hourlyRate: record.hourlyRate,
-              totalCost: record.totalCost,
-              status: record.status,
-              gpsLat: record.gpsLat,
-              gpsLng: record.gpsLng
-            },
-            previousHash
-          );
+              batchUpdates.push({
+                id: record.id,
+                previousAuditHash: lastValidHash,
+                auditHash: recomputedHash
+              });
 
-          if (!options.dryRun) {
-            await db
-              .update(timeEntries)
-              .set({
-                previousAuditHash: previousHash,
-                auditHash: computedHash
-              })
-              .where(eq(timeEntries.id, record.id));
+              lastValidHash = recomputedHash;
+              result.updatedRecords++;
+            } else {
+              // Chain is intact, use existing hash
+              lastValidHash = record.auditHash;
+              result.skippedRecords++;
+            }
+            continue;
           }
 
-          previousHash = computedHash;
-          result.updatedRecords++;
+          // Record needs hash computation
+          try {
+            const computedHash = computeTimeEntryAuditHash(
+              {
+                id: record.id,
+                userId: record.userId,
+                timesheetId: record.timesheetId,
+                jobId: record.jobId,
+                clockIn: record.clockIn,
+                clockOut: record.clockOut,
+                breakDuration: record.breakDuration,
+                totalHours: record.totalHours,
+                hourlyRate: record.hourlyRate,
+                totalCost: record.totalCost,
+                status: record.status,
+                gpsLat: record.gpsLat,
+                gpsLng: record.gpsLng
+              },
+              lastValidHash
+            );
 
-          log(`  Updated time_entry ${record.id} (hash: ${computedHash.substring(0, 8)}...)`, options, true);
-        } catch (error) {
-          const errMsg = `Error processing time_entry ${record.id}: ${error}`;
-          result.errors.push(errMsg);
-          log(`  ERROR: ${errMsg}`, options);
+            batchUpdates.push({
+              id: record.id,
+              previousAuditHash: lastValidHash,
+              auditHash: computedHash
+            });
+
+            lastValidHash = computedHash;
+            result.updatedRecords++;
+
+            log(`    Updated time_entry ${record.id} (hash: ${computedHash.substring(0, 8)}...)`, options, true);
+          } catch (error) {
+            const errMsg = `Error processing time_entry ${record.id}: ${error}`;
+            result.errors.push(errMsg);
+            log(`    ERROR: ${errMsg}`, options);
+          }
         }
+        
+        // Execute batch updates in transaction
+        if (batchUpdates.length > 0) {
+          const batchResult = await processBatch('time_entries', batchUpdates, options);
+          if (!batchResult.success) {
+            // CRITICAL: Transaction failed - restore chain state to pre-batch values
+            // This prevents chain divergence from database state
+            log(`    ROLLBACK: Restoring chain state to pre-batch value`, options);
+            lastValidHash = preBatchHash;
+            result.updatedRecords = preBatchUpdatedCount;
+            result.skippedRecords = preBatchSkippedCount;
+            result.errors.push(...batchResult.errors);
+            
+            // FATAL: Cannot continue with corrupted chain state
+            const fatalMsg = `FATAL: Transaction rollback for time_entries user ${userId}. Aborting to prevent chain corruption.`;
+            result.errors.push(fatalMsg);
+            log(fatalMsg, options);
+            throw new Error(fatalMsg);
+          }
+        }
+        
+        offset += options.batchSize;
       }
     }
   } catch (error) {
     result.errors.push(`Fatal error: ${error}`);
     log(`FATAL ERROR: ${error}`, options);
+    result.duration = Date.now() - startTime;
+    // Re-throw to ensure fail-fast behavior - caller must handle termination
+    throw error;
   }
 
   result.duration = Date.now() - startTime;
@@ -230,6 +359,11 @@ async function backfillTimeEntries(options: BackfillOptions): Promise<BackfillRe
 /**
  * Backfills audit hashes for timesheets table.
  * Chain: Per-user, ordered by date
+ * 
+ * CHAIN INTEGRITY LOGIC:
+ * - Processes records in batches for memory efficiency
+ * - Repairs broken chains by verifying previousAuditHash links
+ * - This ensures partially-hashed chains are properly linked
  */
 async function backfillTimesheets(options: BackfillOptions): Promise<BackfillResult> {
   const startTime = Date.now();
@@ -253,78 +387,162 @@ async function backfillTimesheets(options: BackfillOptions): Promise<BackfillRes
     for (const { userId } of users) {
       log(`Processing timesheets for user ${userId}...`, options, true);
 
-      // Get all records for this user (needed for chain integrity)
-      const allRecords = await db
-        .select()
-        .from(timesheets)
-        .where(eq(timesheets.userId, userId))
-        .orderBy(asc(timesheets.date));
+      // Get total count for this user
+      const countResult = await db.execute(sql`
+        SELECT COUNT(*) as count FROM timesheets WHERE user_id = ${userId}
+      `);
+      const totalUserRecords = parseInt((countResult.rows[0] as any).count) || 0;
+      result.totalRecords += totalUserRecords;
 
-      result.totalRecords += allRecords.length;
-
-      if (allRecords.length === 0) {
+      if (totalUserRecords === 0) {
         log(`  No records to process for user ${userId}`, options, true);
         continue;
       }
 
-      let previousHash = GENESIS_HASH;
+      // Track the last valid hash in the chain (starts as GENESIS)
+      let lastValidHash = GENESIS_HASH;
+      let offset = 0;
 
-      for (const record of allRecords) {
-        result.processedRecords++;
+      // Process in batches
+      while (offset < totalUserRecords) {
+        // Load a batch of records
+        const batchRecords = await db
+          .select()
+          .from(timesheets)
+          .where(eq(timesheets.userId, userId))
+          .orderBy(asc(timesheets.date))
+          .limit(options.batchSize)
+          .offset(offset);
 
-        // Skip if already has hash and not forcing
-        if (record.auditHash && !options.force) {
-          previousHash = record.auditHash;
-          result.skippedRecords++;
-          continue;
-        }
+        if (batchRecords.length === 0) break;
 
-        try {
-          const computedHash = computeTimesheetAuditHash(
-            {
-              id: record.id,
-              userId: record.userId,
-              date: record.date,
-              jobId: record.jobId,
-              taskId: record.taskId,
-              startTime: record.startTime,
-              endTime: record.endTime,
-              hoursWorked: record.hoursWorked,
-              breakHours: record.breakHours,
-              overtimeHours: record.overtimeHours,
-              status: record.status,
-              supervisorId: record.supervisorId,
-              approvedBy: record.approvedBy,
-              approvedAt: record.approvedAt,
-              submittedAt: record.submittedAt
-            },
-            previousHash
-          );
+        log(`  Processing batch ${Math.floor(offset / options.batchSize) + 1} (${batchRecords.length} records)...`, options, true);
 
-          if (!options.dryRun) {
-            await db
-              .update(timesheets)
-              .set({
-                previousAuditHash: previousHash,
-                auditHash: computedHash
-              })
-              .where(eq(timesheets.id, record.id));
+        // CRITICAL: Save chain state before processing batch for rollback recovery
+        const preBatchHash = lastValidHash;
+        const preBatchUpdatedCount = result.updatedRecords;
+        const preBatchSkippedCount = result.skippedRecords;
+
+        // Prepare batch updates
+        const batchUpdates: Array<{ id: number; previousAuditHash: string; auditHash: string }> = [];
+
+        for (const record of batchRecords) {
+          result.processedRecords++;
+
+          // Determine if this record needs updating
+          const needsUpdate = !record.auditHash || options.force;
+
+          if (!needsUpdate) {
+            // Record has valid hash and we're not forcing - verify chain integrity
+            if (record.previousAuditHash !== lastValidHash) {
+              // Chain is broken! Need to update previousAuditHash and recompute
+              log(`    Chain repair needed for timesheet ${record.id} (previousAuditHash mismatch)`, options, true);
+              
+              const recomputedHash = computeTimesheetAuditHash(
+                {
+                  id: record.id,
+                  userId: record.userId,
+                  date: record.date,
+                  jobId: record.jobId,
+                  taskId: record.taskId,
+                  startTime: record.startTime,
+                  endTime: record.endTime,
+                  hoursWorked: record.hoursWorked,
+                  breakHours: record.breakHours,
+                  overtimeHours: record.overtimeHours,
+                  status: record.status,
+                  supervisorId: record.supervisorId,
+                  approvedBy: record.approvedBy,
+                  approvedAt: record.approvedAt,
+                  submittedAt: record.submittedAt
+                },
+                lastValidHash
+              );
+
+              batchUpdates.push({
+                id: record.id,
+                previousAuditHash: lastValidHash,
+                auditHash: recomputedHash
+              });
+
+              lastValidHash = recomputedHash;
+              result.updatedRecords++;
+            } else {
+              // Chain is intact, use existing hash
+              lastValidHash = record.auditHash;
+              result.skippedRecords++;
+            }
+            continue;
           }
 
-          previousHash = computedHash;
-          result.updatedRecords++;
+          // Record needs hash computation
+          try {
+            const computedHash = computeTimesheetAuditHash(
+              {
+                id: record.id,
+                userId: record.userId,
+                date: record.date,
+                jobId: record.jobId,
+                taskId: record.taskId,
+                startTime: record.startTime,
+                endTime: record.endTime,
+                hoursWorked: record.hoursWorked,
+                breakHours: record.breakHours,
+                overtimeHours: record.overtimeHours,
+                status: record.status,
+                supervisorId: record.supervisorId,
+                approvedBy: record.approvedBy,
+                approvedAt: record.approvedAt,
+                submittedAt: record.submittedAt
+              },
+              lastValidHash
+            );
 
-          log(`  Updated timesheet ${record.id} (hash: ${computedHash.substring(0, 8)}...)`, options, true);
-        } catch (error) {
-          const errMsg = `Error processing timesheet ${record.id}: ${error}`;
-          result.errors.push(errMsg);
-          log(`  ERROR: ${errMsg}`, options);
+            batchUpdates.push({
+              id: record.id,
+              previousAuditHash: lastValidHash,
+              auditHash: computedHash
+            });
+
+            lastValidHash = computedHash;
+            result.updatedRecords++;
+
+            log(`    Updated timesheet ${record.id} (hash: ${computedHash.substring(0, 8)}...)`, options, true);
+          } catch (error) {
+            const errMsg = `Error processing timesheet ${record.id}: ${error}`;
+            result.errors.push(errMsg);
+            log(`    ERROR: ${errMsg}`, options);
+          }
         }
+
+        // Execute batch updates in transaction
+        if (batchUpdates.length > 0) {
+          const batchResult = await processBatch('timesheets', batchUpdates, options);
+          if (!batchResult.success) {
+            // CRITICAL: Transaction failed - restore chain state to pre-batch values
+            log(`    ROLLBACK: Restoring chain state to pre-batch value`, options);
+            lastValidHash = preBatchHash;
+            result.updatedRecords = preBatchUpdatedCount;
+            result.skippedRecords = preBatchSkippedCount;
+            result.errors.push(...batchResult.errors);
+            
+            // FATAL: Cannot continue with corrupted chain state
+            const fatalMsg = `FATAL: Transaction rollback for timesheets user ${userId}. Aborting to prevent chain corruption.`;
+            result.errors.push(fatalMsg);
+            log(fatalMsg, options);
+            throw new Error(fatalMsg);
+          }
+        }
+
+        offset += options.batchSize;
       }
     }
   } catch (error) {
     result.errors.push(`Fatal error: ${error}`);
     log(`FATAL ERROR: ${error}`, options);
+    result.duration = Date.now() - startTime;
+    // Re-throw to ensure fail-fast behavior - caller must handle termination
+    throw error;
   }
 
   result.duration = Date.now() - startTime;
@@ -334,6 +552,11 @@ async function backfillTimesheets(options: BackfillOptions): Promise<BackfillRes
 /**
  * Backfills audit hashes for payroll_periods table.
  * Chain: Global, ordered by pay_period_start
+ * 
+ * CHAIN INTEGRITY LOGIC:
+ * - Processes records in batches for memory efficiency
+ * - Repairs broken chains by verifying previousAuditHash links
+ * - This ensures partially-hashed chains are properly linked
  */
 async function backfillPayrollPeriods(options: BackfillOptions): Promise<BackfillResult> {
   const startTime = Date.now();
@@ -350,77 +573,161 @@ async function backfillPayrollPeriods(options: BackfillOptions): Promise<Backfil
   try {
     log('Starting payroll_periods backfill...', options);
 
-    // Get all payroll periods in chronological order
-    const allRecords = await db
-      .select()
-      .from(payrollPeriods)
-      .orderBy(asc(payrollPeriods.payPeriodStart));
+    // Get total count
+    const countResult = await db.execute(sql`
+      SELECT COUNT(*) as count FROM payroll_periods
+    `);
+    const totalRecords = parseInt((countResult.rows[0] as any).count) || 0;
+    result.totalRecords = totalRecords;
+    log(`Found ${totalRecords} payroll periods`, options, true);
 
-    result.totalRecords = allRecords.length;
-    log(`Found ${allRecords.length} payroll periods`, options, true);
-
-    if (allRecords.length === 0) {
+    if (totalRecords === 0) {
       log('No payroll periods to process', options, true);
       return result;
     }
 
-    let previousHash = GENESIS_HASH;
+    // Track the last valid hash in the chain (starts as GENESIS)
+    let lastValidHash = GENESIS_HASH;
+    let offset = 0;
 
-    for (const record of allRecords) {
-      result.processedRecords++;
+    // Process in batches
+    while (offset < totalRecords) {
+      // Load a batch of records
+      const batchRecords = await db
+        .select()
+        .from(payrollPeriods)
+        .orderBy(asc(payrollPeriods.payPeriodStart))
+        .limit(options.batchSize)
+        .offset(offset);
 
-      // Skip if already has hash and not forcing
-      if (record.auditHash && !options.force) {
-        previousHash = record.auditHash;
-        result.skippedRecords++;
-        continue;
-      }
+      if (batchRecords.length === 0) break;
 
-      try {
-        const computedHash = computePayrollPeriodAuditHash(
-          {
-            id: record.id,
-            businessUnitId: record.businessUnitId,
-            periodType: record.periodType || 'weekly',
-            payPeriodStart: record.payPeriodStart,
-            payPeriodEnd: record.payPeriodEnd,
-            payDate: record.payDate,
-            status: record.status,
-            lockedBy: record.lockedBy,
-            lockedAt: record.lockedAt,
-            processingStartedAt: record.processingStartedAt,
-            processingCompletedAt: record.processingCompletedAt,
-            syncStatus: record.syncStatus,
-            employeeCount: record.employeeCount,
-            totalHours: record.totalHours,
-            totalAmount: record.totalAmount
-          },
-          previousHash
-        );
+      log(`Processing batch ${Math.floor(offset / options.batchSize) + 1} (${batchRecords.length} records)...`, options, true);
 
-        if (!options.dryRun) {
-          await db
-            .update(payrollPeriods)
-            .set({
-              previousAuditHash: previousHash,
-              auditHash: computedHash
-            })
-            .where(eq(payrollPeriods.id, record.id));
+      // CRITICAL: Save chain state before processing batch for rollback recovery
+      const preBatchHash = lastValidHash;
+      const preBatchUpdatedCount = result.updatedRecords;
+      const preBatchSkippedCount = result.skippedRecords;
+
+      // Prepare batch updates
+      const batchUpdates: Array<{ id: number; previousAuditHash: string; auditHash: string }> = [];
+
+      for (const record of batchRecords) {
+        result.processedRecords++;
+
+        // Determine if this record needs updating
+        const needsUpdate = !record.auditHash || options.force;
+
+        if (!needsUpdate) {
+          // Record has valid hash and we're not forcing - verify chain integrity
+          if (record.previousAuditHash !== lastValidHash) {
+            // Chain is broken! Need to update previousAuditHash and recompute
+            log(`  Chain repair needed for payroll_period ${record.id} (previousAuditHash mismatch)`, options, true);
+            
+            const recomputedHash = computePayrollPeriodAuditHash(
+              {
+                id: record.id,
+                businessUnitId: record.businessUnitId,
+                periodType: record.periodType || 'weekly',
+                payPeriodStart: record.payPeriodStart,
+                payPeriodEnd: record.payPeriodEnd,
+                payDate: record.payDate,
+                status: record.status,
+                lockedBy: record.lockedBy,
+                lockedAt: record.lockedAt,
+                processingStartedAt: record.processingStartedAt,
+                processingCompletedAt: record.processingCompletedAt,
+                syncStatus: record.syncStatus,
+                employeeCount: record.employeeCount,
+                totalHours: record.totalHours,
+                totalAmount: record.totalAmount
+              },
+              lastValidHash
+            );
+
+            batchUpdates.push({
+              id: record.id,
+              previousAuditHash: lastValidHash,
+              auditHash: recomputedHash
+            });
+
+            lastValidHash = recomputedHash;
+            result.updatedRecords++;
+          } else {
+            // Chain is intact, use existing hash
+            lastValidHash = record.auditHash;
+            result.skippedRecords++;
+          }
+          continue;
         }
 
-        previousHash = computedHash;
-        result.updatedRecords++;
+        // Record needs hash computation
+        try {
+          const computedHash = computePayrollPeriodAuditHash(
+            {
+              id: record.id,
+              businessUnitId: record.businessUnitId,
+              periodType: record.periodType || 'weekly',
+              payPeriodStart: record.payPeriodStart,
+              payPeriodEnd: record.payPeriodEnd,
+              payDate: record.payDate,
+              status: record.status,
+              lockedBy: record.lockedBy,
+              lockedAt: record.lockedAt,
+              processingStartedAt: record.processingStartedAt,
+              processingCompletedAt: record.processingCompletedAt,
+              syncStatus: record.syncStatus,
+              employeeCount: record.employeeCount,
+              totalHours: record.totalHours,
+              totalAmount: record.totalAmount
+            },
+            lastValidHash
+          );
 
-        log(`  Updated payroll_period ${record.id} (hash: ${computedHash.substring(0, 8)}...)`, options, true);
-      } catch (error) {
-        const errMsg = `Error processing payroll_period ${record.id}: ${error}`;
-        result.errors.push(errMsg);
-        log(`  ERROR: ${errMsg}`, options);
+          batchUpdates.push({
+            id: record.id,
+            previousAuditHash: lastValidHash,
+            auditHash: computedHash
+          });
+
+          lastValidHash = computedHash;
+          result.updatedRecords++;
+
+          log(`  Updated payroll_period ${record.id} (hash: ${computedHash.substring(0, 8)}...)`, options, true);
+        } catch (error) {
+          const errMsg = `Error processing payroll_period ${record.id}: ${error}`;
+          result.errors.push(errMsg);
+          log(`  ERROR: ${errMsg}`, options);
+        }
       }
+
+      // Execute batch updates in transaction
+      if (batchUpdates.length > 0) {
+        const batchResult = await processBatch('payroll_periods', batchUpdates, options);
+        if (!batchResult.success) {
+          // CRITICAL: Transaction failed - restore chain state to pre-batch values
+          log(`  ROLLBACK: Restoring chain state to pre-batch value`, options);
+          lastValidHash = preBatchHash;
+          result.updatedRecords = preBatchUpdatedCount;
+          result.skippedRecords = preBatchSkippedCount;
+          result.errors.push(...batchResult.errors);
+          
+          // FATAL: Cannot continue with corrupted chain state
+          const fatalMsg = `FATAL: Transaction rollback for payroll_periods. Aborting to prevent chain corruption.`;
+          result.errors.push(fatalMsg);
+          log(fatalMsg, options);
+          throw new Error(fatalMsg);
+        }
+      }
+
+      offset += options.batchSize;
     }
   } catch (error) {
     result.errors.push(`Fatal error: ${error}`);
     log(`FATAL ERROR: ${error}`, options);
+    result.duration = Date.now() - startTime;
+    // Re-throw to ensure fail-fast behavior - caller must handle termination
+    throw error;
   }
 
   result.duration = Date.now() - startTime;

@@ -767,6 +767,385 @@ class PreFlightChecklistService {
 
     return reports;
   }
+
+  /**
+   * SOX/ITGC Compliant Pre-Flight Check for Time & Payroll Core Feature
+   * 
+   * This method performs comprehensive validation for the time-payroll-core feature,
+   * ensuring all SOX Section 404 requirements are met before deployment.
+   * 
+   * CHECKS PERFORMED:
+   * 1. Required tables exist (time_entries, timesheets, time_clocks, payroll_periods, etc.)
+   * 2. Required audit columns exist on critical tables (audit_hash, previous_audit_hash, etc.)
+   * 3. Required secrets are configured (PAYROLL_ENCRYPTION_KEY)
+   * 4. Standard manifest checks (services, routes, governance)
+   * 
+   * BLOCKING BEHAVIOR:
+   * - Missing tables = FAIL (deployment blocked)
+   * - Missing audit columns = FAIL (deployment blocked)
+   * - Missing PAYROLL_ENCRYPTION_KEY = FAIL (deployment blocked)
+   */
+  async runTimePayrollCoreCheck(): Promise<PreFlightReport> {
+    const featureName = 'time-payroll-core';
+    const manifest = await this.loadManifest(featureName);
+
+    if (!manifest) {
+      return {
+        feature: featureName,
+        version: 'unknown',
+        timestamp: new Date().toISOString(),
+        overallStatus: 'fail',
+        checks: [{
+          check: 'manifest_exists',
+          status: 'fail',
+          message: `CRITICAL: No manifest found for feature: ${featureName}`,
+          details: { expectedPath: path.join(this.manifestsDir, `${featureName}.manifest.json`) }
+        }],
+        blockingIssues: [`Missing manifest file for ${featureName}`],
+        warnings: [],
+        canDeploy: false
+      };
+    }
+
+    const checks: PreFlightCheckResult[] = [];
+    const blockingIssues: string[] = [];
+    const warnings: string[] = [];
+
+    // ========================================
+    // CHECK 1: Required Tables Exist
+    // ========================================
+    const requiredTables = [
+      'time_entries',
+      'timesheets',
+      'time_clocks',
+      'payroll_periods',
+      'location_tracking',
+      'timesheet_corrections',
+      'payroll_adjustments',
+      'payroll_sync_log',
+      'time_permissions'
+    ];
+
+    for (const tableName of requiredTables) {
+      try {
+        const result = await db.execute(sql`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = ${tableName}
+          ) as exists
+        `);
+        
+        const exists = result.rows[0]?.exists === true;
+        
+        checks.push({
+          check: `time_payroll_table_${tableName}`,
+          status: exists ? 'pass' : 'fail',
+          message: exists 
+            ? `Required table '${tableName}' exists` 
+            : `CRITICAL: Required table '${tableName}' does not exist - SOX compliance blocked`,
+          details: { tableName, exists, feature: 'time-payroll-core' }
+        });
+
+        if (!exists) {
+          blockingIssues.push(`Missing required table: ${tableName}`);
+        }
+      } catch (error) {
+        checks.push({
+          check: `time_payroll_table_${tableName}`,
+          status: 'fail',
+          message: `Error checking table '${tableName}': ${error}`,
+          details: { tableName, error: String(error) }
+        });
+        blockingIssues.push(`Error checking table ${tableName}: ${error}`);
+      }
+    }
+
+    // ========================================
+    // CHECK 2: Required Audit Columns Exist
+    // ========================================
+    const auditColumnRequirements: Record<string, string[]> = {
+      timesheets: ['audit_hash', 'previous_audit_hash', 'created_by', 'modified_by', 'created_at', 'updated_at'],
+      time_entries: ['audit_hash', 'previous_audit_hash', 'created_at', 'updated_at'],
+      payroll_periods: ['audit_hash', 'previous_audit_hash', 'created_at', 'updated_at']
+    };
+
+    for (const [tableName, requiredColumns] of Object.entries(auditColumnRequirements)) {
+      try {
+        const columnResult = await db.execute(sql`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_schema = 'public' 
+          AND table_name = ${tableName}
+        `);
+        
+        const existingColumns = columnResult.rows.map((r: any) => r.column_name);
+        const missingColumns: string[] = [];
+
+        for (const requiredCol of requiredColumns) {
+          if (!existingColumns.includes(requiredCol)) {
+            missingColumns.push(requiredCol);
+          }
+        }
+
+        if (missingColumns.length > 0) {
+          checks.push({
+            check: `time_payroll_audit_columns_${tableName}`,
+            status: 'fail',
+            message: `CRITICAL: Table '${tableName}' missing SOX-required audit columns: ${missingColumns.join(', ')}`,
+            details: { 
+              tableName, 
+              missingColumns, 
+              existingColumns,
+              requiredColumns,
+              soxImpact: 'Section 404 audit trail incomplete'
+            }
+          });
+          blockingIssues.push(`Table '${tableName}' missing audit columns: ${missingColumns.join(', ')}`);
+        } else {
+          checks.push({
+            check: `time_payroll_audit_columns_${tableName}`,
+            status: 'pass',
+            message: `Table '${tableName}' has all ${requiredColumns.length} required SOX audit columns`,
+            details: { tableName, verifiedColumns: requiredColumns }
+          });
+        }
+      } catch (error) {
+        checks.push({
+          check: `time_payroll_audit_columns_${tableName}`,
+          status: 'fail',
+          message: `Error checking audit columns for '${tableName}': ${error}`,
+          details: { tableName, error: String(error) }
+        });
+        blockingIssues.push(`Error checking audit columns for ${tableName}: ${error}`);
+      }
+    }
+
+    // ========================================
+    // CHECK 3: PAYROLL_ENCRYPTION_KEY Secret
+    // ========================================
+    const payrollEncryptionKeyExists = !!process.env.PAYROLL_ENCRYPTION_KEY;
+    
+    checks.push({
+      check: 'time_payroll_encryption_key',
+      status: payrollEncryptionKeyExists ? 'pass' : 'fail',
+      message: payrollEncryptionKeyExists 
+        ? 'PAYROLL_ENCRYPTION_KEY secret is configured' 
+        : 'CRITICAL: PAYROLL_ENCRYPTION_KEY secret is NOT configured - payroll data encryption disabled',
+      details: { 
+        secretName: 'PAYROLL_ENCRYPTION_KEY',
+        configured: payrollEncryptionKeyExists,
+        soxImpact: 'SOX Section 404 requires encryption of financial data'
+      }
+    });
+
+    if (!payrollEncryptionKeyExists) {
+      blockingIssues.push('Missing required secret: PAYROLL_ENCRYPTION_KEY');
+    }
+
+    // ========================================
+    // CHECK 4: Hash Chain Integrity Check (Comprehensive)
+    // ========================================
+    try {
+      // Check time_entries - count total vs hashed vs unhashed
+      const timeEntryStats = await db.execute(sql`
+        SELECT 
+          COUNT(*) as total,
+          COUNT(audit_hash) as hashed,
+          COUNT(*) - COUNT(audit_hash) as unhashed
+        FROM time_entries
+      `);
+      
+      const teStats = timeEntryStats.rows[0] as any;
+      const teTotal = parseInt(teStats.total) || 0;
+      const teHashed = parseInt(teStats.hashed) || 0;
+      const teUnhashed = parseInt(teStats.unhashed) || 0;
+      
+      // Check for chain continuity (verify previous_audit_hash links)
+      const timeEntryChainBreaks = await db.execute(sql`
+        WITH ordered_entries AS (
+          SELECT id, user_id, clock_in, audit_hash, previous_audit_hash,
+                 LAG(audit_hash) OVER (PARTITION BY user_id ORDER BY clock_in) as expected_previous
+          FROM time_entries
+          WHERE audit_hash IS NOT NULL
+        )
+        SELECT COUNT(*) as breaks
+        FROM ordered_entries
+        WHERE previous_audit_hash != COALESCE(expected_previous, 'GENESIS')
+      `);
+      
+      const teBreaks = parseInt((timeEntryChainBreaks.rows[0] as any).breaks) || 0;
+      
+      checks.push({
+        check: 'time_payroll_hash_chain_time_entries',
+        status: teUnhashed === 0 && teBreaks === 0 ? 'pass' : teHashed > 0 ? 'warn' : 'warn',
+        message: teUnhashed === 0 && teBreaks === 0
+          ? `Hash chain complete: ${teHashed} time_entries fully hashed with no breaks`
+          : teHashed > 0
+            ? `Hash chain incomplete: ${teHashed}/${teTotal} hashed, ${teUnhashed} unhashed, ${teBreaks} chain breaks`
+            : 'No time_entries have audit hashes yet - run backfill script',
+        details: {
+          totalRecords: teTotal,
+          hashedRecords: teHashed,
+          unhashedRecords: teUnhashed,
+          chainBreaks: teBreaks,
+          backfillNeeded: teUnhashed > 0 || teBreaks > 0
+        }
+      });
+
+      // Check timesheets - count total vs hashed vs unhashed
+      const timesheetStats = await db.execute(sql`
+        SELECT 
+          COUNT(*) as total,
+          COUNT(audit_hash) as hashed,
+          COUNT(*) - COUNT(audit_hash) as unhashed
+        FROM timesheets
+      `);
+      
+      const tsStats = timesheetStats.rows[0] as any;
+      const tsTotal = parseInt(tsStats.total) || 0;
+      const tsHashed = parseInt(tsStats.hashed) || 0;
+      const tsUnhashed = parseInt(tsStats.unhashed) || 0;
+      
+      // Check for chain continuity
+      const timesheetChainBreaks = await db.execute(sql`
+        WITH ordered_timesheets AS (
+          SELECT id, user_id, date, audit_hash, previous_audit_hash,
+                 LAG(audit_hash) OVER (PARTITION BY user_id ORDER BY date) as expected_previous
+          FROM timesheets
+          WHERE audit_hash IS NOT NULL
+        )
+        SELECT COUNT(*) as breaks
+        FROM ordered_timesheets
+        WHERE previous_audit_hash != COALESCE(expected_previous, 'GENESIS')
+      `);
+      
+      const tsBreaks = parseInt((timesheetChainBreaks.rows[0] as any).breaks) || 0;
+      
+      checks.push({
+        check: 'time_payroll_hash_chain_timesheets',
+        status: tsUnhashed === 0 && tsBreaks === 0 ? 'pass' : tsHashed > 0 ? 'warn' : 'warn',
+        message: tsUnhashed === 0 && tsBreaks === 0
+          ? `Hash chain complete: ${tsHashed} timesheets fully hashed with no breaks`
+          : tsHashed > 0
+            ? `Hash chain incomplete: ${tsHashed}/${tsTotal} hashed, ${tsUnhashed} unhashed, ${tsBreaks} chain breaks`
+            : 'No timesheets have audit hashes yet - run backfill script',
+        details: {
+          totalRecords: tsTotal,
+          hashedRecords: tsHashed,
+          unhashedRecords: tsUnhashed,
+          chainBreaks: tsBreaks,
+          backfillNeeded: tsUnhashed > 0 || tsBreaks > 0
+        }
+      });
+
+      // Check payroll_periods - count total vs hashed vs unhashed
+      const payrollPeriodStats = await db.execute(sql`
+        SELECT 
+          COUNT(*) as total,
+          COUNT(audit_hash) as hashed,
+          COUNT(*) - COUNT(audit_hash) as unhashed
+        FROM payroll_periods
+      `);
+      
+      const ppStats = payrollPeriodStats.rows[0] as any;
+      const ppTotal = parseInt(ppStats.total) || 0;
+      const ppHashed = parseInt(ppStats.hashed) || 0;
+      const ppUnhashed = parseInt(ppStats.unhashed) || 0;
+      
+      // Check for chain continuity (global chain, ordered by pay_period_start)
+      const payrollPeriodChainBreaks = await db.execute(sql`
+        WITH ordered_periods AS (
+          SELECT id, pay_period_start, audit_hash, previous_audit_hash,
+                 LAG(audit_hash) OVER (ORDER BY pay_period_start) as expected_previous
+          FROM payroll_periods
+          WHERE audit_hash IS NOT NULL
+        )
+        SELECT COUNT(*) as breaks
+        FROM ordered_periods
+        WHERE previous_audit_hash != COALESCE(expected_previous, 'GENESIS')
+      `);
+      
+      const ppBreaks = parseInt((payrollPeriodChainBreaks.rows[0] as any).breaks) || 0;
+      
+      checks.push({
+        check: 'time_payroll_hash_chain_payroll_periods',
+        status: ppUnhashed === 0 && ppBreaks === 0 ? 'pass' : ppHashed > 0 ? 'warn' : 'warn',
+        message: ppUnhashed === 0 && ppBreaks === 0
+          ? `Hash chain complete: ${ppHashed} payroll_periods fully hashed with no breaks`
+          : ppHashed > 0
+            ? `Hash chain incomplete: ${ppHashed}/${ppTotal} hashed, ${ppUnhashed} unhashed, ${ppBreaks} chain breaks`
+            : 'No payroll_periods have audit hashes yet - run backfill script',
+        details: {
+          totalRecords: ppTotal,
+          hashedRecords: ppHashed,
+          unhashedRecords: ppUnhashed,
+          chainBreaks: ppBreaks,
+          backfillNeeded: ppUnhashed > 0 || ppBreaks > 0
+        }
+      });
+
+      // Add warning if backfill needed
+      const anyBackfillNeeded = teUnhashed > 0 || tsUnhashed > 0 || ppUnhashed > 0 || teBreaks > 0 || tsBreaks > 0 || ppBreaks > 0;
+      if (anyBackfillNeeded) {
+        warnings.push('Hash chain backfill needed - run: npx tsx scripts/backfillTimePayrollAuditHashes.ts --execute');
+      }
+
+    } catch (error) {
+      checks.push({
+        check: 'time_payroll_hash_chain_sample',
+        status: 'warn',
+        message: `Could not verify hash chain status: ${error}`,
+        details: { error: String(error) }
+      });
+      warnings.push(`Hash chain verification skipped: ${error}`);
+    }
+
+    // ========================================
+    // CHECK 5: Services Exist
+    // ========================================
+    if (manifest.dependencies.services) {
+      const serviceResults = await this.checkServiceDependencies(manifest.dependencies.services);
+      checks.push(...serviceResults);
+      serviceResults.filter(r => r.status === 'fail').forEach(r => blockingIssues.push(r.message));
+    }
+
+    // ========================================
+    // CHECK 6: Routes Registered
+    // ========================================
+    if (manifest.dependencies.routes) {
+      const routeResults = this.checkRouteDependencies(manifest.dependencies.routes, true);
+      checks.push(...routeResults);
+      routeResults.filter(r => r.status === 'fail').forEach(r => blockingIssues.push(r.message));
+      routeResults.filter(r => r.status === 'warn').forEach(r => warnings.push(r.message));
+    }
+
+    // ========================================
+    // CHECK 7: Governance Requirements
+    // ========================================
+    if (manifest.governance) {
+      const govResults = this.checkGovernanceRequirements(manifest.governance);
+      checks.push(...govResults);
+      govResults.filter(r => r.status === 'fail').forEach(r => blockingIssues.push(r.message));
+      govResults.filter(r => r.status === 'warn').forEach(r => warnings.push(r.message));
+    }
+
+    // Determine overall status
+    const overallStatus: 'pass' | 'fail' | 'warn' = 
+      blockingIssues.length > 0 ? 'fail' : 
+      warnings.length > 0 ? 'warn' : 'pass';
+
+    return {
+      feature: manifest.feature,
+      version: manifest.version,
+      timestamp: new Date().toISOString(),
+      overallStatus,
+      checks,
+      blockingIssues,
+      warnings,
+      canDeploy: blockingIssues.length === 0
+    };
+  }
 }
 
 export const preFlightChecklistService = new PreFlightChecklistService();

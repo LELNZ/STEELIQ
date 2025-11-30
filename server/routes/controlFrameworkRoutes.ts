@@ -21,11 +21,18 @@ export function registerControlFrameworkRoutes(app: Express) {
 
       const featureName = req.query.feature as string;
       if (!featureName) {
-        return res.status(400).json({ error: "Feature name required. Usage: ?feature=wave-5.3-ai-scheduling" });
+        return res.status(400).json({ error: "Feature name required. Usage: ?feature=time-payroll-core" });
       }
 
       const { preFlightChecklistService } = await import("../utils/preFlightChecklist");
-      const report = await preFlightChecklistService.runPreFlightCheck(featureName);
+      
+      // Use specialized check for time-payroll-core feature (SOX Section 404 compliance)
+      let report;
+      if (featureName === 'time-payroll-core') {
+        report = await preFlightChecklistService.runTimePayrollCoreCheck();
+      } else {
+        report = await preFlightChecklistService.runPreFlightCheck(featureName);
+      }
 
       res.json({
         success: true,
