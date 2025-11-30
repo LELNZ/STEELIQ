@@ -1,0 +1,81 @@
+Thanks, that analysis looks correct.
+
+You confirmed the following commands:
+
+- DRY-RUN (verbose):
+  npx tsx scripts/backfillTimePayrollAuditHashes.ts --verbose
+
+- EXECUTE (with writes + verbose):
+  npx tsx scripts/backfillTimePayrollAuditHashes.ts --execute --verbose
+
+I now authorize you to proceed with the next steps exactly as planned.
+
+====================================
+STEP 2 – Run DRY-RUN backfill in dev
+====================================
+
+1) Run the backfill script in DRY-RUN mode (NO --execute flag), using:
+
+   npx tsx scripts/backfillTimePayrollAuditHashes.ts --verbose
+
+2) After it finishes, summarize clearly:
+   - How many records it *would* touch for:
+     - time_entries
+     - timesheets
+     - payroll_periods
+   - Any WARNINGS or FATAL messages from the logs.
+   - The exit code (should be 0 in dry-run).
+
+3) Do NOT make any code changes as part of this step.
+
+============================================
+STEP 3 – Run EXECUTE backfill in dev (once)
+============================================
+
+I now also explicitly authorize you to run the script in EXECUTE mode in THIS environment, once DRY-RUN has completed successfully.
+
+1) If the DRY-RUN completed successfully with exit code 0 and no serious FATAL errors, run:
+
+   npx tsx scripts/backfillTimePayrollAuditHashes.ts --execute --verbose
+
+2) After it finishes, summarize clearly:
+   - Number of records actually updated per table:
+     - time_entries
+     - timesheets
+     - payroll_periods
+   - Whether any batch failed or rolled back.
+   - Whether the script exited with code 0 (success) or 1 (failure).
+   - Any FATAL errors or rollback messages.
+
+If anything looks wrong or fails, STOP and report instead of retrying.
+
+============================================
+STEP 4 – Verify governance via pre-flight check
+============================================
+
+Once the EXECUTE run has succeeded:
+
+1) Call the pre-flight endpoint for the Time & Payroll feature:
+
+   GET /api/system/pre-flight-check?feature=time-payroll-core
+
+2) Show me the JSON response, focusing on:
+   - overallStatus
+   - canDeploy
+   - checks / blockingIssues / warnings related to:
+     - audit_hash / previous_audit_hash fields
+     - time_entries / timesheets / payroll_periods tables
+     - PAYROLL_ENCRYPTION_KEY
+
+3) In plain language, tell me:
+   - Whether time-payroll-core now passes pre-flight from a governance perspective.
+   - If there are any remaining BLOCKING issues I need to address.
+
+====================================
+FINAL RULES
+====================================
+
+- Do NOT modify replit.md or STEELIQ_Enterprise_Control_Framework_Governance_v2.0.md.
+- Do NOT change any schemas, hash logic, or backfill script code in this task.
+- Assume this is a development environment, not production.
+- If you are unsure or see something unexpected, STOP and report instead of improvising.
