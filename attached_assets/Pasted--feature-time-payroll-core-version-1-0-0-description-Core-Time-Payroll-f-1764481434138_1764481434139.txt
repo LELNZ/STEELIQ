@@ -1,0 +1,186 @@
+{
+  "feature": "time-payroll-core",
+  "version": "1.0.0",
+  "description": "Core Time & Payroll functionality with Fortune-50-grade governance",
+  "dependencies": {
+    "tables": [
+      "time_entries",
+      "timesheets",
+      "time_clocks",
+      "payroll_periods",
+      "location_tracking",
+      "timesheet_corrections",
+      "payroll_adjustments",
+      "payroll_sync_log",
+      "time_permissions"
+    ],
+    "tableSchemas": {
+      "timesheets": {
+        "requiredColumns": [
+          "id",
+          "user_id",
+          "week_start",
+          "status",
+          "hours_worked",
+          "approved_by",
+          "approved_at",
+          "created_at",
+          "updated_at"
+        ],
+        "auditColumns": [
+          "audit_hash",
+          "previous_audit_hash",
+          "created_by",
+          "modified_by"
+        ]
+      },
+      "time_entries": {
+        "requiredColumns": [
+          "id",
+          "user_id",
+          "clock_in",
+          "clock_out",
+          "status"
+        ],
+        "auditColumns": [
+          "audit_hash",
+          "previous_audit_hash"
+        ]
+      },
+      "payroll_periods": {
+        "requiredColumns": [
+          "id",
+          "pay_period_start",
+          "pay_period_end",
+          "status",
+          "locked_by",
+          "locked_at"
+        ],
+        "auditColumns": [
+          "audit_hash",
+          "previous_audit_hash"
+        ]
+      },
+      "location_tracking": {
+        "requiredColumns": [
+          "id",
+          "user_id",
+          "latitude",
+          "longitude",
+          "timestamp"
+        ],
+        "auditColumns": [
+          "previous_hash",
+          "current_hash"
+        ]
+      }
+    },
+    "services": [
+      "timeAnalyticsService",
+      "timesheetAggregationService",
+      "overtimeCalculationService",
+      "payrollExportService",
+      "payrollPeriodService",
+      "gpsArchivalService",
+      "fraudScoringService"
+    ],
+    "routes": [
+      "/api/time/clock-status",
+      "/api/time/timesheets",
+      "/api/time/timesheets/:id/approve",
+      "/api/time/timesheets/:id/reject",
+      "/api/time/timesheets/pending-approval",
+      "/api/payroll/periods",
+      "/api/payroll/periods/lock",
+      "/api/payroll/export",
+      "/api/payroll/sync"
+    ],
+    "secrets": [
+      "PAYROLL_ENCRYPTION_KEY"
+    ],
+    "rbacRequirements": {
+      "minRole": "user",
+      "adminRoutes": [
+        "/api/payroll/export",
+        "/api/payroll/periods/lock"
+      ]
+    }
+  },
+  "auditFields": [
+    "audit_hash",
+    "previous_audit_hash",
+    "created_by",
+    "modified_by",
+    "created_at",
+    "updated_at"
+  ],
+  "preFlightChecks": [
+    "database",
+    "schema",
+    "columns",
+    "services",
+    "routes",
+    "secrets",
+    "audit",
+    "governance"
+  ],
+  "governance": {
+    "togaf": {
+      "admPhase": "governance",
+      "architectureContract": {
+        "contractType": "service",
+        "stakeholders": [
+          "HR",
+          "Finance",
+          "Compliance",
+          "IT Security"
+        ],
+        "deliverables": [
+          "Time Tracking",
+          "Payroll Export",
+          "GPS Compliance",
+          "Audit Trails"
+        ],
+        "complianceCriteria": [
+          "SOX 302/404",
+          "ITGC",
+          "SHA-256 hash chains"
+        ]
+      }
+    },
+    "cobit2024": {
+      "objectives": [
+        { "id": "APO12", "targetLevel": 4, "currentLevel": 3 },
+        { "id": "BAI06", "targetLevel": 4, "currentLevel": 3 },
+        { "id": "DSS05", "targetLevel": 4, "currentLevel": 3 }
+      ]
+    },
+    "soxControls": {
+      "itgc": {
+        "accessControls": true,
+        "changeManagement": true,
+        "computerOperations": true,
+        "programDevelopment": true,
+        "sdlc": true,
+        "auditTrail": true,
+        "encryption": true,
+        "backupRecovery": true
+      },
+      "sodRequirements": [
+        "User cannot approve own timesheet",
+        "Time entry is separate from payroll processing",
+        "Payroll export requires manager+ role",
+        "Payroll period locking requires dual authorization"
+      ]
+    },
+    "raci": [],
+    "deploymentGates": {
+      "rollbackValidation": {
+        "procedureDocumented": true,
+        "previousVersionRetained": true,
+        "maxRollbackTime": 300,
+        "rollbackTested": true
+      }
+    }
+  }
+}

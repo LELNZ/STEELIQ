@@ -1,0 +1,361 @@
+{
+  "feature": "time-payroll-core",
+  "version": "1.0.0",
+  "description": "Core Time & Payroll functionality with Fortune-50-grade governance",
+  "dependencies": {
+    "tables": [
+      "time_entries",
+      "timesheets",
+      "time_clocks",
+      "payroll_periods",
+      "location_tracking",
+      "timesheet_corrections",
+      "payroll_adjustments",
+      "payroll_sync_log",
+      "time_permissions"
+    ],
+    "tableSchemas": {
+      "timesheets": {
+        "requiredColumns": [
+          "id",
+          "user_id",
+          "date",
+          "status",
+          "hours_worked",
+          "approved_by",
+          "approved_at",
+          "created_at",
+          "updated_at"
+        ],
+        "auditColumns": [
+          "audit_hash",
+          "previous_audit_hash",
+          "created_by",
+          "modified_by"
+        ],
+        "auditColumnsStatus": "MISSING - SOX blocking issue"
+      },
+      "time_entries": {
+        "requiredColumns": [
+          "id",
+          "user_id",
+          "timesheet_id",
+          "clock_in",
+          "clock_out",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "auditColumns": [
+          "audit_hash",
+          "previous_audit_hash"
+        ],
+        "auditColumnsStatus": "MISSING - SOX blocking issue"
+      },
+      "payroll_periods": {
+        "requiredColumns": [
+          "id",
+          "business_unit_id",
+          "period_type",
+          "pay_period_start",
+          "pay_period_end",
+          "pay_date",
+          "status",
+          "locked_by",
+          "locked_at",
+          "created_at",
+          "updated_at"
+        ],
+        "auditColumns": [
+          "audit_hash",
+          "previous_audit_hash"
+        ],
+        "auditColumnsStatus": "MISSING - SOX blocking issue"
+      },
+      "location_tracking": {
+        "requiredColumns": [
+          "id",
+          "user_id",
+          "session_id",
+          "latitude",
+          "longitude",
+          "accuracy",
+          "timestamp",
+          "device_id"
+        ],
+        "auditColumns": [
+          "previous_hash",
+          "current_hash"
+        ],
+        "auditColumnsStatus": "IMPLEMENTED"
+      },
+      "time_clocks": {
+        "requiredColumns": [
+          "id",
+          "user_id",
+          "clock_type",
+          "timestamp",
+          "geolocation"
+        ],
+        "auditColumns": [],
+        "auditColumnsStatus": "N/A - event source, not mutable"
+      },
+      "timesheet_corrections": {
+        "requiredColumns": [
+          "id",
+          "timesheet_id",
+          "requested_by",
+          "request_type",
+          "original_values",
+          "requested_values",
+          "reason",
+          "status",
+          "approved_by"
+        ],
+        "auditColumns": [],
+        "auditColumnsStatus": "PARTIAL - has approved_by but no hash chain"
+      },
+      "payroll_adjustments": {
+        "requiredColumns": [
+          "id",
+          "employee_id",
+          "adjustment_type",
+          "adjustment_date",
+          "amount",
+          "approved_by"
+        ],
+        "auditColumns": [
+          "previous_hash",
+          "current_hash"
+        ],
+        "auditColumnsStatus": "IMPLEMENTED"
+      },
+      "payroll_sync_log": {
+        "requiredColumns": [
+          "id",
+          "period_id",
+          "provider_id",
+          "status",
+          "started_at",
+          "started_by"
+        ],
+        "auditColumns": [
+          "hash_chain",
+          "previous_hash_chain",
+          "idempotency_key",
+          "payload_hash"
+        ],
+        "auditColumnsStatus": "IMPLEMENTED"
+      },
+      "time_permissions": {
+        "requiredColumns": [
+          "id",
+          "user_id",
+          "permission_scope",
+          "resource_type",
+          "is_active",
+          "granted_by"
+        ],
+        "auditColumns": [],
+        "auditColumnsStatus": "N/A - configuration table"
+      }
+    },
+    "services": [
+      "timeAnalyticsService",
+      "timesheetAggregationService",
+      "overtimeCalculationService",
+      "payrollExportService",
+      "payrollPeriodService",
+      "gpsArchivalService",
+      "fraudScoringService"
+    ],
+    "routes": [
+      "/api/time/clock-status",
+      "/api/time/timesheets",
+      "/api/time/timesheets/:id/approve",
+      "/api/time/timesheets/:id/reject",
+      "/api/time/timesheets/pending-approval",
+      "/api/payroll/periods",
+      "/api/payroll/periods/lock",
+      "/api/payroll/export",
+      "/api/payroll/sync"
+    ],
+    "secrets": [
+      "PAYROLL_ENCRYPTION_KEY"
+    ],
+    "rbacRequirements": {
+      "minRole": "user",
+      "adminRoutes": [
+        "/api/payroll/export",
+        "/api/payroll/periods/lock"
+      ]
+    }
+  },
+  "auditFields": [
+    "audit_hash",
+    "previous_audit_hash",
+    "created_by",
+    "modified_by",
+    "created_at",
+    "updated_at"
+  ],
+  "preFlightChecks": [
+    "database",
+    "schema",
+    "columns",
+    "services",
+    "routes",
+    "secrets",
+    "audit",
+    "governance"
+  ],
+  "governance": {
+    "togaf": {
+      "admPhase": "governance",
+      "architectureContract": {
+        "contractType": "service",
+        "stakeholders": [
+          "HR",
+          "Finance",
+          "Compliance",
+          "IT Security"
+        ],
+        "deliverables": [
+          "Time Tracking",
+          "Payroll Export",
+          "GPS Compliance",
+          "Audit Trails"
+        ],
+        "complianceCriteria": [
+          "SOX 302/404",
+          "ITGC",
+          "SHA-256 hash chains"
+        ],
+        "slaMetrics": {
+          "availabilityPercent": 99.9,
+          "responseTimeMs": 500,
+          "errorRatePercent": 0.1
+        }
+      },
+      "arbApproval": {
+        "required": true,
+        "approvalLevel": "enterprise"
+      }
+    },
+    "cobit2024": {
+      "objectives": [
+        { "id": "APO12", "name": "Managed Risk", "targetLevel": 4, "currentLevel": 3 },
+        { "id": "BAI06", "name": "Managed IT Changes", "targetLevel": 4, "currentLevel": 3 },
+        { "id": "DSS05", "name": "Managed Security Services", "targetLevel": 4, "currentLevel": 3 },
+        { "id": "MEA02", "name": "Managed System of Internal Control", "targetLevel": 4, "currentLevel": 3 }
+      ],
+      "kpis": [
+        { "id": "kpi-timesheet-accuracy", "name": "Timesheet Submission Accuracy", "target": 98, "unit": "percent" },
+        { "id": "kpi-approval-time", "name": "Timesheet Approval Time", "target": 24, "unit": "hours" },
+        { "id": "kpi-payroll-sync", "name": "Payroll Sync Success Rate", "target": 99.9, "unit": "percent" },
+        { "id": "kpi-gps-compliance", "name": "GPS Validation Compliance", "target": 100, "unit": "percent" }
+      ]
+    },
+    "soxControls": {
+      "itgc": {
+        "accessControls": true,
+        "changeManagement": true,
+        "computerOperations": true,
+        "programDevelopment": true,
+        "sdlc": true,
+        "auditTrail": true,
+        "encryption": true,
+        "backupRecovery": true
+      },
+      "sodRequirements": [
+        "User cannot approve own timesheet",
+        "Time entry is separate from payroll processing",
+        "Payroll export requires manager+ role",
+        "Payroll period locking requires dual authorization"
+      ],
+      "auditTrailRequirements": [
+        "SHA-256 hash chain on all time/payroll records",
+        "Immutable audit records with previous hash reference",
+        "User action logging with timestamp and IP",
+        "7-year retention for SOX compliance"
+      ]
+    },
+    "raci": [
+      { "activity": "Time Entry", "responsible": ["Employee"], "accountable": "Employee", "consulted": [], "informed": ["Supervisor"] },
+      { "activity": "Timesheet Submission", "responsible": ["Employee"], "accountable": "Employee", "consulted": [], "informed": ["Supervisor", "HR"] },
+      { "activity": "Timesheet Approval", "responsible": ["Supervisor"], "accountable": "Supervisor", "consulted": ["HR"], "informed": ["Employee", "Payroll"] },
+      { "activity": "Payroll Period Lock", "responsible": ["Payroll Manager"], "accountable": "Finance Director", "consulted": ["HR", "Compliance"], "informed": ["All Supervisors"] },
+      { "activity": "Payroll Export", "responsible": ["Payroll Manager"], "accountable": "Finance Director", "consulted": ["IT Security"], "informed": ["HR", "Compliance"] },
+      { "activity": "GPS Override Approval", "responsible": ["Supervisor", "HR"], "accountable": "HR Manager", "consulted": ["Compliance"], "informed": ["Employee", "Payroll"] }
+    ],
+    "deploymentGates": {
+      "preDeployment": {
+        "gates": [
+          { "name": "Pre-Flight Checklist", "type": "automated", "blocking": true },
+          { "name": "Security Scan", "type": "automated", "blocking": true },
+          { "name": "Database Migration Test", "type": "automated", "blocking": true },
+          { "name": "Change Request Approval", "type": "manual", "blocking": true }
+        ],
+        "timeout": 1800,
+        "samplingInterval": 300
+      },
+      "postDeployment": {
+        "gates": [
+          { "name": "Health Check", "type": "automated", "blocking": true },
+          { "name": "Smoke Tests", "type": "automated", "blocking": true },
+          { "name": "Audit Trail Verification", "type": "automated", "blocking": true },
+          { "name": "Business Validation", "type": "manual", "blocking": false }
+        ],
+        "timeout": 3600,
+        "samplingInterval": 600
+      },
+      "rollbackValidation": {
+        "procedureDocumented": true,
+        "previousVersionRetained": true,
+        "maxRollbackTime": 300,
+        "rollbackTested": true
+      }
+    }
+  },
+  "knownGaps": {
+    "critical": [
+      {
+        "table": "timesheets",
+        "issue": "Missing audit_hash, previous_audit_hash, created_by, modified_by columns",
+        "impact": "SOX 404 audit trail incomplete",
+        "remediation": "Add columns via migration"
+      },
+      {
+        "table": "time_entries",
+        "issue": "Missing audit_hash, previous_audit_hash columns",
+        "impact": "Time data lacks tamper evidence",
+        "remediation": "Add columns via migration"
+      },
+      {
+        "table": "payroll_periods",
+        "issue": "Missing audit_hash, previous_audit_hash columns",
+        "impact": "Period locking not auditable",
+        "remediation": "Add columns via migration"
+      }
+    ],
+    "high": [
+      {
+        "table": "payroll_periods",
+        "issue": "Period locking lacks dual authorization enforcement",
+        "impact": "Single user could lock fraudulent data",
+        "remediation": "Add dual-auth requirement to lock route"
+      }
+    ]
+  },
+  "metadata": {
+    "status": "active",
+    "startDate": "2025-11-28",
+    "lastUpdated": "2025-11-30",
+    "owner": "Time & Payroll Team",
+    "fortune50Parity": [
+      "Workday Time Tracking",
+      "ADP Workforce Now",
+      "SAP SuccessFactors Time Management"
+    ]
+  }
+}
