@@ -33,7 +33,7 @@
           "created_by",
           "modified_by"
         ],
-        "auditColumnsStatus": "MISSING - SOX blocking issue"
+        "auditColumnsStatus": "SCHEMA UPDATED - Migration pending (0001_add_time_payroll_audit_columns.sql)"
       },
       "time_entries": {
         "requiredColumns": [
@@ -50,7 +50,7 @@
           "audit_hash",
           "previous_audit_hash"
         ],
-        "auditColumnsStatus": "MISSING - SOX blocking issue"
+        "auditColumnsStatus": "SCHEMA UPDATED - Migration pending (0001_add_time_payroll_audit_columns.sql)"
       },
       "payroll_periods": {
         "requiredColumns": [
@@ -70,7 +70,7 @@
           "audit_hash",
           "previous_audit_hash"
         ],
-        "auditColumnsStatus": "MISSING - SOX blocking issue"
+        "auditColumnsStatus": "SCHEMA UPDATED - Migration pending (0001_add_time_payroll_audit_columns.sql)"
       },
       "location_tracking": {
         "requiredColumns": [
@@ -323,19 +323,25 @@
         "table": "timesheets",
         "issue": "Missing audit_hash, previous_audit_hash, created_by, modified_by columns",
         "impact": "SOX 404 audit trail incomplete",
-        "remediation": "Add columns via migration"
+        "remediation": "Add columns via migration",
+        "status": "IN PROGRESS - Schema updated, migration file created (0001_add_time_payroll_audit_columns.sql), pending execution",
+        "remediationDate": "2025-11-30"
       },
       {
         "table": "time_entries",
         "issue": "Missing audit_hash, previous_audit_hash columns",
         "impact": "Time data lacks tamper evidence",
-        "remediation": "Add columns via migration"
+        "remediation": "Add columns via migration",
+        "status": "IN PROGRESS - Schema updated, migration file created (0001_add_time_payroll_audit_columns.sql), pending execution",
+        "remediationDate": "2025-11-30"
       },
       {
         "table": "payroll_periods",
         "issue": "Missing audit_hash, previous_audit_hash columns",
         "impact": "Period locking not auditable",
-        "remediation": "Add columns via migration"
+        "remediation": "Add columns via migration",
+        "status": "IN PROGRESS - Schema updated, migration file created (0001_add_time_payroll_audit_columns.sql), pending execution",
+        "remediationDate": "2025-11-30"
       }
     ],
     "high": [
@@ -344,6 +350,32 @@
         "issue": "Period locking lacks dual authorization enforcement",
         "impact": "Single user could lock fraudulent data",
         "remediation": "Add dual-auth requirement to lock route"
+      }
+    ],
+    "remediationQueue": [
+      {
+        "priority": 1,
+        "action": "Execute migration 0001_add_time_payroll_audit_columns.sql",
+        "prerequisite": "User approval",
+        "blocking": true
+      },
+      {
+        "priority": 2,
+        "action": "Implement SHA-256 hash computation in storage layer",
+        "prerequisite": "Migration executed",
+        "blocking": true
+      },
+      {
+        "priority": 3,
+        "action": "Backfill audit_hash values for existing records",
+        "prerequisite": "Hash computation implemented",
+        "blocking": false
+      },
+      {
+        "priority": 4,
+        "action": "Add dual-auth enforcement to payroll period locking",
+        "prerequisite": "None",
+        "blocking": false
       }
     ]
   },
