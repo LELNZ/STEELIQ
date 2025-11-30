@@ -1,0 +1,104 @@
+Thanks for the summary.
+
+✅ You have my approval to RUN the migration you created for the Time & Payroll SOX/ITGC schema changes
+(adding audit_hash / previous_audit_hash, created_by / modified_by, and timestamp with timezone).
+
+Assume you are running this against the current development database. Please:
+- Run the migration.
+- Confirm that it completed successfully.
+- If there are any errors, stop and report them instead of trying to “fix” them silently.
+
+Once the migration has run, proceed to the next phase as follows.
+
+====================================================
+PHASE 2 – Implement hash-chain logic for Time & Payroll
+====================================================
+
+IMPORTANT RULES:
+- Do NOT touch replit.md or STEELIQ_Enterprise_Control_Framework_Governance_v2.0.md.
+- Do NOT change any business rules (overtime, rounding, payroll calculations, etc.).
+- Keep changes focused ONLY on:
+  - audit_hash / previous_audit_hash
+  - created_by / modified_by / created_at / updated_at
+- Make changes incrementally and show me the relevant code diffs.
+
+Scope:
+- time_entries
+- timesheets
+- payroll_periods
+
+1) Identify write paths
+------------------------
+Identify where these tables are written:
+
+- time_entries:
+  - Where clock-in / clock-out records are inserted or updated.
+
+- timesheets:
+  - Where timesheets are created.
+  - Where their status changes (e.g. submitted, approved, locked).
+
+- payroll_periods:
+  - Where payroll periods are created.
+  - Where their status or locking changes.
+
+List the key functions/files you will modify (services, storage modules, and route handlers) so I can see the blast radius.
+
+2) Create a reusable audit hash helper
+--------------------------------------
+Create a helper function (in a suitable shared utility module) that:
+
+- Accepts:
+  - A stable representation of the record (only fields that should be covered by SOX/audit),
+  - previous_audit_hash.
+- Returns:
+  - A new audit_hash using SHA-256.
+
+Requirements:
+- Use Node’s crypto (or the existing crypto helper if there is one).
+- Ensure deterministic ordering of fields.
+- Ensure deterministic stringification (no random order of keys).
+
+Show me the helper function code BEFORE wiring it into the rest of the system.
+
+3) Wire hash-chain logic into create/update flows
+--------------------------------------------------
+For each of the three tables (time_entries, timesheets, payroll_periods):
+
+A) On INSERT:
+   - Decide what you are chaining on and explain it:
+     - For example:
+       - For time_entries: per user chain (user_id + chronological order)
+       - For timesheets: per user chain (user_id + date/week_start)
+       - For payroll_periods: global chain or per period sequence
+   - Look up the previous record’s audit_hash for that sequence.
+   - Set previous_audit_hash:
+     - previous record’s hash if one exists, OR
+     - A sentinel like 'GENESIS' or NULL if this is the first record in the chain.
+   - Compute audit_hash using the helper and set it on the new record.
+
+B) On UPDATE:
+   - Always set updated_at and modified_by when the record is changed.
+   - For allowed updates (e.g. non-locked records), recompute audit_hash using the helper.
+   - For SOX-critical fields once a record is locked or finalized (e.g. locked timesheets or closed payroll_periods):
+     - Prefer to use the correction tables / append-only pattern instead of in-place modification.
+     - If you already have a timesheetCorrections or payrollAdjustments table, keep using that pattern.
+
+C) For EACH TABLE, explain in a comment or docstring (and in your response to me):
+   - What “sequence key” you are using for the hash chain (e.g. per-user, per-period, or global).
+   - How your approach ensures the chain is stable and cannot be silently broken.
+
+4) Show your work
+-----------------
+Once you have implemented the helper and wired it into the write paths:
+
+- Show me:
+  - The helper function code.
+  - The diffs for each service/storage/route you changed (for time_entries, timesheets, payroll_periods).
+
+- Provide a short explanation:
+  - Which sequence strategy you chose for each table (per-user vs global).
+  - Any limitations, assumptions, or TODOs that I should be aware of.
+
+Do NOT implement pre-flight checks or any other governance changes in this step.
+This phase is ONLY for wiring up audit_hash / previous_audit_hash and the attribution fields so that Time & Payroll is SOX/ITGC compliant at the data layer.
