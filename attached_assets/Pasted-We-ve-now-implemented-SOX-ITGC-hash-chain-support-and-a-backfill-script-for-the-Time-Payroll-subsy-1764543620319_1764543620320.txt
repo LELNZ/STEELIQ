@@ -1,0 +1,88 @@
+We’ve now implemented SOX/ITGC hash-chain support and a backfill script for the Time & Payroll subsystem.
+
+I want you to help me run and verify this carefully.
+
+IMPORTANT RULES:
+- Do NOT modify replit.md or STEELIQ_Enterprise_Control_Framework_Governance_v2.0.md.
+- Do NOT change any business rules (overtime, rounding, payroll calculations, etc.).
+- Do NOT auto-run anything against production. Assume we are in a development environment.
+- Always show me the commands you run and a summary of the outputs.
+
+====================================
+STEP 1 – Identify how to run backfill
+====================================
+
+1) Open scripts/backfillTimePayrollAuditHashes.ts and:
+   - Confirm it supports a dry-run mode (no --execute) and an execute mode (with --execute).
+   - Tell me exactly which command you will use to run it in this Replit environment:
+     - e.g. `node scripts/backfillTimePayrollAuditHashes.ts` or an npm script like `npm run backfill-time-payroll`.
+
+2) Do NOT run it yet. First, show me:
+   - The command for dry-run.
+   - The command for execute mode.
+   - Any notes from the script comments about usage, batch size, and safety.
+
+Wait for my acknowledgement before proceeding.
+
+====================================
+STEP 2 – Run DRY-RUN backfill in dev
+====================================
+
+After I confirm the commands are OK:
+
+1) Run the backfill script in DRY-RUN mode (NO --execute flag).
+2) After it finishes, summarize:
+   - How many records it *would* touch for:
+     - time_entries
+     - timesheets
+     - payroll_periods
+   - Any warnings or FATAL messages from the logs.
+   - The exit code (should be 0 in dry-run).
+
+3) Do NOT run with --execute yet. Wait for my explicit approval.
+
+============================================
+STEP 3 – Run EXECUTE backfill in dev (once)
+============================================
+
+ONLY AFTER I EXPLICITLY SAY “YES, RUN WITH --EXECUTE”:
+
+1) Run the backfill script in EXECUTE mode, using the command you showed me before, including the `--execute` flag.
+2) After it finishes, summarize:
+   - Number of records updated per table.
+   - Whether any batch failed or rolled back.
+   - Whether the script exited with code 0 (success) or 1 (failure).
+   - Any FATAL errors or rollback messages.
+
+If anything looks wrong or fails, stop and report instead of retrying.
+
+============================================
+STEP 4 – Verify governance via pre-flight check
+============================================
+
+Once the execute run has succeeded:
+
+1) Call the pre-flight endpoint for the Time & Payroll feature:
+
+   GET /api/system/pre-flight-check?feature=time-payroll-core
+
+2) Show me the JSON response, focusing on:
+   - overallStatus
+   - canDeploy
+   - checks / blockingIssues / warnings related to:
+     - audit_hash / previous_audit_hash fields
+     - time_entries / timesheets / payroll_periods tables
+     - PAYROLL_ENCRYPTION_KEY
+
+3) Tell me in plain language:
+   - Whether time-payroll-core now passes pre-flight from a governance perspective.
+   - If there are any remaining blocking issues.
+
+====================================
+FINAL RULES
+====================================
+
+- Do not modify any schemas or hash logic in this task.
+- Do not change the backfill script logic itself.
+- Only run the backfill in dev, and only after I approve each step.
+- If you are unsure about anything, stop and ask me before proceeding.
