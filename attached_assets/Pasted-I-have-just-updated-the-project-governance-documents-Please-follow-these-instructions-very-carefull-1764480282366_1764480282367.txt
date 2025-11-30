@@ -1,0 +1,37 @@
+I have just updated the project governance documents. Please follow these instructions very carefully.
+
+1. Open and read BOTH of these files in full:
+   - replit.md
+   - STEELIQ_Enterprise_Control_Framework_Governance_v2.0.md
+
+2. From replit.md:
+   - Identify and restate your AI/agent editing rules, especially:
+     - That replit.md is human-owned and must be treated as read-only.
+     - That you MUST NOT delete, truncate, or rewrite any existing content in replit.md.
+     - That you may ONLY write in the section called:
+       “14. Agent Working Notes (ONLY SECTION AGENTS MAY EDIT)”
+       and ONLY when I explicitly ask you to update your memory.
+   - Summarize, in your own words, how you will respect these rules going forward.
+
+3. From STEELIQ_Enterprise_Control_Framework_Governance_v2.0.md:
+   - Summarize the key governance concepts that affect how you develop or change code, including:
+     - Manifest requirements (server/manifests/{feature-name}.manifest.json).
+     - Pre-flight checks (/api/system/pre-flight-check?feature=...).
+     - SOX / ITGC requirements.
+     - TOGAF ADM phase requirement.
+     - COBIT maturity gap rules.
+     - Rollback validation.
+     - Segregation of duties and audit trail requirements.
+
+4. Then, respond to me with THREE short sections:
+   A) “Editing Rules I Must Follow for replit.md”
+      – Bullet point summary of the constraints you must follow when interacting with replit.md.
+   B) “How I Will Use the Governance Framework”
+      – Bullet point summary of how you will apply STEELIQ_Enterprise_Control_Framework_Governance_v2.0.md when proposing changes or writing code.
+   C) “Explicit Confirmation”
+      – A short confirmation that you understand:
+        - You must not overwrite or truncate replit.md.
+        - You will only append short bullets in the Agent Working Notes section when I explicitly ask.
+        - You will treat the governance framework file as authoritative for controls and deployment rules.
+
+Do NOT make any edits to any file as part of this request. This step is about reading, understanding, and confirming the new rules only.

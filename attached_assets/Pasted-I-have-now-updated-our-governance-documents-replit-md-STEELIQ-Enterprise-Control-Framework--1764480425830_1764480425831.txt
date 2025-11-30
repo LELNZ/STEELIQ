@@ -1,0 +1,81 @@
+I have now updated our governance documents:
+
+- replit.md
+- STEELIQ_Enterprise_Control_Framework_Governance_v2.0.md
+
+Assume you have already read and understood both.
+
+Now I want you to perform a **governance review of the Time & Payroll system** using the new framework. Do NOT change any code yet. This task is ANALYSIS ONLY.
+
+Please follow these steps:
+
+1. Identify all Time & Payroll–related parts of the system, including at minimum:
+   - Database tables:
+     - time_entries
+     - timesheets
+     - payroll_periods
+     - gps_tracking_records
+   - Any related services in server/services/ (e.g. timeAnalyticsService, payrollExportService, gpsArchivalService).
+   - Any API routes that handle time tracking, timesheets, payroll exports, or GPS/location logic.
+   - Any frontend pages or components under /time-payroll or equivalent.
+
+2. Cross-check these against the governance framework in:
+   STEELIQ_Enterprise_Control_Framework_Governance_v2.0.md
+
+   Specifically, review the Time & Payroll system against:
+   - SOX & ITGC controls (accessControls, changeManagement, computerOperations, programDevelopment, auditTrail, encryption, backupRecovery).
+   - Segregation of Duties (SoD) rules, especially:
+     - Payroll processor cannot approve own time.
+     - Developer cannot approve own code.
+   - Audit trail requirements:
+     - SHA-256 hash chain fields (audit_hash, previous_audit_hash).
+     - created_by / modified_by / created_at / updated_at.
+   - Data classification and protection (Restricted vs Confidential data).
+   - TOGAF / COBIT context (risk, change, operations, MEA).
+   - RBAC and minimum roles for Time & Payroll features.
+
+3. Perform a structured review and then respond with the following sections (ANALYSIS ONLY):
+
+   A) "Time & Payroll – Current Design Overview"
+      - Briefly describe how the Time & Payroll system currently works based on the code:
+        - How time entries are captured and stored.
+        - How GPS data is used.
+        - How timesheets and payroll periods are generated.
+        - How payroll exports (ADP/QuickBooks/Xero) are triggered.
+
+   B) "Control Mapping to Governance Framework"
+      - Map the current implementation to the framework controls. For example:
+        - SOX/ITGC: Which controls appear to be satisfied? Which are unclear or missing?
+        - SoD: Does the design support preventing “user approves their own time or payroll”?
+        - Audit trails: Do the Time & Payroll tables include required audit fields and hash-chain logic?
+        - Data classification: Is Restricted data (payroll, GPS) handled according to the rules?
+        - RBAC: Which roles are currently required to view/edit/export Time & Payroll data?
+
+   C) "Gaps, Risks, and Non-Compliance Findings"
+      - List concrete gaps where the current Time & Payroll implementation does NOT yet fully align with:
+        - SOX / ITGC requirements
+        - Audit trail requirements
+        - SoD requirements
+        - Data classification and protection
+        - Governance deployment gates (if relevant)
+      - For each gap, briefly explain why it matters from a governance / audit / risk point of view.
+
+   D) "Prioritized Recommendations"
+      - Provide a prioritized list of recommended changes, grouped as:
+        1) Must-do for SOX / ITGC compliance
+        2) High-value enhancements (e.g. better auditability, clearer SoD)
+        3) Nice-to-have improvements
+      - For each recommendation, indicate:
+        - Which file(s) it would likely touch (schema, service, route, frontend).
+        - Which governance sections it is satisfying (e.g. ITGC auditTrail, SoD, data classification).
+
+   E) "Manifest & Pre-Flight Implications"
+      - Suggest what should be represented in the manifest(s) for Time & Payroll features in server/manifests/*.manifest.json:
+        - Required tables, audit fields, services, routes, secrets, RBAC requirements.
+      - Suggest any specific pre-flight checks that should be added or verified for Time & Payroll.
+
+4. IMPORTANT:
+   - Do NOT modify any code or database schema in this step.
+   - Do NOT update replit.md or the governance document.
+   - This task is about analysis and recommendations only.
+   - Once you have provided the full analysis, wait for my explicit approval before proposing concrete code changes or migrations.
