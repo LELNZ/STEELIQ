@@ -396,12 +396,16 @@ export class TimeManagementStorage implements ITimeManagementStorage {
   ]);
 
   // Fortune 50 Compliance: Validate and execute state transition
+  // SOX/ITGC: State transitions update audit_hash for tamper-evidence
   private async transitionTimesheetState(
     timesheetId: number,
     transition: string,
     userId: number,
     notes?: string
   ): Promise<{ success: boolean; reason?: string; timesheet?: Timesheet }> {
+    // Import audit hash service for SOX compliance
+    const { computeTimesheetAuditHash } = await import('./utils/auditHashService');
+    
     const transitionDef = this.stateTransitions.get(transition);
     if (!transitionDef) {
       return { success: false, reason: `Invalid transition: ${transition}` };
@@ -448,7 +452,8 @@ export class TimeManagementStorage implements ITimeManagementStorage {
     // Execute transition
     const updateData: any = {
       status: transitionDef.to,
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      modifiedBy: userId,
     };
 
     // Add transition-specific fields
@@ -467,6 +472,40 @@ export class TimeManagementStorage implements ITimeManagementStorage {
       .where(eq(timesheets.id, timesheetId))
       .returning();
 
+    // SOX Compliance: Recompute audit hash after state change
+    const { cascadeTimesheetHashes } = await import('./utils/auditHashService');
+    
+    const auditHash = computeTimesheetAuditHash(
+      {
+        id: updatedTimesheet.id,
+        userId: updatedTimesheet.userId,
+        date: updatedTimesheet.date,
+        jobId: updatedTimesheet.jobId,
+        taskId: updatedTimesheet.taskId,
+        startTime: updatedTimesheet.startTime,
+        endTime: updatedTimesheet.endTime,
+        hoursWorked: updatedTimesheet.hoursWorked,
+        breakHours: updatedTimesheet.breakHours,
+        overtimeHours: updatedTimesheet.overtimeHours,
+        status: updatedTimesheet.status,
+        supervisorId: updatedTimesheet.supervisorId,
+        approvedBy: updatedTimesheet.approvedBy,
+        approvedAt: updatedTimesheet.approvedAt,
+        submittedAt: updatedTimesheet.submittedAt,
+      },
+      timesheet.previousAuditHash || 'GENESIS'
+    );
+
+    // Update with recomputed hash
+    const [finalTimesheet] = await db
+      .update(timesheets)
+      .set({ auditHash })
+      .where(eq(timesheets.id, timesheetId))
+      .returning();
+
+    // SOX Compliance: Cascade hash updates to downstream records
+    await cascadeTimesheetHashes(updatedTimesheet.userId, updatedTimesheet.date, auditHash);
+
     // Log state transition for audit
     await db.insert(auditLog).values({
       userId,
@@ -476,11 +515,14 @@ export class TimeManagementStorage implements ITimeManagementStorage {
       details: JSON.stringify({
         from: timesheet.status,
         to: transitionDef.to,
-        notes
+        notes,
+        auditHash,
+        hashChainUpdated: true,
+        cascadeApplied: true
       })
     });
 
-    return { success: true, timesheet: updatedTimesheet };
+    return { success: true, timesheet: finalTimesheet };
   }
 
   // Fortune 50 Compliance: 48-hour edit window enforcement
@@ -767,6 +809,9 @@ export class TimeManagementStorage implements ITimeManagementStorage {
   }
   
   async createTimesheet(timesheet: InsertTimesheet): Promise<Timesheet> {
+    // Import audit hash service for SOX compliance
+    const { computeTimesheetAuditHash, GENESIS_HASH } = await import('./utils/auditHashService');
+    
     // Validate canonical format
     const regularHours = Math.max(0, (timesheet.totalHours || 0) - (timesheet.overtimeHours || 0));
     
@@ -833,23 +878,71 @@ export class TimeManagementStorage implements ITimeManagementStorage {
     
     try {
       return await ErrorHandler.withTransaction(async (tx: typeof db) => {
-        const [newTimesheet] = await tx.insert(timesheets).values(mappedTimesheet).returning();
+        // SOX Compliance: Get the last audit_hash for this user's timesheet chain
+        const [lastUserTimesheet] = await tx
+          .select({ auditHash: timesheets.auditHash })
+          .from(timesheets)
+          .where(eq(timesheets.userId, timesheet.userId))
+          .orderBy(desc(timesheets.date))
+          .limit(1);
+        
+        const previousAuditHash = lastUserTimesheet?.auditHash || GENESIS_HASH;
+        
+        // Insert with initial hash fields
+        const [newTimesheet] = await tx.insert(timesheets).values({
+          ...mappedTimesheet,
+          previousAuditHash,
+          auditHash: null, // Will compute after we have the ID
+          createdBy: timesheet.userId,
+          modifiedBy: timesheet.userId,
+        }).returning();
+        
+        // SOX Compliance: Compute audit hash now that we have the record ID
+        const auditHash = computeTimesheetAuditHash(
+          {
+            id: newTimesheet.id,
+            userId: newTimesheet.userId,
+            date: newTimesheet.date,
+            jobId: newTimesheet.jobId,
+            taskId: newTimesheet.taskId,
+            startTime: newTimesheet.startTime,
+            endTime: newTimesheet.endTime,
+            hoursWorked: newTimesheet.hoursWorked,
+            breakHours: newTimesheet.breakHours,
+            overtimeHours: newTimesheet.overtimeHours,
+            status: newTimesheet.status,
+            supervisorId: newTimesheet.supervisorId,
+            approvedBy: newTimesheet.approvedBy,
+            approvedAt: newTimesheet.approvedAt,
+            submittedAt: newTimesheet.submittedAt,
+          },
+          previousAuditHash
+        );
+        
+        // Update with computed hash
+        const [finalTimesheet] = await tx
+          .update(timesheets)
+          .set({ auditHash })
+          .where(eq(timesheets.id, newTimesheet.id))
+          .returning();
         
         // Audit log
         await tx.insert(auditLog).values({
           userId: timesheet.userId,
           action: 'timesheet_created',
           entity: 'timesheet',
-          entityId: newTimesheet.id,
+          entityId: finalTimesheet.id,
           details: JSON.stringify({
             date: timesheet.date,
             jobId: timesheet.jobId,
             totalHours: timesheet.totalHours,
-            status: timesheet.status || 'draft'
+            status: timesheet.status || 'draft',
+            auditHash,
+            hashChainUpdated: true
           })
         });
         
-        return newTimesheet;
+        return finalTimesheet;
       }, {
         userId: timesheet.userId,
         entityType: 'timesheet',
@@ -868,18 +961,65 @@ export class TimeManagementStorage implements ITimeManagementStorage {
   }
 
   async updateTimesheet(id: number, timesheetData: Partial<InsertTimesheet>, userId: number): Promise<Timesheet> {
+    // Import audit hash service for SOX compliance
+    const { computeTimesheetAuditHash } = await import('./utils/auditHashService');
+    
     // Fortune 50 Compliance: Enforce 48-hour edit window
     const canEdit = await this.canEditTimesheet(id, userId);
     if (!canEdit.allowed) {
       throw new Error(`Cannot update timesheet: ${canEdit.reason}`);
     }
     
+    // Get current record to preserve previous_audit_hash
+    const [currentTimesheet] = await db
+      .select()
+      .from(timesheets)
+      .where(eq(timesheets.id, id));
+    
+    if (!currentTimesheet) {
+      throw new Error('Timesheet not found');
+    }
+    
     const [updatedTimesheet] = await db
       .update(timesheets)
-      .set({ ...timesheetData, updatedAt: new Date() })
+      .set({ 
+        ...timesheetData, 
+        updatedAt: new Date(),
+        modifiedBy: userId,
+      })
       .where(eq(timesheets.id, id))
       .returning();
-    return updatedTimesheet;
+    
+    // SOX Compliance: Recompute audit hash with updated data
+    const auditHash = computeTimesheetAuditHash(
+      {
+        id: updatedTimesheet.id,
+        userId: updatedTimesheet.userId,
+        date: updatedTimesheet.date,
+        jobId: updatedTimesheet.jobId,
+        taskId: updatedTimesheet.taskId,
+        startTime: updatedTimesheet.startTime,
+        endTime: updatedTimesheet.endTime,
+        hoursWorked: updatedTimesheet.hoursWorked,
+        breakHours: updatedTimesheet.breakHours,
+        overtimeHours: updatedTimesheet.overtimeHours,
+        status: updatedTimesheet.status,
+        supervisorId: updatedTimesheet.supervisorId,
+        approvedBy: updatedTimesheet.approvedBy,
+        approvedAt: updatedTimesheet.approvedAt,
+        submittedAt: updatedTimesheet.submittedAt,
+      },
+      currentTimesheet.previousAuditHash || 'GENESIS'
+    );
+    
+    // Update with recomputed hash
+    const [finalTimesheet] = await db
+      .update(timesheets)
+      .set({ auditHash })
+      .where(eq(timesheets.id, id))
+      .returning();
+    
+    return finalTimesheet;
   }
 
   async deleteTimesheet(id: number, userId: number): Promise<void> {
@@ -1213,6 +1353,7 @@ export class TimeManagementStorage implements ITimeManagementStorage {
   }
 
   // Fortune 50 Compliance: Payroll Period Management
+  // SOX/ITGC: Creates payroll periods with SHA-256 hash chain for tamper-evidence
   async createPayrollPeriod(data: {
     businessUnitId: number;
     periodType: 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
@@ -1220,6 +1361,9 @@ export class TimeManagementStorage implements ITimeManagementStorage {
     payPeriodEnd: string;
     payDate: string;
   }, userId: number): Promise<PayrollPeriod> {
+    // Import audit hash service for SOX compliance
+    const { computePayrollPeriodAuditHash, GENESIS_HASH } = await import('./utils/auditHashService');
+    
     // Check for overlapping periods for the same business unit
     const [existingPeriod] = await db
       .select()
@@ -1236,23 +1380,69 @@ export class TimeManagementStorage implements ITimeManagementStorage {
       throw new Error("Overlapping payroll period exists for this business unit");
     }
 
+    // SOX Compliance: Get the last audit_hash for the global payroll periods chain
+    const [lastPeriod] = await db
+      .select({ auditHash: payrollPeriods.auditHash })
+      .from(payrollPeriods)
+      .orderBy(desc(payrollPeriods.payPeriodStart))
+      .limit(1);
+    
+    const previousAuditHash = lastPeriod?.auditHash || GENESIS_HASH;
+
     const [period] = await db
       .insert(payrollPeriods)
       .values({
         ...data,
-        status: 'open'
+        status: 'open',
+        previousAuditHash,
+        auditHash: null, // Will compute after we have the ID
+        createdBy: userId,
+        modifiedBy: userId,
       })
+      .returning();
+
+    // SOX Compliance: Compute audit hash now that we have the record ID
+    const auditHash = computePayrollPeriodAuditHash(
+      {
+        id: period.id,
+        businessUnitId: period.businessUnitId,
+        periodType: data.periodType,
+        payPeriodStart: period.payPeriodStart,
+        payPeriodEnd: period.payPeriodEnd,
+        payDate: period.payDate,
+        status: period.status,
+        lockedBy: period.lockedBy,
+        lockedAt: period.lockedAt,
+        processingStartedAt: period.processingStartedAt,
+        processingCompletedAt: period.processingCompletedAt,
+        syncStatus: period.syncStatus,
+        employeeCount: null,
+        totalHours: null,
+        totalAmount: null,
+      },
+      previousAuditHash
+    );
+
+    // Update with computed hash
+    const [finalPeriod] = await db
+      .update(payrollPeriods)
+      .set({ auditHash })
+      .where(eq(payrollPeriods.id, period.id))
       .returning();
 
     await db.insert(auditLog).values({
       userId: userId, // Use actual user ID for audit
       action: 'payroll_period_created',
       entity: 'payroll_period',
-      entityId: period.id,
-      details: JSON.stringify(data)
+      entityId: finalPeriod.id,
+      details: JSON.stringify({
+        ...data,
+        auditHash,
+        hashChainUpdated: true
+      })
     });
 
-    return period;
+    return finalPeriod;
   }
 
   // Get active payroll periods
@@ -1284,7 +1474,11 @@ export class TimeManagementStorage implements ITimeManagementStorage {
   }
 
   // Lock a payroll period - prevents all timesheet modifications
+  // SOX/ITGC: Updates audit_hash on lock for tamper-evidence
   async lockPayrollPeriod(periodId: number, userId: number): Promise<{ success: boolean; reason?: string }> {
+    // Import audit hash service for SOX compliance
+    const { computePayrollPeriodAuditHash } = await import('./utils/auditHashService');
+    
     // Check permission
     const hasRequiredPermission = await hasPermission(userId, 'payroll_admin') || 
                                   await hasPermission(userId, 'manage_payroll');
@@ -1309,32 +1503,115 @@ export class TimeManagementStorage implements ITimeManagementStorage {
     }
 
     // Lock all timesheets in period - only after validation
-    const affectedTimesheets = await db
-      .update(timesheets)
-      .set({
-        status: 'locked',
-        updatedAt: new Date()
-      })
+    // SOX Compliance: Must recompute audit_hash for each affected timesheet
+    const timesheetsToLock = await db
+      .select()
+      .from(timesheets)
       .where(
         and(
           gte(timesheets.date, period.payPeriodStart),
           lte(timesheets.date, period.payPeriodEnd),
           eq(timesheets.status, 'approved')
         )
-      )
-      .returning();
+      );
+
+    const affectedTimesheets = [];
+    const { computeTimesheetAuditHash } = await import('./utils/auditHashService');
+
+    for (const ts of timesheetsToLock) {
+      const [updated] = await db
+        .update(timesheets)
+        .set({
+          status: 'locked',
+          modifiedBy: userId,
+          updatedAt: new Date()
+        })
+        .where(eq(timesheets.id, ts.id))
+        .returning();
+
+      // Recompute audit hash with new status
+      const auditHash = computeTimesheetAuditHash(
+        {
+          id: updated.id,
+          userId: updated.userId,
+          date: updated.date,
+          jobId: updated.jobId,
+          taskId: updated.taskId,
+          startTime: updated.startTime,
+          endTime: updated.endTime,
+          hoursWorked: updated.hoursWorked,
+          breakHours: updated.breakHours,
+          overtimeHours: updated.overtimeHours,
+          status: updated.status,
+          supervisorId: updated.supervisorId,
+          approvedBy: updated.approvedBy,
+          approvedAt: updated.approvedAt,
+          submittedAt: updated.submittedAt,
+        },
+        ts.previousAuditHash || 'GENESIS'
+      );
+
+      await db
+        .update(timesheets)
+        .set({ auditHash })
+        .where(eq(timesheets.id, ts.id));
+
+      affectedTimesheets.push({ ...updated, auditHash });
+    }
+
+    const lockedAt = new Date();
 
     // Update period status
     const [updatedPeriod] = await db
       .update(payrollPeriods)
       .set({
         status: 'locked',
-        lockedAt: new Date(),
+        lockedAt,
         lockedBy: userId,
+        modifiedBy: userId,
         updatedAt: new Date()
       })
       .where(eq(payrollPeriods.id, periodId))
       .returning();
+
+    // SOX Compliance: Recompute audit hash after lock
+    const auditHash = computePayrollPeriodAuditHash(
+      {
+        id: updatedPeriod.id,
+        businessUnitId: updatedPeriod.businessUnitId,
+        periodType: updatedPeriod.periodType || 'weekly',
+        payPeriodStart: updatedPeriod.payPeriodStart,
+        payPeriodEnd: updatedPeriod.payPeriodEnd,
+        payDate: updatedPeriod.payDate,
+        status: updatedPeriod.status,
+        lockedBy: updatedPeriod.lockedBy,
+        lockedAt: updatedPeriod.lockedAt,
+        processingStartedAt: updatedPeriod.processingStartedAt,
+        processingCompletedAt: updatedPeriod.processingCompletedAt,
+        syncStatus: updatedPeriod.syncStatus,
+        employeeCount: updatedPeriod.employeeCount,
+        totalHours: updatedPeriod.totalHours,
+        totalAmount: updatedPeriod.totalAmount,
+      },
+      period.previousAuditHash || 'GENESIS'
+    );
+
+    // Update with recomputed hash
+    await db
+      .update(payrollPeriods)
+      .set({ auditHash })
+      .where(eq(payrollPeriods.id, periodId));
+
+    // SOX Compliance: Cascade hash updates to downstream records
+    const { cascadeTimesheetHashes, cascadePayrollPeriodHashes } = await import('./utils/auditHashService');
+    
+    // Cascade each timesheet's hash to its downstream records
+    for (const ts of affectedTimesheets) {
+      await cascadeTimesheetHashes(ts.userId, ts.date, ts.auditHash);
+    }
+    
+    // Cascade payroll period hash to downstream periods
+    await cascadePayrollPeriodHashes(updatedPeriod.payPeriodStart, auditHash);
 
     await db.insert(auditLog).values({
       userId,
@@ -1344,7 +1621,10 @@ export class TimeManagementStorage implements ITimeManagementStorage {
       details: JSON.stringify({
         periodStart: updatedPeriod.payPeriodStart,
         periodEnd: updatedPeriod.payPeriodEnd,
-        timesheetsLocked: affectedTimesheets.length
+        timesheetsLocked: affectedTimesheets.length,
+        auditHash,
+        hashChainUpdated: true,
+        cascadeApplied: true
       })
     });
 
@@ -1352,7 +1632,11 @@ export class TimeManagementStorage implements ITimeManagementStorage {
   }
 
   // Unlock a payroll period (requires higher permission)
+  // SOX/ITGC: Updates audit_hash on unlock for tamper-evidence
   async unlockPayrollPeriod(periodId: number, userId: number, reason: string): Promise<{ success: boolean; reason?: string }> {
+    // Import audit hash service for SOX compliance
+    const { computePayrollPeriodAuditHash } = await import('./utils/auditHashService');
+    
     // Check permission - only payroll admin can unlock
     const hasRequiredPermission = await hasPermission(userId, 'payroll_admin');
     
@@ -1374,30 +1658,111 @@ export class TimeManagementStorage implements ITimeManagementStorage {
     }
 
     // Unlock timesheets
-    const affectedTimesheets = await db
-      .update(timesheets)
-      .set({
-        status: 'approved',
-        updatedAt: new Date()
-      })
+    // SOX Compliance: Must recompute audit_hash for each affected timesheet
+    const timesheetsToUnlock = await db
+      .select()
+      .from(timesheets)
       .where(
         and(
           gte(timesheets.date, period.payPeriodStart),
           lte(timesheets.date, period.payPeriodEnd),
           eq(timesheets.status, 'locked')
         )
-      )
-      .returning();
+      );
+
+    const affectedTimesheets = [];
+    const { computeTimesheetAuditHash } = await import('./utils/auditHashService');
+
+    for (const ts of timesheetsToUnlock) {
+      const [updated] = await db
+        .update(timesheets)
+        .set({
+          status: 'approved',
+          modifiedBy: userId,
+          updatedAt: new Date()
+        })
+        .where(eq(timesheets.id, ts.id))
+        .returning();
+
+      // Recompute audit hash with new status
+      const auditHash = computeTimesheetAuditHash(
+        {
+          id: updated.id,
+          userId: updated.userId,
+          date: updated.date,
+          jobId: updated.jobId,
+          taskId: updated.taskId,
+          startTime: updated.startTime,
+          endTime: updated.endTime,
+          hoursWorked: updated.hoursWorked,
+          breakHours: updated.breakHours,
+          overtimeHours: updated.overtimeHours,
+          status: updated.status,
+          supervisorId: updated.supervisorId,
+          approvedBy: updated.approvedBy,
+          approvedAt: updated.approvedAt,
+          submittedAt: updated.submittedAt,
+        },
+        ts.previousAuditHash || 'GENESIS'
+      );
+
+      await db
+        .update(timesheets)
+        .set({ auditHash })
+        .where(eq(timesheets.id, ts.id));
+
+      affectedTimesheets.push({ ...updated, auditHash });
+    }
 
     // Update period status
     const [updatedPeriod] = await db
       .update(payrollPeriods)
       .set({
         status: 'open',
+        modifiedBy: userId,
         updatedAt: new Date()
       })
       .where(eq(payrollPeriods.id, periodId))
       .returning();
+
+    // SOX Compliance: Recompute audit hash after unlock
+    const auditHash = computePayrollPeriodAuditHash(
+      {
+        id: updatedPeriod.id,
+        businessUnitId: updatedPeriod.businessUnitId,
+        periodType: updatedPeriod.periodType || 'weekly',
+        payPeriodStart: updatedPeriod.payPeriodStart,
+        payPeriodEnd: updatedPeriod.payPeriodEnd,
+        payDate: updatedPeriod.payDate,
+        status: updatedPeriod.status,
+        lockedBy: updatedPeriod.lockedBy,
+        lockedAt: updatedPeriod.lockedAt,
+        processingStartedAt: updatedPeriod.processingStartedAt,
+        processingCompletedAt: updatedPeriod.processingCompletedAt,
+        syncStatus: updatedPeriod.syncStatus,
+        employeeCount: updatedPeriod.employeeCount,
+        totalHours: updatedPeriod.totalHours,
+        totalAmount: updatedPeriod.totalAmount,
+      },
+      period.previousAuditHash || 'GENESIS'
+    );
+
+    // Update with recomputed hash
+    await db
+      .update(payrollPeriods)
+      .set({ auditHash })
+      .where(eq(payrollPeriods.id, periodId));
+
+    // SOX Compliance: Cascade hash updates to downstream records
+    const { cascadeTimesheetHashes, cascadePayrollPeriodHashes } = await import('./utils/auditHashService');
+    
+    // Cascade each timesheet's hash to its downstream records
+    for (const ts of affectedTimesheets) {
+      await cascadeTimesheetHashes(ts.userId, ts.date, ts.auditHash);
+    }
+    
+    // Cascade payroll period hash to downstream periods
+    await cascadePayrollPeriodHashes(updatedPeriod.payPeriodStart, auditHash);
 
     await db.insert(auditLog).values({
       userId,
@@ -1408,7 +1773,10 @@ export class TimeManagementStorage implements ITimeManagementStorage {
         periodStart: updatedPeriod.payPeriodStart,
         periodEnd: updatedPeriod.payPeriodEnd,
         reason,
-        timesheetsUnlocked: affectedTimesheets.length
+        timesheetsUnlocked: affectedTimesheets.length,
+        auditHash,
+        hashChainUpdated: true,
+        cascadeApplied: true
       })
     });
 
@@ -1862,8 +2230,14 @@ export class TimeManagementStorage implements ITimeManagementStorage {
   /**
    * Replace time entries for a timesheet in a transaction
    * Ensures idempotent regeneration without duplicates
+   * 
+   * SOX/ITGC Compliance: Each time_entry includes SHA-256 audit_hash 
+   * linked to the previous entry in the user's chain for tamper-evidence.
    */
   async replaceTimeEntries(timesheetId: number, entries: any[]): Promise<void> {
+    // Import audit hash service for SOX compliance
+    const { computeTimeEntryAuditHash, GENESIS_HASH } = await import('./utils/auditHashService');
+    
     // Now that we have timesheetId column, we can properly link entries to timesheets
     // This ensures Fortune 50 audit trail requirements are met
     
@@ -1874,8 +2248,31 @@ export class TimeManagementStorage implements ITimeManagementStorage {
     
     // Insert new entries with timesheetId reference
     if (entries.length > 0) {
+      // SOX Compliance: Get the last audit_hash for this user's time_entries chain
+      // We need the userId from the first entry to find the chain
+      const userId = entries[0].userId || entries[0].user_id;
+      
+      // Find the most recent time_entry for this user (by clock_in) to get previous hash
+      const [lastUserEntry] = await db
+        .select({ auditHash: timeEntries.auditHash })
+        .from(timeEntries)
+        .where(eq(timeEntries.userId, userId))
+        .orderBy(desc(timeEntries.clockIn))
+        .limit(1);
+      
+      let previousAuditHash = lastUserEntry?.auditHash || GENESIS_HASH;
+      
       // Map the aggregated entries to time_entries table format
-      const entriesToInsert = entries.map(entry => {
+      // Sort entries by clockIn to maintain chronological order in the hash chain
+      const sortedEntries = [...entries].sort((a, b) => {
+        const aTime = new Date(a.clockIn || a.clock_in || a.entryDate || 0).getTime();
+        const bTime = new Date(b.clockIn || b.clock_in || b.entryDate || 0).getTime();
+        return aTime - bTime;
+      });
+      
+      const entriesToInsert = [];
+      
+      for (const entry of sortedEntries) {
         // Handle different entry formats (from aggregation service)
         const baseEntry = {
           userId: entry.userId || entry.user_id,
@@ -1890,17 +2287,57 @@ export class TimeManagementStorage implements ITimeManagementStorage {
           status: entry.status || 'active',
           notes: entry.notes || entry.description || null,
           createdAt: entry.createdAt || new Date(),
-          updatedAt: entry.updatedAt || new Date()
+          updatedAt: entry.updatedAt || new Date(),
+          // SOX Compliance: Initialize hash fields (will be computed after insert with ID)
+          previousAuditHash: previousAuditHash,
+          auditHash: null as string | null, // Placeholder - will be computed post-insert
         };
         
-        return baseEntry;
-      });
+        entriesToInsert.push(baseEntry);
+      }
       
-      await db.insert(timeEntries).values(entriesToInsert);
-      console.log(`✓ Persisted ${entries.length} time entries for timesheet ${timesheetId}`);
+      // Insert entries and get the returned records with IDs
+      const insertedEntries = await db.insert(timeEntries).values(entriesToInsert).returning();
+      
+      // SOX Compliance: Now compute and update audit hashes with actual record IDs
+      for (let i = 0; i < insertedEntries.length; i++) {
+        const record = insertedEntries[i];
+        const prevHash = i === 0 ? previousAuditHash : insertedEntries[i - 1].auditHash;
+        
+        const auditHash = computeTimeEntryAuditHash(
+          {
+            id: record.id,
+            userId: record.userId,
+            timesheetId: record.timesheetId,
+            jobId: record.jobId,
+            clockIn: record.clockIn,
+            clockOut: record.clockOut,
+            breakDuration: record.breakDuration,
+            totalHours: record.totalHours,
+            hourlyRate: record.hourlyRate,
+            totalCost: record.totalCost,
+            status: record.status,
+            gpsLat: record.gpsLat,
+            gpsLng: record.gpsLng,
+          },
+          prevHash || GENESIS_HASH
+        );
+        
+        // Update the record with computed hash
+        await db
+          .update(timeEntries)
+          .set({ 
+            auditHash,
+            previousAuditHash: prevHash || GENESIS_HASH
+          })
+          .where(eq(timeEntries.id, record.id));
+        
+        // Store hash for next iteration
+        insertedEntries[i].auditHash = auditHash;
+      }
+      
+      console.log(`✓ Persisted ${entries.length} time entries for timesheet ${timesheetId} with SOX-compliant hash chain`);
     }
-    
-    return;
     
     // Log the replacement for audit
     await db.insert(auditLog).values({
@@ -1910,7 +2347,8 @@ export class TimeManagementStorage implements ITimeManagementStorage {
       entityId: timesheetId,
       details: JSON.stringify({
         entriesCount: entries.length,
-        replacedAt: new Date()
+        replacedAt: new Date(),
+        hashChainUpdated: true
       })
     });
   }

@@ -135,6 +135,7 @@ export class PayrollPeriodService {
   
   /**
    * Create a new payroll period
+   * SOX/ITGC: Creates payroll periods with SHA-256 hash chain for tamper-evidence
    */
   async createPeriod(
     context: ServiceContext,
@@ -143,6 +144,9 @@ export class PayrollPeriodService {
     payDate: Date,
     businessUnitId?: number
   ): Promise<PayrollPeriodInfo> {
+    // Import audit hash service for SOX compliance
+    const { computePayrollPeriodAuditHash, GENESIS_HASH } = await import('../utils/auditHashService');
+    
     // Check for overlapping periods
     const existing = await this.checkOverlappingPeriods(startDate, endDate, businessUnitId);
     if (existing) {
@@ -150,6 +154,15 @@ export class PayrollPeriodService {
         `Period overlaps with existing period: ${format(existing.payPeriodStart, 'MMM dd')} - ${format(existing.payPeriodEnd, 'MMM dd')}`
       );
     }
+    
+    // SOX Compliance: Get the last audit_hash for the global payroll periods chain
+    const [lastPeriod] = await db
+      .select({ auditHash: payrollPeriods.auditHash })
+      .from(payrollPeriods)
+      .orderBy(desc(payrollPeriods.payPeriodStart))
+      .limit(1);
+    
+    const previousAuditHash = lastPeriod?.auditHash || GENESIS_HASH;
     
     const [period] = await db
       .insert(payrollPeriods)
@@ -160,22 +173,57 @@ export class PayrollPeriodService {
         businessUnitId,
         status: 'open',
         lockStatus: 'unlocked',
-        adjustmentsAllowed: true
+        adjustmentsAllowed: true,
+        previousAuditHash,
+        auditHash: null, // Will compute after we have the ID
+        createdBy: context.user.id,
+        modifiedBy: context.user.id,
       })
       .returning();
+    
+    // SOX Compliance: Compute audit hash now that we have the record ID
+    const auditHash = computePayrollPeriodAuditHash(
+      {
+        id: period.id,
+        businessUnitId: period.businessUnitId,
+        periodType: period.periodType || 'weekly', // Use actual value from record
+        payPeriodStart: format(startDate, 'yyyy-MM-dd'),
+        payPeriodEnd: format(endDate, 'yyyy-MM-dd'),
+        payDate: format(payDate, 'yyyy-MM-dd'),
+        status: period.status,
+        lockedBy: period.lockedBy,
+        lockedAt: period.lockedAt,
+        processingStartedAt: period.processingStartedAt,
+        processingCompletedAt: period.processingCompletedAt,
+        syncStatus: period.syncStatus,
+        employeeCount: null,
+        totalHours: null,
+        totalAmount: null,
+      },
+      previousAuditHash
+    );
+
+    // Update with computed hash
+    await db
+      .update(payrollPeriods)
+      .set({ auditHash })
+      .where(eq(payrollPeriods.id, period.id));
     
     // Audit log
     await this.auditLog(period.id, 'PERIOD_CREATED', null, {
       startDate: format(startDate, 'yyyy-MM-dd'),
       endDate: format(endDate, 'yyyy-MM-dd'),
-      payDate: format(payDate, 'yyyy-MM-dd')
+      payDate: format(payDate, 'yyyy-MM-dd'),
+      auditHash,
+      hashChainUpdated: true
     });
     
-    return this.enrichPeriodInfo(period);
+    return this.enrichPeriodInfo({ ...period, auditHash });
   }
   
   /**
    * Lock a payroll period with different lock levels
+   * SOX/ITGC: Updates audit_hash for each affected timesheet and the payroll period
    */
   async lockPeriod(
     context: ServiceContext,
@@ -183,6 +231,9 @@ export class PayrollPeriodService {
     lockLevel: 'manager' | 'admin',
     reason?: string
   ): Promise<PeriodLockResult> {
+    // Import audit hash service for SOX compliance
+    const { computeTimesheetAuditHash, computePayrollPeriodAuditHash } = await import('../utils/auditHashService');
+    
     const userId = context.user.id;
     const period = await this.getPeriodById(periodId);
     if (!period) {
@@ -209,39 +260,108 @@ export class PayrollPeriodService {
     
     // Update lock status
     const lockStatus = lockLevel === 'admin' ? 'admin_locked' : 'manager_locked';
+    const lockedAt = new Date();
     
-    await db
+    const [updatedPeriodRecord] = await db
       .update(payrollPeriods)
       .set({
         lockStatus,
         lockedBy: userId,
-        lockedAt: new Date(),
+        lockedAt,
         lockReason: reason,
         adjustmentsAllowed: lockLevel !== 'admin',
+        modifiedBy: userId,
         updatedAt: new Date()
       })
+      .where(eq(payrollPeriods.id, periodId))
+      .returning();
+    
+    // SOX Compliance: Recompute payroll period audit hash
+    const periodAuditHash = computePayrollPeriodAuditHash(
+      {
+        id: updatedPeriodRecord.id,
+        businessUnitId: updatedPeriodRecord.businessUnitId,
+        periodType: updatedPeriodRecord.periodType || 'weekly',
+        payPeriodStart: updatedPeriodRecord.payPeriodStart,
+        payPeriodEnd: updatedPeriodRecord.payPeriodEnd,
+        payDate: updatedPeriodRecord.payDate,
+        status: updatedPeriodRecord.status,
+        lockedBy: updatedPeriodRecord.lockedBy,
+        lockedAt: updatedPeriodRecord.lockedAt,
+        processingStartedAt: updatedPeriodRecord.processingStartedAt,
+        processingCompletedAt: updatedPeriodRecord.processingCompletedAt,
+        syncStatus: updatedPeriodRecord.syncStatus,
+        employeeCount: updatedPeriodRecord.employeeCount,
+        totalHours: updatedPeriodRecord.totalHours,
+        totalAmount: updatedPeriodRecord.totalAmount,
+      },
+      period.previousAuditHash || 'GENESIS'
+    );
+
+    await db
+      .update(payrollPeriods)
+      .set({ auditHash: periodAuditHash })
       .where(eq(payrollPeriods.id, periodId));
     
-    // Lock all timesheets in the period
-    await db
-      .update(timesheets)
-      .set({
-        status: 'locked',
-        lockedAt: new Date(),
-        lockedBy: userId,
-        updatedAt: new Date()
-      })
+    // Lock all timesheets in the period with hash chain updates
+    const timesheetsToLock = await db
+      .select()
+      .from(timesheets)
       .where(
         and(
           gte(timesheets.weekStartDate, period.payPeriodStart),
           lte(timesheets.weekEndDate, period.payPeriodEnd)
         )
       );
+
+    for (const ts of timesheetsToLock) {
+      const [updated] = await db
+        .update(timesheets)
+        .set({
+          status: 'locked',
+          lockedAt,
+          lockedBy: userId,
+          modifiedBy: userId,
+          updatedAt: new Date()
+        })
+        .where(eq(timesheets.id, ts.id))
+        .returning();
+
+      // Recompute audit hash
+      const auditHash = computeTimesheetAuditHash(
+        {
+          id: updated.id,
+          userId: updated.userId,
+          date: updated.date,
+          jobId: updated.jobId,
+          taskId: updated.taskId,
+          startTime: updated.startTime,
+          endTime: updated.endTime,
+          hoursWorked: updated.hoursWorked,
+          breakHours: updated.breakHours,
+          overtimeHours: updated.overtimeHours,
+          status: updated.status,
+          supervisorId: updated.supervisorId,
+          approvedBy: updated.approvedBy,
+          approvedAt: updated.approvedAt,
+          submittedAt: updated.submittedAt,
+        },
+        ts.previousAuditHash || 'GENESIS'
+      );
+
+      await db
+        .update(timesheets)
+        .set({ auditHash })
+        .where(eq(timesheets.id, ts.id));
+    }
     
     // Audit log
     await this.auditLog(periodId, 'PERIOD_LOCKED', userId, {
       lockLevel,
-      reason
+      reason,
+      timesheetsLocked: timesheetsToLock.length,
+      auditHash: periodAuditHash,
+      hashChainUpdated: true
     });
     
     const updatedPeriod = await this.getPeriodById(periodId);
@@ -254,12 +374,16 @@ export class PayrollPeriodService {
   
   /**
    * Unlock a payroll period
+   * SOX/ITGC: Updates audit_hash for each affected timesheet and the payroll period
    */
   async unlockPeriod(
     periodId: number,
     userId: number,
     reason: string
   ): Promise<PeriodLockResult> {
+    // Import audit hash service for SOX compliance
+    const { computeTimesheetAuditHash, computePayrollPeriodAuditHash } = await import('../utils/auditHashService');
+    
     const period = await this.getPeriodById(periodId);
     if (!period) {
       return { success: false, message: 'Period not found' };
@@ -273,7 +397,7 @@ export class PayrollPeriodService {
     }
     
     // Update lock status
-    await db
+    const [updatedPeriodRecord] = await db
       .update(payrollPeriods)
       .set({
         lockStatus: 'unlocked',
@@ -282,19 +406,43 @@ export class PayrollPeriodService {
         lockReason: null,
         adjustmentsAllowed: true,
         status: period.status === 'locked' ? 'processing' : period.status,
+        modifiedBy: userId,
         updatedAt: new Date()
       })
+      .where(eq(payrollPeriods.id, periodId))
+      .returning();
+    
+    // SOX Compliance: Recompute payroll period audit hash
+    const periodAuditHash = computePayrollPeriodAuditHash(
+      {
+        id: updatedPeriodRecord.id,
+        businessUnitId: updatedPeriodRecord.businessUnitId,
+        periodType: updatedPeriodRecord.periodType || 'weekly',
+        payPeriodStart: updatedPeriodRecord.payPeriodStart,
+        payPeriodEnd: updatedPeriodRecord.payPeriodEnd,
+        payDate: updatedPeriodRecord.payDate,
+        status: updatedPeriodRecord.status,
+        lockedBy: updatedPeriodRecord.lockedBy,
+        lockedAt: updatedPeriodRecord.lockedAt,
+        processingStartedAt: updatedPeriodRecord.processingStartedAt,
+        processingCompletedAt: updatedPeriodRecord.processingCompletedAt,
+        syncStatus: updatedPeriodRecord.syncStatus,
+        employeeCount: updatedPeriodRecord.employeeCount,
+        totalHours: updatedPeriodRecord.totalHours,
+        totalAmount: updatedPeriodRecord.totalAmount,
+      },
+      period.previousAuditHash || 'GENESIS'
+    );
+
+    await db
+      .update(payrollPeriods)
+      .set({ auditHash: periodAuditHash })
       .where(eq(payrollPeriods.id, periodId));
     
-    // Unlock timesheets
-    await db
-      .update(timesheets)
-      .set({
-        status: 'approved', // Revert to approved state
-        lockedAt: null,
-        lockedBy: null,
-        updatedAt: new Date()
-      })
+    // Unlock timesheets with hash chain updates
+    const timesheetsToUnlock = await db
+      .select()
+      .from(timesheets)
       .where(
         and(
           gte(timesheets.weekStartDate, period.payPeriodStart),
@@ -302,9 +450,55 @@ export class PayrollPeriodService {
           eq(timesheets.status, 'locked')
         )
       );
+
+    for (const ts of timesheetsToUnlock) {
+      const [updated] = await db
+        .update(timesheets)
+        .set({
+          status: 'approved', // Revert to approved state
+          lockedAt: null,
+          lockedBy: null,
+          modifiedBy: userId,
+          updatedAt: new Date()
+        })
+        .where(eq(timesheets.id, ts.id))
+        .returning();
+
+      // Recompute audit hash
+      const auditHash = computeTimesheetAuditHash(
+        {
+          id: updated.id,
+          userId: updated.userId,
+          date: updated.date,
+          jobId: updated.jobId,
+          taskId: updated.taskId,
+          startTime: updated.startTime,
+          endTime: updated.endTime,
+          hoursWorked: updated.hoursWorked,
+          breakHours: updated.breakHours,
+          overtimeHours: updated.overtimeHours,
+          status: updated.status,
+          supervisorId: updated.supervisorId,
+          approvedBy: updated.approvedBy,
+          approvedAt: updated.approvedAt,
+          submittedAt: updated.submittedAt,
+        },
+        ts.previousAuditHash || 'GENESIS'
+      );
+
+      await db
+        .update(timesheets)
+        .set({ auditHash })
+        .where(eq(timesheets.id, ts.id));
+    }
     
     // Audit log
-    await this.auditLog(periodId, 'PERIOD_UNLOCKED', userId, { reason });
+    await this.auditLog(periodId, 'PERIOD_UNLOCKED', userId, {
+      reason,
+      timesheetsUnlocked: timesheetsToUnlock.length,
+      auditHash: periodAuditHash,
+      hashChainUpdated: true
+    });
     
     const updatedPeriod = await this.getPeriodById(periodId);
     return {

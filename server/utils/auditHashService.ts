@@ -60,13 +60,16 @@ export const GENESIS_HASH = 'GENESIS';
 /**
  * Computes an audit hash for a time_entries record.
  * 
- * Covered fields (SOX-critical business data):
+ * SOX-CRITICAL FIELDS (all fields that affect control attestation):
  * - id, user_id, timesheet_id, job_id
  * - clock_in, clock_out
  * - break_duration, total_hours
  * - hourly_rate, total_cost
- * - status
- * - gps_lat, gps_lng (if present)
+ * - status (SOX control field - workflow state)
+ * - gps_lat, gps_lng (GPS evidence)
+ * 
+ * NOTE: When any field changes, downstream records must have their
+ * previousAuditHash/auditHash cascade-updated to maintain chain integrity.
  * 
  * @param record The time_entries record
  * @param previousAuditHash The hash of the previous record in the chain (or GENESIS)
@@ -113,13 +116,16 @@ export function computeTimeEntryAuditHash(
 /**
  * Computes an audit hash for a timesheets record.
  * 
- * Covered fields (SOX-critical business data):
+ * SOX-CRITICAL FIELDS (all fields that affect control attestation):
  * - id, user_id, job_id, task_id
  * - date, start_time, end_time
  * - hours_worked, break_hours, overtime_hours
- * - status
- * - supervisor_id, approved_by, approved_at
- * - submitted_at
+ * - status (SOX control field - workflow state)
+ * - supervisor_id, approved_by, approved_at (SOX approval controls)
+ * - submitted_at (SOX control timestamp)
+ * 
+ * NOTE: When any field changes, downstream records must have their
+ * previousAuditHash/auditHash cascade-updated to maintain chain integrity.
  * 
  * @param record The timesheets record
  * @param previousAuditHash The hash of the previous record in the chain (or GENESIS)
@@ -170,13 +176,18 @@ export function computeTimesheetAuditHash(
 /**
  * Computes an audit hash for a payroll_periods record.
  * 
- * Covered fields (SOX-critical business data):
+ * SOX-CRITICAL FIELDS (all fields that affect control attestation):
  * - id, business_unit_id
  * - period_type
  * - pay_period_start, pay_period_end, pay_date
- * - status
- * - locked_by, locked_at
- * - employee_count, total_hours, total_amount
+ * - status (SOX control field - workflow state: open, locked, processing, completed, archived)
+ * - locked_by, locked_at (SOX lock controls)
+ * - processing_started_at, processing_completed_at (SOX processing controls)
+ * - sync_status (SOX external sync controls)
+ * - employee_count, total_hours, total_amount (SOX financial aggregates)
+ * 
+ * NOTE: When any field changes, downstream records must have their
+ * previousAuditHash/auditHash cascade-updated to maintain chain integrity.
  * 
  * @param record The payroll_periods record
  * @param previousAuditHash The hash of the previous record in the chain (or GENESIS)
@@ -187,12 +198,15 @@ export function computePayrollPeriodAuditHash(
     id: number;
     businessUnitId?: number | null;
     periodType: string;
-    payPeriodStart: string;
-    payPeriodEnd: string;
-    payDate: string;
-    status: string;
+    payPeriodStart: string | Date;
+    payPeriodEnd: string | Date;
+    payDate: string | Date;
+    status?: string | null;
     lockedBy?: number | null;
     lockedAt?: Date | string | null;
+    processingStartedAt?: Date | string | null;
+    processingCompletedAt?: Date | string | null;
+    syncStatus?: string | null;
     employeeCount?: number | null;
     totalHours?: string | null;
     totalAmount?: string | null;
@@ -203,12 +217,21 @@ export function computePayrollPeriodAuditHash(
     id: record.id,
     businessUnitId: record.businessUnitId ?? null,
     periodType: record.periodType,
-    payPeriodStart: record.payPeriodStart,
-    payPeriodEnd: record.payPeriodEnd,
-    payDate: record.payDate,
-    status: record.status,
+    payPeriodStart: record.payPeriodStart instanceof Date 
+      ? record.payPeriodStart.toISOString().split('T')[0] 
+      : record.payPeriodStart,
+    payPeriodEnd: record.payPeriodEnd instanceof Date 
+      ? record.payPeriodEnd.toISOString().split('T')[0] 
+      : record.payPeriodEnd,
+    payDate: record.payDate instanceof Date 
+      ? record.payDate.toISOString().split('T')[0] 
+      : record.payDate,
+    status: record.status ?? 'open',
     lockedBy: record.lockedBy ?? null,
     lockedAt: record.lockedAt instanceof Date ? record.lockedAt.toISOString() : (record.lockedAt ?? null),
+    processingStartedAt: record.processingStartedAt instanceof Date ? record.processingStartedAt.toISOString() : (record.processingStartedAt ?? null),
+    processingCompletedAt: record.processingCompletedAt instanceof Date ? record.processingCompletedAt.toISOString() : (record.processingCompletedAt ?? null),
+    syncStatus: record.syncStatus ?? null,
     employeeCount: record.employeeCount ?? null,
     totalHours: record.totalHours ?? null,
     totalAmount: record.totalAmount ?? null,
@@ -255,4 +278,227 @@ export function validateHashChain(
     isValid: brokenLinks.length === 0,
     brokenLinks,
   };
+}
+
+/**
+ * CASCADE UTILITIES
+ * 
+ * These utilities propagate hash updates downstream when a record is modified.
+ * After updating any SOX-critical field, call the appropriate cascade function
+ * to ensure all downstream records maintain chain integrity.
+ * 
+ * Chain sequences:
+ * - time_entries: Per-user, ordered by clockIn
+ * - timesheets: Per-user, ordered by date
+ * - payroll_periods: Global, ordered by payPeriodStart
+ */
+
+import { db } from '../db';
+import { timeEntries, timesheets, payrollPeriods } from '@shared/schema';
+import { eq, gt, asc, and } from 'drizzle-orm';
+
+/**
+ * Cascades hash updates for time_entries after a record is modified.
+ * Updates all downstream records in the user's chain.
+ * 
+ * @param userId The user ID for the per-user chain
+ * @param updatedRecordClockIn The clockIn timestamp of the modified record
+ * @param newAuditHash The new audit_hash of the modified record
+ */
+export async function cascadeTimeEntryHashes(
+  userId: number,
+  updatedRecordClockIn: Date | string,
+  newAuditHash: string
+): Promise<void> {
+  const clockInDate = updatedRecordClockIn instanceof Date 
+    ? updatedRecordClockIn 
+    : new Date(updatedRecordClockIn);
+
+  // Get all downstream records for this user (after the updated record)
+  const downstreamRecords = await db
+    .select()
+    .from(timeEntries)
+    .where(
+      and(
+        eq(timeEntries.userId, userId),
+        gt(timeEntries.clockIn, clockInDate)
+      )
+    )
+    .orderBy(asc(timeEntries.clockIn));
+
+  if (downstreamRecords.length === 0) return;
+
+  // First downstream record gets the new hash as its previousAuditHash
+  let currentPreviousHash = newAuditHash;
+
+  for (const record of downstreamRecords) {
+    // Update previousAuditHash
+    await db
+      .update(timeEntries)
+      .set({ previousAuditHash: currentPreviousHash })
+      .where(eq(timeEntries.id, record.id));
+
+    // Recompute auditHash with new previousAuditHash
+    const recomputedHash = computeTimeEntryAuditHash(
+      {
+        id: record.id,
+        userId: record.userId,
+        timesheetId: record.timesheetId,
+        jobId: record.jobId,
+        clockIn: record.clockIn,
+        clockOut: record.clockOut,
+        breakDuration: record.breakDuration,
+        totalHours: record.totalHours,
+        hourlyRate: record.hourlyRate,
+        totalCost: record.totalCost,
+        status: record.status,
+        gpsLat: record.gpsLat,
+        gpsLng: record.gpsLng,
+      },
+      currentPreviousHash
+    );
+
+    await db
+      .update(timeEntries)
+      .set({ auditHash: recomputedHash })
+      .where(eq(timeEntries.id, record.id));
+
+    // Next record uses this record's new hash
+    currentPreviousHash = recomputedHash;
+  }
+}
+
+/**
+ * Cascades hash updates for timesheets after a record is modified.
+ * Updates all downstream records in the user's chain.
+ * 
+ * @param userId The user ID for the per-user chain
+ * @param updatedRecordDate The date of the modified record
+ * @param newAuditHash The new audit_hash of the modified record
+ */
+export async function cascadeTimesheetHashes(
+  userId: number,
+  updatedRecordDate: string,
+  newAuditHash: string
+): Promise<void> {
+  // Get all downstream records for this user (after the updated record)
+  const downstreamRecords = await db
+    .select()
+    .from(timesheets)
+    .where(
+      and(
+        eq(timesheets.userId, userId),
+        gt(timesheets.date, updatedRecordDate)
+      )
+    )
+    .orderBy(asc(timesheets.date));
+
+  if (downstreamRecords.length === 0) return;
+
+  // First downstream record gets the new hash as its previousAuditHash
+  let currentPreviousHash = newAuditHash;
+
+  for (const record of downstreamRecords) {
+    // Update previousAuditHash
+    await db
+      .update(timesheets)
+      .set({ previousAuditHash: currentPreviousHash })
+      .where(eq(timesheets.id, record.id));
+
+    // Recompute auditHash with new previousAuditHash
+    const recomputedHash = computeTimesheetAuditHash(
+      {
+        id: record.id,
+        userId: record.userId,
+        date: record.date,
+        jobId: record.jobId,
+        taskId: record.taskId,
+        startTime: record.startTime,
+        endTime: record.endTime,
+        hoursWorked: record.hoursWorked,
+        breakHours: record.breakHours,
+        overtimeHours: record.overtimeHours,
+        status: record.status,
+        supervisorId: record.supervisorId,
+        approvedBy: record.approvedBy,
+        approvedAt: record.approvedAt,
+        submittedAt: record.submittedAt,
+      },
+      currentPreviousHash
+    );
+
+    await db
+      .update(timesheets)
+      .set({ auditHash: recomputedHash })
+      .where(eq(timesheets.id, record.id));
+
+    // Next record uses this record's new hash
+    currentPreviousHash = recomputedHash;
+  }
+}
+
+/**
+ * Cascades hash updates for payroll_periods after a record is modified.
+ * Updates all downstream records in the global chain.
+ * 
+ * @param updatedRecordPayPeriodStart The payPeriodStart of the modified record
+ * @param newAuditHash The new audit_hash of the modified record
+ */
+export async function cascadePayrollPeriodHashes(
+  updatedRecordPayPeriodStart: Date | string,
+  newAuditHash: string
+): Promise<void> {
+  const periodStartDate = updatedRecordPayPeriodStart instanceof Date 
+    ? updatedRecordPayPeriodStart 
+    : new Date(updatedRecordPayPeriodStart);
+
+  // Get all downstream records (after the updated record)
+  const downstreamRecords = await db
+    .select()
+    .from(payrollPeriods)
+    .where(gt(payrollPeriods.payPeriodStart, periodStartDate))
+    .orderBy(asc(payrollPeriods.payPeriodStart));
+
+  if (downstreamRecords.length === 0) return;
+
+  // First downstream record gets the new hash as its previousAuditHash
+  let currentPreviousHash = newAuditHash;
+
+  for (const record of downstreamRecords) {
+    // Update previousAuditHash
+    await db
+      .update(payrollPeriods)
+      .set({ previousAuditHash: currentPreviousHash })
+      .where(eq(payrollPeriods.id, record.id));
+
+    // Recompute auditHash with new previousAuditHash
+    const recomputedHash = computePayrollPeriodAuditHash(
+      {
+        id: record.id,
+        businessUnitId: record.businessUnitId,
+        periodType: record.periodType || 'weekly',
+        payPeriodStart: record.payPeriodStart,
+        payPeriodEnd: record.payPeriodEnd,
+        payDate: record.payDate,
+        status: record.status,
+        lockedBy: record.lockedBy,
+        lockedAt: record.lockedAt,
+        processingStartedAt: record.processingStartedAt,
+        processingCompletedAt: record.processingCompletedAt,
+        syncStatus: record.syncStatus,
+        employeeCount: record.employeeCount,
+        totalHours: record.totalHours,
+        totalAmount: record.totalAmount,
+      },
+      currentPreviousHash
+    );
+
+    await db
+      .update(payrollPeriods)
+      .set({ auditHash: recomputedHash })
+      .where(eq(payrollPeriods.id, record.id));
+
+    // Next record uses this record's new hash
+    currentPreviousHash = recomputedHash;
+  }
 }
