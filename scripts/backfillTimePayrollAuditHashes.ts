@@ -405,12 +405,12 @@ async function backfillTimesheets(options: BackfillOptions): Promise<BackfillRes
 
       // Process in batches
       while (offset < totalUserRecords) {
-        // Load a batch of records
+        // Load a batch of records (deterministic ordering with id as tiebreaker for same-date records)
         const batchRecords = await db
           .select()
           .from(timesheets)
           .where(eq(timesheets.userId, userId))
-          .orderBy(asc(timesheets.date))
+          .orderBy(asc(timesheets.date), asc(timesheets.id))
           .limit(options.batchSize)
           .offset(offset);
 

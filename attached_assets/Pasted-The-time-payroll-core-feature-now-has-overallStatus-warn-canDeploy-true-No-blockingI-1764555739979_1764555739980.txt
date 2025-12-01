@@ -1,0 +1,102 @@
+The time-payroll-core feature now has:
+
+- overallStatus: "warn"
+- canDeploy: true
+- No blockingIssues
+
+All SOX/ITGC and audit checks are now passing. The remaining WARNINGS are:
+
+- A “hash chain backfill” warning that appears to be stale (we already ran the backfill successfully).
+- Architecture Review Board (ARB) approval required.
+- COBIT maturity gap warnings.
+
+I want you to clean this up in a governance-safe way.
+
+====================================================
+STEP 1 – Make the hash-backfill warning data-driven
+====================================================
+
+1) Locate the code that generates the “hash chain backfill” warning for the
+   time-payroll-core feature. This is likely in:
+   - server/utils/preFlightChecklist.ts
+   - or a related governance utility.
+
+2) Update this check so that it ONLY emits a warning if there are actually
+   records with missing hashes. Concretely:
+
+   - For tables:
+     - time_entries
+     - timesheets
+     - payroll_periods
+
+   - The warning should be emitted ONLY if a query like:
+
+     COUNT(*) WHERE audit_hash IS NULL OR previous_audit_hash IS NULL
+
+     is > 0 for any of those tables.
+
+   - If ALL records in those tables have non-null audit_hash AND non-null
+     previous_audit_hash, the “hash chain backfill” warning must NOT be included
+     in the pre-flight result.
+
+3) Do NOT remove the check entirely. The goal is:
+   - If there are missing hashes → WARN.
+   - If there are no missing hashes → PASS (no warning).
+
+4) After updating the check:
+   - Run a query (or equivalent) to confirm whether any such rows actually exist.
+   - Re-run the pre-flight check:
+
+     GET /api/system/pre-flight-check?feature=time-payroll-core
+
+   - Show me the updated JSON, and confirm whether the hash backfill warning
+     is still present and why.
+
+====================================================
+STEP 2 – Surface ARB & COBIT configuration (no suppression)
+====================================================
+
+I do NOT want to remove or suppress ARB or COBIT warnings. They are valid
+governance signals. Instead:
+
+1) Show me where ARB approval and COBIT maturity are defined for
+   time-payroll-core. Likely in the manifest:
+
+   - server/manifests/time-payroll-core.manifest.json
+
+2) For time-payroll-core, extract and show me the current values for:
+   - ARB / togaf / architectureContract / arbApproval (if present)
+   - cobit2024.objectives[*].targetLevel and currentLevel
+
+3) Based on that, suggest (in your response, NOT in code yet):
+   - How we could record an ARB approval decision for time-payroll-core
+     (e.g. approvedBy, approvedAt, status: "approved").
+   - Whether the current COBIT maturity levels (current vs target) align with
+     the actual state of the Time & Payroll controls, or whether we should
+     consider adjusting target or current levels.
+
+IMPORTANT:
+- Do NOT change the manifest or COBIT levels yet.
+- Do NOT remove or mute the ARB or COBIT warnings.
+- This step is only for visibility and recommendations.
+
+====================================================
+STEP 3 – Summary
+====================================================
+
+After you:
+
+- Make the hash-backfill warning data-driven, and
+- Re-run the pre-flight check,
+
+respond with:
+
+A) The updated pre-flight JSON for time-payroll-core (overallStatus, canDeploy,
+   warnings).
+
+B) A short explanation of:
+   - Whether the hash-backfill warning is now accurate (only shows if there
+     are actually missing hashes).
+   - What ARB and COBIT configuration currently look like for this feature.
+
+Do NOT modify replit.md or the STEELIQ_Enterprise_Control_Framework_Governance_v2.0.md file in this task.

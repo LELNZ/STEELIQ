@@ -1007,11 +1007,11 @@ class PreFlightChecklistService {
       const tsHashed = parseInt(tsStats.hashed) || 0;
       const tsUnhashed = parseInt(tsStats.unhashed) || 0;
       
-      // Check for chain continuity
+      // Check for chain continuity (deterministic ordering with id as tiebreaker for same-date records)
       const timesheetChainBreaks = await db.execute(sql`
         WITH ordered_timesheets AS (
           SELECT id, user_id, date, audit_hash, previous_audit_hash,
-                 LAG(audit_hash) OVER (PARTITION BY user_id ORDER BY date) as expected_previous
+                 LAG(audit_hash) OVER (PARTITION BY user_id ORDER BY date, id) as expected_previous
           FROM timesheets
           WHERE audit_hash IS NOT NULL
         )
