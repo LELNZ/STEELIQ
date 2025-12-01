@@ -10270,6 +10270,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Fortune 50 Governance: Reject timesheet endpoint (wrapper for manifest compliance)
+  app.post("/api/time/timesheets/:id/reject", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // RBAC: Only supervisor, manager, admin, or owner can reject timesheets
+      if (!['supervisor', 'manager', 'admin', 'super_admin', 'owner'].includes(user.role)) {
+        return res.status(403).json({ error: "Forbidden - Supervisor or higher required to reject timesheets" });
+      }
+      
+      const timesheetId = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
+        return res.status(400).json({ error: "Rejection reason is required" });
+      }
+      
+      // Get timesheet for audit details
+      const existingTimesheet = await timeManagementStorage.getTimesheetById(timesheetId);
+      if (!existingTimesheet) {
+        return res.status(404).json({ error: "Timesheet not found" });
+      }
+      
+      const timesheet = await timeManagementStorage.rejectTimesheet(timesheetId, user.id, reason.trim());
+      
+      // Audit log the rejection
+      await teamStorage.createAuditLog({
+        userId: user.id,
+        action: 'REJECT_TIMESHEET',
+        entityType: 'timesheet',
+        entityId: timesheetId.toString(),
+        description: `Timesheet rejected for user ${existingTimesheet.user?.name || 'Unknown'}: ${reason.trim()}`,
+        timestamp: new Date(),
+        metadata: JSON.stringify({
+          rejectedBy: user.id,
+          reason: reason.trim(),
+          totalHours: existingTimesheet.totalHours,
+          date: existingTimesheet.date
+        })
+      });
+      
+      res.json(timesheet);
+    } catch (error) {
+      console.error("Error rejecting timesheet:", error);
+      res.status(500).json({ error: "Failed to reject timesheet" });
+    }
+  });
+
+  // Fortune 50 Governance: Get pending timesheet approvals (wrapper for manifest compliance)
+  app.get("/api/time/timesheets/pending-approval", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // RBAC: Only supervisor, manager, admin, or owner can view pending approvals
+      if (!['supervisor', 'manager', 'admin', 'super_admin', 'owner'].includes(user.role)) {
+        return res.status(403).json({ error: "Forbidden - Supervisor or higher required to view pending approvals" });
+      }
+      
+      // Get timesheets with 'submitted' status (pending approval)
+      const pendingTimesheets = await db
+        .select()
+        .from(timesheets)
+        .where(eq(timesheets.status, 'submitted'))
+        .orderBy(desc(timesheets.date));
+      
+      res.json({
+        pendingApprovals: pendingTimesheets,
+        count: pendingTimesheets.length
+      });
+    } catch (error) {
+      console.error("Error fetching pending approvals:", error);
+      res.status(500).json({ error: "Failed to fetch pending timesheet approvals" });
+    }
+  });
   // Job Tasks
   app.get("/api/time/tasks/assigned", async (req, res) => {
     try {
@@ -14103,6 +14184,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+
+  // ============================================================================
+  // Fortune 50 Governance: Payroll Wrapper Routes (manifest compliance)
+  // These routes provide manifest-aligned paths that delegate to existing handlers
+  // ============================================================================
+
+  // GET /api/payroll/periods - List payroll periods (wrapper for /api/payroll-periods)
+  app.get("/api/payroll/periods", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Delegate to payrollPeriodService
+      const { payrollPeriodService } = await import('./services/payrollPeriodService');
+      const periods = await payrollPeriodService.getPayrollPeriods({
+        businessUnitId: req.query.businessUnitId ? parseInt(req.query.businessUnitId as string) : undefined,
+        status: req.query.status as string,
+        activeOnly: req.query.activeOnly === 'true'
+      });
+      
+      res.json(periods);
+    } catch (error) {
+      console.error("Error fetching payroll periods:", error);
+      res.status(500).json({ error: "Failed to fetch payroll periods" });
+    }
+  });
+
+  // POST /api/payroll/periods/lock - Lock a payroll period (wrapper)
+  // Expects { periodId: number } in body
+  app.post("/api/payroll/periods/lock", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // RBAC: Only manager, admin, or owner can lock payroll periods
+      if (!['manager', 'admin', 'super_admin', 'owner'].includes(user.role)) {
+        return res.status(403).json({ error: "Forbidden - Manager or higher required to lock payroll periods" });
+      }
+      
+      const { periodId } = req.body;
+      if (!periodId || typeof periodId !== 'number') {
+        return res.status(400).json({ error: "periodId is required and must be a number" });
+      }
+      
+      // Delegate to payrollPeriodService
+      const { payrollPeriodService } = await import('./services/payrollPeriodService');
+      const result = await payrollPeriodService.lockPeriod(
+        periodId,
+        user.id,
+        'manager' // Default lock level
+      );
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.reason || "Failed to lock period" });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error locking payroll period:", error);
+      res.status(500).json({ error: "Failed to lock payroll period" });
+    }
+  });
+
+  // POST /api/payroll/export - Export payroll data (wrapper)
+  // Expects { periodId: number, dualAuthRequestId?: string } in body
+  app.post("/api/payroll/export", 
+    requirePermission('export_payroll' as any),
+    async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const { periodId, dualAuthRequestId } = req.body;
+      if (!periodId || typeof periodId !== 'number') {
+        return res.status(400).json({ error: "periodId is required and must be a number" });
+      }
+      
+      // Dual authorization check for sensitive export
+      if (!dualAuthRequestId) {
+        return res.status(403).json({ 
+          error: "Dual authorization required for payroll export",
+          requiresDualAuth: true
+        });
+      }
+      
+      // Verify dual auth request is valid and approved
+      const [dualAuthRequest] = await db.select()
+        .from(dualAuthRequests)
+        .where(and(
+          eq(dualAuthRequests.requestId, dualAuthRequestId),
+          eq(dualAuthRequests.resourceType, 'payroll_period'),
+          eq(dualAuthRequests.resourceId, String(periodId)),
+          eq(dualAuthRequests.status, 'approved')
+        ))
+        .limit(1);
+        
+      if (!dualAuthRequest) {
+        return res.status(403).json({ 
+          error: "Invalid or unapproved dual authorization request" 
+        });
+      }
+      
+      // Export with AES-256-GCM encryption
+      const encryptedPayload = await payrollExportService.exportPayrollPeriod(
+        periodId,
+        user.id,
+        dualAuthRequestId
+      );
+      
+      console.log(`[PayrollExport] User ${user.id} exported period ${periodId} via /api/payroll/export`);
+      
+      res.json({
+        success: true,
+        message: "Payroll data exported with AES-256-GCM encryption",
+        encrypted: encryptedPayload
+      });
+      
+    } catch (error) {
+      console.error("Payroll export error:", error);
+      res.status(500).json({ error: "Failed to export payroll data securely" });
+    }
+  });
   // Enhanced Payroll Integration Route
   app.post("/api/payroll/configure", async (req, res) => {
     try {
