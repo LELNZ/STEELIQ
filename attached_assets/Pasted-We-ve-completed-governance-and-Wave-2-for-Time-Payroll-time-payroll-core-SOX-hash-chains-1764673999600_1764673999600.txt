@@ -1,0 +1,158 @@
+We’ve completed governance and Wave 2 for Time & Payroll (time-payroll-core):
+
+- SOX / hash chains are implemented.
+- SoD / dual-auth for payroll admin lock is implemented and tested.
+- RBAC tests were recorded.
+- Pre-flight for time-payroll-core: canDeploy = true, no blocking issues.
+- ARB is approved (Adam Green).
+- COBIT current = 3, target = 4, with a maturity roadmap.
+
+The ONE remaining functional gap you found is:
+
+- Time & Payroll data is NOT currently included in the “Clear Data” feature
+  (Organization Settings → Data → Clear Data).
+
+This is a DEV environment and **all Time & Payroll data is mock**.
+
+I want you to IMPLEMENT and PROVE full Clear Data coverage for Time & Payroll in this environment.
+
+=====================================
+STEP 1 – Identify Clear Data plumbing
+=====================================
+
+1) Locate the backend implementation for the “Clear Business Data” feature:
+   - Routes / controllers / services that power the Organization Settings → Data → Clear Data tab.
+   - Identify:
+     - The API endpoint(s) used by the UI.
+     - The “categories” (e.g. Procurement, Jobs & Projects, Financial Records, Audit Trails, etc.)
+       and how each category maps to specific tables.
+
+2) Show me a short summary of:
+   - The Clear Data endpoint(s) (paths + HTTP methods).
+   - The list of categories and which tables each category currently affects.
+
+DO NOT modify anything yet in this step – just discovery and summary.
+
+=====================================
+STEP 2 – Design Time & Payroll coverage
+=====================================
+
+Goal:
+Ensure that **all Time & Payroll data** can be cleared using one or more Clear Data categories.
+
+Time & Payroll tables to consider (at minimum):
+
+- time_entries
+- timesheets
+- time_clocks (or equivalent)
+- payroll_periods
+- timesheet_corrections
+- time_permissions (if relevant)
+- Any Time & Payroll-specific audit / log tables,
+  e.g. payroll_sync_log, payroll_adjustments, GPS/location tables used *only* by time clock.
+
+Tasks:
+
+1) Based on the current categories, propose one of these designs:
+
+   A) Add a dedicated “Employee & Payroll” (or “Time & Payroll”) category
+      that clears all of the above tables.
+
+   OR
+
+   B) Cleanly map Time & Payroll tables into an existing category
+      (only if that category is truly meant to include payroll/time data).
+
+2) In your response, outline:
+
+   - Which tables will be cleared by which category.
+   - Whether any tables should be intentionally preserved (e.g. global audit logs)
+     and why.
+
+3) WAIT for my approval **in your response** before making code changes.
+   (You can still propose the exact plan, but don’t run destructive operations yet.)
+
+=====================================
+STEP 3 – Implement Clear Data for Time & Payroll
+=====================================
+
+Assume I approve your design if I don’t object.
+
+1) Update the backend Clear Data implementation to:
+
+   - Add the new category or extend an existing category so that **all relevant
+     Time & Payroll tables** are included.
+   - Use the existing pattern:
+     - If the rest of Clear Data uses DELETE or TRUNCATE, follow that pattern.
+     - Ensure foreign key constraints are respected (delete order, cascades, etc.).
+
+2) If necessary, update any shared enums/types so the frontend can pass the new category
+   without errors (but do NOT change the UI text unless absolutely required).
+
+3) Update docs/audit/time-payroll/data-clearing-test.md to reflect the new
+   implementation instead of just the gap.
+
+=====================================
+STEP 4 – PROVE it works (DEV ONLY)
+=====================================
+
+We will prove Time & Payroll Clear Data works with a controlled test in DEv.
+
+1) BEFORE CLEARING:
+   - Insert or confirm the existence of a **small, known set** of Time & Payroll records:
+     - A few time_entries
+     - A few timesheets
+     - One or more payroll_periods
+     - One or more timesheet_corrections
+     - Any related rows in payroll_adjustments / payroll_sync_log etc.
+   - Run a SQL query to count rows per relevant table and store that in:
+
+     docs/audit/time-payroll/data-clearing-test.md
+
+     under “Before Clear Data”.
+
+2) RUN CLEAR DATA for the relevant category:
+   - Trigger the Clear Data endpoint the same way the UI would, passing the
+     category (or categories) that are supposed to clear Time & Payroll data.
+   - This CAN be a real destructive call because this is a DEV environment
+     with mock data.
+
+3) AFTER CLEARING:
+   - Query the same Time & Payroll tables again.
+   - Record the new row counts in data-clearing-test.md under “After Clear Data”.
+   - Expected:
+     - All Time & Payroll tables are empty (or only contain system seed rows, if any).
+
+4) In data-clearing-test.md, clearly state:
+   - Which category was used.
+   - Which tables were cleared.
+   - Any tables deliberately preserved (and why).
+
+=====================================
+STEP 5 – Final check & summary
+=====================================
+
+Finally, re-run the pre-flight check:
+
+- GET /api/system/pre-flight-check?feature=time-payroll-core
+
+(Should still be canDeploy=true with only COBIT maturity warning.)
+
+Then respond to me with:
+
+1) A short summary of the Clear Data implementation:
+   - Category name → list of Time & Payroll tables cleared.
+   - Anything not cleared and why.
+
+2) The “Before vs After” row-count table from data-clearing-test.md.
+
+3) Confirmation that:
+   - No new pre-flight blockers were introduced.
+   - From your perspective, Time & Payroll is now:
+     - SOX/ITGC compliant
+     - SoD / dual-auth enforced
+     - RBAC enforced
+     - Clear Data-capable (for dev/test cleanup)
+
+Do NOT touch any non-Time & Payroll subsystems in this task.
+We will handle Estimation, Procurement, etc., later.
