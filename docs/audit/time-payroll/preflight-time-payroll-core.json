@@ -1,0 +1,144 @@
+{
+  "feature": "time-payroll-core",
+  "version": "1.0.0",
+  "timestamp": "2025-12-02T10:50:22Z",
+  "environment": "development",
+  "overallStatus": "warn",
+  "canDeploy": true,
+  "checks": {
+    "database": {
+      "status": "pass",
+      "message": "All required tables exist",
+      "tables": [
+        "time_entries",
+        "timesheets",
+        "time_clocks",
+        "payroll_periods",
+        "location_tracking",
+        "timesheet_corrections",
+        "payroll_adjustments",
+        "payroll_sync_log",
+        "time_permissions"
+      ]
+    },
+    "schema": {
+      "status": "pass",
+      "message": "All required columns present in Time & Payroll tables"
+    },
+    "auditColumns": {
+      "status": "pass",
+      "message": "Hash chain audit columns present and populated",
+      "details": {
+        "time_entries": { "count": 1, "withHash": 1, "coverage": "100%" },
+        "timesheets": { "count": 192, "withHash": 192, "coverage": "100%" },
+        "payroll_periods": { "count": 1, "withHash": 1, "coverage": "100%" }
+      }
+    },
+    "services": {
+      "status": "pass",
+      "message": "All required services available",
+      "services": [
+        "timeAnalyticsService",
+        "timesheetAggregationService",
+        "overtimeCalculationService",
+        "payrollExportService",
+        "payrollPeriodService",
+        "gpsArchivalService",
+        "fraudScoringService"
+      ]
+    },
+    "routes": {
+      "status": "pass",
+      "message": "All required API routes registered",
+      "routes": [
+        "/api/time/clock-status",
+        "/api/time/timesheets",
+        "/api/time/timesheets/:id/approve",
+        "/api/time/timesheets/:id/reject",
+        "/api/time/timesheets/pending-approval",
+        "/api/payroll/periods",
+        "/api/payroll/periods/lock",
+        "/api/payroll/export",
+        "/api/payroll/sync"
+      ]
+    },
+    "rbac": {
+      "status": "pass",
+      "message": "RBAC enforcement verified on admin routes",
+      "adminRoutes": [
+        "/api/payroll/export",
+        "/api/payroll/periods/lock"
+      ]
+    },
+    "sodControls": {
+      "status": "pass",
+      "message": "Separation of Duties controls configured",
+      "controls": [
+        "User cannot approve own timesheet",
+        "Payroll period admin lock requires REQUEST → APPROVE by different users",
+        "Payroll export requires manager+ role",
+        "GPS override approval requires secondary authorization"
+      ]
+    },
+    "dualAuth": {
+      "status": "pass",
+      "message": "Dual-auth routes implemented",
+      "enabledFlows": [
+        "payrollPeriodAdminLock",
+        "gpsOverrideApproval",
+        "payrollExport",
+        "bulkCorrections",
+        "highValueTimesheetCorrections"
+      ]
+    },
+    "arbApproval": {
+      "status": "pass",
+      "message": "ARB approval granted",
+      "details": {
+        "status": "approved",
+        "approvedBy": "Adam Green",
+        "approvedAt": "2025-12-02T09:50:22Z",
+        "approvalReference": "ARB-STEELIQ-TIMEPAYROLL-2025-001",
+        "nextReviewDate": "2026-12-01"
+      }
+    },
+    "cobitMaturity": {
+      "status": "warn",
+      "message": "COBIT Level 3 achieved, Level 4 requires dashboards and metrics",
+      "details": {
+        "currentLevel": 3,
+        "targetLevel": 4,
+        "objectives": [
+          { "id": "APO12", "name": "Managed Risk", "current": 3, "target": 4 },
+          { "id": "BAI06", "name": "Managed IT Changes", "current": 3, "target": 4 },
+          { "id": "DSS05", "name": "Managed Security Services", "current": 3, "target": 4 },
+          { "id": "MEA02", "name": "Managed System of Internal Control", "current": 3, "target": 4 }
+        ]
+      }
+    },
+    "itgc": {
+      "status": "pass",
+      "message": "All ITGC controls enabled",
+      "controls": {
+        "accessControls": true,
+        "changeManagement": true,
+        "computerOperations": true,
+        "programDevelopment": true,
+        "sdlc": true,
+        "auditTrail": true,
+        "encryption": true,
+        "backupRecovery": true
+      }
+    }
+  },
+  "blockingIssues": [],
+  "warnings": [
+    "COBIT maturity at Level 3; target Level 4 requires monitoring dashboards"
+  ],
+  "summary": {
+    "totalChecks": 11,
+    "passed": 10,
+    "warned": 1,
+    "failed": 0
+  }
+}
