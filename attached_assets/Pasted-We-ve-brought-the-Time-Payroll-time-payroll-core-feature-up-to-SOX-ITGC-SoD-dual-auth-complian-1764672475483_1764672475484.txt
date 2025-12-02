@@ -1,0 +1,330 @@
+We’ve brought the Time & Payroll (time-payroll-core) feature up to SOX/ITGC + SoD/dual-auth compliance in dev.
+
+Now I want to:
+
+1) Add a COBIT maturity roadmap (current=3, target=4 later)
+2) Capture evidence for the governance framework
+3) Run concrete SoD / dual-auth / RBAC tests for Time & Payroll
+4) Verify the Clear Data (data deletion) system fully clears Time & Payroll data in dev
+5) Cross-check the 5 Time & Payroll waves on the Architecture Dashboard
+
+IMPORTANT CONSTRAINTS
+---------------------
+- Scope: **Time & Payroll system only** (time-payroll-core).
+- Environment: **development only**. All current data is mock/test data created by the agent.
+- It is OK to delete ALL Time & Payroll data in this environment.
+- Do NOT modify:
+  - replit.md
+  - STEELIQ_Enterprise_Control_Framework_Governance_v2.0.md
+- You MAY:
+  - Create or update docs under /docs
+  - Update the time-payroll-core manifest if needed
+  - Run destructive operations ONLY in dev
+
+=================================================
+STEP 1 – Create a COBIT Maturity Roadmap Document
+=================================================
+
+Goal:
+Document a clear roadmap from COBIT Level 3 (Defined) to Level 4 (Measured & Managed) for Time & Payroll, keeping:
+- currentLevel = 3 (good for now)
+- targetLevel = 4 (future goal)
+
+Tasks:
+
+1) Create a new markdown document:
+   - Path: docs/governance/time-payroll-maturity-roadmap.md
+
+2) In that document, include:
+
+   - A short executive summary:
+     - “Time & Payroll is currently COBIT Level 3 (Defined) across APO12, BAI06, DSS05, MEA02.
+      Target Level 4 (Measured & Managed) will be achieved once metrics, dashboards and regular review cycles are in place.”
+
+   - For each COBIT objective (APO12, BAI06, DSS05, MEA02):
+     - Current Level 3 controls already in place (brief bullets)
+     - What Level 4 would require (e.g. KPIs, dashboards, alerting, periodic reviews)
+     - Concrete future tasks (e.g. “Add dashboard for dual-auth request volume and failure rate”)
+
+3) In server/manifests/time-payroll-core.manifest.json:
+   - Ensure governance.cobit2024 already has currentLevel=3 and targetLevel=4.
+   - Add or refine a small "maturityNotes" or "improvementPlan" field summarizing:
+     - currentLevel=3 acceptable now
+     - planned move to Level 4 once monitoring/reporting is implemented.
+
+4) DO NOT change the levels themselves (keep 3 and 4 as-is).
+
+Show me:
+- The contents of docs/governance/time-payroll-maturity-roadmap.md
+- The updated governance.cobit2024 section from the manifest.
+
+=========================================================
+STEP 2 – Capture Governance Evidence for Time & Payroll
+=========================================================
+
+Goal:
+Create an evidence pack for auditors / governance, based on work already done.
+
+Tasks:
+
+1) Create a folder for Time & Payroll evidence:
+   - docs/audit/time-payroll/
+
+2) Save the latest pre-flight report (for time-payroll-core) to:
+   - docs/audit/time-payroll/preflight-time-payroll-core.json
+   Use:
+   - GET /api/system/pre-flight-check?feature=time-payroll-core
+   (authenticated as admin) and write the raw JSON to that file.
+
+3) Save a summary markdown:
+   - docs/audit/time-payroll/time-payroll-governance-summary.md
+
+   Include:
+   - Date/time of the report
+   - Pre-flight key fields (overallStatus, canDeploy, warnings)
+   - A short section summarizing:
+     - Hash-chain and audit fields (what tables, what controls)
+     - SoD / dual-auth controls in Time & Payroll
+     - ARB approval status (Approved by Adam Green, reference ID)
+     - COBIT current=3, target=4 with link to the maturity roadmap doc
+
+4) Save backfill evidence:
+   - If we still have recent logs/output from the backfill script, either:
+     - Save the most recent output to docs/audit/time-payroll/backfill-log.txt
+     OR
+     - Re-run the backfill script in DRY-RUN mode ONLY and capture that output
+       as docs/audit/time-payroll/backfill-dry-run-latest.txt.
+
+5) Show me the list of files created under docs/audit/time-payroll/ and
+   the contents of time-payroll-governance-summary.md.
+
+======================================================
+STEP 3 – Run SoD / Dual-Auth / RBAC Tests (DEV ONLY)
+======================================================
+
+Goal:
+Run concrete tests in the dev environment to prove the Time & Payroll SoD controls behave correctly.
+
+Use ONLY dev data (all current data is mock). It is OK if records are changed or deleted.
+
+Assume:
+- We have at least:
+  - One open payroll period with id=1 (or find a suitable one)
+  - Two users:
+    - User A: admin/manager
+    - User B: different user with manager or higher role
+
+3.1 Payroll Admin Lock Dual-Auth Test
+
+1) As User A (admin/manager), request an admin lock:
+   - Login as user A.
+   - Call: POST /api/payroll-periods/{periodId}/request-admin-lock
+     with a JSON body containing a reason.
+   - Record:
+     - Response JSON
+     - Current DB state for that period (lock_status, lock_requested_by, lock_dual_auth_request_id, etc.)
+
+2) While still User A, attempt to approve the same lock:
+   - Call: POST /api/payroll-periods/{periodId}/approve-admin-lock
+     with the same requestId.
+   - Expected:
+     - Failure with SoD violation (self-approval blocked).
+
+3) As User B (different manager/owner), approve the admin lock:
+   - Login as User B.
+   - Call: POST /api/payroll-periods/{periodId}/approve-admin-lock
+     with the same requestId.
+   - Expected:
+     - Success.
+     - Period status transitions from pending_admin_lock to locked/admin_locked.
+     - locked_by = User B.
+
+4) Save a short test log to:
+   - docs/audit/time-payroll/tests-admin-lock-dual-auth.md
+   including:
+   - Which users you used (by role, not password)
+   - API calls and outcomes
+   - Final DB state (selected fields)
+
+3.2 High-Value Timesheet Correction Dual-Auth Test
+
+We want to prove that:
+- Low-impact correction = single approver.
+- High-impact correction (> threshold or on locked period) = second approver required.
+
+1) Identify or create:
+   - A test timesheet for a user.
+
+2) LOW-impact correction:
+   - Create a correction below the threshold (e.g. 30 minutes).
+   - Approve as a supervisor/manager.
+   - Expect:
+     - requires_dual_auth = false
+     - second_approved_by and second_approved_at are NULL
+     - Correction applied successfully.
+
+3) HIGH-impact correction:
+   - Create a correction above the threshold (e.g. > 120 minutes) OR on a locked period.
+   - First approver (supervisor) approves.
+   - Try to finalize with only that single approval.
+   - Expected:
+     - System indicates second approval required (via status or error).
+     - requires_dual_auth = true.
+   - Then have a second manager/owner approve.
+   - Expected:
+     - second_approved_by and second_approved_at are set.
+     - SoD enforced (second approver != requested_by and != first approver).
+
+4) Save test results to:
+   - docs/audit/time-payroll/tests-timesheet-corrections-dual-auth.md
+   including:
+   - Threshold used
+   - Requests/responses (sanitized)
+   - Relevant DB snapshots.
+
+3.3 RBAC Tests for Critical Time & Payroll Routes
+
+For each route:
+
+- /api/time/timesheets/:id/reject
+- /api/time/timesheets/pending-approval
+- /api/payroll/periods
+- /api/payroll/periods/lock
+- /api/payroll/export
+
+Run:
+
+1) As a low-privilege user (e.g. basic/user/team_member):
+   - Attempt to call these endpoints.
+   - Expected: Access denied (403 or equivalent).
+
+2) As a high-privilege user (manager/admin/super_admin/owner):
+   - Call the same endpoints.
+   - Expected: Access allowed (assuming other conditions met).
+
+Record results in:
+- docs/audit/time-payroll/tests-rbac-time-payroll.md
+
+At the end of Step 3, show me:
+- A brief summary of each test (admin lock, corrections, RBAC)
+- The filenames created under docs/audit/time-payroll/ for test evidence.
+
+==========================================================
+STEP 4 – Verify Clear Data (Data Deletion) for Time & Payroll
+==========================================================
+
+The app has an Organization Settings → Data → Clear Data UI (Clear Business Data). I need to be sure this is wired correctly so that we can delete ALL mock Time & Payroll data before going live.
+
+Goal:
+Confirm that the Clear Data feature:
+- Is implemented in the backend.
+- When the relevant categories are chosen, it deletes Time & Payroll data
+  (time_entries, timesheets, payroll_periods, timesheet_corrections, etc.) in this dev environment.
+
+Tasks:
+
+1) Locate the Clear Data implementation:
+   - Frontend: the Organization Settings → Data → Clear Data page/component.
+   - Backend: the API route(s) invoked when “Clear Selected Data” is clicked.
+   - Identify which categories map to Time & Payroll-related tables:
+     - e.g. Jobs & Projects, Financial Records, Audit Trails & History, etc.
+
+2) In THIS dev environment (with mock data only):
+
+   - Before clearing:
+     - Count rows in key Time & Payroll tables:
+       - time_entries
+       - timesheets
+       - payroll_periods
+       - timesheet_corrections
+       - time_permissions (if appropriate)
+       - any related audit/log tables for Time & Payroll
+
+   - Trigger the Clear Data flow via the backend route (you can simulate the UI call using curl).
+     - Choose the categories that SHOULD delete Time & Payroll data.
+     - Make sure any “Create backup before clearing” flag is handled appropriately
+       for dev (it’s OK to skip actual backup in dev if that’s how it’s designed).
+
+   - After clearing:
+     - Recount the rows in those same tables.
+     - Expected: Time & Payroll tables should be empty (or only system seed rows, if any).
+
+3) Save a small report to:
+   - docs/audit/time-payroll/data-clearing-test.md
+   including:
+   - Which categories you used
+   - Before/after row counts per table
+   - Any limitations (e.g. certain audit logs intentionally retained for governance)
+
+4) DO NOT alter the Clear Data behaviour to be less strict. If anything, just document what it currently does.
+
+=================================================
+STEP 5 – Cross-Check the 5 Time & Payroll Waves
+=================================================
+
+On the STEELIQ Architecture Dashboard, Time & Payroll is shown as 5 waves:
+
+- Wave 1: Core Time Tracking & GPS
+- Wave 2: Multi-Channel Notification System
+- Wave 3: External Payroll Integration
+- Wave 4: Advanced Analytics & Escalation
+- Wave 5: AI/ML Enhancement (0%)
+
+Goal:
+Make sure each wave description matches actual implementation and governance state.
+
+Tasks:
+
+1) For each wave (1–5):
+   - Identify the relevant services, routes, and tables (from code and manifest).
+   - Summarize:
+     - What is actually implemented now.
+     - Whether there are any known gaps.
+     - How its controls map to:
+       - Time & Payroll governance (SOX, SoD, hash-chains)
+       - COBIT objectives
+
+2) Update or create a short architecture summary doc:
+   - docs/architecture/time-payroll-waves.md
+
+   For each wave:
+   - Name, purpose, completion status (Complete / In Progress / Not Started)
+   - Key components (services, routes, tables)
+   - Governance highlights (e.g. “Wave 1 covered hash chains + GPS anti-spoofing”, etc.)
+
+3) Do NOT change the dashboard UI itself in this step.
+   - Just make sure the doc reflects reality.
+   - We can update the dashboard later to match this doc.
+
+4) Show me:
+   - The contents of docs/architecture/time-payroll-waves.md
+   - A brief summary of any gaps you discovered.
+
+====================================
+FINAL SUMMARY (for this whole task)
+====================================
+
+At the end, respond with:
+
+A) Evidence pack contents:
+   - List of files created/updated under:
+     - docs/governance/
+     - docs/audit/time-payroll/
+     - docs/architecture/
+
+B) Pre-flight + governance status:
+   - current overallStatus and canDeploy for time-payroll-core
+   - ARB approval status
+   - COBIT current vs target, and a link/reference to the maturity roadmap doc.
+
+C) Test results:
+   - Short bullet summary of:
+     - Admin lock dual-auth test
+     - High-value corrections dual-auth test
+     - RBAC tests
+     - Clear Data test and its effect on Time & Payroll tables
+
+D) Any recommendations you still have specifically for Time & Payroll that we may want
+   to tackle in a future wave (but do NOT implement them in this task).
+
+Remember: Time & Payroll only. We will apply a similar process to other systems later, one by one.

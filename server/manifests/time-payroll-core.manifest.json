@@ -261,7 +261,7 @@
         { "id": "kpi-gps-compliance", "name": "GPS Validation Compliance", "target": 100, "unit": "percent" }
       ],
       "maturityNotes": {
-        "summary": "CurrentLevel=3 (Defined) is acceptable; move to Level 4 once monitoring dashboards and metrics for risk, changes, security services, and internal controls are implemented.",
+        "summary": "CurrentLevel=3 (Defined) is acceptable for initial deployment; move to Level 4 once monitoring dashboards and metrics are implemented.",
         "plannedTargetLevel": 4,
         "level4Prerequisites": [
           "Real-time monitoring dashboards for Time & Payroll KPIs",
@@ -269,6 +269,15 @@
           "Periodic compliance reporting with trend analysis",
           "Defined escalation procedures for governance exceptions"
         ],
+        "improvementPlan": {
+          "roadmapDocument": "docs/governance/time-payroll-maturity-roadmap.md",
+          "phases": [
+            { "phase": 1, "timeline": "Q1 2026", "focus": "Dashboards for APO12 (risk) and DSS05 (security)" },
+            { "phase": 2, "timeline": "Q2 2026", "focus": "BAI06 change metrics and MEA02 control testing" },
+            { "phase": 3, "timeline": "Q3 2026", "focus": "Full Level 4 assessment and certification" }
+          ],
+          "status": "Planning"
+        },
         "assessedAt": "2025-12-02T09:50:22Z",
         "assessedBy": "Adam Green"
       }
