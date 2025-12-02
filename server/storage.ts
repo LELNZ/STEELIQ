@@ -390,6 +390,7 @@ export interface IStorage {
   clearJobsData(userId: number): Promise<{ deletedCounts: any }>;
   clearFinancialData(userId: number): Promise<{ deletedCounts: any }>;
   clearEstimationData(userId: number): Promise<{ deletedCounts: any }>;
+  clearTimePayrollData(userId: number): Promise<{ deletedCounts: any }>;
   clearAllBusinessData(categories: string[], userId: number): Promise<{ deletedCounts: any }>;
   
   // Numbering Sequences
@@ -3707,6 +3708,110 @@ export class DatabaseStorage implements IStorage {
     return { deletedCounts: counts };
   }
 
+  async clearTimePayrollData(userId: number): Promise<{ deletedCounts: any }> {
+    const counts: any = {};
+    console.log("[CLEAR DATA] Starting Time & Payroll data cleanup...");
+
+    // Clear in proper FK dependency order (children first)
+    
+    // 1. Clear timesheet_corrections (references timesheets)
+    try {
+      const result = await db.execute(sql`DELETE FROM timesheet_corrections RETURNING id`);
+      counts.timesheetCorrections = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.timesheetCorrections} timesheet corrections`);
+    } catch (e) {
+      console.error("Error clearing timesheet corrections:", e);
+      counts.timesheetCorrections = 0;
+    }
+
+    // 2. Clear payroll_adjustments (references timesheets)
+    try {
+      const result = await db.execute(sql`DELETE FROM payroll_adjustments RETURNING id`);
+      counts.payrollAdjustments = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.payrollAdjustments} payroll adjustments`);
+    } catch (e) {
+      console.error("Error clearing payroll adjustments:", e);
+      counts.payrollAdjustments = 0;
+    }
+
+    // 3. Clear time_entries (references timesheets, jobs)
+    try {
+      const result = await db.execute(sql`DELETE FROM time_entries RETURNING id`);
+      counts.timeEntries = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.timeEntries} time entries`);
+    } catch (e) {
+      console.error("Error clearing time entries:", e);
+      counts.timeEntries = 0;
+    }
+
+    // 4. Clear payroll_sync_log (references payroll_periods)
+    try {
+      const result = await db.execute(sql`DELETE FROM payroll_sync_log RETURNING id`);
+      counts.payrollSyncLog = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.payrollSyncLog} payroll sync logs`);
+    } catch (e) {
+      console.error("Error clearing payroll sync log:", e);
+      counts.payrollSyncLog = 0;
+    }
+
+    // 5. Clear time_clocks (references location_tracking)
+    try {
+      const result = await db.execute(sql`DELETE FROM time_clocks RETURNING id`);
+      counts.timeClocks = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.timeClocks} time clocks`);
+    } catch (e) {
+      console.error("Error clearing time clocks:", e);
+      counts.timeClocks = 0;
+    }
+
+    // 6. Clear location_tracking
+    try {
+      const result = await db.execute(sql`DELETE FROM location_tracking RETURNING id`);
+      counts.locationTracking = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.locationTracking} location tracking records`);
+    } catch (e) {
+      console.error("Error clearing location tracking:", e);
+      counts.locationTracking = 0;
+    }
+
+    // 7. Clear timesheets
+    try {
+      const result = await db.execute(sql`DELETE FROM timesheets RETURNING id`);
+      counts.timesheets = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.timesheets} timesheets`);
+    } catch (e) {
+      console.error("Error clearing timesheets:", e);
+      counts.timesheets = 0;
+    }
+
+    // 8. Clear payroll_periods
+    try {
+      const result = await db.execute(sql`DELETE FROM payroll_periods RETURNING id`);
+      counts.payrollPeriods = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.payrollPeriods} payroll periods`);
+    } catch (e) {
+      console.error("Error clearing payroll periods:", e);
+      counts.payrollPeriods = 0;
+    }
+
+    // 9. Clear time_permissions
+    try {
+      const result = await db.execute(sql`DELETE FROM time_permissions RETURNING id`);
+      counts.timePermissions = result.rows.length;
+      console.log(`[CLEAR DATA] Deleted ${counts.timePermissions} time permissions`);
+    } catch (e) {
+      console.error("Error clearing time permissions:", e);
+      counts.timePermissions = 0;
+    }
+
+    // NOTE: Preserved tables (configuration, not transactional data):
+    // - payroll_provider_config: Provider credentials & settings
+    // - geofence_zones: Zone definitions for GPS validation
+
+    console.log("[CLEAR DATA] Time & Payroll data cleanup complete. Summary:", counts);
+    return { deletedCounts: counts };
+  }
+
   async clearAllBusinessData(categories: string[], userId: number): Promise<{ deletedCounts: any }> {
     const allCounts: any = {};
 
@@ -3725,6 +3830,10 @@ export class DatabaseStorage implements IStorage {
       }
       if (category === 'estimation') {
         const result = await this.clearEstimationData(userId);
+        Object.assign(allCounts, result.deletedCounts);
+      }
+      if (category === 'time_payroll') {
+        const result = await this.clearTimePayrollData(userId);
         Object.assign(allCounts, result.deletedCounts);
       }
       if (category === 'audit') {

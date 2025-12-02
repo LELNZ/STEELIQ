@@ -255,7 +255,8 @@ export default function DataManagement() {
     { id: "jobs", label: "Jobs & Projects", icon: <HardDrive className="h-4 w-4" /> },
     { id: "estimation", label: "AI Estimation Engine (Projects, Simulations)", icon: <Settings className="h-4 w-4" /> },
     { id: "finance", label: "Financial Records (Quotes, Invoices)", icon: <DollarSign className="h-4 w-4" /> },
-    { id: "audit", label: "Audit Trails & History", icon: <Clock className="h-4 w-4" /> },
+    { id: "time_payroll", label: "Time & Payroll (Timesheets, Clock Events, GPS)", icon: <Clock className="h-4 w-4" /> },
+    { id: "audit", label: "Audit Trails & History", icon: <Hash className="h-4 w-4" /> },
   ];
 
   const handleCategoryToggle = (categoryId: string) => {
