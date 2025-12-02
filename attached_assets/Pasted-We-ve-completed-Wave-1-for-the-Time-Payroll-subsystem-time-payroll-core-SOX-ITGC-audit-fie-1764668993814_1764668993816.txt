@@ -1,0 +1,262 @@
+We’ve completed Wave 1 for the Time & Payroll subsystem (time-payroll-core):
+
+- SOX/ITGC audit fields and hash chains implemented
+- Backfill script and pre-flight checks are passing
+- canDeploy: true
+- Remaining warnings: ARB approval + COBIT maturity
+
+Now I want to run WAVE 2 for Time & Payroll ONLY.
+
+=========================================
+STEP 0 – Scope & Guardrails (READ FIRST)
+=========================================
+
+- Scope: Only the Time & Payroll feature:
+  - Manifest: server/manifests/time-payroll-core.manifest.json
+  - Relevant tables: time_entries, timesheets, payroll_periods, timesheet_corrections, time_permissions
+  - Relevant services/routes: time/timeManagement, payrollPeriodService, payroll exports, NEW wrapper routes
+- Do NOT modify:
+  - replit.md
+  - STEELIQ_Enterprise_Control_Framework_Governance_v2.0.md
+  - Any other feature manifests (estimation, procurement, etc.)
+- Keep business logic behaviour the same where possible; changes should mainly be:
+  - Dual authorization (SoD)
+  - RBAC enforcement
+  - Governance metadata
+
+====================================================
+STEP 1 – Record ARB Approval (Adam Green as ARB)
+====================================================
+
+The governance decision is:
+
+- ARB approver for Time & Payroll: Adam Green
+- Approval level: enterprise
+- Status: approved (for the current design we just implemented)
+- This is a real approval for time-payroll-core in the current environment.
+
+Tasks:
+
+1) In server/manifests/time-payroll-core.manifest.json, update the ARB/TOGAF block to include an explicit approval record, for example:
+
+   "arbApproval": {
+     "required": true,
+     "approvalLevel": "enterprise",
+     "status": "approved",
+     "approvedBy": "Adam Green",
+     "approvedAt": "<INSERT_ISO_TIMESTAMP>",
+     "approvalReference": "ARB-STEELIQ-TIMEPAYROLL-2025-001",
+     "nextReviewDate": "2026-12-01"
+   }
+
+   - Use the current UTC timestamp for approvedAt.
+
+2) Re-run the pre-flight check:
+
+   GET /api/system/pre-flight-check?feature=time-payroll-core
+
+3) Confirm that:
+   - The ARB warning has disappeared.
+   - overallStatus is still "warn" or "pass".
+   - canDeploy remains true.
+
+Show me the updated ARB block from the manifest and the updated pre-flight JSON.
+
+=======================================================
+STEP 2 – COBIT Maturity: Keep Level 3 now, Target 4 later
+=======================================================
+
+Our governance decision is:
+
+- Current maturity (Level 3 / "Defined") is acceptable for Time & Payroll right now.
+- Target remains Level 4 ("Measured & Managed") – we will move to Level 4 later when:
+  - Monitoring dashboards, metrics, and alerting are in place for:
+    - risk
+    - change
+    - security services
+    - internal controls
+
+Tasks:
+
+1) DO NOT change:
+   - targetLevel (keep 4)
+   - currentLevel (keep 3)
+
+2) In server/manifests/time-payroll-core.manifest.json, you may add a small, structured note under governance.cobit2024 (for example, a maturityNotes or improvementPlan field) that captures this decision, e.g.:
+
+   "maturityNotes": {
+     "summary": "CurrentLevel=3 (Defined) is acceptable; move to Level 4 once monitoring dashboards and metrics for risk, changes, security services, and internal controls are implemented.",
+     "plannedTargetLevel": 4
+   }
+
+3) Do NOT suppress or remove the COBIT warning in pre-flight. It should remain as a valid non-blocking governance signal.
+
+Show me the updated cobit2024 section after the change.
+
+==================================================
+STEP 3 – WAVE 2: SoD & Dual-Auth for Time & Payroll
+==================================================
+
+Now implement Wave 2 controls for Time & Payroll only, focusing on SOX/SoD and RBAC hardening.
+
+3.1 Design pass (no code yet):
+
+1) Analyze the current behaviour for:
+   - Payroll period locking/unlocking:
+     - createPayrollPeriod, lockPayrollPeriod, unlockPayrollPeriod
+     - existing routes: /api/payroll-periods, /api/payroll-periods/:id/lock
+   - Timesheet corrections:
+     - timesheet_corrections table
+     - any existing correction flows or services
+   - Payroll export:
+     - /api/payroll/export (wrapper)
+     - Underlying export logic (e.g. payrollExportService)
+
+2) Summarize what already exists for:
+   - Segregation of Duties (who can do what)
+   - Any existing dual-authorization patterns (e.g. dualAuthRequestId for high-value exports)
+   - Existing RBAC enforcement for these actions
+
+Respond with a short DESIGN SUMMARY before changing code.
+
+3.2 Dual-Auth for Payroll Period Locking:
+
+Goal:
+- Locking a payroll period must require two different users (SoD).
+- One user REQUESTS the lock, another APPROVES it (with appropriate role).
+
+Implementation guidelines:
+
+1) Reuse any existing dual-authorization patterns for high-value actions if present (e.g. dualAuthRequestId) OR define a simple, clear pattern:
+
+   Example (you can adapt):
+
+   - Add fields to payroll_periods and/or a separate dual_auth_requests table to track:
+     - requestedBy, requestedAt
+     - approvedBy, approvedAt
+     - status: "lock_requested", "lock_approved"
+   - Prevent the same user from being both requestedBy and approvedBy.
+
+2) Update the lock/unlock flows so that:
+
+   - A lock request:
+     - Records that user A has requested the lock for period X.
+   - A lock approval:
+     - Requires user B with manager/admin-level role.
+     - Validates user B != user A.
+     - Only then sets status to "locked".
+   - Unlock logic should also respect SoD constraints as appropriate (e.g. manager-level).
+
+3) Enforce role checks based on existing role/permission system:
+   - Only manager/admin/super_admin/owner-level roles should be able to approve locks and unlocks.
+
+4) Update times-payroll manifest governance.soxControls.sodRequirements if needed to reflect this dual-auth rule more explicitly.
+
+3.3 Dual-Auth for High-Value Timesheet Corrections:
+
+Goal:
+- Large or sensitive timesheet corrections must be approved by a second person.
+
+Guidelines:
+
+1) Define a reasonable threshold for "high-value" corrections (for now, hard-code is OK, but make it easy to move to config later), e.g.:
+   - Total absolute change > 2 hours for a single day or week, OR
+   - Correction applied after the payroll period is already locked.
+
+2) Using the timesheet_corrections table and existing flows:
+
+   - For low-impact corrections below the threshold:
+     - Keep existing single approver flow (supervisor/manager).
+   - For high-impact corrections above the threshold OR corrections on locked periods:
+     - Require a second approver:
+       - Different user than the original requestor.
+       - Role: manager or above.
+
+3) Implement this as:
+   - Additional fields in timesheet_corrections or a linked dual-auth concept:
+     - requestedBy, requestedAt
+     - firstApprovedBy, firstApprovedAt
+     - secondApprovedBy, secondApprovedAt (for high-value cases)
+   - Validation to enforce that secondApprovedBy != requestedBy and != firstApprovedBy.
+
+4) Ensure any UI/endpoint behaviour fails with clear error messages when a second approval is required but not provided.
+
+3.4 RBAC Hardening for Time & Payroll Routes:
+
+Goal:
+- Ensure all critical Time & Payroll endpoints enforce minimum roles according to manifest RBAC.
+
+Tasks:
+
+1) For routes related to:
+   - /api/time/timesheets/:id/reject
+   - /api/time/timesheets/pending-approval
+   - /api/payroll/periods
+   - /api/payroll/periods/lock
+   - /api/payroll/export
+
+   Validate and, if needed, enforce:
+
+   - Reject and pending-approval:
+     - Only supervisor/manager/admin and above can reject or view pending approvals.
+   - Period lock/unlock:
+     - Only manager/admin/super_admin/owner can lock/unlock.
+   - Payroll export:
+     - Only manager/admin/super_admin/owner can trigger exports.
+
+2) Use the existing RBAC/authorization helpers already used elsewhere in the app so behaviour is consistent.
+
+3) Ensure the manifest rbacRequirements for time-payroll-core remain accurate after your changes.
+
+3.5 Governance & Pre-flight:
+
+1) Update the time-payroll-core manifest’s governance.soxControls.sodRequirements to explicitly list the new dual-auth rules implemented in 3.2 and 3.3, if they are not already.
+
+2) If feasible without heuristic hacks, enhance the pre-flight for time-payroll-core to:
+
+   - Confirm that:
+     - Period locking requires dual-auth (e.g. presence of specific flags/config, not deep code analysis).
+     - High-value corrections require dual-auth (based on configuration/manifest).
+
+   This can be config-based: do NOT attempt complex static analysis.
+
+3) Re-run:
+
+   GET /api/system/pre-flight-check?feature=time-payroll-core
+
+   and show me:
+
+   - overallStatus
+   - canDeploy
+   - Updated warnings
+   - Any new SoD-related messages
+
+=========================================
+STEP 4 – Final Summary (for Time & Payroll)
+=========================================
+
+When you’re done with Wave 2:
+
+Respond with a final summary containing:
+
+A) ARB & COBIT:
+   - The final arbApproval block.
+   - The final cobit2024 block.
+   - Updated pre-flight JSON snippet (overallStatus, canDeploy, warnings).
+
+B) SoD & Dual-Auth:
+   - Brief description of how period locking dual-auth works now.
+   - Brief description of how high-value timesheet corrections dual-auth works.
+   - Any new fields added to payroll_periods or timesheet_corrections.
+
+C) RBAC:
+   - Summary of minimum roles required for:
+     - rejecting timesheets
+     - viewing pending approvals
+     - locking/unlocking payroll periods
+     - exporting payroll
+
+D) Files changed:
+   - List the key files you altered (schema, services, routes, manifest, etc.).
+
+Do NOT touch any non-Time & Payroll features in this task. Once we complete Time & Payroll, we will apply a similar governance process to the other systems one by one.

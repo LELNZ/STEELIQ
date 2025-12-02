@@ -239,7 +239,12 @@
       },
       "arbApproval": {
         "required": true,
-        "approvalLevel": "enterprise"
+        "approvalLevel": "enterprise",
+        "status": "approved",
+        "approvedBy": "Adam Green",
+        "approvedAt": "2025-12-02T09:50:22Z",
+        "approvalReference": "ARB-STEELIQ-TIMEPAYROLL-2025-001",
+        "nextReviewDate": "2026-12-01"
       }
     },
     "cobit2024": {
@@ -254,7 +259,19 @@
         { "id": "kpi-approval-time", "name": "Timesheet Approval Time", "target": 24, "unit": "hours" },
         { "id": "kpi-payroll-sync", "name": "Payroll Sync Success Rate", "target": 99.9, "unit": "percent" },
         { "id": "kpi-gps-compliance", "name": "GPS Validation Compliance", "target": 100, "unit": "percent" }
-      ]
+      ],
+      "maturityNotes": {
+        "summary": "CurrentLevel=3 (Defined) is acceptable; move to Level 4 once monitoring dashboards and metrics for risk, changes, security services, and internal controls are implemented.",
+        "plannedTargetLevel": 4,
+        "level4Prerequisites": [
+          "Real-time monitoring dashboards for Time & Payroll KPIs",
+          "Automated alerting for anomalies in time entries and payroll data",
+          "Periodic compliance reporting with trend analysis",
+          "Defined escalation procedures for governance exceptions"
+        ],
+        "assessedAt": "2025-12-02T09:50:22Z",
+        "assessedBy": "Adam Green"
+      }
     },
     "soxControls": {
       "itgc": {

@@ -44,6 +44,11 @@ export interface GovernanceMetadata {
     arbApproval?: {
       required: boolean;
       approvalLevel: string;
+      status?: 'pending' | 'approved' | 'rejected';
+      approvedBy?: string;
+      approvedAt?: string;
+      approvalReference?: string;
+      nextReviewDate?: string;
     };
   };
   cobit2024?: {
@@ -592,11 +597,26 @@ class PreFlightChecklistService {
       }
 
       if (governance.togaf.arbApproval?.required) {
+        const arbApproval = governance.togaf.arbApproval;
+        const isApproved = arbApproval.status === 'approved';
+        
         results.push({
           check: 'togaf_arb_approval',
-          status: 'warn',
-          message: `Architecture Review Board approval required at '${governance.togaf.arbApproval.approvalLevel}' level`,
-          details: { required: true, level: governance.togaf.arbApproval.approvalLevel }
+          status: isApproved ? 'pass' : 'warn',
+          message: isApproved
+            ? `Architecture Review Board approved by ${arbApproval.approvedBy} on ${arbApproval.approvedAt} (ref: ${arbApproval.approvalReference})`
+            : `Architecture Review Board approval required at '${arbApproval.approvalLevel}' level`,
+          details: isApproved
+            ? { 
+                required: true, 
+                level: arbApproval.approvalLevel,
+                status: 'approved',
+                approvedBy: arbApproval.approvedBy,
+                approvedAt: arbApproval.approvedAt,
+                approvalReference: arbApproval.approvalReference,
+                nextReviewDate: arbApproval.nextReviewDate
+              }
+            : { required: true, level: arbApproval.approvalLevel, status: 'pending' }
         });
       }
     }
