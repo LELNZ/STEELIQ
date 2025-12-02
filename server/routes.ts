@@ -29,7 +29,7 @@ import {
   DualAuthPermission
 } from "./rbac";
 import { quotationManagementStorage } from "./quotationManagement";
-import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, updateSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, timesheets, locationTracking, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, materials, materialCategories, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, edgePreparations, equipmentLibrary, annotationThemes, plateSchedule, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems, projectLifecycleEvents, projectLifecyclePhases, projectLifecycleTasks, estimationProjects, projectLifecycleTemplates, invoices, payments, emailImportedCosts, timeEntries, jobEstimates, qualityControl, complianceDocuments, inventory, qualityInspections, inventoryMovements, safetyInspections, documents, machines, machineStatusLogs, productionEvents, productionShifts, productionMetrics, workOrders, aiDrawingAnalysis, steelElements, aiWorkerJobs, aiMonitoringLogs, aiProcessingQueue, aiBatchJobs, aiBatchJobItems, aiRunTelemetry, aiMtoEvidence, secureFiles, secureFileTokens, payrollProviderConfig, geofenceZones, auditLog, dualAuthRequests, dualAuthEvents, hashChainBlocks, photoEvidence, calendarSyncConfig, gpsBatteryProfiles, notifications, notificationPreferences, notificationPolicies, notificationAuditLog } from "@shared/schema";
+import { insertJobSchema, insertMaterialSchema, insertInventorySchema, insertJobMaterialSchema, insertOptimizationSimulationSchema, insertSupplierSchema, updateSupplierSchema, insertMaterialSupplierSchema, insertSupplierPriceHistorySchema, insertUserSchema, insertClientSchema, insertSupplierContactSchema, insertClientContactSchema, users, roles, departments, teamMembers, performanceReviews, qualificationReminders, settings, settingsAudit, laborRateCards, payrollIntegration, timeClocks, timesheets, locationTracking, organizationSettings, companyLocations, emailAccounts, supplierTemplates, importedCosts, costVariances, emailSyncLogs, suppliers, purchaseOrders, purchaseOrderItems, jobs, materials, materialCategories, drawings, drawingProjects, materialTakeoffs, remnants, jobMaterials, weldingStandards, drillingStandards, cuttingStandards, edgePreparations, equipmentLibrary, annotationThemes, plateSchedule, positionFactors, assemblyTemplates, laborDefaults, materialSubItems, laborRates, laborRateHistory, skillLevels, laborAllowances, estimationLabor, poDistribution, poStatusLog, systemAuditLog, purchaseRequisitions, connectionComponents, blastingStandards, coatingSystems, projectLifecycleEvents, projectLifecyclePhases, projectLifecycleTasks, estimationProjects, projectLifecycleTemplates, invoices, payments, emailImportedCosts, timeEntries, jobEstimates, qualityControl, complianceDocuments, inventory, qualityInspections, inventoryMovements, safetyInspections, documents, machines, machineStatusLogs, productionEvents, productionShifts, productionMetrics, workOrders, aiDrawingAnalysis, steelElements, aiWorkerJobs, aiMonitoringLogs, aiProcessingQueue, aiBatchJobs, aiBatchJobItems, aiRunTelemetry, aiMtoEvidence, secureFiles, secureFileTokens, payrollProviderConfig, geofenceZones, auditLog, dualAuthRequests, dualAuthEvents, hashChainBlocks, photoEvidence, calendarSyncConfig, gpsBatteryProfiles, notifications, notificationPreferences, notificationPolicies, notificationAuditLog, payrollPeriods } from "@shared/schema";
 import NotificationService from "./services/notificationService";
 import { hashChain, dualAuthManager } from "@shared/security";
 import securityIntegration from "./services/securityIntegration";
@@ -8515,6 +8515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const result = await approvalRequestService.createRequest({
         requesterId: user.id,
+        requesterName: user.name || user.username,
         employeeId,
         clockType,
         reason,
@@ -14073,6 +14074,364 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error unlocking period:", error);
       res.status(500).json({ error: "Failed to unlock period" });
+    }
+  });
+
+  // SOX SoD Compliance: Dual-auth request for admin lock
+  app.post("/api/payroll-periods/:id/request-admin-lock", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // RBAC: Only manager, admin, or super_admin can request admin lock
+      if (!['manager', 'admin', 'super_admin', 'owner'].includes(user.role)) {
+        return res.status(403).json({ error: "Forbidden - Manager or higher required" });
+      }
+
+      const { reason } = req.body;
+      const periodId = parseInt(req.params.id);
+
+      if (!reason) {
+        return res.status(400).json({ error: "Reason is required for admin lock request" });
+      }
+
+      // Check current period state
+      const [period] = await db.select().from(payrollPeriods).where(eq(payrollPeriods.id, periodId));
+      if (!period) {
+        return res.status(404).json({ error: "Period not found" });
+      }
+
+      if (period.lockStatus === 'admin_locked') {
+        return res.status(400).json({ error: "Period is already admin locked" });
+      }
+
+      if (period.lockStatus === 'pending_admin_lock') {
+        return res.status(400).json({ error: "Admin lock request already pending", requestId: period.lockDualAuthRequestId });
+      }
+
+      // Generate dual auth request ID
+      const { v4: uuidv4 } = await import('uuid');
+      const dualAuthRequestId = uuidv4();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hour expiry
+
+      // Create dual auth request
+      await db.insert(dualAuthRequests).values({
+        requestId: dualAuthRequestId,
+        requestType: 'ADMIN_LOCK',
+        requesterId: user.id,
+        requesterName: user.name || user.username,
+        resourceType: 'payroll_period',
+        resourceId: String(periodId),
+        action: 'admin_lock_period',
+        reason: reason,
+        status: 'pending',
+        expiresAt: expiresAt,
+        metadata: { periodType: period.periodType, payPeriodStart: period.payPeriodStart, payPeriodEnd: period.payPeriodEnd }
+      });
+
+      // Update period to pending state
+      await db.update(payrollPeriods)
+        .set({
+          lockStatus: 'pending_admin_lock',
+          lockRequestedBy: user.id,
+          lockRequestedAt: new Date(),
+          lockDualAuthRequestId: dualAuthRequestId,
+          lockReason: reason,
+          updatedAt: new Date()
+        })
+        .where(eq(payrollPeriods.id, periodId));
+
+      // Audit log
+      await db.insert(auditLog).values({
+        userId: user.id,
+        action: 'admin_lock_requested',
+        entity: 'payroll_period',
+        entityId: periodId,
+        details: JSON.stringify({ dualAuthRequestId, reason }),
+        createdAt: new Date()
+      });
+
+      console.log("[PayrollPeriod] Admin lock requested for period " + periodId + " by user " + user.id + ", requestId: " + dualAuthRequestId);
+
+      res.json({
+        success: true,
+        message: "Admin lock request created - awaiting approval from a different authorized user",
+        requestId: dualAuthRequestId,
+        expiresAt: expiresAt
+      });
+    } catch (error) {
+      console.error("Error requesting admin lock:", error);
+      res.status(500).json({ error: "Failed to request admin lock" });
+    }
+  });
+
+  // SOX SoD Compliance: Approve admin lock (dual-auth second party)
+  app.post("/api/payroll-periods/:id/approve-admin-lock", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // RBAC: Only manager, admin, or super_admin can approve admin lock
+      if (!['manager', 'admin', 'super_admin', 'owner'].includes(user.role)) {
+        return res.status(403).json({ error: "Forbidden - Manager or higher required" });
+      }
+
+      const { requestId } = req.body;
+      const periodId = parseInt(req.params.id);
+
+      if (!requestId) {
+        return res.status(400).json({ error: "Request ID is required" });
+      }
+
+      // Get the period
+      const [period] = await db.select().from(payrollPeriods).where(eq(payrollPeriods.id, periodId));
+      if (!period) {
+        return res.status(404).json({ error: "Period not found" });
+      }
+
+      if (period.lockStatus !== 'pending_admin_lock') {
+        return res.status(400).json({ error: "Period is not pending admin lock approval" });
+      }
+
+      if (period.lockDualAuthRequestId !== requestId) {
+        return res.status(400).json({ error: "Invalid request ID" });
+      }
+
+      // Get the dual auth request
+      const [dualAuthRequest] = await db.select()
+        .from(dualAuthRequests)
+        .where(and(
+          eq(dualAuthRequests.requestId, requestId),
+          eq(dualAuthRequests.status, 'pending')
+        ));
+
+      if (!dualAuthRequest) {
+        return res.status(404).json({ error: "Dual auth request not found or already processed" });
+      }
+
+      // Check expiry
+      if (dualAuthRequest.expiresAt && dualAuthRequest.expiresAt < new Date()) {
+        await db.update(dualAuthRequests)
+          .set({ status: 'expired' })
+          .where(eq(dualAuthRequests.requestId, requestId));
+        await db.update(payrollPeriods)
+          .set({ lockStatus: 'unlocked', lockDualAuthRequestId: null, lockRequestedBy: null, lockRequestedAt: null })
+          .where(eq(payrollPeriods.id, periodId));
+        return res.status(400).json({ error: "Request has expired" });
+      }
+
+      // CRITICAL SoD: Prevent self-approval
+      if (dualAuthRequest.requesterId === user.id) {
+        return res.status(403).json({ 
+          error: "Self-approval not allowed - SoD violation. A different authorized user must approve.",
+          sodViolation: true
+        });
+      }
+
+      // Import audit hash service for SOX compliance
+      const { computePayrollPeriodAuditHash, computeTimesheetAuditHash } = await import('./utils/auditHashService');
+
+      // Apply the admin lock
+      const lockedAt = new Date();
+      const [updatedPeriod] = await db.update(payrollPeriods)
+        .set({
+          lockStatus: 'admin_locked',
+          lockedBy: user.id,
+          lockedAt: lockedAt,
+          adjustmentsAllowed: false,
+          modifiedBy: user.id,
+          updatedAt: lockedAt
+        })
+        .where(eq(payrollPeriods.id, periodId))
+        .returning();
+
+      // Compute audit hash for the locked period
+      const periodAuditHash = computePayrollPeriodAuditHash(
+        {
+          id: updatedPeriod.id,
+          businessUnitId: updatedPeriod.businessUnitId,
+          periodType: updatedPeriod.periodType || 'weekly',
+          payPeriodStart: updatedPeriod.payPeriodStart,
+          payPeriodEnd: updatedPeriod.payPeriodEnd,
+          payDate: updatedPeriod.payDate,
+          status: updatedPeriod.status,
+          lockedBy: updatedPeriod.lockedBy,
+          lockedAt: updatedPeriod.lockedAt,
+          processingStartedAt: updatedPeriod.processingStartedAt,
+          processingCompletedAt: updatedPeriod.processingCompletedAt,
+          syncStatus: updatedPeriod.syncStatus,
+          employeeCount: updatedPeriod.employeeCount,
+          totalHours: updatedPeriod.totalHours,
+          totalAmount: updatedPeriod.totalAmount
+        },
+        period.previousAuditHash || 'GENESIS'
+      );
+
+      await db.update(payrollPeriods)
+        .set({ auditHash: periodAuditHash })
+        .where(eq(payrollPeriods.id, periodId));
+
+      // Update dual auth request status
+      await db.update(dualAuthRequests)
+        .set({ 
+          status: 'approved',
+          approverId: user.id,
+          approvedAt: new Date()
+        })
+        .where(eq(dualAuthRequests.requestId, requestId));
+
+      // Record approval event
+      await db.insert(dualAuthEvents).values({
+        requestId: dualAuthRequest.id,
+        eventType: 'approved',
+        actorId: user.id,
+        actorRole: user.role,
+        metadata: { periodId, lockReason: period.lockReason }
+      });
+
+      // Lock all timesheets within the period
+      const timesheetsToLock = await db.select()
+        .from(timesheets)
+        .where(
+          and(
+            gte(timesheets.weekStartDate, period.payPeriodStart),
+            lte(timesheets.weekEndDate, period.payPeriodEnd)
+          )
+        );
+
+      for (const ts of timesheetsToLock) {
+        const tsAuditHash = computeTimesheetAuditHash(
+          {
+            id: ts.id,
+            userId: ts.userId,
+            weekStartDate: ts.weekStartDate,
+            weekEndDate: ts.weekEndDate,
+            status: 'locked',
+            totalHours: ts.totalHours,
+            regularHours: ts.regularHours,
+            overtimeHours: ts.overtimeHours,
+            totalCost: ts.totalCost,
+            approvedBy: ts.approvedBy,
+            approvedAt: ts.approvedAt
+          },
+          ts.previousAuditHash || 'GENESIS'
+        );
+
+        await db.update(timesheets)
+          .set({ 
+            status: 'locked',
+            auditHash: tsAuditHash,
+            updatedAt: new Date()
+          })
+          .where(eq(timesheets.id, ts.id));
+      }
+
+      // Audit log
+      await db.insert(auditLog).values({
+        userId: user.id,
+        action: 'admin_lock_approved',
+        entity: 'payroll_period',
+        entityId: periodId,
+        details: JSON.stringify({ 
+          requestId, 
+          requestedBy: dualAuthRequest.requesterId,
+          approvedBy: user.id,
+          timesheetsLocked: timesheetsToLock.length,
+          auditHash: periodAuditHash
+        }),
+        createdAt: new Date()
+      });
+
+      console.log("[PayrollPeriod] Admin lock approved for period " + periodId + " by user " + user.id + " (requested by " + dualAuthRequest.requesterId + ")");
+
+      res.json({
+        success: true,
+        message: "Admin lock approved and applied",
+        period: updatedPeriod,
+        timesheetsLocked: timesheetsToLock.length
+      });
+    } catch (error) {
+      console.error("Error approving admin lock:", error);
+      res.status(500).json({ error: "Failed to approve admin lock" });
+    }
+  });
+
+  // SOX SoD Compliance: Cancel/reject admin lock request
+  app.post("/api/payroll-periods/:id/cancel-admin-lock", async (req, res) => {
+    try {
+      const user = await AuthService.getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { requestId, reason } = req.body;
+      const periodId = parseInt(req.params.id);
+
+      if (!requestId) {
+        return res.status(400).json({ error: "Request ID is required" });
+      }
+
+      // Get the period
+      const [period] = await db.select().from(payrollPeriods).where(eq(payrollPeriods.id, periodId));
+      if (!period) {
+        return res.status(404).json({ error: "Period not found" });
+      }
+
+      if (period.lockStatus !== 'pending_admin_lock') {
+        return res.status(400).json({ error: "Period is not pending admin lock" });
+      }
+
+      // Get the dual auth request
+      const [dualAuthRequest] = await db.select()
+        .from(dualAuthRequests)
+        .where(eq(dualAuthRequests.requestId, requestId));
+
+      if (!dualAuthRequest) {
+        return res.status(404).json({ error: "Dual auth request not found" });
+      }
+
+      // Only requester or admin/owner can cancel
+      if (dualAuthRequest.requesterId !== user.id && !['admin', 'super_admin', 'owner'].includes(user.role)) {
+        return res.status(403).json({ error: "Only the requester or admin can cancel" });
+      }
+
+      // Revert period state
+      await db.update(payrollPeriods)
+        .set({
+          lockStatus: period.lockStatus === 'pending_admin_lock' && period.lockedBy ? 'manager_locked' : 'unlocked',
+          lockDualAuthRequestId: null,
+          lockRequestedBy: null,
+          lockRequestedAt: null,
+          lockReason: null,
+          updatedAt: new Date()
+        })
+        .where(eq(payrollPeriods.id, periodId));
+
+      // Update dual auth request
+      await db.update(dualAuthRequests)
+        .set({ status: 'cancelled' })
+        .where(eq(dualAuthRequests.requestId, requestId));
+
+      // Audit log
+      await db.insert(auditLog).values({
+        userId: user.id,
+        action: 'admin_lock_cancelled',
+        entity: 'payroll_period',
+        entityId: periodId,
+        details: JSON.stringify({ requestId, cancelledBy: user.id, reason }),
+        createdAt: new Date()
+      });
+
+      console.log("[PayrollPeriod] Admin lock cancelled for period " + periodId + " by user " + user.id);
+
+      res.json({ success: true, message: "Admin lock request cancelled" });
+    } catch (error) {
+      console.error("Error cancelling admin lock:", error);
+      res.status(500).json({ error: "Failed to cancel admin lock request" });
     }
   });
 
@@ -27691,6 +28050,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const request = await aiSchedulingService.createShiftSwapRequest({
         ...req.body,
         requesterId: user.id,
+        requesterName: user.name || user.username,
       });
       
       res.json({ success: true, data: request, message: "Swap request created" });

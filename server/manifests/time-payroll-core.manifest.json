@@ -288,8 +288,55 @@
         "User cannot approve own timesheet",
         "Time entry is separate from payroll processing",
         "Payroll export requires manager+ role",
-        "Payroll period locking requires dual authorization"
+        "Payroll period locking requires dual authorization",
+        "Payroll period admin lock requires REQUEST → APPROVE by different users",
+        "GPS override approval requires secondary authorization",
+        "High-value timesheet corrections (>2 hours or locked period) require dual-auth",
+        "Bulk corrections require dual-auth approval with SoD enforcement"
       ],
+      "dualAuthConfig": {
+        "payrollPeriodAdminLock": {
+          "enabled": true,
+          "requiredRoles": ["manager", "admin", "super_admin", "owner"],
+          "sameUserBlocked": true,
+          "routes": [
+            "/api/payroll-periods/:id/request-admin-lock",
+            "/api/payroll-periods/:id/approve-admin-lock",
+            "/api/payroll-periods/:id/cancel-admin-lock"
+          ]
+        },
+        "gpsOverrideApproval": {
+          "enabled": true,
+          "requiredRoles": ["supervisor", "manager", "admin", "super_admin", "owner"],
+          "sameUserBlocked": true,
+          "routes": [
+            "/api/time/gps-overrides/:id/request-approval",
+            "/api/time/gps-overrides/:id/approve"
+          ]
+        },
+        "payrollExport": {
+          "enabled": true,
+          "requiredRoles": ["manager", "admin", "super_admin", "owner"],
+          "sameUserBlocked": true,
+          "routes": [
+            "/api/payroll/export"
+          ]
+        },
+        "bulkCorrections": {
+          "enabled": true,
+          "requiredRoles": ["manager", "admin", "super_admin", "owner"],
+          "sameUserBlocked": true,
+          "routes": [
+            "/api/time/bulk-corrections"
+          ]
+        },
+        "highValueTimesheetCorrections": {
+          "enabled": true,
+          "threshold": "2 hours or locked period",
+          "requiredRoles": ["supervisor", "manager", "admin", "super_admin", "owner"],
+          "sameUserBlocked": true
+        }
+      },
       "auditTrailRequirements": [
         "SHA-256 hash chain on all time/payroll records",
         "Immutable audit records with previous hash reference",

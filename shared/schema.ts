@@ -5599,13 +5599,20 @@ export const timesheetCorrections = pgTable("timesheet_corrections", {
   originalValues: jsonb("original_values").notNull(), // Store original state
   requestedValues: jsonb("requested_values").notNull(), // Store requested changes
   reason: text("reason").notNull(),
-  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending, approved, rejected, escalated
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending, approved, rejected, escalated, pending_dual_auth
   approvedBy: integer("approved_by").references(() => users.id),
   approvedAt: timestamp("approved_at"),
   rejectionReason: text("rejection_reason"),
   escalationPath: jsonb("escalation_path"), // Array of user IDs for escalation
   windowViolation: boolean("window_violation").default(false), // True if outside 48-hour window
   metadata: jsonb("metadata"), // Additional context, attachments, etc.
+  
+  // SOX SoD Compliance: Dual-auth for high-value corrections (Fortune 50 requirement)
+  requiresDualAuth: boolean("requires_dual_auth").default(false), // True if correction > 2 hours or locked period
+  secondApprovedBy: integer("second_approved_by").references(() => users.id), // Second approver for dual-auth
+  secondApprovedAt: timestamp("second_approved_at"), // When second approval occurred
+  dualAuthRequestId: varchar("dual_auth_request_id", { length: 36 }), // UUID of dual-auth request
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
@@ -5622,8 +5629,20 @@ export const payrollPeriods = pgTable("payroll_periods", {
   payPeriodEnd: date("pay_period_end").notNull(),
   payDate: date("pay_date").notNull(),
   status: varchar("status", { length: 20 }).default("open").notNull(), // open, locked, processing, completed, archived
+  
+  // Lock management - dual-auth for admin locks (SOX SoD compliance)
+  lockStatus: varchar("lock_status", { length: 30 }).default("unlocked").notNull(), // unlocked, manager_locked, pending_admin_lock, admin_locked
   lockedAt: timestamp("locked_at"),
   lockedBy: integer("locked_by").references(() => users.id),
+  lockReason: text("lock_reason"),
+  adjustmentsAllowed: boolean("adjustments_allowed").default(true),
+  modifiedBy: integer("modified_by").references(() => users.id),
+  
+  // Dual-authorization for admin lock (Fortune 50 SoD requirement)
+  lockRequestedBy: integer("lock_requested_by").references(() => users.id), // Who initiated admin lock request
+  lockRequestedAt: timestamp("lock_requested_at"), // When admin lock was requested
+  lockDualAuthRequestId: varchar("lock_dual_auth_request_id", { length: 36 }), // UUID of the dual auth request
+  
   processingStartedAt: timestamp("processing_started_at"),
   processingCompletedAt: timestamp("processing_completed_at"),
   employeeCount: integer("employee_count"),
